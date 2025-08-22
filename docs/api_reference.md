@@ -390,7 +390,7 @@ Aliases:
 
 - [DataBag.empty](#DataBag.empty)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty DataBag.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
 
 ### `kd.bags.updated(*bags)` {#kd.bags.updated}
 Aliases:
@@ -9838,6 +9838,13 @@ Alias for [kd.math.min](#kd.math.min) operator.
 
 Alias for [kd.math.minimum](#kd.math.minimum) operator.
 
+### `kd.mutable_bag()` {#kd.mutable_bag}
+Aliases:
+
+- [DataBag.empty_mutable](#DataBag.empty_mutable)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty mutable DataBag. Only works in eager mode.</code></pre>
+
 ### `kd.named_container()` {#kd.named_container}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Container that automatically names Exprs.
@@ -12346,6 +12353,10 @@ Returns:
 ### `DataBag.empty()` {#DataBag.empty}
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
+
+### `DataBag.empty_mutable()` {#DataBag.empty_mutable}
+
+Alias for [kd.mutable_bag](#kd.mutable_bag) operator.
 
 ### `DataBag.fork(mutable=True)` {#DataBag.fork}
 

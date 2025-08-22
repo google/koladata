@@ -52,10 +52,10 @@ using ::koladata::testing::IsEquivalentTo;
 // is a basic sanity check only.
 TEST(TransformTest, Basic) {
   ExecutorPtr executor = GetEagerExecutor();
-  ASSERT_OK_AND_ASSIGN(
-      auto missing_object,
-      DataSlice::Create(internal::DataItem(),
-                        internal::DataItem(schema::kObject), DataBag::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto missing_object,
+                       DataSlice::Create(internal::DataItem(),
+                                         internal::DataItem(schema::kObject),
+                                         DataBag::EmptyMutable()));
   ASSERT_OK_AND_ASSIGN(auto context, CreateExecutionContext(missing_object));
   ASSERT_OK_AND_ASSIGN(expr::InputContainer input_container,
                        expr::InputContainer::Create("I"));

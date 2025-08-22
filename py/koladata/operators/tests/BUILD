@@ -8496,6 +8496,7 @@ py_test(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
+        "//py/koladata/functions",
         "//py/koladata/functor:boxing",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:eager_op_utils",

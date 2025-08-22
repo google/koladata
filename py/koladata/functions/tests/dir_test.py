@@ -22,13 +22,13 @@ ds = data_slice.DataSlice.from_vals
 class DirTest(absltest.TestCase):
 
   def test_entity(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.new(a=1, b='abc')
     self.assertEqual(fns.dir(x), ['a', 'b'])
     self.assertEqual(fns.dir(ds([x])), ['a', 'b'])
 
   def test_object(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
     self.assertEqual(fns.dir(x), ['a', 'b'])
     self.assertEqual(fns.dir(ds([x])), ['a', 'b'])
@@ -36,11 +36,11 @@ class DirTest(absltest.TestCase):
     self.assertEqual(fns.dir(ds([x, db.obj(a='def', c=123)])), ['a'])
 
   def test_primitives(self):
-    x = ds([1, 2, 3]).with_bag(fns.bag())
+    x = ds([1, 2, 3]).with_bag(fns.mutable_bag())
     self.assertEqual(fns.dir(x), [])
 
   def test_no_bag_error(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
     with self.assertRaisesRegex(
         ValueError, 'cannot get available attributes without a DataBag'

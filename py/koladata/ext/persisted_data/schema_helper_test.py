@@ -441,7 +441,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_more_entity_list_interactions(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     o = bag.new(x=bag.list([1, 2, 3]), y=bag.list([4, 5, 6]))
     o_schema = o.get_schema()
     helper = schema_helper.SchemaHelper(o_schema)

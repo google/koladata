@@ -69,7 +69,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          auto db = koladata::DataBag::Empty();
+          auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
@@ -97,7 +97,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
                            GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          auto db = koladata::DataBag::Empty();
+          auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateUuSchema(db, seed, attr_names, values));
           db->UnsafeMakeImmutable();
@@ -126,7 +126,7 @@ class NamedSchemaOperator : public arolla::QExprOperator {
                            GetStringArgument(frame.Get(name_slot), "name"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          auto db = koladata::DataBag::Empty();
+          auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateNamedSchema(db, name, attr_names, values));
           db->UnsafeMakeImmutable();
@@ -199,7 +199,7 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
       name_or_schema.item().holds_value<arolla::Text>()) {
     ASSIGN_OR_RETURN(absl::string_view name,
                      GetStringArgument(name_or_schema, "name"));
-    auto db = koladata::DataBag::Empty();
+    auto db = koladata::DataBag::EmptyMutable();
     ASSIGN_OR_RETURN(auto res, CreateNamedSchema(db, name, {}, {}));
     db->UnsafeMakeImmutable();
     return res;
@@ -216,7 +216,7 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
     // This requires embedding the entity schema, which is a mutating operation.
     AdoptionQueue adoption_queue;
     adoption_queue.Add(x);
-    DataBagPtr result_db = DataBag::Empty();
+    DataBagPtr result_db = DataBag::EmptyMutable();
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
     ASSIGN_OR_RETURN(auto res,
                      ::koladata::ToObject(x.WithBag(std::move(result_db))));
@@ -256,7 +256,7 @@ absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
 }
 
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
-  auto db = koladata::DataBag::Empty();
+  auto db = koladata::DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
   db->UnsafeMakeImmutable();
   return list_schema;
@@ -264,7 +264,7 @@ absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
 
 absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
                                      const DataSlice& value_schema) {
-  auto db = koladata::DataBag::Empty();
+  auto db = koladata::DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto dict_schema,
                    CreateDictSchema(db, key_schema, value_schema));
   db->UnsafeMakeImmutable();

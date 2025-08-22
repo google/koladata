@@ -57,7 +57,7 @@ class KodaQTypesTest(absltest.TestCase):
       return x
 
     with self.subTest('success'):
-      _op(data_bag.DataBag.empty())
+      _op(data_bag.DataBag.empty_mutable())
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(

@@ -25,7 +25,7 @@ from koladata.types import data_slice
 
 
 kde = kde_operators.kde
-db = fns.bag()
+db = fns.mutable_bag()
 ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 
 OBJ1 = db.obj()

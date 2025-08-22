@@ -34,7 +34,7 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-DB = data_bag.DataBag.empty()
+DB = data_bag.DataBag.empty_mutable()
 OBJ = DB.obj()
 ENTITY = DB.new()
 
@@ -57,8 +57,8 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   def test_adoption(self):
-    bag1 = data_bag.DataBag.empty()
-    bag2 = data_bag.DataBag.empty()
+    bag1 = data_bag.DataBag.empty_mutable()
+    bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().with_bag(bag2)
     result = expr_eval.eval(kde.schema.cast_to_implicit(entity, schema))

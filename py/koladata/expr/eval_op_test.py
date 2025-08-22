@@ -97,7 +97,7 @@ class EvalOpTest(absltest.TestCase):
       return x
 
     with self.subTest('bag'):
-      db = data_bag.DataBag.empty()
+      db = data_bag.DataBag.empty_mutable()
       testing.assert_equal(eval_op(op, db), db)
       self.assertTrue(db.is_mutable())
 
@@ -106,7 +106,7 @@ class EvalOpTest(absltest.TestCase):
       self.assertFalse(db.is_mutable())
 
     with self.subTest('slice'):
-      x = data_bag.DataBag.empty().new()
+      x = data_bag.DataBag.empty_mutable().new()
       testing.assert_equal(eval_op(op, x), x)
       self.assertTrue(x.is_mutable())
 

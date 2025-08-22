@@ -86,7 +86,7 @@ class ObjOperator final : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           std::optional<DataSlice> result;
           if (first_arg.has_value()) {
             if (item_id.has_value()) {
@@ -135,7 +135,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            ObjectCreator::Shaped(result_db, shape, attr_names,
                                                  attr_values, item_id));
@@ -170,7 +170,7 @@ class ObjLikeOperator : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result, ObjectCreator::Like(
                                             result_db, shape_and_mask_from,
                                             attr_names, attr_values, item_id));
@@ -200,7 +200,7 @@ class UuObjOperator : public arolla::QExprOperator {
                            GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          auto db = koladata::DataBag::Empty();
+          auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values));
           db->UnsafeMakeImmutable();

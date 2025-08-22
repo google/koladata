@@ -77,7 +77,7 @@ TEST(AllocateLikeTest, ItemId_Slice) {
 }
 
 TEST(AllocateLikeTest, SpecializedItemId_Item) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(1);
   auto res = AllocateLike(shape_and_mask_from,
                           internal::AllocateSingleList,
@@ -90,7 +90,7 @@ TEST(AllocateLikeTest, SpecializedItemId_Item) {
 }
 
 TEST(AllocateLikeTest, SpecializedItemId_Slice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 3, 4});
   auto res = AllocateLike(shape_and_mask_from,
                           internal::AllocateSingleDict,

@@ -39,7 +39,7 @@ using testing::UnorderedElementsAre;
 TEST(LiteralOperatorTest, DatabagLiteral) {
   // Literal freezes databag.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
         arolla::TypedValue::FromValue(db));
 
@@ -51,7 +51,7 @@ TEST(LiteralOperatorTest, DatabagLiteral) {
   }
   // Frozen Databag remains unchanged.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     db = db->Freeze();
     auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
         arolla::TypedValue::FromValue(db));
@@ -67,7 +67,7 @@ TEST(LiteralOperatorTest, DatabagLiteral) {
 TEST(LiteralOperatorTest, DataSliceLiteral) {
   // Literal freezes DataSlice.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = test::DataSlice<int>({1, 2, 3}, db);
     auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
         arolla::TypedValue::FromValue(ds));
@@ -80,7 +80,7 @@ TEST(LiteralOperatorTest, DataSliceLiteral) {
   }
   // Frozen DataSlice remains unchanged.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = test::DataSlice<int>({1, 2, 3}, db);
     ds = ds.FreezeBag();
     auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
@@ -107,27 +107,27 @@ TEST(LiteralOperatorTest, FingerprintProperties) {
   // A literal constructed from a mutable databag has the same fingerprint as
   // a literal constructed from the resulting frozen databag.
   auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(DataBag::Empty()));
+      arolla::TypedValue::FromValue(DataBag::EmptyMutable()));
   auto literal_op_from_frozen = expr::LiteralOperator::MakeLiteralOperator(
       literal_op->value());
   EXPECT_EQ(literal_op->fingerprint(), literal_op_from_frozen->fingerprint());
 
   // A literal constructed from a different databag has a different fingerprint.
   auto literal_from_second_bag = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(DataBag::Empty()));
+      arolla::TypedValue::FromValue(DataBag::EmptyMutable()));
   EXPECT_NE(literal_op->fingerprint(), literal_from_second_bag->fingerprint());
 
   // Same as above but for DataSlices.
   auto literal_op_from_ds =
       expr::LiteralOperator::MakeLiteralOperator(arolla::TypedValue::FromValue(
-          test::DataSlice<int>({1, 2, 3}, DataBag::Empty())));
+          test::DataSlice<int>({1, 2, 3}, DataBag::EmptyMutable())));
   auto literal_op_from_frozen_ds = expr::LiteralOperator::MakeLiteralOperator(
       literal_op_from_ds->value());
   EXPECT_EQ(literal_op_from_ds->fingerprint(),
             literal_op_from_frozen_ds->fingerprint());
-  auto literal_op_from_second_ds = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(test::DataSlice<int>({1, 2, 3},
-                                                         DataBag::Empty())));
+  auto literal_op_from_second_ds =
+      expr::LiteralOperator::MakeLiteralOperator(arolla::TypedValue::FromValue(
+          test::DataSlice<int>({1, 2, 3}, DataBag::EmptyMutable())));
   EXPECT_NE(literal_op_from_ds->fingerprint(),
             literal_op_from_second_ds->fingerprint());
 

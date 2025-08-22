@@ -35,7 +35,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 obj1 = db.obj(x=1)
 obj2 = db.obj(x=2)
 obj3 = db.obj(x=3)

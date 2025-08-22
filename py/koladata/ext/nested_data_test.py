@@ -78,7 +78,7 @@ def create_test_dataset(entity_mode: bool, sparse: bool) -> kd.types.DataSlice:
   if not entity_mode:
     return data
 
-  db = kdi.bag()
+  db = kdi.mutable_bag()
   t_schema = db.new_schema(tid=kdi.INT32)
   d_schema = db.new_schema(t=db.list_schema(t_schema), did=kdi.INT32)
   o_schema = db.new_schema(d=db.list_schema(d_schema))

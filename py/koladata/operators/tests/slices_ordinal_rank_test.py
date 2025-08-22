@@ -330,7 +330,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       )
 
   def test_entity_input_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,
@@ -342,7 +342,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.ordinal_rank(x, ds([0])))
 
   def test_entity_tie_breaker_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     tie_breaker = db.new(x=ds([1]))
     with self.assertRaisesWithPredicateMatch(
         ValueError,

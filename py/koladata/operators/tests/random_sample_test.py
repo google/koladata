@@ -32,7 +32,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN

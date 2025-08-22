@@ -36,7 +36,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 obj1 = db.obj()
 obj2 = db.obj()
 

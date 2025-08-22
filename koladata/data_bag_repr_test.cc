@@ -47,7 +47,7 @@ using ::arolla::JaggedDenseArrayShape;
 using ::testing::MatchesRegex;
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -67,7 +67,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value = test::DataItem(1);
 
@@ -89,7 +89,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedEntities) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -111,7 +111,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Objects) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value = test::DataItem(1);
 
@@ -137,7 +137,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NestedObjects) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
@@ -165,7 +165,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_Dicts) {
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_DictsDuplicatedInFallbackBags) {
-  auto fallback_db1 = DataBag::Empty();
+  auto fallback_db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto uuid, CreateDictUuidFromFields("seed", {"a"}, {test::DataItem(42)}));
   ASSERT_OK_AND_ASSIGN(
@@ -181,7 +181,7 @@ TEST(DataBagReprTest,
                        /*value_schema=*/absl::nullopt,
                        /*item_id=*/uuid));
 
-  auto fallback_db2 = DataBag::Empty();
+  auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds2,
       CreateDictShaped(
@@ -207,7 +207,7 @@ SchemaBag:
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
                        CreateListSchema(bag, test::Schema(schema::kInt64)));
   ASSERT_OK(
@@ -225,7 +225,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_List) {
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_ListsDuplicatedInFallbackBags) {
-  auto fallback_db1 = DataBag::Empty();
+  auto fallback_db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto uuid, CreateListUuidFromFields("seed", {"a"}, {test::DataItem(42)}));
   ASSERT_OK_AND_ASSIGN(
@@ -239,7 +239,7 @@ TEST(DataBagReprTest,
                        /*item_schema=*/absl::nullopt,
                        /*item_id=*/uuid));
 
-  auto fallback_db2 = DataBag::Empty();
+  auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds2,
       CreateListShaped(fallback_db2, DataSlice::JaggedShape::Empty(),
@@ -262,12 +262,12 @@ SchemaBag:
 
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
-  auto fallback_db1 = DataBag::Empty();
+  auto fallback_db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds1, EntityCreator::FromAttrs(fallback_db1, {"a"},
                                          {test::DataItem(42, fallback_db1)}));
 
-  auto fallback_db2 = DataBag::Empty();
+  auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
                                          {test::DataItem(123, fallback_db2)}));
@@ -290,7 +290,7 @@ SchemaBag:
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_TripleLimit_Attributes) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value = test::DataItem(1);
 
@@ -311,7 +311,7 @@ Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_TripleLimit_ListAttributes) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
                        CreateListSchema(bag, test::Schema(schema::kInt64)));
   ASSERT_OK(
@@ -332,7 +332,7 @@ Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_TripleLimit_DictAttributes) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
@@ -356,7 +356,7 @@ Showing only the first 2 triples. Use 'triple_limit' parameter of 'db\.contents_
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_SchemaBag) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
@@ -382,12 +382,12 @@ Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_TripleLimit_FallbackBags) {
-  auto fallback_db1 = DataBag::Empty();
+  auto fallback_db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds1, EntityCreator::FromAttrs(fallback_db1, {"a"},
                                          {test::DataItem(42, fallback_db1)}));
 
-  auto fallback_db2 = DataBag::Empty();
+  auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
                                          {test::DataItem(123, fallback_db2)}));
@@ -412,11 +412,11 @@ Showing only the first 3 triples. Use 'triple_limit' parameter of 'db\.contents_
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_NestedEmptyNew) {
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds1, EntityCreator::FromAttrs(db1, {}, {}));
 
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds2, EntityCreator::FromAttrs(db2, {"a"}, {ds1}));
 
@@ -431,7 +431,7 @@ SchemaBag:
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_Invalid) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   EXPECT_THAT(
       DataBagToStr(bag, /*triple_limit=*/0),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -439,7 +439,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_TripleLimit_Invalid) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_NamedSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto named_schema,
                        CreateNamedSchema(bag, "test_schema", {"a", "b"},
                                          {test::Schema(schema::kString),
@@ -455,7 +455,7 @@ SchemaBag:
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
-  auto fallback_db = DataBag::Empty();
+  auto fallback_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds1, EntityCreator::FromAttrs(
                                      fallback_db, {"a"}, {test::DataItem(42)}));
   auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db});
@@ -472,13 +472,13 @@ SchemaBag:
 
 TEST(DataBagReprTest,
      TestDataBagStringRepresentation_DuplicatedTriplesInFallbackBags) {
-  auto fallback_db1 = DataBag::Empty();
+  auto fallback_db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds1,
                        CreateUuObject(fallback_db1, "seed", {"a", "b"},
                                       {test::DataItem(1, fallback_db1),
                                        test::DataItem(2, fallback_db1)}));
 
-  auto fallback_db2 = DataBag::Empty();
+  auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds2,
                        CreateUuObject(fallback_db2, "seed", {"a", "b"},
                                       {test::DataItem(1, fallback_db2),
@@ -505,7 +505,7 @@ SchemaBag:
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));
@@ -528,7 +528,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice dict,
@@ -546,7 +546,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DictSchema) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   DataSlice key_item = test::DataItem(114);
 
   ASSERT_OK_AND_ASSIGN(DataSlice dict,
@@ -566,7 +566,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaCycle) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_DataOnlyBagToStr) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value = test::DataItem(1);
 
@@ -585,7 +585,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DataOnlyBagToStr) {
 }
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaOnlyBagToStr) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value = test::DataItem(1);
 
@@ -603,7 +603,7 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_SchemaOnlyBagToStr) {
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Dict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   JaggedDenseArrayShape shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(
@@ -624,7 +624,7 @@ TEST(DataBagReprTest, TestDataBagStatistics_Dict) {
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_TwoDicts) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   JaggedDenseArrayShape shape = DataSlice::JaggedShape::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -651,7 +651,7 @@ TEST(DataBagReprTest, TestDataBagStatistics_TwoDicts) {
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Entity) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataSlice<int>({1, std::nullopt});
   DataSlice value_2 = test::DataSlice<int>({2, 3});
@@ -673,7 +673,7 @@ TEST(DataBagReprTest, TestDataBagStatistics_Entity) {
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_Object) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataSlice<int>({1, std::nullopt, std::nullopt});
   DataSlice value_2 = test::DataSlice<int>({2, 3, std::nullopt});
@@ -695,7 +695,7 @@ TEST(DataBagReprTest, TestDataBagStatistics_Object) {
 }
 
 TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));

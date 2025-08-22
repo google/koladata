@@ -32,7 +32,7 @@ from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 kde = kde_operators.kde
 kdf = functions.functor
 

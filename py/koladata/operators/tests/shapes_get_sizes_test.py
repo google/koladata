@@ -32,7 +32,7 @@ INT64 = schema_constants.INT64
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 
 class ShapesGetSizesTest(parameterized.TestCase):

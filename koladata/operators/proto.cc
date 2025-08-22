@@ -279,7 +279,7 @@ absl::StatusOr<DataSlice> SchemaFromProtoPath(const DataSlice& proto_path,
                    GetMessagePrototype(proto_path));
   ASSIGN_OR_RETURN((std::vector<absl::string_view> extensions_value),
                    GetExtensions(extensions));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result,
                    SchemaFromProto(db, message_prototype->GetDescriptor(),
                                    std::move(extensions_value)));

@@ -34,7 +34,7 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-DB = data_bag.DataBag.empty()
+DB = data_bag.DataBag.empty_mutable()
 OBJ = DB.obj()
 ENTITY = DB.new()
 
@@ -70,7 +70,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   def test_explicit_entity_schema(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     entity = db.new()
     obj = entity.embed_schema()
     frozen_bag = db.freeze()
@@ -80,7 +80,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     testing.assert_equal(res, entity)
 
   def test_implicit_entity_schema_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     obj = db.obj()
     with self.assertRaisesRegex(
         ValueError, "DataSlice cannot have an implicit schema as its schema"
@@ -88,8 +88,8 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.cast_to_narrow(obj, obj.get_obj_schema()))
 
   def test_adoption(self):
-    bag1 = data_bag.DataBag.empty()
-    bag2 = data_bag.DataBag.empty()
+    bag1 = data_bag.DataBag.empty_mutable()
+    bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().with_bag(bag2)
     result = expr_eval.eval(kde.schema.cast_to_narrow(entity, schema))

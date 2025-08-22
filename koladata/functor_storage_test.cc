@@ -62,7 +62,7 @@ TEST(IsFunctorTest, Basic) {
 }
 
 TEST(IsFunctorTest, PrimitiveWithBag) {
-  auto x = test::DataItem(1).WithBag(DataBag::Empty());
+  auto x = test::DataItem(1).WithBag(DataBag::EmptyMutable());
   EXPECT_THAT(IsFunctor(x), IsOkAndHolds(false));
   EXPECT_THAT(IsFunctor(*x.WithSchema(test::Schema(schema::kObject))),
               IsOkAndHolds(false));

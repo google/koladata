@@ -38,7 +38,7 @@ QTYPES = frozenset([
 ])
 
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 
 
 class LogicalHasTest(parameterized.TestCase):

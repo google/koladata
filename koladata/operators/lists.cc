@@ -84,7 +84,7 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
                                   const DataSlice& itemid,
                                   internal::NonDeterministicToken) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(
       auto result,
       Implode(
@@ -104,7 +104,7 @@ absl::StatusOr<DataSlice> ListLike(
     const DataSlice& item_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(
       auto result,
       CreateListLike(
@@ -126,7 +126,7 @@ absl::StatusOr<DataSlice> ListShaped(
     const DataSlice& item_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(
       auto result,
       CreateListShaped(
@@ -144,7 +144,7 @@ absl::StatusOr<DataSlice> ListShaped(
 }
 
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
-  const DataBagPtr db = DataBag::Empty();
+  const DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result, ConcatLists(db, std::move(lists)));
   db->UnsafeMakeImmutable();
   return result;
@@ -163,7 +163,7 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
         "expected first argument to be a DataSlice of lists");
   }
 
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto list_items, Explode(x, 1));
   ASSIGN_OR_RETURN(
       auto result,
@@ -187,7 +187,7 @@ absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,
     return absl::InvalidArgumentError(
         "expected first argument to be a DataSlice of lists");
   }
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   // Adopt stub already copies the list elements, so we don't need to copy them
   // ourselves.
   RETURN_IF_ERROR(AdoptStub(result_db, x));

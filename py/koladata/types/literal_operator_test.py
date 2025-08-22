@@ -72,7 +72,7 @@ class LiteralOperatorTest(parameterized.TestCase):
         literal_operator.literal(ds([1, 2, 3])).qtype, qtypes.DATA_SLICE
     )
     self.assertEqual(
-        literal_operator.literal(data_bag.DataBag.empty()).qtype,
+        literal_operator.literal(data_bag.DataBag.empty_mutable()).qtype,
         qtypes.DATA_BAG,
     )
 
@@ -82,8 +82,8 @@ class LiteralOperatorTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_equal_by_fingerprint(expr.qvalue, x)
 
   def test_koda_boxing(self):
-    l1 = data_bag.DataBag.empty().list(['a', 'b'])
-    l2 = data_bag.DataBag.empty().list(['x', 'y'])
+    l1 = data_bag.DataBag.empty_mutable().list(['a', 'b'])
+    l2 = data_bag.DataBag.empty_mutable().list(['x', 'y'])
     literal_value = ds([l1, l2])
     expr = literal_operator.literal(literal_value)
     testing.assert_equal(
@@ -114,7 +114,7 @@ class LiteralOperatorTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(x))
 
     # DataBag.
-    x = literal_operator.literal(data_bag.DataBag.empty())
+    x = literal_operator.literal(data_bag.DataBag.empty_mutable())
     self.assertTrue(view.has_koda_view(x))
 
     # Arolla values also have a KodaView, which is suboptimal, but we want e.g.
@@ -155,7 +155,11 @@ class LiteralOperatorTest(parameterized.TestCase):
   def test_infer_attr(self):
     # Regression test for b/420604646. Asserts that the inferred attr is the
     # same as the qvalue.
-    x = data_bag.DataBag.empty().new(x=1).enriched(data_bag.DataBag.empty())
+    x = (
+        data_bag.DataBag.empty_mutable()
+        .new(x=1)
+        .enriched(data_bag.DataBag.empty_mutable())
+    )
     l = literal_operator.literal(x)
     self.assertEqual(
         arolla.abc.infer_attr(l.op).qvalue.fingerprint, l.qvalue.fingerprint  # pytype: disable=attribute-error

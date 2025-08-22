@@ -380,7 +380,7 @@ class DictLikeTest(parameterized.TestCase):
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.dict_like(fns.bag(), 'key', 'value')
+      fns.dict_like(fns.mutable_bag(), 'key', 'value')
 
   def test_missing_values(self):
     with self.assertRaisesRegex(

@@ -125,11 +125,11 @@ def from_proto(
       bag = schema_bag.fork()
     except ValueError:
       # Fork may fail with ValueError if the schema bag has fallbacks.
-      bag = data_bag.DataBag.empty()
+      bag = data_bag.DataBag.empty_mutable()
     else:
       schema = schema.with_bag(bag)
   else:
-    bag = data_bag.DataBag.empty()
+    bag = data_bag.DataBag.empty_mutable()
   result = bag._from_proto(  # pylint: disable=protected-access
       messages, extensions, itemid, schema
   )
@@ -172,7 +172,7 @@ def schema_from_proto(
   Returns:
     A DataItem containing the converted schema.
   """
-  result = data_bag.DataBag.empty()._schema_from_proto(  # pylint: disable=protected-access
+  result = data_bag.DataBag.empty_mutable()._schema_from_proto(  # pylint: disable=protected-access
       message_class(), extensions
   )
   return result.freeze_bag()

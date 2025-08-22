@@ -104,7 +104,7 @@ class IterablesInterleaveTest(absltest.TestCase):
     )
 
   def test_interleave_with_bags(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         kde.iterables.interleave(
             kde.iterables.make(db1),
@@ -118,7 +118,7 @@ class IterablesInterleaveTest(absltest.TestCase):
     testing.assert_equal(res_list[0], db1)
 
   def test_interleave_with_bags_explicit_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         kde.iterables.interleave(
             kde.iterables.make(db1),
@@ -133,7 +133,7 @@ class IterablesInterleaveTest(absltest.TestCase):
     testing.assert_equal(res_list[0], db1)
 
   def test_interleave_with_bags_wrong_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         'when value_type_as is specified, all iterables must have that value'
@@ -161,7 +161,7 @@ class IterablesInterleaveTest(absltest.TestCase):
       _ = expr_eval.eval(
           kde.iterables.interleave(
               kde.iterables.make(1),
-              kde.iterables.make(data_bag.DataBag.empty()),
+              kde.iterables.make(data_bag.DataBag.empty_mutable()),
           )
       )
 

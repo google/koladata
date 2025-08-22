@@ -293,7 +293,7 @@ class ListLikeTest(parameterized.TestCase):
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.list_like(fns.bag())  # pytype: disable=wrong-arg-types
+      fns.list_like(fns.mutable_bag())  # pytype: disable=wrong-arg-types
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):

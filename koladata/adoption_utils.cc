@@ -106,7 +106,7 @@ absl::StatusOr<absl_nullable DataBagPtr> AdoptionQueue::GetCommonOrMergedDb()
   } else if (!has_multiple_bags) {
     return *single_bag;
   } else {
-    DataBagPtr res = DataBag::Empty();
+    DataBagPtr res = DataBag::EmptyMutable();
     RETURN_IF_ERROR(AdoptInto(*res));
     res->UnsafeMakeImmutable();
     return res;

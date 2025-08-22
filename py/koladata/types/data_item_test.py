@@ -37,7 +37,7 @@ from koladata.types import schema_constants
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
 S = I.self
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 
 class DataItemTest(parameterized.TestCase):
@@ -110,7 +110,12 @@ class DataItemTest(parameterized.TestCase):
       data_item.DataItem.from_vals(1, ds(1))
 
   def test_hash(self):
-    items = [ds(12), ds(121), ds('abc'), data_bag.DataBag.empty().new(x=12)]
+    items = [
+        ds(12),
+        ds(121),
+        ds('abc'),
+        data_bag.DataBag.empty_mutable().new(x=12),
+    ]
     for item in items:
       self.assertEqual(hash(item), hash(ds(item.internal_as_py())))
     for item_1, item_2 in itertools.combinations(items, 2):
@@ -120,12 +125,12 @@ class DataItemTest(parameterized.TestCase):
     x = ds(12)
     self.assertIsNone(x.get_bag())
 
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = x.with_bag(db)
     self.assertIsNotNone(x.get_bag())
 
   def test_set_get_attr(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(abc=ds(3.14))
     x.get_schema().xyz = schema_constants.STRING
     x.xyz = ds('abc')
@@ -258,7 +263,7 @@ class DataItemTest(parameterized.TestCase):
       ('none', ds(None), 'DataItem(None, schema: NONE)'),
       (
           'with_bag',
-          ds(12).with_bag(data_bag.DataBag.empty()),
+          ds(12).with_bag(data_bag.DataBag.empty_mutable()),
           'DataItem(12, schema: INT32)',
       ),
       (

@@ -357,9 +357,9 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
         ),
     )
 
-    db1 = fns.bag()
+    db1 = fns.mutable_bag()
     _ = db1.uuobj(x=1)
-    db2 = fns.bag()
+    db2 = fns.mutable_bag()
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesWithPredicateMatch(

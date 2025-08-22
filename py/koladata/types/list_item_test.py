@@ -28,7 +28,7 @@ from koladata.types import jagged_shape
 from koladata.types import list_item
 from koladata.types import mask_constants
 
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 
@@ -193,7 +193,7 @@ class ListItemTest(parameterized.TestCase):
     self.assertRegex(repr(db.list(x)), expected_repr)
 
   def test_str_and_repr_obj_list(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.obj(db.list([1, 2, 3]))
     self.assertEqual(str(x), "List[1, 2, 3]")
     self.assertRegex(repr(x), r"DataItem\(List\[1, 2, 3\], schema: OBJECT\)")

@@ -94,7 +94,7 @@ absl::StatusOr<DataSlice> CreateFunctorImpl(
     const DataSlice& signature, std::vector<absl::string_view> variable_names,
     std::vector<DataSlice> variable_values) {
   RETURN_IF_ERROR(ProcessSignature(signature, variable_names, variable_values));
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result, ObjectCreator::FromAttrs(
                                     result_db, std::move(variable_names),
                                     std::move(variable_values)));

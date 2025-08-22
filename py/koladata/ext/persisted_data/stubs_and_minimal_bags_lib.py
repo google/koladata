@@ -90,7 +90,7 @@ def _check_is_acceptable_schema_slice(schema_ds: kd.types.DataSlice) -> None:
   Raises:
     ValueError: if the schema_ds has non-primitive metadata attributes.
   """
-  seen_items = kd.bag().dict(key_schema=kd.ITEMID, value_schema=kd.MASK)
+  seen_items = kd.mutable_bag().dict(key_schema=kd.ITEMID, value_schema=kd.MASK)
 
   def process(schema_item: kd.types.DataItem) -> None:
     try:

@@ -136,7 +136,7 @@ TEST(AsyncEvalTest, Nested) {
 TEST(AsyncEvalTest, ErrorPropagation) {
   auto executor = GetEagerExecutor();
   ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.get_attr"));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(
@@ -162,7 +162,7 @@ TEST(AsyncEvalTest, NestedErrorPropagation) {
           "kd.add", {Placeholder("x"), Literal(DataSlice::CreateFromScalar(2))},
           {})));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(
@@ -188,7 +188,7 @@ TEST(AsyncEvalTest, NestedErrorPropagation) {
 TEST(AsyncEvalTest, TwoErrors) {
   auto executor = GetEagerExecutor();
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(

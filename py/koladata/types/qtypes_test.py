@@ -33,7 +33,7 @@ class QTypesTest(absltest.TestCase):
     self.assertEqual(data_item.DataItem.from_vals(1).qtype, qtypes.DATA_SLICE)
 
   def test_data_bag_qtype(self):
-    self.assertEqual(data_bag.DataBag.empty().qtype, qtypes.DATA_BAG)
+    self.assertEqual(data_bag.DataBag.empty_mutable().qtype, qtypes.DATA_BAG)
 
   def test_jagged_shape_qtype(self):
     self.assertEqual(

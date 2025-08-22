@@ -29,7 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 M = arolla.M
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde

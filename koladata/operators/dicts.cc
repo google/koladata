@@ -56,7 +56,7 @@ absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
     return absl::InvalidArgumentError("expected a DataSlice of dicts");
   }
 
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   RETURN_IF_ERROR(AdoptStub(result_db, x));
   RETURN_IF_ERROR(x.WithBag(result_db).SetInDict(keys, values));
   result_db->UnsafeMakeImmutable();
@@ -69,7 +69,7 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice& value_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken) {
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(
       auto result,
       CreateDictShaped(
@@ -97,7 +97,7 @@ absl::StatusOr<DataSlice> DictLike(
     const DataSlice& value_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken) {
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(
       auto result,
       CreateDictLike(

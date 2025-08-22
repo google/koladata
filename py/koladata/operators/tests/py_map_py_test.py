@@ -37,7 +37,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 kde = kde_operators.kde
 
 
@@ -280,7 +280,7 @@ assigned schema: ENTITY(u=INT64)'''
           )
       )
 
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     schema_same_bag = db.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
     )

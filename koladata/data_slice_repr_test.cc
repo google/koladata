@@ -94,7 +94,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Primitives) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -126,7 +126,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kString)));
@@ -159,7 +159,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedDict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -195,7 +195,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedDict) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -232,7 +232,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
@@ -257,7 +257,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
@@ -281,7 +281,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
@@ -311,7 +311,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -351,7 +351,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
@@ -380,7 +380,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
@@ -409,7 +409,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
                        ObjectCreator::FromAttrs(bag, {}, {}));
@@ -437,7 +437,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
                        EntityCreator::FromAttrs(bag, {}, {}));
@@ -467,7 +467,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ListSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice list_item = test::DataItem(1);
 
@@ -497,7 +497,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ListSchema) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
@@ -537,7 +537,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictSchema) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ExplicitSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
                        EntityCreator::FromAttrs(bag, {}, {}));
@@ -568,7 +568,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ExplicitSchema) {
 
 TEST(DataSliceReprTest,
      TestDataItemStringRepresentation_ExplicitSchema_Nested) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
@@ -595,7 +595,7 @@ TEST(DataSliceReprTest,
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
                        ObjectCreator::FromAttrs(bag, {}, {}));
@@ -626,7 +626,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateNamedSchema(bag, "foo", {"a", "b"},
                                          {test::Schema(schema::kInt64),
@@ -677,8 +677,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Functor) {
           "math.multiply", {create_input("a"), create_variable("a")})));
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, wrap_expr(create_input("b")));
   auto slice_57 = test::DataItem(57);
-  ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
-                                        DataBag::Empty(), {"a"}, {slice_57}));
+  ASSERT_OK_AND_ASSIGN(
+      auto my_obj,
+      ObjectCreator::FromAttrs(DataBag::EmptyMutable(), {"a"}, {slice_57}));
 
   {
     // Test unnamed functor.
@@ -722,7 +723,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Functor) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateSchema(bag, {"a", "b"},
                                     {test::Schema(schema::kInt64),
@@ -735,7 +736,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NoBag) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -764,12 +765,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NoBag) {
 TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
   DataSlice ds_a = test::DataItem(1);
 
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
-  DataBagPtr db2 = DataBag::Empty();
+  DataBagPtr db2 = DataBag::EmptyMutable();
   ds = ds.WithBag(db2);
   ASSERT_OK(ds.GetSchema().SetAttr("b", test::Schema(schema::kObject)));
   DataSlice ds_b = test::DataItem(2);
@@ -816,7 +817,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
   DataSlice values = test::DataSlice<int>({1, 2});
 
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice ds,
                        EntityCreator::FromAttrs(db, {"a"}, {values}));
   EXPECT_THAT(
@@ -828,7 +829,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ObjectSlices) {
   DataSlice values = test::DataSlice<int>({1, 2});
 
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {values}));
   EXPECT_THAT(
@@ -1030,7 +1031,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_NoFollowSchema) {
 }
 
 TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"y"}, {test::DataItem<int>(1)}));
@@ -1147,7 +1148,7 @@ TEST(DataSliceReprTest, TestStringRepresentation_ItemId) {
 }
 
 TEST(DataSliceReprTest, CycleInDict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
@@ -1178,7 +1179,7 @@ TEST(DataSliceReprTest, CycleInDict) {
 }
 
 TEST(DataSliceReprTest, CycleInList) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(DataSlice list,
                        CreateListShaped(bag, DataSlice::JaggedShape::Empty(),
@@ -1201,7 +1202,7 @@ TEST(DataSliceReprTest, CycleInList) {
 }
 
 TEST(DataSliceReprTest, CycleInEntity) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
@@ -1223,7 +1224,7 @@ TEST(DataSliceReprTest, CycleInEntity) {
 }
 
 TEST(DataSliceReprTest, CycleInObject) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(DataSlice obj,
@@ -1245,7 +1246,7 @@ TEST(DataSliceReprTest, CycleInObject) {
 }
 
 TEST(DataSliceReprTest, DictExceedReprItemLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   DataSlice key_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
   DataSlice value_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
 
@@ -1258,7 +1259,7 @@ TEST(DataSliceReprTest, DictExceedReprItemLimit) {
 }
 
 TEST(DataSliceReprTest, ListExceedReprItemLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice list_item = test::DataSlice<int>({1, 2, 3, 4, 5, 6});
 
@@ -1271,7 +1272,7 @@ TEST(DataSliceReprTest, ListExceedReprItemLimit) {
 }
 
 TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   std::vector<arolla::OptionalValue<int64_t>> input;
   for (int i = 0; i < 10; ++i) {
@@ -1304,7 +1305,7 @@ TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
 }
 
 TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice obj,
@@ -1324,7 +1325,7 @@ TEST(DataSliceReprTest, ObjEntityExceedReprItemLimit) {
 }
 
 TEST(DataSliceReprTest, ObjEntityMultiline) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   std::string large_attr0(50, 'a');
   std::string large_attr1(50, 'x');
@@ -1339,7 +1340,7 @@ TEST(DataSliceReprTest, ObjEntityMultiline) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<int>({}),
@@ -1378,7 +1379,7 @@ TEST(DataSliceReprTest, FormatHtml_SliceIndices) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ListIndices) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
                                        test::Schema(schema::kInt32)));
@@ -1406,7 +1407,7 @@ TEST(DataSliceReprTest, FormatHtml_ListIndices) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ListSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice list_item,
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
@@ -1418,7 +1419,7 @@ TEST(DataSliceReprTest, FormatHtml_ListSchema) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice obj,
       ObjectCreator::FromAttrs(bag, {"a<>", "b\"&"},
@@ -1435,7 +1436,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjEntity_NoMultiLineForKeyNearLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   std::string lots_of_amps(80, '&');
   ASSERT_OK_AND_ASSIGN(
       DataSlice obj,
@@ -1447,7 +1448,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity_NoMultiLineForKeyNearLimit) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_Dict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -1467,7 +1468,7 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kString)));
@@ -1523,7 +1524,7 @@ TEST(DataSliceReprTest, FormatHtml_TruncationEscaping) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_key_schema,
                        CreateDictSchema(bag, test::Schema(schema::kInt32),
                                         test::Schema(schema::kInt32)));
@@ -1550,7 +1551,7 @@ TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kInt32)));
@@ -1566,7 +1567,7 @@ TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_DictSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   auto dict_schema = *CreateDictSchema(bag, test::Schema(schema::kInt32),
                                        test::Schema(schema::kInt32));
   ASSERT_OK_AND_ASSIGN(
@@ -1585,7 +1586,7 @@ TEST(DataSliceReprTest, FormatHtml_DictSchema) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ByteValues) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kInt32),
                                         test::Schema(schema::kBytes)));
@@ -1614,7 +1615,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_Slice) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjectId_MaxDepth) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
                                        test::Schema(schema::kObject)));
@@ -1625,7 +1626,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_MaxDepth) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjectId_NoBag) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
@@ -1638,7 +1639,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_NoBag) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"y"}, {test::DataItem<int>(1)}));
@@ -1652,7 +1653,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjectId_ItemId_NoObjctIdHtmlAttr) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
@@ -1667,7 +1668,7 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
   // We only need to test two cases here because other call sites of
   // DataItemRepr do not need this param. In those other call sites, we know
   // the DataItem does not contain an unbounded type.
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dict_schema,
                        CreateDictSchema(bag, test::Schema(schema::kString),
                                         test::Schema(schema::kString)));
@@ -1686,7 +1687,7 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
 }
 
 TEST(DataSliceReprTest, FormatHtml_ItemLimit) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   // DataSlice case
   EXPECT_THAT(DataSliceToStr(test::DataSlice<int>({1, 2, 3}),
@@ -1727,7 +1728,7 @@ TEST(DataSliceReprTest, FormatHtml_ItemLimit) {
 
 TEST(DataSliceReprTest, DataSliceRepr) {
   // NOTE: More extensive repr tests are done in Python.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   {
     // DataSlice repr without db.
     auto ds = test::DataSlice<int>({1});
@@ -1760,7 +1761,7 @@ TEST(DataSliceReprTest, DataSliceRepr) {
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
@@ -1778,7 +1779,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
 TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
   {
     // Entities with entity schema.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto value_1 = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
     ASSERT_OK_AND_ASSIGN(
         DataSlice entity,
@@ -1793,7 +1794,7 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
   }
   {
     // Entities with OBJECT schema.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto value_1 = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
     ASSERT_OK_AND_ASSIGN(
         DataSlice obj,
@@ -1811,7 +1812,7 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
 TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
   {
     // Primirive DataSlice.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ints = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
     EXPECT_THAT(
         DataSliceRepr(ints, {.item_limit = 2,
@@ -1823,7 +1824,7 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
   }
   {
     // Mixed OBJECT DataSlice with entities and primitives.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto value_1 = test::DataSlice<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
@@ -1843,7 +1844,7 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema,
@@ -1862,7 +1863,7 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
 TEST(DataSliceReprTest, SchemaToStr) {
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kObject)), Eq("OBJECT"));
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kInt32)), Eq("INT32"));
-  EXPECT_THAT(SchemaToStr(*CreateListSchema(DataBag::Empty(),
+  EXPECT_THAT(SchemaToStr(*CreateListSchema(DataBag::EmptyMutable(),
                                             test::Schema(schema::kInt32))),
               Eq("LIST[INT32]"));
 }

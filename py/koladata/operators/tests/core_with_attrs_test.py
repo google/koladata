@@ -28,7 +28,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
 
 

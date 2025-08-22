@@ -28,7 +28,7 @@ from koladata.types import qtypes
 
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 

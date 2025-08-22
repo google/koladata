@@ -27,7 +27,7 @@ from koladata.types import schema_constants
 M = arolla.M
 L = arolla.L
 ds = data_slice.DataSlice.from_vals
-db = data_bag.DataBag.empty
+db = data_bag.DataBag.empty_mutable
 
 DS_DATA = (
     # Numeric
@@ -98,7 +98,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
 
   def test_dumps_loads_named_schema(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     schemas = kd.slice(
         [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
     )
@@ -106,14 +106,14 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
 
   def test_dumps_loads_objects(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     objs = bag.obj(a=kd.slice([1, 2, 3]*10))
     loaded = s11n.loads(s11n.dumps(objs))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertTrue(loaded.is_mutable())
 
   def test_dumps_preserves_immutability(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     objs = bag.obj(a=kd.slice([1, 2, 3]*10))
     loaded = s11n.loads(s11n.dumps(kd.freeze(objs)))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
@@ -145,13 +145,13 @@ class DumpsLoadsTest(parameterized.TestCase):
     )
 
   def test_dumps_extracts(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     nested = bag.new(a=bag.new(b=1))
     loaded_a = s11n.loads(s11n.dumps(nested.a))
     testing.assert_equivalent(loaded_a.get_bag(), nested.a.extract().get_bag())
 
   def test_dumps_no_bag(self):
-    bag = kd.bag()
+    bag = kd.mutable_bag()
     e = bag.new(x=1).no_bag()
     loaded_e = s11n.loads(s11n.dumps(e))
     testing.assert_equivalent(e, loaded_e)

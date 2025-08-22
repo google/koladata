@@ -183,7 +183,7 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
   RETURN_IF_ERROR(
       lhs.VisitImpl([&]<class T>(const T& lhs_impl) -> absl::Status {
         const T& rhs_impl = rhs.impl<T>();
-        auto result_db = DataBag::Empty();
+        auto result_db = DataBag::EmptyMutable();
         ASSIGN_OR_RETURN(internal::DataBagImpl & result_db_impl,
                          result_db->GetMutableImpl());
         auto deep_equivalent_op =

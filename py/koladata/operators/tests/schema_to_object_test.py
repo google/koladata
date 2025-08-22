@@ -42,7 +42,7 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-OBJ = data_bag.DataBag.empty().obj()
+OBJ = data_bag.DataBag.empty_mutable().obj()
 
 
 class SchemaToObjectTest(parameterized.TestCase):
@@ -61,12 +61,12 @@ class SchemaToObjectTest(parameterized.TestCase):
 
   @parameterized.parameters(*itertools.product([True, False], repeat=3))
   def test_entity_to_object_casting(self, freeze, fork, fallback):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1)
     if fork:
       e1 = e1.fork_bag()
     if fallback:
-      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
+      e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
     res = expr_eval.eval(kde.schema.to_object(e1))

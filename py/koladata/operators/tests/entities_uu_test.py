@@ -114,7 +114,7 @@ class EntitiesUuTest(parameterized.TestCase):
     )
 
   def test_schema_arg(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     uu = expr_eval.eval(
         kde.entities.uu(
             seed='',
@@ -136,7 +136,7 @@ class EntitiesUuTest(parameterized.TestCase):
     )
 
   def test_str_as_schema_arg(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     uu = expr_eval.eval(
         kde.entities.uu(
             seed='anything',
@@ -158,7 +158,7 @@ class EntitiesUuTest(parameterized.TestCase):
     )
 
   def test_overwrite_schema_arg(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     uu = expr_eval.eval(
         kde.entities.uu(
             seed='',

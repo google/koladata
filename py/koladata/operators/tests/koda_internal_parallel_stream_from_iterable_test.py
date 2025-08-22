@@ -42,8 +42,8 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     testing.assert_equal(res_list[1], ds(2))
 
   def test_from_iterable_with_bags(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         koda_internal_parallel.stream_from_iterable(iterables.make(db1, db2))
     )

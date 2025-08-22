@@ -40,7 +40,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
 
   def test_make_unordered_does_not_have_fixed_order(self):
     expr = kde.iterables.make_unordered(1, 2)
-    seen = data_bag.DataBag.empty().dict()
+    seen = data_bag.DataBag.empty_mutable().dict()
     # This has probability 2**(-99) of failing.
     for _ in range(100):
       res = expr_eval.eval(expr)
@@ -50,7 +50,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     self.assertGreater(seen[2], 0)
 
   def test_make_unordered_with_bags(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(kde.iterables.make_unordered(db1))
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
@@ -59,7 +59,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     testing.assert_equal(res_list[0], db1)
 
   def test_make_unordered_with_bags_explicit_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         kde.iterables.make_unordered(db1, value_type_as=data_bag.DataBag)
     )
@@ -73,14 +73,14 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
       _ = expr_eval.eval(
           kde.iterables.make_unordered(
-              data_bag.DataBag.empty(), value_type_as=ds(1)
+              data_bag.DataBag.empty_mutable(), value_type_as=ds(1)
           )
       )
 
   def test_make_unordered_mixed_types(self):
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
       _ = expr_eval.eval(
-          kde.iterables.make_unordered(1, data_bag.DataBag.empty())
+          kde.iterables.make_unordered(1, data_bag.DataBag.empty_mutable())
       )
 
   def test_make_unordered_empty(self):

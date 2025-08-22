@@ -66,7 +66,7 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
             return arolla::TypedValue::FromValue(db);
           },
           "my_functor", "obj, val, db", arolla::GetQType<DataBagPtr>()));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   internal::DataItem obj_item(internal::AllocateSingleObject());
   internal::DataItem a_schema(schema::kInt32);
   ASSERT_OK_AND_ASSIGN(
@@ -100,7 +100,7 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromFunction) {
             return res_obj;
           },
           "my_functor", "obj, val, db"));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   internal::DataItem obj_item(internal::AllocateSingleObject());
   internal::DataItem a_schema(schema::kInt32);
   ASSERT_OK_AND_ASSIGN(

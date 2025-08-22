@@ -306,7 +306,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(res, ds(6))
 
   def test_output_structure_when_used_with_kd_updated(self):
-    empty_bag = data_bag.DataBag.empty().freeze()
+    empty_bag = data_bag.DataBag.empty_mutable().freeze()
 
     @tracing_decorator.TraceAsFnDecorator(return_type_as=empty_bag)
     def f(x):

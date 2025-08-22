@@ -524,7 +524,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
     )
-    db = data_bag.DataBag.empty().freeze()
+    db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
         koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(db),
@@ -712,7 +712,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
     )
-    db = data_bag.DataBag.empty().freeze()
+    db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
         koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(db),

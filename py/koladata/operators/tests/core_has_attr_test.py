@@ -121,7 +121,7 @@ class CoreHasAttrTest(parameterized.TestCase):
     testing.assert_equal(res, ds([missing, missing]))
 
   def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     a = ds(1)
     b = db.new(foo='bar')
     c = ds(3.14)
@@ -223,7 +223,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   def test_nested_attr(self):
     # NOTE: Regression test for cl/721839583.
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     obj = db.obj(x=db.obj(y=1))
     res = expr_eval.eval(kde.core.has_attr(obj, 'x'))
     testing.assert_equal(res, ds(present))

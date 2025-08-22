@@ -168,10 +168,10 @@ class LogicalCondTest(parameterized.TestCase):
 
   def test_merging(self):
     mask = ds([arolla.present(), None])
-    x = data_bag.DataBag.empty().new(a=ds([1, 1]))
+    x = data_bag.DataBag.empty_mutable().new(a=ds([1, 1]))
     x.get_schema().a = schema_constants.OBJECT
     y = (
-        data_bag.DataBag.empty()
+        data_bag.DataBag.empty_mutable()
         .new(x=ds([1, 1]))
         .with_schema(x.get_schema().no_bag())
     )
@@ -185,7 +185,7 @@ class LogicalCondTest(parameterized.TestCase):
 
   def test_extraction(self):
     # Regression test for b/408434629.
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     expr = kde.masking.cond(
         I.mask,
         I.list.with_list_append_update(8),
@@ -200,7 +200,7 @@ class LogicalCondTest(parameterized.TestCase):
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])
-    y = data_bag.DataBag.empty().new()
+    y = data_bag.DataBag.empty_mutable().new()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(

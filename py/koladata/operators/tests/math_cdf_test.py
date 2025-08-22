@@ -186,7 +186,7 @@ class MathCdfTest(parameterized.TestCase):
       expr_eval.eval(kde.math.cdf(x))
 
   def test_entity_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,
@@ -198,7 +198,7 @@ class MathCdfTest(parameterized.TestCase):
       expr_eval.eval(kde.math.cdf(x))
 
   def test_object_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,

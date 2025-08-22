@@ -99,6 +99,13 @@ PyObject* absl_nullable PyDataBag_empty(PyTypeObject* cls, PyObject*) {
       PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::Empty()));
 }
 
+// classmethod
+PyObject* absl_nullable PyDataBag_empty_mutable(PyTypeObject* cls, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  return arolla::python::MakePyQValue(
+      PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::EmptyMutable()));
+}
+
 absl::StatusOr<std::optional<DataSlice>>
 ParseSchemaArgWithStringToNamedSchemaConversion(
     const FastcallArgParser::Args& args, absl::string_view arg_name) {
@@ -365,7 +372,7 @@ PyObject* absl_nullable PyDataBag_new_factory(SelfOrClsType<kMode> self,
                                                       args, WrapPyDataSlice);
   } else {
     return ProcessObjectCreation<EntityCreatorHelper>(
-        DataBag::Empty(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
+        DataBag::EmptyMutable(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
   }
 }
 
@@ -398,7 +405,7 @@ PyObject* absl_nullable PyDataBag_obj_factory(SelfOrClsType<kMode> self,
                                                       args, WrapPyDataSlice);
   } else {
     return ProcessObjectCreation<ObjectCreatorHelper>(
-        DataBag::Empty(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
+        DataBag::EmptyMutable(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
   }
 }
 
@@ -1565,7 +1572,12 @@ PyMethodDef kPyDataBag_methods[] = {
     {"empty", (PyCFunction)PyDataBag_empty, METH_CLASS | METH_NOARGS,
      "empty()\n"
      "--\n\n"
-     "Returns an empty DataBag."},
+     "Returns an empty immutable DataBag."},
+    {"empty_mutable", (PyCFunction)PyDataBag_empty_mutable,
+     METH_CLASS | METH_NOARGS,
+     "empty_mutable()\n"
+     "--\n\n"
+     "Returns an empty mutable DataBag. Only works in eager mode."},
     {"new", (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kWithBag>,
      METH_FASTCALL | METH_KEYWORDS,
      "new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"

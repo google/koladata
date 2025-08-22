@@ -32,6 +32,7 @@ from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops as _general_eager_ops
 
 bag = _object_factories.bag
+mutable_bag = _object_factories.mutable_bag
 
 uu = _object_factories.uu
 uuobj = _object_factories.uuobj

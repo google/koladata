@@ -46,8 +46,8 @@ TEST(AdoptionQueueTest, Empty) {
   AdoptionQueue q;
   EXPECT_TRUE(q.empty());
   EXPECT_THAT(q.GetCommonOrMergedDb(), IsOkAndHolds(nullptr));
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
   EXPECT_OK(q.AdoptInto(*db1));
   EXPECT_THAT(db1->GetImpl(), DataBagEqual(db2->GetImpl()));
 }
@@ -56,16 +56,16 @@ TEST(AdoptionQueueTest, Single) {
   ASSERT_OK_AND_ASSIGN(auto int32_schema,
                        DataSlice::Create(internal::DataItem(schema::kInt32),
                                          internal::DataItem(schema::kSchema)));
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema,
       CreateEntitySchema(schema_db, {"a", "b", "c"},
                          {int32_schema, int32_schema, int32_schema}));
 
   internal::DataItem obj(internal::AllocateSingleObject());
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
-  auto db3 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
+  auto db3 = DataBag::EmptyMutable();
   ASSERT_OK(
       db1->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
   ASSERT_OK(
@@ -101,15 +101,15 @@ TEST(AdoptionQueueTest, Single) {
 }
 
 TEST(AdoptionQueueTest, GetCommonOrMergedDb) {
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateEntitySchema(schema_db, {"a", "b"},
                                           {test::Schema(schema::kInt32),
                                            test::Schema(schema::kInt32)}));
 
   internal::DataItem obj(internal::AllocateSingleObject());
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK(
       db1->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
   ASSERT_OK(
@@ -138,7 +138,7 @@ TEST(AdoptionQueueTest, GetCommonOrMergedDb) {
 }
 
 TEST(AdoptionQueueTest, WithFallbacks) {
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateEntitySchema(schema_db, {"a", "b", "c"},
                                           {test::Schema(schema::kInt32),
@@ -146,9 +146,9 @@ TEST(AdoptionQueueTest, WithFallbacks) {
                                            test::Schema(schema::kFloat32)}));
 
   internal::DataItem obj(internal::AllocateSingleObject());
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
-  auto db3 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
+  auto db3 = DataBag::EmptyMutable();
   ASSERT_OK(
       db1->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
   ASSERT_OK(
@@ -188,9 +188,9 @@ TEST(AdoptionQueueTest, WithFallbacks) {
 }
 
 TEST(AdoptionQueueTest, TestDbVector) {
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   DataBagPtr db2;
-  auto db3 = DataBag::Empty();
+  auto db3 = DataBag::EmptyMutable();
   AdoptionQueue q;
   q.Add(db1);
   q.Add(db2);
@@ -201,7 +201,7 @@ TEST(AdoptionQueueTest, TestDbVector) {
 }
 
 TEST(AdoptionQueueTest, Extraction) {
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema1,
       CreateEntitySchema(db1, {"a"}, {test::Schema(schema::kInt32)}));
@@ -213,7 +213,7 @@ TEST(AdoptionQueueTest, Extraction) {
   ASSERT_OK(db1_impl.SetAttr(obj12, "a", internal::DataItem(12)));
   ASSERT_OK(db1_impl.SetAttr(obj13, "a", internal::DataItem(13)));
 
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema2,
       CreateEntitySchema(db2, {"a"}, {test::Schema(schema::kInt32)}));
@@ -252,7 +252,7 @@ TEST(AdoptionQueueTest, Extraction) {
 TEST(AdoptStubTest, Entity) {
   {
     // Holding primitives.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         DataSlice schema,
         CreateEntitySchema(db1, {"a"}, {test::Schema(schema::kInt32)}));
@@ -260,14 +260,15 @@ TEST(AdoptStubTest, Entity) {
     internal::DataItem obj(internal::AllocateSingleObject());
     ASSERT_OK(db1_impl.SetAttr(obj, "a", internal::DataItem(1)));
     DataSlice item = test::DataItem(obj, schema.item(), db1);
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // Nothing is adopted.
     ASSERT_OK(AdoptStub(db2, item));
-    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+    EXPECT_THAT(db2->GetImpl(),
+                DataBagEqual(DataBag::EmptyMutable()->GetImpl()));
   }
   {
     // Holding lists.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(DataSlice list_schema,
                          CreateListSchema(db1, test::Schema(schema::kInt32)));
     ASSERT_OK_AND_ASSIGN(DataSlice schema,
@@ -278,17 +279,18 @@ TEST(AdoptStubTest, Entity) {
                          CreateEmptyList(db1, /*schema=*/list_schema));
     ASSERT_OK(db1_impl.SetAttr(obj, "a", list.item()));
     DataSlice item = test::DataItem(obj, schema.item(), db1);
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // Nothing is adopted.
     ASSERT_OK(AdoptStub(db2, item));
-    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+    EXPECT_THAT(db2->GetImpl(),
+                DataBagEqual(DataBag::EmptyMutable()->GetImpl()));
   }
 }
 
 TEST(AdoptStubTest, Object) {
   {
     // Holding primitives.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         DataSlice schema,
         CreateEntitySchema(db1, {"a"}, {test::Schema(schema::kInt32)}));
@@ -297,10 +299,10 @@ TEST(AdoptStubTest, Object) {
     ASSERT_OK(db1_impl.SetAttr(obj, "a", internal::DataItem(1)));
     DataSlice item = test::DataItem(obj, schema::kObject, db1);
     ASSERT_OK(item.SetAttr(schema::kSchemaAttr, schema));
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // The __schema__ is adopted.
     ASSERT_OK(AdoptStub(db2, item));
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     ASSERT_OK(expected_db->GetMutableImpl()->get().SetAttr(
         obj, schema::kSchemaAttr, schema.item()));
     EXPECT_THAT(db2->GetImpl(), DataBagEqual(expected_db->GetImpl()));
@@ -308,14 +310,14 @@ TEST(AdoptStubTest, Object) {
 }
 
 TEST(AdoptStubTest, ObjectWithMixedDtype) {
-  auto bag1 = DataBag::Empty();
+  auto bag1 = DataBag::EmptyMutable();
   auto item1 = *EntityCreator::FromAttrs(bag1, {}, {})->EmbedSchema();
   auto item2 = *DataSlice::CreateFromScalar(2).WithBag(bag1).EmbedSchema();
   auto slice = *DataSlice::CreateWithFlatShape(
       internal::DataSliceImpl::Create({item1.item(), item2.item()}),
       item1.GetSchemaImpl(), bag1);
 
-  auto stub_bag = DataBag::Empty();
+  auto stub_bag = DataBag::EmptyMutable();
   ASSERT_OK(AdoptStub(stub_bag, slice));
 
   EXPECT_TRUE(
@@ -326,14 +328,14 @@ TEST(AdoptStubTest, ObjectWithMixedDtype) {
 TEST(AdoptStubTest, List) {
   {
     // Holding primitives.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(DataSlice schema,
                          CreateListSchema(db1, test::Schema(schema::kInt32)));
     ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // The list schema is adopted.
     ASSERT_OK(AdoptStub(db2, list));
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     ASSERT_OK(schema.WithBag(expected_db)
                   .SetAttr(schema::kListItemsSchemaAttr,
                            test::Schema(schema::kInt32)));
@@ -345,7 +347,7 @@ TEST(AdoptStubTest, List) {
   }
   {
     // Recursive lists.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(DataSlice list_schema,
                          CreateListSchema(db1, test::Schema(schema::kInt32)));
     ASSERT_OK_AND_ASSIGN(DataSlice nested_list_schema,
@@ -359,10 +361,10 @@ TEST(AdoptStubTest, List) {
         list_schema.item().value<internal::ObjectId>(), db1);
     ASSERT_OK_AND_ASSIGN(auto nested_list,
                          CreateNestedList(db1, lists, nested_list_schema));
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // The list schema is adopted.
     ASSERT_OK(AdoptStub(db2, nested_list));
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     ASSERT_OK(nested_list_schema.WithBag(expected_db)
                   .SetAttr(schema::kListItemsSchemaAttr, list_schema));
     ASSERT_OK(list_schema.WithBag(expected_db)
@@ -385,7 +387,7 @@ TEST(AdoptStubTest, List) {
 TEST(AdoptStubTest, Dict) {
   {
     // Holding primitives.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(DataSlice schema,
                          CreateDictSchema(db1, test::Schema(schema::kInt32),
                                           test::Schema(schema::kFloat32)));
@@ -394,10 +396,10 @@ TEST(AdoptStubTest, Dict) {
         CreateDictShaped(db1, DataSlice::JaggedShape::Empty(),
                          /*keys=*/std::nullopt, /*values=*/std::nullopt,
                          /*schema=*/schema));
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // The dict schema is adopted.
     ASSERT_OK(AdoptStub(db2, dict));
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     ASSERT_OK(schema.WithBag(expected_db)
                   .SetAttr(schema::kDictKeysSchemaAttr,
                            test::Schema(schema::kInt32)));
@@ -407,7 +409,7 @@ TEST(AdoptStubTest, Dict) {
   }
   {
     // Recursive dicts.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(DataSlice schema,
                          CreateDictSchema(db1, test::Schema(schema::kInt32),
                                           test::Schema(schema::kFloat32)));
@@ -426,10 +428,10 @@ TEST(AdoptStubTest, Dict) {
                          /*keys=*/test::DataItem(1), /*values=*/dict,
                          /*schema=*/nested_schema));
 
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     // The dict schemas are adopted.
     ASSERT_OK(AdoptStub(db2, nested_dict));
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     // Inner schema.
     ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
         schema.item(), schema::kDictKeysSchemaAttr,
@@ -447,11 +449,12 @@ TEST(AdoptStubTest, Dict) {
 }
 
 TEST(AdoptStubTest, ImmutableError) {
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateListSchema(db1, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
-  ASSERT_OK_AND_ASSIGN(auto db2, DataBag::Empty()->Fork(/*immutable=*/true));
+  ASSERT_OK_AND_ASSIGN(auto db2,
+                       DataBag::EmptyMutable()->Fork(/*immutable=*/true));
   EXPECT_THAT(AdoptStub(db2, list), StatusIs(absl::StatusCode::kInvalidArgument,
                                              HasSubstr("immutable DataBag")));
 }
@@ -461,23 +464,25 @@ TEST(AdoptStubTest, EmptyAndUnknown) {
   // interpreted as lists (item.IsList());
   {
     // OBJECT.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     DataSlice item = test::DataItem(std::nullopt, schema::kObject, db1);
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_TRUE(item.IsList());
     // Nothing is adopted.
     ASSERT_OK(AdoptStub(db2, item));
-    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+    EXPECT_THAT(db2->GetImpl(),
+                DataBagEqual(DataBag::EmptyMutable()->GetImpl()));
   }
   {
     // NONE.
-    auto db1 = DataBag::Empty();
+    auto db1 = DataBag::EmptyMutable();
     DataSlice item = test::DataItem(std::nullopt, schema::kNone, db1);
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_TRUE(item.IsList());
     // Nothing is adopted.
     ASSERT_OK(AdoptStub(db2, item));
-    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+    EXPECT_THAT(db2->GetImpl(),
+                DataBagEqual(DataBag::EmptyMutable()->GetImpl()));
   }
 }
 
@@ -490,7 +495,7 @@ TEST(WithAdoptedValuesTest, WithAdoptedValues) {
   }
   {
     // One bag.
-    auto db = DataBag::Empty()->Freeze();
+    auto db = DataBag::EmptyMutable()->Freeze();
     ASSERT_FALSE(db->IsMutable());
     // `db` is present.
     ASSERT_OK_AND_ASSIGN(auto result_bag,
@@ -504,7 +509,7 @@ TEST(WithAdoptedValuesTest, WithAdoptedValues) {
   {
     // Both same bag.
     // One bag.
-    auto db = DataBag::Empty()->Freeze();
+    auto db = DataBag::EmptyMutable()->Freeze();
     ASSERT_FALSE(db->IsMutable());
     ASSERT_OK_AND_ASSIGN(auto result_bag,
                          WithAdoptedValues(db, test::DataItem(2).WithBag(db)));
@@ -512,14 +517,14 @@ TEST(WithAdoptedValuesTest, WithAdoptedValues) {
   }
   {
     // Both different bags.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     internal::DataItem unused(internal::AllocateSingleObject());
     ASSERT_OK(db->GetMutableImpl()->get().SetAttr(unused, "unused",
                                                   internal::DataItem(1)));
     ASSERT_OK_AND_ASSIGN(
         auto e1, EntityCreator::FromAttrs(db, {"x"}, {test::DataItem(2)}));
 
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     internal::DataItem unused2(internal::AllocateSingleObject());
     ASSERT_OK(db2->GetMutableImpl()->get().SetAttr(unused2, "unused2",
                                                    internal::DataItem(3)));
@@ -533,7 +538,7 @@ TEST(WithAdoptedValuesTest, WithAdoptedValues) {
 
     ASSERT_OK_AND_ASSIGN(auto result_bag, WithAdoptedValues(db2, e1));
 
-    auto expected_db = DataBag::Empty();
+    auto expected_db = DataBag::EmptyMutable();
     // `e1` is extracted, so its unused value is removed. But `'x'` is included.
     ASSERT_OK(expected_db->GetMutableImpl()->get().SetAttr(
         e1.item(), "x", internal::DataItem(2)));

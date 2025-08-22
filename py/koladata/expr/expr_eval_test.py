@@ -269,7 +269,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       expr_eval.eval(expr, x=x)
 
   def test_freeze_input_data_slice(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = ds([1, 2, 3]).with_bag(db)
     result = expr_eval.eval(I.x, x=x)
     self.assertTrue(x.get_bag().is_mutable())
@@ -281,7 +281,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_freeze_input_databag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     result = expr_eval.eval(I.x, x=db)
     self.assertTrue(db.is_mutable())
     self.assertFalse(result.is_mutable())

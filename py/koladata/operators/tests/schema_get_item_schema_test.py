@@ -35,7 +35,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 list_s1 = db.list_schema(schema_constants.INT32)
 list_s2 = db.list_schema(list_s1)
 

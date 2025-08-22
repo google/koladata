@@ -128,7 +128,7 @@ class EmbeddingDataBag {
  public:
   absl::Status EmbedSchema(const DataSlice& ds) {
     if (db_ == nullptr) {
-      db_ = DataBag::Empty();
+      db_ = DataBag::EmptyMutable();
     }
     return ds.WithBag(db_).EmbedSchema(/*overwrite=*/false).status();
   }
@@ -531,7 +531,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
         // We need to embed the schema.
         if (res.GetSchemaImpl().is_struct_schema() &&
             schema->item() == schema::kObject) {
-          db = DataBag::Empty();
+          db = DataBag::EmptyMutable();
           adoption_queue.Add(db);
         }
         // Schema attr validation is handled during adoption queue merging.
@@ -1312,7 +1312,7 @@ class UniversalConverter {
 
   void MaybeCreateEmptyBag() {
     if (ABSL_PREDICT_FALSE(db_ == nullptr)) {
-      db_ = DataBag::Empty();
+      db_ = DataBag::EmptyMutable();
       // TODO: Don't do this when we refactor out the nested
       // UniversalConverter call.
       adoption_queue_.Add(db_);
@@ -1416,7 +1416,6 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
     // requested, attach an empty DataBag.
     if (res_db == nullptr && schema && schema->item() == schema::kObject) {
       res_db = DataBag::Empty();
-      res_db->UnsafeMakeImmutable();
     }
     return res_slice.WithBag(std::move(res_db));
   }

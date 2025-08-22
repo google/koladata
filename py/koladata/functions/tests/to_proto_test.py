@@ -42,7 +42,7 @@ class ToProtoTest(absltest.TestCase):
       _ = fns.to_proto(fns.obj().no_bag(), test_pb2.MessageC)
 
   def test_invalid_input_invalid_ndim(self):
-    bag = data_bag.DataBag.empty()
+    bag = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         re.escape('to_proto expects a DataSlice with ndim 0 or 1, got ndim=2'),
@@ -50,7 +50,7 @@ class ToProtoTest(absltest.TestCase):
       _ = fns.to_proto(ds([[]]).with_bag(bag), test_pb2.MessageC)
 
   def test_invalid_input_primitive(self):
-    bag = data_bag.DataBag.empty()
+    bag = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         'proto message should have only entities/objects, found INT32',
@@ -63,7 +63,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(message, expected_message)
 
   def test_single_none_message(self):
-    bag = data_bag.DataBag.empty()
+    bag = data_bag.DataBag.empty_mutable()
     message = fns.to_proto(ds(None).with_bag(bag), test_pb2.MessageC)
     expected_message = None
     self.assertEqual(message, expected_message)
@@ -97,7 +97,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_extension_field(self):
-    x = fns.bag().obj()
+    x = fns.mutable_bag().obj()
     x.set_attr(
         '(koladata.functions.testing.MessageAExtension.message_a_extension)',
         fns.obj(extra=123),

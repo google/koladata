@@ -27,7 +27,7 @@ from koladata.types import schema_constants
 
 eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 

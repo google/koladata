@@ -97,7 +97,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
     testing.assert_equal(res, expected_output)
 
   def test_same_bag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     source = ds([[1], [2, 3]]).with_bag(db)
     shape = js([2], [2, 1])
     expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)

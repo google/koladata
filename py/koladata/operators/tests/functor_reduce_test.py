@@ -17,6 +17,7 @@ from absl.testing import absltest
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
@@ -157,7 +158,7 @@ class IterablesReduceTest(absltest.TestCase):
     # Evaluating different identical exprs.
     fn = lambda x, y: kde.lists.appended_list(x, y)
     items = kde.iterables.make(2, 3)
-    initial_value = kd.bag().list([1])
+    initial_value = fns.list([1])
 
     expr = kde.tuple(
         kde.functor.reduce(fn, items, initial_value=initial_value),

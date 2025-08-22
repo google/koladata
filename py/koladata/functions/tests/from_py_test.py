@@ -86,7 +86,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_same_bag(self, from_py_fn):
-    db = fns.bag()
+    db = fns.mutable_bag()
     o1 = db.obj()
     o2 = db.obj()
 
@@ -116,7 +116,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_does_not_borrow_data_from_input_db(self, from_py_fn):
-    db = fns.bag()
+    db = fns.mutable_bag()
     e1 = db.new(a=42, schema='S')
     e2 = db.new(a=12, schema='S')
     lst = [e1, e2]
@@ -126,7 +126,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_can_use_frozen_input_bag(self, from_py_fn):
-    db = fns.bag()
+    db = fns.mutable_bag()
     e = db.new(a=12, schema='S').freeze_bag()
     lst = [e]
     res = from_py_fn(lst)
@@ -673,7 +673,7 @@ assigned schema: INT32"""),
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
 
     with self.subTest('list of data items'):
-      db = fns.bag().empty()
+      db = fns.mutable_bag()
       entity_schema = db.named_schema('foo', a=schema_constants.INT32)
       ds1 = db.new(a=2, schema=entity_schema)
       ds2 = db.new(a=3, schema=entity_schema)

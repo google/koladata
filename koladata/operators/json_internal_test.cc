@@ -332,7 +332,7 @@ TEST(JsonInternalTest, JsonStringToDataItem) {
 
 TEST(JsonInternalTest, JsonArrayToList) {
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto list,
         JsonArrayToList({internal::DataItem(1), internal::DataItem(2),
@@ -351,7 +351,7 @@ TEST(JsonInternalTest, JsonArrayToList) {
   }
 
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     auto item_schema = *DataSlice::Create(internal::DataItem(schema::kInt32),
                                           internal::DataItem(schema::kSchema));
     auto list_schema = *CreateListSchema(bag, item_schema);
@@ -371,7 +371,7 @@ TEST(JsonInternalTest, JsonArrayToList) {
 }
 
 TEST(JsonInternalTest, JsonObjectToDict) {
-  auto bag = DataBag::Empty();
+  auto bag = DataBag::EmptyMutable();
   auto dict_schema = *CreateDictSchema(
       bag,
       *DataSlice::Create(internal::DataItem(schema::kString),
@@ -388,7 +388,7 @@ TEST(JsonInternalTest, JsonObjectToDict) {
 
 TEST(JsonInternalTest, JsonObjectToEntity) {
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto entity,
         JsonObjectToEntity({"a", "b", "c"},
@@ -400,7 +400,7 @@ TEST(JsonInternalTest, JsonObjectToEntity) {
   }
 
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto entity, JsonObjectToEntity(
                          {"a", "b", "c"},
@@ -412,7 +412,7 @@ TEST(JsonInternalTest, JsonObjectToEntity) {
   }
 
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     auto entity_schema = *CreateEntitySchema(
         bag, {"a", "b", "c"},
         {*DataSlice::Create(internal::DataItem(schema::kInt32),
@@ -432,7 +432,7 @@ TEST(JsonInternalTest, JsonObjectToEntity) {
   }
 
   {
-    auto bag = DataBag::Empty();
+    auto bag = DataBag::EmptyMutable();
     auto entity_schema = *CreateEntitySchema(
         bag, {"a", "b", "c", "json_object_keys", "json_object_values"},
         {

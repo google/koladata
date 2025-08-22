@@ -31,7 +31,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 obj1 = db.obj()
 obj2 = db.obj()
 present = arolla.present()

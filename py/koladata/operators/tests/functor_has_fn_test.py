@@ -105,7 +105,7 @@ class FunctorIsFnTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_non_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError, re.escape('expected DATA_SLICE, got x: DATA_BAG')
     ):

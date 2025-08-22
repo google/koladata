@@ -19,29 +19,44 @@ from koladata.types import data_bag
 from koladata.types import qtypes
 
 
-class BagTest(absltest.TestCase):
+class MutableBagTest(absltest.TestCase):
 
   def test_docstring(self):
-    self.assertEqual(fns.bag.__doc__, 'Returns an empty immutable DataBag.')
+    self.assertEqual(
+        fns.mutable_bag.__doc__,
+        'Returns an empty mutable DataBag. Only works in eager mode.',
+    )
 
   def test_qtype(self):
-    self.assertEqual(fns.bag().qtype, qtypes.DATA_BAG)
+    self.assertEqual(fns.mutable_bag().qtype, qtypes.DATA_BAG)
 
   def test_create(self):
-    self.assertIsInstance(fns.bag(), data_bag.DataBag)
-    self.assertFalse(fns.bag().is_mutable())
+    self.assertIsInstance(fns.mutable_bag(), data_bag.DataBag)
+    self.assertTrue(fns.mutable_bag().is_mutable())
+
+  def test_repr(self):
+    self.assertIn(
+        '[1, 2]', repr(fns.mutable_bag().list([1, 2]).get_bag().contents_repr())
+    )
 
   def test_equality(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     testing.assert_equal(db, db)
     with self.assertRaises(AssertionError):
-      testing.assert_equal(db, fns.bag())
+      testing.assert_equal(db, fns.mutable_bag())
+    db.new(a=1, b='text')
+    testing.assert_equal(db, db)
 
   def test_equivalence(self):
-    testing.assert_equivalent(fns.bag(), fns.bag())
-
-  def test_alias(self):
-    self.assertIs(fns.bag, fns.bags.new)
+    testing.assert_equivalent(fns.mutable_bag(), fns.mutable_bag())
+    db1 = fns.mutable_bag()
+    db2 = fns.mutable_bag()
+    entity = db1.new(a=1, b='text')
+    with self.assertRaises(AssertionError):
+      testing.assert_equivalent(db1, db2)
+    entity.with_bag(db2).set_attr('a', 1)
+    entity.with_bag(db2).set_attr('b', 'text')
+    testing.assert_equivalent(db1, db2)
 
 
 if __name__ == '__main__':

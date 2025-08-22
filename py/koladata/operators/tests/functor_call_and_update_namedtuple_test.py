@@ -135,7 +135,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_wrong_type_returned(self):
     fn = functor_factories.expr_fn(
-        returns=kde.namedtuple(x=data_bag.DataBag.empty())
+        returns=kde.namedtuple(x=data_bag.DataBag.empty_mutable())
     )
     with self.assertRaisesRegex(
         ValueError,

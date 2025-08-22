@@ -31,14 +31,14 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 
 class CoreShallowCloneTest(parameterized.TestCase):
 
   def test_objects(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.obj(x=42)
     x = db.obj(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
@@ -52,7 +52,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
       _ = result.y.x
 
   def test_entities_simple(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
@@ -64,7 +64,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
       _ = result.y.x
 
   def test_entities(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
     result = expr_eval.eval(kde.shallow_clone(x))
@@ -160,7 +160,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
       _ = res.y
 
   def test_itemid(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
     ids = expr_eval.eval(kde.shallow_clone(x))
@@ -171,7 +171,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     testing.assert_equal(result.y.no_bag(), y.no_bag())
 
   def test_mixed_idtypes(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.obj(x=42)
     x = db.obj(y=y)
     xlist = db.obj(db.list([x, x]))
@@ -183,7 +183,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     testing.assert_equal(result.no_bag(), ids.no_bag())
 
   def test_itemid_wrong_rank(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=42)
     itemid = db.new(x=ds([1, 2, 3]))
     with self.assertRaisesRegex(
@@ -192,7 +192,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.shallow_clone(x, itemid=itemid))
 
   def test_wrong_itemid_type(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.list()
     itemid = db.new()
     with self.assertRaisesRegex(
@@ -215,7 +215,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
 
   def test_mixed_objects_and_schemas(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(x=schema_constants.INT32).with_schema(
         schema_constants.OBJECT
     )

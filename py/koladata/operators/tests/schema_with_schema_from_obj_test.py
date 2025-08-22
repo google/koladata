@@ -36,7 +36,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 entity = db.new(x=1)
 obj = entity.embed_schema()
 

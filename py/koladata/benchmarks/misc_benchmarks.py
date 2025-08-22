@@ -49,25 +49,31 @@ def rl_literal_creation(state):
 @google_benchmark.register
 def translate(state):
   ds = kd.slice([[list(range(100))] * 10] * 10)
-  keys_from = kd.bag().uuobj(x=ds)
+  keys_from = kd.mutable_bag().uuobj(x=ds)
   values_from = ds
-  keys_to = kd.bag().uuobj(x=kd.slice([[list(range(0, 100, 2))] * 10] * 10))
+  keys_to = kd.mutable_bag().uuobj(
+      x=kd.slice([[list(range(0, 100, 2))] * 10] * 10)
+  )
   while state:
     _ = kd.translate(keys_to, keys_from, values_from)
 
 
 @google_benchmark.register
 def translate_group(state):
-  keys_from = kd.bag().uuobj(x=kd.slice([[list(range(100)) * 3] * 10] * 10))
+  keys_from = kd.mutable_bag().uuobj(
+      x=kd.slice([[list(range(100)) * 3] * 10] * 10)
+  )
   values_from = kd.slice([[list(range(300))] * 10] * 10)
-  keys_to = kd.bag().uuobj(x=kd.slice([[list(range(0, 100, 2))] * 10] * 10))
+  keys_to = kd.mutable_bag().uuobj(
+      x=kd.slice([[list(range(0, 100, 2))] * 10] * 10)
+  )
   while state:
     _ = kd.translate_group(keys_to, keys_from, values_from)
 
 
 @google_benchmark.register
 def extract_entity(state):
-  db = kd.bag()
+  db = kd.mutable_bag()
   ds = db.new(a=db.new(b=34), b=12)
   _ = kd.extract(ds)  # To initialize all lazy initializers and reduce variance.
   while state:
@@ -76,7 +82,7 @@ def extract_entity(state):
 
 @google_benchmark.register
 def extract_object(state):
-  db = kd.bag()
+  db = kd.mutable_bag()
   ds = db.obj(a=db.obj(b=12), b=34)
   _ = kd.extract(ds)  # To initialize all lazy initializers and reduce variance.
   while state:
@@ -85,7 +91,7 @@ def extract_object(state):
 
 @google_benchmark.register
 def extract_10000_entity(state):
-  db = kd.bag()
+  db = kd.mutable_bag()
   ds = db.new(a=db.new(b=kd.slice([34] * 10000)), b=kd.slice([12] * 10000))
   _ = kd.extract(ds)  # To initialize all lazy initializers and reduce variance.
   while state:
@@ -94,7 +100,7 @@ def extract_10000_entity(state):
 
 @google_benchmark.register
 def extract_10000_object(state):
-  db = kd.bag()
+  db = kd.mutable_bag()
   ds = db.obj(a=db.obj(b=kd.slice([34] * 10000)), b=kd.slice([12] * 10000))
   _ = kd.extract(ds)  # To initialize all lazy initializers and reduce variance.
   while state:
@@ -104,7 +110,7 @@ def extract_10000_object(state):
 
 @google_benchmark.register
 def extract_depth_100_object(state):
-  db = kd.bag()
+  db = kd.mutable_bag()
   ds = kd.slice(1)
   for idx in range(100):
     ds = db.obj(id=kd.slice(idx), next=ds)

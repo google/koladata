@@ -217,7 +217,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 
   def test_entity_input_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,

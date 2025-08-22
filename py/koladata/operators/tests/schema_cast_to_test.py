@@ -36,7 +36,7 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-DB = data_bag.DataBag.empty()
+DB = data_bag.DataBag.empty_mutable()
 OBJ = DB.obj()
 ENTITY = DB.new()
 
@@ -59,7 +59,7 @@ class SchemaCastToTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   def test_adoption(self):
-    bag1 = data_bag.DataBag.empty()
+    bag1 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().extract()
     del entity.get_schema().x
@@ -75,8 +75,8 @@ class SchemaCastToTest(parameterized.TestCase):
     )
 
   def test_casting_conflict(self):
-    bag1 = data_bag.DataBag.empty()
-    bag2 = data_bag.DataBag.empty()
+    bag1 = data_bag.DataBag.empty_mutable()
+    bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=1)
     schema = entity.get_schema().with_bag(bag2)
     schema.x = schema_constants.FLOAT32
@@ -92,12 +92,12 @@ class SchemaCastToTest(parameterized.TestCase):
 
   @parameterized.parameters(*itertools.product([True, False], repeat=3))
   def test_entity_to_object_casting(self, freeze, fork, fallback):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1)
     if fork:
       e1 = e1.fork_bag()
     if fallback:
-      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
+      e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
     res = expr_eval.eval(kde.schema.cast_to(e1, schema_constants.OBJECT))
@@ -112,7 +112,7 @@ class SchemaCastToTest(parameterized.TestCase):
     testing.assert_equal(res.x, ds(1).with_bag(res.get_bag()))
 
   def test_object_to_entity_casting_implicit_schema_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     obj = db.obj(x=1)
     with self.assertRaisesRegex(
         ValueError, "DataSlice cannot have an implicit schema as its schema"
@@ -120,7 +120,7 @@ class SchemaCastToTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.cast_to(obj, obj.get_obj_schema()))
 
   def test_object_to_entity_casting_incompatible_schema_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     obj = db.new(x=1).embed_schema()
     with self.assertRaisesRegex(
         ValueError,
@@ -131,7 +131,7 @@ class SchemaCastToTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.cast_to(obj, db.new(x=1).get_schema()))
 
   def test_object_to_entity_casting_no_common_schema_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     entity = db.new(x=1)
     x = ds([1, entity.embed_schema()])
     with self.assertRaisesRegex(
@@ -148,7 +148,7 @@ class SchemaCastToTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.cast_to(ds(1), ds(1)))
 
   def test_unsupported_schema_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1)
     e2_schema = db.new(x=1).get_schema()
     with self.assertRaisesRegex(

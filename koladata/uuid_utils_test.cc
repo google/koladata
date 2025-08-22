@@ -52,7 +52,7 @@ TEST(UuidUtilsTest, IsUnspecifiedDataSlice_False) {
                              {test::DataSlice<int64_t>({(1l << 31) - 1})});
   EXPECT_FALSE(IsUnspecifiedDataSlice(ds));
 
-  ds = test::DataSlice<float>({3.14, 2.71}, DataBag::Empty());
+  ds = test::DataSlice<float>({3.14, 2.71}, DataBag::EmptyMutable());
   EXPECT_FALSE(IsUnspecifiedDataSlice(ds));
 }
 

@@ -49,7 +49,7 @@ class CoreExtractTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_fallback(self, noise_positioned_in_front, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
@@ -61,10 +61,10 @@ class CoreExtractTest(parameterized.TestCase):
         c=c_dict,
     )
     # TODO: test no_follow, uu, uuid
-    fb = data_bag.DataBag.empty()
+    fb = data_bag.DataBag.empty_mutable()
     o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
     o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
-    fb_noise = data_bag.DataBag.empty()
+    fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
       o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
@@ -85,7 +85,7 @@ class CoreExtractTest(parameterized.TestCase):
       (False,),
   )
   def test_eval_with_schema_partial(self, noise_positioned_in_front):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
     )
@@ -97,11 +97,11 @@ class CoreExtractTest(parameterized.TestCase):
     )
     o.a.set_attr('d', ds([1, 2, 3]))
     a_schema = (
-        data_bag.DataBag.empty()
+        data_bag.DataBag.empty_mutable()
         .new(b=ds([1, 2]), c=ds(['a', 'b']))
         .get_schema()
     )
-    schema_bag = data_bag.DataBag.empty()
+    schema_bag = data_bag.DataBag.empty_mutable()
     schema = o.get_schema().with_bag(schema_bag)
     schema.a = a_schema.no_bag()
     schema.a.b = a_schema.b.no_bag()
@@ -127,7 +127,7 @@ class CoreExtractTest(parameterized.TestCase):
         itemid=o.get_itemid(),
         schema=schema.no_bag())
     del o_exp
-    fb_noise = data_bag.DataBag.empty()
+    fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
       o_fb = o.enriched(fb_noise)
@@ -146,7 +146,7 @@ class CoreExtractTest(parameterized.TestCase):
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
@@ -155,7 +155,7 @@ class CoreExtractTest(parameterized.TestCase):
         a=a_slice,
         b=b_list,
     )
-    fb = data_bag.DataBag.empty()
+    fb = data_bag.DataBag.empty_mutable()
     o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
     fb_d = expr_eval.eval(kde.nofollow(fb.new(x=ds([1, 2, None]))))
     o.a.with_bag(fb).get_attr('__schema__').set_attr(
@@ -173,9 +173,9 @@ class CoreExtractTest(parameterized.TestCase):
     testing.assert_equivalent(result.get_bag(), db)
 
   def test_eval_lists(self):
-    db = data_bag.DataBag.empty()
-    tmp_db = data_bag.DataBag.empty()
-    fb = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
+    tmp_db = data_bag.DataBag.empty_mutable()
+    fb = data_bag.DataBag.empty_mutable()
     list_slice = ds([
         db.list([], item_schema=schema_constants.INT32),
         tmp_db.list([5, 6]).no_bag(),
@@ -202,7 +202,7 @@ class CoreExtractTest(parameterized.TestCase):
     )
 
   def test_invalid_object_dtype_schema(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o = db.obj(x=1)
     o.set_attr('__schema__', schema_constants.INT32)
     with self.assertRaisesRegex(
@@ -212,7 +212,7 @@ class CoreExtractTest(parameterized.TestCase):
       expr_eval.eval(kde.extract(o))
 
   def test_mixed_objects_and_schemas(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(x=schema_constants.INT32).with_schema(
         schema_constants.OBJECT
     )
@@ -225,7 +225,7 @@ class CoreExtractTest(parameterized.TestCase):
       expr_eval.eval(kde.extract(o))
 
   def test_primitives_mismatch(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o = db.obj(x=ds([1, 2, 3]))
     schema = db.new_schema(x=schema_constants.STRING)
     with self.assertRaisesRegex(

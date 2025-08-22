@@ -44,8 +44,8 @@ class IterablesChainTest(absltest.TestCase):
     testing.assert_equal(res_list[2], ds(3))
 
   def test_chain_with_bags(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         kde.iterables.chain(kde.iterables.make(db1), kde.iterables.make(db2))
     )
@@ -57,8 +57,8 @@ class IterablesChainTest(absltest.TestCase):
     testing.assert_equal(res_list[1], db2)
 
   def test_chain_with_bags_explicit_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         kde.iterables.chain(
             kde.iterables.make(db1),
@@ -74,7 +74,7 @@ class IterablesChainTest(absltest.TestCase):
     testing.assert_equal(res_list[1], db2)
 
   def test_chain_with_bags_wrong_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         'when value_type_as is specified, all iterables must have that value'
@@ -102,7 +102,7 @@ class IterablesChainTest(absltest.TestCase):
       _ = expr_eval.eval(
           kde.iterables.chain(
               kde.iterables.make(1),
-              kde.iterables.make(data_bag.DataBag.empty()),
+              kde.iterables.make(data_bag.DataBag.empty_mutable()),
           )
       )
 

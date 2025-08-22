@@ -24,6 +24,7 @@ kde = kde_operators.kde
 FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     # Mutating functions.
     'del_attr',
+    'mutable_bag',
     'set_attr',
     'set_attrs',
     'set_schema',

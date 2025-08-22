@@ -38,7 +38,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 ITEMID = schema_constants.ITEMID
 
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 LIST0 = db.list()
 LIST1 = db.list([1, 2, 3])
 LIST2 = db.list([[1], [2, 3]])

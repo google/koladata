@@ -37,7 +37,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 entity_s = db.new_schema(x=schema_constants.INT32)
 entity = db.new(x=1, schema=entity_s)
 obj = db.obj(x=1)

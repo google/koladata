@@ -43,7 +43,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.db = data_bag.DataBag.empty()
+    self.db = data_bag.DataBag.empty_mutable()
     self.entity = eager.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
     self.object = eager.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
 

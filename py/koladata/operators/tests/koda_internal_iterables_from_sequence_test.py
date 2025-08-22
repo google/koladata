@@ -26,7 +26,7 @@ from koladata.types import qtypes
 
 
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 

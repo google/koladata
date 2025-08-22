@@ -33,7 +33,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 db = bag()
 OBJ1 = db.obj()

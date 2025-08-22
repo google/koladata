@@ -819,7 +819,7 @@ absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
         schema::CommonSchema(result_schema_impl, on_invalid.GetSchemaImpl()));
   }
 
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   {
     AdoptionQueue adoption_queue;
     adoption_queue.Add(schema);

@@ -202,7 +202,7 @@ BENCHMARK(BM_Align)->Arg(0)->Arg(1000)->Arg(100000);
 
 template <typename ObjectFactory>
 void BM_SetGetAttrItem(benchmark::State& state) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto o = *ObjectFactory::FromAttrs(db, {}, {});
   auto val = *DataSlice::Create(internal::DataItem(12),
                                 internal::DataItem(schema::kInt32));
@@ -225,7 +225,7 @@ void BM_SetGetAttrItem(benchmark::State& state) {
 
 template <typename ObjectFactory>
 void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto o = *ObjectFactory::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(1), {}, {});
 
@@ -254,7 +254,7 @@ void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
 
 template <typename ObjectFactory>
 void BM_SetGetAttrMultiDim(benchmark::State& state) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto o = *ObjectFactory::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(10000), {}, {});
 
@@ -290,7 +290,7 @@ BENCHMARK(BM_SetGetAttrOneDimSingle<ObjectCreator>);
 BENCHMARK(BM_SetGetAttrMultiDim<ObjectCreator>);
 
 void BM_SetGetAttrMultiDimObjectSchema(benchmark::State& state) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto val =
       *DataSlice::Create(internal::DataSliceImpl::Create(
                              arolla::CreateConstDenseArray<int>(10000, 12)),
@@ -315,7 +315,7 @@ void BM_SetGetAttrMultiDimObjectSchema(benchmark::State& state) {
 BENCHMARK(BM_SetGetAttrMultiDimObjectSchema);
 
 void BM_GetEmbeddedSchemaAttr(benchmark::State& state) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto val =
       *DataSlice::Create(internal::DataSliceImpl::Create(
                              arolla::CreateConstDenseArray<int>(10000, 12)),
@@ -340,7 +340,7 @@ BENCHMARK(BM_GetEmbeddedSchemaAttr);
 void BM_ExplodeLists(benchmark::State& state) {
   int64_t first_dim = state.range(0);
   int64_t second_dim = state.range(1);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto edge_1 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>({0, first_dim}));
   std::vector<arolla::OptionalValue<int64_t>> split_points_2;
@@ -371,7 +371,7 @@ void BM_GetFromList(benchmark::State& state) {
   bool should_broadcast_index = state.range(0);
   int64_t first_dim = state.range(1);
   int64_t second_dim = state.range(2);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto edge_1 = *DataSlice::JaggedShape::Edge::FromSplitPoints(
       arolla::CreateDenseArray<int64_t>({0, first_dim}));
   std::vector<arolla::OptionalValue<int64_t>> split_points_2;
@@ -409,7 +409,7 @@ BENCHMARK(BM_GetFromList)
 
 void BM_SetMultipleAttrs(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto a = *DataSlice::CreateWithSchemaFromData(
       DataSliceImpl::Create(a_values),
@@ -442,7 +442,7 @@ BENCHMARK(BM_SetMultipleAttrs)->Arg(1)->Arg(10)->Arg(10000);
 
 void BM_CreateEntity(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto a = *DataSlice::CreateWithSchemaFromData(
       DataSliceImpl::Create(a_values),
@@ -474,7 +474,7 @@ BENCHMARK(BM_CreateEntity)->Arg(1)->Arg(10)->Arg(10000);
 
 void BM_CreateUuEntity(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto a = *DataSlice::CreateWithSchemaFromData(
       DataSliceImpl::Create(a_values),
@@ -489,7 +489,7 @@ void BM_CreateUuEntity(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   std::optional<DataSlice> schema = *CreateEntitySchema(
       schema_db, {"a", "b", "c"},
       {test::Schema(schema::kInt32), test::Schema(schema::kFloat32),
@@ -512,7 +512,7 @@ BENCHMARK(BM_CreateUuEntity)->Arg(1)->Arg(10)->Arg(10000);
 
 void BM_CreateEntityWithSchema(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto a = *DataSlice::CreateWithSchemaFromData(
       DataSliceImpl::Create(a_values),
@@ -527,7 +527,7 @@ void BM_CreateEntityWithSchema(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   std::optional<DataSlice> schema = *CreateEntitySchema(
       schema_db, {"a", "b", "c"},
       {test::Schema(schema::kInt32), test::Schema(schema::kFloat32),
@@ -551,7 +551,7 @@ BENCHMARK(BM_CreateEntityWithSchema)->Arg(1)->Arg(10)->Arg(10000);
 
 void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto a = *DataSlice::CreateWithSchemaFromData(
       DataSliceImpl::Create(a_values),
@@ -566,7 +566,7 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
       DataSliceImpl::Create(c_values),
       DataSlice::JaggedShape::FlatFromSize(size));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   std::optional<DataSlice> schema = *CreateEntitySchema(
       schema_db, {"a", "b", "c"},
       {test::Schema(schema::kInt64), test::Schema(schema::kFloat64),
@@ -656,7 +656,7 @@ BENCHMARK(BM_DataSliceRepr_Int32)
     ->Args({5, 10, 1 << 30});
 
 void BM_DataBagStatistics_Attributes(benchmark::State& state) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   int64_t size = state.range(0);
   int64_t attr_size = state.range(1);
@@ -676,7 +676,7 @@ BENCHMARK(BM_DataBagStatistics_Attributes)
     ->Args({1000, 1000});
 
 void BM_DataBagContentsRepr_Attributes_BigAlloc(benchmark::State& state) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   int64_t size = state.range(0);
   int64_t attr_size = state.range(1);
@@ -696,7 +696,7 @@ BENCHMARK(BM_DataBagContentsRepr_Attributes_BigAlloc)
     ->Args({1000, 1000});
 
 void BM_DataBagStatistics_Attributes_SmallAlloc(benchmark::State& state) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   int64_t size = state.range(0);
   int64_t attr_size = state.range(1);
 
@@ -715,7 +715,7 @@ BENCHMARK(BM_DataBagStatistics_Attributes_SmallAlloc)
     ->Args({1000, 1000});
 
 void BM_DataBagContentsRepr_Attributes_SmallAlloc(benchmark::State& state) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   int64_t size = state.range(0);
   int64_t attr_size = state.range(1);
 
@@ -736,7 +736,7 @@ BENCHMARK(BM_DataBagContentsRepr_Attributes_SmallAlloc)
 void BM_DataBagStatistics_Lists(benchmark::State& state) {
   int64_t first_dim = state.range(0);
   int64_t second_dim = state.range(1);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   CHECK_OK(Create2DListDataBag(db, first_dim, second_dim));
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
@@ -754,7 +754,7 @@ BENCHMARK(BM_DataBagStatistics_Lists)
 void BM_DataBagContentsRepr_Lists(benchmark::State& state) {
   int64_t size = state.range(0);
   int64_t dim = state.range(1);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   CHECK_OK(Create1DListDataBag(db, size, dim));
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);

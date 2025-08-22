@@ -359,7 +359,7 @@ Assigned schema for keys: STRING"""),
 Expected schema for keys: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for keys: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
-      db = fns.bag()
+      db = fns.mutable_bag()
       db.dict(
           items_or_keys={db.new(x=1): 'a'},
           key_schema=db.new_schema(x=schema_constants.INT32),
@@ -373,7 +373,7 @@ Assigned schema for keys: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
 Expected schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
-      db = fns.bag()
+      db = fns.mutable_bag()
       db.dict(
           items_or_keys={'a': db.new(x=1)},
           key_schema=schema_constants.STRING,

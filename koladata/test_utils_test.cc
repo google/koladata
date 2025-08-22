@@ -93,7 +93,7 @@ TEST(TestUtils, DataItem_Object) {
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 
   auto alloc_schema = internal::AllocateExplicitSchema();
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   item = test::DataItem(object, alloc_schema, db);
   ASSERT_OK_AND_ASSIGN(
       expected_item,
@@ -186,7 +186,7 @@ TEST(TestUtils, DataSlice_Object_ObjectSchema) {
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 
   // With DataBag.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ds = test::DataSlice<ObjectId>(
       {alloc_id.ObjectByOffset(0), std::nullopt, alloc_id.ObjectByOffset(1)},
       schema::kObject, db);
@@ -210,7 +210,7 @@ TEST(TestUtils, DataSlice_Entity) {
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 
   // With DataBag.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ds = test::DataSlice<ObjectId>(
       {alloc_id.ObjectByOffset(0), std::nullopt, alloc_id.ObjectByOffset(1)},
       alloc_schema, db);

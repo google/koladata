@@ -266,7 +266,7 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      fns.dict_shaped(fns.bag())
+      fns.dict_shaped(fns.mutable_bag())
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',

@@ -74,8 +74,8 @@ class KdTest(absltest.TestCase):
     self.assertIsInstance(kd.bag(), kd.types.DataBag)
     self.assertIsInstance(kd.slice([1, 2, 3]), kd.types.DataSlice)
     self.assertIsInstance(kd.item(5), kd.types.DataItem)
-    self.assertIsInstance(kd.bag().list([1, 2]), kd.types.ListItem)
-    self.assertIsInstance(kd.bag().dict({'a': 42}), kd.types.DictItem)
+    self.assertIsInstance(kd.mutable_bag().list([1, 2]), kd.types.ListItem)
+    self.assertIsInstance(kd.mutable_bag().dict({'a': 42}), kd.types.DictItem)
     self.assertIsInstance(kd.INT32, kd.types.SchemaItem)
     self.assertIsInstance(I.x, kd.types.Expr)
     self.assertIsInstance(I.x + I.y, kd.types.Expr)
@@ -833,7 +833,7 @@ class KdTest(absltest.TestCase):
 
   def test_qtypes(self):
     kd.testing.assert_equal(kd.item(1).qtype, kd.qtypes.DATA_SLICE)
-    kd.testing.assert_equal(kd.bag().qtype, kd.qtypes.DATA_BAG)
+    kd.testing.assert_equal(kd.mutable_bag().qtype, kd.qtypes.DATA_BAG)
 
     @kd.trace_as_fn(return_type_as=arolla.INT32)
     def get_data_slice():

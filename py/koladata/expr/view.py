@@ -667,6 +667,9 @@ class KodaView(BaseKodaView):
   def empty(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('empty', 'DataBag')
 
+  def empty_mutable(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('empty_mutable', 'DataBag')
+
   def fork(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('fork', 'DataBag')
 

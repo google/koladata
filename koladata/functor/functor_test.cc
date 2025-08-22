@@ -85,8 +85,9 @@ TEST(CreateFunctorTest, Basic) {
                                     {CreateInput("a"), CreateVariable("a")})));
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateInput("b")));
   auto slice_57 = test::DataItem(57);
-  ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
-                                        DataBag::Empty(), {"a"}, {slice_57}));
+  ASSERT_OK_AND_ASSIGN(
+      auto my_obj,
+      ObjectCreator::FromAttrs(DataBag::EmptyMutable(), {"a"}, {slice_57}));
   ASSERT_OK_AND_ASSIGN(
       auto fn, CreateFunctor(returns_expr, koda_signature, {"a", "my_obj"},
                              {var_a_expr, my_obj}));

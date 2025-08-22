@@ -61,7 +61,7 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_none(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = ds(None).with_bag(db)
     fns.set_attrs(x, a=2, b='abc')
     testing.assert_equal(x, ds(None).with_bag(db))

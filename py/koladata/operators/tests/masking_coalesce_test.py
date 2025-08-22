@@ -124,9 +124,9 @@ class MaskingCoalesceTest(parameterized.TestCase):
 
   def test_merging(self):
     mask = ds([arolla.present(), None])
-    x = data_bag.DataBag.empty().new(a=ds([1, 1])) & mask
+    x = data_bag.DataBag.empty_mutable().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
-    y = data_bag.DataBag.empty().new(x=ds([1, 1])).with_schema(
+    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).with_schema(
         x.get_schema().no_bag()
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
@@ -139,7 +139,7 @@ class MaskingCoalesceTest(parameterized.TestCase):
 
   def test_extraction(self):
     # Regression test for b/408434629.
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     lists = ds([db.list([1, 2]), db.list([3, 4])])
     l1 = (lists & ds([mask_constants.present, None])).with_list_append_update(8)
     l2 = (lists & ds([None, mask_constants.present])).with_list_append_update(9)
@@ -147,14 +147,14 @@ class MaskingCoalesceTest(parameterized.TestCase):
     testing.assert_equal(res[:].no_bag(), ds([[1, 2, 8], [3, 4, 9]]))
 
   def test_same_bag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new()
     y = db.new().with_schema(x.get_schema())
     testing.assert_equal(eval_op('kd.masking.coalesce', x, y), x)
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])
-    y = data_bag.DataBag.empty().new()
+    y = data_bag.DataBag.empty_mutable().new()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(

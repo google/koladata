@@ -935,6 +935,19 @@ py_test(
     ],
 )
 
+py_test(
+    name = "mutable_bag_test",
+    srcs = ["mutable_bag_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

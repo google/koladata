@@ -52,8 +52,9 @@ absl::StatusOr<DataSlice> MakeParameterKindConstant(absl::string_view name) {
   ASSIGN_OR_RETURN(auto name_attr,
                    DataSlice::Create(internal::DataItem(arolla::Text(name)),
                                      internal::DataItem(schema::kString)));
-  ASSIGN_OR_RETURN(auto res, CreateUu(DataBag::Empty(), "__parameter_kind__",
-                                      {"kind"}, {std::move(name_attr)}));
+  ASSIGN_OR_RETURN(auto res,
+                   CreateUu(DataBag::EmptyMutable(), "__parameter_kind__",
+                            {"kind"}, {std::move(name_attr)}));
   return res.FreezeBag();
 }
 
@@ -63,7 +64,7 @@ absl::StatusOr<DataSlice> MakeNoDefaultValueMarker() {
                                      internal::DataItem(schema::kMask)));
   ASSIGN_OR_RETURN(
       auto res,
-      CreateUu(DataBag::Empty(), "__parameter_no_default_value__",
+      CreateUu(DataBag::EmptyMutable(), "__parameter_no_default_value__",
                {kNoDefaultValueParameterField}, {std::move(present)}));
   return res.FreezeBag();
 }
@@ -227,7 +228,7 @@ absl::StatusOr<DataSlice> ParameterKindToKoda(Signature::Parameter::Kind kind) {
 absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
     const Signature& signature) {
   std::vector<internal::DataItem> koda_parameters;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   AdoptionQueue adoption_queue;
   for (const auto& param : signature.parameters()) {
     ASSIGN_OR_RETURN(auto kind, ParameterKindToKoda(param.kind));

@@ -247,7 +247,7 @@ class BoxingTest(parameterized.TestCase):
       testing.assert_equal(o, expected_o)
 
   def test_entities(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       ds([db.new(), db.new()])
 
@@ -261,7 +261,7 @@ class BoxingTest(parameterized.TestCase):
     testing.assert_equal(x.internal_as_py()[1], e2)
 
   def test_no_common_schema_error_message(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         r"""cannot find a common schema
@@ -299,8 +299,8 @@ class BoxingTest(parameterized.TestCase):
       ds([db.new(), 1, 'a', db.new()])
 
   def test_schema_embedding(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     e1 = db1.new()
     e2 = db2.new()
     res = ds([e1, e2], OBJECT)
@@ -324,7 +324,7 @@ class BoxingTest(parameterized.TestCase):
     )
 
   def test_single_entity_schema_embedding(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     e1 = db.new()
     res = ds(e1, OBJECT)
     testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
@@ -350,7 +350,7 @@ class BoxingTest(parameterized.TestCase):
     )
 
   def test_schema_embedding_conflicting_schema(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     e1 = db1.new().embed_schema()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -366,7 +366,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
       ds([e1, e1.with_schema(db1.new().get_schema())], OBJECT)
 
   def test_objects(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o1 = db.obj()
     o2 = db.obj()
     x = ds([o1, o2, 42])
@@ -383,7 +383,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     testing.assert_equal(x.internal_as_py()[2], e1.embed_schema())
 
   def test_list_of_entities(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     # Same schema and db for items from internal_as_py.
     x = db.new(x=ds([1, 2, 3]), y=ds(['a', 'b', 'c']))
     self.assertIsInstance(x.internal_as_py()[0], data_item.DataItem)
@@ -540,8 +540,8 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     gc.collect()
 
   def test_bag_merging(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     i1 = db1.obj(a=42)
     i2 = db2.obj(a=24)
     s = ds([i1, i2])
@@ -549,7 +549,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     testing.assert_equal(s.a, ds([42, 24]).with_bag(s.get_bag()))
 
   def test_slice_schema_adoption(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(a=schema_constants.INT32)
     s = ds([None, None], schema)
     testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
@@ -570,7 +570,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     self.assertTrue(s.is_mutable())
     testing.assert_equal(s.get_schema(), schema)
 
-    db2 = data_bag.DataBag.empty()
+    db2 = data_bag.DataBag.empty_mutable()
     s = ds(ds([None, None]).with_bag(db2), schema)
     testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
@@ -578,7 +578,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     self.assertFalse(s.is_mutable())
 
   def test_item_schema_adoption(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(a=schema_constants.INT32)
     s = data_item.DataItem.from_vals(None, schema)
     testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
@@ -593,7 +593,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     self.assertTrue(s.is_mutable())
     testing.assert_equal(s.get_schema(), schema)
 
-    db2 = data_bag.DataBag.empty()
+    db2 = data_bag.DataBag.empty_mutable()
     s = data_item.DataItem.from_vals(ds(None).with_bag(db2), schema)
     testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)

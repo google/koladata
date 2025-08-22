@@ -63,7 +63,7 @@ using ::testing::Not;
 using ::testing::Property;
 
 TEST(EntitySchemaTest, CreateSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto float_s = test::Schema(schema::kFloat32);
 
@@ -78,7 +78,7 @@ TEST(EntitySchemaTest, CreateSchema) {
 }
 
 TEST(UUSchemaTest, CreateUUSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto float_s = test::Schema(schema::kFloat32);
 
@@ -94,7 +94,7 @@ TEST(UUSchemaTest, CreateUUSchema) {
 }
 
 TEST(NamedSchemaTest, CreateNamedSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto named_schema,
                        CreateNamedSchema(db, "name", {}, {}));
@@ -111,8 +111,8 @@ TEST(NamedSchemaTest, CreateNamedSchema) {
 }
 
 TEST(NamedSchemaTest, CreateNamedSchema_Attrs) {
-  auto db = DataBag::Empty();
-  auto attr_db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto attr_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto attr_s,
       CreateEntitySchema(attr_db, {"a"}, {test::Schema(schema::kFloat32)}));
@@ -129,7 +129,7 @@ TEST(NamedSchemaTest, CreateNamedSchema_Attrs) {
 }
 
 TEST(NamedSchemaTest, CreateNamedSchema_SchemaName) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto named_schema,
                        CreateNamedSchema(db, "name", {}, {}));
@@ -142,9 +142,9 @@ TEST(NamedSchemaTest, CreateNamedSchema_SchemaName) {
 }
 
 TEST(CreateMetadataTest, CreateMetadata) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
-  auto attr_db = DataBag::Empty();
+  auto attr_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
     auto schema,
     CreateEntitySchema(attr_db, {"a"}, {test::Schema(schema::kFloat32)}));
@@ -161,7 +161,7 @@ TEST(CreateMetadataTest, CreateMetadata) {
 }
 
 TEST(EntitySchemaTest, Error) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto non_schema_1 = test::DataItem(42);
   EXPECT_THAT(CreateEntitySchema(db, {"a", "b"}, {int_s, non_schema_1}),
@@ -175,7 +175,7 @@ TEST(EntitySchemaTest, Error) {
 
 TEST(EntityCreatorTest, DataSlice) {
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
@@ -210,7 +210,7 @@ TEST(EntityCreatorTest, DataSlice) {
 }
 
 TEST(EntityCreatorTest, DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
@@ -239,7 +239,7 @@ TEST(EntityCreatorTest, DataItem) {
 }
 
 TEST(EntityCreatorTest, DatabagAdoption) {
-  auto db_nested = DataBag::Empty();
+  auto db_nested = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(
       auto ds_nested,
@@ -248,7 +248,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
 
   // FromAttrs
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::FromAttrs(db, {"nested"}, {ds_nested}));
@@ -259,7 +259,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
 
   // Like
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto shape_and_mask_from = test::DataItem(1);
     ASSERT_OK_AND_ASSIGN(
         auto ds, EntityCreator::Like(db, shape_and_mask_from, {"nested"},
@@ -271,7 +271,7 @@ TEST(EntityCreatorTest, DatabagAdoption) {
 
   // Shaped
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
@@ -284,14 +284,14 @@ TEST(EntityCreatorTest, DatabagAdoption) {
 }
 
 TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
                                           {test::Schema(schema::kFloat32)});
 
   // FromAttrs
   // Schema comes from different db and takes effect.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema));
@@ -303,8 +303,8 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
   // FromAttrs
   // Schema comes from different db and gets overwritten
   {
-    auto db = DataBag::Empty();
-    auto schema_db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
+    auto schema_db = DataBag::EmptyMutable();
     auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
                                             {test::Schema(schema::kFloat32)});
     ASSERT_OK_AND_ASSIGN(
@@ -319,7 +319,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
   // Schema comes from different db and takes effect.
   {
     auto shape_and_mask_from = test::DataItem(1);
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds, EntityCreator::Like(db, shape_and_mask_from, {"a"},
                                      {test::DataItem(42)}, alt_schema));
@@ -332,7 +332,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
   // Schema comes from different db and gets overwritten
   {
     auto shape_and_mask_from = test::DataItem(1);
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          EntityCreator::Like(db, shape_and_mask_from, {"a"},
                                              {test::DataItem(42)}, alt_schema,
@@ -344,7 +344,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
   // Shaped
   // Schema comes from different db and takes effect.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
@@ -358,7 +358,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
   // Shaped
   // Schema comes from different db and gets overwritten
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
@@ -371,7 +371,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
 }
 
 TEST(EntityCreatorTest, SchemaArg) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto text_s = test::Schema(schema::kString);
   auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
@@ -391,7 +391,7 @@ TEST(EntityCreatorTest, SchemaArg) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       EntityCreator::FromAttrs(db, {"a", "b"},
                                {test::DataItem(42), test::DataItem("xyz")},
@@ -407,18 +407,18 @@ TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_WithFallback) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
-  auto fb_db = DataBag::Empty();
+  auto fb_db = DataBag::EmptyMutable();
   auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
   entity_schema =
       entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
 
-  auto new_db = DataBag::Empty();
+  auto new_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity,
       EntityCreator::FromAttrs(
@@ -435,7 +435,7 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
@@ -453,7 +453,7 @@ TEST(EntityCreatorTest, SchemaArg_ImplicitCasting) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_CastingFails) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
@@ -465,7 +465,7 @@ TEST(EntityCreatorTest, SchemaArg_CastingFails) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto bytes_s = test::Schema(schema::kBytes);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
@@ -499,7 +499,7 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
 }
 
 TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto bytes_s = test::Schema(schema::kBytes);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
@@ -535,7 +535,7 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
 }
 
 TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto bytes_s = test::Schema(schema::kBytes);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
@@ -575,11 +575,11 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
 }
 
 TEST(EntityCreatorTest, SchemaArg_NoBag) {
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   auto bytes_s = test::Schema(schema::kBytes);
   auto entity_schema = *CreateEntitySchema(schema_db, {"a"}, {bytes_s});
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
                                             entity_schema.WithBag(nullptr)));
@@ -588,8 +588,8 @@ TEST(EntityCreatorTest, SchemaArg_NoBag) {
 }
 
 TEST(EntityCreatorTest, PrimitiveToEntity) {
-  auto db = DataBag::Empty();
-  auto db_val = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto db_val = DataBag::EmptyMutable();
   EXPECT_THAT(
       EntityCreator::ConvertWithoutAdopt(
           db, test::DataSlice<int>({1, 2, 3}, db_val)),
@@ -605,8 +605,8 @@ TEST(EntityCreatorTest, PrimitiveToEntity) {
 }
 
 TEST(EntityCreatorTest, EntityToEntity) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_val,
       EntityCreator::FromAttrs(db_val, {"a"}, {test::DataItem(42)}));
@@ -623,7 +623,7 @@ TEST(EntityCreatorTest, EntityToEntity) {
 
 TEST(CreateUuTest, DataSlice) {
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
@@ -672,7 +672,7 @@ TEST(CreateUuTest, DataSlice) {
 }
 
 TEST(CreateUuTest, DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
@@ -712,7 +712,7 @@ TEST(CreateUuTest, DataItem) {
 }
 
 TEST(CreateUuTest, NoArgs) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, CreateUu(db, "", {}, {}));
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
@@ -734,7 +734,7 @@ TEST(CreateUuTest, NoArgs) {
 }
 
 TEST(CreateUuTest, SchemaArg) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto text_s = test::Schema(schema::kString);
   auto entity_schema = *CreateEntitySchema(db, {"a", "b"}, {int_s, text_s});
@@ -752,7 +752,7 @@ TEST(CreateUuTest, SchemaArg) {
 }
 
 TEST(CreateUuTest, SchemaArg_InvalidSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
                test::DataItem(42)),
@@ -766,18 +766,18 @@ TEST(CreateUuTest, SchemaArg_InvalidSchema) {
 }
 
 TEST(CreateUuTest, SchemaArg_WithFallback) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
-  auto fb_db = DataBag::Empty();
+  auto fb_db = DataBag::EmptyMutable();
   auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
   entity_schema =
       entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
 
-  auto new_db = DataBag::Empty();
+  auto new_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity,
       CreateUu(new_db, "", {"a", "b"},
@@ -792,7 +792,7 @@ TEST(CreateUuTest, SchemaArg_WithFallback) {
 }
 
 TEST(CreateUuTest, SchemaArg_ImplicitCasting) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
@@ -810,7 +810,7 @@ TEST(CreateUuTest, SchemaArg_ImplicitCasting) {
 }
 
 TEST(CreateUuTest, SchemaArg_CastingFails) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
@@ -820,7 +820,7 @@ TEST(CreateUuTest, SchemaArg_CastingFails) {
 }
 
 TEST(CreateUuTest, SchemaArg_UpdateSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto bytes_s = test::Schema(schema::kBytes);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {bytes_s});
 
@@ -844,14 +844,14 @@ TEST(CreateUuTest, SchemaArg_UpdateSchema) {
 }
 
 TEST(CreateUuTest, DatabagAdoption) {
-  auto db_nested = DataBag::Empty();
+  auto db_nested = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(
       auto ds_nested,
       EntityCreator::FromAttrs(
           db_nested, {"a"}, {ds_a}));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreateUu(db, "", {"nested"}, {ds_nested}));
@@ -861,13 +861,13 @@ TEST(CreateUuTest, DatabagAdoption) {
 }
 
 TEST(CreateUuTest, DatabagAdoption_WithSchema) {
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   auto alt_schema = *CreateEntitySchema(schema_db, {"a"},
                                           {test::Schema(schema::kFloat32)});
 
   // Schema comes from different db and takes effect.
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema));
     EXPECT_THAT(
@@ -877,8 +877,8 @@ TEST(CreateUuTest, DatabagAdoption_WithSchema) {
 
   // Schema comes from different db and gets overwritten
   {
-    auto db = DataBag::Empty();
-    auto schema_db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
+    auto schema_db = DataBag::EmptyMutable();
     auto alt_schema =
         *CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kFloat32)});
     ASSERT_OK_AND_ASSIGN(
@@ -890,8 +890,8 @@ TEST(CreateUuTest, DatabagAdoption_WithSchema) {
 }
 
 TEST(ObjectCreatorTest, ObjectToEntity) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
   EXPECT_THAT(EntityCreator::ConvertWithoutAdopt(db, object),
               IsOkAndHolds(AllOf(
@@ -901,8 +901,8 @@ TEST(ObjectCreatorTest, ObjectToEntity) {
 }
 
 TEST(ObjectCreatorTest, ReferenceToEntity) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
   object = object.WithBag(nullptr);
   EXPECT_THAT(EntityCreator::ConvertWithoutAdopt(db, object),
@@ -914,7 +914,7 @@ TEST(ObjectCreatorTest, ReferenceToEntity) {
 
 TEST(ObjectCreatorTest, DataSlice) {
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
@@ -959,7 +959,7 @@ TEST(ObjectCreatorTest, DataSlice) {
 }
 
 TEST(ObjectCreatorTest, DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
@@ -991,7 +991,7 @@ TEST(ObjectCreatorTest, DataItem) {
 }
 
 TEST(ObjectCreatorTest, EmptyDataSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({});
   auto ds_b = test::DataSlice<float>({});
 
@@ -1003,7 +1003,7 @@ TEST(ObjectCreatorTest, EmptyDataSlice) {
 }
 
 TEST(ObjectCreatorTest, DatabagAdoption) {
-  auto db_nested = DataBag::Empty();
+  auto db_nested = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(
       auto ds_nested,
@@ -1012,7 +1012,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
 
   // FromAttrs
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         ObjectCreator::FromAttrs(db, {"nested"}, {ds_nested}));
@@ -1023,7 +1023,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
 
   // Like
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto shape_and_mask_from = test::DataItem(1);
     ASSERT_OK_AND_ASSIGN(
         auto ds, ObjectCreator::Like(db, shape_and_mask_from, {"nested"},
@@ -1035,7 +1035,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
 
   // Shaped
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         ObjectCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
@@ -1048,7 +1048,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
 }
 
 TEST(ObjectCreatorTest, InvalidSchemaArg) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
   auto entity_schema = test::Schema(schema::kObject);
   EXPECT_THAT(
@@ -1066,8 +1066,8 @@ TEST(ObjectCreatorTest, InvalidSchemaArg) {
 }
 
 TEST(ObjectCreatorTest, PrimitiveToObject) {
-  auto db = DataBag::Empty();
-  auto db_val = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto db_val = DataBag::EmptyMutable();
   EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(
                   db, test::DataSlice<int>({1, 2, 3}, db_val)),
               IsOkAndHolds(AllOf(
@@ -1082,8 +1082,8 @@ TEST(ObjectCreatorTest, PrimitiveToObject) {
 }
 
 TEST(ObjectCreatorTest, EntityToObject) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(
                                         db_val, {"a"}, {test::DataItem(42)}));
 
@@ -1109,8 +1109,8 @@ TEST(ObjectCreatorTest, EntityToObject) {
 }
 
 TEST(ObjectCreatorTest, ObjectToObject) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto object, ObjectCreator::FromAttrs(db_val, {}, {}));
   EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, object),
               IsOkAndHolds(AllOf(
@@ -1121,8 +1121,8 @@ TEST(ObjectCreatorTest, ObjectToObject) {
 }
 
 TEST(ObjectCreatorTest, ReferenceToObject) {
-  auto db_val = DataBag::Empty();
-  auto db = DataBag::Empty();
+  auto db_val = DataBag::EmptyMutable();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db_val, {}, {}));
   entity = entity.WithBag(nullptr);
   EXPECT_THAT(ObjectCreator::ConvertWithoutAdopt(db, entity),
@@ -1133,7 +1133,7 @@ TEST(ObjectCreatorTest, ReferenceToObject) {
 }
 
 TEST(ObjectCreatorTest, ObjectConverterError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       ObjectCreator::ConvertWithoutAdopt(
           db, test::AllocateDataSlice(1, schema::kItemId, db)),
@@ -1144,7 +1144,7 @@ TEST(ObjectCreatorTest, ObjectConverterError) {
 }
 
 TEST(UuObjectCreatorTest, DataSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
@@ -1190,7 +1190,7 @@ TEST(UuObjectCreatorTest, DataSlice) {
 }
 
 TEST(UuObjectCreatorTest, DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
@@ -1218,7 +1218,7 @@ TEST(UuObjectCreatorTest, DataItem) {
 }
 
 TEST(UuObjectCreatorTest, Empty) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds_1, CreateUuObject(db, "seed1", {}, {}));
   EXPECT_EQ(ds_1.GetBag(), db);
   EXPECT_TRUE(ds_1.item().value<ObjectId>().IsUuid());
@@ -1232,7 +1232,7 @@ TEST(UuObjectCreatorTest, Empty) {
 }
 
 TEST(UuObjectCreatorTest, UuObjectCreationAfterModification) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(2);
   auto ds_b = test::DataItem(3);
   auto ds_c = test::DataItem(4);
@@ -1290,7 +1290,7 @@ TYPED_TEST_SUITE(CreatorTest, CreatorTestTypes);
 
 TYPED_TEST(CreatorTest, NoInputs) {
   using CreatorT = typename TestFixture::CreatorT;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(db, {}, {}));
   EXPECT_EQ(ds.GetBag(), db);
@@ -1301,7 +1301,7 @@ TYPED_TEST(CreatorTest, NoInputs) {
 TYPED_TEST(CreatorTest, Shaped) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(db, shape, {}, {}));
   EXPECT_EQ(ds.GetBag(), db);
@@ -1312,7 +1312,7 @@ TYPED_TEST(CreatorTest, Shaped) {
 TYPED_TEST(CreatorTest, AutoBroadcasting) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
@@ -1340,7 +1340,7 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
 
 TEST(EntityCreatorTest, AutoBroadcasting_WithSchema) {
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
   auto int_s = test::Schema(schema::kObject);
@@ -1373,7 +1373,7 @@ TEST(EntityCreatorTest, AutoBroadcasting_WithSchema) {
 TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);  // Both will be broadcasted to ItemId.
   auto ds_b = test::DataItem("abc");
 
@@ -1415,7 +1415,7 @@ TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto shape = DataSlice::JaggedShape::FlatFromSize(kSize);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
@@ -1435,7 +1435,7 @@ TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
 TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
 
   EXPECT_THAT(
@@ -1448,7 +1448,7 @@ TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
 TYPED_TEST(CreatorTest, Shaped_ItemId) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(shape.size(), schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
@@ -1476,7 +1476,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId) {
 TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::AllocateEmptyObjects(3),
@@ -1522,7 +1522,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
 TYPED_TEST(CreatorTest, Shaped_ItemId_Error) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::AllocateEmptyObjects(2),
@@ -1545,7 +1545,7 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
   auto shape_and_mask_from = test::DataSlice<int>({1, std::nullopt, 2});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
@@ -1565,7 +1565,7 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
 TYPED_TEST(CreatorTest, Like_EmptyItem) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape_and_mask_from = test::DataItem(internal::DataItem());
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
 
   ASSERT_OK_AND_ASSIGN(auto ds,
@@ -1579,7 +1579,7 @@ TYPED_TEST(CreatorTest, Like_EmptySlice) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape_and_mask_from = test::EmptyDataSlice(
       DataSlice::JaggedShape::FlatFromSize(3), schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(42);
 
   ASSERT_OK_AND_ASSIGN(auto ds,
@@ -1594,7 +1594,7 @@ TYPED_TEST(CreatorTest, Like_EmptySlice) {
 TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
   using CreatorT = typename TestFixture::CreatorT;
   constexpr int64_t kSize = 3;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
 
   EXPECT_THAT(CreatorT::Like(db, test::DataItem(42), {"a"}, {ds_a}),
@@ -1607,7 +1607,7 @@ TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
 TYPED_TEST(CreatorTest, Like_ItemId) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2, 3});
   auto ds_b = test::DataSlice<int64_t>({42, 43, 44});
 
@@ -1644,7 +1644,7 @@ TYPED_TEST(CreatorTest, Like_ItemId) {
 TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -1696,7 +1696,7 @@ TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
 TYPED_TEST(CreatorTest, Like_ItemId_Error) {
   using CreatorT = typename TestFixture::CreatorT;
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -1721,7 +1721,7 @@ TYPED_TEST(CreatorTest, Like_ItemId_Error) {
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   {
     // Scalar, no schema.
@@ -1748,7 +1748,7 @@ TEST(ObjectFactoriesTest, CreateEmptyList) {
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList_ItemId) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   {
     // DataItem.
@@ -1789,7 +1789,7 @@ TEST(ObjectFactoriesTest, CreateEmptyList_ItemId) {
 }
 
 TEST(ObjectFactoriesTest, CreateEmptyList_ItemId_Error) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataItem(internal::AllocateSingleDict()),
@@ -1820,7 +1820,7 @@ TEST(ObjectFactoriesTest, CreateEmptyList_ItemId_Error) {
 }
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   {
     // Scalar, deduce schema from values.
@@ -1874,7 +1874,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
 }
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 3, 5})}));
@@ -1950,7 +1950,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
 }
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension_ItemId) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 3, 5})}));
@@ -1982,7 +1982,7 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_ItemId) {
 }
 
 TEST(ObjectFactoriesTest, Implode) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   // values: [[1, 2, 3], [4, 5]]
   ASSERT_OK_AND_ASSIGN(auto shape,
@@ -2006,7 +2006,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=-1, new db
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, -1));
     EXPECT_EQ(lists.GetShape().rank(), 0);
@@ -2033,7 +2033,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=0, new db
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 0));
     EXPECT_EQ(lists.GetShape().rank(), 2);
@@ -2057,7 +2057,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=1, new db
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 1));
     EXPECT_EQ(lists.GetShape().rank(), 1);
@@ -2084,7 +2084,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=2, new db
-    auto db2 = DataBag::Empty();
+    auto db2 = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto lists,
                          Implode(db2, values, 2));
     EXPECT_EQ(lists.GetShape().rank(), 0);
@@ -2138,7 +2138,7 @@ TEST(ObjectFactoriesTest, Implode) {
 }
 
 TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db, {}));
   EXPECT_EQ(result.GetShape().rank(), 0);
   EXPECT_EQ(result.GetBag(), db);
@@ -2149,7 +2149,7 @@ TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {
 }
 
 TEST(ObjectFactoriesTest, ConcatLists_InputsAreNotLists) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   // values: [1, 2, 3]
   auto values = test::DataSlice<int>(
@@ -2163,7 +2163,7 @@ TEST(ObjectFactoriesTest, ConcatLists_InputsAreNotLists) {
 
 TEST(ObjectFactoriesTest, ConcatLists) {
   // values1: [[1, 2, 3], [4, 5]]
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape1,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 3, 5})}));
@@ -2171,14 +2171,14 @@ TEST(ObjectFactoriesTest, ConcatLists) {
   ASSERT_OK_AND_ASSIGN(values1, Implode(db1, values1, 1));
 
   // values2: [[6, 7], [8, 9]]
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape2,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 2, 4})}));
   auto values2 = test::DataSlice<int>({6, 7, 8, 9}, shape2);
   ASSERT_OK_AND_ASSIGN(values2, Implode(db2, values2, 1));
 
-  auto db3 = DataBag::Empty();
+  auto db3 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db3, {values1, values2}));
 
   EXPECT_EQ(result.GetBag(), db3);
@@ -2201,7 +2201,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
 
 TEST(ObjectFactoriesTest, CreateListShaped) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreateListShaped(db, shape, /*values=*/std::nullopt,
@@ -2219,7 +2219,7 @@ TEST(ObjectFactoriesTest, CreateListShaped) {
 }
 
 TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto values_shape,
@@ -2243,9 +2243,9 @@ TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema,
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
@@ -2264,12 +2264,12 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
 
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kInt32)}));
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto list_schema,
                          CreateListSchema(schema_db, entity_schema));
     ASSERT_OK_AND_ASSIGN(auto ds,
@@ -2289,7 +2289,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
                     test::DataSlice<int>({}, list_items.GetShape(), db))));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          CreateListShaped(db, shape, /*values=*/std::nullopt,
                                           /*schema=*/std::nullopt,
@@ -2310,7 +2310,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
 }
 
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::Empty();
 
   EXPECT_THAT(CreateListShaped(db, shape, /*values=*/std::nullopt,
@@ -2318,7 +2318,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected List schema, got INT32")));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema,
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
@@ -2331,7 +2331,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 2, 3}),
@@ -2371,7 +2371,7 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 2, 3}),
@@ -2407,7 +2407,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Flat) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
   auto itemid = *DataSlice::Create(
@@ -2433,7 +2433,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Flat) {
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
   auto itemid = *DataSlice::Create(
@@ -2460,7 +2460,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ItemIdTypeError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5});
 
   auto itemid = *DataSlice::Create(
@@ -2474,7 +2474,7 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ItemIdTypeError) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(auto ds,
                        CreateDictShaped(db, shape, /*keys=*/std::nullopt,
@@ -2495,7 +2495,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_WithValues) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreateDictShaped(db, shape, /*keys=*/test::DataSlice<int>({1, 2, 3}),
@@ -2525,7 +2525,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_WithValues_WithSchema) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       CreateDictShaped(db, shape, /*keys=*/test::DataSlice<int>({1, 2, 3}),
@@ -2558,9 +2558,9 @@ TEST(ObjectFactoriesTest, CreateDictShaped_WithValues_WithSchema) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict_schema,
       CreateDictSchema(schema_db, test::Schema(schema::kString),
@@ -2593,18 +2593,18 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema) {
 TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema_Adopt) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
 
-  auto key_schema_db = DataBag::Empty();
+  auto key_schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto key_schema,
       CreateEntitySchema(key_schema_db, {"a"}, {test::Schema(schema::kInt32)}));
-  auto value_schema_db = DataBag::Empty();
+  auto value_schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto value_schema,
       CreateEntitySchema(value_schema_db,
                          {"b"}, {test::Schema(schema::kInt64)}));
   {
-    auto db = DataBag::Empty();
-    auto schema_db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
+    auto schema_db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto dict_schema,
                          CreateDictSchema(schema_db, key_schema, value_schema));
     ASSERT_OK_AND_ASSIGN(auto ds,
@@ -2628,7 +2628,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema_Adopt) {
                     test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          CreateDictShaped(db, shape, /*keys=*/std::nullopt,
                                           /*values=*/std::nullopt,
@@ -2655,7 +2655,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema_Adopt) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -2686,7 +2686,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Empty) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(0);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::CreateEmptyAndUnknownType(0),
@@ -2711,7 +2711,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Empty) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_WithValues) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -2746,7 +2746,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Overwrite) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto itemid = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
@@ -2787,7 +2787,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Overwrite) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictShaped_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
 
   EXPECT_THAT(
@@ -2813,7 +2813,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_Errors) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
 
   auto itemid_wrong_shape = *DataSlice::Create(
@@ -2856,7 +2856,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Errors) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                /*keys=*/std::nullopt, /*values=*/std::nullopt,
@@ -2872,7 +2872,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
                   absl::StatusCode::kInvalidArgument,
                   HasSubstr("dict schema or key/value schemas, but not both")));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict_schema,
       CreateDictSchema(schema_db, test::Schema(schema::kInt32),
@@ -2889,7 +2889,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
 
 TEST(ObjectFactoriesTest, CreateDictLike) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -2918,7 +2918,7 @@ TEST(ObjectFactoriesTest, CreateDictLike) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -2956,7 +2956,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -3001,18 +3001,18 @@ TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
-  auto key_schema_db = DataBag::Empty();
+  auto key_schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto key_schema,
       CreateEntitySchema(key_schema_db, {"a"}, {test::Schema(schema::kInt32)}));
-  auto value_schema_db = DataBag::Empty();
+  auto value_schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto value_schema,
       CreateEntitySchema(value_schema_db,
                          {"b"}, {test::Schema(schema::kInt64)}));
   {
-    auto db = DataBag::Empty();
-    auto schema_db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
+    auto schema_db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto dict_schema,
                          CreateDictSchema(schema_db, key_schema, value_schema));
     ASSERT_OK_AND_ASSIGN(auto ds,
@@ -3038,7 +3038,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
                     test::DataSlice<int64_t>({}, dict_values.GetShape(), db))));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          CreateDictLike(db, shape_and_mask_from,
                                         /*keys=*/std::nullopt,
@@ -3066,7 +3066,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(57, schema::kObject, db);
 
   ASSERT_OK_AND_ASSIGN(
@@ -3083,7 +3083,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(
       internal::DataItem(), schema::kObject, db);
 
@@ -3100,7 +3100,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_ItemId) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3135,7 +3135,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_ItemId_WithValues) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3171,7 +3171,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_WithValues) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Overwrite) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3216,7 +3216,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Overwrite) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(
       internal::DataItem(), schema::kObject, db);
 
@@ -3243,7 +3243,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_Errors) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3289,7 +3289,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Errors) {
 
 TEST(ObjectFactoriesTest, CreateListLike) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -3316,7 +3316,7 @@ TEST(ObjectFactoriesTest, CreateListLike) {
 
 TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -3344,7 +3344,7 @@ TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(57);
 
   ASSERT_OK_AND_ASSIGN(
@@ -3361,7 +3361,7 @@ TEST(ObjectFactoriesTest, CreateListLike_DataItem) {
 
 TEST(ObjectFactoriesTest, CreateListLike_MissingDataItem) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(internal::DataItem());
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreateListLike(db, shape_and_mask_from,
@@ -3377,12 +3377,12 @@ TEST(ObjectFactoriesTest, CreateListLike_MissingDataItem) {
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema,
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
@@ -3405,12 +3405,12 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kInt32)}));
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto list_schema,
                          CreateListSchema(schema_db, entity_schema));
     ASSERT_OK_AND_ASSIGN(auto ds,
@@ -3431,7 +3431,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
                     test::DataSlice<int>({}, list_items.GetShape(), db))));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto ds,
                          CreateListLike(db, shape_and_mask_from,
                                         /*values=*/std::nullopt,
@@ -3453,7 +3453,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ItemId) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3484,7 +3484,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ItemId_WithValues) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3517,7 +3517,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_WithValues) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ItemId_Overwrite) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3554,7 +3554,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Overwrite) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape_and_mask_from = test::DataItem(57);
 
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
@@ -3568,7 +3568,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("list schema or item schema, but not both")));
 
-  auto schema_db = DataBag::Empty();
+  auto schema_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto list_schema,
       CreateListSchema(schema_db, test::Schema(schema::kInt32)));
@@ -3581,7 +3581,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ItemId_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt}, {std::nullopt, "foo", std::nullopt},
@@ -3623,7 +3623,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Errors) {
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_EntitySchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
@@ -3637,7 +3637,7 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_EntitySchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_ObjectSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
@@ -3651,7 +3651,7 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_ObjectSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_PrimitiveSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       CreateNoFollowSchema(test::Schema(schema::kInt32)),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -3659,7 +3659,7 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_PrimitiveSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_ItemIdSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       CreateNoFollowSchema(test::Schema(schema::kItemId)),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -3667,14 +3667,14 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_ItemIdSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_NonSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(CreateNoFollowSchema(test::DataItem(42)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("schema's schema must be SCHEMA")));
 }
 
 TEST(ObjectFactoriesTest, NoFollow_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
@@ -3687,7 +3687,7 @@ TEST(ObjectFactoriesTest, NoFollow_Entity) {
 }
 
 TEST(ObjectFactoriesTest, NoFollow_Objects) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
@@ -3700,7 +3700,7 @@ TEST(ObjectFactoriesTest, NoFollow_Objects) {
 }
 
 TEST(ObjectFactoriesTest, NoFollow_On_NoFollow) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitives = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitives}));
@@ -3712,7 +3712,7 @@ TEST(ObjectFactoriesTest, NoFollow_On_NoFollow) {
 }
 
 TEST(ObjectFactoriesTest, NoFollow_Primitives) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::DataSlice<int>({1, 2, 3});
   EXPECT_THAT(
       NoFollow(ds),

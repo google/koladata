@@ -87,7 +87,7 @@ TEST(ToProtoTest, ZeroMessages) {
 }
 
 TEST(ToProtoTest, AllMissingRootInput) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema({}, {}, db);
   auto slice = test::EmptyDataSlice(2, schema.GetSchemaImpl(), db);
   auto [message_ptrs, messages] = MakeEmptyMessages<testing::ExampleMessage>(2);
@@ -147,7 +147,7 @@ TEST(ToProtoTest, AllFieldsAllExtensionsRoundTrip) {
   message3.set_int32_field(12);
   message3.clear_float_field();
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto slice, FromProto(db, {&message1, &message2, &message3},
                             {"(koladata.testing.bool_extension_field)",
@@ -165,7 +165,7 @@ TEST(ToProtoTest, AllFieldsAllExtensionsRoundTrip) {
 }
 
 TEST(ToProtoTest, MissingDict) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto dict = *CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                 test::DataSlice<int32_t>({1, 3}),
                                 test::DataSlice<int32_t>({2, 4}));
@@ -194,7 +194,7 @@ TEST(ToProtoTest, MissingDict) {
 }
 
 TEST(ToProtoTest, RepeatedMessageFieldMissingItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto items = *ObjectCreator::Shaped(
       db, DataSlice::JaggedShape::FlatFromSize(3), {"string_field"},
       {test::DataSlice<arolla::Text>({"a", "b", "c"})});
@@ -220,7 +220,7 @@ TEST(ToProtoTest, RepeatedMessageFieldMissingItem) {
 }
 
 TEST(ToProtoTest, InvalidMapFieldNotDicts) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto dict = test::DataItem<int32_t>(1, db);
   auto slice = *ObjectCreator::FromAttrs(db, {"map_int32_int32_field"}, {dict})
                     ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
@@ -235,7 +235,7 @@ TEST(ToProtoTest, InvalidMapFieldNotDicts) {
 }
 
 TEST(ToProtoTest, RepeatedPrimitiveFieldMixedDtypes) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto items =
       *DataSlice::Create(internal::DataSliceImpl::Create({
                              internal::DataItem(static_cast<int32_t>(1)),
@@ -261,7 +261,7 @@ TEST(ToProtoTest, RepeatedPrimitiveFieldMixedDtypes) {
 
 TEST(ToProtoTest, IntegerOutOfRange) {
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"int32_field"},
                       {test::DataItem(2147483648LL,
@@ -276,7 +276,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
             "value type int32"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"int32_field"},
                       {test::DataItem(-2147483649LL,
@@ -291,7 +291,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
             "value type int32"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice =
         *ObjectCreator::FromAttrs(
              db, {"uint32_field"},
@@ -305,7 +305,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
                  "value type uint32"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"uint32_field"},
                       {test::DataItem(4294967297LL,
@@ -320,7 +320,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
             "value type uint32"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"uint32_field"},
                       {test::DataItem(-1, test::Schema(schema::kInt32).item())})
@@ -333,7 +333,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
                  "value type uint32"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"uint64_field"},
                       {test::DataItem(-1, test::Schema(schema::kInt32).item())})
@@ -349,7 +349,7 @@ TEST(ToProtoTest, IntegerOutOfRange) {
 
 TEST(ToProtoTest, InvalidFieldType) {
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice =
         *ObjectCreator::FromAttrs(
              db, {"int32_field"},
@@ -362,7 +362,7 @@ TEST(ToProtoTest, InvalidFieldType) {
                          "int32 for Koda value 'hello' with dtype TEXT"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice =
         *ObjectCreator::FromAttrs(
              db, {"bytes_field"},
@@ -375,7 +375,7 @@ TEST(ToProtoTest, InvalidFieldType) {
                          "bytes for Koda value 'hello' with dtype TEXT"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(
                       db, {"string_field"},
                       {test::DataItem<arolla::Bytes>(
@@ -390,7 +390,7 @@ TEST(ToProtoTest, InvalidFieldType) {
 }
 
 TEST(ToProtoTest, InvalidRepeatedFieldMissingValue) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto items = test::DataSlice<int32_t>({1, std::nullopt, 2}, db);
   auto list = *CreateListsFromLastDimension(db, items);
   auto slice = *ObjectCreator::FromAttrs(db, {"repeated_int32_field"}, {list})
@@ -406,7 +406,7 @@ TEST(ToProtoTest, InvalidRepeatedFieldMissingValue) {
 }
 
 TEST(ToProtoTest, InvalidRepeatedPrimitiveFieldNotLists) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list = test::DataItem<int32_t>(1, db);
   auto slice = *ObjectCreator::FromAttrs(db, {"repeated_int32_field"}, {list})
                     ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
@@ -422,7 +422,7 @@ TEST(ToProtoTest, InvalidRepeatedPrimitiveFieldNotLists) {
 }
 
 TEST(ToProtoTest, InvalidRepeatedMessageFieldNotLists) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list = test::DataItem<int32_t>(1, db);
   auto slice = *ObjectCreator::FromAttrs(db, {"repeated_message_field"}, {list})
                     ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
@@ -438,7 +438,7 @@ TEST(ToProtoTest, InvalidRepeatedMessageFieldNotLists) {
 }
 
 TEST(ToProtoTest, InvalidNonItemMessage) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto slice = test::DataSlice<int32_t>({1}, db);
   koladata::testing::ExampleMessage message;
   ASSERT_THAT(
@@ -449,7 +449,7 @@ TEST(ToProtoTest, InvalidNonItemMessage) {
 
 TEST(ToProtoTest, InvalidInputNdim) {
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(db, {}, {});
     auto [message_ptrs, messages] =
         MakeEmptyMessages<testing::ExampleMessage>(1);
@@ -458,7 +458,7 @@ TEST(ToProtoTest, InvalidInputNdim) {
                          "expected 1-D DataSlice, got ndim=0"));
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = *ObjectCreator::FromAttrs(db, {}, {});
     slice = *slice.Reshape(*DataSlice::JaggedShape::FromEdges({
         *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
@@ -494,7 +494,7 @@ TEST(ToProtoTest, InvalidInputMultipleDescriptors) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, GeneratesPackageNameWithSchemaFingerprint) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema({}, {}, db);
   ASSERT_OK_AND_ASSIGN(auto descriptor, ProtoDescriptorFromSchema(schema));
 
@@ -513,7 +513,7 @@ absl::StatusOr<google::protobuf::FileDescriptorProto> CallProtoDescriptorFromSch
 }
 
 TEST(ProtoDescriptorFromSchemaTest, EntitySchemaWithOnlyPrimitiveAttributes) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_string", "my_bytes", "my_int32", "my_int64", "my_float32",
        "my_float64", "my_bool", "my_mask"},
@@ -581,7 +581,7 @@ TEST(ProtoDescriptorFromSchemaTest, EntitySchemaWithOnlyPrimitiveAttributes) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, NestedEntities) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"value", "level_1_entity"},
       {test::Schema(schema::kInt64),
@@ -640,7 +640,7 @@ TEST(ProtoDescriptorFromSchemaTest, NestedEntities) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, RecursiveEntitySchemaLoopBackToRootSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"value", "level_1_entity"},
       {test::Schema(schema::kInt64),
@@ -704,7 +704,7 @@ TEST(ProtoDescriptorFromSchemaTest, RecursiveEntitySchemaLoopBackToRootSchema) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, ListsOfPrimitives) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"string_list", "bytes_list", "int32_list", "int64_list", "float32_list",
        "float64_list", "bool_list", "mask_list"},
@@ -778,7 +778,7 @@ TEST(ProtoDescriptorFromSchemaTest, ListsOfPrimitives) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, ListOfEntities) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list_item_schema =
       test::EntitySchema({"x"}, {test::Schema(schema::kInt32)}, db);
   auto schema =
@@ -810,7 +810,7 @@ TEST(ProtoDescriptorFromSchemaTest, ListOfEntities) {
 
 TEST(ProtoDescriptorFromSchemaTest, ListItemSchemaIsRootSchema) {
   // A simple recursive schema.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
   ASSERT_OK(schema.SetAttr("my_list", CreateListSchema(db, schema).value()));
@@ -838,7 +838,7 @@ TEST(ProtoDescriptorFromSchemaTest, ListItemSchemaIsRootSchema) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictOfPrimitives) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"my_dict"},
                          {CreateDictSchema(db, test::Schema(schema::kString),
@@ -879,7 +879,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfPrimitives) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictValuesAreEntities) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(
@@ -931,7 +931,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictValuesAreEntities) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
   ASSERT_OK(schema.SetAttr(
@@ -978,7 +978,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictAppearsInMultiplePlaces) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
   auto dict_schema =
@@ -1050,7 +1050,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictAppearsInMultiplePlaces) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictHasEntityValues) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
   auto dict_schema =
@@ -1146,7 +1146,7 @@ absl::StatusOr<DataSlice> GenerateImplicitSchema(DataBagPtr db) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, ImplicitSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto implicit_schema_slice, GenerateImplicitSchema(db));
   auto schema =
       test::EntitySchema({"my_implicit"}, {implicit_schema_slice}, db);
@@ -1181,7 +1181,7 @@ TEST(ProtoDescriptorFromSchemaTest, ImplicitSchema) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, IgnoredSchemas) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_none", "my_object", "my_itemid"},
       {test::Schema(schema::kNone), test::Schema(schema::kObject),
@@ -1206,7 +1206,7 @@ TEST(ProtoDescriptorFromSchemaTest, IgnoredSchemas) {
 
 TEST(ProtoDescriptorFromSchemaTest, IgnoredPrimitiveTypes) {
   // At the time of writing, EXPR is the only ignored primitive type.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema =
       test::EntitySchema({"my_expr"}, {test::Schema(schema::kExpr)}, db);
   std::vector<std::string> warnings;
@@ -1223,7 +1223,7 @@ TEST(ProtoDescriptorFromSchemaTest, IgnoredPrimitiveTypes) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, ListOfListsIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_list"},
       {CreateListSchema(
@@ -1247,7 +1247,7 @@ TEST(ProtoDescriptorFromSchemaTest, ListOfListsIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, ListOfDictsIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_list"},
       {CreateListSchema(db, CreateDictSchema(db, test::Schema(schema::kInt32),
@@ -1272,7 +1272,7 @@ TEST(ProtoDescriptorFromSchemaTest, ListOfDictsIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(
@@ -1300,7 +1300,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictWithListKeysIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(
@@ -1328,7 +1328,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListKeysIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictWithListValuesIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(
@@ -1356,7 +1356,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListValuesIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictWithDictKeysIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(db,
@@ -1387,7 +1387,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictKeysIgnored) {
 }
 
 TEST(ProtoDescriptorFromSchemaTest, DictWithDictValuesIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"my_dict"},
       {CreateDictSchema(db, test::Schema(schema::kInt32),
@@ -1417,7 +1417,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictValuesIgnored) {
 
 TEST(ProtoDescriptorFromSchemaTest,
      AttributesWithNamesThatAreInvalidProtoFieldNamesIgnored) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {"_foo_bar", "ignoreme?", "123_for_me"},
       {test::Schema(schema::kInt32), test::Schema(schema::kInt64),
@@ -1539,7 +1539,7 @@ TEST(ToProtoMessagesTest, AllFieldsAllExtensionsRoundTrip) {
   message3.set_int32_field(12);
   message3.clear_float_field();
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto slice, FromProto(db, {&message1, &message2, &message3},
                             {"(koladata.testing.bool_extension_field)",

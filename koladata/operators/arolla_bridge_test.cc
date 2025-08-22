@@ -157,7 +157,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     // invalid input: entity.
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
     DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto y, EntityCreator::Shaped(db, y_shape, {}, {}));
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
     EXPECT_THAT(

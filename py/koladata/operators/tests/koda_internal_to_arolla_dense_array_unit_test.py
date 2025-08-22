@@ -29,7 +29,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 OBJECT = schema_constants.OBJECT
 MASK = schema_constants.MASK

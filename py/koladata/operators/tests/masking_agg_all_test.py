@@ -104,7 +104,7 @@ class LogicalAggAllTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds([1, 2, 3])),
       (ds([1, 2, 3], schema_constants.OBJECT)),
-      (data_bag.DataBag.empty().new(x=ds([1, 2, 3]))),
+      (data_bag.DataBag.empty_mutable().new(x=ds([1, 2, 3]))),
   )
   def test_non_mask_input_error(self, x):
     with self.assertRaisesRegex(

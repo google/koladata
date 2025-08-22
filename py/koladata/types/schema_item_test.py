@@ -28,7 +28,7 @@ from koladata.types import schema_item
 
 eval_op = py_expr_eval_py_ext.eval_op
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 

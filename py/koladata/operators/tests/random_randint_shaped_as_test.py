@@ -28,7 +28,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN

@@ -49,7 +49,7 @@ class LogicalAggHasTest(parameterized.TestCase):
       (ds([None], ds(arolla.INT32)), ds(arolla.missing())),
       (ds([[1, 'a'], [None]]), ds([arolla.present(), arolla.missing()])),
       (
-          ds([[data_bag.DataBag.empty().new(x=ds(1))], [None]]),
+          ds([[data_bag.DataBag.empty_mutable().new(x=ds(1))], [None]]),
           ds([arolla.present(), arolla.missing()]),
       ),
       (

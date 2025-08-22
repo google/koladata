@@ -23,13 +23,13 @@ ds = data_slice.DataSlice.from_vals
 class GetAttrNamesTest(absltest.TestCase):
 
   def test_entity(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.new(a=1, b='abc')
     self.assertEqual(fns.get_attr_names(x, intersection=True), ['a', 'b'])
     self.assertEqual(fns.get_attr_names(ds([x]), intersection=True), ['a', 'b'])
 
   def test_object(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
     self.assertEqual(fns.get_attr_names(x, intersection=True), ['a', 'b'])
     self.assertEqual(fns.get_attr_names(ds([x]), intersection=True), ['a', 'b'])
@@ -45,7 +45,7 @@ class GetAttrNamesTest(absltest.TestCase):
     )
 
   def test_schema(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     self.assertEqual(
         fns.get_attr_names(
             schema_constants.INT32.with_bag(db), intersection=True
@@ -67,11 +67,11 @@ class GetAttrNamesTest(absltest.TestCase):
     )
 
   def test_primitives(self):
-    x = ds([1, 2, 3]).with_bag(fns.bag())
+    x = ds([1, 2, 3]).with_bag(fns.mutable_bag())
     self.assertEqual(fns.get_attr_names(x, intersection=True), [])
 
   def test_no_bag_error(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
     with self.assertRaisesRegex(
         ValueError, 'cannot get available attributes without a DataBag'

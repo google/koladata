@@ -25,7 +25,7 @@ from koladata.types import qtypes
 
 
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 
 _ALL_POSSIBLE_QTYPES = list(arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES)

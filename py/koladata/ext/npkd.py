@@ -191,7 +191,7 @@ def reshape_based_on_indices(
   # Let's make this more efficient when/if necessary.
   # For now we create a system of nested dicts:
   # {index_0 -> {index_1 -> {... -> {index_n -> value}}}}
-  db = kdi.bag()
+  db = kdi.mutable_bag()
   dict_schema = ds.get_schema().no_bag()
   for _ in indices:
     dict_schema = db.dict_schema(kdi.INT64, dict_schema)

@@ -41,8 +41,8 @@ class KodaInternalParallelStreamMakeTest(absltest.TestCase):
     testing.assert_equal(res_list[1], ds(2))
 
   def test_make_with_bags(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(koda_internal_parallel.stream_make(db1, db2))
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
@@ -52,8 +52,8 @@ class KodaInternalParallelStreamMakeTest(absltest.TestCase):
     testing.assert_equal(res_list[1], db2)
 
   def test_make_with_bags_explicit_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     res = expr_eval.eval(
         koda_internal_parallel.stream_make(
             db1, db2, value_type_as=data_bag.DataBag
@@ -67,8 +67,8 @@ class KodaInternalParallelStreamMakeTest(absltest.TestCase):
     testing.assert_equal(res_list[1], db2)
 
   def test_make_with_bags_wrong_value_type_as(self):
-    db1 = data_bag.DataBag.empty()
-    db2 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
+    db2 = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError, re.escape('items must be compatible with value_type_as')
     ):
@@ -81,7 +81,9 @@ class KodaInternalParallelStreamMakeTest(absltest.TestCase):
         ValueError, re.escape('all items must have the same type')
     ):
       _ = expr_eval.eval(
-          koda_internal_parallel.stream_make(1, data_bag.DataBag.empty())
+          koda_internal_parallel.stream_make(
+              1, data_bag.DataBag.empty_mutable()
+          )
       )
 
   def test_make_empty(self):

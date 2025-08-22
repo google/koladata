@@ -44,7 +44,7 @@ QTYPES = frozenset([
 class CoreExtractBagTest(absltest.TestCase):
 
   def test_basic(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o1 = db.implode(db.new(c=ds(['foo', 'bar', 'baz'])))
     o2 = db.implode(o1[0:2])
     bag1 = kde.extract_bag(o1).eval()
@@ -65,7 +65,7 @@ class CoreExtractBagTest(absltest.TestCase):
     )
 
   def test_separate_schema(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o1 = db.implode(db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz'])))
     new_schema = kde.list_schema(
         kde.named_schema('test', b=schema_constants.INT32)

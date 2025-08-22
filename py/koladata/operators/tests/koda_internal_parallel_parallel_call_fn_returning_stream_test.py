@@ -86,7 +86,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
         koda_internal_parallel.as_future(I.foo),
         return_type_as=koda_internal_parallel.stream_make(data_bag.DataBag),
     )
-    db = data_bag.DataBag.empty().freeze()
+    db = data_bag.DataBag.empty_mutable().freeze()
     res = call_expr.eval(foo=db).read_all(timeout=5.0)
     testing.assert_equal(res[0], db)
     testing.assert_equal(res[1], db)

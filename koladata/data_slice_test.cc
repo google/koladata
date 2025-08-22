@@ -92,7 +92,7 @@ ObjectId GenerateImplicitSchema() {
 }
 
 TEST(DataSliceTest, Create_DataSliceImpl) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_schema = DataItem(schema::kInt32);
   auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2, 3}));
   {
@@ -181,7 +181,7 @@ TEST(DataSliceTest, Create_DataSliceImpl) {
 }
 
 TEST(DataSliceTest, Create_DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_schema = DataItem(schema::kInt32);
   auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1}));
   auto data_item = ds_impl[0];
@@ -270,7 +270,7 @@ TEST(DataSliceTest, Create_DataItem) {
 }
 
 TEST(DataSliceTest, CreateWithSchemaFromData) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   {
     auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2, 3}));
@@ -377,7 +377,7 @@ TEST(DataSliceTest, IsWhole) {
 
   {
     // Flag is false on DataSlice creation.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);
@@ -387,7 +387,7 @@ TEST(DataSliceTest, IsWhole) {
   {
     // Flag is true on DataSlice creation, no fallbacks, mutable but unmodified
     // DataBag.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
@@ -397,7 +397,7 @@ TEST(DataSliceTest, IsWhole) {
   {
     // Flag is true on DataSlice creation, no fallbacks, mutable DataBag with
     // modifications.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
@@ -409,7 +409,7 @@ TEST(DataSliceTest, IsWhole) {
   {
     // Flag is true on DataSlice creation, no fallbacks, mutable DataBag forked
     // after modifications but not modified further.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     ASSERT_OK_AND_ASSIGN(auto db2, db->Fork(/*immutable=*/false));
@@ -422,7 +422,7 @@ TEST(DataSliceTest, IsWhole) {
   {
     // Flag is true on DataSlice creation, immutable DataBag with mutable
     // fallbacks.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto db2 = DataBag::ImmutableEmptyWithFallbacks({db});
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db2,
@@ -433,7 +433,7 @@ TEST(DataSliceTest, IsWhole) {
   {
     // Flag is true on DataSlice creation, immutable DataBag with immutable
     // fallbacks.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     db->UnsafeMakeImmutable();
@@ -446,7 +446,7 @@ TEST(DataSliceTest, IsWhole) {
 
   {
     // Flag is true on DataSlice creation, forked DataBag with no modifications.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     db->UnsafeMakeImmutable();
@@ -459,7 +459,7 @@ TEST(DataSliceTest, IsWhole) {
 
   {
     // Flag is true on DataSlice creation, frozen DataBag with no modifications.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     db->UnsafeMakeImmutable();
@@ -474,7 +474,7 @@ TEST(DataSliceTest, IsWhole) {
 TEST(DataSliceTest, WithWholeness) {
   {
     SCOPED_TRACE("Override flag");
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);
@@ -486,7 +486,7 @@ TEST(DataSliceTest, WithWholeness) {
   }
   {
     SCOPED_TRACE("Override flag doesn't help on mutable non empty DataBag");
-    ASSERT_OK_AND_ASSIGN(auto db, DataBag::Empty()->Fork());
+    ASSERT_OK_AND_ASSIGN(auto db, DataBag::EmptyMutable()->Fork());
     auto obj = internal::DataItem(internal::AllocateSingleObject());
     ASSERT_OK(
         db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
@@ -503,7 +503,7 @@ TEST(DataSliceTest, WithWholeness) {
 TEST(DataSliceTest, FreezeDoesntBecomeWholeIfBagIsModified) {
   {
     SCOPED_TRACE("Freeze updates whole information");
-    ASSERT_OK_AND_ASSIGN(auto db, DataBag::Empty()->Fork());
+    ASSERT_OK_AND_ASSIGN(auto db, DataBag::EmptyMutable()->Fork());
     auto obj = internal::DataItem(internal::AllocateSingleObject());
     ASSERT_OK(
         db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
@@ -517,7 +517,7 @@ TEST(DataSliceTest, FreezeDoesntBecomeWholeIfBagIsModified) {
 }
 
 TEST(DataSliceTest, ForkDb) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
   auto immutable_db = *db->Fork(/*immutable=*/true);
@@ -544,7 +544,7 @@ TEST(DataSliceTest, ForkDb) {
 }
 
 TEST(DataSliceTest, Freeze) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
   ASSERT_TRUE(ds.GetBag()->IsMutable());
@@ -558,7 +558,7 @@ TEST(DataSliceTest, Freeze) {
 }
 
 TEST(DataSliceTest, FreezeImmutable) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
   ASSERT_OK_AND_ASSIGN(auto immutable_db, db->Fork(/*immutable=*/true));
@@ -576,7 +576,7 @@ TEST(DataSliceTest, FreezeImmutable) {
 }
 
 TEST(DataSliceTest, ForkErrors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
 
@@ -601,7 +601,7 @@ TEST(DataSliceTest, IsEquivalentTo) {
   // Different, but equal instances.
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
   // Different and same DataBags.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_FALSE(ds_1.IsEquivalentTo(ds_2.WithBag(db)));
   EXPECT_TRUE(ds_1.WithBag(db).IsEquivalentTo(ds_2.WithBag(db)));
 
@@ -677,7 +677,7 @@ TEST(DataSliceTest, ImplOwnsValue) {
 }
 
 TEST(DataSliceTest, IsStructSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
   EXPECT_TRUE(entity_schema.IsStructSchema());
@@ -692,7 +692,7 @@ TEST(DataSliceTest, IsStructSchema) {
 }
 
 TEST(DataSliceTest, IsEntitySchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
   EXPECT_TRUE(entity_schema.IsEntitySchema());
@@ -707,7 +707,7 @@ TEST(DataSliceTest, IsEntitySchema) {
 }
 
 TEST(DataSliceTest, IsListSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto list_schema = *CreateListSchema(db, int_s);
   EXPECT_TRUE(list_schema.IsListSchema());
@@ -723,7 +723,7 @@ TEST(DataSliceTest, IsListSchema) {
 }
 
 TEST(DataSliceTest, IsDictSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto dict_schema = *CreateDictSchema(db, int_s, int_s);
   EXPECT_TRUE(dict_schema.IsDictSchema());
@@ -741,7 +741,7 @@ TEST(DataSliceTest, IsDictSchema) {
 }
 
 TEST(DataSliceTest, IsPrimitiveSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);
   auto list_schema = *CreateListSchema(db, int_s);
   EXPECT_TRUE(int_s.IsPrimitiveSchema());
@@ -756,7 +756,7 @@ TEST(DataSliceTest, IsPrimitiveSchema) {
 }
 
 TEST(DataSliceTest, IsEmpty) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_schema = DataItem(schema::kInt32);
 
   {
@@ -826,7 +826,7 @@ TEST(DataSliceTest, VerifyIsPrimitiveSchema) {
 }
 
 TEST(DataSliceTest, VerifyIsListSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(CreateListSchema(db, test::Schema(schema::kInt32))
               ->VerifyIsListSchema(),
               IsOk());
@@ -851,7 +851,7 @@ TEST(DataSliceTest, VerifyIsListSchema) {
 }
 
 TEST(DataSliceTest, VerifyIsDictSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(CreateDictSchema(db, test::Schema(schema::kInt32),
                                test::Schema(schema::kFloat32))
               ->VerifyIsDictSchema(),
@@ -876,7 +876,7 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
 }
 
 TEST(DataSliceTest, VerifyIsEntitySchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(
       CreateEntitySchema(db, {"a", "b"},
                          {test::Schema(schema::kInt32),
@@ -935,9 +935,9 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
   }
   {
     // Entity slice consistency.
-    ASSERT_OK_AND_ASSIGN(
-        auto entity_schema,
-        CreateSchema(DataBag::Empty(), {"a"}, {test::Schema(schema::kInt32)}));
+    ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                         CreateSchema(DataBag::EmptyMutable(), {"a"},
+                                      {test::Schema(schema::kInt32)}));
     auto entity = test::AllocateDataSlice(3, schema::kObject);
 
     ASSERT_OK_AND_ASSIGN(auto res, entity.WithSchema(entity_schema));
@@ -945,10 +945,10 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                 IsEquivalentTo(entity_schema.WithBag(res.GetBag())));
 
     ASSERT_OK_AND_ASSIGN(
-        entity,
-        EntityCreator::FromAttrs(DataBag::Empty(), {"b"}, {test::DataItem(42)},
-                                 entity_schema.WithBag(nullptr),
-                                 /*overwrite_schema=*/true));
+        entity, EntityCreator::FromAttrs(DataBag::EmptyMutable(), {"b"},
+                                         {test::DataItem(42)},
+                                         entity_schema.WithBag(nullptr),
+                                         /*overwrite_schema=*/true));
     ASSERT_OK_AND_ASSIGN(res, entity.WithSchema(entity_schema));
     internal::DataItem missing;
     EXPECT_THAT(
@@ -992,8 +992,8 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
     EXPECT_THAT(int_ds.GetSchema(), IsEquivalentTo(int_schema));
 
     // INT32 schema with a db.
-    ASSERT_OK_AND_ASSIGN(int_ds,
-                         ds.WithSchema(int_schema.WithBag(DataBag::Empty())));
+    ASSERT_OK_AND_ASSIGN(
+        int_ds, ds.WithSchema(int_schema.WithBag(DataBag::EmptyMutable())));
     EXPECT_THAT(int_ds.GetSchema(), IsEquivalentTo(int_schema));
 
     auto float_schema = test::Schema(schema::kFloat32);
@@ -1065,8 +1065,8 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
 // Only test differences between SetSchema and WithSchema. More extensive tests
 // are in VerifySchemaConsistency_WithGetSchema.
 TEST(DataSliceTest, SetSchema) {
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
   auto entity_schema1 =
       test::Schema(internal::AllocateExplicitSchema()).WithBag(db1);
   auto entity_schema2 =
@@ -1125,7 +1125,7 @@ TEST(DataSliceTest, GetObjSchema) {
 
   {
     // Object DataItem
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto item, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     auto schema = item.GetSchema();
@@ -1153,7 +1153,7 @@ TEST(DataSliceTest, GetObjSchema) {
 
   {
     // Object DataSlice
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto ds, EntityCreator::FromAttrs(
                      db, {"a"}, {test::DataSlice<int>({1, std::nullopt, 2})}));
@@ -1173,7 +1173,7 @@ TEST(DataSliceTest, GetObjSchema) {
 
   {
     // No db
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto item, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     ASSERT_OK_AND_ASSIGN(item, item.EmbedSchema());
@@ -1188,7 +1188,7 @@ TEST(DataSliceTest, GetObjSchema) {
 TEST(DataSliceTest, SetGetMetadata) {
   {
     // item
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto schema = test::Schema(internal::AllocateExplicitSchema()).WithBag(db);
     auto value = DataSlice::CreateFromScalar(1);
     ASSERT_OK_AND_ASSIGN(auto schema_metadata, CreateMetadata(db, schema));
@@ -1200,7 +1200,7 @@ TEST(DataSliceTest, SetGetMetadata) {
   }
   {
     // slice, multiple metadata args
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(
         auto schema_ds,
         DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
@@ -1223,7 +1223,7 @@ TEST(DataSliceTest, SetGetMetadata) {
 }
 
 TEST(DataSliceTest, GetAttrNames_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataSlice<int>({1});
   auto b = test::DataSlice<arolla::Text>({"a"});
   auto c = test::DataSlice<float>({3.14});
@@ -1238,7 +1238,7 @@ TEST(DataSliceTest, GetAttrNames_Entity) {
 }
 
 TEST(DataSliceTest, GetAttrNames_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataSlice<int>({1});
   auto b = test::DataSlice<arolla::Text>({"a"});
   auto c = test::DataSlice<float>({3.14});
@@ -1253,7 +1253,7 @@ TEST(DataSliceTest, GetAttrNames_Object) {
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_MissingValue_BigAlloc) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto missing =
       test::DataSlice<int>({std::nullopt, std::nullopt, std::nullopt,
                             std::nullopt, std::nullopt, std::nullopt});
@@ -1264,7 +1264,7 @@ TEST(DataSliceTest, GetAttrNames_Object_MissingValue_BigAlloc) {
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1287,7 +1287,7 @@ TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1310,7 +1310,7 @@ TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
 }
 
 TEST(DataSliceTest, GetAttrNames_NoFollow) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataSlice<int>({1});
   auto b = test::DataSlice<arolla::Text>({"a"});
   auto c = test::DataSlice<float>({3.14});
@@ -1330,7 +1330,7 @@ TEST(DataSliceTest, GetAttrNames_NoFollow) {
 }
 
 TEST(DataSliceTest, GetAttrNames_IntersectionInOneAllocation) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto items = DataSliceImpl::AllocateEmptyObjects(3);
   auto shape = DataSlice::JaggedShape::FlatFromSize(1);
   ASSERT_OK_AND_ASSIGN(
@@ -1364,7 +1364,7 @@ TEST(DataSliceTest, GetAttrNames_IntersectionInOneAllocation) {
 }
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
   auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(5), 5);
@@ -1394,7 +1394,7 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
 }
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = DataItem(internal::AllocateExplicitSchema());
   auto item = DataItem(internal::AllocateSingleObject());
   ASSERT_OK_AND_ASSIGN(
@@ -1407,8 +1407,8 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
 }
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
-  auto db = DataBag::Empty();
-  auto fallback_db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto fallback_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
   ASSERT_OK_AND_ASSIGN(auto fallback_db_impl, fallback_db->GetMutableImpl());
   auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
@@ -1443,15 +1443,15 @@ TEST(DataSliceTest, GetAttrNames_Primitives) {
   auto ds = test::DataSlice<int>({1});
   EXPECT_THAT(ds.GetAttrNames(), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("without a DataBag")));
-  EXPECT_THAT(ds.WithBag(DataBag::Empty()).GetAttrNames(),
+  EXPECT_THAT(ds.WithBag(DataBag::EmptyMutable()).GetAttrNames(),
               IsOkAndHolds(ElementsAre()));
-  EXPECT_THAT(
-      ds.WithBag(DataBag::Empty()).GetAttrNames(/*union_object_attrs=*/true),
-      IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.WithBag(DataBag::EmptyMutable())
+                  .GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre()));
 }
 
 TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1467,7 +1467,7 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
 }
 
 TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1483,7 +1483,7 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
 }
 
 TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata_BigAlloc) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto missing =
       test::DataSlice<int>({std::nullopt, std::nullopt, std::nullopt,
                             std::nullopt, std::nullopt, std::nullopt});
@@ -1509,7 +1509,7 @@ TEST(DataSliceTest, GetAttrErrors) {
   }
   {
     // Primitive schema.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto x = test::DataSlice<int>({std::nullopt}, schema::kInt32, db);
     EXPECT_THAT(x.GetAttr("a"),
                 StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1517,7 +1517,7 @@ TEST(DataSliceTest, GetAttrErrors) {
                          "attributes, got INT32"));
   }
   {  // Primitive data - slice.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto x = test::DataSlice<int>({1}, schema::kObject, db);
     EXPECT_THAT(x.GetAttr("a"),
                 StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1526,7 +1526,7 @@ TEST(DataSliceTest, GetAttrErrors) {
                          "primitive 1 at ds.flatten().S[0]"));
   }
   {  // Primitive data - item.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto x = test::DataItem(1, schema::kObject, db);
     EXPECT_THAT(
         x.GetAttr("a"),
@@ -1538,7 +1538,7 @@ TEST(DataSliceTest, GetAttrErrors) {
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataSlice<int>({1});
   auto b = test::DataSlice<arolla::Text>({"a"});
   auto c = test::DataSlice<float>({3.14});
@@ -1553,7 +1553,7 @@ TEST(DataSliceTest, GetAttrNames_SchemaItem) {
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1580,7 +1580,7 @@ TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaSliceMixed) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1);
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
@@ -1598,7 +1598,7 @@ TEST(DataSliceTest, GetAttrNames_SchemaSliceMixed) {
 }
 
 TEST(DataSliceTest, GetNoFollowedSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {}, {}));
   EXPECT_THAT(ds.GetSchema().GetNoFollowedSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1618,7 +1618,7 @@ TEST(DataSliceTest, DbRef) {
   auto ds_obj = test::AllocateDataSlice(3, schema::kObject);
   EXPECT_EQ(ds_obj.GetBag(), nullptr);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ds_obj = ds_obj.WithBag(db);
   EXPECT_EQ(ds_obj.GetBag(), db);
 }
@@ -1638,7 +1638,7 @@ TEST(DataSliceTest, PyQValueSpecializationKey) {
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kDataItemQValueSpecializationKey);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(ds_obj, CreateEmptyList(db, /*schema=*/std::nullopt,
                                                test::Schema(schema::kObject)));
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
@@ -1691,7 +1691,7 @@ TEST(DataSliceTest, Fingerprint) {
             arolla::FingerprintHasher("salt").Combine(ds_diff_schema).Finish());
 
   // Different DataBag.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_diff_db = ds.WithBag(db);
   EXPECT_NE(arolla::FingerprintHasher("salt").Combine(ds).Finish(),
             arolla::FingerprintHasher("salt").Combine(ds_diff_db).Finish());
@@ -1775,7 +1775,7 @@ TEST(DataSliceTest, EmbedSchema_None) {
 }
 
 TEST(DataSliceTest, EmbedSchema_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = internal::AllocateExplicitSchema();
 
   // Item
@@ -1820,7 +1820,7 @@ TEST(DataSliceTest, EmbedSchema_MixedNotAllowed) {
 }
 
 TEST(DataSliceTest, EmbedSchema_Object_Errors) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
   auto explicit_schema_1 = internal::AllocateExplicitSchema();
   auto explicit_schema_2 = internal::AllocateExplicitSchema();
@@ -1875,7 +1875,7 @@ TEST(DataSliceTest, EmbedSchema_Object_Errors) {
 }
 
 TEST(DataSliceTest, EmbedSchema_Object_Overwrite) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
   auto explicit_schema_1 = internal::AllocateExplicitSchema();
   auto explicit_schema_2 = internal::AllocateExplicitSchema();
@@ -1911,7 +1911,7 @@ TEST(DataSliceTest, EmbedSchema_Object_Overwrite) {
 }
 
 TEST(DataSliceTest, EmbedSchema_NotAllowed_On_NoFollowSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(), db);
   ASSERT_OK_AND_ASSIGN(auto nofollow_ds, NoFollow(ds));
   EXPECT_THAT(nofollow_ds.EmbedSchema(),
@@ -1954,7 +1954,7 @@ TEST(DataSliceTest, IsList_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsList());
 
   // schema LIST[INT32]
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list_schema = *CreateListSchema(db, test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({}, db)
@@ -1968,7 +1968,7 @@ TEST(DataSliceTest, IsList_Empty) {
 }
 
 TEST(DataSliceTest, IsList_NonEmpty) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list_schema = *CreateListSchema(db, test::Schema(schema::kInt32));
 
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
@@ -2021,7 +2021,7 @@ TEST(DataSliceTest, IsDict_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsDict());
 
   // schema DICT{INT32, INT32}
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
                                        test::Schema(schema::kInt32));
 
@@ -2036,7 +2036,7 @@ TEST(DataSliceTest, IsDict_Empty) {
 }
 
 TEST(DataSliceTest, IsDict_NonEmpty) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto dict_schema = *CreateDictSchema(db, test::Schema(schema::kInt32),
                                        test::Schema(schema::kInt32));
 
@@ -2090,7 +2090,7 @@ TEST(DataSliceTest, IsEntity_Empty) {
   EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt}).IsEntity());
 
   // schema SCHMEMA(a=INT32)
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
@@ -2119,7 +2119,7 @@ TEST(DataSliceTest, IsEntity_Empty) {
 }
 
 TEST(DataSliceTest, IsEntity_NonEmpty) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
@@ -2166,7 +2166,7 @@ TEST(DataSliceTest, IsEntity_NonEmpty) {
 TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {
   auto ds_primitive = test::DataSlice<int64_t>({1, 2, 3});
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   // Setting attributes on DataSlices with Explicit Schema requires schema attr
@@ -2198,7 +2198,7 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {
 TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int64_t>({1, 2, 3});
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -2219,21 +2219,21 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
 }
 
 TEST(DataSliceTest, GetAttr_None) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK_AND_ASSIGN(auto ds_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_None) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK_AND_ASSIGN(auto ds_get, ds.GetAttrOrMissing("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
 }
 
 TEST(DataSliceTest, GetAttr_ImplicitCasting_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto o1, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
                                      {test::DataItem(1)}));
@@ -2248,7 +2248,7 @@ TEST(DataSliceTest, GetAttr_ImplicitCasting_Object) {
 }
 
 TEST(DataSliceTest, GetAttr_ImplicitCasting_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity, EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
                                          {"a"}, {test::DataItem(1)}));
@@ -2262,7 +2262,7 @@ TEST(DataSliceTest, GetAttr_ImplicitCasting_Entity) {
 }
 
 TEST(DataSliceTest, SetGetAttr_FromEmptyItem_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
@@ -2281,7 +2281,7 @@ TEST(DataSliceTest, SetGetAttr_FromEmptyItem_EntityCreator) {
 }
 
 TEST(DataSliceTest, SetGetAttr_FromEmptySlice_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
       CreateEntitySchema(db, {"a"}, {test::Schema(schema::kInt32)}));
@@ -2301,7 +2301,7 @@ TEST(DataSliceTest, SetGetAttr_FromEmptySlice_EntityCreator) {
 }
 
 TEST(DataSliceTest, SetGetAttr_FromEmptyItem_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::DataItem(internal::MissingValue(), schema::kObject, db);
   EXPECT_THAT(ds.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(
@@ -2318,7 +2318,7 @@ TEST(DataSliceTest, SetGetAttr_FromEmptyItem_ObjectCreator) {
 }
 
 TEST(DataSliceTest, SetGetAttr_FromEmptySlice_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_fully_empty = test::EmptyDataSlice(
       DataSlice::JaggedShape::FlatFromSize(0), schema::kObject, db);
 
@@ -2342,13 +2342,13 @@ TEST(DataSliceTest, SetGetAttr_FromEmptySlice_ObjectCreator) {
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr) {
   auto ds_a = test::DataSlice<int>({1, 2, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {"a"}, {ds_a}));
 
   arolla::DenseArray<internal::ObjectId> array =
       ds.slice().values<internal::ObjectId>();
 
-  auto ds_2 = ds.WithBag(DataBag::Empty());
+  auto ds_2 = ds.WithBag(DataBag::EmptyMutable());
 
   EXPECT_THAT(
       ds_2.GetAttr("a"),
@@ -2374,7 +2374,7 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
   DataSlice ds_a = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(DataSlice ds,
                        ds_a.WithSchema(test::Schema(schema::kObject)));
-  DataSlice obj = ds.WithBag(DataBag::Empty());
+  DataSlice obj = ds.WithBag(DataBag::EmptyMutable());
 
   EXPECT_THAT(
       obj.GetAttr("a"),
@@ -2384,7 +2384,7 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice list,
@@ -2436,7 +2436,7 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice key_item = test::DataItem(1);
   DataSlice value_item = test::DataItem("value");
@@ -2473,7 +2473,7 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
 }
 
 TEST(DataSliceTest, SetAttr_None) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
   auto values = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK(ds.SetAttr("a", values));  // No-op.
@@ -2487,7 +2487,7 @@ TEST(DataSliceTest, SetAttr_None) {
 }
 
 TEST(DataSliceTest, SetAttrs_None) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
   auto values = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK(ds.SetAttrs({"a"}, {values}));  // No-op.
@@ -2501,7 +2501,7 @@ TEST(DataSliceTest, SetAttrs_None) {
 }
 
 TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   auto ds_object_id = test::DataSlice<ObjectId>({
     internal::AllocateSingleObject(), internal::AllocateSingleObject(),
@@ -2519,7 +2519,7 @@ TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
 }
 
 TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds_1, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
   ASSERT_OK_AND_ASSIGN(ds_1, ds_1.EmbedSchema());
@@ -2540,7 +2540,7 @@ TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -2559,7 +2559,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -2574,7 +2574,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectCreator) {
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds_e,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -2595,7 +2595,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_SchemaSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -2608,7 +2608,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_SchemaSlice) {
 }
 
 TEST(DataSliceTest, SetAttr_ObjectsWithExplicitSchemaNewAttr) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto e1, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto e2, EntityCreator::FromAttrs(db, {}, {}));
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
@@ -2633,7 +2633,7 @@ TEST(DataSliceTest, SetAttr_ObjectsWithExplicitSchemaNewAttr) {
 }
 
 TEST(DataSliceTest, SetMultipleAttrs_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(1);
   auto ds_b = test::DataItem("a");
   ASSERT_OK_AND_ASSIGN(auto ds,
@@ -2650,7 +2650,7 @@ TEST(DataSliceTest, SetMultipleAttrs_Entity) {
 }
 
 TEST(DataSliceTest, SetMultipleAttrs_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataItem(1);
   auto ds_b = test::DataItem("a");
   ASSERT_OK_AND_ASSIGN(auto ds,
@@ -2667,7 +2667,7 @@ TEST(DataSliceTest, SetMultipleAttrs_Object) {
 }
 
 TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {}, {}));
   auto ds_a_old = test::DataItem("old");
   ASSERT_OK(ds.SetAttrs({"a"}, {ds_a_old}));
@@ -2688,7 +2688,7 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
 }
 
 TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(ds.SetAttr(schema::kSchemaAttr,
                        test::Schema(internal::AllocateExplicitSchema())));
@@ -2712,8 +2712,8 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
 
 TEST(DataSliceTest, SetGetSchemaSlice) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  auto db = DataBag::Empty();
-  auto fallback_db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto fallback_db = DataBag::EmptyMutable();
 
   auto schema_ds = test::DataSlice<ObjectId>(
       {internal::AllocateExplicitSchema(), internal::AllocateExplicitSchema()},
@@ -2737,7 +2737,7 @@ TEST(DataSliceTest, SetGetSchemaSlice) {
 
 TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   for (auto other_db : {db, DataBagPtr(nullptr)}) {
     auto ds_a =
@@ -2760,8 +2760,8 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
 }
 
 TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
-  auto db = DataBag::Empty();
-  auto db2 = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
 
   DataSlice ds_a_schema =
       test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db2);
@@ -2792,8 +2792,8 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
 }
 
 TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
-  auto db = DataBag::Empty();
-  auto db2 = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
+  auto db2 = DataBag::EmptyMutable();
 
   auto ds_a_schema =
       test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db2);
@@ -2822,7 +2822,7 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
 TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
@@ -2845,7 +2845,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   auto ds_a = test::AllocateDataSlice(3, schema::kItemId);
   auto ds_b = test::AllocateDataSlice(3, schema::kItemId);
 
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds_x, EntityCreator::Shaped(db1, shape, {}, {}));
   ASSERT_OK(ds_x.GetSchema().SetAttr("a", ds_a.GetSchema()));
@@ -2858,7 +2858,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   ASSERT_OK(ds_x.SetAttr("b", ds_b));
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_b.GetSchema()));
 
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds2, EntityCreator::Shaped(db2, shape, {}, {}));
   ASSERT_OK(ds2.GetSchema().SetAttr("x", ds_x.GetSchema()));
   ASSERT_OK(ds2.SetAttr("x", ds_x));
@@ -2885,12 +2885,12 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
 
 TEST(DataSliceTest, SetGetObjectAttributes_ObjectCreator) {
   auto ds_b = test::DataSlice<int>({1, 2, 3});
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds_a, ObjectCreator::Shaped(db1, shape, {}, {}));
   ASSERT_OK(ds_a.SetAttr("b", ds_b));
 
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db2, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
@@ -2924,7 +2924,7 @@ TEST(DataSliceTest, SetGetObjectAttributes_ObjectCreator) {
 
 TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
   auto ds_a = test::DataSlice<int>({1, 2, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_a));
@@ -2965,7 +2965,7 @@ TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
 }
 
 TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
 
@@ -2987,7 +2987,7 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
 }
 
 TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
 
@@ -3012,7 +3012,7 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
 }
 
 TEST(DataSliceTest, GetNoFollowAttr_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(
       auto ds_attr,
@@ -3037,7 +3037,7 @@ TEST(DataSliceTest, GetNoFollowAttr_Entity) {
 }
 
 TEST(DataSliceTest, GetNoFollowAttr_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(
       auto ds_attr,
@@ -3061,7 +3061,7 @@ TEST(DataSliceTest, GetNoFollowAttr_Object) {
 }
 
 TEST(DataSliceTest, GetNoFollow_ListItems) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(
       auto items,
@@ -3090,7 +3090,7 @@ TEST(DataSliceTest, SetAttr_AutoBroadcasting) {
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
 
   auto res_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, res_shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", ds_primitive.GetSchema()));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3108,7 +3108,7 @@ TEST(DataSliceTest, SetAttr_BroadcastingError) {
   auto res_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
   auto ds_primitive = test::DataSlice<int>({1, 2, 3, 4, 5, 6}, res_shape);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       ObjectCreator::Shaped(
@@ -3132,7 +3132,7 @@ TEST(DataSliceTest, SetGetError) {
                        "failed to get attribute 'a': the DataSlice is a "
                        "reference without a bag"));
 
-  ds = ds.WithBag(DataBag::Empty());
+  ds = ds.WithBag(DataBag::EmptyMutable());
 
   auto ds_primitive = test::DataSlice<int>({42, 42}, ds.GetBag());
   EXPECT_THAT(ds_primitive.SetAttr("a", ds_a),
@@ -3165,7 +3165,7 @@ TEST(DataSliceTest, UpdatingEntitySchema_WithNoAttributes_EntityCreator) {
   auto ds_text = test::DataSlice<arolla::Text>({"abc", "abc", "abc"});
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_int32));
   EXPECT_THAT(ds.GetAttr("a"),
@@ -3175,7 +3175,7 @@ TEST(DataSliceTest, UpdatingEntitySchema_WithNoAttributes_EntityCreator) {
 // Some schemas are implicit and some are explicit.
 TEST(DataSliceTest, UpdatingEntitySchema_SomeMissingAttributes_ObjectCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto implicit_schema,
                        objects.GetAttr(schema::kSchemaAttr));
@@ -3199,7 +3199,7 @@ TEST(DataSliceTest, UpdatingEntitySchema_SomeMissingAttributes_ObjectCreator) {
 
 TEST(DataSliceTest, SetGetError_ObjectCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto implicit_schema,
                        objects.GetAttr(schema::kSchemaAttr));
@@ -3255,7 +3255,7 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
 
 TEST(DataSliceTest, GetAttrWithDefault_Primitives_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3268,7 +3268,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_EntityCreator) {
 
 TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
@@ -3279,8 +3279,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   ASSERT_OK(ds_object.SetAttr("attr", ds_primitive));
   ASSERT_OK(ds.SetAttr("a", ds_object));
 
-  ASSERT_OK_AND_ASSIGN(auto default_val,
-                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto default_val, EntityCreator::FromAttrs(
+                                             DataBag::EmptyMutable(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
@@ -3299,7 +3299,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
 
@@ -3312,7 +3312,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_CommonSchema_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
@@ -3329,7 +3329,7 @@ TEST(DataSliceTest, GetAttrWithDefault_CommonSchema_EntityCreator) {
 
 TEST(DataSliceTest, GetAttrWithDefault_Primitives_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3343,7 +3343,7 @@ TEST(DataSliceTest, GetAttrWithDefault_Primitives_ObjectCreator) {
 
 TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
@@ -3354,8 +3354,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   ASSERT_OK(ds_object.SetAttr("attr", ds_primitive));
   ASSERT_OK(ds.SetAttr("a", ds_object));
 
-  ASSERT_OK_AND_ASSIGN(auto default_val,
-                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(auto default_val, EntityCreator::FromAttrs(
+                                             DataBag::EmptyMutable(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
                        default_val.WithSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
@@ -3374,7 +3374,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
 
@@ -3390,8 +3390,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_SchemaSlice) {
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(DataBag::EmptyMutable(), {}, {}));
   auto entity_schema = entity.GetSchema();
   ASSERT_OK_AND_ASSIGN(
       auto schema_attr,
@@ -3402,7 +3402,7 @@ TEST(DataSliceTest, GetAttrWithDefault_SchemaSlice) {
 }
 
 TEST(DataSliceTest, GetAttrWithDefault_EmptySchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto explicit_schema_1 = internal::AllocateExplicitSchema();
   auto explicit_schema_2 = internal::AllocateExplicitSchema();
@@ -3441,7 +3441,7 @@ TEST(DataSliceTest, GetAttrWithDefault_EmptySchema) {
 
 TEST(DataSliceTest, GetAttrOrMissing_Primitives_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3452,7 +3452,7 @@ TEST(DataSliceTest, GetAttrOrMissing_Primitives_EntityCreator) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_Objects_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
@@ -3469,7 +3469,7 @@ TEST(DataSliceTest, GetAttrOrMissing_Objects_EntityCreator) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
 
@@ -3481,7 +3481,7 @@ TEST(DataSliceTest, GetAttrOrMissing_EntityCreator) {
 
 TEST(DataSliceTest, GetAttrOrMissing_Primitives_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3492,8 +3492,8 @@ TEST(DataSliceTest, GetAttrOrMissing_Primitives_ObjectCreator) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_SchemaSlice) {
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(DataBag::EmptyMutable(), {}, {}));
   auto entity_schema = entity.GetSchema();
   ASSERT_OK_AND_ASSIGN(auto schema_attr,
                        entity_schema.GetAttrOrMissing("attr"));
@@ -3502,7 +3502,7 @@ TEST(DataSliceTest, GetAttrOrMissing_SchemaSlice) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto o1, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"},
                                      {test::DataItem(1)}));
@@ -3517,7 +3517,7 @@ TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Object) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto entity, EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
                                          {"a"}, {test::DataItem(1)}));
@@ -3532,7 +3532,7 @@ TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
 
 TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSchema_Entity) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3547,7 +3547,7 @@ TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSchema_Entity) {
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSomeSchema_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto obj_1, ObjectCreator::Shaped(
                                      db, DataSlice::JaggedShape::Empty(), {"a"},
                                      {test::DataItem(1, schema::kInt32)}));
@@ -3577,7 +3577,7 @@ TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSomeSchema_Object) {
 
 TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3610,7 +3610,7 @@ TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
 
 TEST(DataSliceTest, HasAttr_Primitives_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
@@ -3652,7 +3652,7 @@ TEST(DataSliceTest, HasAttr_Primitives_ObjectCreator) {
 
 TEST(DataSliceTest, HasAttr_Primitives_EntityCreator_DataItem) {
   auto ds_primitive = test::DataItem(1, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {}));
@@ -3670,7 +3670,7 @@ TEST(DataSliceTest, HasAttr_Primitives_EntityCreator_DataItem) {
 }
 
 TEST(DataSliceTest, HasAttr_Objects_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   auto object_id_1 = internal::AllocateSingleObject();
@@ -3692,7 +3692,7 @@ TEST(DataSliceTest, HasAttr_Objects_EntityCreator) {
 }
 
 TEST(DataSliceTest, HasAttr_Mix_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto a = test::DataItem(1, schema::kInt32);
   auto b_attr = test::DataItem(2, schema::kInt32);
   ASSERT_OK_AND_ASSIGN(
@@ -3726,11 +3726,11 @@ TEST(DataSliceTest, HasAttr_Mix_ObjectCreator) {
 }
 
 TEST(DataSliceTest, HasAttr_SchemaSlice) {
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(DataBag::EmptyMutable(), {}, {}));
   auto entity_schema = entity.GetSchema();
   ASSERT_OK_AND_ASSIGN(auto schema,
-                       CreateEntitySchema(DataBag::Empty(), {"a", "b"},
+                       CreateEntitySchema(DataBag::EmptyMutable(), {"a", "b"},
                                           {test::Schema(schema::kInt32),
                                            test::Schema(schema::kFloat32)}));
 
@@ -3748,14 +3748,15 @@ TEST(DataSliceTest, HasAttr_SchemaSlice) {
 TEST(DataSliceTest, HasAttr_None) {
   {
     // DataSlice.
-    auto ds = test::EmptyDataSlice(3, schema::kNone, DataBag::Empty());
+    auto ds = test::EmptyDataSlice(3, schema::kNone, DataBag::EmptyMutable());
     ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
     EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
                           {std::nullopt, std::nullopt, std::nullopt})));
   }
   {
     // DataItem.
-    auto ds = test::DataItem(std::nullopt, schema::kNone, DataBag::Empty());
+    auto ds =
+        test::DataItem(std::nullopt, schema::kNone, DataBag::EmptyMutable());
     ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
     EXPECT_THAT(mask,
                 IsEquivalentTo(test::DataItem(std::nullopt, schema::kMask)));
@@ -3768,12 +3769,13 @@ TEST(DataSliceTest, HasAttr_Errors) {
     // Primitive data.
     auto ds = test::MixedDataSlice<internal::ObjectId, int>(
         {internal::AllocateSingleObject(), std::nullopt}, {std::nullopt, 1},
-        schema::kObject, DataBag::Empty());
+        schema::kObject, DataBag::EmptyMutable());
     EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("primitive")));
 
     // Primitive schema.
-    ds = test::DataSlice<int>({std::nullopt}, schema::kInt32, DataBag::Empty());
+    ds = test::DataSlice<int>({std::nullopt}, schema::kInt32,
+                              DataBag::EmptyMutable());
     EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("primitive")));
   }
@@ -3781,7 +3783,7 @@ TEST(DataSliceTest, HasAttr_Errors) {
     // No bag.
     ASSERT_OK_AND_ASSIGN(
         auto ds,
-        EntityCreator::Shaped(DataBag::Empty(),
+        EntityCreator::Shaped(DataBag::EmptyMutable(),
                               DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
     EXPECT_THAT(ds.WithBag(nullptr).HasAttr("a"),
                 StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("bag")));
@@ -3789,14 +3791,14 @@ TEST(DataSliceTest, HasAttr_Errors) {
   {
     // ItemId.
     auto ds = test::DataSlice<internal::ObjectId>(
-        {std::nullopt}, schema::kItemId, DataBag::Empty());
+        {std::nullopt}, schema::kItemId, DataBag::EmptyMutable());
     EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
                                           HasSubstr("ITEMID")));
   }
 }
 
 TEST(DataSliceTest, DelAttr_EntityCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(
       auto ds,
@@ -3828,7 +3830,7 @@ TEST(DataSliceTest, DelAttr_EntityCreator) {
 }
 
 TEST(DataSliceTest, DelAttr_Slice_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -3845,7 +3847,7 @@ TEST(DataSliceTest, DelAttr_Slice_ObjectCreator) {
 }
 
 TEST(DataSliceTest, DelAttr_Item_ObjectCreator) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataItem(42);
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -3862,7 +3864,7 @@ TEST(DataSliceTest, DelAttr_Item_ObjectCreator) {
 }
 
 TEST(DataSliceTest, DelAttr_Object_ExplicitSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(db, {}, {}));
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kInt32)));
@@ -3885,7 +3887,7 @@ TEST(DataSliceTest, DelAttr_Object_ExplicitSchema) {
 }
 
 TEST(DataSliceTest, DelAttr_None) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK(ds.DelAttr("a"));
   ASSERT_OK_AND_ASSIGN(auto ds_get, ds.GetAttr("a"));
@@ -3893,7 +3895,7 @@ TEST(DataSliceTest, DelAttr_None) {
 }
 
 TEST(DataSliceTest, DelAttr_MixedImplicitAndExplicitSchema_InObject) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema_slice = test::DataSlice<ObjectId>(
       {internal::AllocateExplicitSchema(), GenerateImplicitSchema()},
       schema::kSchema, db);
@@ -3920,7 +3922,7 @@ TEST(DataSliceTest, DelAttr_MixedImplicitAndExplicitSchema_InObject) {
 }
 
 TEST(DataSliceTest, DelAttr_NoDataBag) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto ds,
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
@@ -3930,7 +3932,7 @@ TEST(DataSliceTest, DelAttr_NoDataBag) {
 }
 
 TEST(DataSliceTest, DelAttr_DisallowedSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3}, db);
   EXPECT_THAT(
       ds_primitive.DelAttr("c"),
@@ -3951,7 +3953,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {
   auto schema_a = test::MixedDataSlice<ObjectId, schema::DType>(
       {implicit_schema_id, std::nullopt}, {std::nullopt, schema::kInt32},
       schema::kObject);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
@@ -3971,7 +3973,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {
 
 TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaObjectIdMatch) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds_a, EntityCreator::Shaped(db, shape, {}, {}));
   EXPECT_TRUE(ds_a.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
   auto schema_a = test::MixedDataSlice<ObjectId, schema::DType>(
@@ -3996,7 +3998,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaObjectIdMatch) {
 TEST(DataSliceTest, GetFromList) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
                        CreateListSchema(db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
@@ -4086,7 +4088,7 @@ TEST(DataSliceTest, GetFromList) {
 TEST(DataSliceTest, GetFromList_Int64Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
@@ -4110,7 +4112,7 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
   auto list_items = test::MixedDataSlice<int, int64_t>(
       {42, std::nullopt, std::nullopt}, {std::nullopt, 12, 13}, shape,
       schema::kObject);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
@@ -4132,7 +4134,7 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
 
 TEST(DataSliceTest, GetFromList_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4148,7 +4150,7 @@ TEST(DataSliceTest, GetFromList_ImplicitCast_Entity) {
 TEST(DataSliceTest, GetFromList_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_1,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4166,7 +4168,7 @@ TEST(DataSliceTest, GetFromList_ImplicitCast_Object) {
 }
 
 TEST(DataSliceTest, GetFromList_NoneSchema_NotAList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, none_list.GetFromList(indices));
@@ -4177,7 +4179,7 @@ TEST(DataSliceTest, GetFromList_NoneSchema_NotAList) {
 TEST(DataSliceTest, PopFromList_Int64Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
@@ -4204,7 +4206,7 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
   auto list_items = test::MixedDataSlice<int, int64_t>(
       {42, std::nullopt, std::nullopt}, {std::nullopt, 12, 13}, shape,
       schema::kObject);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
@@ -4228,7 +4230,7 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
 
 TEST(DataSliceTest, PopFromList_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4244,7 +4246,7 @@ TEST(DataSliceTest, PopFromList_ImplicitCast_Entity) {
 TEST(DataSliceTest, PopFromList_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_1,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4264,7 +4266,7 @@ TEST(DataSliceTest, PopFromList_ImplicitCast_Object) {
 }
 
 TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, none_list.PopFromList(indices));
@@ -4277,7 +4279,7 @@ TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
 TEST(DataSliceTest, ExplodeList_Int32Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}, {0, 1, 2, 3}});
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, items.GetShape().RemoveDims(2),
@@ -4291,7 +4293,7 @@ TEST(DataSliceTest, ExplodeList_Int32Schema) {
 
 TEST(DataSliceTest, ExplodeList_ObjectSchema) {
   auto shape = test::ShapeFromSplitPoints({{0, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto lists,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
                                              internal::AllocateLists(3), 3),
@@ -4322,7 +4324,7 @@ TEST(DataSliceTest, ExplodeList_ObjectSchema) {
 
 TEST(DataSliceTest, ExplodeList_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4338,7 +4340,7 @@ TEST(DataSliceTest, ExplodeList_ImplicitCast_Entity) {
 TEST(DataSliceTest, ExplodeList_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_1,
                        CreateListShaped(db, DataSlice::JaggedShape::Empty(),
                                         test::DataSlice<int>({1})));
@@ -4357,7 +4359,7 @@ TEST(DataSliceTest, ExplodeList_ImplicitCast_Object) {
 
 TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
   auto shape = test::ShapeFromSplitPoints({{0, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto lists,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
                                              internal::AllocateLists(3), 3),
@@ -4402,7 +4404,7 @@ TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
 }
 
 TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
   auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
@@ -4412,7 +4414,7 @@ TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
 
 TEST(DataSliceTest, ReplaceInList_NoBag) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto lists,
@@ -4434,7 +4436,7 @@ TEST(DataSliceTest, ReplaceInList) {
       auto shape, DataSlice::JaggedShape::FromEdges({edge_1, edge_2, edge_3}));
 
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
                       CreateListSchema(db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
@@ -4468,7 +4470,7 @@ TEST(DataSliceTest, ReplaceInList) {
 }
 
 TEST(DataSliceTest, ReplaceInList_NoneSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK(none_list.ReplaceInList(0, std::nullopt, test::DataItem(1)));
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
@@ -4479,7 +4481,7 @@ TEST(DataSliceTest, ReplaceInList_NoneSchema) {
 
 TEST(DataSliceTest, ReplaceInList_Int64Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto lists,
@@ -4522,7 +4524,7 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
 
 TEST(DataSliceTest, SetInList_NoBag) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto lists,
@@ -4537,7 +4539,7 @@ TEST(DataSliceTest, SetInList_NoBag) {
 }
 
 TEST(DataSliceTest, SetInList_NoneSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK(none_list.SetInList(indices, indices));
@@ -4549,7 +4551,7 @@ TEST(DataSliceTest, SetInList_NoneSchema) {
 
 TEST(DataSliceTest, SetInList_Int64Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto lists,
@@ -4591,7 +4593,7 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
 }
 
 TEST(DataSliceTest, AppendToList_NoneSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK(none_list.AppendToList(indices));
@@ -4603,7 +4605,7 @@ TEST(DataSliceTest, AppendToList_NoneSchema) {
 
 TEST(DataSliceTest, AppendToList_Int64Schema) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto lists,
@@ -4636,7 +4638,7 @@ TEST(DataSliceTest, AppendToList_Int64Schema) {
 }
 
 TEST(DataSliceTest, AppendToList_DifferentShapes) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto values123 = test::DataSlice<int>({1, 2, 3}, schema::kInt32);
 
@@ -4683,9 +4685,9 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
 }
 
 TEST(DataSliceTest, AppendToList_Adopt) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto lst, CreateEmptyList(db));
-  auto items_db = DataBag::Empty();
+  auto items_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto items,
       EntityCreator::Shaped(items_db, DataSlice::JaggedShape::FlatFromSize(1),
@@ -4702,7 +4704,7 @@ TEST(DataSliceTest, AppendToList_Adopt) {
 TEST(DataSliceTest, RemoveInList) {
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, std::nullopt, 15}, shape);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       CreateListShaped(db, list_items.GetShape().RemoveDims(1),
@@ -4772,7 +4774,7 @@ TEST(DataSliceTest, RemoveInList) {
 }
 
 TEST(DataSliceTest, RemoveInList_NoneSchema_NotAList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK(none_list.RemoveInList(indices));
@@ -4798,7 +4800,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
   ASSERT_OK_AND_ASSIGN(auto keys_shape,
                        shape.AddDims({test::EdgeFromSplitPoints({0, 3})}));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
@@ -4872,7 +4874,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
   ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
@@ -4942,7 +4944,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
 
 TEST(DataSliceTest, GetFromDict_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -4959,7 +4961,7 @@ TEST(DataSliceTest, GetFromDict_ImplicitCast_Entity) {
 TEST(DataSliceTest, GetFromDict_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict_1,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -4981,7 +4983,7 @@ TEST(DataSliceTest, GetFromDict_ImplicitCast_Object) {
 
 TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
   auto shape = test::ShapeFromSplitPoints({{0, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dicts,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
                                              internal::AllocateDicts(3), 3),
@@ -5041,7 +5043,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
   ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
@@ -5149,7 +5151,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
 
 TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
   auto shape = test::ShapeFromSplitPoints({{0, 3}});
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto dicts,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
                                              internal::AllocateDicts(3), 3),
@@ -5177,7 +5179,7 @@ TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
 
 TEST(DataSliceTest, GetDictKeys_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -5194,7 +5196,7 @@ TEST(DataSliceTest, GetDictKeys_ImplicitCast_Entity) {
 TEST(DataSliceTest, GetDictKeys_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict_1,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -5215,7 +5217,7 @@ TEST(DataSliceTest, GetDictKeys_ImplicitCast_Object) {
 
 TEST(DataSliceTest, GetDictValues_ImplicitCast_Entity) {
   // Modifying the entity schema yields an error.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -5232,7 +5234,7 @@ TEST(DataSliceTest, GetDictValues_ImplicitCast_Entity) {
 TEST(DataSliceTest, GetDictValues_ImplicitCast_Object) {
   // For OBJECTs, we cast since this is a valid configuration (OBJECTs can hold
   // mixed data.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dict_1,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
@@ -5252,16 +5254,16 @@ TEST(DataSliceTest, GetDictValues_ImplicitCast_Object) {
 }
 
 TEST(DataSliceTest, SetInDict_Adopt) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto dct,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                        /*keys=*/std::nullopt, /*values=*/std::nullopt));
-  auto keys_db = DataBag::Empty();
+  auto keys_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto keys,
       EntityCreator::FromAttrs(keys_db, {"a"}, {test::DataItem(42)}));
-  auto values_db = DataBag::Empty();
+  auto values_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto values,
       EntityCreator::FromAttrs(values_db, {"b"}, {test::DataItem("abc")}));
@@ -5281,7 +5283,7 @@ TEST(DataSliceTest, SetInDict_Adopt) {
 }
 
 TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_dict = test::EmptyDataSlice(3, schema::kNone, db);
   auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   // Keys.
@@ -5301,7 +5303,7 @@ TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {
 }
 
 TEST(DataSliceTest, SetInDict_NoneSchema) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto none_dict = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK(none_dict.SetInDict(test::DataItem(arolla::Text("a")),
                                 test::DataItem(2)));
@@ -5312,7 +5314,7 @@ TEST(DataSliceTest, SetInDict_NoneSchema) {
 }
 
 TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto list_items = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto list, CreateListsFromLastDimension(db, list_items));
   EXPECT_TRUE(list.ShouldApplyListOp());
@@ -5347,7 +5349,7 @@ TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
 }
 
 TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
   ASSERT_OK_AND_ASSIGN(auto lists,
@@ -5388,7 +5390,7 @@ TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
 
 // More extensive tests are in core_get_item_test.py.
 TEST(DataSliceTest, GetItem_DataItem) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::DataSlice<int>({1, 2, 3});
   auto indices = test::DataSlice<int>({1, 2});
   auto expected_res = test::DataSlice<int>({2, 3}).WithBag(db);
@@ -5416,7 +5418,7 @@ TEST(DataSliceTest, GetItem_DataItem) {
 }
 
 TEST(DataSliceTest, GetItem_DataSlice) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
   auto indices = test::DataSlice<int>({1, 1, 0}, shape);
@@ -5448,7 +5450,7 @@ TEST(DataSliceTest, SchemaSlice) {
   auto a = test::DataItem(3.14);
   auto b = test::DataItem(2.71);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto y,
                        EntityCreator::FromAttrs(db, {"a", "b"}, {a, b}));
   ASSERT_OK_AND_ASSIGN(auto o,
@@ -5692,7 +5694,7 @@ TEST(DataSliceTest, Flatten) {
 }
 
 TEST(DataSliceTest, PresentCount) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   {
     auto ds = test::DataSlice<int>({1, std::nullopt, 3});
     EXPECT_THAT(ds.present_count(), Eq(2));
@@ -5710,14 +5712,14 @@ TEST(DataSliceTest, PresentCount) {
 TEST(DataSliceTest, Repr) {
   // NOTE: More extensive repr tests are done in data_slice_repr_test.cc and in
   // Python.
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = test::DataItem(1, db);
   EXPECT_THAT(arolla::Repr(ds),
               Eq(absl::StrFormat("DataItem(1, schema: INT32)")));
 }
 
 TEST(DataSliceCastingTest, ToIn64_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kInt64)));
@@ -5737,7 +5739,7 @@ TEST(DataSliceCastingTest, ToIn64_Entity) {
 }
 
 TEST(DataSliceCastingTest, ToIn64_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kInt64)));
 
@@ -5760,7 +5762,7 @@ TEST(DataSliceCastingTest, ToIn64_Object) {
 }
 
 TEST(DataSliceCastingTest, ToFloat64_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat64)));
@@ -5774,7 +5776,7 @@ TEST(DataSliceCastingTest, ToFloat64_Entity) {
 }
 
 TEST(DataSliceCastingTest, ToFloat64_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kFloat64)));
 
@@ -5791,7 +5793,7 @@ TEST(DataSliceCastingTest, ToFloat64_Object) {
 }
 
 TEST(DataSliceCastingTest, EmptyToOther_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
@@ -5808,7 +5810,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
 }
 
 TEST(DataSliceCastingTest, EmptyToOther_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
@@ -5828,7 +5830,7 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
 }
 
 TEST(DataSliceCastingTest, SameUnderlying_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
@@ -5853,7 +5855,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
 }
 
 TEST(DataSliceCastingTest, SameUnderlying_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
@@ -5881,7 +5883,7 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
 }
 
 TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
@@ -5894,7 +5896,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Entity) {
 }
 
 TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kString)));
 
@@ -5910,7 +5912,7 @@ TEST(DataSliceCastingTest, IncompatibleSchema_Object) {
 }
 
 TEST(DataSliceCastingTest, PrimitiveToObject_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
@@ -5923,7 +5925,7 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Entity) {
 }
 
 TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
   ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kObject)));
 
@@ -5939,7 +5941,7 @@ TEST(DataSliceCastingTest, PrimitiveToObject_Object) {
 }
 
 TEST(DataSliceCastingTest, SchemaToObject) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
@@ -5951,12 +5953,12 @@ TEST(DataSliceCastingTest, SchemaToObject) {
 }
 
 TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
-  auto val_db = DataBag::Empty();
+  auto val_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto val_entity,
                        EntityCreator::Shaped(val_db, shape, {}, {}));
   ASSERT_OK(entity.SetAttr("a", val_entity));
@@ -5978,12 +5980,12 @@ TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
 }
 
 TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
-  auto db_2 = DataBag::Empty();
+  auto db_2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto val_objects,
                        ObjectCreator::Shaped(db_2, shape, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto val_object_schemas,
@@ -6011,7 +6013,7 @@ TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
 }
 
 TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto values_int32 = test::DataSlice<int>({42, 12});
 
   auto explicit_schema = internal::AllocateExplicitSchema();
@@ -6066,7 +6068,7 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
 }
 
 TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto schema_1 = internal::AllocateExplicitSchema();
   ASSERT_OK(test::Schema(schema_1, db)
@@ -6092,7 +6094,7 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {
 
 // TODO(b/329836487); Explore if this should succeed.
 TEST(DataSliceCastingTest, SchemaAttr_DifferentButCompatibleExplicitSchemas) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
 
   auto schema_1 = internal::AllocateExplicitSchema();
   ASSERT_OK(test::Schema(schema_1, db)
@@ -6118,7 +6120,7 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentButCompatibleExplicitSchemas) {
 
 // More extensive tests are in object_factories_test.cc.
 TEST(CastOrUpdateSchema, SimpleTest) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kFloat32);
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 

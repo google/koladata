@@ -34,7 +34,7 @@ from koladata.types import schema_constants
 
 
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 
@@ -2015,7 +2015,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         ValueError,
         re.escape('message cast from python to C++ failed, got type tuple'),
     ):
-      db = data_bag.DataBag.empty()
+      db = data_bag.DataBag.empty_mutable()
       _ = db._from_proto([()], [], None, None)
 
     with self.assertRaisesRegex(

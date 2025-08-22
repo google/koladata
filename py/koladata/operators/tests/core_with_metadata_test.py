@@ -47,7 +47,7 @@ QTYPES = frozenset([
 class CoreWithMetadataTest(absltest.TestCase):
 
   def test_schema(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
@@ -57,7 +57,7 @@ class CoreWithMetadataTest(absltest.TestCase):
     testing.assert_equal(values, ds(['foo', 1]).with_bag(updated_x.get_bag()))
 
   def test_multiple_args(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])

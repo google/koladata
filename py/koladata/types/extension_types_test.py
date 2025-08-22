@@ -265,8 +265,8 @@ class ExtensionTypesTest(parameterized.TestCase):
       y: schema_constants.INT32
 
     # Different bags, different shape.
-    x = ds(1).with_bag(data_bag.DataBag.empty())
-    y = ds([1, 2, 3]).with_bag(data_bag.DataBag.empty())
+    x = ds(1).with_bag(data_bag.DataBag.empty_mutable())
+    y = ds([1, 2, 3]).with_bag(data_bag.DataBag.empty_mutable())
     ext = MyExtensionType(x, y)
     testing.assert_equal(ext.x, x)
     testing.assert_equal(ext.y, y)

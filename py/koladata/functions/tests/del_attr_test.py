@@ -24,27 +24,27 @@ ds = data_slice.DataSlice.from_vals
 class DelAttrTest(absltest.TestCase):
 
   def test_entity(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.new(xyz=3.14)
     self.assertTrue(x.has_attr('xyz'))
     fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_object(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(xyz=3.14)
     self.assertTrue(x.has_attr('xyz'))
     fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_none(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = ds(None).with_bag(db)
     fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_fails_on_non_existing_attr(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(xyz=3.14)
     with self.assertRaisesRegex(
         ValueError,

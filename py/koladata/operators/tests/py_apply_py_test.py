@@ -150,7 +150,7 @@ class PyApplyPyTest(parameterized.TestCase):
         arolla.tuple(1),
     )
     res = expr_eval.eval(
-        kde.py.apply_py(lambda: fns.bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
+        kde.py.apply_py(lambda: fns.mutable_bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
     )
     self.assertIsInstance(res, data_bag.DataBag)
 

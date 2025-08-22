@@ -82,7 +82,7 @@ class CoreWithPrintTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ds(['foo', 'bar', 'baz']),
-      data_bag.DataBag.empty(),
+      data_bag.DataBag.empty_mutable(),
       arolla.int32(57),
   )
   def test_propagate_x(self, x):
@@ -167,7 +167,7 @@ class CoreWithPrintTest(parameterized.TestCase):
         ' tuple<DATA_SLICE,DATA_BAG>',
     ):
       kde.core.with_print(
-          I.x, ds(['some message to log']), data_bag.DataBag.empty()
+          I.x, ds(['some message to log']), data_bag.DataBag.empty_mutable()
       )
 
   def test_view(self):

@@ -27,7 +27,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 
@@ -37,7 +37,7 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -60,7 +60,7 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj_list(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     a_slice = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o = db.implode(a_slice)
@@ -85,7 +85,7 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj_dict(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     values = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     keys = ds([0, 1, 2])
@@ -112,7 +112,7 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_entity(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -135,8 +135,8 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_clone_only_reachable(self, pass_schema):
-    db = data_bag.DataBag.empty()
-    fb = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
+    fb = data_bag.DataBag.empty_mutable()
     a_slice = db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     _ = fb.new(a=a_slice.no_bag(), c=ds([1, None, 2]))
     o = db.new(a=a_slice)
@@ -151,7 +151,7 @@ class CoreCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.get_bag(), o.get_bag())
 
-    expected_bag = data_bag.DataBag.empty()
+    expected_bag = data_bag.DataBag.empty_mutable()
     result.get_schema().with_bag(expected_bag).set_attr(
         'a', o.get_schema().a.no_bag()
     )
@@ -190,7 +190,7 @@ class CoreCloneTest(parameterized.TestCase):
       _ = res.y
 
   def test_itemid(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
     ids = expr_eval.eval(kde.clone(x))
@@ -201,7 +201,7 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(result.y.no_bag(), y.no_bag())
 
   def test_mixed_idtypes(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     y = db.obj(x=42)
     x = db.obj(y=y)
     xlist = db.obj(db.list([x, x]))
@@ -213,7 +213,7 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(result.no_bag(), ids.no_bag())
 
   def test_itemid_wrong_rank(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=42)
     itemid = db.new(x=ds([1, 2, 3]))
     with self.assertRaisesRegex(
@@ -222,7 +222,7 @@ class CoreCloneTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.clone(x, itemid=itemid))
 
   def test_wrong_itemid_type(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.list()
     itemid = db.new()
     with self.assertRaisesRegex(
@@ -295,10 +295,10 @@ class CoreCloneTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.get_metadata(res_schema))
 
   def test_named_schema(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     s = db.named_schema('s', x=schema_constants.INT32, y=schema_constants.INT32)
     result = expr_eval.eval(kde.clone(s))
-    expected_bag = data_bag.DataBag.empty()
+    expected_bag = data_bag.DataBag.empty_mutable()
     result.with_bag(expected_bag).set_attr('x', schema_constants.INT32)
     result.with_bag(expected_bag).set_attr('y', schema_constants.INT32)
     testing.assert_equivalent(result.get_bag(), expected_bag)

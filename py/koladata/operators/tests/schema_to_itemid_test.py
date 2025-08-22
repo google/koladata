@@ -39,8 +39,8 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-OBJ = data_bag.DataBag.empty().obj()
-ENTITY = data_bag.DataBag.empty().new()
+OBJ = data_bag.DataBag.empty_mutable().obj()
+ENTITY = data_bag.DataBag.empty_mutable().new()
 
 
 class SchemaToItemidTest(parameterized.TestCase):

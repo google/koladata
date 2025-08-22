@@ -502,7 +502,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
 
   def test_default_value_bag_type(self):
-    db = data_bag.DataBag.empty().freeze()
+    db = data_bag.DataBag.empty_mutable().freeze()
     self._test_eval_on_futures(
         functor_factories.trace_py_fn(lambda y=1: y),
         replacements=[],

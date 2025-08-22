@@ -42,25 +42,25 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
         output_value_index: 1
       }
     """
-    db = kd.bag()
+    db = kd.mutable_bag()
     self.assertDumpsEqual(db.qtype, text)
     self.assertLoadsEqual(text, db.qtype)
 
   def test_empty_bag(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, db)
 
   def test_single_object(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     db.obj(a=1, b='2', c=kd.list([3, 4]), d=kd.dict({'a': 'b', 'c': 'd'}))
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, db)
 
   def test_objects(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     l1 = db.list(['a, b'])
     l2 = db.list(['c, d'])
     db.obj(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
@@ -69,7 +69,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     kd.testing.assert_equivalent(res, db)
 
   def test_entities(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     d1 = db.dict({'a': 'b'})
     d2 = db.dict({'c': 'd'})
     db.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([d1, d2]))
@@ -78,12 +78,12 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     kd.testing.assert_equivalent(res, db)
 
   def test_complicated_case_with_fallbacks(self):
-    db1 = kd.bag()
+    db1 = kd.mutable_bag()
     l1 = db1.list(['a, b'])
     l2 = db1.list(['c, d'])
     obj = db1.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
 
-    db2 = kd.bag()
+    db2 = kd.mutable_bag()
     obj.with_bag(db2).set_attr('d', kd.dict({'a': 'b', 'c': kd.obj(l1)}))
 
     slice_with_fallback = db2.new(a=5, b=7).enriched(db1)
@@ -96,7 +96,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     kd.testing.assert_equivalent(values[2], slice_with_fallback)
 
   def test_removed_values(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     obj_single = db.new(a=1, b=None, c=2)
     obj_dense = db.new(x=kd.slice([1, 2, None, 4, 5, 7, 8, 9, 10] * 10))
     (obj_dense & (obj_dense.x > 2)).y = 17
@@ -104,7 +104,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     (obj_dense & (obj_dense.x > 8)).z = 37
     (obj_dense & (obj_dense.x > 9)).z = None
 
-    fb = kd.bag()
+    fb = kd.mutable_bag()
     fb_obj_single = obj_single.with_bag(fb)
     fb_obj_single.a = 77
     fb_obj_single.b = 97
@@ -141,7 +141,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
             getattr(obj_dense_with_fb, attr))
 
   def test_dict_removed_values(self):
-    db = kd.bag()
+    db = kd.mutable_bag()
     d = db.dict()
     fb = db.fork()
 
@@ -171,8 +171,8 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
 
     l1, l2, l3 = lists.S[0], lists.S[1], lists.S[2]
 
-    db = kd.bag()
-    fb = kd.bag()
+    db = kd.mutable_bag()
+    fb = kd.mutable_bag()
 
     db.adopt(l1.get_schema())
     fb.adopt(l1.get_schema())

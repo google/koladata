@@ -43,7 +43,8 @@ class IterableQValueTest(absltest.TestCase):
 
   def test_specifying_type_and_elements(self):
     res = iterable_qvalue.Iterable(
-        data_bag.DataBag.empty(), value_type_as=data_bag.DataBag.empty()
+        data_bag.DataBag.empty_mutable(),
+        value_type_as=data_bag.DataBag.empty_mutable(),
     )
     self.assertEqual(res.qtype.name, 'ITERABLE[DATA_BAG]')
     res_list = list(res)
@@ -57,19 +58,23 @@ class IterableQValueTest(absltest.TestCase):
             'expected all elements to be DATA_SLICE, got values[1]: DATA_BAG'
         ),
     ):
-      _ = iterable_qvalue.Iterable(1, data_bag.DataBag.empty())
+      _ = iterable_qvalue.Iterable(1, data_bag.DataBag.empty_mutable())
     with self.assertRaisesRegex(
         TypeError,
         re.escape(
             'expected all elements to be DATA_BAG, got values[0]: DATA_SLICE'
         ),
     ):
-      _ = iterable_qvalue.Iterable(1, value_type_as=data_bag.DataBag.empty())
+      _ = iterable_qvalue.Iterable(
+          1, value_type_as=data_bag.DataBag.empty_mutable()
+      )
 
   def test_empty(self):
     res = iterable_qvalue.Iterable()
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
-    res = iterable_qvalue.Iterable(value_type_as=data_bag.DataBag.empty())
+    res = iterable_qvalue.Iterable(
+        value_type_as=data_bag.DataBag.empty_mutable()
+    )
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     res = iterable_qvalue.Iterable(value_type_as=data_bag.DataBag)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)

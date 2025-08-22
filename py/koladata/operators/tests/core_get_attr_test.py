@@ -35,7 +35,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 eval_op = py_expr_eval_py_ext.eval_op
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 
 QTYPES = frozenset([
@@ -226,7 +226,7 @@ class CoreGetAttrTest(parameterized.TestCase):
       )
 
   def test_update_alloc_ids(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     entities = db.new(x=ds([db.list([1, 2])]))
     # Fails if allocation ids are not consistent.
     _ = eager.get_attr(entities, ds(['x']))
@@ -248,7 +248,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   def test_with_default_extraction(self):
     # Regression test for b/408434629.
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])]))
     updated_lists = (
         entities.x & ds([None, arolla.present()])
@@ -266,7 +266,7 @@ class CoreGetAttrTest(parameterized.TestCase):
       testing.assert_equal(result[:].no_bag(), ds([[1, 2], [3, 4, 8]]))
 
   def test_same_bag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     entity = db.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
     default = db.new(a=42).with_schema(entity.get_schema())
     entity = db.new(e=entity & ds([arolla.present(), None, None]))

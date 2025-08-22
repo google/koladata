@@ -40,7 +40,7 @@ I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
-ENTITY_SCHEMA = data_bag.DataBag.empty().new().get_schema()
+ENTITY_SCHEMA = data_bag.DataBag.empty_mutable().new().get_schema()
 
 
 class SchemaToSchemaTest(parameterized.TestCase):
@@ -69,7 +69,7 @@ class SchemaToSchemaTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   def test_not_schema_object_id(self):
-    e = data_bag.DataBag.empty().new()
+    e = data_bag.DataBag.empty_mutable().new()
     with self.assertRaisesRegex(
         ValueError, "casting item.*to SCHEMA is not supported"
     ):

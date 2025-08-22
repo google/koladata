@@ -259,7 +259,7 @@ Schema for `y`: STRING"""
     )
 
   def test_entity_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,

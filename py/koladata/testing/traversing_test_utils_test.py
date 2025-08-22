@@ -19,7 +19,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 

@@ -217,17 +217,17 @@ class SlicesConcatImplTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.concat(*args, ndim=ndim))
 
   def test_same_databag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     a = ds([db.obj(x=1)])
     b = ds([db.obj(x=2)])
     result = expr_eval.eval(kde.slices.concat(a, b))
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     a = db1.obj(x=1)
     a_slice = ds([a])
-    db2 = data_bag.DataBag.empty()
+    db2 = data_bag.DataBag.empty_mutable()
     b = db2.obj(x=2)
     b_slice = ds([b])
     result = expr_eval.eval(kde.slices.concat(a_slice, b_slice))

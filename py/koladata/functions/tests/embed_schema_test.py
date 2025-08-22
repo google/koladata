@@ -26,7 +26,7 @@ ds = data_slice.DataSlice.from_vals
 class EmbedSchemaTest(absltest.TestCase):
 
   def test_entity_to_object(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.new(a=ds([1, 2]))
     x_object = fns.embed_schema(x)
     testing.assert_equal(

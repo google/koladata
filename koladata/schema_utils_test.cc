@@ -80,7 +80,7 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
   }
   {
     // Object ids - with bag.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto obj = internal::AllocateSingleObject();
     // No schema - fallback to OBJECT.
     EXPECT_THAT(GetNarrowedSchema(test::DataItem(obj, schema::kObject, db)),
@@ -127,7 +127,7 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
   }
   {
     // Object ids - with bag.
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto slice = test::AllocateDataSlice(3, schema::kObject, db);
     // No schemas - fallback to OBJECT.
     EXPECT_THAT(GetNarrowedSchema(slice),
@@ -185,7 +185,7 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
   // Entities and objects.
 
   auto entity_schema = internal::AllocateExplicitSchema();
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto entity = test::AllocateDataSlice(3, entity_schema, db);
   ASSERT_OK(db->GetMutableImpl()->get().SetSchemaAttr(
       internal::DataItem(entity_schema), "x",
@@ -227,7 +227,7 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
       test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
   auto object = test::DataItem(internal::AllocateSingleObject());
   auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
-                                        DataBag::Empty());
+                                        DataBag::EmptyMutable());
 
   EXPECT_THAT(ExpectNumeric("foo", empty_and_unknown), IsOk());
   EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt})),
@@ -277,7 +277,7 @@ TEST(SchemaUtilsTest, ExpectInteger) {
       test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
   auto object = test::DataItem(internal::AllocateSingleObject());
   auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
-                                        DataBag::Empty());
+                                        DataBag::EmptyMutable());
 
   EXPECT_THAT(ExpectInteger("foo", empty_and_unknown), IsOk());
   EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt})),
@@ -558,7 +558,7 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
       test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
   auto object = test::DataItem(internal::AllocateSingleObject());
   auto entity = test::AllocateDataSlice(3, internal::AllocateExplicitSchema(),
-                                        DataBag::Empty());
+                                        DataBag::EmptyMutable());
 
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, empty_and_unknown),
               IsOk());
@@ -631,9 +631,9 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
   auto schema = test::DataItem(std::nullopt, schema::kSchema);
   auto integer_object = test::DataSlice<int>({1}, schema::kObject);
   auto entity = test::AllocateDataSlice(1, internal::AllocateExplicitSchema(),
-                                        DataBag::Empty());
+                                        DataBag::EmptyMutable());
   auto another_entity = test::AllocateDataSlice(
-      1, internal::AllocateExplicitSchema(), DataBag::Empty());
+      1, internal::AllocateExplicitSchema(), DataBag::EmptyMutable());
 
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, empty_and_unknown),
               IsOk());
@@ -666,9 +666,9 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   auto bytes_obj =
       test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kObject);
   auto entity = test::AllocateDataSlice(1, internal::AllocateExplicitSchema(),
-                                        DataBag::Empty());
+                                        DataBag::EmptyMutable());
   auto another_entity = test::AllocateDataSlice(
-      1, internal::AllocateExplicitSchema(), DataBag::Empty());
+      1, internal::AllocateExplicitSchema(), DataBag::EmptyMutable());
 
   EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, empty_and_unknown,
                                               empty_and_unknown),

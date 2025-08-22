@@ -576,7 +576,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     res = kd.call(
         functor_factories.py_fn(
-            lambda: fns.bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+            lambda: fns.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
         ),
         return_type_as=data_bag.DataBag,
     )
@@ -753,7 +753,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         arolla.tuple(ds(2).with_bag(f.get_bag()), ds(2).with_bag(f.get_bag())),
     )
     fn = functor_factories.py_fn(
-        lambda x: fns.bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+        lambda x: fns.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
     )
     f = functor_factories.bind(fn, return_type_as=data_bag.DataBag, x=2)
     res = f(return_type_as=data_bag.DataBag)

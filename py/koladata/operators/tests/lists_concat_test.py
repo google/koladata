@@ -28,7 +28,7 @@ from koladata.types import qtypes
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 I = input_container.InputContainer('I')
 
 
@@ -53,7 +53,7 @@ QTYPES = frozenset([
     ),
 ])
 
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 
 OBJ1 = db.obj()

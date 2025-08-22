@@ -52,9 +52,9 @@ TEST(RoundTripTest, Basic) {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
   };
-  ASSERT_OK_AND_ASSIGN(auto my_obj,
-                       ObjectCreator::FromAttrs(DataBag::Empty(), {"foo"},
-                                                {test::DataItem(57)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto my_obj, ObjectCreator::FromAttrs(DataBag::EmptyMutable(), {"foo"},
+                                            {test::DataItem(57)}));
   Signature::Parameter p2 = {
       .name = "b",
       .kind = Signature::Parameter::Kind::kPositionalOrKeyword,
@@ -115,7 +115,7 @@ TEST(KodaSignatureToCppSignatureTest, DetachDefaultValuesDb) {
       .name = "a",
       .kind = Signature::Parameter::Kind::kPositionalOnly,
       .default_value = *DataSlice::Create(
-          obj, internal::DataItem(schema::kObject), DataBag::Empty()),
+          obj, internal::DataItem(schema::kObject), DataBag::EmptyMutable()),
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,

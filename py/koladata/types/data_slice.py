@@ -815,7 +815,7 @@ class ListSlicingHelper:
 
   @functools.cached_property
   def _imploded_ds(self) -> DataSlice:
-    return DataBag.empty().implode(self._ds.no_bag(), -1)
+    return DataBag.empty_mutable().implode(self._ds.no_bag(), -1)
 
   def __getitem__(self, s):
     return _eval_op(

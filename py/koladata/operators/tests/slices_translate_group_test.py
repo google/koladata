@@ -40,9 +40,9 @@ QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
-db = data_bag.DataBag.empty()
-db_a = data_bag.DataBag.empty()
-db_b = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
+db_a = data_bag.DataBag.empty_mutable()
+db_b = data_bag.DataBag.empty_mutable()
 s = db.new_schema(x=schema_constants.INT32)
 entity1 = db.new(x=1, schema=s)
 entity2 = db.new(x=2, schema=s)

@@ -26,7 +26,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 
@@ -36,7 +36,7 @@ class IdsDeepUuidTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -47,7 +47,7 @@ class IdsDeepUuidTest(parameterized.TestCase):
       testing.assert_equal(
           expr_eval.eval(kde.at(result, 0)), expr_eval.eval(kde.at(result, 1))
       )
-    odb = data_bag.DataBag.empty()
+    odb = data_bag.DataBag.empty_mutable()
     o2 = odb.obj(b=odb.new(a=1), c='foo')
     result2 = expr_eval.eval(kde.deep_uuid(o2))
     testing.assert_equal(result2, expr_eval.eval(kde.at(result, 0)))
@@ -56,7 +56,7 @@ class IdsDeepUuidTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj_equal_to_entity(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     o = db.obj(b=db.obj(a=ds([1, None, 2])), c=ds(['foo', 'bar', 'baz']))
     e = db.new(b=db.new(a=ds([1, None, 2])), c=ds(['foo', 'bar', 'baz']))
     if pass_schema:

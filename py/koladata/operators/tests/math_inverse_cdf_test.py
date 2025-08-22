@@ -182,7 +182,7 @@ class MathInverseCdfTest(parameterized.TestCase):
       expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))
 
   def test_entity_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,
@@ -194,7 +194,7 @@ class MathInverseCdfTest(parameterized.TestCase):
       expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))
 
   def test_object_slice_error(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         ValueError,

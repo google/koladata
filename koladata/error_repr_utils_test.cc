@@ -45,7 +45,7 @@ using ::testing::AllOf;
 using ::testing::MatchesRegex;
 
 TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -75,7 +75,7 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
 }
 
 TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema_1,
@@ -106,7 +106,7 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
 }
 
 TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema_1,
@@ -155,9 +155,9 @@ TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorMissingContextData) {
 }
 
 TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorOkStatus) {
-  EXPECT_TRUE(
-      KodaErrorCausedByNoCommonSchemaError(absl::OkStatus(), DataBag::Empty())
-          .ok());
+  EXPECT_TRUE(KodaErrorCausedByNoCommonSchemaError(absl::OkStatus(),
+                                                   DataBag::EmptyMutable())
+                  .ok());
 }
 
 struct DummyPayload {};
@@ -192,7 +192,7 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
 }
 
 TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
-  DataBagPtr bag = DataBag::Empty();
+  DataBagPtr bag = DataBag::EmptyMutable();
   DataSlice value_1 = test::DataItem(1);
   ASSERT_OK_AND_ASSIGN(DataSlice obj,
                        ObjectCreator::FromAttrs(bag, {"a"}, {value_1}));

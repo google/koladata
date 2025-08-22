@@ -81,7 +81,7 @@ class NewOperator final : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result, EntityCreator::FromAttrs(
                                             result_db, attr_names, attr_values,
                                             schema, overwrite_schema, item_id));
@@ -125,7 +125,7 @@ class NewShapedOperator : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(
               auto result,
               EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
@@ -170,7 +170,7 @@ class NewLikeOperator : public arolla::QExprOperator {
               GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
-          DataBagPtr result_db = DataBag::Empty();
+          DataBagPtr result_db = DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            EntityCreator::Like(result_db, shape_and_mask_from,
                                                attr_names, attr_values, schema,
@@ -212,7 +212,7 @@ class UuOperator : public arolla::QExprOperator {
                                            "overwrite_schema"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          auto db = koladata::DataBag::Empty();
+          auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result, CreateUu(db, seed, attr_names, values,
                                                  schema, overwrite_schema));
           db->UnsafeMakeImmutable();

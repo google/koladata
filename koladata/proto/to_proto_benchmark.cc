@@ -78,7 +78,7 @@ void BM_ToProto(benchmark::State& state) {
     message_ptrs[i] = &messages[i];
   }
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto slice, FromProto(db, message_ptrs, {}));
 
   for (auto _ : state) {

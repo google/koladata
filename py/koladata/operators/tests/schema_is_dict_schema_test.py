@@ -32,7 +32,7 @@ M = arolla.M
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty()
+bag = data_bag.DataBag.empty_mutable()
 
 
 class SchemaIsDictSchemaTest(parameterized.TestCase):

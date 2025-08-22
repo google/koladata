@@ -81,7 +81,7 @@ def signature(parameters: list[data_slice.DataSlice]) -> data_slice.DataSlice:
     A DataSlice representing the signature.
   """
   return data_bag.DataBag._obj_no_bag(  # pylint: disable=protected-access
-      parameters=data_bag.DataBag.empty()
+      parameters=data_bag.DataBag.empty_mutable()
       .implode(data_slice.DataSlice.from_vals(parameters))
       .freeze_bag()
   )

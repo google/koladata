@@ -429,7 +429,9 @@ class PersistedIncrementalDataSliceManager(
     schema_node_name_to_new_bag_ids: dict[str, list[int]] = {
         snn: [] for snn in affected_schema_node_names
     }
-    seen_items = kd.bag().dict(key_schema=kd.ITEMID, value_schema=kd.MASK)
+    seen_items = kd.mutable_bag().dict(
+        key_schema=kd.ITEMID, value_schema=kd.MASK
+    )
 
     def process(
         stub_with_update_data_slice_path: data_slice_path_lib.DataSlicePath,

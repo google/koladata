@@ -87,7 +87,7 @@ def selected_path_update(
         f'That is not the case for: {selection_ds_path}'
     )
 
-  db = kdi.bag()
+  db = kdi.mutable_bag()
   mask = selection_ds
   for parent_slice, child_slice, attribute, make_list in reversed(
       list(

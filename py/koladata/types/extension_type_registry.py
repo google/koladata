@@ -117,7 +117,7 @@ def unwrap(x: Any) -> arolla.types.Tuple:
 
 @functools.cache
 def _get_dummy_bag():
-  return data_bag.DataBag.empty().freeze()
+  return data_bag.DataBag.empty()
 
 
 def get_dummy_value(cls: Any) -> arolla.AnyQValue:

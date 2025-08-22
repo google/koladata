@@ -40,7 +40,7 @@ QTYPES = frozenset([(DATA_SLICE, DATA_SLICE)])
 class CoreGetMetadataTest(absltest.TestCase):
 
   def test_schema(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])

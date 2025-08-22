@@ -35,7 +35,7 @@ eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 ds = data_slice.DataSlice.from_vals
 
 list_item = db.list([1, 2, 3])

@@ -517,9 +517,9 @@ absl::StatusOr<DataSlice> MakeParallelDefaultValueMarker() {
                                      internal::DataItem(schema::kMask)));
   // We have an attribute to make this slightly nicer when printed, it is not
   // used for any other purpose.
-  ASSIGN_OR_RETURN(auto res,
-                   CreateUu(DataBag::Empty(), "__parameter_default_value__",
-                            {"parallel_default_value"}, {std::move(present)}));
+  ASSIGN_OR_RETURN(
+      auto res, CreateUu(DataBag::EmptyMutable(), "__parameter_default_value__",
+                         {"parallel_default_value"}, {std::move(present)}));
   return res.FreezeBag();
 }
 

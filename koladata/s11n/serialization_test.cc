@@ -389,7 +389,7 @@ TEST(SerializationTest, SchemaAttributesForBigAllocs) {
   static constexpr int64_t kSize = 57;
   auto schema_slice = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(kSize), kSize);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataBagImpl & db_impl, db->GetMutableImpl());
   ASSERT_OK(db_impl.SetSchemaAttr(schema_slice, "a", schema_slice));
 
@@ -411,7 +411,7 @@ TEST(SerializationTest, SchemaAttributesForBigAllocs) {
 }
 
 TEST(SerializationTest, ImmutableBag) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   db->UnsafeMakeImmutable();
   ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
                                        {TypedValue::FromValue(db)}, {}));

@@ -36,7 +36,7 @@ using ::testing::HasSubstr;
 
 TEST(CreateExecutionContextTest, Default) {
   ExecutionConfig config;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -59,7 +59,7 @@ TEST(CreateExecutionContextTest, Basic) {
       ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
   transformation->add_keep_literal_argument_indices(1);
   config.set_allow_runtime_transforms(true);
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -92,7 +92,7 @@ TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
   replacement->set_to_op("core.make_tuple");
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -116,7 +116,7 @@ TEST(CreateExecutionContextTest, UnknownFromOperator) {
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.non_existing_operator");
   replacement->set_to_op("core.make_tuple");
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -132,7 +132,7 @@ TEST(CreateExecutionContextTest, UnknownToOperator) {
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
   replacement->set_to_op("core.non_existing_operator");
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -151,7 +151,7 @@ TEST(CreateExecutionContextTest, DuplicateFromOperator) {
   replacement = config.add_operator_replacements();
   replacement->set_from_op("kd.functor.call");
   replacement->set_to_op("kd.call");
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
@@ -165,7 +165,7 @@ TEST(CreateExecutionContextTest, DuplicateFromOperator) {
 
 TEST(CreateExecutionContextTest, InvalidConfigShape) {
   ExecutionConfig config;
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   EXPECT_THAT(CreateExecutionContext(config_slice_1d),
               StatusIs(absl::StatusCode::kInvalidArgument,

@@ -479,7 +479,7 @@ class FromPyConverter {
 
   const DataBagPtr& GetBag() {
     if (ABSL_PREDICT_FALSE(db_ == nullptr)) {
-      db_ = DataBag::Empty();
+      db_ = DataBag::EmptyMutable();
       adoption_queue_.Add(db_);
     }
     return db_;
@@ -514,7 +514,6 @@ absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
     // requested, attach an empty DataBag.
     if (res_db == nullptr && IsObjectSchema(schema)) {
       res_db = DataBag::Empty();
-      res_db->UnsafeMakeImmutable();
     }
     return res_slice.WithBag(std::move(res_db));
   }

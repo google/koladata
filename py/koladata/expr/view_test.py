@@ -829,7 +829,7 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_data_bag_qtype_view(self):
     self.assertTrue(
-        view.has_koda_view(arolla.literal(data_bag.DataBag.empty()))
+        view.has_koda_view(arolla.literal(data_bag.DataBag.empty_mutable()))
     )
 
   def test_jagged_shape_qtype_view(self):

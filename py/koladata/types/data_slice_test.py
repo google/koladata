@@ -46,7 +46,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 
 INT64 = schema_constants.INT64
@@ -3372,7 +3372,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     expected = ds([schema_constants.INT32, None, schema_constants.FLOAT32])
     testing.assert_equal(x.get_obj_schema(), expected)
 
-    db = bag().empty()
+    db = bag()
     obj = db.obj(x=1)
     x = ds([1, 1.2, obj, 'a'])
     expected = ds([
@@ -3384,12 +3384,12 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     testing.assert_equal(x.get_obj_schema(), expected)
 
   def test_get_item_schema(self):
-    db = bag().empty()
+    db = bag()
     x = db.list_schema(schema_constants.INT32)
     testing.assert_equal(x.get_item_schema().no_bag(), schema_constants.INT32)
 
   def test_get_key_value_schema(self):
-    db = bag().empty()
+    db = bag()
     x = db.dict_schema(schema_constants.INT64, schema_constants.INT32)
     testing.assert_equal(x.get_key_schema().no_bag(), schema_constants.INT64)
     testing.assert_equal(x.get_value_schema().no_bag(), schema_constants.INT32)
@@ -3560,7 +3560,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       pass_schema=[True, False],
   )
   def test_deep_uuid(self, pass_schema):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
@@ -3569,7 +3569,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       result = o.deep_uuid()
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.S[0], result.S[1])
-    odb = data_bag.DataBag.empty()
+    odb = data_bag.DataBag.empty_mutable()
     o2 = odb.obj(b=odb.new(a=1), c='foo')
     result2 = o2.deep_uuid()
     testing.assert_equal(result2, result.S[0])

@@ -1141,7 +1141,7 @@ absl::StatusOr<DataSlice> FromProto(
       schema->GetBag()->GetFallbacks().empty()) {
     ASSIGN_OR_RETURN(bag, schema->GetBag()->Fork());
   } else {
-    bag = DataBag::Empty();
+    bag = DataBag::EmptyMutable();
   }
   ASSIGN_OR_RETURN(auto result,
                    FromProto(bag, messages, extensions, itemids, schema));
@@ -1424,7 +1424,7 @@ absl::StatusOr<DataSlice> SchemaFromProto(
 absl::StatusOr<DataSlice> SchemaFromProto(
     const ::google::protobuf::Descriptor* absl_nonnull descriptor,
     absl::Span<const std::string_view> extensions) {
-  auto bag = DataBag::Empty();
+  auto bag = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result, SchemaFromProto(bag, descriptor, extensions));
   bag->UnsafeMakeImmutable();
   return result;

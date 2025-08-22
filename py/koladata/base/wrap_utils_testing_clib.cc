@@ -158,7 +158,7 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
   });
 
   m.def("make_data_bag", []() {
-    DataBagPtr db = DataBag::Empty();
+    DataBagPtr db = DataBag::EmptyMutable();
     return arolla::TypedValue::FromValue(std::move(db));
   });
 }

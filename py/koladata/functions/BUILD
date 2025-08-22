@@ -67,7 +67,6 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

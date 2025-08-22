@@ -184,7 +184,7 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
   DCHECK_EQ(attr_names.size(), attr_values.size());
   RETURN_IF_ERROR(CheckEligibleForSetAttr(obj)).SetPrepend()
       << "failed to create attribute update; ";
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
   if (!overwrite_schema && obj.GetBag() != nullptr &&
@@ -218,7 +218,7 @@ absl::StatusOr<DataBagPtr> AttrsForAttrNameSlice(const DataSlice& obj,
                                                  const DataSlice& attr_values) {
   RETURN_IF_ERROR(CheckEligibleForSetAttr(obj)).SetPrepend()
       << "failed to create attribute update; ";
-  DataBagPtr result_db = DataBag::Empty();
+  DataBagPtr result_db = DataBag::EmptyMutable();
   RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
   if (!overwrite_schema && obj.GetBag() != nullptr &&
@@ -661,7 +661,7 @@ absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
     return absl::UnimplementedError("stub attrs not yet implemented");
   }
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   RETURN_IF_ERROR(AdoptStub(db, x));
   db->UnsafeMakeImmutable();
   return x.WithBag(std::move(db));
@@ -732,7 +732,7 @@ absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds) {
 }
 
 absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds) {
-  auto result_db = DataBag::Empty();
+  auto result_db = DataBag::EmptyMutable();
   auto result = CreateMetadata(result_db, ds);
   result_db->UnsafeMakeImmutable();
   return result;
@@ -788,7 +788,7 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
   return obj.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         const T& itemid_impl = itemid.impl<T>();
-        auto result_db = DataBag::Empty();
+        auto result_db = DataBag::EmptyMutable();
         ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
         internal::ShallowCloneOp clone_op(&result_db_impl.get());
         const internal::DataBagImpl* absl_nullable schema_db_impl = nullptr;
@@ -826,7 +826,7 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    auto result_db = DataBag::Empty();
+    auto result_db = DataBag::EmptyMutable();
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
     internal::DeepCloneOp deep_clone_op(&result_db_impl.get());
     ASSIGN_OR_RETURN(

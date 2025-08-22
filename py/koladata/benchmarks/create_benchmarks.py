@@ -62,7 +62,7 @@ def create_entity(state):
   val_2 = kd.slice(13)
   val_3 = kd.slice(14)
   while state:
-    db = kd.bag()
+    db = kd.mutable_bag()
     _ = db.new(val_1=val_1, val_2=val_2, val_3=val_3)
 
 
@@ -77,7 +77,7 @@ def create_entity_data_slice(state):
   val_2 = kd.slice([13] * size)
   val_3 = kd.slice([14] * size)
   while state:
-    db = kd.bag()
+    db = kd.mutable_bag()
     _ = db.new(val_1=val_1, val_2=val_2, val_3=val_3)
 
 
@@ -87,7 +87,7 @@ def create_obj(state):
   val_2 = kd.slice(13)
   val_3 = kd.slice(14)
   while state:
-    db = kd.bag()
+    db = kd.mutable_bag()
     _ = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
 
 
@@ -102,7 +102,7 @@ def create_obj_data_slice(state):
   val_2 = kd.slice([13] * size)
   val_3 = kd.slice([14] * size)
   while state:
-    db = kd.bag()
+    db = kd.mutable_bag()
     _ = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
 
 
@@ -118,7 +118,7 @@ def create_obj_shaped(state):
   val_3 = kd.slice([14] * size)
   shape = val_1.get_shape()
   while state:
-    db = kd.bag()
+    db = kd.mutable_bag()
     _ = db.obj_shaped(shape, val_1=val_1, val_2=val_2, val_3=val_3)
 
 

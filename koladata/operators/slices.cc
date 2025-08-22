@@ -1051,7 +1051,7 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
         arolla::Repr(keys_from), arolla::Repr(unique_keys)));
   }
 
-  auto temp_db = DataBag::Empty();
+  auto temp_db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto lookup,
                    CreateDictShaped(temp_db, std::move(shape_without_last_dim),
                                     keys_from.WithBag(nullptr),

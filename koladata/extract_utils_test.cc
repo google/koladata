@@ -25,7 +25,7 @@ namespace koladata {
 namespace {
 
 TEST(ExtractionUtilsTest, ExtractWholeKeepBagTheSame) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds,
                        DataSlice::Create(internal::DataItem(),
                                          internal::DataItem(schema::kInt32), db,
@@ -37,7 +37,7 @@ TEST(ExtractionUtilsTest, ExtractWholeKeepBagTheSame) {
 }
 
 TEST(ExtractionUtilsTest, ExtractNonWholeMarksWhole) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds,
                        DataSlice::Create(internal::DataItem(),
                                          internal::DataItem(schema::kInt32), db,

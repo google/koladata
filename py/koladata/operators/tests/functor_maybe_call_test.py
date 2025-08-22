@@ -68,7 +68,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
       expr_eval.eval(kde.functor._maybe_call(f, data))
 
     f = functor_factories.expr_fn(I.self.get_bag())
-    entity = data_bag.DataBag.empty().new()
+    entity = data_bag.DataBag.empty_mutable().new()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -78,7 +78,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.functor._maybe_call(f, entity))
 
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError, re.escape('expected DATA_SLICE, got arg: DATA_BAG')
     ):

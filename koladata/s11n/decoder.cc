@@ -677,7 +677,7 @@ absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
     return TypedValue::FromValue(
         DataBag::ImmutableEmptyWithFallbacks(fallbacks));
   }
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());
   for (const KodaV1Proto::AttrProto& attr_proto : db_proto.attrs()) {
     RETURN_IF_ERROR(DecodeAttrProto(attr_proto, input_values, impl));

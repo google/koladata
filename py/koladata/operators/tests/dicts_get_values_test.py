@@ -34,7 +34,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 UNSPECIFIED = arolla.UNSPECIFIED
-db = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
 ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_bag(db)
 
 dict_item = db.dict({1: 2, 3: 4})
@@ -105,7 +105,7 @@ class DictsGetValuesTest(parameterized.TestCase):
     testing.assert_unordered_equal(result, expected)
 
   def test_fork(self):
-    d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
+    d1 = data_bag.DataBag.empty_mutable().dict({1: 2, 3: 4})
     result = eval_op('kd.get_values', d1)
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d1.get_bag()))
 
@@ -125,8 +125,8 @@ class DictsGetValuesTest(parameterized.TestCase):
     testing.assert_unordered_equal(result, ds([1, 4, 6]).with_bag(d4.get_bag()))
 
   def test_fallback(self):
-    d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
-    d2 = data_bag.DataBag.empty().dict(
+    d1 = data_bag.DataBag.empty_mutable().dict({1: 2, 3: 4})
+    d2 = data_bag.DataBag.empty_mutable().dict(
         {1: 1, 3: 3, 5: 6}, itemid=d1.get_itemid()
     )
     del d2[1]

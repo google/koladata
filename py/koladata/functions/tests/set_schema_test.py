@@ -25,8 +25,8 @@ from koladata.types import schema_constants
 
 
 ds = data_slice.DataSlice.from_vals
-db = data_bag.DataBag.empty()
-db2 = data_bag.DataBag.empty()
+db = data_bag.DataBag.empty_mutable()
+db2 = data_bag.DataBag.empty_mutable()
 obj1 = db.obj()
 obj2 = db.obj()
 entity1 = db.new()

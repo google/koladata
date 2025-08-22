@@ -268,7 +268,7 @@ void BM_AddViaFunctor(benchmark::State& state) {
     values[i] = i;
   }
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto ds = DataSlice::CreateWithSchemaFromData(
                 internal::DataSliceImpl::Create(
                     arolla::CreateFullDenseArray<int>(values)),

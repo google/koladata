@@ -129,9 +129,9 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
 
   def test_merging(self):
     mask = ds([arolla.present(), None])
-    x = data_bag.DataBag.empty().new(a=ds([1, 1])) & mask
+    x = data_bag.DataBag.empty_mutable().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
-    y = data_bag.DataBag.empty().new(x=ds([1, 1])).with_schema(
+    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).with_schema(
         x.get_schema().no_bag()
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
@@ -143,14 +143,14 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     )
 
   def test_same_bag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = db.new()
     y = db.new().with_schema(x.get_schema()) & ds(arolla.missing())
     testing.assert_equal(eval_op('kd.masking.disjoint_coalesce', x, y), x)
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])
-    y = data_bag.DataBag.empty().new() & ds(arolla.missing())
+    y = data_bag.DataBag.empty_mutable().new() & ds(arolla.missing())
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -166,8 +166,8 @@ Schema for `y`: ENTITY()"""
       (ds(['a', 'b']), ds([None, 'd']), [1], ['b'], ['d']),
       (ds([1, 'b']), ds([None, 1.0]), [1], ['b'], [1.0]),
       (
-          ds([1, data_bag.DataBag.empty().obj(b=3)]),
-          ds([None, data_bag.DataBag.empty().obj(a=2)]),
+          ds([1, data_bag.DataBag.empty_mutable().obj(b=3)]),
+          ds([None, data_bag.DataBag.empty_mutable().obj(a=2)]),
           [1],
           '[Obj(b=3)]',
           '[Obj(a=2)]',

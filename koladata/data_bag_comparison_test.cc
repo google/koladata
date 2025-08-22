@@ -26,13 +26,13 @@ namespace {
 TEST(DataBagComparisonTest, ExactlyEqual_NoFallbacks) {
   auto ds1 = internal::DataSliceImpl::AllocateEmptyObjects(3);
   auto ds2 = internal::DataSliceImpl::AllocateEmptyObjects(3);
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db1_impl, db1->GetMutableImpl());
   ASSERT_OK(db1_impl.SetAttr(ds1, "self", ds1));
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db2_impl, db2->GetMutableImpl());
   ASSERT_OK(db2_impl.SetAttr(ds1, "self", ds1));
-  auto db3 = DataBag::Empty();
+  auto db3 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db3_impl, db3->GetMutableImpl());
   ASSERT_OK(db3_impl.SetAttr(ds2, "self", ds2));
 
@@ -44,10 +44,10 @@ TEST(DataBagComparisonTest, ExactlyEqual_Fallbacks) {
   auto ds1 = internal::DataSliceImpl::AllocateEmptyObjects(3);
   auto ds2 = internal::DataSliceImpl::AllocateEmptyObjects(3);
 
-  auto db1 = DataBag::Empty();
+  auto db1 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db1_impl, db1->GetMutableImpl());
   ASSERT_OK(db1_impl.SetAttr(ds1, "other", ds2));
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db2_impl, db2->GetMutableImpl());
   ASSERT_OK(db2_impl.SetAttr(ds2, "other", ds1));
 

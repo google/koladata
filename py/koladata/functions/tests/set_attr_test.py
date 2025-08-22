@@ -29,7 +29,7 @@ ds = data_slice.DataSlice.from_vals
 class SetAttrTest(absltest.TestCase):
 
   def test_entity(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.new()
 
     fns.set_attr(x, 'xyz', '12', overwrite_schema=False)
@@ -57,7 +57,7 @@ class SetAttrTest(absltest.TestCase):
     )
 
   def test_object(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj()
 
     fns.set_attr(x, 'xyz', b'12', overwrite_schema=True)
@@ -76,18 +76,22 @@ class SetAttrTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
-      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, overwrite_schema=False)
-
-    with self.assertRaisesRegex(
-        ValueError, 'primitives do not have attributes'
-    ):
-      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, overwrite_schema=True)
+      fns.set_attr(
+          ds(1).with_bag(fns.mutable_bag()), 'xyz', 2, overwrite_schema=False
+      )
 
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(
-          ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
+          ds(1).with_bag(fns.mutable_bag()), 'xyz', 2, overwrite_schema=True
+      )
+
+    with self.assertRaisesRegex(
+        ValueError, 'primitives do not have attributes'
+    ):
+      fns.set_attr(
+          ds(1, schema_constants.OBJECT).with_bag(fns.mutable_bag()),
           'xyz',
           2,
           overwrite_schema=False,
@@ -97,14 +101,14 @@ class SetAttrTest(absltest.TestCase):
         ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(
-          ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
+          ds(1, schema_constants.OBJECT).with_bag(fns.mutable_bag()),
           'xyz',
           2,
           overwrite_schema=True,
       )
 
   def test_none(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = ds(None).with_bag(db)
 
     fns.set_attr(x, 'xyz', b'12')
@@ -116,7 +120,7 @@ class SetAttrTest(absltest.TestCase):
     testing.assert_equal(x.xyz, ds(None).with_bag(db))
 
   def test_objects_with_explicit_schema(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(x=ds([1, 2]))
     e = db.new(xyz=42)
     fns.set_attr(x, '__schema__', e.get_schema())
@@ -153,21 +157,21 @@ Assigned schema for 'xyz': STRING"""),
     )
 
   def test_merging(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj(x=ds([1, 2]))
     fns.set_attr(
         x,
         'xyz',
-        ds([fns.bag().obj(a=5), fns.bag().obj(a=4)]),
+        ds([fns.mutable_bag().obj(a=5), fns.mutable_bag().obj(a=4)]),
     )
     testing.assert_equal(x.xyz.a, ds([5, 4]).with_bag(db))
 
   def test_merging_with_fallbacks(self):
-    db = fns.bag()
+    db = fns.mutable_bag()
     x = db.obj()
-    db2 = fns.bag()
+    db2 = fns.mutable_bag()
     y = db2.new(bar='foo')
-    db3 = fns.bag()
+    db3 = fns.mutable_bag()
     y.with_bag(db3).set_attr('bar', 2)
     y.with_bag(db3).set_attr('baz', 5)
     x.foo = y.enriched(db3)
@@ -175,7 +179,7 @@ Assigned schema for 'xyz': STRING"""),
     testing.assert_equal(x.foo.baz, ds(5).with_bag(db))
 
   def test_assignment_rhs_error(self):
-    x = fns.bag().obj(x=ds([1, 2]))
+    x = fns.mutable_bag().obj(x=ds([1, 2]))
     with self.assertRaisesRegex(
         ValueError, 'only supported for Koda List DataItem'
     ):

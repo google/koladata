@@ -48,7 +48,7 @@ class IterablesInternalShuffleTest(absltest.TestCase):
 
   def test_does_not_have_fixed_order(self):
     expr = koda_internal_iterables.shuffle(iterable_qvalue.Iterable(1, 2))
-    seen = data_bag.DataBag.empty().dict()
+    seen = data_bag.DataBag.empty_mutable().dict()
     # This has probability 2**(-99) of failing.
     for _ in range(100):
       res = expr_eval.eval(expr)

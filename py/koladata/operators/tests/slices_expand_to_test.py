@@ -96,7 +96,7 @@ class SlicesExpandToTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_same_bag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     x = ds([[1], [2, 3]]).with_bag(db)
     target = ds([[1, 2], [3]])
     expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)

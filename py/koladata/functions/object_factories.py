@@ -24,6 +24,7 @@ from koladata.types import jagged_shape
 
 
 bag = data_bag.DataBag.empty
+mutable_bag = data_bag.DataBag.empty_mutable
 
 
 def list_(
@@ -59,9 +60,16 @@ def list_(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('list', ...)` however it
   # has different boxing rules.
-  return bag().list(
-      items=items, item_schema=item_schema, schema=schema, itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .list(
+          items=items,
+          item_schema=item_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def list_like(
@@ -94,10 +102,17 @@ def list_like(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('list_like', ...)`
   # however it has different boxing rules.
-  return bag().list_like(
-      shape_and_mask_from, items=items, item_schema=item_schema,
-      schema=schema, itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .list_like(
+          shape_and_mask_from,
+          items=items,
+          item_schema=item_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def list_shaped(
@@ -129,10 +144,17 @@ def list_shaped(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('list_shaped', ...)`
   # however it has different boxing rules.
-  return bag().list_shaped(
-      shape, items=items, item_schema=item_schema, schema=schema,
-      itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .list_shaped(
+          shape,
+          items=items,
+          item_schema=item_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def list_shaped_as(
@@ -223,14 +245,18 @@ def dict_(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('dict', ...)` however it
   # has different boxing rules.
-  return bag().dict(
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .dict(
+          items_or_keys=items_or_keys,
+          values=values,
+          key_schema=key_schema,
+          value_schema=value_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def dict_like(
@@ -274,15 +300,19 @@ def dict_like(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('dict_like', ...)`
   # however it has different boxing rules.
-  return bag().dict_like(
-      shape_and_mask_from,
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .dict_like(
+          shape_and_mask_from,
+          items_or_keys=items_or_keys,
+          values=values,
+          key_schema=key_schema,
+          value_schema=value_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def dict_shaped(
@@ -323,15 +353,19 @@ def dict_shaped(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('dict_shaped', ...)`
   # however it has different boxing rules.
-  return bag().dict_shaped(
-      shape,
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .dict_shaped(
+          shape,
+          items_or_keys=items_or_keys,
+          values=values,
+          key_schema=key_schema,
+          value_schema=value_schema,
+          schema=schema,
+          itemid=itemid,
+      )
+      .freeze_bag()
+  )
 
 
 def dict_shaped_as(
@@ -449,10 +483,17 @@ def new_shaped(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
   # however it has different boxing rules.
-  return bag().new_shaped(
-      shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
-      **attrs
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .new_shaped(
+          shape,
+          schema=schema,
+          overwrite_schema=overwrite_schema,
+          itemid=itemid,
+          **attrs,
+      )
+      .freeze_bag()
+  )
 
 
 def new_shaped_as(
@@ -522,10 +563,17 @@ def new_like(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
   # however it has different boxing rules.
-  return bag().new_like(
-      shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
-      itemid=itemid, **attrs
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .new_like(
+          shape_and_mask_from,
+          schema=schema,
+          overwrite_schema=overwrite_schema,
+          itemid=itemid,
+          **attrs,
+      )
+      .freeze_bag()
+  )
 
 
 def obj(
@@ -565,7 +613,7 @@ def container(**attrs: Any) -> data_slice.DataSlice:
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
-  o = bag().obj()
+  o = mutable_bag().obj()
   o.set_attrs(**attrs)
   return o
 
@@ -592,7 +640,7 @@ def obj_shaped(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
   # however it has different boxing rules.
-  return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
+  return mutable_bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
 
 
 def obj_shaped_as(
@@ -640,9 +688,11 @@ def obj_like(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
   # however it has different boxing rules.
-  return bag().obj_like(
-      shape_and_mask_from, itemid=itemid, **attrs
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .obj_like(shape_and_mask_from, itemid=itemid, **attrs)
+      .freeze_bag()
+  )
 
 
 def uu(
@@ -670,9 +720,11 @@ def uu(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
   # has different boxing rules.
-  return bag().uu(
-      seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
-  ).freeze_bag()
+  return (
+      mutable_bag()
+      .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)
+      .freeze_bag()
+  )
 
 
 def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
@@ -703,7 +755,7 @@ def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
   # it has different boxing rules.
-  return bag().uuobj(seed=seed, **attrs).freeze_bag()
+  return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()
 
 
 def implode(
@@ -734,7 +786,7 @@ def implode(
   Returns:
     DataSlice of nested Lists
   """
-  return bag().implode(x, ndim, itemid).freeze_bag()
+  return mutable_bag().implode(x, ndim, itemid).freeze_bag()
 
 
 def concat_lists(
@@ -759,4 +811,4 @@ def concat_lists(
   # TODO: Find a better way in order to avoid calling
   # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
   # however it has different boxing rules.
-  return bag().concat_lists(*lists).freeze_bag()
+  return mutable_bag().concat_lists(*lists).freeze_bag()

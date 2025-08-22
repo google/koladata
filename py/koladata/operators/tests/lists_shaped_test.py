@@ -35,7 +35,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 
 QTYPE_SIGNATURES = list(
     (
@@ -139,7 +139,7 @@ class ListShapedTest(parameterized.TestCase):
         ValueError,
         'expected JAGGED_SHAPE, got shape: DATA_BAG',
     ):
-      expr_eval.eval(kde.lists.shaped(fns.bag()))
+      expr_eval.eval(kde.lists.shaped(fns.mutable_bag()))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):

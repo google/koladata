@@ -32,7 +32,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
 
 ENTITY_1 = bag().new()
@@ -119,7 +119,7 @@ Schema for `y`: INT32'''
     ):
       expr_eval.eval(kde.comparison.full_equal(ENTITY_1, ds(1)))
 
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(

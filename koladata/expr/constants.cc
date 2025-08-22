@@ -32,7 +32,7 @@ absl::StatusOr<DataSlice> MakeUnspecifiedSelfInput() {
                    DataSlice::Create(internal::DataItem(arolla::kPresent),
                                      internal::DataItem(schema::kMask)));
   ASSIGN_OR_RETURN(auto res,
-                   CreateUu(DataBag::Empty(), "__self_not_specified__",
+                   CreateUu(DataBag::EmptyMutable(), "__self_not_specified__",
                             {"self_not_specified"}, {present}));
   return res.FreezeBag();
 }

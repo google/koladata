@@ -215,7 +215,7 @@ Assigned schema for list items: INT32""",
 Expected schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
-      db = fns.bag()
+      db = fns.mutable_bag()
       db.list(
           [db.new(x=1)], item_schema=db.new_schema(x=schema_constants.INT32)
       )

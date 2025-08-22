@@ -33,7 +33,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-bag = data_bag.DataBag.empty
+bag = data_bag.DataBag.empty_mutable
 obj1 = bag().obj()
 obj2 = bag().obj()
 entity1 = bag().new()

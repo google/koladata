@@ -210,7 +210,7 @@ class NewTest(absltest.TestCase):
 
   def test_schema_arg_schema_with_fallback(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
-    fallback_bag = fns.bag()
+    fallback_bag = fns.mutable_bag()
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
     x = fns.new(a=42, b='xyz', schema=schema)
@@ -356,7 +356,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
         ),
     )
 
-    db = fns.bag()
+    db = fns.mutable_bag()
     nested_schema = db.new_schema(b=schema)
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -378,9 +378,9 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
         ),
     )
 
-    db1 = fns.bag()
+    db1 = fns.mutable_bag()
     _ = db1.uuobj(x=1)
-    db2 = fns.bag()
+    db2 = fns.mutable_bag()
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesWithPredicateMatch(

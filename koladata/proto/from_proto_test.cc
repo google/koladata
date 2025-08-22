@@ -51,7 +51,7 @@ using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 
 TEST(FromProtoTest, NullptrMessages) {
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   EXPECT_THAT(FromProto(db, {nullptr}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "expected all messages be non-null"));
@@ -63,7 +63,7 @@ TEST(FromProtoTest, NullptrMessages) {
 
 TEST(FromProtoTest, ZeroMessages) {
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {}));
     EXPECT_EQ(result.GetShape().rank(), 1);
     EXPECT_EQ(result.size(), 0);
@@ -71,7 +71,7 @@ TEST(FromProtoTest, ZeroMessages) {
     EXPECT_EQ(result.GetBag(), db);
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     auto schema = test::Schema(schema::kObject);
     ASSERT_OK_AND_ASSIGN(auto result,
                          FromProto(db, {}, {}, std::nullopt, schema));
@@ -81,9 +81,9 @@ TEST(FromProtoTest, ZeroMessages) {
     EXPECT_EQ(result.GetBag(), db);
   }
   {
-    auto db = DataBag::Empty();
+    auto db = DataBag::EmptyMutable();
     ASSERT_OK_AND_ASSIGN(auto schema,
-                         CreateSchema(DataBag::Empty(), {"some_field"},
+                         CreateSchema(DataBag::EmptyMutable(), {"some_field"},
                                       {test::Schema(schema::kInt32)}));
     ASSERT_OK_AND_ASSIGN(auto result,
                          FromProto(db, {}, {}, std::nullopt, schema));
@@ -94,9 +94,10 @@ TEST(FromProtoTest, ZeroMessages) {
   }
   {
     auto schema = test::EmptyDataSlice(2, schema::kObject);
-    EXPECT_THAT(FromProto(DataBag::Empty(), {}, {}, std::nullopt, schema),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         "schema's schema must be SCHEMA, got: OBJECT"));
+    EXPECT_THAT(
+        FromProto(DataBag::EmptyMutable(), {}, {}, std::nullopt, schema),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "schema's schema must be SCHEMA, got: OBJECT"));
   }
 }
 
@@ -104,7 +105,7 @@ TEST(FromProtoTest, MismatchedTypes) {
   testing::ExampleMessage message1;
   testing::ExampleMessage2 message2;
 
-  EXPECT_THAT(FromProto(DataBag::Empty(), {&message1, &message2}),
+  EXPECT_THAT(FromProto(DataBag::EmptyMutable(), {&message1, &message2}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "expected all messages to have the same type, got "
                        "koladata.testing.ExampleMessage and "
@@ -114,7 +115,7 @@ TEST(FromProtoTest, MismatchedTypes) {
 TEST(FromProtoTest, EmptyMessage_Proto3_NoProvidedSchema) {
   testing::ExampleMessage3 message;
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
@@ -162,7 +163,7 @@ TEST(FromProtoTest, EmptyMessage_Proto3_NoProvidedSchema) {
 TEST(FromProtoTest, EmptyMessage_NoProvidedSchema) {
   testing::ExampleMessage message;
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
@@ -204,7 +205,7 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema_NoBagItemOverload) {
 TEST(FromProtoTest, EmptyMessage_ObjectSchema) {
   testing::ExampleMessage message;
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}, {}, std::nullopt,
                                               test::Schema(schema::kObject)));
   EXPECT_EQ(result.GetShape().rank(), 1);
@@ -221,7 +222,7 @@ TEST(FromProtoTest, EmptyMessage_ObjectSchema) {
 TEST(FromProtoTest, EmptyMessage_ExplicitSchema) {
   testing::ExampleMessage message;
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto schema,
       CreateEntitySchema(
@@ -371,7 +372,7 @@ koladata::testing::ExampleMessage GetExampleMessageAllFieldsNoExtensions() {
 
 TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
   auto message = GetExampleMessageAllFieldsNoExtensions();
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
 
   // Scalar primitive fields.
@@ -567,7 +568,7 @@ TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
 
 TEST(FromProtoTest, ObjectSchema) {
   auto message = GetExampleMessageAllFieldsNoExtensions();
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}, {}, std::nullopt,
                                               test::Schema(schema::kObject)));
   EXPECT_THAT(result.GetSchema(),
@@ -627,7 +628,7 @@ TEST(FromProtoTest, ExplicitSchema) {
                                     )pb",
                                     &message));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {
           "int32_field",
@@ -692,7 +693,7 @@ TEST(FromProtoTest, Uint64Overflow) {
                                     )pb",
                                     &message));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
 
   EXPECT_THAT(result.GetAttr("uint64_field"),
@@ -752,7 +753,7 @@ TEST(FromProtoTest, MixedMessageStructure) {
                                   )pb",
                                   &message3));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result,
                        FromProto(db, {&message1, &message2, &message3}));
 
@@ -922,7 +923,7 @@ TEST(FromProtoTest, ItemId) {
                         DataSlice::JaggedShape::FlatFromSize(1),
                         internal::DataItem(schema::kItemId)));
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}, {}, itemids));
 
   // Root itemids match the input itemids.
@@ -962,7 +963,7 @@ TEST(FromProtoTest, ItemId) {
           schema::kInt32, db))));
 
   // FromProto is deterministic, including sub-messages / lists / dicts.
-  auto db2 = DataBag::Empty();
+  auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto result2, FromProto(db2, {&message}, {}, itemids));
   EXPECT_THAT(result.WithBag(nullptr),
               IsEquivalentTo(result2.WithBag(nullptr)));
@@ -1008,7 +1009,7 @@ TEST(FromProtoTest, Extension) {
   message.MutableExtension(koladata::testing::m2_message2_extension_field)
       ->SetExtension(koladata::testing::m2_bool_extension_field, true);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto result,
       FromProto(db, {&message},
@@ -1048,7 +1049,7 @@ TEST(FromProtoTest, ExtensionViaSchema) {
   message.MutableExtension(koladata::testing::m2_message2_extension_field)
       ->SetExtension(koladata::testing::m2_bool_extension_field, true);
 
-  auto db = DataBag::Empty();
+  auto db = DataBag::EmptyMutable();
   auto schema = test::EntitySchema(
       {
           "(koladata.testing.m2_bool_extension_field)",
@@ -1094,53 +1095,53 @@ TEST(FromProtoTest, InvalidExtensionPath) {
   testing::ExampleMessage message;
 
   EXPECT_THAT(
-      FromProto(DataBag::Empty(), {&message}, {""}),
+      FromProto(DataBag::EmptyMutable(), {&message}, {""}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "invalid extension path (trailing non-extension field): \"\""));
 
   EXPECT_THAT(
-      FromProto(DataBag::Empty(), {&message}, {"a.b.c"}),
+      FromProto(DataBag::EmptyMutable(), {&message}, {"a.b.c"}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "invalid extension path (trailing non-extension field): \"a.b.c\""));
 
   EXPECT_THAT(
-      FromProto(DataBag::Empty(), {&message}, {"a.(b.c"}),
+      FromProto(DataBag::EmptyMutable(), {&message}, {"a.(b.c"}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "invalid extension path (missing closing parenthesis): \"a.(b.c\""));
 
-  EXPECT_THAT(FromProto(DataBag::Empty(), {&message}, {"a.b).c"}),
+  EXPECT_THAT(FromProto(DataBag::EmptyMutable(), {&message}, {"a.b).c"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid extension path (unexpected closing "
                        "parenthesis): \"a.b).c\""));
 
-  EXPECT_THAT(FromProto(DataBag::Empty(), {&message}, {"a.(b.(c"}),
+  EXPECT_THAT(FromProto(DataBag::EmptyMutable(), {&message}, {"a.(b.(c"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid extension path (unexpected opening "
                        "parenthesis): \"a.(b.(c\""));
 
-  EXPECT_THAT(FromProto(DataBag::Empty(), {&message}, {"a.(b.c)"}),
+  EXPECT_THAT(FromProto(DataBag::EmptyMutable(), {&message}, {"a.(b.c)"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "extension not found: \"b.c\""));
 
-  EXPECT_THAT(FromProto(DataBag::Empty(), {&message},
+  EXPECT_THAT(FromProto(DataBag::EmptyMutable(), {&message},
                         {"a.(koladata.testing.bool_extension_field).(b.c)"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "extension not found: \"b.c\""));
 
   EXPECT_THAT(
-      FromProto(DataBag::Empty(), {&message}, {}, std::nullopt,
+      FromProto(DataBag::EmptyMutable(), {&message}, {}, std::nullopt,
                 test::EntitySchema({"(b.c)"}, {test::Schema(schema::kObject)},
-                                   DataBag::Empty())),
+                                   DataBag::EmptyMutable())),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "extension not found: \"b.c\""));
 }
 
 TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
-  ASSERT_OK_AND_ASSIGN(
-      auto schema,
-      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor()));
+  ASSERT_OK_AND_ASSIGN(auto schema,
+                       SchemaFromProto(DataBag::EmptyMutable(),
+                                       testing::ExampleMessage::descriptor()));
 
   EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
   EXPECT_THAT(*schema.GetAttrNames(),
@@ -1181,7 +1182,7 @@ TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
   const auto& get_list_schema_item =
       [&](schema::DType dtype) -> internal::DataItem {
     return CreateListSchema(
-               DataBag::Empty(),
+               DataBag::EmptyMutable(),
                *DataSlice::Create(internal::DataItem(dtype),
                                   internal::DataItem(schema::kSchema)))
         ->item();
@@ -1208,36 +1209,39 @@ TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
   EXPECT_EQ(schema.GetAttr("repeated_bytes_field")->item(),
             get_list_schema_item(schema::kBytes));
   EXPECT_EQ(schema.GetAttr("repeated_message_field")->item(),
-            CreateListSchema(DataBag::Empty(), schema)->item());
+            CreateListSchema(DataBag::EmptyMutable(), schema)->item());
 
-  EXPECT_EQ(schema.GetAttr("map_int32_int32_field")->item(),
-            CreateDictSchema(DataBag::Empty(), test::Schema(schema::kInt32),
-                             test::Schema(schema::kInt32))
-                ->item());
-  EXPECT_EQ(schema.GetAttr("map_string_string_field")->item(),
-            CreateDictSchema(DataBag::Empty(), test::Schema(schema::kString),
-                             test::Schema(schema::kString))
-                ->item());
   EXPECT_EQ(
-      schema.GetAttr("map_int32_message_field")->item(),
-      CreateDictSchema(DataBag::Empty(), test::Schema(schema::kInt32), schema)
+      schema.GetAttr("map_int32_int32_field")->item(),
+      CreateDictSchema(DataBag::EmptyMutable(), test::Schema(schema::kInt32),
+                       test::Schema(schema::kInt32))
           ->item());
+  EXPECT_EQ(
+      schema.GetAttr("map_string_string_field")->item(),
+      CreateDictSchema(DataBag::EmptyMutable(), test::Schema(schema::kString),
+                       test::Schema(schema::kString))
+          ->item());
+  EXPECT_EQ(schema.GetAttr("map_int32_message_field")->item(),
+            CreateDictSchema(DataBag::EmptyMutable(),
+                             test::Schema(schema::kInt32), schema)
+                ->item());
 }
 
 TEST(FromProtoTest, SchemaFromProtoNoExtensions_NoBagOverload) {
   ASSERT_OK_AND_ASSIGN(auto schema,
                        SchemaFromProto(testing::ExampleMessage::descriptor()));
   EXPECT_FALSE(schema.GetBag()->IsMutable());
-  ASSERT_OK_AND_ASSIGN(
-      auto schema_with_bag,
-      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor()));
+  ASSERT_OK_AND_ASSIGN(auto schema_with_bag,
+                       SchemaFromProto(DataBag::EmptyMutable(),
+                                       testing::ExampleMessage::descriptor()));
   EXPECT_EQ(schema.item(), schema_with_bag.item());;
 }
 
 TEST(FromProtoTest, SchemaFromProtoWithExtensions) {
   ASSERT_OK_AND_ASSIGN(
       auto schema,
-      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage2::descriptor(),
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessage2::descriptor(),
                       {
                           "(koladata.testing.m2_bool_extension_field)",
                           "(koladata.testing.m2_message2_extension_field)",
@@ -1260,7 +1264,8 @@ TEST(FromProtoTest, SchemaFromProtoWithExtensions) {
 TEST(FromProtoTest, SchemaFromProtoWithNestedExtension) {
   ASSERT_OK_AND_ASSIGN(
       auto schema,
-      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor(),
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessage::descriptor(),
                       {
                           "(koladata.testing.message_extension_field)",
                           "(koladata.testing.message_extension_field)."

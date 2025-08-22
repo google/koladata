@@ -359,7 +359,7 @@ def to_proto_1k_mixed_primitive_fields(state):
 def to_proto_100_of_100_deep(state):
   schema = kd.schema.new_schema(int32_field=kd.INT32)
   schema = schema.with_attrs(message_field=schema)
-  bag = kd.bag()
+  bag = kd.mutable_bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
 
   x_leaf = x
@@ -376,7 +376,7 @@ def to_proto_100_of_100_deep(state):
 def to_proto_100_of_100_deep_mixed_depth(state):
   schema = kd.schema.new_schema(int32_field=kd.INT32)
   schema = schema.with_attrs(message_field=schema)
-  bag = kd.bag()
+  bag = kd.mutable_bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
 
   x_leaf = x

@@ -190,7 +190,7 @@ TEST(BindArgumentsTest, DefaultValuesDb) {
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
 
-  DataBagPtr db = DataBag::Empty();
+  DataBagPtr db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto bound_arguments, BindArguments(signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(
       auto bound_arguments_with_db,

@@ -92,16 +92,16 @@ class SlicesZipTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_same_databag(self):
-    db = data_bag.DataBag.empty()
+    db = data_bag.DataBag.empty_mutable()
     a = db.obj(x=1)
     b = db.obj(x=2)
     result = expr_eval.eval(kde.slices.zip(a, b))
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
-    db1 = data_bag.DataBag.empty()
+    db1 = data_bag.DataBag.empty_mutable()
     a = db1.obj(x=1)
-    db2 = data_bag.DataBag.empty()
+    db2 = data_bag.DataBag.empty_mutable()
     b = db2.obj(x=2)
     result = expr_eval.eval(kde.slices.zip(a, b))
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
