@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/overload.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -27,9 +28,11 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
@@ -39,6 +42,7 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -48,6 +52,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/agg_uuid.h"
 #include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/error.h"
@@ -292,6 +298,78 @@ absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
                                             /*db=*/nullptr),
       internal::OperatorEvalError(std::move(_), "kd.decode_itemid"));
   return std::move(res);
+}
+
+absl::StatusOr<DataSlice> IsUuid(const DataSlice& x) {
+  // Early return `missing` for schemas that don't imply UUID values.
+  if (x.GetSchemaImpl() != schema::kNone &&
+      x.GetSchemaImpl() != schema::kObject &&
+      x.GetSchemaImpl() != schema::kItemId &&
+      x.GetSchemaImpl() != schema::kSchema &&
+      !x.GetSchemaImpl().is_struct_schema()) {
+    return AsMask(false);
+  }
+
+  bool contains_only_uuids = x.VisitImpl(absl::Overload(
+      [](const internal::DataItem& item) {
+        return item.VisitValue([]<class T>(const T& value) {
+          if constexpr (std::is_same_v<T, internal::ObjectId>) {
+            return value.IsUuid();
+          } else if constexpr (std::is_same_v<T, internal::MissingValue>) {
+            return true;
+          } else {
+            return false;
+          }
+        });
+      },
+      [](const internal::DataSliceImpl& slice) {
+        bool res = true;
+        slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+          if constexpr (std::is_same_v<T, internal::ObjectId>) {
+            values.ForEachPresent(
+                [&](int64_t, auto value) { res &= value.IsUuid(); });
+          } else {
+            res = false;
+          }
+        });
+        return res;
+      }));
+  return AsMask(contains_only_uuids);
+}
+
+namespace {
+
+absl::StatusOr<internal::DataItem> HasUuidImpl(const internal::DataItem& item) {
+  if (item.holds_value<internal::ObjectId>() &&
+      item.value<internal::ObjectId>().IsUuid()) {
+    return internal::DataItem(arolla::Unit());
+  } else {
+    return internal::DataItem();
+  }
+}
+
+absl::StatusOr<internal::DataSliceImpl> HasUuidImpl(
+    const internal::DataSliceImpl& slice) {
+  auto result = arolla::CreateEmptyDenseArray<arolla::Unit>(slice.size());
+  slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
+    if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      result = arolla::CreateDenseOp(
+          [](internal::ObjectId value) -> arolla::OptionalUnit {
+            return arolla::OptionalUnit(value.IsUuid());
+          })(values);
+    }
+  });
+  return internal::DataSliceImpl::Create(std::move(result));
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> HasUuid(const DataSlice& x) {
+  return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto res, HasUuidImpl(impl));
+    return DataSlice::Create(std::move(res), x.GetShape(),
+                             internal::DataItem(schema::kMask), nullptr);
+  });
 }
 
 }  // namespace koladata::ops

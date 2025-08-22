@@ -2714,6 +2714,25 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the base62 encoded ItemIds in `ds` as strings.</code></pre>
 
+### `kd.ids.has_uuid(x)` {#kd.ids.has_uuid}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present for each item in `x` that has an UUID.
+
+Also see `kd.ids.is_uuid` for checking if `x` is a UUIDs DataSlice. But note
+that `kd.all(kd.has_uuid(x))` is not always equivalent to `kd.is_uuid(x)`. For
+example,
+
+  kd.ids.is_uuid(kd.item(None, kd.OBJECT)) -&gt; kd.present
+  kd.all(kd.ids.has_uuid(kd.item(None, kd.OBJECT))) -&gt; invalid for kd.all
+  kd.ids.is_uuid(kd.item([None], kd.OBJECT)) -&gt; kd.present
+  kd.all(kd.ids.has_uuid(kd.item([None], kd.OBJECT))) -&gt; kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataSlice with the same shape as `x`.</code></pre>
+
 ### `kd.ids.hash_itemid(x)` {#kd.ids.hash_itemid}
 Aliases:
 
@@ -2731,6 +2750,28 @@ Args:
 
 Returns:
   A DataSlice of INT64 hash values.</code></pre>
+
+### `kd.ids.is_uuid(x)` {#kd.ids.is_uuid}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns whether x is an UUID DataSlice.
+
+Note that the operator returns `kd.present` even for missing values, as long
+as their schema does not prevent containing UUIDs.
+
+Also see `kd.ids.has_uuid` for a pointwise version. But note that
+`kd.all(kd.ids.has_uuid(x))` is not always equivalent to `kd.is_uuid(x)`. For
+example,
+
+  kd.ids.is_uuid(kd.item(None, kd.OBJECT)) -&gt; kd.present
+  kd.all(kd.ids.has_uuid(kd.item(None, kd.OBJECT))) -&gt; invalid for kd.all
+  kd.ids.is_uuid(kd.item([None], kd.OBJECT)) -&gt; kd.present
+  kd.all(kd.ids.has_uuid(kd.item([None], kd.OBJECT))) -&gt; kd.missing
+
+Args:
+  x: DataSlice to check.
+
+Returns:
+  A MASK DataItem.</code></pre>
 
 ### `kd.ids.uuid(seed='', **kwargs)` {#kd.ids.uuid}
 Aliases:

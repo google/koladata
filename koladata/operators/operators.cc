@@ -181,6 +181,8 @@ OPERATOR("kd.ids._agg_uuid", AggUuid, "kd.ids.agg_uuid");
 OPERATOR("kd.ids._deep_uuid", DeepUuid, "kd.ids.deep_uuid");
 OPERATOR("kd.ids.decode_itemid", DecodeItemId);
 OPERATOR("kd.ids.encode_itemid", EncodeItemId);
+OPERATOR("kd.ids.has_uuid", HasUuid);
+OPERATOR("kd.ids.is_uuid", IsUuid);
 OPERATOR_FAMILY("kd.ids.uuid", std::make_unique<UuidOperatorFamily>());
 OPERATOR_FAMILY("kd.ids.uuid_for_dict",
                 std::make_unique<UuidForDictOperatorFamily>());

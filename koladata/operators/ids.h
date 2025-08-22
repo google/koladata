@@ -67,6 +67,12 @@ absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 // kd.ids.decode_itemid
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
 
+// kd.ids.is_uuid
+absl::StatusOr<DataSlice> IsUuid(const DataSlice& x);
+
+// kd.ids.has_uuid
+absl::StatusOr<DataSlice> HasUuid(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_IDS_H_

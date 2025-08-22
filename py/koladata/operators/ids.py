@@ -53,6 +53,65 @@ def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.ids.is_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def is_uuid(x):  # pylint: disable=unused-argument
+  """Returns whether x is an UUID DataSlice.
+
+  Note that the operator returns `kd.present` even for missing values, as long
+  as their schema does not prevent containing UUIDs.
+
+  Also see `kd.ids.has_uuid` for a pointwise version. But note that
+  `kd.all(kd.ids.has_uuid(x))` is not always equivalent to `kd.is_uuid(x)`. For
+  example,
+
+    kd.ids.is_uuid(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.ids.has_uuid(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.ids.is_uuid(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.ids.has_uuid(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataItem.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.ids.has_uuid',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def has_uuid(x):  # pylint: disable=unused-argument
+  """Returns present for each item in `x` that has an UUID.
+
+  Also see `kd.ids.is_uuid` for checking if `x` is a UUIDs DataSlice. But note
+  that `kd.all(kd.has_uuid(x))` is not always equivalent to `kd.is_uuid(x)`. For
+  example,
+
+    kd.ids.is_uuid(kd.item(None, kd.OBJECT)) -> kd.present
+    kd.all(kd.ids.has_uuid(kd.item(None, kd.OBJECT))) -> invalid for kd.all
+    kd.ids.is_uuid(kd.item([None], kd.OBJECT)) -> kd.present
+    kd.all(kd.ids.has_uuid(kd.item([None], kd.OBJECT))) -> kd.missing
+
+  Args:
+    x: DataSlice to check.
+
+  Returns:
+    A MASK DataSlice with the same shape as `x`.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(
     aliases=[
         'kd.uuid_for_list',
