@@ -72,7 +72,12 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     @kd_optools.as_lambda_operator('inner_lambda')
     def inner_lambda(x, y):
       return kd_lazy.annotation.source_location(
-          x // y, 'inner_lambda', 'file.py', 57, 2, 'x // y'
+          kd_lazy.math.floordiv(x, y),
+          'inner_lambda',
+          'file.py',
+          57,
+          2,
+          'kd_lazy.math.floordiv(x, y)',
       )
 
     @kd_optools.as_lambda_operator('outer_lambda')
@@ -86,7 +91,12 @@ class AnnotationSourceLocationTest(absltest.TestCase):
           'inner_lambda(x, y)',
       )
       return kd_lazy.annotation.source_location(
-          inner + 1, 'outer_lambda', 'file.py', 59, 2, 'inner + 1'
+          kd_lazy.math.add(inner, 1),
+          'outer_lambda',
+          'file.py',
+          59,
+          2,
+          'kd_lazy.math.add(inner, 1)',
       )
 
     expr = kd_lazy.annotation.source_location(

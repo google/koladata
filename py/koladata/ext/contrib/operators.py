@@ -36,5 +36,5 @@ def value_counts(x):
   Args:
     x: the non-scalar DataSlice to compute occurrences for.
   """
-  grouped = kd.lazy.group_by(x)
-  return kd.lazy.dict(kd.lazy.collapse(grouped), kd.lazy.agg_count(grouped))
+  grouped = kd.group_by(x)
+  return kd.dict(kd.collapse(grouped), kd.agg_count(grouped))

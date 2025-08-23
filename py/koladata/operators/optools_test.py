@@ -706,15 +706,32 @@ class OptoolsTest(parameterized.TestCase):
       """MyDocstring."""
       return a + b * c
 
+    lineno = inspect.currentframe().f_lineno - 2  # pytype: disable=attribute-error
     self.assertIsInstance(op, arolla.types.RestrictedLambdaOperator)
     self.assertEqual(op.display_name, 'my_op_name')
     self.assertEqual(op.getdoc(), 'MyDocstring.')
     self.assertEqual(
         inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
     )
+    src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     arolla.testing.assert_expr_equal_by_fingerprint(
         arolla.abc.to_lower_node(op(1, 2, c=3)),
-        py_boxing.as_expr(1) + py_boxing.as_expr(2) * py_boxing.as_expr(3),
+        src_op(
+            py_boxing.as_expr(1)
+            + src_op(
+                py_boxing.as_expr(2) * py_boxing.as_expr(3),
+                'op',
+                'py/koladata/operators/optools_test.py',
+                lineno,
+                0,
+                '      return a + b * c',
+            ),
+            'op',
+            'py/koladata/operators/optools_test.py',
+            lineno,
+            0,
+            '      return a + b * c',
+        ),
     )
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
       op(arolla.unit(), 2, c=3)

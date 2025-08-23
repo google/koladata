@@ -22,6 +22,7 @@ import warnings
 
 from arolla import arolla
 from koladata.expr import input_container
+from koladata.expr import tracing_mode
 from koladata.expr import view as view_lib
 from koladata.operators import op_repr
 from koladata.operators import qtype_utils
@@ -359,9 +360,9 @@ def _build_lambda_body_from_fn(fn: types.FunctionType):
     unmangling[result.fingerprint] = arolla.abc.placeholder(name)
     return result
 
-  return arolla.abc.sub_by_fingerprint(
-      arolla.optools.trace_function(fn, gen_tracer=gen_tracer), unmangling
-  )
+  with tracing_mode.enable_tracing():
+    expr = arolla.optools.trace_function(fn, gen_tracer=gen_tracer)
+  return arolla.abc.sub_by_fingerprint(expr, unmangling)
 
 
 # TOOD: b/383536303 - Consider improving the error messages for "unfixed"
