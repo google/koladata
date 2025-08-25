@@ -16,8 +16,7 @@
 
 from __future__ import annotations
 
-import dataclasses
-from typing import Iterator
+from typing import Any, Iterator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -25,7 +24,6 @@ from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
 
 
-@dataclasses.dataclass(frozen=True)
 class DataSliceManagerView:
   """A view of a DataSliceManager from a particular DataSlicePath.
 
@@ -34,9 +32,9 @@ class DataSliceManagerView:
   The DataSlicePath is called the "view path". It is a full path, i.e. it is
   relative to the root of the DataSliceManager.
 
-  This dataclass is frozen, but the manager's state can be updated. As a result,
-  a view path can become invalid for the underlying manager. While the state of
-  an invalid view can still be extracted, e.g. via get_manager() and
+  The underlying DataSliceManager's state can be updated. As a result, a view
+  path can become invalid for the underlying manager. While the state of an
+  invalid view can still be extracted, e.g. via get_manager() and
   get_path_from_root(), some of the methods, such as get_schema() and
   get_data_slice(), will fail when is_view_valid() is False.
 
@@ -52,13 +50,30 @@ class DataSliceManagerView:
   why the is_view_valid() method is not simply called is_valid() or valid().
   """
 
-  _data_slice_manager: data_slice_manager_interface.DataSliceManagerInterface
-  _path_from_root: data_slice_path_lib.DataSlicePath = (
-      data_slice_path_lib.DataSlicePath(actions=tuple())
-  )
+  def __init__(
+      self,
+      manager: data_slice_manager_interface.DataSliceManagerInterface,
+      path_from_root: data_slice_path_lib.DataSlicePath = data_slice_path_lib.DataSlicePath(
+          actions=tuple()
+      ),
+  ):
+    """Initializes the view with the given manager and view path.
 
-  def __post_init__(self):
+    Args:
+      manager: The underlying DataSliceManager.
+      path_from_root: The view path. It must be a valid path for the manager,
+        i.e. manager.exists(path_from_root) must be True.
+    """
+    self.__dict__['_data_slice_manager'] = manager
+    self.__dict__['_path_from_root'] = path_from_root
     self._check_path_from_root_is_valid()
+
+  def __eq__(self, other: Any) -> bool:
+    return (
+        type(self) is type(other)
+        and self._data_slice_manager == other._data_slice_manager
+        and self._path_from_root == other._path_from_root
+    )
 
   # Methods for accessing/updating the underlying DataSlice and its schema.
 
@@ -122,6 +137,26 @@ class DataSliceManagerView:
         at_path=self._path_from_root,
         attr_name=attr_name,
         attr_value=attr_value,
+    )
+
+  def __setattr__(self, attr_name: str, attr_value: kd.types.DataSlice):
+    """Sugar for self.update(attr_name, attr_value).
+
+    The sugar only applies when
+    kd.slices.internal_is_compliant_attr_name(attr_name) is True.
+
+    Args:
+      attr_name: The name of the attribute to set. It must be a valid Python
+        identifier.
+      attr_value: The value of the attribute to set. Restrictions imposed by the
+        underlying DataSliceManager must be respected.
+    """
+    if kd.slices.internal_is_compliant_attr_name(attr_name):
+      self.update(attr_name=attr_name, attr_value=attr_value)
+      return
+    raise AttributeError(
+        f"attribute '{attr_name}' cannot be used with the dot syntax. Use"
+        f" self.update('{attr_name}', attr_value) instead"
     )
 
   # Accessing the state.
@@ -326,8 +361,9 @@ class DataSliceManagerView:
   def __getattr__(self, attr_name: str) -> DataSliceManagerView | list[str]:
     """Mostly syntactic sugar for self.get_attr(attr_name).
 
-    This is the usual method for accessing attributes when the attribute name is
-    a valid Python identifier.
+    This is the usual method for accessing attributes when
+    kd.slices.internal_is_compliant_attr_name(attr_name) is True. When False,
+    the access must happen via self.get_attr(attr_name).
 
     It has special handling for '__all__' to return the names of all available
     attributes, which is useful for IPython auto-complete.
@@ -345,7 +381,12 @@ class DataSliceManagerView:
     """
     if attr_name == '__all__':
       return self._get_currently_available_attributes()
-    return self.get_attr(attr_name)
+    if kd.slices.internal_is_compliant_attr_name(attr_name):
+      return self.get_attr(attr_name)
+    raise AttributeError(
+        f"attribute '{attr_name}' cannot be used with the dot syntax. Use"
+        f" self.get_attr('{attr_name}') instead"
+    )
 
   # Internal methods.
 
@@ -402,7 +443,11 @@ class DataSliceManagerView:
       attr_names = kd.dir(schema)
       if attr_names:
         attributes.append('get_attr')
-      attributes.extend([a for a in attr_names if a.isidentifier()])
+      attributes.extend([
+          a
+          for a in attr_names
+          if a.isidentifier() and kd.slices.internal_is_compliant_attr_name(a)
+      ])
     if schema.is_list_schema():
       attributes.append('get_list_items')
     if schema.is_dict_schema():

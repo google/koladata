@@ -32,29 +32,28 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
     root = DataSliceManagerView(manager)
 
-    root.update(
-        attr_name='query',
-        attr_value=kd.list([
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
-            kd.named_schema('query').new(
-                query_id=1, text='How high is the Eiffel tower'
-            ),
-        ]),
-    )
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
+            query_id=1, text='How high is the Eiffel tower'
+        ),
+    ])
 
-    query = root.query.get_list_items()
+    queries = root.query.get_list_items()
 
     expected_query_schema = kd.named_schema(
         'query', query_id=kd.INT32, text=kd.STRING
     )
-    kd.testing.assert_deep_equivalent(query.get_schema(), expected_query_schema)
+    kd.testing.assert_deep_equivalent(
+        queries.get_schema(), expected_query_schema
+    )
 
     kd.testing.assert_deep_equivalent(
-        query.text.get_data_slice(),
+        queries.text.get_data_slice(),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     kd.testing.assert_deep_equivalent(
-        query.get_data_slice(with_descendants=True),
+        queries.get_data_slice(with_descendants=True),
         kd.slice([
             expected_query_schema.new(query_id=0, text='How tall is Obama'),
             expected_query_schema.new(
@@ -64,7 +63,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)
     kd.testing.assert_deep_equivalent(
-        query.query_id.get_data_slice(with_ancestors=True),
+        queries.query_id.get_data_slice(with_ancestors=True),
         kd.new(
             query=kd.list([
                 restricted_query_schema.new(query_id=0),
@@ -73,27 +72,24 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     )
 
-    query.update(
-        attr_name='doc',
-        attr_value=kd.slice([
-            kd.list([
-                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
-                kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
-            ]),
-            kd.list(
-                [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
-            ),
+    queries.doc = kd.slice([
+        kd.list([
+            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
         ]),
-    )
+        kd.list(
+            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
+        ),
+    ])
 
-    doc = query.doc.get_list_items()
+    docs = queries.doc.get_list_items()
 
     self.assertEqual(
-        doc.title.get_schema(),
+        docs.title.get_schema(),
         kd.STRING,
     )
     kd.testing.assert_deep_equivalent(
-        doc.title.get_data_slice(),
+        docs.title.get_data_slice(),
         kd.slice([['Barack Obama', 'Michelle Obama'], ['Tower of London']]),
     )
 
@@ -107,49 +103,49 @@ class DataSliceManagerViewTest(absltest.TestCase):
           DataSlicePath.parse_from_string('.query'),
       )
       self.assertEqual(
-          query.get_path_from_root(),
+          queries.get_path_from_root(),
           DataSlicePath.parse_from_string('.query[:]'),
       )
       self.assertEqual(
-          doc.get_path_from_root(),
+          docs.get_path_from_root(),
           DataSlicePath.parse_from_string('.query[:].doc[:]'),
       )
       self.assertEqual(
-          doc.title.get_path_from_root(),
+          docs.title.get_path_from_root(),
           DataSlicePath.parse_from_string('.query[:].doc[:].title'),
       )
 
     with self.subTest('get_manager'):
       self.assertEqual(
-          doc.title.get_manager(),
+          docs.title.get_manager(),
           manager,
       )
       self.assertEqual(
-          query.get_manager(),
+          queries.get_manager(),
           manager,
       )
 
     with self.subTest('get_root'):
       self.assertEqual(
-          doc.title.get_root(),
+          docs.title.get_root(),
           root,
       )
       self.assertEqual(
-          query.get_root(),
+          queries.get_root(),
           root,
       )
       self.assertEqual(
-          doc.get_root(),
+          docs.get_root(),
           root,
       )
 
     with self.subTest('get_parent'):
       self.assertEqual(
-          doc.title.get_parent(),
-          doc,
+          docs.title.get_parent(),
+          docs,
       )
       self.assertEqual(
-          query.get_parent(),
+          queries.get_parent(),
           root.query,
       )
       with self.assertRaisesRegex(
@@ -160,15 +156,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     with self.subTest('get_grandparent'):
       self.assertEqual(
-          doc.title.get_grandparent(),
-          doc.get_parent(),
+          docs.title.get_grandparent(),
+          docs.get_parent(),
       )
       self.assertEqual(
-          doc.get_grandparent(),
-          query,
+          docs.get_grandparent(),
+          queries,
       )
       self.assertEqual(
-          query.get_grandparent(),
+          queries.get_grandparent(),
           root,
       )
       with self.assertRaisesRegex(
@@ -184,16 +180,16 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     with self.subTest('get_ancestor'):
       self.assertEqual(
-          doc.title.get_ancestor(num_levels_up=0),
-          doc.title,
+          docs.title.get_ancestor(num_levels_up=0),
+          docs.title,
       )
       self.assertEqual(
-          doc.title.get_ancestor(num_levels_up=1),
-          doc,
+          docs.title.get_ancestor(num_levels_up=1),
+          docs,
       )
       self.assertEqual(
-          doc.title.get_ancestor(num_levels_up=2),
-          doc.get_parent(),
+          docs.title.get_ancestor(num_levels_up=2),
+          docs.get_parent(),
       )
       with self.assertRaisesRegex(
           ValueError,
@@ -210,36 +206,29 @@ class DataSliceManagerViewTest(absltest.TestCase):
               ' maximum valid value is 2'
           ),
       ):
-        query.get_ancestor(num_levels_up=5)
+        queries.get_ancestor(num_levels_up=5)
       with self.assertRaisesRegex(
           ValueError,
           re.escape('num_levels_up must be >= 0, but got -1'),
       ):
-        doc.title.get_ancestor(num_levels_up=-1)
+        docs.title.get_ancestor(num_levels_up=-1)
 
     with self.subTest('get_children'):
       self.assertEqual(
           root.get_children(),
-          [
-              DataSliceManagerView(
-                  manager, DataSlicePath.parse_from_string('.query')
-              )
-          ],
+          [root.query],
       )
       self.assertEqual(
           root.query.get_children(),
-          [
-              DataSliceManagerView(
-                  manager, DataSlicePath.parse_from_string('.query[:]')
-              )
-          ],
+          [queries],
       )
       self.assertEqual(
-          query.get_children(),
+          queries.get_children(),
           [
               DataSliceManagerView(
                   manager, DataSlicePath.parse_from_string(path)
               )
+              # Note the fixed order of the paths.
               for path in [
                   '.query[:].doc',
                   '.query[:].query_id',
@@ -248,7 +237,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ],
       )
       self.assertEqual(
-          doc.get_children(),
+          docs.get_children(),
           [
               DataSliceManagerView(
                   manager, DataSlicePath.parse_from_string(path)
@@ -259,10 +248,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
               ]
           ],
       )
-      self.assertEmpty(doc.title.get_children())
+      self.assertEmpty(docs.title.get_children())
 
     with self.subTest('__iter__'):
-      for some_view in [root, root.query, query, doc, doc.title]:
+      for some_view in [root, root.query, queries, docs, docs.title]:
         self.assertEqual(
             [child for child in some_view],
             some_view.get_children(),
@@ -271,11 +260,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
     with self.subTest('get_list_items'):
       self.assertEqual(
           root.query.get_list_items(),
-          query,
+          queries,
       )
       self.assertEqual(
           root.query.get_list_items().doc.get_list_items(),
-          doc,
+          docs,
       )
 
     with self.subTest('get_attr'):
@@ -284,43 +273,48 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.query,
       )
       self.assertEqual(
-          query.get_attr('query_id'),
-          query.query_id,
+          queries.get_attr('query_id'),
+          queries.query_id,
       )
       self.assertEqual(
-          doc.get_attr('title'),
-          doc.title,
+          docs.get_attr('title'),
+          docs.title,
       )
 
     token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
     with self.subTest('dict_operations'):
-      query.update(
-          attr_name='tokens',
-          attr_value=kd.slice([
-              kd.dict(
-                  {
-                      'How': token_info_schema.new(part_of_speech='DET'),
-                      'tall': token_info_schema.new(part_of_speech='ADJ'),
-                      'is': token_info_schema.new(part_of_speech='VERB'),
-                      'Obama': token_info_schema.new(part_of_speech='NOUN'),
-                  },
-              ),
-              kd.dict({
+      queries.token = kd.slice([
+          kd.dict(
+              {
                   'How': token_info_schema.new(part_of_speech='DET'),
-                  'high': token_info_schema.new(part_of_speech='ADJ'),
+                  'tall': token_info_schema.new(part_of_speech='ADJ'),
                   'is': token_info_schema.new(part_of_speech='VERB'),
-                  'the': token_info_schema.new(part_of_speech='DET'),
-                  'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
-                  'tower': token_info_schema.new(part_of_speech='NOUN'),
-              }),
-          ]),
-      )
+                  'Obama': token_info_schema.new(part_of_speech='NOUN'),
+              },
+          ),
+          kd.dict({
+              'How': token_info_schema.new(part_of_speech='DET'),
+              'high': token_info_schema.new(part_of_speech='ADJ'),
+              'is': token_info_schema.new(part_of_speech='VERB'),
+              'the': token_info_schema.new(part_of_speech='DET'),
+              'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
+              'tower': token_info_schema.new(part_of_speech='NOUN'),
+          }),
+      ])
 
-      tokens = root.query.get_list_items().tokens
+      tokens = root.query.get_list_items().token
 
       kd.testing.assert_deep_equivalent(
           tokens.get_schema(),
           kd.dict_schema(kd.STRING, token_info_schema),
+      )
+      self.assertEqual(
+          tokens.get_children(),
+          [
+              # Note the fixed order: keys before values.
+              tokens.get_dict_keys(),
+              tokens.get_dict_values(),
+          ],
       )
       self.assertEqual(
           # The keys are not ordered, so we use sets of keys.
@@ -410,63 +404,54 @@ class DataSliceManagerViewTest(absltest.TestCase):
     manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
 
     root = DataSliceManagerView(manager)
-    root.update(
-        attr_name='query',
-        attr_value=kd.list([
-            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
-            kd.named_schema('query').new(
-                query_id=1, text='How high is the Eiffel tower'
-            ),
-        ]),
-    )
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
+            query_id=1, text='How high is the Eiffel tower'
+        ),
+    ])
     query = root.query.get_list_items()
 
-    query.update(
-        attr_name='doc',
-        attr_value=kd.slice([
-            kd.list([
-                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
-                kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
-            ]),
-            kd.list(
-                [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
-            ),
+    query.doc = kd.slice([
+        kd.list([
+            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
         ]),
-    )
+        kd.list(
+            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
+        ),
+    ])
     doc_list = query.doc
     doc = doc_list.get_list_items()
     doc_title = doc.title
 
     token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
-    query.update(
-        attr_name='tokens',
-        attr_value=kd.slice([
-            kd.dict(
-                {
-                    'How': token_info_schema.new(part_of_speech='DET'),
-                    'tall': token_info_schema.new(part_of_speech='ADJ'),
-                    'is': token_info_schema.new(part_of_speech='VERB'),
-                    'Obama': token_info_schema.new(part_of_speech='NOUN'),
-                },
-            ),
-            kd.dict({
+    query.tokens = kd.slice([
+        kd.dict(
+            {
                 'How': token_info_schema.new(part_of_speech='DET'),
-                'high': token_info_schema.new(part_of_speech='ADJ'),
+                'tall': token_info_schema.new(part_of_speech='ADJ'),
                 'is': token_info_schema.new(part_of_speech='VERB'),
-                'the': token_info_schema.new(part_of_speech='DET'),
-                'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
-                'tower': token_info_schema.new(part_of_speech='NOUN'),
-            }),
-        ]),
-    )
+                'Obama': token_info_schema.new(part_of_speech='NOUN'),
+            },
+        ),
+        kd.dict({
+            'How': token_info_schema.new(part_of_speech='DET'),
+            'high': token_info_schema.new(part_of_speech='ADJ'),
+            'is': token_info_schema.new(part_of_speech='VERB'),
+            'the': token_info_schema.new(part_of_speech='DET'),
+            'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
+            'tower': token_info_schema.new(part_of_speech='NOUN'),
+        }),
+    ])
     tokens = query.tokens
     tokens_keys = tokens.get_dict_keys()
     tokens_values = tokens.get_dict_values()
 
     # We now give an update that will make the non-root views above invalid.
-    root.update(attr_name='query', attr_value=kd.dict({'hello': 1, 'world': 2}))
+    root.query = kd.dict({'hello': 1, 'world': 2})
     # Add a new list to have a valid list in the root.
-    root.update(attr_name='some_list', attr_value=kd.list([1, 2, 3]))
+    root.some_list = kd.list([1, 2, 3])
 
     # Accessing/updating the underlying DataSlice and its schema should complain
     # when the views are invalid.
@@ -484,7 +469,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ValueError,
         re.escape("invalid data slice path: '.query[:].doc[:]'"),
     ):
-      doc.update(attr_name='word_count', attr_value=kd.item(12345))
+      doc.word_count = kd.item(12345)
 
     # The state of invalid views can still be accessed:
     self.assertEqual(
@@ -561,6 +546,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
       # view.__all__ should always succeed, for valid and invalid views.
       # However, its result depends on whether the view is valid and on the
       # schema of the underlying data.
+
+      self.assertTrue(hasattr(root, '__all__'))
+      assert hasattr(root, '__all__')  # to please pytype
 
       # A valid entity view:
       self.assertEqual(
@@ -654,6 +642,115 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'is_view_valid',
           ],
       )
+
+  def test_filtering_recipe(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    root = DataSliceManagerView(manager)
+
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
+            query_id=1, text='How high is the Eiffel tower'
+        ),
+    ])
+
+    queries = root.query.get_list_items()
+
+    queries.doc = kd.slice([
+        kd.list([
+            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+        ]),
+        kd.list(
+            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
+        ),
+    ])
+
+    docs = queries.doc.get_list_items()
+
+    # In practice, we would likely do the filtering on a copy of the
+    # persistence_dir in order not to overwrite the original data. However, for
+    # this test we will simply overwrite the original data and use the variables
+    # defined above.
+
+    # Filter the docs to only keep the ones with "Barack" in the title, and
+    # filter the queries to only keep the ones with at least one such doc.
+    new_docs = docs.get_data_slice().select(
+        kd.strings.contains(docs.title.get_data_slice(), 'Barack')
+    )
+    queries.doc = new_docs.implode()
+    new_queries = queries.get_data_slice().select(kd.agg_any(kd.has(new_docs)))
+    root.query = new_queries.implode()
+
+    # The filtering recipe above results in one query with one doc:
+    kd.testing.assert_deep_equivalent(
+        root.get_data_slice(with_descendants=True),
+        kd.new(
+            query=kd.list([
+                kd.named_schema('query').new(
+                    query_id=0,
+                    text='How tall is Obama',
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
+                            doc_id=1, title='Barack Obama'
+                        )
+                    ]),
+                ),
+            ]),
+        ),
+    )
+
+  def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
+    manager = pidsm.PersistedIncrementalDataSliceManager(
+        self.create_tempdir().full_path
+    )
+    root = DataSliceManagerView(manager)
+
+    with self.assertRaisesRegex(
+        AttributeError,
+        re.escape(
+            "attribute 'fingerprint' cannot be used with the dot syntax. Use"
+            " self.update('fingerprint', attr_value) instead"
+        ),
+    ):
+      root.fingerprint = kd.item(123)
+
+    root.update('fingerprint', kd.item(123))
+
+    with self.assertRaisesRegex(
+        AttributeError,
+        re.escape(
+            "attribute 'fingerprint' cannot be used with the dot syntax. Use"
+            " self.get_attr('fingerprint') instead"
+        ),
+    ):
+      _ = root.fingerprint
+
+    fingerprint = root.get_attr('fingerprint')
+    self.assertEqual(fingerprint.get_data_slice(), kd.item(123))
+
+    # IPython auto-complete should not suggest the reserved attribute names.
+    self.assertEqual(
+        kd.dir(root.get_data_slice(with_descendants=True)), ['fingerprint']
+    )
+    assert hasattr(root, '__all__')  # to please pytype
+    self.assertNotIn('fingerprint', root.__all__)
+    self.assertEqual(
+        root.__all__,
+        [
+            'get_ancestor',
+            'get_attr',
+            'get_children',
+            'get_data_slice',
+            'get_manager',
+            'get_path_from_root',
+            'get_root',
+            'get_schema',
+            'is_view_valid',
+            'update',
+        ],
+    )
 
 
 if __name__ == '__main__':
