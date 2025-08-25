@@ -299,3 +299,28 @@ py_library(
         "//py/koladata:kd",
     ],
 )
+
+py_library(
+    name = "data_slice_manager_view",
+    srcs = ["data_slice_manager_view.py"],
+    deps = [
+        ":data_slice_manager_interface",
+        ":data_slice_path",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "data_slice_manager_view_test",
+    srcs = ["data_slice_manager_view_test.py"],
+    deps = [
+        ":data_slice_manager_view",
+        ":data_slice_path",
+        ":persisted_incremental_data_slice_manager",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
