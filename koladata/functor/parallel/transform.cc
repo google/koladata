@@ -302,13 +302,19 @@ class InnerTransformManager {
     }
     if (!context_->allow_runtime_transforms()) {
       return absl::InvalidArgumentError(absl::StrCat(
-          "Sub-functor ", var_name, " is not a literal: ", arolla::Repr(var),
-          " . The whole functor: ", arolla::Repr(functor_),
-          ". You can set allow_runtime_transforms=True to transform it at"
-          " runtime, but this will be slower and should not be used in"
-          " production. Also consider using"
-          " kd.functor.call_fn_normally_when_parallel or some variant to"
-          " invoke functors."));
+          "The parallel transformation requires that all sub-functors being"
+          " called are specified as literals, instead of being computed"
+          " dynamically, so that we can transform them recursively. In case you"
+          " are calling a sub-functor that is computed dynamically, but do not"
+          " need to recursively transform it (evaluating this sub-functor"
+          " single-threaded is fine), you can use"
+          " kd.functor.call_fn_normally_when_parallel and its variants to call"
+          " the sub-functor. In case you do need to evaluate a dynamically"
+          " computed sub-functor in a parallel fashion, you can pass"
+          " allow_runtime_transforms=True to kd.parallel.transform, but this"
+          " will be slower and should not be used in production."
+          "\nThe offending sub-functor ", var_name, ": ", arolla::Repr(var),
+          " . The whole functor: ", arolla::Repr(functor_)));
     }
     result.is_future = true;
     ASSIGN_OR_RETURN(auto input_expr,
@@ -726,8 +732,25 @@ absl::StatusOr<DataSlice> TransformToParallel(
 
   ASSIGN_OR_RETURN(functor, AddNamesToLiteralArgumentsOfReplacementOps(
                                 std::move(functor), find_replacement));
+  // At this point, we have processed the keep_literal_argument_indices
+  // argument of the replacement configuration, and have the following property
+  // instead: for each operator that has a replacement, all its arguments that
+  // are not literals must be replaced with a variable, and all its literal
+  // arguments must be kept as is.
   ASSIGN_OR_RETURN(functor, AddVariables(std::move(functor), variable_container,
                                          find_replacement));
+  // At this point, we have the following properties:
+  // - for each operator that has a custom replacement, all its arguments are
+  //   either a variable (V.smth), or a literal in case the corresponding
+  //   argument must be kept as a literal.
+  // - each operator that has a custom replacement will only appear as the
+  //   top-level operator of a variable expression, and not deeper inside it.
+  //   Together with the previous property, it means that operators with a
+  //   custom replacement will only appear in expressions that look like
+  //   V.smth = kd.my_op(V.arg1, V.arg2, ...)
+  // - inputs and leaves (non-deterministic leaf) will only appear as a whole
+  //   variable expression, but not inside a more complex expression. So we can
+  //   have V.smth = I.smth, but not V.smth = I.smth + 1.
   ASSIGN_OR_RETURN(DataSlice orig_signature,
                    functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN((auto [signature, defaults]),

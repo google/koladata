@@ -26,14 +26,11 @@ namespace koladata::functor::parallel {
 // a form where all operations take and consume futures and streams.
 //
 // Advanced users can create the future/stream version of the functors directly
-// for more customization, in which case they do not need to use this method
-// or kd.parallel.parallel_call, and can use the normal kd.call directly.
+// for more customization, in which case they do not need to use this method,
+// and can use the normal kd.call directly.
 //
-// This method applies this transformation to the given functor. Note that
-// the sub-functors are not transformed, instead they are expected to be
-// transformed at call time via the use of kd.parallel.parallel_call.
-// This is done to support functors that are created dynamically during
-// evaluation.
+// This method applies this transformation to the given functor and the
+// sub-functors that are called inside it.
 absl::StatusOr<DataSlice> TransformToParallel(
     const ExecutionContextPtr& context, DataSlice functor);
 
