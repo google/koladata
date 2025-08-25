@@ -977,14 +977,6 @@ def follow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator(
-    'kd.core._databag_freeze', qtype_inference_expr=qtypes.DATA_BAG
-)
-def _databag_freeze(x):  # pylint: disable=unused-argument
-  """Helper operator that freezes a DataBag."""
-  raise NotImplementedError('implemented in the backend')
-
-
 @optools.add_to_registry(aliases=['kd.freeze_bag'])
 @optools.as_backend_operator(
     'kd.core.freeze_bag',
@@ -995,30 +987,15 @@ def freeze_bag(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: remove the DataSlice version from here, making it a
-# simple DataBag only operator.
 @optools.add_to_registry(aliases=['kd.freeze'])
-@optools.as_lambda_operator(
+@optools.as_backend_operator(
     'kd.core.freeze',
-    qtype_constraints=[
-        (
-            (P.x == qtypes.DATA_SLICE) | (P.x == qtypes.DATA_BAG),
-            (
-                'expected DATA_BAG or DATA_SLICE, got '
-                f'{constraints.name_type_msg(P.x)}'
-            ),
-        ),
-    ],
+    qtype_constraints=[qtype_utils.expect_data_bag(P.x)],
+    qtype_inference_expr=qtypes.DATA_BAG
 )
 def freeze(x):  # pylint: disable=unused-argument
   """Returns a frozen version of `x`."""
-  return arolla.types.DispatchOperator(
-      'x',
-      data_slice_case=arolla.types.DispatchCase(
-          freeze_bag(P.x), condition=P.x == qtypes.DATA_SLICE
-      ),
-      default=_databag_freeze(P.x),
-  )(x)
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kd.get_bag'])

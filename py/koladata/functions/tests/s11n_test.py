@@ -115,7 +115,7 @@ class DumpsLoadsTest(parameterized.TestCase):
   def test_dumps_preserves_immutability(self):
     bag = kd.mutable_bag()
     objs = bag.obj(a=kd.slice([1, 2, 3]*10))
-    loaded = s11n.loads(s11n.dumps(kd.freeze(objs)))
+    loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertFalse(loaded.is_mutable())
 

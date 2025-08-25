@@ -35,13 +35,10 @@ ds = data_slice.DataSlice.from_vals
 class CoreFreezeTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds([1, 2, 3]),),
       (bag(),),
       (bag().fork(mutable=True),),
       (bag().fork(mutable=False),),
       (bag().new(x=1, y='abc').get_bag(),),
-      (bag().new(a=ds([1, 2, 3])),),
-      (bag().new(a=ds([1, 2, 3])).freeze_bag(),),
   )
   def test_eval(self, s):
     res = expr_eval.eval(kde.core.freeze(s))
@@ -49,7 +46,7 @@ class CoreFreezeTest(parameterized.TestCase):
     self.assertFalse(res.is_mutable())
 
   def test_unsupported_input(self):
-    with self.assertRaisesRegex(ValueError, 'expected DATA_BAG or DATA_SLICE'):
+    with self.assertRaisesRegex(ValueError, 'expected DATA_BAG'):
       kde.core.freeze(arolla.int32(42))
 
   def test_qtype_signatures(self):
@@ -60,7 +57,6 @@ class CoreFreezeTest(parameterized.TestCase):
         ),
         frozenset([
             (qtypes.DATA_BAG, qtypes.DATA_BAG),
-            (qtypes.DATA_SLICE, qtypes.DATA_SLICE),
         ]),
     )
 

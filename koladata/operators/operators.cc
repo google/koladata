@@ -109,8 +109,6 @@ OPERATOR_FAMILY("kd.core._attrs_impl",
                 std::make_unique<AttrsImplOperatorFamily>());
 //
 OPERATOR("kd.core._clone", Clone, "kd.core.clone");
-OPERATOR("kd.core._databag_freeze", Freeze<DataBagPtr>,
-         "kd.core.databag_freeze");
 OPERATOR("kd.core._deep_clone", DeepClone, "kd.core.deep_clone");
 OPERATOR("kd.core._extract", Extract, "kd.core.extract");
 OPERATOR("kd.core._get_attr", GetAttr, "kd.core.get_attr");
@@ -125,6 +123,7 @@ OPERATOR("kd.core.attr", Attr);
 OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR("kd.core.follow", Follow);
+OPERATOR("kd.core.freeze", Freeze<DataBagPtr>);
 OPERATOR("kd.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kd.core.get_attr_names", GetAttrNames);
 OPERATOR("kd.core.get_bag", GetBag);
