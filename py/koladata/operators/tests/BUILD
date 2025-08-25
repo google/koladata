@@ -5705,8 +5705,8 @@ py_test(
     srcs = ["schema_get_obj_schema_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -5727,8 +5727,8 @@ py_test(
     srcs = ["schema_get_item_schema_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -5749,8 +5749,8 @@ py_test(
     srcs = ["schema_get_key_schema_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -5771,8 +5771,8 @@ py_test(
     srcs = ["schema_get_value_schema_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",

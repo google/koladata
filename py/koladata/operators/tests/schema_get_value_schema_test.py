@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.get_value_schema."""
+"""Tests for kde.schema.get_value_schema operator."""
+
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -47,7 +49,7 @@ class SchemaGetValueSchemaTest(parameterized.TestCase):
       (dict_s2, dict_s1),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.get_value_schema(x))
+    res = py_expr_eval_py_ext.eval_op(kde.schema.get_value_schema, x)
     testing.assert_equal(res, expected)
 
   def test_non_dict_schema(self):
@@ -55,27 +57,27 @@ class SchemaGetValueSchemaTest(parameterized.TestCase):
         ValueError,
         "expected Dict schema for get_value_schema",
     ):
-      expr_eval.eval(kde.schema.get_value_schema(db.new(x=1)))
+      kde.schema.get_value_schema(db.new(x=1)).eval()
 
     with self.assertRaisesRegex(
         ValueError,
         "expected Dict schema for get_value_schema",
     ):
-      expr_eval.eval(kde.schema.get_value_schema(schema_constants.INT32))
+      kde.schema.get_value_schema(schema_constants.INT32).eval()
 
     with self.assertRaisesRegex(
         ValueError,
         "expected Dict schema for get_value_schema",
     ):
-      expr_eval.eval(
-          kde.schema.get_value_schema(db.new_schema(x=schema_constants.INT32))
-      )
+      kde.schema.get_value_schema(
+          db.new_schema(x=schema_constants.INT32)
+      ).eval()
 
     with self.assertRaisesRegex(
         ValueError,
         "expected Dict schema for get_value_schema",
     ):
-      expr_eval.eval(kde.schema.get_value_schema(ds([1, 2, 3])))
+      kde.schema.get_value_schema(ds([1, 2, 3])).eval()
 
   def test_boxing(self):
     with self.assertRaisesRegex(
@@ -86,9 +88,12 @@ class SchemaGetValueSchemaTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        "expected DATA_SLICE, got dict_schema: ARRAY_INT32",
+        re.escape(
+            "expected Dict schema for get_value_schema, got DataItem(1, schema:"
+            " INT32)"
+        ),
     ):
-      kde.schema.get_value_schema([1])
+      kde.schema.get_value_schema(1).eval()
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

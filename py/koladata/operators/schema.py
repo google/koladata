@@ -213,9 +213,8 @@ def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.list_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.list_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.item_schema),
@@ -227,9 +226,8 @@ def list_schema(item_schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.dict_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.dict_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.key_schema),
@@ -390,9 +388,8 @@ def get_primitive_schema(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.get_obj_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.get_obj_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -418,9 +415,8 @@ def get_obj_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.get_item_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.get_item_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -430,9 +426,8 @@ def get_item_schema(list_schema):  # pylint: disable=unused-argument,redefined-o
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.get_key_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.get_key_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -442,9 +437,8 @@ def get_key_schema(dict_schema):  # pylint: disable=unused-argument,redefined-ou
   raise NotImplementedError('implemented in the backend')
 
 
-# IMPORTANT: Use Arolla boxing to avoid boxing literals into DataSlices.
 @optools.add_to_registry(aliases=['kd.get_value_schema'])
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.schema.get_value_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
     qtype_inference_expr=qtypes.DATA_SLICE,
