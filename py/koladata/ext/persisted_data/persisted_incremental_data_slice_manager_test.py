@@ -53,10 +53,10 @@ def get_loaded_schema_node_names(
     manager: PersistedIncrementalDataSliceManager,
 ) -> set[str]:
   """Returns the loaded schema node names of the given manager."""
-  loaded_bag_names = manager._bag_manager.get_loaded_bag_names()
+  loaded_bag_names = manager._data_bag_manager.get_loaded_bag_names()
   return {
       snn
-      for snn, bag_names in manager._schema_node_name_to_bag_names.items()
+      for snn, bag_names in manager._schema_node_name_to_data_bag_names.items()
       if all(bag_name in loaded_bag_names for bag_name in bag_names)
   }
 
@@ -70,7 +70,7 @@ def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
       get_loaded_schema_node_names(manager),
   )
   return manager._root_dataslice.updated(
-      manager._bag_manager.get_loaded_bag()
+      manager._data_bag_manager.get_loaded_bag()
   ).updated(schema_bag)
 
 
@@ -192,7 +192,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       return
     actual = {
         snn: len(bag_names)
-        for snn, bag_names in manager._schema_node_name_to_bag_names.items()
+        for snn, bag_names in manager._schema_node_name_to_data_bag_names.items()
     }
     expected = dict(expected_schema_node_names_to_num_bags)
     self.assertEqual(len(expected), len(expected_schema_node_names_to_num_bags))
@@ -1570,7 +1570,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       # Note that the original bag for x is not loaded here. The only 2 bags
       # that are loaded are the ones for the root and for the new 'x'.
-      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+      self.assertLen(manager._data_bag_manager.get_loaded_bag_names(), 2)
 
   @parameterized.named_parameters(
       ('pidsm', PersistedIncrementalDataSliceManager),
@@ -1583,7 +1583,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       original_non_root_bag_names = (
-          manager._bag_manager.get_loaded_bag_names() - {''}
+          manager._data_bag_manager.get_loaded_bag_names() - {''}
       )
     manager.update(
         at_path=parse_dsp(''),
@@ -1602,7 +1602,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       # The original bags for x and its items are not loaded here:
       self.assertEmpty(
-          manager._bag_manager.get_loaded_bag_names()
+          manager._data_bag_manager.get_loaded_bag_names()
           & original_non_root_bag_names  # pylint: disable=undefined-variable
       )
 
@@ -1645,7 +1645,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           ],
       )
       # It loaded one bag for the root and one for ".bar".
-      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+      self.assertLen(manager._data_bag_manager.get_loaded_bag_names(), 2)
 
   @parameterized.named_parameters(
       ('pidsm', PersistedIncrementalDataSliceManager),
@@ -1685,7 +1685,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           ],
       )
       # It loaded one bag for the root and one for ".bar".
-      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+      self.assertLen(manager._data_bag_manager.get_loaded_bag_names(), 2)
 
   def test_persistence_dir_is_hermetic(self):
     persistence_dir = os.path.join(
@@ -2368,7 +2368,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     def get_bags_in_the_bag_manager_total_order(manager):
       assert isinstance(manager, PersistedIncrementalDataSliceManager)
-      bag_manager = manager._bag_manager
+      bag_manager = manager._data_bag_manager
       bag_names = bag_manager.get_available_bag_names()
       bag_names = bag_manager._canonical_topological_sorting(bag_names)
       # The canonical topological sorting always returns the bags in the same
