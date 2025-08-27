@@ -56,7 +56,9 @@ def get_loaded_schema_node_names(
   loaded_bag_names = manager._data_bag_manager.get_loaded_bag_names()
   return {
       snn
-      for snn, bag_names in manager._schema_node_name_to_data_bag_names.items()
+      for snn, bag_names in manager._get_schema_node_name_to_data_bag_names()
+      .to_py(max_depth=-1)
+      .items()
       if all(bag_name in loaded_bag_names for bag_name in bag_names)
   }
 
@@ -192,7 +194,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       return
     actual = {
         snn: len(bag_names)
-        for snn, bag_names in manager._schema_node_name_to_data_bag_names.items()
+        for snn, bag_names in manager._get_schema_node_name_to_data_bag_names()
+        .to_py(max_depth=-1)
+        .items()
     }
     expected = dict(expected_schema_node_names_to_num_bags)
     self.assertEqual(len(expected), len(expected_schema_node_names_to_num_bags))

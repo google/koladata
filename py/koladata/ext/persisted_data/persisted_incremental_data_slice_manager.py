@@ -105,6 +105,9 @@ class PersistedIncrementalDataSliceManager(
     del persistence_dir, fs  # Forces the use of the attributes henceforth.
     data_bags_dir = os.path.join(self._persistence_dir, 'data_bags')
     schema_bags_dir = os.path.join(self._persistence_dir, 'schema_bags')
+    schema_node_name_to_data_bags_updates_dir = os.path.join(
+        self._persistence_dir, 'snn_to_data_bags_updates'
+    )
     if not self._fs.exists(self._persistence_dir):
       self._fs.make_dirs(self._persistence_dir)
     if not self._fs.glob(os.path.join(self._persistence_dir, '*')):  # Empty dir
@@ -123,10 +126,20 @@ class PersistedIncrementalDataSliceManager(
       self._schema_helper = schema_helper.SchemaHelper(
           self._root_dataslice.get_schema()
       )
-      self._schema_node_name_to_data_bag_names = {
-          snn: [] for snn in self._schema_helper.get_all_schema_node_names()
-      }
-      self._persist_schema_node_name_to_data_bag_names()
+      self._initial_schema_node_name_to_data_bag_names = kd.dict({
+          snn: kd.list([], item_schema=kd.STRING)
+          for snn in self._schema_helper.get_all_schema_node_names()
+      })
+      fs_util.write_slice_to_file(
+          self._fs,
+          self._initial_schema_node_name_to_data_bag_names,
+          filepath=self._get_initial_schema_node_name_to_bag_names_filepath(),
+      )
+      self._schema_node_name_to_data_bags_updates_manager = (
+          dbm.PersistedIncrementalDataBagManager(
+              schema_node_name_to_data_bags_updates_dir, fs=self._fs
+          )
+      )
       self._metadata = (
           metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
               version='1.0.0'
@@ -152,8 +165,19 @@ class PersistedIncrementalDataSliceManager(
               self._schema_bag_manager.get_loaded_bag()
           )
       )
-      self._schema_node_name_to_data_bag_names = (
-          self._read_schema_node_name_to_data_bag_names()
+      self._initial_schema_node_name_to_data_bag_names = (
+          fs_util.read_slice_from_file(
+              self._fs,
+              self._get_initial_schema_node_name_to_bag_names_filepath(),
+          )
+      )
+      self._schema_node_name_to_data_bags_updates_manager = (
+          dbm.PersistedIncrementalDataBagManager(
+              schema_node_name_to_data_bags_updates_dir, fs=self._fs
+          )
+      )
+      self._schema_node_name_to_data_bags_updates_manager.load_bags(
+          {dbm._INITIAL_BAG_NAME}, with_all_dependents=True  # all update bags
       )
       self._metadata = self._read_metadata()
 
@@ -257,7 +281,12 @@ class PersistedIncrementalDataSliceManager(
 
     needed_bag_names = set()
     for snn in needed_schema_node_names:
-      needed_bag_names.update(self._schema_node_name_to_data_bag_names[snn])
+      names_list = self._get_data_bag_names(snn)
+      assert names_list is not None, (
+          f'invariant violation: schema node name {snn} must have a list of'
+          ' data bag names'
+      )
+      needed_bag_names.update(names_list.to_py())
     data_bag = self._data_bag_manager.get_minimal_bag(needed_bag_names)
 
     schema_bag = self._schema_helper.get_schema_bag(
@@ -620,15 +649,29 @@ class PersistedIncrementalDataSliceManager(
     ]
     self._schema_bag_manager.add_bags(schema_bags_to_add)
     self._schema_helper = schema_helper.SchemaHelper(new_full_schema)
+    snn_to_data_bags_updates = []
     for snn, new_bag_names in snn_to_merged_bag_name.items():
-      existing_bag_names = self._schema_node_name_to_data_bag_names.get(
-          snn, None
-      )
+      existing_bag_names = self._get_data_bag_names(snn)
       if existing_bag_names is None:
-        self._schema_node_name_to_data_bag_names[snn] = new_bag_names
+        update_bag = kd.dict_update(
+            self._initial_schema_node_name_to_data_bag_names,
+            kd.dict({snn: kd.list(new_bag_names, item_schema=kd.STRING)}),
+        )
       else:
-        existing_bag_names.extend(new_bag_names)
-    self._persist_schema_node_name_to_data_bag_names()
+        update_bag = kd.list_append_update(
+            existing_bag_names, kd.slice(new_bag_names, schema=kd.STRING)
+        )
+      snn_to_data_bags_updates.append(update_bag)
+    self._schema_node_name_to_data_bags_updates_manager.add_bags([
+        dbm.BagToAdd(
+            self._get_timestamped_bag_name(),
+            kd.bags.updated(*snn_to_data_bags_updates).merge_fallbacks(),
+            # We don't specify fine-grained dependencies. Instead, we always
+            # load+use all the update bags, and we rely on the manager's
+            # bookkeeping of the total order in which the bags were added.
+            dependencies=('',),
+        )
+    ])
 
   def clear_cache(self):
     """Clears the internal cache with loaded data of the managed DataSlice.
@@ -645,42 +688,46 @@ class PersistedIncrementalDataSliceManager(
     """
     self._data_bag_manager.clear_cache()
 
+  def _get_schema_node_name_to_data_bag_names(self) -> kd.types.DataItem:
+    """Returns the full Koda DICT that maps schema node names to data bag names."""
+    return self._initial_schema_node_name_to_data_bag_names.updated(
+        self._schema_node_name_to_data_bags_updates_manager.get_loaded_bag()
+    )
+
+  def _get_data_bag_names(
+      self, schema_node_name: str
+  ) -> kd.types.DataItem | None:
+    """Returns a Koda LIST of data bag names for the given schema node name.
+
+    Returns None if the schema node name is not known, i.e. if it is not a key
+    in self._get_schema_node_name_to_data_bag_names(). Otherwise, it returns the
+    corresponding value, which is a (possibly empty) Koda LIST of data bag
+    names.
+
+    Args:
+      schema_node_name: The schema node name for which to get the LIST of data
+        bag names.
+
+    Returns:
+      A Koda LIST of data bag names, or None if the schema node name is not a
+      known schema node name.
+    """
+    snn_to_data_bag_names = self._get_schema_node_name_to_data_bag_names()
+    bag_names = snn_to_data_bag_names[schema_node_name]
+    if not kd.has(bag_names):
+      return None
+    return bag_names
+
   def _get_root_dataslice_filepath(self) -> str:
     return os.path.join(self._persistence_dir, 'root.kd')
 
-  def _get_schema_node_name_to_bag_names_filepath(self) -> str:
+  def _get_initial_schema_node_name_to_bag_names_filepath(self) -> str:
     return os.path.join(
-        self._persistence_dir, 'schema_node_name_to_bag_names.kd'
+        self._persistence_dir, 'initial_schema_node_name_to_bag_names.kd'
     )
 
   def _get_metadata_filepath(self) -> str:
     return os.path.join(self._persistence_dir, 'metadata.pb')
-
-  def _persist_schema_node_name_to_data_bag_names(self):
-    # Some values of self._schema_node_name_to_data_bag_names may be empty
-    # lists, so doing item = kd.dict(self._schema_node_name_to_data_bag_names)
-    # might fail due to limitations of Koda. In particular, the empty lists will
-    # by default get schema LIST[NONE], which isn't compatible with
-    # LIST[STRING]. We overcome that by explicitly specifying the item schema as
-    # STRING in a temporary dict d that is then turned into a Koda item.
-    d = {
-        snn: kd.list(v, item_schema=kd.STRING)
-        for snn, v in self._schema_node_name_to_data_bag_names.items()
-    }
-    item = kd.dict(d)
-    fs_util.write_slice_to_file(
-        self._fs,
-        item,
-        filepath=self._get_schema_node_name_to_bag_names_filepath(),
-        overwrite=True,
-    )
-
-  def _read_schema_node_name_to_data_bag_names(self) -> dict[str, list[str]]:
-    item = fs_util.read_slice_from_file(
-        self._fs,
-        self._get_schema_node_name_to_bag_names_filepath(),
-    )
-    return item.to_py()
 
   def _persist_metadata(self):
     with self._fs.open(self._get_metadata_filepath(), 'wb') as f:
