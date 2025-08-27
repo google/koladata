@@ -124,8 +124,7 @@ class PersistedIncrementalDataSliceManager(
           self._root_dataslice.get_schema()
       )
       self._schema_node_name_to_data_bag_names = {
-          snn: [dbm._INITIAL_BAG_NAME]
-          for snn in self._schema_helper.get_all_schema_node_names()
+          snn: [] for snn in self._schema_helper.get_all_schema_node_names()
       }
       self._persist_schema_node_name_to_data_bag_names()
       self._metadata = (

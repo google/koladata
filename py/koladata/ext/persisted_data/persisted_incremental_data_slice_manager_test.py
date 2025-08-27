@@ -891,7 +891,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.tree_root), 1),
             (
                 schema_node_name(
@@ -911,7 +911,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.tree_root), 2),
             (schema_node_name(manager_schema.tree_root.children), 1),
             (
@@ -1001,7 +1001,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.tree_root), 3),
             (schema_node_name(manager_schema.tree_root.children), 2),
             (
@@ -1136,7 +1136,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.node), 2),
             (
                 schema_node_name(manager_schema.node, action=GetAttr('label')),
@@ -1203,7 +1203,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.node), 3),
             (schema_node_name(manager_schema.node.incoming_edges), 2),
             (
@@ -1273,7 +1273,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.node), 3),
             (
                 schema_node_name(
@@ -1397,7 +1397,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (
                 schema_node_name(manager_schema.tree_root),
                 1 + num_parent_updates,
@@ -1465,7 +1465,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.bar), 2),
             (
                 schema_node_name(manager_schema.bar, action=GetAttr('x')),
@@ -1532,7 +1532,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assert_manager_schema_node_names_to_num_bags(
         manager,
         [
-            (schema_node_name(manager_schema), 1),
+            (schema_node_name(manager_schema), 0),
             (schema_node_name(manager_schema.bar), 2),
             (schema_node_name(manager_schema.bar.x), 2),
             (
@@ -1639,7 +1639,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       self.assert_manager_schema_node_names_to_num_bags(
           manager,
           [
-              (schema_node_name(manager_schema), 1),
+              (schema_node_name(manager_schema), 0),
               (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
               (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
           ],
@@ -1679,7 +1679,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       self.assert_manager_schema_node_names_to_num_bags(
           manager,
           [
-              (schema_node_name(manager_schema), 1),
+              (schema_node_name(manager_schema), 0),
               (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
               (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
           ],
