@@ -76,12 +76,12 @@ class PersistedIncrementalDataBagManager:
   that it is not modified externally and that there is sufficient space to
   accommodate the writes.
 
-  This class is not thread-safe. However, multiple instances of this class can
-  concurrently read from the same persistence directory. When an instance
-  modifies the persistence directory, which happens when add_bags() is called,
-  then there should be no other instances where read/write operations straddle
-  the modification. I.e. all the read/write operations of another instance must
-  happen completely before or completely after the modification.
+  This class is not thread-safe. However, in the absence of writes, i.e. calls
+  to add_bags(), multiple instances of this class can concurrently read from the
+  same persistence directory. So creating multiple instances and calling
+  get_available_bag_names() or get_minimal_bag() concurrently is fine in the
+  absence of writes. Only a single instance should exist during a write
+  operation.
   """
 
   def __init__(
