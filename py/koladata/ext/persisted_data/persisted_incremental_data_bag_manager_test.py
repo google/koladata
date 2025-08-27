@@ -833,6 +833,54 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           pidbm.BagToAdd(bag_name='bag4', bag=bag4, dependencies=('bag0',)),
       ])
 
+  def test_clear_cache(self):
+    a = kd.new(a=1, b=2)
+    b = kd.new(b=3, c=4)
+    c = kd.new(c=5, d=6)
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager.add_bags([BagToAdd('bag_a', a.get_bag(), dependencies=('',))])
+    manager.add_bags([BagToAdd('bag_b', b.get_bag(), dependencies=('',))])
+    manager.add_bags([BagToAdd('bag_c', c.get_bag(), dependencies=('bag_a',))])
+    self.assertEqual(
+        manager.get_loaded_bag_names(),
+        {'', 'bag_c', 'bag_b', 'bag_a'},
+    )
+    manager.clear_cache()
+    self.assertEqual(manager.get_loaded_bag_names(), {''})
+    kd.testing.assert_equivalent(
+        manager.get_loaded_bag().merge_fallbacks(),
+        kd.bag(),
+    )
+
+    # Asking now for bag_c should load it and its dependency, bag_a:
+    manager.load_bags({'bag_c'})
+    self.assertEqual(manager.get_loaded_bag_names(), {'', 'bag_a', 'bag_c'})
+    kd.testing.assert_equivalent(
+        manager.get_loaded_bag().merge_fallbacks(),
+        kd.bags.updated(a.get_bag(), c.get_bag()).merge_fallbacks(),
+    )
+    manager.clear_cache()
+
+    # After clearing the cache, the state of the manager is the same as that of
+    # a new manager instance with the same persistence_dir.
+    new_manager = pidbm.PersistedIncrementalDataBagManager(
+        persistence_dir, fs=manager._fs
+    )
+    for attr_name in manager.__dict__:
+      manager_attr = getattr(manager, attr_name)
+      new_manager_attr = getattr(new_manager, attr_name)
+      if attr_name == '_loaded_bags_cache':
+        self.assertEqual(manager_attr.keys(), new_manager_attr.keys())
+        self.assertEqual(list(manager_attr.keys()), [''])
+        kd.testing.assert_equivalent(manager_attr[''], new_manager_attr[''])
+        continue
+      if isinstance(manager_attr, kd.types.DataSlice):
+        kd.testing.assert_equivalent(manager_attr, new_manager_attr)
+        continue
+      self.assertEqual(manager_attr, new_manager_attr)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -288,6 +288,15 @@ class PersistedIncrementalDataBagManager:
     ]
     new_manager.add_bags(bags_to_add)
 
+  def clear_cache(self):
+    """Clears the cache of loaded bags.
+
+    After this method returns, get_loaded_bag_names() will return only {''},
+    i.e. only the initial empty bag with name '' will still be loaded.
+    """
+    initial_empty_bag = self._loaded_bags_cache[_INITIAL_BAG_NAME]
+    self._loaded_bags_cache = {_INITIAL_BAG_NAME: initial_empty_bag}
+
   def _load_bags(
       self,
       bag_names: Collection[str],
