@@ -6542,7 +6542,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `kd.slices.get_repr(x)` {#kd.slices.get_repr}
+### `kd.slices.get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25)` {#kd.slices.get_repr}
 Aliases:
 
 - [kd.get_repr](#kd.get_repr)
@@ -9561,7 +9561,7 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
 
-### `kd.get_repr(x)` {#kd.get_repr}
+### `kd.get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25)` {#kd.get_repr}
 
 Alias for [kd.slices.get_repr](#kd.slices.get_repr) operator.
 

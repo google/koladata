@@ -15,6 +15,7 @@
 #include "koladata/operators/utils.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -99,6 +100,17 @@ absl::StatusOr<absl::string_view> GetStringArgument(
     const DataSlice& slice, absl::string_view arg_name) {
   RETURN_IF_ERROR(ExpectPresentScalar(arg_name, slice, schema::kString));
   return slice.item().value<arolla::Text>().view();
+}
+
+absl::StatusOr<int64_t> GetIntegerArgument(
+    const DataSlice& slice, absl::string_view arg_name) {
+  RETURN_IF_ERROR(ExpectPresentScalar(arg_name, slice, schema::kInt64));
+  // ExpectPresentScalar only checks that item is castable to int64_t
+  if (slice.item().holds_value<int64_t>()) {
+    return slice.item().value<int64_t>();
+  } else {
+    return slice.item().value<int>();
+  }
 }
 
 DataSlice AsMask(bool b) {

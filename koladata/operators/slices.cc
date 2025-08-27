@@ -1060,9 +1060,34 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
   return res.WithBag(expanded_values_from.GetBag());
 }
 
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& x) {
-  ASSIGN_OR_RETURN(auto repr,
-                   DataSliceToStr(x, ReprOption{.show_attributes = true}));
+absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
+                                  const DataSlice& item_limit,
+                                  const DataSlice& item_limit_per_dimension) {
+  ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
+  if (depth_int < 0) {
+    return absl::InvalidArgumentError("depth parameter must be non-negative");
+  }
+  ASSIGN_OR_RETURN(int64_t item_limit_int,
+                   GetIntegerArgument(item_limit, "item_limit"));
+  if (item_limit_int < 0) {
+    return absl::InvalidArgumentError(
+        "item_limit parameter must be non-negative");
+  }
+  ASSIGN_OR_RETURN(
+      int64_t item_limit_per_dimension_in,
+      GetIntegerArgument(item_limit_per_dimension, "item_limit_per_dimension"));
+  if (item_limit_per_dimension_in < 0) {
+    return absl::InvalidArgumentError(
+        "item_limit_per_dimension parameter must be non-negative");
+  }
+  ASSIGN_OR_RETURN(
+      auto repr, DataSliceToStr(x, ReprOption{
+                                       .depth = depth_int,
+                                       .item_limit = size_t(item_limit_int),
+                                       .item_limit_per_dimension =
+                                           size_t(item_limit_per_dimension_in),
+                                       .show_attributes = true,
+                                   }));
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));
 }

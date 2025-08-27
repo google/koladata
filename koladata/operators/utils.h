@@ -15,6 +15,7 @@
 #ifndef KOLADATA_OPERATORS_UTILS_H_
 #define KOLADATA_OPERATORS_UTILS_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -54,6 +55,10 @@ absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,
 // DataItem.
 absl::StatusOr<absl::string_view> GetStringArgument(const DataSlice& slice,
                                                     absl::string_view arg_name);
+
+// Returns the value of an expected scalar integer argument as int64_t.
+absl::StatusOr<int64_t> GetIntegerArgument(const DataSlice& slice,
+                                           absl::string_view arg_name);
 
 // Returns a present DataItem if b is true, otherwise missing.
 DataSlice AsMask(bool b);

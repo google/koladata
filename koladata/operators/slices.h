@@ -57,7 +57,9 @@ absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
                                       const DataSlice& schema);
 
 // kd.slices.get_repr.
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& x);
+absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
+                                  const DataSlice& item_limit,
+                                  const DataSlice& item_limit_per_dimension);
 
 // kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(

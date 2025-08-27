@@ -2132,7 +2132,7 @@ def str_(x):
         qtype_utils.expect_data_slice(P.x),
     ],
 )
-def get_repr(x):
+def get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25):  # pylint: disable=unused-argument
   """Returns a string representation of the DataSlice `x`."""
   raise NotImplementedError('implemented in the backend')
 

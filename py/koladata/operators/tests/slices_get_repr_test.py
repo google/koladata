@@ -77,6 +77,23 @@ class SlicesGetReprTest(parameterized.TestCase):
     res = eval_op('kd.slices.get_repr', x)
     testing.assert_equal(res, expected)
 
+  def test_depth(self):
+    res = eval_op('kd.slices.get_repr', db.obj(a=db.obj(a=1), b='foo'), depth=1)
+    self.assertRegex(res.to_py(), r"Obj\(a=\$.{22}, b='foo'\)")
+
+  def test_item_limit(self):
+    res = eval_op('kd.slices.get_repr', ds([1, 2]), item_limit=1)
+    testing.assert_equal(res, ds('[1, ...]'))
+
+  def test_item_limit_per_dimension(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds([[1, 2, 3], [4, 5, 6]]),
+        item_limit=3,
+        item_limit_per_dimension=2,
+    )
+    testing.assert_equal(res, ds('[[1, 2, ...], [4, ...]]'))
+
   @parameterized.named_parameters(
       # Dict order is not deterministic.
       (
