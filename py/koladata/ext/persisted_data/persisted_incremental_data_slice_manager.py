@@ -618,6 +618,21 @@ class PersistedIncrementalDataSliceManager(
         existing_bag_names.extend(new_bag_names)
     self._persist_schema_node_name_to_bag_names()
 
+  def clear_cache(self):
+    """Clears the internal cache with loaded data of the managed DataSlice.
+
+    Calling this method will typically reduce the memory footprint, unless the
+    data is still referenced in your code (for example, when the result of an
+    earlier call to get_data_slice(...) is still stored in a variable
+    somewhere).
+
+    Calling this method will not affect the functional behavior of this manager.
+    For example, the result of get_schema() will remain unchanged, and calling
+    get_data_slice(...) will simply load the data again and return the same
+    result as before.
+    """
+    self._bag_manager.clear_cache()
+
   def _get_root_filepath(self) -> str:
     return os.path.join(self._persistence_dir, 'root.kd')
 

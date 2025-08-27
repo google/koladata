@@ -22,11 +22,16 @@ from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
+from koladata.ext.persisted_data import persisted_incremental_data_bag_manager
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
 from koladata.ext.persisted_data import simple_in_memory_data_slice_manager
 from koladata.ext.persisted_data import test_only_schema_node_name_helper
 
+
+PersistedIncrementalDataBagManager = (
+    persisted_incremental_data_bag_manager.PersistedIncrementalDataBagManager
+)
 
 parse_dsp = data_slice_path_lib.DataSlicePath.parse_from_string
 GetAttr = data_slice_path_lib.GetAttr
@@ -2185,9 +2190,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # anything in the main dataslice.
     unrelated_schema = kd.with_metadata(
         unrelated_schema,
-        covert_query_data_update=query_data[:].with_attrs(
-            query_id=kd.slice([100, 200])
-        ).implode(),
+        covert_query_data_update=query_data[:]
+        .with_attrs(query_id=kd.slice([100, 200]))
+        .implode(),
     )
 
     # The manager would receive this update to the main dataslice, and inspect
@@ -3342,6 +3347,93 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           ).__doc__,
           getattr(PersistedIncrementalDataSliceManager, method_name).__doc__,
       )
+
+  def test_clear_cache(self):
+    query_data = kd.list([
+        kd.named_schema('query').new(
+            query_id=0,
+            text='How tall is Obama',
+            doc=kd.list([
+                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+            ]),
+        ),
+    ])
+
+    persisted_data_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager(persisted_data_dir)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=query_data,
+    )
+    kd.testing.assert_deep_equivalent(
+        get_loaded_root_dataslice(manager), kd.new(query=query_data)
+    )
+
+    manager.clear_cache()
+
+    # The data is not loaded anymore.
+    kd.testing.assert_deep_equivalent(
+        get_loaded_root_dataslice(manager), kd.new()
+    )
+    # The schema is still loaded.
+    kd.testing.assert_deep_equivalent(
+        manager.get_schema(),
+        kd.schema.new_schema(query=query_data.get_schema()),
+    )
+
+    # The data can be loaded again.
+    kd.testing.assert_deep_equivalent(
+        manager.get_data_slice(
+            populate_including_descendants={parse_dsp('.query')}
+        ),
+        kd.new(query=query_data),
+    )
+    kd.testing.assert_deep_equivalent(
+        get_loaded_root_dataslice(manager), kd.new(query=query_data)
+    )
+
+    manager.clear_cache()
+
+    def assert_bag_managers_have_equivalent_state(
+        bm1: PersistedIncrementalDataBagManager,
+        bm2: PersistedIncrementalDataBagManager,
+    ):
+      for attr_name in bm1.__dict__:
+        bm1_attr = getattr(bm1, attr_name)
+        bm2_attr = getattr(bm2, attr_name)
+        if attr_name == '_loaded_bags_cache':
+          self.assertEqual(bm1_attr.keys(), bm2_attr.keys())
+          for key in bm1_attr.keys():
+            kd.testing.assert_equivalent(bm1_attr[key], bm2_attr[key])
+          continue
+        if isinstance(bm1_attr, kd.types.DataSlice):
+          kd.testing.assert_equivalent(bm1_attr, bm2_attr)
+          continue
+        self.assertEqual(bm1_attr, bm2_attr)
+
+    # After clearing the cache, the state of the manager is the same as that of
+    # a new manager instance with the same persistence_dir.
+    new_manager = PersistedIncrementalDataSliceManager(
+        persisted_data_dir, fs=manager._fs
+    )
+    for attr_name in manager.__dict__:
+      manager_attr = getattr(manager, attr_name)
+      new_manager_attr = getattr(new_manager, attr_name)
+      if isinstance(manager_attr, kd.types.DataSlice):
+        kd.testing.assert_deep_equivalent(manager_attr, new_manager_attr)
+        continue
+      if isinstance(manager_attr, PersistedIncrementalDataBagManager):
+        assert_bag_managers_have_equivalent_state(
+            manager_attr, new_manager_attr
+        )
+        continue
+      if attr_name == '_schema_helper':
+        kd.testing.assert_deep_equivalent(
+            manager_attr._schema, new_manager_attr._schema
+        )
+        continue
+      self.assertEqual(manager_attr, new_manager_attr)
 
 
 if __name__ == '__main__':
