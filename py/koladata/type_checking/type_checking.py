@@ -474,12 +474,16 @@ def _verify_input_eager(
     key: str, arg: data_slice.DataSlice, constraint: schema_item.SchemaItem
 ):
   """Verifies the type of input in eager mode."""
+  if isinstance(constraint, _StaticWhenTraced):
+    constraint = constraint.base_type
+
+  if constraint is None:
+    return
+
   if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
     # Boxing is needed to support Python arguments.
     arg = py_boxing.as_qvalue(arg)
 
-  if isinstance(constraint, _StaticWhenTraced):
-    constraint = constraint.base_type
   _verify_constraint_eager(constraint, arg.get_schema(), key)
 
 

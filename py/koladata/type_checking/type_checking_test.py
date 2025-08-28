@@ -444,14 +444,14 @@ class TypeCheckingTest(parameterized.TestCase):
       ('base_type', kd.BOOLEAN),
       ('no_base_type', None),
   )
-  def test_check_inputs_eager_constant_when_tracing(self, base_type):
+  def test_check_inputs_eager_static_when_tracing(self, base_type):
     @type_checking.check_inputs(x=kd.static_when_tracing(base_type))
     def f(x):
       return x
 
     testing.assert_equal(ds(True), f(ds(True)))  # Assert does not raise.
 
-  def test_check_inputs_eager_constant_when_tracing_type_error(self):
+  def test_check_inputs_eager_static_when_tracing_type_error(self):
     @type_checking.check_inputs(x=kd.static_when_tracing(kd.INT32))
     def f(x):
       return x
@@ -720,7 +720,7 @@ class TypeCheckingTest(parameterized.TestCase):
       _ = fn(ds([1]))  # Does not raise.
 
   @parameterized.named_parameters(('boolean', kd.BOOLEAN), ('none', None))
-  def test_check_inputs_traced_boolean_constant_when_tracing(self, base_type):
+  def test_check_inputs_traced_boolean_static_when_tracing(self, base_type):
     @type_checking.check_inputs(pick_a=kd.static_when_tracing(base_type))
     def choose(pick_a=True):
       if pick_a:
@@ -734,7 +734,7 @@ class TypeCheckingTest(parameterized.TestCase):
     # Assert does not raise.
     _ = kdf.fn(f)
 
-  def test_check_inputs_traced_int_constant_when_tracing(self):
+  def test_check_inputs_traced_int_static_when_tracing(self):
     @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
     def choose(value):
       if value > 0:
@@ -748,11 +748,22 @@ class TypeCheckingTest(parameterized.TestCase):
     # Assert does not raise.
     _ = kdf.fn(f)
 
+  def test_check_inputs_static_when_tracing_unboxable_type(self):
+    @type_checking.check_inputs(values=kd.static_when_tracing())
+    def len_constant(values: list[int]):
+      return ds(len(values))
+
+    # List is not boxable, but for kd.static_when_tracing(None) it is ok.
+    testing.assert_equal(len_constant([1, 2, 3]), ds(3))
+
+    f = kdf.fn(lambda: len_constant([1, 2, 3]))
+    testing.assert_equal(f(), ds(3))
+
   @parameterized.named_parameters(
       ('base_type', kd.BOOLEAN),
       ('no_base_type', None),
   )
-  def test_check_inputs_traced_constant_when_tracing_raises(self, base_type):
+  def test_check_inputs_traced_static_when_tracing_raises(self, base_type):
     @type_checking.check_inputs(pick_a=kd.static_when_tracing(base_type))
     def choose(pick_a=True):
       if pick_a:
@@ -770,7 +781,7 @@ class TypeCheckingTest(parameterized.TestCase):
     ):
       _ = kdf.fn(f)
 
-  def test_check_inputs_traced_int_constant_when_tracing_raises(self):
+  def test_check_inputs_traced_int_static_when_tracing_raises(self):
     @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
     def choose(value):
       if value > 0:
