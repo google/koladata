@@ -34,5 +34,11 @@ message DataBagMetadata {
   repeated string dependencies = 2;
 
   // The filename of the serialized bag. Always set.
+  // Example: 'bag-000000000001.kd'. The filename refers to a file that is in
+  // the directory specified by the `directory` field below.
   string filename = 3;
+
+  // Optional. The directory in which the bag is stored. If not set, then it is
+  // assumed to be the persistence directory of the manager.
+  string directory = 4;
 }

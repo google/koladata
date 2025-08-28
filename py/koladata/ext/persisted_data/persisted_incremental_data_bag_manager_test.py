@@ -575,6 +575,48 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           ],
       )
 
+    with self.subTest('create_branch'):
+      persistence_dir = self.create_tempdir().full_path
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir,
+      )
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
+
+      original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=original_fs
+      )
+      original_fs.reset_mock()
+
+      output_dir = self.create_tempdir().full_path
+      output_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      manager.create_branch(
+          bag_names=['bag1'], output_dir=output_dir, fs=output_fs
+      )
+
+      self.assertEmpty(original_fs.method_calls)  # No bags are copied/read.
+
+      output_fs_method_names_called = [c[0] for c in output_fs.method_calls]
+      output_fs_method_calls_arg_0 = [c[1][0] for c in output_fs.method_calls]
+      # All the calls to the output_fs are for the output_dir:
+      self.assertEqual(
+          [
+              arg0.startswith(output_dir)
+              for arg0 in output_fs_method_calls_arg_0
+          ],
+          [True] * len(output_fs.method_calls),
+      )
+      self.assertEqual(
+          output_fs_method_names_called,
+          [
+              # For nice error messages, `manager` does the following:
+              'exists',  # Check if output_dir exists. It does.
+              'glob',  # Check if output_dir is empty. It is.
+              # The implementation goes ahead and writes the new metadata file:
+              'open',  # To write the metadata.
+          ],
+      )
+
   def test_load_bags_with_wrong_name(self):
     persistence_dir = self.create_tempdir().full_path
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
@@ -880,6 +922,190 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         kd.testing.assert_equivalent(manager_attr, new_manager_attr)
         continue
       self.assertEqual(manager_attr, new_manager_attr)
+
+  def test_create_branch(self):
+    entity = kd.new()
+
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = pidbm.PersistedIncrementalDataBagManager(trunk_dir)
+    trunk_manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='trunk1', bag=kd.attrs(entity, a=1), dependencies=('',)
+        ),
+        pidbm.BagToAdd(
+            bag_name='trunk2',
+            bag=kd.attrs(entity, a=2),
+            dependencies=('trunk1',),
+        ),
+        pidbm.BagToAdd(
+            bag_name='trunk3',
+            bag=kd.attrs(entity, a=3),
+            dependencies=('trunk2',),
+        ),
+    ])
+    ls_trunk_dir_before_branch = os.listdir(trunk_dir)
+
+    branch_dir = self.create_tempdir().full_path
+    trunk_manager.create_branch(
+        bag_names=['trunk2'], with_all_dependents=True, output_dir=branch_dir
+    )
+    # Only the metadata file is created. No bag files are copied.
+    self.assertEqual(os.listdir(branch_dir), ['metadata.pb'])
+    branch_manager = pidbm.PersistedIncrementalDataBagManager(branch_dir)
+    self.assertEqual(
+        branch_manager.get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3'},
+    )
+    branch_manager.load_bags(branch_manager.get_available_bag_names())
+    kd.testing.assert_equivalent(
+        branch_manager.get_loaded_bag(),
+        trunk_manager.get_loaded_bag(),
+    )
+
+    # Changes to the branch are not reflected in the trunk.
+    branch_manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='branch1',
+            bag=kd.attrs(entity, a=4),
+            dependencies=('trunk2',),
+        ),
+    ])
+    self.assertEqual(
+        branch_manager.get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3', 'branch1'},
+    )
+    self.assertEqual(
+        trunk_manager.get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3'},  # branch1 is not available
+    )
+    self.assertEqual(
+        pidbm.PersistedIncrementalDataBagManager(
+            trunk_dir
+        ).get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3'},  # branch1 is not available
+    )
+    self.assertEqual(os.listdir(trunk_dir), ls_trunk_dir_before_branch)
+    ls_branch_dir_before_trunk_changes = os.listdir(branch_dir)
+
+    # Changes to the trunk are not reflected in the branch.
+    trunk_manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='trunk4',
+            bag=kd.attrs(entity, a=5),
+            dependencies=('trunk3',),
+        ),
+    ])
+    self.assertEqual(
+        trunk_manager.get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3', 'trunk4'},
+    )
+    self.assertEqual(
+        branch_manager.get_available_bag_names(),
+        {
+            '',
+            'trunk1',
+            'trunk2',
+            'trunk3',
+            'branch1',
+        },  # trunk4 is not available
+    )
+    self.assertEqual(
+        pidbm.PersistedIncrementalDataBagManager(
+            branch_dir
+        ).get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'trunk3', 'branch1'},
+    )
+    self.assertEqual(os.listdir(branch_dir), ls_branch_dir_before_trunk_changes)
+
+    # Branches can be re-branched. Modifications to them do not affect their
+    # ancestors in the branching tree.
+    ls_trunk_dir_before_twig = os.listdir(trunk_dir)
+    ls_branch_dir_before_twig = os.listdir(branch_dir)
+    twig_dir = os.path.join(self.create_tempdir().full_path, 'twig')
+    branch_manager.create_branch(
+        bag_names=['branch1'], output_dir=twig_dir, fs=branch_manager._fs
+    )
+    self.assertEqual(os.listdir(twig_dir), ['metadata.pb'])
+    twig_manager = pidbm.PersistedIncrementalDataBagManager(twig_dir)
+    self.assertEqual(
+        twig_manager.get_available_bag_names(),
+        # trunk3 is not included because it is not a dependency of branch1, and
+        # we did not request with_all_dependents=True when creating the twig.
+        {'', 'trunk1', 'trunk2', 'branch1'},
+    )
+    kd.testing.assert_equivalent(
+        twig_manager.get_minimal_bag(
+            {''}, with_all_dependents=True
+        ).merge_fallbacks(),
+        kd.attrs(entity, a=4),
+    )
+    twig_manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='twig1',
+            bag=kd.attrs(entity, a=6),
+            dependencies=('trunk2',),
+        ),
+    ])
+    self.assertEqual(
+        twig_manager.get_available_bag_names(),
+        {'', 'trunk1', 'trunk2', 'branch1', 'twig1'},
+    )
+    self.assertEqual(os.listdir(trunk_dir), ls_trunk_dir_before_twig)
+    self.assertEqual(os.listdir(branch_dir), ls_branch_dir_before_twig)
+
+    # Test that the default value of the with_all_dependents argument is False.
+    another_branch_dir = self.create_tempdir().full_path
+    trunk_manager.create_branch(
+        bag_names=['trunk1'], output_dir=another_branch_dir
+    )
+    another_branch_manager = pidbm.PersistedIncrementalDataBagManager(
+        another_branch_dir
+    )
+    self.assertEqual(
+        another_branch_manager.get_available_bag_names(),
+        {'', 'trunk1'},  # trunk2 and trunk3 are not available
+    )
+
+  def test_create_branch_with_invalid_bag_names(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'bag_names must be a subset of get_available_bag_names(). The'
+            " following bags are not available: ['bar', 'foo']"
+        ),
+    ):
+      manager.create_branch(
+          bag_names=['foo', 'bar'], output_dir=self.create_tempdir().full_path
+      )
+
+    manager.add_bags([
+        pidbm.BagToAdd(bag_name='foo', bag=kd.bag(), dependencies=('',)),
+        pidbm.BagToAdd(bag_name='bar', bag=kd.bag(), dependencies=('foo',)),
+    ])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'bag_names must be a subset of get_available_bag_names(). The'
+            " following bags are not available: ['baz']"
+        ),
+    ):
+      manager.create_branch(
+          bag_names=['foo', 'baz'], output_dir=self.create_tempdir().full_path
+      )
+
+  def test_create_branch_with_non_empty_output_dir(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    tempdir = self.create_tempdir()
+    tempdir.create_file()  # Non-empty.
+    output_dir = tempdir.full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        'The output_dir must be empty or not exist yet.',
+    ):
+      manager.create_branch(bag_names=[''], output_dir=output_dir)
 
 
 if __name__ == '__main__':

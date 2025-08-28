@@ -71,10 +71,11 @@ class PersistedIncrementalDataBagManager:
   interdependencies. It also handles the persistence of the smaller bags along
   with some metadata to facilitate the later consumption of the data and also
   its further augmentation. The persistence uses a filesystem directory, which
-  is hermetic in the sense that it can be moved or copied. The persistence
-  directory is consistent after each public operation of this class, provided
-  that it is not modified externally and that there is sufficient space to
-  accommodate the writes.
+  is hermetic in the sense that it can be moved or copied (although doing so
+  will break branches if any exist - see the docstring of create_branch()). The
+  persistence directory is consistent after each public operation of this class,
+  provided that it is not modified externally and that there is sufficient space
+  to accommodate the writes.
 
   This class is not thread-safe. However, in the absence of writes, i.e. calls
   to add_bags(), multiple instances of this class can concurrently read from the
@@ -288,6 +289,67 @@ class PersistedIncrementalDataBagManager:
     ]
     new_manager.add_bags(bags_to_add)
 
+  def create_branch(
+      self,
+      bag_names: Collection[str],
+      *,
+      with_all_dependents: bool = False,
+      output_dir: str,
+      fs: fs_interface.FileSystemInterface | None = None,
+  ):
+    """Creates a branch of the current manager in a new persistence directory.
+
+    This function is very similar to extract_bags(), but it does not copy any of
+    the bags. Instead, it will simply point to the original files. A manager
+    for output_dir will therefore depend on the persistence directory of the
+    current manager, which should not be moved or deleted as long as output_dir
+    is used. After this function returns, the current manager and its branch
+    are independent: adding bags to the current manager will not affect the
+    branch, and similarly the branch won't affect the current manager.
+
+    To create a branch with all the bags managed by this manager, you can call
+    this function with the arguments bag_names=[''], with_all_dependents=True.
+
+    Args:
+      bag_names: The names of the bags that must be included in the branch. They
+        must be a non-empty subset of get_available_bag_names(). The branch will
+        also include their transitive dependencies.
+      with_all_dependents: If True, then the branch will also include all the
+        dependents of bag_names. The dependents are computed transitively. All
+        the transitive dependencies of the dependents will also be included in
+        the branch.
+      output_dir: The directory in which the branch will be created. It must
+        either be empty or not exist yet.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance.
+    """
+    bags_to_branch = self._get_dependency_closure(
+        bag_names, with_all_dependents=with_all_dependents
+    )
+    fs = fs or fs_util.get_default_file_system_interaction()
+    if not fs.exists(output_dir):
+      fs.make_dirs(output_dir)
+    if fs.glob(os.path.join(output_dir, '*')):
+      raise ValueError(
+          f'The output_dir must be empty or not exist yet. Got {output_dir}'
+      )
+
+    branch_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
+    branch_metadata.version = self._metadata.version
+    # The branch will be consistent with the total order of the bags in the
+    # current manager, i.e. the order in which the bags were added.
+    for bag_metadata in self._metadata.data_bag_metadata:
+      if bag_metadata.name not in bags_to_branch:
+        continue
+      branch_bag_metadata = metadata_pb2.DataBagMetadata()
+      branch_bag_metadata.CopyFrom(bag_metadata)
+      if not branch_bag_metadata.HasField('directory'):
+        branch_bag_metadata.directory = self._persistence_dir
+      branch_metadata.data_bag_metadata.append(branch_bag_metadata)
+
+    with fs.open(self._get_metadata_filepath(output_dir), 'wb') as f:
+      f.write(branch_metadata.SerializeToString())
+
   def clear_cache(self):
     """Clears the cache of loaded bags.
 
@@ -319,19 +381,8 @@ class PersistedIncrementalDataBagManager:
           bags_to_load, with_all_dependents=with_all_dependents
       )
     """
-    # bag_names must be a collection of strings, not a single string that is
-    # interpreted as a collection of character strings:
-    assert not isinstance(bag_names, (str, bytes))
-    bags_to_load = set(bag_names)
-    unknown_bags = bags_to_load - self.get_available_bag_names()
-    if unknown_bags:
-      raise ValueError(
-          'bag_names must be a subset of get_available_bag_names(). The'
-          f' following bags are not available: {sorted(unknown_bags)}'
-      )
-
     bags_to_load = self._get_dependency_closure(
-        bags_to_load, with_all_dependents=with_all_dependents
+        bag_names, with_all_dependents=with_all_dependents
     )
     self._load_bags_into_cache(bags_to_load)
     return bags_to_load
@@ -409,9 +460,33 @@ class PersistedIncrementalDataBagManager:
     return kd.bags.updated(*bags)
 
   def _get_dependency_closure(
-      self, bag_names: AbstractSet[str], *, with_all_dependents: bool
+      self, bag_names: Collection[str], *, with_all_dependents: bool
   ) -> AbstractSet[str]:
+    """Returns the specified bags and all their transitive dependencies.
+
+    Args:
+      bag_names: The names of the bags that should be included in the closure.
+        It must be a subset of get_available_bag_names(). All their transitive
+        dependencies will also be included in the closure.
+      with_all_dependents: If True, then all the dependents of bag_names will
+        also be included in the closure. The dependents are computed
+        transitively. All transitive dependencies of the dependents will also be
+        included in the closure.
+
+    Returns:
+      The names of the bags in the minimal closure specified by the arguments.
+    """
+    # bag_names must be a collection of strings, not a single string that is
+    # interpreted as a collection of character strings:
+    assert not isinstance(bag_names, (str, bytes))
     bags_to_consider = set(bag_names)
+    unknown_bags = bags_to_consider - self.get_available_bag_names()
+    if unknown_bags:
+      raise ValueError(
+          'bag_names must be a subset of get_available_bag_names(). The'
+          f' following bags are not available: {sorted(unknown_bags)}'
+      )
+
     if with_all_dependents:
       bags_to_consider.update(
           self._get_reflexive_and_transitive_closure_image(
@@ -557,12 +632,13 @@ class PersistedIncrementalDataBagManager:
     )
 
   def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
-    bag_filename = next(
-        m.filename
-        for m in self._metadata.data_bag_metadata
-        if m.name == bag_name
+    bag_metadata = next(
+        m for m in self._metadata.data_bag_metadata if m.name == bag_name
     )
-    bag_filepath = self._get_bag_filepath_from_filename(bag_filename)
+    if bag_metadata.HasField('directory'):
+      bag_filepath = os.path.join(bag_metadata.directory, bag_metadata.filename)
+    else:
+      bag_filepath = self._get_bag_filepath_from_filename(bag_metadata.filename)
     return fs_util.read_bag_from_file(self._fs, bag_filepath)
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
@@ -580,5 +656,5 @@ class PersistedIncrementalDataBagManager:
           f.read()
       )
 
-  def _get_metadata_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'metadata.pb')
+  def _get_metadata_filepath(self, persistence_dir: str | None = None) -> str:
+    return os.path.join(persistence_dir or self._persistence_dir, 'metadata.pb')
