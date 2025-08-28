@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "arolla/qexpr/operators/math/arithmetic.h"
+#include "arolla/qexpr/operators/math/math.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "koladata/arolla_utils.h"
@@ -37,6 +38,8 @@
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/binary_op.h"
+#include "koladata/operators/unary_op.h"
+#include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -51,31 +54,6 @@ namespace {
     return st;                           \
   }
 
-struct NumericArgs {
-  template <class T1, class T2 = int>
-  constexpr static bool kIsInvocable =
-      std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> &&
-      !std::is_same_v<T1, bool> && !std::is_same_v<T2, bool>;
-
-  explicit constexpr NumericArgs(absl::string_view name1,
-                                 absl::string_view name2 = "")
-      : name1(name1), name2(name2) {}
-
-  // Note: this function is not guaranteed to be called. It is NOT called if
-  // kIsInvocable is true, shapes are compatible, and output type is
-  // deducible. It's goal is not to detect error, but to format a custom error
-  // message. If it returns Ok, a default error handling will be applied.
-  absl::Status CheckArgs(const DataSlice& x) const {
-    return ExpectNumeric(name1, x);
-  }
-  absl::Status CheckArgs(const DataSlice& x, const DataSlice& y) const {
-    KD_RETURN_AS_IS_IF_ERROR(ExpectNumeric(name1, x));
-    return ExpectNumeric(name2, y);
-  }
-
-  const absl::string_view name1, name2;
-};
-
 struct AddableArgs {
   template <class T1, class T2>
   constexpr static bool kIsInvocable =
@@ -87,10 +65,10 @@ struct AddableArgs {
                                  absl::string_view name2)
       : name1(name1), name2(name2) {}
 
-  absl::Status CheckArgs(const DataSlice& x, const DataSlice& y) const {
-    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeAdded(name1, x));
-    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeAdded(name2, y));
-    return ExpectHaveCommonPrimitiveSchema({name1, name2}, x, y);
+  absl::Status CheckArgs(const DataSlice& ds1, const DataSlice& ds2) const {
+    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeAdded(name1, ds1));
+    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeAdded(name2, ds2));
+    return ExpectHaveCommonPrimitiveSchema({name1, name2}, ds1, ds2);
   }
 
   const absl::string_view name1, name2;
@@ -126,15 +104,17 @@ struct AddOp {
     }
   }
 
-  arolla::Text operator()(const arolla::Text& lhs, const arolla::Text& rhs) {
+  arolla::Text operator()(const arolla::Text& lhs,
+                          const arolla::Text& rhs) const {
     return arolla::Text(absl::StrCat(lhs.view(), rhs.view()));
   }
-  arolla::Bytes operator()(const arolla::Bytes& lhs, const arolla::Bytes& rhs) {
+  arolla::Bytes operator()(const arolla::Bytes& lhs,
+                           const arolla::Bytes& rhs) const {
     return absl::StrCat(lhs, rhs);
   }
 
   // Used in batch mode for both Text and Bytes.
-  std::string operator()(absl::string_view lhs, absl::string_view rhs) {
+  std::string operator()(absl::string_view lhs, absl::string_view rhs) const {
     return absl::StrCat(lhs, rhs);
   }
 };
@@ -159,6 +139,39 @@ struct PowOp {
   double operator()(double a, double b) const { return std::pow(a, b); }
 };
 
+struct ExpOp {
+  float operator()(int32_t x) const {
+    return arolla::ExpOp{}(static_cast<float>(x));
+  }
+  float operator()(int64_t x) const {
+    return arolla::ExpOp{}(static_cast<float>(x));
+  }
+  float operator()(float x) const { return arolla::ExpOp{}(x); }
+  double operator()(double x) const { return arolla::ExpOp{}(x); }
+};
+
+struct LogOp {
+  float operator()(int32_t x) const {
+    return arolla::LogOp{}(static_cast<float>(x));
+  }
+  float operator()(int64_t x) const {
+    return arolla::LogOp{}(static_cast<float>(x));
+  }
+  float operator()(float x) const { return arolla::LogOp{}(x); }
+  double operator()(double x) const { return arolla::LogOp{}(x); }
+};
+
+struct Log10Op {
+  float operator()(int32_t x) const {
+    return std::log10(static_cast<float>(x));
+  }
+  float operator()(int64_t x) const {
+    return std::log10(static_cast<float>(x));
+  }
+  float operator()(float x) const { return std::log10(x); }
+  double operator()(double x) const { return std::log10(x); }
+};
+
 }  // namespace
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
@@ -179,13 +192,11 @@ absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y) {
 }
 
 absl::StatusOr<DataSlice> Log(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.log", {x});
+  return UnaryOpEval<LogOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Log10(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.log10", {x});
+  return UnaryOpEval<Log10Op>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Sigmoid(
@@ -199,49 +210,39 @@ absl::StatusOr<DataSlice> Sigmoid(
 }
 
 absl::StatusOr<DataSlice> Exp(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.exp", {x});
+  return UnaryOpEval<ExpOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> IsNaN(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval(
-      "math.is_nan", {x}, /*output_schema=*/internal::DataItem(schema::kMask));
+  return UnaryOpEval<arolla::IsNanOp>(x, NumericArgs("x"), schema::kMask);
 }
 
 absl::StatusOr<DataSlice> Abs(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.abs", {x});
+  return UnaryOpEval<arolla::AbsOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Neg(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.neg", {x});
+  return UnaryOpEval<arolla::NegOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Sign(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.sign", {x});
+  return UnaryOpEval<arolla::SignOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Pos(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.pos", {x});
+  return UnaryOpEval<arolla::PosOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Ceil(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.ceil", {x});
+  return UnaryOpEval<arolla::CeilOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Floor(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.floor", {x});
+  return UnaryOpEval<arolla::FloorOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Round(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x));
-  return SimplePointwiseEval("math.round", {x});
+  return UnaryOpEval<arolla::RoundOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y) {

@@ -123,6 +123,7 @@ cc_library(
         "shapes.h",
         "slices.h",
         "strings.h",
+        "unary_op.h",
         "utils.h",
     ],
     deps = [
@@ -133,7 +134,6 @@ cc_library(
         "//koladata:data_slice_qtype",
         "//koladata:jagged_shape_qtype",
         "//koladata:object_factories",
-        "//koladata:pointwise_utils",
         "//koladata:subslice_utils",
         "//koladata:uuid_utils",
         "//koladata/internal:casting",
@@ -195,6 +195,7 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/pwlcurve",
         "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qexpr/operators/bitwise:lib",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qexpr/operators/math:lib",
         "@com_google_arolla//arolla/qtype",
@@ -398,7 +399,23 @@ cc_test(
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "unary_op_test",
+    srcs = ["unary_op_test.cc"],
+    deps = [
+        ":lib",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -40,6 +40,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -113,36 +114,6 @@ template <class Fn, class T1, class T2>
 static constexpr bool FnReturnsStatus =
     arolla::IsStatusOrT<decltype(CastingAdapter<Fn>{}(
         std::declval<T1>(), std::declval<T2>()))>::value;
-
-template <class T>
-absl::Status CheckType(const internal::DataItem& item) {
-  if (item.has_value() && !item.holds_value<T>()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("value doesn't match schema; expected %s, got %s",
-                        arolla::GetQType<T>()->name(), item.dtype()->name()));
-  }
-  return absl::OkStatus();
-}
-
-template <class T>
-absl::Status CheckType(const internal::DataSliceImpl& slice) {
-  if (!slice.is_empty_and_unknown() && slice.dtype() != arolla::GetQType<T>()) {
-    if (slice.is_mixed_dtype()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "value doesn't match schema; expected %s, got mixed slice",
-          arolla::GetQType<T>()->name()));
-    }
-    return absl::InvalidArgumentError(
-        absl::StrFormat("value doesn't match schema; expected %s, got %s",
-                        arolla::GetQType<T>()->name(), slice.dtype()->name()));
-  }
-  return absl::OkStatus();
-}
-
-template <class T>
-absl::Status CheckType(const DataSlice& slice) {
-  return slice.VisitImpl([](const auto& imp) { return CheckType<T>(imp); });
-}
 
 template <class Fn, class T1, class T2>
 std::conditional_t<FnReturnsStatus<Fn, T1, T2>,
@@ -395,7 +366,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
         if (type1 != arolla::GetQType<T1>()) {
           return;
         }
-        if (absl::Status st = binary_op_impl::CheckType<T1>(in1); !st.ok()) {
+        if (absl::Status st = CheckType<T1>(in1); !st.ok()) {
           res = st;
           return;
         }
@@ -405,8 +376,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
               if (type2 != arolla::GetQType<T2>()) {
                 return;
               }
-              if (absl::Status st = binary_op_impl::CheckType<T2>(in2);
-                  !st.ok()) {
+              if (absl::Status st = CheckType<T2>(in2); !st.ok()) {
                 res = st;
                 return;
               }

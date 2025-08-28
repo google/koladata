@@ -153,7 +153,6 @@ class MathAbsTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_errors(self):
-    x = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -161,7 +160,16 @@ class MathAbsTest(parameterized.TestCase):
             ' a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.math.abs(I.x), x=x)
+      expr_eval.eval(kde.math.abs(I.x), x=ds(['1', '2', '3']))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.math.abs: argument `x` must be a slice of numeric values, got'
+            ' a slice of BOOLEAN'
+        ),
+    ):
+      expr_eval.eval(kde.math.abs(I.x), x=ds([True, False, True]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

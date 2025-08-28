@@ -43,9 +43,6 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
-#include "arolla/util/meta.h"
-#include "arolla/util/repr.h"
-#include "arolla/util/string.h"
 #include "arolla/util/text.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -55,8 +52,8 @@
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/unary_op.h"
 #include "koladata/operators/utils.h"
-#include "koladata/pointwise_utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -150,6 +147,58 @@ class FormatOperator : public arolla::QExprOperator {
   }
 };
 
+template <bool MissingIfInvalid>
+struct DecodeBase64Op {
+  using Out =
+      std::conditional_t<MissingIfInvalid, arolla::OptionalValue<arolla::Bytes>,
+                         absl::StatusOr<arolla::Bytes>>;
+
+  Out operator()(absl::string_view x) const {
+    std::string dst;
+    if (!absl::Base64Unescape(x, &dst)) {
+      if constexpr (MissingIfInvalid) {
+        return std::nullopt;
+      } else {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("invalid base64 string: %s", x.substr(0, 200)));
+      }
+    }
+    return dst;
+  }
+
+  Out operator()(const arolla::Text& x) const { return (*this)(x.view()); }
+  Out operator()(const arolla::Bytes& x) const {
+    return (*this)(absl::string_view(x));
+  }
+
+  template <class T>
+  static constexpr bool kIsInvocable =
+      std::is_same_v<T, arolla::Bytes> || std::is_same_v<T, arolla::Text>;
+
+  absl::Status CheckArgs(const DataSlice& x) const {
+    return ExpectConsistentStringOrBytes("x", x);
+  };
+};
+
+struct EncodeBase64Op {
+  arolla::Text operator()(absl::string_view x) const {
+    std::string dst;
+    absl::Base64Escape(x, &dst);
+    return arolla::Text(std::move(dst));
+  }
+
+  arolla::Text operator()(const arolla::Bytes& x) const {
+    return (*this)(absl::string_view(x));
+  }
+
+  template <class T>
+  static constexpr bool kIsInvocable = std::is_same_v<T, arolla::Bytes>;
+
+  absl::Status CheckArgs(const DataSlice& x) const {
+    return ExpectBytes("x", x);
+  };
+};
+
 }  // namespace
 
 absl::StatusOr<arolla::OperatorPtr> FormatOperatorFamily::DoGetOperator(
@@ -187,49 +236,17 @@ absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
 
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
                                        bool missing_if_invalid) {
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x));
-  return ApplyUnaryPointwiseFn(
-      x,
-      [&]<typename T>(arolla::meta::type<T>, const auto& value_view)
-          -> absl::StatusOr<arolla::OptionalValue<arolla::Bytes>> {
-        if constexpr (std::is_same_v<T, arolla::Text> ||
-                      std::is_same_v<T, arolla::Bytes>) {
-          std::string dst;
-          if (!absl::Base64Unescape(value_view, &dst)) {
-            if (missing_if_invalid) {
-              return std::nullopt;
-            }
-            return absl::InvalidArgumentError(absl::StrFormat(
-                "invalid base64 string: %s",
-                arolla::Truncate(
-                    arolla::Repr(internal::DataItem(T(value_view))), 200)));
-          }
-          return arolla::Bytes(std::move(dst));
-        } else {
-          return absl::InvalidArgumentError(
-              absl::StrFormat("expected bytes or string, got %s",
-                              arolla::GetQType<T>()->name()));
-        }
-      },
-      internal::DataItem(schema::kBytes));
+  if (missing_if_invalid) {
+    return UnaryOpEval<DecodeBase64Op<true>>(x, DecodeBase64Op<true>{},
+                                             schema::kBytes);
+  } else {
+    return UnaryOpEval<DecodeBase64Op<false>>(x, DecodeBase64Op<false>{},
+                                              schema::kBytes);
+  }
 }
 
 absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectBytes("x", x));
-  return ApplyUnaryPointwiseFn(
-      x,
-      [&]<typename T>(arolla::meta::type<T>,
-                      const auto& value_view) -> absl::StatusOr<arolla::Text> {
-        if constexpr (std::is_same_v<T, arolla::Bytes>) {
-          std::string dst;
-          absl::Base64Escape(value_view, &dst);
-          return arolla::Text(std::move(dst));
-        } else {
-          return absl::InvalidArgumentError(absl::StrFormat(
-              "expected bytes, got %s", arolla::GetQType<T>()->name()));
-        }
-      },
-      internal::DataItem(schema::kString));
+  return UnaryOpEval<EncodeBase64Op>(x, EncodeBase64Op{}, schema::kString);
 }
 
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,

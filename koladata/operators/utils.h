@@ -18,14 +18,111 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/qtype.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/schema_utils.h"
 
 namespace koladata::ops {
+
+// Similar to RETURN_IF_ERROR, but doesn't add an extra source location
+// to the status.
+#define KD_RETURN_AS_IS_IF_ERROR(X)      \
+  if (absl::Status st = (X); !st.ok()) { \
+    return st;                           \
+  }
+
+// Constraint for UnaryOpEval and BinaryOpEval
+struct NumericArgs {
+  template <class T1, class T2 = int>
+  constexpr static bool kIsInvocable =
+      std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> &&
+      !std::is_same_v<T1, bool> && !std::is_same_v<T2, bool>;
+
+  explicit constexpr NumericArgs(absl::string_view name1,
+                                 absl::string_view name2 = "")
+      : name1(name1), name2(name2) {}
+
+  // Note: this function is not guaranteed to be called. It is NOT called if
+  // kIsInvocable is true, shapes are compatible, and output type is
+  // deducible. It's goal is not to detect error, but to format a custom error
+  // message. If it returns Ok, a default error handling will be applied.
+  absl::Status CheckArgs(const DataSlice& ds1) const {
+    return ExpectNumeric(name1, ds1);
+  }
+  absl::Status CheckArgs(const DataSlice& ds1, const DataSlice& ds2) const {
+    DCHECK_NE(name2, "");
+    KD_RETURN_AS_IS_IF_ERROR(ExpectNumeric(name1, ds1));
+    return ExpectNumeric(name2, ds2);
+  }
+
+  const absl::string_view name1, name2;
+};
+
+// Constraint for UnaryOpEval and BinaryOpEval
+struct IntegerArgs {
+  template <class T1, class T2 = int>
+  constexpr static bool kIsInvocable =
+      (std::is_same_v<T1, int32_t> || std::is_same_v<T1, int64_t>) &&
+      (std::is_same_v<T2, int32_t> || std::is_same_v<T2, int64_t>);
+
+  explicit constexpr IntegerArgs(absl::string_view name1,
+                                 absl::string_view name2 = "")
+      : name1(name1), name2(name2) {}
+
+  absl::Status CheckArgs(const DataSlice& ds1) const {
+    return ExpectInteger(name1, ds1);
+  }
+  absl::Status CheckArgs(const DataSlice& ds1, const DataSlice& ds2) const {
+    DCHECK_NE(name2, "");
+    KD_RETURN_AS_IS_IF_ERROR(ExpectInteger(name1, ds1));
+    return ExpectInteger(name2, ds2);
+  }
+
+  const absl::string_view name1, name2;
+};
+
+#undef KD_RETURN_AS_IS_IF_ERROR
+
+// Verifies that DataItem is compatible with type T. I.e. contains T or missing.
+template <class T>
+absl::Status CheckType(const internal::DataItem& item) {
+  if (item.has_value() && !item.holds_value<T>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("value doesn't match schema; expected %s, got %s",
+                        arolla::GetQType<T>()->name(), item.dtype()->name()));
+  }
+  return absl::OkStatus();
+}
+
+// Verifies that DataSliceImpl doesn't contain anything other than T.
+// I.e. either contains DenseArray<T> or is fully missing.
+template <class T>
+absl::Status CheckType(const internal::DataSliceImpl& slice) {
+  if (!slice.is_empty_and_unknown() && slice.dtype() != arolla::GetQType<T>()) {
+    if (slice.is_mixed_dtype()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "value doesn't match schema; expected %s, got mixed slice",
+          arolla::GetQType<T>()->name()));
+    }
+    return absl::InvalidArgumentError(
+        absl::StrFormat("value doesn't match schema; expected %s, got %s",
+                        arolla::GetQType<T>()->name(), slice.dtype()->name()));
+  }
+  return absl::OkStatus();
+}
+
+// Verifies that DataSlice doesn't contain anything other than T.
+template <class T>
+absl::Status CheckType(const DataSlice& slice) {
+  return slice.VisitImpl([](const auto& imp) { return CheckType<T>(imp); });
+}
 
 // Verifies that a qtype is named tuple and has only DataSlice values.
 absl::Status VerifyNamedTuple(arolla::QTypePtr qtype);

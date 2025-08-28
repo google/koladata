@@ -34,9 +34,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/schema_utils.h"
+#include "koladata/operators/utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {
@@ -45,24 +44,6 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
-
-struct NumericArgs {
-  template <class T1, class T2>
-  constexpr static bool kIsInvocable =
-      std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> &&
-      !std::is_same_v<T1, bool> && !std::is_same_v<T2, bool>;
-
-  explicit constexpr NumericArgs(absl::string_view name1,
-                                 absl::string_view name2)
-      : name1(name1), name2(name2) {}
-
-  absl::Status CheckArgs(const DataSlice& x, const DataSlice& y) const {
-    RETURN_IF_ERROR(ExpectNumeric(name1, x));
-    return ExpectNumeric(name2, y);
-  }
-
-  const absl::string_view name1, name2;
-};
 
 struct TestOpSub {
   template <class T>

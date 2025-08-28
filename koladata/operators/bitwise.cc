@@ -15,43 +15,34 @@
 #include "koladata/operators/bitwise.h"
 
 #include "absl/status/statusor.h"
+#include "arolla/qexpr/operators/bitwise/bitwise.h"
 #include "koladata/data_slice.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/operators/arolla_bridge.h"
-#include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
+#include "koladata/operators/binary_op.h"
+#include "koladata/operators/unary_op.h"
+#include "koladata/operators/utils.h"
 
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> BitwiseAnd(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectInteger("x", x));
-  RETURN_IF_ERROR(ExpectInteger("y", y));
-  return SimplePointwiseEval("bitwise.bitwise_and", {x, y});
+  return BinaryOpEval<arolla::BitwiseAndOp>(x, y, IntegerArgs("x", "y"));
 }
 
 absl::StatusOr<DataSlice> BitwiseOr(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectInteger("x", x));
-  RETURN_IF_ERROR(ExpectInteger("y", y));
-  return SimplePointwiseEval("bitwise.bitwise_or", {x, y});
+  return BinaryOpEval<arolla::BitwiseOrOp>(x, y, IntegerArgs("x", "y"));
 }
 
 absl::StatusOr<DataSlice> BitwiseXor(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectInteger("x", x));
-  RETURN_IF_ERROR(ExpectInteger("y", y));
-  return SimplePointwiseEval("bitwise.bitwise_xor", {x, y});
+  return BinaryOpEval<arolla::BitwiseXorOp>(x, y, IntegerArgs("x", "y"));
 }
 
 absl::StatusOr<DataSlice> BitwiseInvert(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectInteger("x", x));
-  return SimplePointwiseEval("bitwise.invert", {x});
+  return UnaryOpEval<arolla::InvertOp>(x, IntegerArgs("x", "y"));
 }
 
 absl::StatusOr<DataSlice> BitwiseCount(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectInteger("x", x));
-  return SimplePointwiseEval(
-      "bitwise.count", {x},
-      /*output_schema=*/internal::DataItem(koladata::schema::kInt32));
+  return UnaryOpEval<arolla::BitwiseCountOp>(x, IntegerArgs("x", "y"),
+                                             schema::kInt32);
 }
 
 }  // namespace koladata::ops
