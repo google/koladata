@@ -145,6 +145,18 @@ py_library(
     ],
 )
 
+py_test(
+    name = "fs_implementation_test",
+    srcs = ["fs_implementation_test.py"],
+    deps = [
+        ":fs_implementation",
+        ":fs_interface",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
 py_library(
     name = "fs_util",
     srcs = ["fs_util.py"],
