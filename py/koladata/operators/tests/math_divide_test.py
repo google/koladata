@@ -24,6 +24,7 @@ from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -136,6 +137,28 @@ class MathDivideTest(parameterized.TestCase):
         arolla.testing.any_cause_message_regex('shapes are not compatible'),
     ):
       expr_eval.eval(kde.math.divide(I.x, I.z), x=x, z=z)
+
+    b = ds([True, False, True])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.math.divide: argument `y` must be a slice of numeric values,'
+            ' got a slice of BOOLEAN'
+        ),
+    ):
+      expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=b)
+
+    m = ds(
+        [mask_constants.present, mask_constants.missing, mask_constants.present]
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.math.divide: argument `y` must be a slice of numeric values,'
+            ' got a slice of MASK'
+        ),
+    ):
+      expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=m)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

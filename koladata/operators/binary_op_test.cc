@@ -34,7 +34,9 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/schema_utils.h"
 #include "koladata/testing/matchers.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {
@@ -44,11 +46,22 @@ using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
-template <class T1, class T2>
 struct NumericArgs {
-  constexpr static bool value =
+  template <class T1, class T2>
+  constexpr static bool kIsInvocable =
       std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> &&
       !std::is_same_v<T1, bool> && !std::is_same_v<T2, bool>;
+
+  explicit constexpr NumericArgs(absl::string_view name1,
+                                 absl::string_view name2)
+      : name1(name1), name2(name2) {}
+
+  absl::Status CheckArgs(const DataSlice& x, const DataSlice& y) const {
+    RETURN_IF_ERROR(ExpectNumeric(name1, x));
+    return ExpectNumeric(name2, y);
+  }
+
+  const absl::string_view name1, name2;
 };
 
 struct TestOpSub {
@@ -101,11 +114,16 @@ struct TestOpConcat {
   }
 };
 
-template <class T1, class T2>
 struct Concatable {
-  constexpr static bool value =
+  template <class T1, class T2>
+  constexpr static bool kIsInvocable =
       (std::is_same_v<T1, arolla::Text> && std::is_same_v<T2, arolla::Text>) ||
       (std::is_same_v<T1, arolla::Bytes> && std::is_same_v<T2, arolla::Bytes>);
+
+  absl::Status CheckArgs(const DataSlice&, const DataSlice&) const {
+    // No custom error message. Default error handling will be applied.
+    return absl::OkStatus();
+  }
 };
 
 TEST(BinaryOpTest, SimpleScalar) {
@@ -118,15 +136,15 @@ TEST(BinaryOpTest, SimpleScalar) {
 
   EXPECT_THAT(
       BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                            DataSlice::CreateFromScalar(3)),
+                              DataSlice::CreateFromScalar(3)),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
   EXPECT_THAT(
       BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                            DataSlice::CreateFromScalar(3.0f)),
+                              DataSlice::CreateFromScalar(3.0f)),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.0f))));
   EXPECT_THAT(
       BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                            DataSlice::CreateFromScalar(3.0)),
+                              DataSlice::CreateFromScalar(3.0)),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.0))));
   EXPECT_THAT(
       BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5L),
@@ -153,15 +171,17 @@ TEST(BinaryOpTest, OverloadsAndConstraints) {
                             DataSlice::CreateFromScalar(3)),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpSub, NumericArgs>(
-          DataSlice::CreateFromScalar(5), DataSlice::CreateFromScalar(3))),
+      (BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
+                               DataSlice::CreateFromScalar(3),
+                               NumericArgs("x", "y"))),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
 
   // TestOpSubNoConstraint doesn't compile without `NumericArgs` because
   // it tries all types including e.g. Text - Text.
   EXPECT_THAT(
-      (BinaryOpEval<TestOpSubNoConstraint, NumericArgs>(
-          DataSlice::CreateFromScalar(5), DataSlice::CreateFromScalar(3))),
+      (BinaryOpEval<TestOpSubNoConstraint>(DataSlice::CreateFromScalar(5),
+                                           DataSlice::CreateFromScalar(3),
+                                           NumericArgs("x", "y"))),
       IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
 
   EXPECT_THAT(
@@ -170,11 +190,13 @@ TEST(BinaryOpTest, OverloadsAndConstraints) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("unsupported type combination: TEXT, TEXT")));
 
-  EXPECT_THAT((BinaryOpEval<TestOpSubNoConstraint, NumericArgs>(
+  EXPECT_THAT((BinaryOpEval<TestOpSubNoConstraint>(
                   DataSlice::CreateFromScalar(arolla::Text("abc")),
-                  DataSlice::CreateFromScalar(arolla::Text("cdf")))),
+                  DataSlice::CreateFromScalar(arolla::Text("cdf")),
+                  NumericArgs("x", "y"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("unsupported type combination: TEXT, TEXT")));
+                       HasSubstr("argument `x` must be a slice of numeric "
+                                 "values, got a slice of STRING")));
 
   EXPECT_THAT(
       (BinaryOpEval<TestOpNotStandardCasting>(
@@ -503,52 +525,57 @@ TEST(BinaryOpTest, BytesAndText) {
       DataSlice::Create(texts({"x", "y", "z", "v"}), shape2d, stext).value();
 
   // scalar / scalar
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
-                  DataSlice::CreateFromScalar(arolla::Text("a")),
-                  DataSlice::CreateFromScalar(arolla::Text("b")))),
-              IsOkAndHolds(testing::IsEquivalentTo(
-                  DataSlice::CreateFromScalar(arolla::Text("ab")))));
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
+  EXPECT_THAT(
+      (BinaryOpEval<TestOpConcat>(
+          DataSlice::CreateFromScalar(arolla::Text("a")),
+          DataSlice::CreateFromScalar(arolla::Text("b")), Concatable())),
+      IsOkAndHolds(testing::IsEquivalentTo(
+          DataSlice::CreateFromScalar(arolla::Text("ab")))));
+  EXPECT_THAT(
+      (BinaryOpEval<TestOpConcat>(
+          DataSlice::CreateFromScalar(arolla::Bytes("a")),
+          DataSlice::CreateFromScalar(arolla::Bytes("b")), Concatable())),
+      IsOkAndHolds(testing::IsEquivalentTo(
+          DataSlice::CreateFromScalar(arolla::Bytes("ab")))));
+  EXPECT_THAT(
+      (BinaryOpEval<TestOpConcat>(
+          DataSlice::CreateFromScalar(arolla::Bytes("a")),
+          DataSlice::CreateFromScalar(arolla::Text("b")), Concatable())),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("unsupported type combination")));
+  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
                   DataSlice::CreateFromScalar(arolla::Bytes("a")),
-                  DataSlice::CreateFromScalar(arolla::Bytes("b")))),
-              IsOkAndHolds(testing::IsEquivalentTo(
-                  DataSlice::CreateFromScalar(arolla::Bytes("ab")))));
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
-                  DataSlice::CreateFromScalar(arolla::Bytes("a")),
-                  DataSlice::CreateFromScalar(arolla::Text("b")))),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("unsupported type combination")));
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
-                  DataSlice::CreateFromScalar(arolla::Bytes("a")),
-                  DataSlice::CreateFromScalar(0))),
+                  DataSlice::CreateFromScalar(0), Concatable())),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("unsupported type combination")));
 
   // scalar / slice
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
-                  DataSlice::CreateFromScalar(arolla::Text("A")), texts1d)
-                  ->slice()),
+  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
+                   DataSlice::CreateFromScalar(arolla::Text("A")), texts1d,
+                   Concatable())
+                   ->slice()),
               ElementsAre(arolla::Text("Aa"), arolla::Text("Ab")));
-  EXPECT_THAT((BinaryOpEval<TestOpConcat, Concatable>(
-                  DataSlice::CreateFromScalar(arolla::Bytes("A")), bytes1d)
-                  ->slice()),
+  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
+                   DataSlice::CreateFromScalar(arolla::Bytes("A")), bytes1d,
+                   Concatable())
+                   ->slice()),
               ElementsAre(arolla::Bytes("Aa"), arolla::Bytes("Ab")));
 
   // slice / slice
   EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat, Concatable>(texts1d, texts1d)->slice()),
+      (BinaryOpEval<TestOpConcat>(texts1d, texts1d, Concatable())->slice()),
       ElementsAre(arolla::Text("aa"), arolla::Text("bb")));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat, Concatable>(bytes1d, bytes1d)->slice()),
+      (BinaryOpEval<TestOpConcat>(bytes1d, bytes1d, Concatable())->slice()),
       ElementsAre(arolla::Bytes("aa"), arolla::Bytes("bb")));
 
   // slice2d / slice
   EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat, Concatable>(texts2d, texts1d)->slice()),
+      (BinaryOpEval<TestOpConcat>(texts2d, texts1d, Concatable())->slice()),
       ElementsAre(arolla::Text("xa"), arolla::Text("ya"), arolla::Text("zb"),
                   arolla::Text("vb")));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat, Concatable>(bytes2d, bytes1d)->slice()),
+      (BinaryOpEval<TestOpConcat>(bytes2d, bytes1d, Concatable())->slice()),
       ElementsAre(arolla::Bytes("xa"), arolla::Bytes("ya"), arolla::Bytes("zb"),
                   arolla::Bytes("vb")));
 }

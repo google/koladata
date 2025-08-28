@@ -309,9 +309,6 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
   return internal::DataSliceImpl::Create(std::move(res_arr));
 }
 
-template <class T1, class T2>
-struct AllowAllArgs : std::true_type {};
-
 inline absl::StatusOr<schema::DType> DefaultEmptyAndUnknownHandler(
     schema::DType t1, schema::DType t2) {
   if (t1 == schema::kObject || t2 == schema::kNone) {
@@ -321,27 +318,29 @@ inline absl::StatusOr<schema::DType> DefaultEmptyAndUnknownHandler(
   }
 }
 
-inline absl::Status NoCheckArgs(const DataSlice&, const DataSlice&) {
-  return absl::OkStatus();
-}
+struct DummyArgsChecker {
+  template <class T1, class T2>
+  static constexpr bool kIsInvocable = true;
+
+  absl::Status CheckArgs(const DataSlice& x, const DataSlice& y) const {
+    return absl::OkStatus();
+  }
+};
 
 }  // namespace binary_op_impl
 
-template <
-    class Fn,
-    template <class, class> class IsInvocable = binary_op_impl::AllowAllArgs,
-    class CheckArgsFn = decltype(binary_op_impl::NoCheckArgs),
-    class EmptyAndUnknownHandler =
-        decltype(binary_op_impl::DefaultEmptyAndUnknownHandler)>
+template <class Fn, class ArgsChecker = binary_op_impl::DummyArgsChecker,
+          class EmptyAndUnknownHandler =
+              decltype(binary_op_impl::DefaultEmptyAndUnknownHandler)>
 absl::StatusOr<DataSlice> BinaryOpEval(
     const DataSlice& in1, const DataSlice& in2,
-    CheckArgsFn check_args = binary_op_impl::NoCheckArgs,
+    const ArgsChecker& args_checker = binary_op_impl::DummyArgsChecker(),
     EmptyAndUnknownHandler empty_and_unknown_handler =
         binary_op_impl::DefaultEmptyAndUnknownHandler) {
   if (in1.GetShape().rank() < in2.GetShape().rank()
           ? !in1.GetShape().IsBroadcastableTo(in2.GetShape())
           : !in2.GetShape().IsBroadcastableTo(in1.GetShape())) {
-    RETURN_IF_ERROR(check_args(in1, in2));
+    RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     return absl::InvalidArgumentError(absl::StrFormat(
         "shapes are not compatible: %v vs %v", arolla::Repr(in1.GetShape()),
         arolla::Repr(in2.GetShape())));
@@ -352,7 +351,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
 
   if (!in1.GetSchemaImpl().holds_value<schema::DType>() ||
       !in1.GetSchemaImpl().holds_value<schema::DType>()) {
-    RETURN_IF_ERROR(check_args(in1, in2));
+    RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     return absl::InvalidArgumentError(
         absl::StrFormat("arguments must have primitive types, got %v, %v",
                         in1.GetSchemaImpl(), in2.GetSchemaImpl()));
@@ -367,7 +366,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
 
   if (type1 == arolla::GetNothingQType() ||
       type2 == arolla::GetNothingQType()) {
-    RETURN_IF_ERROR(check_args(in1, in2));
+    RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     if (in1.impl_has_mixed_dtype() || in2.impl_has_mixed_dtype()) {
       return absl::InvalidArgumentError(
           "DataSlice with mixed types is not supported");
@@ -411,7 +410,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
                 res = st;
                 return;
               }
-              if constexpr (IsInvocable<T1, T2>::value &&
+              if constexpr (ArgsChecker::template kIsInvocable<T1, T2> &&
                             binary_op_impl::CastingAdapter<
                                 Fn>::template is_invocable_v<T1, T2>) {
                 // NOTE: here T1, T2 correspond to schema types
@@ -453,7 +452,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
             });
       });
   if (!res_assigned) {
-    RETURN_IF_ERROR(check_args(in1, in2));
+    RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     res = absl::InvalidArgumentError(absl::StrFormat(
         "unsupported type combination: %s, %s", type1->name(), type2->name()));
   }

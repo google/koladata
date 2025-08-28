@@ -136,6 +136,16 @@ class MathPowTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.math.pow(I.x, I.z), x=x, z=z)
 
+    b = ds([True, False, True])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.math.pow: argument `y` must be a slice of numeric values, got'
+            ' a slice of BOOLEAN'
+        ),
+    ):
+      expr_eval.eval(kde.math.pow(I.x, I.y), x=x, y=b)
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
