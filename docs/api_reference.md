@@ -5141,6 +5141,23 @@ Random and sampling operators.
 
 **Operators**
 
+### `kd.random.cityhash(x, seed)` {#kd.random.cityhash}
+Aliases:
+
+- [kd.cityhash](#kd.cityhash)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a hash value of &#39;x&#39; for given seed.
+
+The hash value is generated using CityHash library. The result will have the
+same shape and sparsity as `x`. The output values are INT64.
+
+Args:
+  x: DataSlice for hash.
+  seed: seed for hash, must be a scalar.
+
+Returns:
+  The hash values as INT64 DataSlice.</code></pre>
+
 ### `kd.random.mask(x, ratio, seed, key=unspecified)` {#kd.random.mask}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a mask with near size(x) * ratio present values at random indices.
@@ -9002,6 +9019,10 @@ Alias for [kd.schema.cast_to](#kd.schema.cast_to) operator.
   Returns:
     A decorator that can be used to annotate a function returning a
     DataSlice/DataItem.</code></pre>
+
+### `kd.cityhash(x, seed)` {#kd.cityhash}
+
+Alias for [kd.random.cityhash](#kd.random.cityhash) operator.
 
 ### `kd.clear_eval_cache()` {#kd.clear_eval_cache}
 

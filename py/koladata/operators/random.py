@@ -86,6 +86,37 @@ def _to_dense_array_text_or_unspecified(x):
   )(x)
 
 
+@optools.add_to_registry(aliases=['kd.cityhash'])
+@optools.as_lambda_operator(
+    'kd.random.cityhash',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.seed),
+    ],
+)
+def cityhash(x, seed):
+  """Returns a hash value of 'x' for given seed.
+
+  The hash value is generated using CityHash library. The result will have the
+  same shape and sparsity as `x`. The output values are INT64.
+
+  Args:
+    x: DataSlice for hash.
+    seed: seed for hash, must be a scalar.
+
+  Returns:
+    The hash values as INT64 DataSlice.
+  """
+  seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
+  x_shape = jagged_shape_ops.get_shape(x)
+  flat_text_x = arolla_bridge.to_arolla_dense_array_text(schema.to_str(x))
+  flat_hashes = M.random.cityhash(
+      flat_text_x, arolla_bridge.to_arolla_int64(seed)
+  )
+  result_ds = arolla_bridge.to_data_slice(flat_hashes).reshape(x_shape)
+  return result_ds
+
+
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'kd.random.mask',
