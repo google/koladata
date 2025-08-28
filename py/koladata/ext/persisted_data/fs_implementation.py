@@ -36,5 +36,8 @@ class FileSystemInteraction(fs_interface.FileSystemInterface):
   def make_dirs(self, dirpath: str):
     os.makedirs(dirpath, exist_ok=True)
 
+  def is_dir(self, filepath: str) -> bool:
+    return os.path.isdir(filepath)
+
   def glob(self, pattern: str) -> Collection[str]:
     return glob.glob(pattern)

@@ -32,5 +32,8 @@ class FileSystemInterface:
   def make_dirs(self, dirpath: str):
     raise NotImplementedError
 
+  def is_dir(self, filepath: str) -> bool:
+    raise NotImplementedError
+
   def glob(self, pattern: str) -> Collection[str]:
     raise NotImplementedError

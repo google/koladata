@@ -46,6 +46,12 @@ class FsImplementationTest(parameterized.TestCase):
     fs.make_dirs(os.path.join(test_dir, 'subdir'))
     self.assertTrue(fs.exists(os.path.join(test_dir, 'subdir')))
 
+    # Test is_dir.
+    self.assertTrue(fs.is_dir(test_dir))
+    self.assertTrue(fs.is_dir(os.path.join(test_dir, 'subdir')))
+    self.assertFalse(fs.is_dir(os.path.join(test_dir, 'file.txt')))
+    self.assertFalse(fs.is_dir(os.path.join(test_dir, 'non_existent_dir')))
+
     # Globbing.
     self.assertEqual(
         set(fs.glob(os.path.join(test_dir, '*'))),
