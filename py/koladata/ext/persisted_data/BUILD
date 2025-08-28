@@ -70,6 +70,7 @@ py_test(
     deps = [
         ":data_slice_manager_interface",
         ":data_slice_path",
+        ":fs_implementation",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
         ":schema_helper",

@@ -643,49 +643,92 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ],
       )
 
-  def test_filtering_recipe(self):
-    persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+  def test_branch_and_filter_recipe(self):
+
+    def create_initial_manager() -> pidsm.PersistedIncrementalDataSliceManager:
+      persistence_dir = self.create_tempdir().full_path
+      manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+      root = DataSliceManagerView(manager)
+
+      root.query = kd.list([
+          kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+          kd.named_schema('query').new(
+              query_id=1, text='How high is the Eiffel tower'
+          ),
+      ])
+
+      queries = root.query.get_list_items()
+
+      queries.doc = kd.slice([
+          kd.list([
+              kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+              kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+          ]),
+          kd.list(
+              [kd.named_schema('doc').new(doc_id=3, title='Tower of London')]
+          ),
+      ])
+
+      return manager
+
+    def branch_and_filter(
+        manager: pidsm.PersistedIncrementalDataSliceManager,
+    ) -> pidsm.PersistedIncrementalDataSliceManager:
+      branch_dir = self.create_tempdir().full_path
+      manager = manager.branch(branch_dir)
+
+      root = DataSliceManagerView(manager)
+      queries = root.query.get_list_items()
+      docs = queries.doc.get_list_items()
+
+      # Filter the docs to only keep the ones with "Barack" in the title, and
+      # filter the queries to only keep the ones with at least one such doc.
+      new_docs = docs.get_data_slice().select(
+          kd.strings.contains(docs.title.get_data_slice(), 'Barack')
+      )
+      queries.doc = new_docs.implode()
+      new_queries = queries.get_data_slice().select(
+          kd.agg_any(kd.has(new_docs))
+      )
+      root.query = new_queries.implode()
+
+      return manager
+
+    manager = create_initial_manager()
+    filtered_manager = branch_and_filter(manager)
     root = DataSliceManagerView(manager)
-
-    root.query = kd.list([
-        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
-        kd.named_schema('query').new(
-            query_id=1, text='How high is the Eiffel tower'
-        ),
-    ])
-
-    queries = root.query.get_list_items()
-
-    queries.doc = kd.slice([
-        kd.list([
-            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
-            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
-        ]),
-        kd.list(
-            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
-        ),
-    ])
-
-    docs = queries.doc.get_list_items()
-
-    # In practice, we would likely do the filtering on a copy of the
-    # persistence_dir in order not to overwrite the original data. However, for
-    # this test we will simply overwrite the original data and use the variables
-    # defined above.
-
-    # Filter the docs to only keep the ones with "Barack" in the title, and
-    # filter the queries to only keep the ones with at least one such doc.
-    new_docs = docs.get_data_slice().select(
-        kd.strings.contains(docs.title.get_data_slice(), 'Barack')
-    )
-    queries.doc = new_docs.implode()
-    new_queries = queries.get_data_slice().select(kd.agg_any(kd.has(new_docs)))
-    root.query = new_queries.implode()
-
-    # The filtering recipe above results in one query with one doc:
+    filtered_root = DataSliceManagerView(filtered_manager)
     kd.testing.assert_deep_equivalent(
         root.get_data_slice(with_descendants=True),
+        kd.new(
+            query=kd.list([
+                kd.named_schema('query').new(
+                    query_id=0,
+                    text='How tall is Obama',
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
+                            doc_id=1, title='Barack Obama'
+                        ),
+                        kd.named_schema('doc').new(
+                            doc_id=2, title='Michelle Obama'
+                        ),
+                    ]),
+                ),
+                kd.named_schema('query').new(
+                    query_id=1,
+                    text='How high is the Eiffel tower',
+                    doc=kd.list([
+                        kd.named_schema('doc').new(
+                            doc_id=3, title='Tower of London'
+                        )
+                    ]),
+                ),
+            ]),
+        ),
+    )
+    # The filtering recipe above results in one query with one doc:
+    kd.testing.assert_deep_equivalent(
+        filtered_root.get_data_slice(with_descendants=True),
         kd.new(
             query=kd.list([
                 kd.named_schema('query').new(

@@ -18,6 +18,8 @@ The main user-facing abstraction in this module is the class
 PersistedIncrementalDataSliceManager.
 """
 
+from __future__ import annotations
+
 import datetime
 import os
 from typing import AbstractSet, Generator
@@ -66,9 +68,11 @@ class PersistedIncrementalDataSliceManager(
   the persistence of the updates along with some metadata to facilitate the
   later consumption of the data and also its further augmentation. The
   persistence uses a filesystem directory, which is hermetic in the sense that
-  it can be moved or copied. The persistence directory is consistent after each
-  public operation of this class, provided that it is not modified externally
-  and that there is sufficient space to accommodate the writes.
+  it can be moved or copied (although doing so will break branches if any
+  exist - see the docstring of branch()). The persistence directory is
+  consistent after each public operation of this class, provided that it is not
+  modified externally and that there is sufficient space to accommodate the
+  writes.
 
   This class is not thread-safe. However, in the absence of writes, i.e. calls
   to update(), multiple instances of this class can concurrently read from the
@@ -115,7 +119,7 @@ class PersistedIncrementalDataSliceManager(
       fs_util.write_slice_to_file(
           self._fs,
           self._root_dataslice,
-          self._get_root_dataslice_filepath(),
+          _get_root_dataslice_filepath(self._persistence_dir),
       )
       self._data_bag_manager = dbm.PersistedIncrementalDataBagManager(
           data_bags_dir, fs=self._fs
@@ -133,7 +137,9 @@ class PersistedIncrementalDataSliceManager(
       fs_util.write_slice_to_file(
           self._fs,
           self._initial_schema_node_name_to_data_bag_names,
-          filepath=self._get_initial_schema_node_name_to_bag_names_filepath(),
+          filepath=_get_initial_schema_node_name_to_bag_names_filepath(
+              self._persistence_dir
+          ),
       )
       self._schema_node_name_to_data_bags_updates_manager = (
           dbm.PersistedIncrementalDataBagManager(
@@ -145,11 +151,11 @@ class PersistedIncrementalDataSliceManager(
               version='1.0.0'
           )
       )
-      self._persist_metadata()
+      _persist_metadata(self._fs, self._persistence_dir, self._metadata)
     else:
       self._root_dataslice = fs_util.read_slice_from_file(
           self._fs,
-          self._get_root_dataslice_filepath(),
+          _get_root_dataslice_filepath(self._persistence_dir),
       )
       self._data_bag_manager = dbm.PersistedIncrementalDataBagManager(
           data_bags_dir, fs=self._fs
@@ -168,7 +174,9 @@ class PersistedIncrementalDataSliceManager(
       self._initial_schema_node_name_to_data_bag_names = (
           fs_util.read_slice_from_file(
               self._fs,
-              self._get_initial_schema_node_name_to_bag_names_filepath(),
+              _get_initial_schema_node_name_to_bag_names_filepath(
+                  self._persistence_dir
+              ),
           )
       )
       self._schema_node_name_to_data_bags_updates_manager = (
@@ -179,7 +187,7 @@ class PersistedIncrementalDataSliceManager(
       self._schema_node_name_to_data_bags_updates_manager.load_bags(
           {dbm._INITIAL_BAG_NAME}, with_all_dependents=True  # all update bags
       )
-      self._metadata = self._read_metadata()
+      self._metadata = _read_metadata(self._fs, self._persistence_dir)
 
   def get_schema(self) -> kd.types.DataSlice:
     """Returns the schema of the entire DataSlice managed by this manager."""
@@ -624,7 +632,7 @@ class PersistedIncrementalDataSliceManager(
         #    that it is not aliased elsewhere in the overall slice). So this
         #    conceptually requires removing the dependency of the complex entity
         #    on the root entity's bag, and this dep was added a long time ago.
-        dbm.BagToAdd(bag_name, bag, dependencies=('',))
+        dbm.BagToAdd(bag_name, bag, dependencies=(dbm._INITIAL_BAG_NAME,))  # pylint: disable=protected-access
         # We sort based on the bag name to make the order deterministic. The
         # code is also functionally correct without the sorting. The bag manager
         # remembers the total order in which the bags are added, and will always
@@ -644,7 +652,7 @@ class PersistedIncrementalDataSliceManager(
             # Instead, we always load+use all the schema bags, and we rely on
             # the manager's bookkeeping of the total order in which the bags
             # were added.
-            dependencies=('',),
+            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
         )
     ]
     self._schema_bag_manager.add_bags(schema_bags_to_add)
@@ -669,9 +677,86 @@ class PersistedIncrementalDataSliceManager(
             # We don't specify fine-grained dependencies. Instead, we always
             # load+use all the update bags, and we rely on the manager's
             # bookkeeping of the total order in which the bags were added.
-            dependencies=('',),
+            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
         )
     ])
+
+  def branch(
+      self,
+      output_dir: str,
+      fs: fs_interface.FileSystemInterface | None = None,
+  ) -> PersistedIncrementalDataSliceManager:
+    """Creates a branch of the state of this manager.
+
+    It is cheap to create branches. The branch will rely on the data in the
+    persistence directory of `self`, so deleting or moving the persistence
+    directory of `self` will break the branch. A branch can be branched in turn,
+    which means that a manager relies on the persistence directories of all the
+    managers in its branching history.
+
+    Future updates to this manager and its branch are completely independent:
+    * New calls to `update` this manager will not affect the branch.
+    * New calls to `update` the branch will not affect this manager.
+
+    Args:
+      output_dir: the new persistence directory to use for the branch. It must
+        not exist yet or it must be empty.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance. If None, then the interaction object of `self` is used.
+
+    Returns:
+      A new branch of this manager.
+    """
+    branch_fs = fs or self._fs
+    del fs  # Use branch_fs henceforth.
+
+    if not branch_fs.exists(output_dir):
+      branch_fs.make_dirs(output_dir)
+    else:
+      if not branch_fs.is_dir(output_dir):
+        raise ValueError(
+            f'the output_dir {output_dir} exists but it is not a directory'
+        )
+      if branch_fs.glob(os.path.join(output_dir, '*')):
+        raise ValueError(f'the output_dir {output_dir} is not empty')
+
+    fs_util.write_slice_to_file(
+        branch_fs,
+        self._root_dataslice,
+        _get_root_dataslice_filepath(output_dir),
+    )
+    fs_util.write_slice_to_file(
+        branch_fs,
+        self._initial_schema_node_name_to_data_bag_names,
+        filepath=_get_initial_schema_node_name_to_bag_names_filepath(
+            output_dir
+        ),
+    )
+    # For now, the branch metadata is the same as the metadata of `self`:
+    branch_metadata = self._metadata
+    _persist_metadata(branch_fs, output_dir, branch_metadata)
+
+    # Create branches of the various bag managers with all their bags.
+    self._schema_bag_manager.create_branch(
+        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
+        with_all_dependents=True,
+        output_dir=os.path.join(output_dir, 'schema_bags'),
+        fs=branch_fs,
+    )
+    self._schema_node_name_to_data_bags_updates_manager.create_branch(
+        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
+        with_all_dependents=True,
+        output_dir=os.path.join(output_dir, 'snn_to_data_bags_updates'),
+        fs=branch_fs,
+    )
+    self._data_bag_manager.create_branch(
+        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
+        with_all_dependents=True,
+        output_dir=os.path.join(output_dir, 'data_bags'),
+        fs=branch_fs,
+    )
+
+    return PersistedIncrementalDataSliceManager(output_dir, fs=branch_fs)
 
   def clear_cache(self):
     """Clears the internal cache with loaded data of the managed DataSlice.
@@ -718,32 +803,42 @@ class PersistedIncrementalDataSliceManager(
       return None
     return bag_names
 
-  def _get_root_dataslice_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'root.kd')
-
-  def _get_initial_schema_node_name_to_bag_names_filepath(self) -> str:
-    return os.path.join(
-        self._persistence_dir, 'initial_schema_node_name_to_bag_names.kd'
-    )
-
-  def _get_metadata_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'metadata.pb')
-
-  def _persist_metadata(self):
-    with self._fs.open(self._get_metadata_filepath(), 'wb') as f:
-      f.write(self._metadata.SerializeToString())
-
-  def _read_metadata(
-      self,
-  ) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:
-    with self._fs.open(self._get_metadata_filepath(), 'rb') as f:
-      return (
-          metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
-              f.read()
-          )
-      )
-
   def _get_timestamped_bag_name(self) -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime(
         '%Y-%m-%d-%H-%M-%S-%f'
+    )
+
+
+def _get_root_dataslice_filepath(persistence_dir: str) -> str:
+  return os.path.join(persistence_dir, 'root.kd')
+
+
+def _get_initial_schema_node_name_to_bag_names_filepath(
+    persistence_dir: str,
+) -> str:
+  return os.path.join(
+      persistence_dir, 'initial_schema_node_name_to_bag_names.kd'
+  )
+
+
+def _get_metadata_filepath(persistence_dir: str) -> str:
+  return os.path.join(persistence_dir, 'metadata.pb')
+
+
+def _persist_metadata(
+    fs: fs_interface.FileSystemInterface,
+    persistence_dir: str,
+    metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata,
+):
+  with fs.open(_get_metadata_filepath(persistence_dir), 'wb') as f:
+    f.write(metadata.SerializeToString())
+
+
+def _read_metadata(
+    fs: fs_interface.FileSystemInterface,
+    persistence_dir: str,
+) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:
+  with fs.open(_get_metadata_filepath(persistence_dir), 'rb') as f:
+    return metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
+        f.read()
     )

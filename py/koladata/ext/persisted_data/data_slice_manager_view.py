@@ -358,7 +358,7 @@ class DataSliceManagerView:
         ),
     )
 
-  def __getattr__(self, attr_name: str) -> DataSliceManagerView | list[str]:
+  def __getattr__(self, attr_name: str) -> DataSliceManagerView:
     """Mostly syntactic sugar for self.get_attr(attr_name).
 
     This is the usual method for accessing attributes when
@@ -366,7 +366,9 @@ class DataSliceManagerView:
     the access must happen via self.get_attr(attr_name).
 
     It has special handling for '__all__' to return the names of all available
-    attributes, which is useful for IPython auto-complete.
+    attributes, which is useful for IPython auto-complete. The return type does
+    not mention "| list[str]", because otherwise pytype complains a lot about
+    normal client code that never uses attr_name='__all__'.
 
     When attr_name is not '__all__', then the view path must be valid and
     associated with an entity schema, i.e. both self.is_view_valid() and
@@ -380,7 +382,7 @@ class DataSliceManagerView:
       of all available attributes if attr_name is '__all__'.
     """
     if attr_name == '__all__':
-      return self._get_currently_available_attributes()
+      return self._get_currently_available_attributes()  # pytype: disable=bad-return-type
     if kd.slices.internal_is_compliant_attr_name(attr_name):
       return self.get_attr(attr_name)
     raise AttributeError(

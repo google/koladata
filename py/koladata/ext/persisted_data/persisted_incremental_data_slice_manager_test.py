@@ -17,11 +17,13 @@ import re
 import shutil
 from typing import Any
 from typing import Generator
+from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
+from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
@@ -3438,6 +3440,242 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         )
         continue
       self.assertEqual(manager_attr, new_manager_attr)
+
+  def test_branch(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+
+    query_schema = kd.named_schema('query')
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(query_id='q1'),
+            query_schema.new(query_id='q2'),
+        ]),
+    )
+
+    doc_schema = kd.named_schema('doc')
+    trunk_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        ]),
+    )
+
+    branch_dir = self.create_tempdir().full_path
+    branch_manager = trunk_manager.branch(branch_dir)
+
+    # Right after branching, the branch and the trunk have the same state.
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_schema(), trunk_manager.get_schema()
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        trunk_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+    )
+
+    # Creating the branch did not copy any of the bags. It created metadata
+    # files to point to the trunk's bags.
+    for subdir in [
+        'data_bags',
+        'schema_bags',
+        'snn_to_data_bags_updates',
+    ]:
+      self.assertEqual(
+          os.listdir(os.path.join(branch_dir, subdir)), ['metadata.pb']
+      )
+
+    # This update is for the trunk only.
+    trunk_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How tall is Obama', 'How high is the Eiffel tower']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+    # The branch does not see the update to the trunk.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "data slice path '.query[:].query_text' passed in argument"
+            " 'populate' is invalid"
+        ),
+    ):
+      branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text'))
+    # New instances for branch_dir also don't see the update.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "data slice path '.query[:].query_text' passed in argument"
+            " 'populate' is invalid"
+        ),
+    ):
+      PersistedIncrementalDataSliceManager(branch_dir).get_data_slice_at(
+          parse_dsp('.query[:].query_text')
+      )
+
+    # This update is for the branch only.
+    branch_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+    # The trunk does not see the update.
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+    # New instances for trunk_dir also don't see the update.
+    kd.testing.assert_deep_equivalent(
+        PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
+            parse_dsp('.query[:].query_text')
+        ),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+
+    # Branches can be re-branched.
+    twig_dir = self.create_tempdir().full_path
+    twig_manager = branch_manager.branch(twig_dir)
+
+    # The twig is based on the current state of the branch. It has query_text.
+    kd.testing.assert_deep_equivalent(
+        twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+
+    # An update to the twig does not affect the branch or the trunk.
+    twig_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How high is a rainforest giant', 'How high can humans jump']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(
+            ['How high is a rainforest giant', 'How high can humans jump']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+
+  def test_branch_with_various_states_of_output_dir(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    query_schema = kd.named_schema('query')
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(query_id='q1'),
+            query_schema.new(query_id='q2'),
+        ]),
+    )
+
+    # The code guards against overwriting the trunk artifacts with a branch:
+    with self.assertRaisesRegex(ValueError, 'the output_dir .* is not empty'):
+      trunk_manager.branch(trunk_dir)
+
+    # Branching into a non-existing directory works.
+    branch_dir = os.path.join(self.create_tempdir().full_path, 'non_existing')
+    self.assertFalse(os.path.exists(branch_dir))
+    trunk_manager.branch(branch_dir)
+
+    # Branching into a separately created empty directory works.
+    branch_dir = self.create_tempdir().full_path
+    self.assertTrue(os.path.exists(branch_dir))
+    trunk_manager.branch(branch_dir)
+
+    # Unexpected subdirectories are not allowed.
+    branch_dir = self.create_tempdir().full_path
+    os.makedirs(os.path.join(branch_dir, 'some_unexpected_subdir'))
+    with self.assertRaisesRegex(ValueError, 'the output_dir .* is not empty'):
+      trunk_manager.branch(branch_dir)
+
+    # Unexpected files are not allowed.
+    branch_dir = self.create_tempdir().full_path
+    with open(os.path.join(branch_dir, 'metadata.pb'), 'wb') as f:
+      f.write(b'some content')
+    with self.assertRaisesRegex(ValueError, 'the output_dir .* is not empty'):
+      trunk_manager.branch(branch_dir)
+
+    # Cannot branch into a file.
+    branch_dir = os.path.join(self.create_tempdir().full_path, 'output_dir')
+    with open(branch_dir, 'w') as f:
+      f.write('some content')
+    with self.assertRaisesRegex(
+        ValueError, 'the output_dir .* exists but it is not a directory'
+    ):
+      trunk_manager.branch(branch_dir)
+
+  @parameterized.parameters(True, False)
+  def test_branch_with_and_without_fs(self, use_new_fs: bool):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir, fs=trunk_fs)
+    query_schema = kd.named_schema('query')
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(query_id='q1'),
+            query_schema.new(query_id='q2'),
+        ]),
+    )
+    trunk_fs.reset_mock()
+
+    branch_dir = self.create_tempdir().full_path
+    if use_new_fs:
+      branch_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      branch_manager = trunk_manager.branch(branch_dir, fs=branch_fs)
+      used_fs = branch_fs
+    else:
+      branch_manager = trunk_manager.branch(branch_dir)
+      used_fs = trunk_fs
+
+    self.assertEqual(trunk_manager._fs, trunk_fs)
+    self.assertEqual(branch_manager._fs, used_fs)
+
+    if use_new_fs:
+      # All writes to branch_dir happened via branch_fs.
+      # All reads from branch_dir and trunk_dir happened via branch_fs. There
+      # are reads because the branching never copied the bags, and some bags are
+      # read when initializing/using the branch.
+      # The trunk did not do any reads or writes via trunk_fs: the needed data
+      # was already resident in memory, and no writes to trunk_dir happened.
+      self.assertEmpty(trunk_fs.method_calls)
+    else:
+      self.assertNotEmpty(trunk_fs.method_calls)
 
 
 if __name__ == '__main__':
