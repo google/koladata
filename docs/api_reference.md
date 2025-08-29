@@ -383,6 +383,13 @@ Args:
 Returns:
   An immutable DataBag enriched by `bags`.</code></pre>
 
+### `kd.bags.is_null_bag(bag)` {#kd.bags.is_null_bag}
+Aliases:
+
+- [kd.is_null_bag](#kd.is_null_bag)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataBag `bag` is a NullDataBag.</code></pre>
+
 ### `kd.bags.new()` {#kd.bags.new}
 Aliases:
 
@@ -859,6 +866,13 @@ Args:
 Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.</code></pre>
+
+### `kd.core.has_bag(ds)` {#kd.core.has_bag}
+Aliases:
+
+- [kd.has_bag](#kd.has_bag)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
 
 ### `kd.core.has_entity(x)` {#kd.core.has_entity}
 Aliases:
@@ -9626,6 +9640,10 @@ Alias for [kd.masking.has](#kd.masking.has) operator.
 
 Alias for [kd.core.has_attr](#kd.core.has_attr) operator.
 
+### `kd.has_bag(ds)` {#kd.has_bag}
+
+Alias for [kd.core.has_bag](#kd.core.has_bag) operator.
+
 ### `kd.has_dict(x)` {#kd.has_dict}
 
 Alias for [kd.dicts.has_dict](#kd.dicts.has_dict) operator.
@@ -9717,6 +9735,10 @@ Alias for [kd.lists.is_list](#kd.lists.is_list) operator.
 ### `kd.is_nan(x)` {#kd.is_nan}
 
 Alias for [kd.math.is_nan](#kd.math.is_nan) operator.
+
+### `kd.is_null_bag(bag)` {#kd.is_null_bag}
+
+Alias for [kd.bags.is_null_bag](#kd.bags.is_null_bag) operator.
 
 ### `kd.is_primitive(x)` {#kd.is_primitive}
 
@@ -11457,6 +11479,13 @@ Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.</code></pre>
 
+### `DataSlice.has_bag(self)` {#DataSlice.has_bag}
+Aliases:
+
+- [DataItem.has_bag](#DataItem.has_bag)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
+
 ### `DataSlice.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataSlice.implode}
 Aliases:
 
@@ -12917,6 +12946,10 @@ Alias for [DataSlice.get_values](#DataSlice.get_values) operator.
 ### `DataItem.has_attr(self, attr_name)` {#DataItem.has_attr}
 
 Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
+
+### `DataItem.has_bag(self)` {#DataItem.has_bag}
+
+Alias for [DataSlice.has_bag](#DataSlice.has_bag) operator.
 
 ### `DataItem.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataItem.implode}
 

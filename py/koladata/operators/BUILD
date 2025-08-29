@@ -485,6 +485,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":bags",
         ":masking",
         ":op_repr",
         ":optools",

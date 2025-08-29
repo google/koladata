@@ -20,12 +20,16 @@
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/internal/non_deterministic_token.h"
 
 namespace koladata::ops {
 
 // kd.bags.new.
 DataBagPtr Bag(internal::NonDeterministicToken);
+
+// kd.bags.is_null_bag.
+absl::StatusOr<DataSlice> IsNullBag(const DataBagPtr& bag);
 
 class EnrichedOrUpdatedDbOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

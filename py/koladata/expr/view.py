@@ -501,6 +501,9 @@ class KodaView(BaseKodaView):
   def get_bag(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_bag', self)
 
+  def has_bag(self) -> arolla.Expr:
+    return _aux_bind_op('kd.has_bag', self)
+
   def no_bag(self) -> arolla.Expr:
     return _aux_bind_op('kd.no_bag', self)
 

@@ -310,6 +310,28 @@ py_test(
 )
 
 py_test(
+    name = "bags_is_null_bag_test",
+    srcs = ["bags_is_null_bag_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "bitwise_bitwise_and_test",
     srcs = ["bitwise_bitwise_and_test.py"],
     deps = [
@@ -1984,6 +2006,28 @@ py_test(
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "core_has_bag_test",
+    srcs = ["core_has_bag_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

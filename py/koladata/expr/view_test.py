@@ -518,6 +518,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_bag(self):
     self.assert_exprs_equal(C.x.get_bag(), kde.get_bag(C.x))
 
+  def test_has_bag(self):
+    self.assert_exprs_equal(C.x.has_bag(), kde.has_bag(C.x))
+
   def test_no_bag(self):
     self.assert_exprs_equal(C.x.no_bag(), kde.no_bag(C.x))
 

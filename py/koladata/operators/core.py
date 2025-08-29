@@ -19,6 +19,7 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import bags
 from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
@@ -1016,6 +1017,16 @@ def get_bag(ds):  # pylint: disable=unused-argument
     The attached DataBag.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.has_bag'])
+@optools.as_lambda_operator(
+    'kd.core.has_bag',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+)
+def has_bag(ds):  # pylint: disable=unused-argument
+  """Returns `present` if DataSlice `ds` has a DataBag attached."""
+  return ~bags.is_null_bag(get_bag(ds))
 
 
 @optools.add_to_registry(aliases=['kd.extract_bag'])

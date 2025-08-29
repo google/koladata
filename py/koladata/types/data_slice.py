@@ -366,6 +366,11 @@ def _ref(self) -> DataSlice:
   return _eval_op('kd.ref', self)
 
 
+@add_method(DataSlice, 'has_bag', docstring_from='kd.has_bag')
+def _has(self) -> DataSlice:
+  return _eval_op('kd.has_bag', self)
+
+
 @add_method(DataSlice, 'get_itemid', docstring_from='kd.get_itemid')
 def _get_itemid(self) -> DataSlice:
   return _eval_op('kd.get_itemid', self)

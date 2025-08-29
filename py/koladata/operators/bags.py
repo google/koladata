@@ -35,8 +35,19 @@ constraints = arolla.optools.constraints
     qtype_inference_expr=qtypes.DATA_BAG,
     deterministic=False,
 )
-def bag():
+def _bag():
   """Returns an empty DataBag."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.is_null_bag'])
+@optools.as_backend_operator(
+    'kd.bags.is_null_bag',
+    qtype_constraints=[qtype_utils.expect_data_bag(P.bag)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def is_null_bag(bag):  # pylint: disable=unused-argument
+  """Returns `present` if DataBag `bag` is a NullDataBag."""
   raise NotImplementedError('implemented in the backend')
 
 

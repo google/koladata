@@ -744,6 +744,22 @@ class DataSliceTest(parameterized.TestCase):
     ):
       x.with_bag(arolla.dense_array([1, 2, 3]))
 
+  def test_has_bag(self):
+    x = ds([1, 2, 3])
+    self.assertFalse(x.has_bag())
+    testing.assert_equal(x.has_bag(), missing)
+
+    db = bag()
+    x = x.with_bag(db)
+    self.assertTrue(x.has_bag())
+    testing.assert_equal(x.has_bag(), present)
+
+    self.assertFalse(x.with_bag(None).has_bag())
+    self.assertFalse(x.no_bag().has_bag())
+
+    x = db.new_shaped(jagged_shape.create_shape([1]))
+    self.assertTrue(x.has_bag())
+
   def test_get_attr_on_none(self):
     x = ds([None]).with_bag(bag())
     testing.assert_equal(x.x, ds([None]).with_bag(x.get_bag()))

@@ -90,6 +90,7 @@ OPERATOR("kd.assertion.assert_primitive", AssertPrimitive);
 //
 OPERATOR_FAMILY("kd.bags.enriched",
                 std::make_unique<EnrichedDbOperatorFamily>());
+OPERATOR("kd.bags.is_null_bag", IsNullBag);
 OPERATOR("kd.bags.new", Bag);
 OPERATOR_FAMILY("kd.bags.updated",
                 std::make_unique<UpdatedDbOperatorFamily>());

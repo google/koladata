@@ -34,14 +34,25 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
 
 namespace koladata::ops {
 
 DataBagPtr Bag(internal::NonDeterministicToken) { return DataBag::Empty(); }
+
+absl::StatusOr<DataSlice> IsNullBag(const DataBagPtr& bag) {
+  return DataSlice::Create(
+      bag == nullptr ?
+      internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
+}
 
 namespace {
 
