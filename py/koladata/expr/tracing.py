@@ -117,9 +117,9 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
           *(_get_arg_value(p) for p in positional_params),
           **{p.name: _get_arg_value(p) for p in keyword_params},
       )
-    if deannotate_subs:
-      res = arolla.abc.sub_by_fingerprint(res, deannotate_subs)
     expr = py_boxing.as_expr(res)
+    if deannotate_subs:
+      expr = arolla.abc.sub_by_fingerprint(expr, deannotate_subs)
   except Exception as e:
     e.add_note(
         'Error occurred during tracing of the function'

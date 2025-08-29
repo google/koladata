@@ -284,6 +284,22 @@ class TracingTest(absltest.TestCase):
         parallel.call_multithreaded(fn, e=ParallelCallableExtension(x=1)), 3
     )
 
+  def test_extension_type_with_fn_returning_const(self):
+
+    @extension_types.extension_type()
+    class VerySimpleExtension:
+      pass
+
+    def fn_returns_const(unused_e: VerySimpleExtension):
+      return 2
+
+    e = tracing.trace(fn_returns_const)
+
+    self.assertEqual(
+        e.eval(unused_e=VerySimpleExtension()),
+        2,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
