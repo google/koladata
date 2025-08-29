@@ -56,7 +56,7 @@ P = arolla.P
   ]
 )
 def cond(condition, yes, no)
-  return kd.lazy.coalesce((yes & condition), (no & ~condition))
+  return kd.coalesce((yes & condition), (no & ~condition))
 ```
 
 In the example above, we define and register the operator `my_project.cond`
@@ -69,18 +69,18 @@ using a combination of `&` (syntactic sugar for `kd.apply_mask`) and
 *   The allowed input QTypes are limited by a combination of what is allowed by
     the composed operators and the manually provided `qtype_constraints`. The
     optional `qtype_constraints` parameter allows the types to be restricted
-    further than what the constraints inherited from the implementation. The
+    further than the constraints inferred from the implementation. The
     additional constraints can help make error messages more relevant.
-*   The function body works entirely in tracing mode, requiring
-    `kd.lazy.coalesce` to be used instead of `kd.coalesce`.
+*   The function body must work entirely in tracing mode. The `kd.coalesce`
+    there refers to `kd.lazy.coalesce`.
 *   A lambda operator is servable in C++ as long as all operators used in its
     body are servable.
 *   All operators used in the body must be imported before constructing the
-    lambda opeator.
+    lambda operator.
 
 ### Py-function Operators
 
-Py-function operators wrap python logic as part of an operator. This allows for
+Py-function operators wrap Python logic as part of an operator. This allows for
 quick experimentation and for functionality that cannot be expressed in C++ or
 through a combination of other operators to be expressed as an operator. These
 operators cannot be evaluated through C++.
@@ -102,7 +102,7 @@ P = arolla.P
   qtype_inference_expr=kd.qtypes.DATA_SLICE,  # optional in this case.
 )
 def cond(condition, yes, no)
-  return kd.eager.coalesce((yes & condition), (no & ~condition))
+  return kd.coalesce((yes & condition), (no & ~condition))
 ```
 
 Things to note:
@@ -114,9 +114,7 @@ Things to note:
 *   `qtype_inference_expr` defaults to `kd.qtypes.DATA_SLICE` and can be omitted
     for this case.
 *   The function body works entirely in eager mode, and lazy operators should
-    not be used, hence the use of `kd.eager.coalesce` instead of
-    `kd.lazy.coalesce` (`kd.coalesce` can be used as well since it defaults to
-    the eager implementation).
+    not be used. The `kd.coalesce` in the body refers to `kd.eager.coalesce`.
 
 ### Backend Operators
 
@@ -194,6 +192,8 @@ efficiently work with DataSlices.
 
 #include "apply_mask.h"
 
+namespace koladata::ops {
+
 absl::StatusOr<DataSlice> ApplyMask(
     const DataSlice& obj, const DataSlice& mask) {
   // Check that the data has the expected type. `obj` is allowed to be anything
@@ -234,6 +234,8 @@ absl::StatusOr<DataSlice> ApplyMask(
   return DataSlice::Create(
           std::move(result_slice), obj.GetSchemaImpl(), obj.GetBag());
 }
+
+}  // namespace koladata::ops
 ```
 
 **Registering the Operator**
@@ -244,7 +246,6 @@ associated, we register the operator:
 ```cc
 // In operators.cc
 #include "apply_mask.h"
-
 
 namespace koladata::ops {
 namespace {
