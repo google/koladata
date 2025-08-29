@@ -98,10 +98,16 @@ types.StreamWriter = _functor_parallel_clib.StreamWriter
 
 ### Extension types.
 extension_type = _eager_only(_extension_types.extension_type)
-extension_types = _eager_only(_py_types.ModuleType('extension_types'))
+extension_types = _same_when_tracing(_py_types.ModuleType('extension_types'))
 extension_types.extension_type = _extension_types.extension_type
 extension_types.get_extension_qtype = (
     _extension_type_registry.get_extension_qtype
+)
+extension_types.is_koda_extension_type = (
+    _extension_type_registry.is_koda_extension_type
+)
+extension_types.is_koda_extension = (
+    _extension_type_registry.is_koda_extension
 )
 
 ### Koda QTypes.
