@@ -18,6 +18,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
@@ -40,13 +41,11 @@ C = input_container.InputContainer('C')
 ds = data_slice.DataSlice.from_vals
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
-    '_MyTestExtension',
+    extension_type_registry.BASE_QTYPE, '_MyTestExtension'
 ).qvalue
 
 _DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
-    '_MyDummyExtension',
+    extension_type_registry.BASE_QTYPE, '_MyDummyExtension'
 ).qvalue
 
 
@@ -70,13 +69,11 @@ _DUMMY_VALUES = (
     (schema_constants.NONE, ds(None)),
     (data_slice.DataSlice, ds(None)),
     (data_item.DataItem, ds(None)),
-    (data_bag.DataBag, extension_type_registry._get_dummy_bag()),
+    (data_bag.DataBag, data_bag.DataBag.empty().freeze()),
     (jagged_shape.JaggedShape, jagged_shape.create_shape()),
     (_MyDummyExtension, _MyDummyExtension(ds(None), ds(None))),
+    (arolla.INT32, arolla.int32(0)),
 )
-
-# Sanity check.
-assert isinstance(extension_type_registry._get_dummy_bag(), data_bag.DataBag)
 
 
 class ExtensionTypesTest(parameterized.TestCase):
@@ -184,16 +181,45 @@ class ExtensionTypesTest(parameterized.TestCase):
       y: schema_constants.INT64
 
     # Does implicit casting _and_ narrowing.
-    x = MyExtensionWithInt64Field(x=ds(1), y=ds(2, schema_constants.OBJECT))
-    self.assertEqual(x.x.get_schema(), schema_constants.INT64)
-    self.assertEqual(x.y.get_schema(), schema_constants.INT64)
+    with self.subTest('eager'):
+      x = MyExtensionWithInt64Field(x=ds(1), y=ds(2, schema_constants.OBJECT))
+      self.assertEqual(x.x.get_schema(), schema_constants.INT64)
+      self.assertEqual(x.y.get_schema(), schema_constants.INT64)
 
-    # TODO: Add which field failed.
-    with self.assertRaisesRegex(
-        ValueError,
-        'unsupported narrowing cast to INT64 for the given FLOAT32 DataSlice',
-    ):
-      _ = MyExtensionWithInt64Field(x=ds(1.0), y=ds(2))
+    with self.subTest('lazy'):
+      x = MyExtensionWithInt64Field(x=I.x, y=I.y)
+      self.assertEqual(
+          x.x.get_schema().eval(x=ds(1), y=ds(2, schema_constants.OBJECT)),
+          schema_constants.INT64,
+      )
+      self.assertEqual(
+          x.y.get_schema().eval(x=ds(1), y=ds(2, schema_constants.OBJECT)),
+          schema_constants.INT64,
+      )
+
+    with self.subTest('error'):
+      # TODO: Add which field failed.
+      with self.assertRaisesRegex(
+          ValueError,
+          'unsupported narrowing cast to INT64 for the given FLOAT32 DataSlice',
+      ):
+        _ = MyExtensionWithInt64Field(x=ds(1.0), y=ds(2))
+
+  def test_boxing(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: data_slice.DataSlice
+      y: data_slice.DataSlice
+
+    with self.subTest('eager'):
+      ext = MyExtensionType(1, 2)
+      testing.assert_equal(ext.x, ds(1))
+      testing.assert_equal(ext.y, ds(2))
+
+    with self.subTest('lazy'):
+      ext = MyExtensionType(1, I.y)
+      testing.assert_equal(ext.x.eval(y=2), ds(1))
+      testing.assert_equal(ext.y.eval(y=2), ds(2))
 
   def test_extension_type_decorator_unsafe_override(self):
     class Cls1:
@@ -287,7 +313,9 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy'):
       ext = MyExtensionType(I.x)
-      testing.assert_equal(ext.x.eval(x=value), value)
+      # NOTE: We use `expr_eval.eval` since for e.g. arolla.INT32, the output
+      # doesn't have a Koda-like view with `.eval`.
+      testing.assert_equal(expr_eval.eval(ext.x, x=value), value)
 
   def test_unsupported_annotation(self):
     class MyExtensionType:
@@ -298,16 +326,27 @@ class ExtensionTypesTest(parameterized.TestCase):
     ):
       ext_types.extension_type()(MyExtensionType)
 
+  def test_unsupported_annotation_unsupported_instance(self):
+    class MyExtensionType:
+      x: 1  # pytype: disable=invalid-annotation
+
+    with self.assertRaisesRegex(
+        ValueError, 'unsupported extension type annotation: 1'
+    ):
+      ext_types.extension_type()(MyExtensionType)
+
   def test_bad_value_for_annotation(self):
     @ext_types.extension_type()
     class MyExtensionType:
       x: data_slice.DataSlice
 
+    ext = MyExtensionType(jagged_shape.create_shape())
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('expected tuple<DATA_SLICE>, got value: tuple<JAGGED_SHAPE>'),
+        "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
+        ' actual type JAGGED_SHAPE',
     ):
-      _ = MyExtensionType(jagged_shape.create_shape())
+      _ = ext.x
 
   def test_wrong_decorator_use(self):
     class MyExtensionType:

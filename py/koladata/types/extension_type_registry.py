@@ -18,14 +18,13 @@ import functools
 from typing import Any
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from arolla.objects import objects
 import bidict
-from koladata.types import data_bag
-from koladata.types import data_slice
-from koladata.types import jagged_shape
-from koladata.types import qtypes
 
 
 M = arolla.M | derived_qtype.M
+
+BASE_QTYPE = objects.OBJECT
 
 
 @functools.lru_cache
@@ -43,11 +42,7 @@ def _is_extension_qtype(qtype: arolla.QType) -> bool:
   return (
       arolla.abc.invoke_op('derived_qtype.get_qtype_label', (qtype,)) != ''  # pylint: disable=g-explicit-bool-comparison
   ) and (
-      # Heuristic check to catch the worst offenders: while there can be many
-      # different types of extension types, they are at least all tuples.
-      arolla.is_tuple_qtype(
-          arolla.abc.invoke_op('qtype.decay_derived_qtype', (qtype,))
-      )
+      arolla.abc.invoke_op('qtype.decay_derived_qtype', (qtype,)) == BASE_QTYPE
   )
 
 
@@ -102,7 +97,7 @@ def is_koda_extension(x: Any) -> bool:
   return x.qtype in _EXTENSION_TYPE_REGISTRY.inverse
 
 
-def wrap(x: arolla.types.Tuple, qtype: arolla.QType) -> Any:
+def wrap(x: objects.Object, qtype: arolla.QType) -> Any:
   """Wraps `x` into an instance of the given extension type."""
   _ = _get_extension_cls(qtype)  # Check that it's registered
   return arolla.eval(_get_downcast_expr(qtype), x=x)
@@ -115,28 +110,7 @@ def unwrap(x: Any) -> arolla.types.Tuple:
   return arolla.eval(_UPCAST_EXPR, x=x)
 
 
-@functools.cache
-def _get_dummy_bag():
-  return data_bag.DataBag.empty()
-
-
 def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   """Returns a dummy value for the given extension type class."""
   extension_qtype = get_extension_qtype(cls)
-  tpl_qtype = arolla.abc.invoke_op(
-      'qtype.decay_derived_qtype', (extension_qtype,)
-  )
-  dummy_fields = []
-  # NOTE: This should be kept up-to-date with `_get_class_meta`.
-  for qtype in arolla.abc.get_field_qtypes(tpl_qtype):
-    if qtype == qtypes.DATA_SLICE:
-      dummy_fields.append(data_slice.DataSlice.from_vals(None))
-    elif qtype == qtypes.DATA_BAG:
-      dummy_fields.append(_get_dummy_bag())
-    elif qtype == qtypes.JAGGED_SHAPE:
-      dummy_fields.append(jagged_shape.create_shape())
-    elif extension_cls := _EXTENSION_TYPE_REGISTRY.inverse.get(qtype):
-      dummy_fields.append(get_dummy_value(extension_cls))
-    else:
-      raise ValueError(f'unexpected qtype field: {qtype}')
-  return wrap(arolla.tuple(*dummy_fields), extension_qtype)
+  return wrap(objects.Object(), extension_qtype)

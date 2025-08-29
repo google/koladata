@@ -20,16 +20,18 @@ import inspect
 from typing import Any, Callable, Mapping
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from arolla.objects import objects
 from koladata.expr import view
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_item
 
 
-M = arolla.M | derived_qtype.M
+M = arolla.M | derived_qtype.M | objects.M
 
 _UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
 
@@ -45,6 +47,11 @@ class _ClassMeta:
   methods: Mapping[str, Callable[..., Any]]
   field_annotations: Mapping[str, Any]
   field_qtypes: Mapping[str, arolla.QType]
+
+
+def _safe_issubclass(subcls: Any, cls: type[Any]) -> bool:
+  """Safe version of `issubclass` allowing `subcls` to be Any."""
+  return isinstance(subcls, type) and issubclass(subcls, cls)
 
 
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
@@ -63,15 +70,16 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   sig = inspect.signature(data_class, eval_str=True)
   field_annotations = {}
   field_qtypes = {}
-  # NOTE: This should be kept up-to-date with `get_dummy_value`.
   for param in sig.parameters.values():
     if isinstance(param.annotation, schema_item.SchemaItem):
       field_qtypes[param.name] = qtypes.DATA_SLICE
-    elif issubclass(param.annotation, data_slice.DataSlice):
+    elif isinstance(param.annotation, arolla.QType):
+      field_qtypes[param.name] = param.annotation
+    elif _safe_issubclass(param.annotation, data_slice.DataSlice):
       field_qtypes[param.name] = qtypes.DATA_SLICE
-    elif issubclass(param.annotation, data_bag.DataBag):
+    elif _safe_issubclass(param.annotation, data_bag.DataBag):
       field_qtypes[param.name] = qtypes.DATA_BAG
-    elif issubclass(param.annotation, jagged_shape.JaggedShape):
+    elif _safe_issubclass(param.annotation, jagged_shape.JaggedShape):
       field_qtypes[param.name] = qtypes.JAGGED_SHAPE
     elif extension_type_registry.is_koda_extension_type(param.annotation):
       field_qtypes[param.name] = extension_type_registry.get_extension_qtype(
@@ -91,32 +99,18 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   )
 
 
-def _sidecast_expr(value: Any, to_qtype: arolla.QType) -> arolla.Expr:
-  return M.derived_qtype.downcast(
-      to_qtype,
-      M.derived_qtype.upcast(M.qtype.qtype_of(value), value),
-  )
-
-
-def _sidecast_qvalue(
-    value: arolla.QValue, to_qtype: arolla.QType
-) -> arolla.AnyQValue:
-  tpl = arolla.eval(_UPCAST_EXPR, x=value)
-  return arolla.eval(_get_downcast_expr(to_qtype), x=tpl)
-
-
 def _cast_input_qvalue(value: Any, annotation: Any) -> arolla.AnyQValue:
   if isinstance(annotation, schema_item.SchemaItem):
     return arolla.abc.aux_eval_op('kd.schema.cast_to_narrow', value, annotation)
   else:
-    return value
+    return py_boxing.as_qvalue(value)
 
 
 def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
   if isinstance(annotation, schema_item.SchemaItem):
     return arolla.abc.aux_bind_op('kd.schema.cast_to_narrow', value, annotation)
   else:
-    return value
+    return py_boxing.as_qvalue_or_expr(value)
 
 
 def extension_type(
@@ -179,19 +173,17 @@ def extension_type(
     class_meta = _get_class_meta(original_class)
 
     # QType definitions.
-    named_tuple_qtype = arolla.make_namedtuple_qtype(**class_meta.field_qtypes)
-    tuple_qtype = arolla.abc.invoke_op(
-        'qtype.decay_derived_qtype', (named_tuple_qtype,)
-    )
     extension_qtype = M.derived_qtype.get_labeled_qtype(
-        tuple_qtype, original_class.__name__
+        extension_type_registry.BASE_QTYPE, original_class.__name__
     ).qvalue
 
     # QValue construction.
     qvalue_class_attrs = {}
-    for name in class_meta.signature.parameters:
+    for name, qtype in class_meta.field_qtypes.items():
       qvalue_class_attrs[name] = property(
-          lambda self, k=name: _sidecast_qvalue(self, named_tuple_qtype)[k]
+          lambda self, k=name, qtype=qtype: arolla.eval(
+              _UPCAST_EXPR, x=self
+          ).get_attr(k, qtype)
       )
     qvalue_class_attrs |= class_meta.methods
     qvalue_class = type(
@@ -202,10 +194,10 @@ def extension_type(
 
     # ExprView construction.
     expr_view_class_attrs = {}
-    for name in class_meta.signature.parameters:
+    for name, qtype in class_meta.field_qtypes.items():
       expr_view_class_attrs[name] = property(
-          lambda self, k=name: M.namedtuple.get_field(
-              _sidecast_expr(self, named_tuple_qtype), k
+          lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
+              M.derived_qtype.upcast(M.qtype.qtype_of(self), self), k, qtype
           )
       )
     expr_view_methods = {
@@ -232,20 +224,18 @@ def extension_type(
             k: _cast_input_expr(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
-        return M.annotation.qtype(
-            _sidecast_expr(
-                arolla.abc.lookup_operator('kd.namedtuple')(**field_values),
-                extension_qtype,
-            ),
-            extension_qtype,
-        )
+        nt = M.namedtuple.make(**field_values)
+        obj = M.objects.make_object(nt)
+        ext = M.derived_qtype.downcast(extension_qtype, obj)
+        return M.annotation.qtype(ext, extension_qtype)
       else:
         field_values = {
             k: _cast_input_qvalue(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
-        return _sidecast_qvalue(
-            arolla.namedtuple(**field_values), extension_qtype
+        return arolla.eval(
+            _get_downcast_expr(extension_qtype),
+            x=objects.Object(**field_values),
         )
 
     cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)

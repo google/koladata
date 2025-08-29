@@ -25,11 +25,11 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import extension_type_registry
 from koladata.types import extension_types
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import py_boxing
-from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
@@ -57,8 +57,7 @@ def op_with_list_boxing(x, y, z):
 
 @extension_types.extension_type()
 class DummyExtension:
-  x: schema_constants.NONE
-  y: schema_constants.NONE
+  pass
 
 
 class PyBoxingTest(parameterized.TestCase):
@@ -96,7 +95,7 @@ class PyBoxingTest(parameterized.TestCase):
       (data_item.DataItem, ds(None)),
       (schema_item.SchemaItem, ds(None)),
       (jagged_shape.JaggedShape, jagged_shape.create_shape()),
-      (DummyExtension, DummyExtension(ds(None), ds(None))),
+      (DummyExtension, extension_type_registry.get_dummy_value(DummyExtension)),
       ((), arolla.tuple()),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
@@ -200,7 +199,7 @@ class PyBoxingTest(parameterized.TestCase):
       (data_item.DataItem, ds(None)),
       (schema_item.SchemaItem, ds(None)),
       (jagged_shape.JaggedShape, jagged_shape.create_shape()),
-      (DummyExtension, DummyExtension(ds(None), ds(None))),
+      (DummyExtension, extension_type_registry.get_dummy_value(DummyExtension)),
       # Unsupported.
       (1, None),
       (type(arolla.int32(1)), None),

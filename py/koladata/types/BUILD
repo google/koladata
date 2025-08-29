@@ -60,11 +60,11 @@ py_test(
         ":data_item",
         ":data_slice",
         ":ellipsis",
+        ":extension_type_registry",
         ":extension_types",
         ":jagged_shape",
         ":literal_operator",
         ":py_boxing",
-        ":schema_constants",
         ":schema_item",
         "//py:python_path",
         "//py/koladata/expr:input_container",
@@ -672,12 +672,14 @@ py_library(
         ":data_slice",
         ":extension_type_registry",
         ":jagged_shape",
+        ":py_boxing",
         ":qtypes",
         ":schema_item",
         "//py:python_path",
         "//py/koladata/expr:view",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/objects",
     ],
 )
 
@@ -685,14 +687,11 @@ py_library(
     name = "extension_type_registry",
     srcs = ["extension_type_registry.py"],
     deps = [
-        ":data_bag",
-        ":data_slice",
-        ":jagged_shape",
-        ":qtypes",
         "//py:python_path",
         requirement("bidict"),
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/objects",
     ],
 )
 
@@ -700,11 +699,8 @@ py_test(
     name = "extension_type_registry_test",
     srcs = ["extension_type_registry_test.py"],
     deps = [
-        ":data_bag",
         ":data_slice",
         ":extension_type_registry",
-        ":jagged_shape",
-        ":qtypes",
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/expr:input_container",
@@ -714,6 +710,7 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/objects",
     ],
 )
 
@@ -730,6 +727,7 @@ py_test(
         ":qtypes",
         ":schema_constants",
         "//py:python_path",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
