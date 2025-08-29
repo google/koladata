@@ -284,7 +284,10 @@ cc_library(
     deps = [
         ":lib",
         "//koladata:data_bag",
+        "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal/op_utils:qexpr",
         "@com_google_absl//absl/log",
@@ -298,6 +301,7 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
     ],
 )
 
