@@ -108,8 +108,6 @@ class SchemaItemTest(absltest.TestCase):
       kde.schema.new_schema(
           a=schema_constants.INT32, b=schema_constants.STRING
       ).eval().with_bag(None).new()
-    with self.assertRaisesRegex(ValueError, 'deprecated'):
-      kde.schema.new_schema(a=schema_constants.INT32).eval()(42)
 
   def test_is_primitive_schema(self):
     a = ds(1)

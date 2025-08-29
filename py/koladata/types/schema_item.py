@@ -40,15 +40,6 @@ class SchemaItem(data_item.DataItem):
       return arolla.abc.aux_bind_op('kd.new', schema=self, **attrs)
     return _eval_op('kd.new', schema=self, **attrs)
 
-  # TODO: Deprecate when all usage is updated.
-  def __call__(self, *args, **kwargs):
-    """Schema DataItem can be used as Entity creator."""
-    raise ValueError(
-        'creating Entities through Schema.__call__ is deprecated; '
-        'please use kd.new(schema=Schema, ...) or Schema.new(...) instead; '
-        f'creating with {self}'
-    )
-
 
 arolla.abc.register_qvalue_specialization(
     '::koladata::python::SchemaItem', SchemaItem
