@@ -2842,7 +2842,7 @@ assert assert kd.dict_size(d2) == 0
 # Get a ref
 obj_ref = obj.ref()
 assert obj_ref.get_itemid() == obj.get_itemid()
-assert obj_ref.get_bag() is None
+assert not obj_ref.has_bag()
 ```
 
 </section>

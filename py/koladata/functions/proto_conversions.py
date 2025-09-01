@@ -118,7 +118,7 @@ def from_proto(
             'itemid must be a 1-D DataSlice if messages is a list of messages'
         )
 
-  if schema is not None and schema.get_bag() is not None:
+  if schema is not None and schema.has_bag():
     # Avoid schema adoption.
     schema_bag = schema.get_bag()
     try:

@@ -32,7 +32,7 @@ def _isinstance_of_supported_type(x: Any) -> bool:
 
 
 def _extract_keep_mutability(x: data_slice.DataSlice) -> data_slice.DataSlice:
-  if x.get_bag() is None:
+  if not x.has_bag():
     return x
   x_extracted = x.extract()
   if x.get_bag().is_mutable():

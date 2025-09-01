@@ -278,34 +278,6 @@ cc_library(
 )
 
 cc_library(
-    name = "bags",
-    srcs = ["bags.cc"],
-    hdrs = ["bags.h"],
-    deps = [
-        ":lib",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
-        "//koladata/internal:data_item",
-        "//koladata/internal:dtype",
-        "//koladata/internal:non_deterministic_token",
-        "//koladata/internal/op_utils:qexpr",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/dense_array/qtype",
-        "@com_google_arolla//arolla/jagged_shape/dense_array/util",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qexpr",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-    ],
-)
-
-cc_library(
     name = "proto",
     srcs = ["proto.cc"],
     hdrs = ["proto.h"],

@@ -330,7 +330,7 @@ def _create_data_slice_table_data(
     # in the selected range.
     all_attrs = (
         sorted(ds.get_attr_names(intersection=False))
-        if ds.get_bag() is not None and ds.is_entity()
+        if ds.has_bag() and ds.is_entity()
         else []
     )
     attrs_to_show = all_attrs[0:options.attr_limit]
@@ -832,7 +832,7 @@ def visualize_slice(
   # disconnected.
   is_data_item = isinstance(ds, kd.types.DataItem)
   data_item_attr = 'data-item' if is_data_item else ''
-  no_bag_attr = 'no-bag' if ds.get_bag() is None else ''
+  no_bag_attr = 'no-bag' if not ds.has_bag() else ''
   _colab_publish().html(f"""
     <kd-event-reinterpret
         id="{instance_id}"

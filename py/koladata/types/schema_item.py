@@ -32,7 +32,7 @@ class SchemaItem(data_item.DataItem):
 
   def new(self, **attrs) -> data_slice.DataSlice:
     """Returns a new Entity with this Schema."""
-    if self.get_bag() is None:
+    if not self.has_bag():
       raise ValueError(
           'only SchemaItem with DataBags can be used for creating Entities'
       )

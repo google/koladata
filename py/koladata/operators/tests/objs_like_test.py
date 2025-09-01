@@ -218,7 +218,7 @@ class ObjsLikeTest(absltest.TestCase):
 
   def test_itemid_from_different_bag(self):
     itemid = fns.obj(non_existent=ds([[42, 42], [42]])).get_itemid()
-    assert itemid.get_bag() is not None
+    assert itemid.has_bag()
     # Successful.
     x = expr_eval.eval(kde.objs.like(ds([[1, None], [1]]), a=42, itemid=itemid))
     # ITEMID's triples are stripped in the new DataBag.

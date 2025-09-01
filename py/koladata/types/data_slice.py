@@ -326,7 +326,7 @@ def _deep_uuid(
 @add_method(DataSlice, 'fork_bag')
 def _fork_bag(self) -> DataSlice:
   """Returns a copy of the DataSlice with a forked mutable DataBag."""
-  if self.get_bag() is None:
+  if not self.has_bag():
     raise ValueError(
         'fork_bag expects the DataSlice to have a DataBag attached'
     )

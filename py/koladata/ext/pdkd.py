@@ -230,7 +230,7 @@ def to_dataframe(
     ds = ds.repeat(1)
 
   if cols is not None:
-    if ds.get_bag() is None:
+    if not ds.has_bag():
       raise ValueError(
           f'Cannot specify columns {cols!r} for a DataSlice without a db.'
       )
@@ -243,7 +243,7 @@ def to_dataframe(
   get_attr_fn = kdi.get_attr
   schema = ds.get_schema()
   if cols is None:
-    if ds.get_bag() is None:
+    if not ds.has_bag():
       cols = ['self_']
     elif schema.is_entity_schema():
       cols = ds.get_attr_names(intersection=True)

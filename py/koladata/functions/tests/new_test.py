@@ -93,7 +93,7 @@ class NewTest(absltest.TestCase):
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=42).get_itemid()
-    assert itemid.get_bag() is not None
+    assert itemid.has_bag()
     # Successful.
     x = fns.new(a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.

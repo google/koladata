@@ -210,7 +210,7 @@ class EntitiesShapedTest(absltest.TestCase):
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
-    assert itemid.get_bag() is not None
+    assert itemid.has_bag()
     x = kde.entities.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
