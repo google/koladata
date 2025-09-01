@@ -22,7 +22,12 @@
 namespace koladata::python {
 
 // Returns a PyType of PyDataBagObject(s).
-PyTypeObject* PyDataBag_Type();
+PyTypeObject* absl_nullable PyDataBag_Type();
+
+// Returns True if `a` and `b` are exactly equal DataBags or if both are
+// NullDataBags.
+PyObject* absl_nullable PyDataBagModule_exactly_equal(
+    PyObject* /*module*/, PyObject* const* args, Py_ssize_t nargs);
 
 }  // namespace koladata::python
 

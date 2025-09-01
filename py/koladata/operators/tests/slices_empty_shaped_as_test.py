@@ -100,7 +100,7 @@ class SlicesEmptyShapedAsTest(parameterized.TestCase):
     schema = kde.schema.new_schema(x=schema_constants.INT64).eval()
 
     res = kde.empty_shaped_as(shape_from, schema=schema).eval()
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT64)
     testing.assert_equal(res.get_shape(), shape_from.get_shape())

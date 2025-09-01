@@ -74,7 +74,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     with self.subTest("no_schema"):
       res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))
       testing.assert_equal(res.no_bag(), ds([[]]))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest("schema=FLOAT32"):
       res = expr_eval.eval(
@@ -83,7 +83,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest("schema=OBJECT"):
       res = expr_eval.eval(
@@ -106,7 +106,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
       testing.assert_equal(
           res.no_bag(), ds([[None]], schema=schema_constants.NONE)
       )
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest("schema=FLOAT32"):
       res = expr_eval.eval(
@@ -115,7 +115,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest("schema=OBJECT"):
       res = expr_eval.eval(

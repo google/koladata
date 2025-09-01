@@ -1243,27 +1243,6 @@ PyObject* absl_nullable PyDataBag_concat_lists(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
-PyObject* absl_nullable PyDataBag_exactly_equal(PyObject* self,
-                                                PyObject* const* args,
-                                                Py_ssize_t nargs) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  if (nargs != 1) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataBag._exactly_equal accepts exactly 1 argument, got %d",
-                 nargs);
-    return nullptr;
-  }
-  PyObject* const other = args[0];
-  if (Py_TYPE(other) != PyDataBag_Type()) {
-    PyErr_Format(PyExc_TypeError, "cannot compare DataBag with %s",
-                 Py_TYPE(other)->tp_name);
-    return nullptr;
-  }
-  return PyBool_FromLong(DataBagComparison::ExactlyEqual(
-      UnsafeDataBagPtr(self), (UnsafeDataBagPtr(other))));
-}
-
 PyObject* absl_nullable PyDataBag_merge_inplace(PyObject* self,
                                                 PyObject* const* args,
                                                 Py_ssize_t nargs) {
@@ -1813,10 +1792,6 @@ Returns:
      "_concat_lists(*lists)\n"
      "--\n\n"
      "DataBag._concat_lists"},
-    {"_exactly_equal", (PyCFunction)PyDataBag_exactly_equal, METH_FASTCALL,
-     "_exactly_equal(other, /)\n"
-     "--\n\n"
-     "DataBag._exactly_equal"},
     {"_merge_inplace", (PyCFunction)PyDataBag_merge_inplace, METH_FASTCALL,
      "_merge_inplace(overwrite, allow_data_conflicts, allow_schema_conflicts, "
      "*bags)\n"
@@ -1930,10 +1905,32 @@ PyTypeObject* InitPyDataBagType() {
 
 }  // namespace
 
-PyTypeObject* PyDataBag_Type() {
+PyTypeObject* absl_nullable PyDataBag_Type() {
   arolla::python::DCheckPyGIL();
   static PyTypeObject* type = InitPyDataBagType();
   return type;
+}
+
+PyObject* absl_nullable PyDataBagModule_exactly_equal(
+    PyObject* /*module*/, PyObject* const* args, Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  if (nargs != 2) {
+    PyErr_Format(PyExc_ValueError,
+                 "exactly_equal accepts exactly 2 arguments, got %d",
+                 nargs);
+    return nullptr;
+  }
+  auto a = UnwrapDataBagPtr(args[0], "a");
+  if (a == std::nullopt) {
+    return nullptr;
+  }
+  auto b = UnwrapDataBagPtr(args[1], "b");
+  if (b == std::nullopt) {
+    return nullptr;
+  }
+  return PyBool_FromLong(
+      DataBagComparison::ExactlyEqual(std::move(*a), std::move(*b)));
 }
 
 }  // namespace koladata::python

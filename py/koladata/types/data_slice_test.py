@@ -718,17 +718,17 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_get_bag(self):
     x = ds([1, 2, 3])
-    self.assertIsNone(x.get_bag())
+    self.assertFalse(x.has_bag())
 
     db = bag()
     x = x.with_bag(db)
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
 
-    self.assertIsNone(x.with_bag(None).get_bag())
-    self.assertIsNone(x.no_bag().get_bag())
+    self.assertFalse(x.with_bag(None).has_bag())
+    self.assertFalse(x.no_bag().has_bag())
 
     x = db.new_shaped(jagged_shape.create_shape([1]))
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
     # NOTE: At the moment x.get_bag() is not db. If this is needed, we could
     # store the db PyObject* reference in PyDataSlice object. The underlying
     # DataBag that PyObject points to, is the same.

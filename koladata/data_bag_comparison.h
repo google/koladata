@@ -25,6 +25,9 @@ class DataBagComparison {
  public:
   static bool ExactlyEqual(const DataBagPtr a, const DataBagPtr b) {
     using Triples = internal::debug::Triples;
+    if (a == nullptr || b == nullptr) {
+      return a == b;
+    }
     if (Triples(a->GetImpl().ExtractContent().value()) !=
         Triples(b->GetImpl().ExtractContent().value())) {
       return false;

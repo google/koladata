@@ -340,7 +340,7 @@ assigned schema: ENTITY(u=INT64)'''
           kde.py.map_py(my_fn, val, include_missing=include_missing)
       )
       testing.assert_equal(res.no_bag(), ds([[]]))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest('schema=FLOAT32'):
       res = expr_eval.eval(
@@ -352,7 +352,7 @@ assigned schema: ENTITY(u=INT64)'''
           )
       )
       testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest('schema=OBJECT'):
       res = expr_eval.eval(
@@ -380,7 +380,7 @@ assigned schema: ENTITY(u=INT64)'''
       testing.assert_equal(
           res.no_bag(), ds([[None]], schema=schema_constants.NONE)
       )
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest('schema=FLOAT32'):
       res = expr_eval.eval(
@@ -392,7 +392,7 @@ assigned schema: ENTITY(u=INT64)'''
           )
       )
       testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
-      self.assertIsNone(res.get_bag())
+      self.assertFalse(res.has_bag())
 
     with self.subTest('schema=OBJECT'):
       res = expr_eval.eval(

@@ -498,3 +498,8 @@ arolla.abc.register_qvalue_specialization(
 def null_bag():
   """Returns an instance of a null DataBag."""
   return _eval_op('kd.get_bag', _DataSlice.from_vals(None))
+
+
+def exactly_equal(a: DataBag, b: DataBag) -> bool:
+  """Returns True if `a` and `b` are exactly equal DataBags or if both are NullDataBags."""
+  return _data_bag_py_ext.internal_exactly_equal(a, b)

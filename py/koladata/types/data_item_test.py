@@ -123,11 +123,11 @@ class DataItemTest(parameterized.TestCase):
 
   def test_bag(self):
     x = ds(12)
-    self.assertIsNone(x.get_bag())
+    self.assertFalse(x.has_bag())
 
     db = data_bag.DataBag.empty_mutable()
     x = x.with_bag(db)
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
 
   def test_set_get_attr(self):
     db = data_bag.DataBag.empty_mutable()

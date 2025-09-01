@@ -167,7 +167,7 @@ class CoreExtractTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extract(o_fb))
 
     self.assertFalse(result.get_bag().is_mutable())
-    self.assertFalse(result.get_bag()._exactly_equal(db))
+    self.assertFalse(data_bag.exactly_equal(result.get_bag(), db))
     o.a.set_attr('d', fb_d.no_bag())
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
     testing.assert_equivalent(result.get_bag(), db)

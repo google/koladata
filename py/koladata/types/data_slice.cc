@@ -79,13 +79,21 @@ absl::Status TryAdoptInto(const AdoptionQueue& adoption_queue,
   return adoption_queue.AdoptInto(*db);
 }
 
+DataSlice AsMask(bool b) {
+  return *DataSlice::Create(
+      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
+      internal::DataItem(schema::kMask));
+}
+
 PyObject* absl_nullable PyDataSlice_get_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   auto db = UnsafeDataSliceRef(self).GetBag();
-  if (db == nullptr) {
-    Py_RETURN_NONE;
-  }
   return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(db));
+}
+
+PyObject* absl_nullable PyDataSlice_has_bag(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  return WrapPyDataSlice(AsMask(UnsafeDataSliceRef(self).GetBag() != nullptr));
 }
 
 PyObject* absl_nullable PyDataSlice_with_bag(PyObject* self, PyObject* db) {
@@ -864,12 +872,6 @@ PyObject* absl_nullable PyDataSlice_get_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(ds.GetSchema());
 }
 
-DataSlice AsMask(bool b) {
-  return *DataSlice::Create(
-      b ? internal::DataItem(arolla::kUnit) : internal::DataItem(),
-      internal::DataItem(schema::kMask));
-}
-
 PyObject* absl_nullable PyDataSlice_is_list_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
@@ -1077,6 +1079,10 @@ PyMethodDef kPyDataSlice_methods[] = {
      "get_bag()\n"
      "--\n\n"
      "Returns the attached DataBag."},
+    {"has_bag", PyDataSlice_has_bag, METH_NOARGS,
+     "has_bag()\n"
+     "--\n\n"
+     "Returns `present` if DataSlice `ds` has a DataBag attached."},
     {"with_bag", PyDataSlice_with_bag, METH_O,
      "with_bag(bag, /)\n"
      "--\n\n"
@@ -1405,7 +1411,7 @@ PyTypeObject* InitPyDataSliceType() {
 
 }  // namespace
 
-PyTypeObject* PyDataSlice_Type() {
+PyTypeObject* absl_nullable PyDataSlice_Type() {
   arolla::python::DCheckPyGIL();
   static PyTypeObject* type = InitPyDataSliceType();
   return type;

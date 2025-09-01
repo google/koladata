@@ -56,7 +56,7 @@ class ObjsLikeTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape_and_mask_from = ds(0)
     x = kde.objs.like(shape_and_mask_from).eval()
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())

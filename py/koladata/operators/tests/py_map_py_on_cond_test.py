@@ -89,11 +89,11 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(res, ds([], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
+    self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
     testing.assert_equal(res.no_bag(), ds([]))
-    self.assertIsNone(res.get_bag())
+    self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(
         kde.py.map_py_on_cond(
@@ -101,7 +101,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
 
     val = ds([1, 2, 3])
     cond = ds(
@@ -113,11 +113,11 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(res, ds([None, None, None], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
+    self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
     testing.assert_equal(res, ds([None, None, None]))
-    self.assertIsNone(res.get_bag())
+    self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(
         kde.py.map_py_on_cond(
@@ -127,7 +127,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     testing.assert_equal(
         res.no_bag(), ds([None, None, None], schema_constants.OBJECT)
     )
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
 
   def test_error_non_mask_cond(self):
     fn = lambda _: None

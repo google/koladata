@@ -337,15 +337,15 @@ class FromPyTest(parameterized.TestCase):
   def test_primitive(self, from_py_fn):
     item = from_py_fn(42)
     testing.assert_equal(item, ds(42))
-    self.assertIsNone(item.get_bag())
+    self.assertFalse(item.has_bag())
 
     item = from_py_fn(42, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(42.))
-    self.assertIsNone(item.get_bag())
+    self.assertFalse(item.has_bag())
 
     item = from_py_fn(42, schema=schema_constants.OBJECT)
     testing.assert_equal(item.no_bag(), ds(42, schema_constants.OBJECT))
-    self.assertIsNotNone(item.get_bag())
+    self.assertTrue(item.has_bag())
     self.assertFalse(item.get_bag().is_mutable())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -398,32 +398,32 @@ assigned schema: INT32"""),
   def test_primitives_common_schema(self, from_py_fn):
     res = from_py_fn([1, 3.14], from_dim=1)
     testing.assert_equal(res, ds([1.0, 3.14]))
-    self.assertIsNone(res.get_bag())
+    self.assertFalse(res.has_bag())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_primitives_object(self, from_py_fn):
     res = from_py_fn([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds([1, 3.14], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_empty_object(self, from_py_fn):
     res = from_py_fn(None, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds(None, schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
     res = from_py_fn([], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
     res = from_py_fn([None, None], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(
         res.no_bag(), ds([None, None], schema_constants.OBJECT)
     )
-    self.assertIsNotNone(res.get_bag())
+    self.assertTrue(res.has_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -630,7 +630,7 @@ assigned schema: INT32"""),
   def test_entity_reference(self):
     entity = fns.new(x=42).fork_bag()
     item = fns.from_py(entity.ref())
-    self.assertIsNotNone(item.get_bag())
+    self.assertTrue(item.has_bag())
     testing.assert_equal(
         item.get_attr('__schema__').no_bag(), entity.get_schema().no_bag()
     )

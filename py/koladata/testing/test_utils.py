@@ -158,9 +158,7 @@ def _assert_equivalent_bags(
   if (
       actual_value is not None
       and expected_value is not None
-      and (
-          actual_value._exactly_equal(expected_value)  # pylint: disable=protected-access
-      )
+      and _data_bag.exactly_equal(actual_value, expected_value)
   ):
     return
   raise AssertionError(

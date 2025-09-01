@@ -47,14 +47,14 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
   )
   def test_encode_decode(self, ids):
     encoded = expr_eval.eval(kde.ids.encode_itemid(ids))
-    self.assertIsNone(encoded.get_bag())
+    self.assertFalse(encoded.has_bag())
     if isinstance(encoded, data_item.DataItem):
       self.assertRegex(str(encoded), '[0-9a-zA-Z]{22}')
     else:
       for item in encoded.L:
         self.assertRegex(str(item), '[0-9a-zA-Z]{22}')
     decoded = expr_eval.eval(kde.ids.decode_itemid(encoded))
-    self.assertIsNone(decoded.get_bag())
+    self.assertFalse(decoded.has_bag())
     testing.assert_equal(ids.no_bag().get_itemid(), decoded)
 
   def test_error(self):

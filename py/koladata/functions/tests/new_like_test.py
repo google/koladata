@@ -219,7 +219,7 @@ class NewLikeTest(absltest.TestCase):
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
-    self.assertIsNotNone(itemid.get_bag())
+    self.assertTrue(itemid.has_bag())
     # Successful.
     x = fns.new_like(ds([[1, None], [1]]), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.

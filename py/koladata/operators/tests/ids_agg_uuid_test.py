@@ -56,7 +56,7 @@ class IdsAggUuidTest(parameterized.TestCase):
   def test_eval_shapes(self, x, ndim):
     y = expr_eval.eval(kde.ids.agg_uuid(I.x, ndim=ndim), x=x)
     self.assertEqual(y.get_ndim(), x.get_ndim() - ndim)
-    self.assertIsNone(y.get_bag())
+    self.assertFalse(y.has_bag())
     self.assertEqual(y.get_schema(), schema_constants.ITEMID)
 
   @parameterized.parameters(

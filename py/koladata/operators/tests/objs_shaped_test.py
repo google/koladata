@@ -58,7 +58,7 @@ class ObjsShapedTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
     x = kde.objs.shaped(shape).eval()
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
     testing.assert_equal(x.get_shape(), shape)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
     self.assertFalse(x.is_mutable())

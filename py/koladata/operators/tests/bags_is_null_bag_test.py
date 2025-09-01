@@ -34,19 +34,14 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Remove once ds.get_bag() returns NullDataBag.
-def get_bag(x):
-  return eval_op('kd.core.get_bag', x)
-
-
 class BagsIsNullBagTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (get_bag(bag().obj()), mask_constants.missing),
-      (get_bag(bag().list([1, 2, 3])), mask_constants.missing),
-      (get_bag(ds([bag().obj(a=1)])), mask_constants.missing),
-      (get_bag(ds([1, 2, 3])), mask_constants.present),
-      (get_bag(bag().obj().no_bag()), mask_constants.present),
+      (bag().obj().get_bag(), mask_constants.missing),
+      (bag().list([1, 2, 3]).get_bag(), mask_constants.missing),
+      (ds([bag().obj(a=1)]).get_bag(), mask_constants.missing),
+      (ds([1, 2, 3]).get_bag(), mask_constants.present),
+      (bag().obj().no_bag().get_bag(), mask_constants.present),
   )
   def test_eval(self, db, expected):
     testing.assert_equal(eval_op('kd.bags.is_null_bag', db), expected)

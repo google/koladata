@@ -56,7 +56,7 @@ class EntitiesLikeTest(absltest.TestCase):
   def test_item_no_attrs(self):
     shape_and_mask_from = ds(0)
     x = kde.entities.like(shape_and_mask_from).eval()
-    self.assertIsNotNone(x.get_bag())
+    self.assertTrue(x.has_bag())
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
@@ -273,7 +273,7 @@ class EntitiesLikeTest(absltest.TestCase):
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
-    self.assertIsNotNone(itemid.get_bag())
+    self.assertTrue(itemid.has_bag())
     # Successful.
     x = expr_eval.eval(
         kde.entities.like(ds([[1, None], [1]]), a=42, itemid=itemid)

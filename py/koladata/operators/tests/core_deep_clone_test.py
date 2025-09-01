@@ -208,7 +208,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     result.with_bag(expected_bag).set_attr('a', result.a.no_bag())
     result.a.with_bag(expected_bag).set_attr('b', result.a.b.no_bag())
     result.a.with_bag(expected_bag).set_attr('c', result.a.c.no_bag())
-    self.assertTrue(result.get_bag()._exactly_equal(expected_bag))
+    self.assertTrue(data_bag.exactly_equal(result.get_bag(), expected_bag))
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))

@@ -545,7 +545,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     i1 = db1.obj(a=42)
     i2 = db2.obj(a=24)
     s = ds([i1, i2])
-    self.assertIsNotNone(s.get_bag())
+    self.assertTrue(s.has_bag())
     testing.assert_equal(s.a, ds([42, 24]).with_bag(s.get_bag()))
 
   def test_slice_schema_adoption(self):

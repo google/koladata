@@ -67,6 +67,14 @@ TEST(DataBagComparisonTest, ExactlyEqual_Fallbacks) {
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_ff212, db_ff122));
 }
 
+TEST(DataBagComparisonTest, ExactlyEqual_NullDataBag) {
+  DataBagPtr db1 = nullptr;
+  DataBagPtr db2 = nullptr;
+  auto db3 = DataBag::Empty();
+
+  EXPECT_TRUE(DataBagComparison::ExactlyEqual(db1, db2));
+  EXPECT_FALSE(DataBagComparison::ExactlyEqual(db1, db3));
+}
 
 }  // namespace
 }  // namespace koladata

@@ -11463,7 +11463,7 @@ Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.</code></pre>
 
-### `DataSlice.has_bag(self)` {#DataSlice.has_bag}
+### `DataSlice.has_bag()` {#DataSlice.has_bag}
 Aliases:
 
 - [DataItem.has_bag](#DataItem.has_bag)
@@ -12931,7 +12931,7 @@ Alias for [DataSlice.get_values](#DataSlice.get_values) operator.
 
 Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
 
-### `DataItem.has_bag(self)` {#DataItem.has_bag}
+### `DataItem.has_bag()` {#DataItem.has_bag}
 
 Alias for [DataSlice.has_bag](#DataSlice.has_bag) operator.
 

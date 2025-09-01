@@ -55,10 +55,7 @@ class DataBagTest(parameterized.TestCase):
     # NOTE: bag() invokes `PyDataBag_Type()` C Python function multiple times
     # and this verifies there are no leaking references.
     self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
-
-    # NOTE: _exactly_equal() invokes `PyDataBag_Type()` C Python function
-    # and this verifies there are no leaking references.
-    bag()._exactly_equal(bag())
+    data_bag.exactly_equal(bag(), bag())
     self.assertEqual(sys.getrefcount(data_bag.DataBag), base_count)
 
     x = bag().obj()
@@ -1496,26 +1493,33 @@ Assigned schema for keys: INT32""",
 
   def test_exactly_equal_impl_raises(self):
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._exactly_equal accepts exactly 1 argument, got 2'
+        TypeError, 'takes 2 positional arguments but 3'
     ):
-      bag()._exactly_equal(42, 42)
+      data_bag.exactly_equal(42, 42, 42)  # pytype: disable=wrong-arg-count
 
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._exactly_equal accepts exactly 1 argument, got 0'
+        TypeError, 'missing 2 required positional arguments'
     ):
-      bag()._exactly_equal()
+      data_bag.exactly_equal()  # pytype: disable=missing-parameter
 
-    with self.assertRaisesRegex(TypeError, 'cannot compare DataBag with int'):
-      bag()._exactly_equal(42)
+    with self.assertRaisesRegex(
+        TypeError, 'expecting b to be a DataBag, got int'
+    ):
+      data_bag.exactly_equal(bag(), 42)
 
   def test_exactly_equal_impl(self):
     db1 = bag()
     db2 = bag()
-    self.assertTrue(db1._exactly_equal(db2))
+    self.assertTrue(data_bag.exactly_equal(db1, db2))
     _ = db1.obj(a=1)
-    self.assertFalse(db1._exactly_equal(db2))
+    self.assertFalse(data_bag.exactly_equal(db1, db2))
     _ = db2.obj(a=1)
-    self.assertFalse(db1._exactly_equal(db2))
+    self.assertFalse(data_bag.exactly_equal(db1, db2))
+
+    self.assertTrue(
+        data_bag.exactly_equal(data_bag.null_bag(), data_bag.null_bag())
+    )
+    self.assertFalse(data_bag.exactly_equal(db1, data_bag.null_bag()))
 
   def test_exactly_equal_impl_fallbacks(self):
     db1 = bag()
@@ -1523,13 +1527,13 @@ Assigned schema for keys: INT32""",
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     ds12 = x.with_bag(db1).enriched(db2)
     ds1 = x.with_bag(db1)
-    self.assertFalse(ds12.get_bag()._exactly_equal(ds1.get_bag()))
+    self.assertFalse(data_bag.exactly_equal(ds12.get_bag(), ds1.get_bag()))
 
     ds21 = x.with_bag(db2).enriched(db1)
-    self.assertTrue(ds12.get_bag()._exactly_equal(ds21.get_bag()))
+    self.assertTrue(data_bag.exactly_equal(ds12.get_bag(), ds21.get_bag()))
 
     _ = db1.obj(x=1)
-    self.assertFalse(ds12.get_bag()._exactly_equal(ds21.get_bag()))
+    self.assertFalse(data_bag.exactly_equal(ds12.get_bag(), ds21.get_bag()))
 
   def test_merge_inplace(self):
     db1 = bag()
@@ -2117,6 +2121,7 @@ class NullDataBagTest(absltest.TestCase):
 
   def test_qvalue(self):
     self.assertIsInstance(data_bag.null_bag(), arolla.QValue)
+    self.assertIsNotNone(data_bag.null_bag())
 
   def test_with_name(self):
     x = data_bag.null_bag()
@@ -2131,7 +2136,7 @@ class NullDataBagTest(absltest.TestCase):
 
   def test_with_bag(self):
     x = ds([1, 2, 3]).with_bag(data_bag.null_bag())
-    self.assertIsNone(x.get_bag())
+    self.assertFalse(x.has_bag())
 
   def test_repr(self):
     self.assertEqual(repr(data_bag.null_bag()), 'DataBag(null)')
