@@ -64,8 +64,8 @@ class FastcallArgParser {
     std::vector<PyObject*> kw_values;
   };
 
-  // TODO: Consider deprecating `ArgNames` variadic signature and
-  // support mutliple initializer_list signature.
+  // NOTE: Consider deprecating `ArgNames` variadic signature and support
+  // mutliple initializer_list signature.
   template <typename... ArgName>
   FastcallArgParser(size_t pos_only_n, bool parse_kwargs,
                     ArgName... pos_kw_arg_names)
