@@ -29,8 +29,11 @@ from koladata.types import py_boxing
 from koladata.util import kd_functools
 
 
+# TODO: Remove support once all TypeTracingConfig usages have been
+# migrated to extension types.
+#
 # The design is loosely inspired by TensorFlow TraceType.
-class TypeTracingConfig(abc.ABC):
+class _TypeTracingConfig(abc.ABC):
   """Describes handling a given user Python type as input/output when tracing."""
 
   @abc.abstractmethod
@@ -94,7 +97,7 @@ class TypeTracingConfig(abc.ABC):
     raise NotImplementedError()
 
 
-class DefaultTypeTracingConfig(TypeTracingConfig):
+class _DefaultTypeTracingConfig(_TypeTracingConfig):
   """Default type tracing config."""
 
   def return_type_as(self, annotation: type[Any]) -> Any:
@@ -116,15 +119,15 @@ class DefaultTypeTracingConfig(TypeTracingConfig):
     return value
 
 
-TYPE_TRACING_CONFIG_METHOD_NAME = '_koladata_type_tracing_config_'
+_TYPE_TRACING_CONFIG_METHOD_NAME = '_koladata_type_tracing_config_'
 
 
-def _get_type_tracing_config(annotation: type[Any]) -> TypeTracingConfig:
+def _get_type_tracing_config(annotation: type[Any]) -> _TypeTracingConfig:
   """Returns the type tracing config for the given class."""
   try:
-    config = getattr(annotation, TYPE_TRACING_CONFIG_METHOD_NAME)
+    config = getattr(annotation, _TYPE_TRACING_CONFIG_METHOD_NAME)
   except AttributeError:
-    config = DefaultTypeTracingConfig
+    config = _DefaultTypeTracingConfig
   return config()
 
 
@@ -158,7 +161,7 @@ def _wrap_with_from_and_to_kd(
   # the common case of no custom tracing config.
   params_with_custom_config = []
   for param in sig.parameters.values():
-    if hasattr(param.annotation, TYPE_TRACING_CONFIG_METHOD_NAME):
+    if hasattr(param.annotation, _TYPE_TRACING_CONFIG_METHOD_NAME):
       params_with_custom_config.append(param)
     if param.default is not inspect.Parameter.empty:
       param = param.replace(default=_to_kd(param.annotation, param.default))
@@ -231,23 +234,11 @@ class TraceAsFnDecorator:
   because it will try to auto-box the class instance into an expr, which is
   likely not supported.
 
-  If the function accepts or returns a type that is not supported by Koda
-  natively, the corresponding argument/return value must be annotated with a
-  type that has a _koladata_type_tracing_config_() classmethod that returns an
-  instance of TypeTracingConfig to describe how to convert the value to/from
-  Koda.
-
-  Note that for _koladata_type_tracing_config_ to work, type annotations must
-  _not_ be forward declarations (which is possible when using `from __future__
-  import annotations`) as these will fail to be resolved.
-
   When executing the resulting function in eager mode, we will evaluate the
   underlying function directly instead of evaluating the functor, to have
   nicer stack traces in case of an exception. However, we will still apply
   the boxing rules on the returned value (for example, convert Python primitives
-  to DataItems), and the to/from Koda conversions defined by
-  _koladata_type_tracing_config_, if any, to better emulate what will happen in
-  tracing mode.
+  to DataItems) to better emulate what will happen in tracing mode.
   """
 
   def __init__(

@@ -39,7 +39,6 @@ functor = _py_types.SimpleNamespace(
     allow_arbitrary_unused_inputs=_functor_factories.allow_arbitrary_unused_inputs,
     trace_as_fn=_tracing_decorator.TraceAsFnDecorator,
     signature_utils=_signature_utils,
-    TypeTracingConfig=_tracing_decorator.TypeTracingConfig,
     FunctorFactory=_tracing_decorator.FunctorFactory,
 )
 

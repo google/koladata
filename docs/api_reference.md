@@ -1926,10 +1926,6 @@ Operators to create and call functors.
   Implements:
     (py_types.FunctionType, return_type_as: arolla.QValue) -&gt; DataItem</code></pre>
 
-### `kd.functor.TypeTracingConfig()` {#kd.functor.TypeTracingConfig}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Describes handling a given user Python type as input/output when tracing.</code></pre>
-
 ### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a functor that allows unused inputs but otherwise behaves the same.
@@ -2584,23 +2580,11 @@ Aliases:
   because it will try to auto-box the class instance into an expr, which is
   likely not supported.
 
-  If the function accepts or returns a type that is not supported by Koda
-  natively, the corresponding argument/return value must be annotated with a
-  type that has a _koladata_type_tracing_config_() classmethod that returns an
-  instance of TypeTracingConfig to describe how to convert the value to/from
-  Koda.
-
-  Note that for _koladata_type_tracing_config_ to work, type annotations must
-  _not_ be forward declarations (which is possible when using `from __future__
-  import annotations`) as these will fail to be resolved.
-
   When executing the resulting function in eager mode, we will evaluate the
   underlying function directly instead of evaluating the functor, to have
   nicer stack traces in case of an exception. However, we will still apply
   the boxing rules on the returned value (for example, convert Python primitives
-  to DataItems), and the to/from Koda conversions defined by
-  _koladata_type_tracing_config_, if any, to better emulate what will happen in
-  tracing mode.</code></pre>
+  to DataItems) to better emulate what will happen in tracing mode.</code></pre>
 
 ### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.functor.trace_py_fn}
 Aliases:

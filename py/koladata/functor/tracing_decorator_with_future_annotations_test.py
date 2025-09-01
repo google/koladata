@@ -25,7 +25,7 @@ from koladata.types import data_slice
 ds = data_slice.DataSlice.from_vals
 
 
-class SimpleTracingConfig(tracing_decorator.TypeTracingConfig):
+class SimpleTracingConfig(tracing_decorator._TypeTracingConfig):
 
   def return_type_as(self, annotation):
     return data_slice.DataSlice

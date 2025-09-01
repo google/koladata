@@ -174,6 +174,9 @@ py_test(
 py_library(
     name = "tracing_decorator",
     srcs = ["tracing_decorator.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":functor_factories",
         "//py:python_path",

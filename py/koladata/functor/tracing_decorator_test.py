@@ -43,7 +43,7 @@ kd_eager = eager_op_utils.operators_container('kd')
 kd_lazy = kde_operators.kde
 
 
-class TuplePairTracingConfig(tracing_decorator.TypeTracingConfig):
+class TuplePairTracingConfig(tracing_decorator._TypeTracingConfig):
   """A type tracing config for Pair using tuples."""
 
   def return_type_as(self, annotation: type['PairWithTupleTracing']) -> Any:
@@ -84,7 +84,7 @@ class PairWithTupleTracing:
   )
 
 
-class EntityPairTracingConfig(tracing_decorator.TypeTracingConfig):
+class EntityPairTracingConfig(tracing_decorator._TypeTracingConfig):
   """A type tracing config for Pair using entities."""
 
   def return_type_as(self, annotation: type['PairWithEntityTracing']) -> Any:
