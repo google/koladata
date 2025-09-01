@@ -17,23 +17,45 @@
 import dataclasses
 import functools
 import inspect
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Self
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
 from koladata.expr import view
+from koladata.functor import functor_factories
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
 from koladata.types import py_boxing
 from koladata.types import qtypes
+from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
 M = arolla.M | derived_qtype.M | objects.M
 
 _UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
+_VIRTUAL_METHOD_ATTR = '_kd_extension_type_virtual_method'
+_OVERRIDE_METHOD_ATTR = '_kd_extension_type_override_method'
+
+
+def virtual():
+  """Marks the method as virtual, allowing it to be overridden."""
+  def impl(fn: Callable[..., Any]) -> Callable[..., Any]:
+    setattr(fn, _VIRTUAL_METHOD_ATTR, True)
+    return fn
+
+  return impl
+
+
+def override():
+  """Marks the method as overriding a virtual method."""
+  def impl(fn: Callable[..., Any]) -> Callable[..., Any]:
+    setattr(fn, _OVERRIDE_METHOD_ATTR, True)
+    return fn
+
+  return impl
 
 
 @functools.lru_cache
@@ -41,10 +63,85 @@ def _get_downcast_expr(qtype):
   return M.derived_qtype.downcast(qtype, arolla.L.x)
 
 
+def _make_functor_attr_name(method_name: str) -> str:
+  return f'{method_name}__functor_impl'
+
+
+@dataclasses.dataclass(frozen=True)
+class _VirtualMethod:
+  # Callable that should be traced into a functor and stored as data.
+  functor_impl: Callable[..., Any]
+  # Method that should be attached to the ExprView and QValue specialization.
+  method: Callable[..., Any]
+
+
+def _make_virtual_method(
+    method_name: str, method: Callable[..., Any], self_annotation: type[Any]
+) -> _VirtualMethod:
+  """Returns a virtual method as a pair of callables to be traced.
+
+  The `functor_impl` is the calllable that should be traced into a functor and
+  stored as data. In order to support returning "self" from a virtual method
+  that may be called from a parent, the result is upcasted to Object if
+  `self_annotation` is an extension type.
+
+  The `method` is the method that should be attached to the ExprView and QValue
+  specialization. This looks up the stored functor as data and calls it with
+  a relevant `return_type_as`. If the result is an extension type, it also
+  downcasts the results to the specified extension type.
+
+  Args:
+    method_name: The name of the method.
+    method: The method to trace.
+    self_annotation: The type of `self`.
+  """
+  sig = inspect.signature(method, eval_str=True)
+  output_qtype = None
+  return_type_as = None
+  if sig.return_annotation is not inspect.Parameter.empty:
+    if sig.return_annotation == Self:
+      return_type_as = py_boxing.get_dummy_qvalue(self_annotation)
+    else:
+      return_type_as = py_boxing.get_dummy_qvalue(sig.return_annotation)
+    if extension_type_registry.is_koda_extension(return_type_as):
+      output_qtype = return_type_as.qtype
+      return_type_as = arolla.eval(_UPCAST_EXPR, x=return_type_as)
+
+  # NOTE: We do not trace here, since we have yet to register an expr view.
+  @functools.wraps(method)
+  def functor_impl(self, *args, **kwargs):
+    res = method(self, *args, **kwargs)
+    if output_qtype is not None:
+      return M.derived_qtype.upcast(M.qtype.qtype_of(res), res)
+    else:
+      return res
+
+  # Mark `self` as an extension type, allowing it to be upcasted / downcasted
+  # using the existing casting support in `kd.fn`.
+  annotations = functor_impl.__annotations__  # pytype: disable=attribute-error
+  annotations['self'] = self_annotation
+  functor_impl.__annotations__ = annotations
+
+  @functools.wraps(method)
+  def method_impl(self, *args, **kwargs):
+    fn = getattr(self, _make_functor_attr_name(method_name))
+    res = fn(self, *args, **kwargs, return_type_as=return_type_as)
+    if output_qtype is not None:
+      if isinstance(res, arolla.Expr):
+        return M.derived_qtype.downcast(output_qtype, res)
+      else:
+        return arolla.eval(_get_downcast_expr(output_qtype), x=res)
+    else:
+      return res
+
+  return _VirtualMethod(functor_impl=functor_impl, method=method_impl)
+
+
 @dataclasses.dataclass(frozen=True)
 class _ClassMeta:
   signature: inspect.Signature
-  methods: Mapping[str, Callable[..., Any]]
+  non_virtual_methods: Mapping[str, Callable[..., Any]]
+  virtual_methods: Mapping[str, Callable[..., Any]]
   field_annotations: Mapping[str, Any]
   field_qtypes: Mapping[str, arolla.QType]
 
@@ -54,18 +151,57 @@ def _safe_issubclass(subcls: Any, cls: type[Any]) -> bool:
   return isinstance(subcls, type) and issubclass(subcls, cls)
 
 
+def _assert_allowed_virtual_tag(original_class: type[Any], attr: str):
+  method = getattr(original_class, attr)
+  for cls in original_class.__mro__[1:]:
+    if hasattr(cls, attr) and getattr(cls, attr) is not method:
+      raise AssertionError(
+          f'redefinition of an existing method {attr} for the class'
+          f' {original_class} is not allowed for the @virtual annotation'
+      )
+
+
+def _assert_allowed_override_tag(original_class: type[Any], attr: str):
+  for cls in original_class.__mro__[1:]:
+    if hasattr(cls, attr) and hasattr(getattr(cls, attr), _VIRTUAL_METHOD_ATTR):
+      return
+  raise AssertionError(
+      f'the @override annotation on class {original_class} requires a'
+      f' @virtual annotation on an ancestor for the method {attr}'
+  )
+
+
+def _assert_allowed_no_tag(original_class: type[Any], attr: str):
+  for cls in original_class.__mro__[1:]:
+    if hasattr(cls, attr) and hasattr(
+        getattr(cls, attr), _VIRTUAL_METHOD_ATTR
+    ):
+      raise AssertionError(
+          f'missing @override annotation on class {original_class} for the'
+          f' @virtual method {attr} defined on an ancestor class'
+      )
+
+
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
   data_class = dataclasses.dataclass()(original_class)
   fields = {f.name: f for f in dataclasses.fields(data_class)}
-  methods = {}
+  non_virtual_methods, virtual_methods = {}, {}
   for attr in dir(data_class):
     if attr in fields:
       continue
     method = getattr(data_class, attr)
     if not callable(method):
       continue
-    methods[attr] = method
+    if hasattr(method, _VIRTUAL_METHOD_ATTR):
+      _assert_allowed_virtual_tag(original_class, attr)
+      virtual_methods[attr] = method
+    elif hasattr(method, _OVERRIDE_METHOD_ATTR):
+      _assert_allowed_override_tag(original_class, attr)
+      virtual_methods[attr] = method
+    else:
+      _assert_allowed_no_tag(original_class, attr)
+      non_virtual_methods[attr] = method
 
   sig = inspect.signature(data_class, eval_str=True)
   field_annotations = {}
@@ -91,9 +227,14 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       )
     field_annotations[param.name] = param.annotation
 
+  for name in virtual_methods:
+    field_qtypes[_make_functor_attr_name(name)] = qtypes.DATA_SLICE
+    field_annotations[_make_functor_attr_name(name)] = schema_constants.OBJECT
+
   return _ClassMeta(
       signature=sig,
-      methods=methods,
+      non_virtual_methods=non_virtual_methods,
+      virtual_methods=virtual_methods,
       field_annotations=field_annotations,
       field_qtypes=field_qtypes,
   )
@@ -113,6 +254,16 @@ def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
     return py_boxing.as_qvalue_or_expr(value)
 
 
+# TODO: Support `with_attrs`, or allow virtual methods to construct
+# self.
+def _raise_new(cls, *args, **kwargs):
+  del args, kwargs
+  raise NotImplementedError(
+      f'{repr(cls)} is not ready to be initialized - constructing extension'
+      ' type construction from inside of a @virtual method is not supported'
+  )
+
+
 def extension_type(
     unsafe_override=False,
 ) -> Callable[[type[Any]], type[arolla.AnyQValue]]:
@@ -123,7 +274,7 @@ def extension_type(
 
   Internally, this function creates the following:
   -  A new `QType` for the extension type, which is a labeled `QType` on top of
-    a TUPLE.
+    an arolla::Object.
   - A `QValue` class for representing evaluated instances of the extension type.
   - An `ExprView` class for representing expressions that will evaluate to the
     extension type.
@@ -142,7 +293,8 @@ def extension_type(
     the schema of the underlying `DataSlice` (if relevant).
   - All fields must have type annotations.
   - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
-    `JaggedShape`, and other extension types.
+    `JaggedShape`, and other extension types. Additionally, any QType can be
+    used as an annotation.
 
   Example:
     @extension_type()
@@ -155,6 +307,52 @@ def extension_type(
 
     # Creates a QValue instance of MyPoint.
     p1 = MyPoint(x=1.0, y=2.0)
+
+  Extension type inheritance is supported through Python inheritance. Passing an
+  extension type argument to a functor will automatically upcast / downcast the
+  argument to the correct extension type based on the argument annotation. To
+  support calling a child class's methods after upcasting, the parent method
+  must be annotated with @kd.extension_types.virtual() and the child method
+  must be annotated with @kd.extension_types.override(). Internally, this traces
+  the methods into Functors. Virtual methods _require_ proper return
+  annotations (and if relevant, input argument annotations).
+
+  Example:
+    @kd.extension_type(unsafe_override=True)
+    class A:
+      x: kd.INT32
+
+      def fn(self, y):  # Normal method.
+        return self.x + y
+
+      @kd.extension_types.virtual()
+      def virt_fn(self, y):  # Virtual method.
+        return self.x * y
+
+    @kd.extension_type(unsafe_override=True)
+    class B(A):  # Inherits from A.
+      y: kd.FLOAT32
+
+      def fn(self, y):
+        return self.x + self.y + y
+
+      @kd.extension_types.override()
+      def virt_fn(self, y):
+        return self.x * self.y * y
+
+    @kd.fn
+    def call_a_fn(a: A):  # Automatically casts to A.
+      return a.fn(4)      # Calls non-virtual method.
+
+    @kd.fn
+    def call_a_virt_fn(a: A):  # Automatically casts to A.
+      return a.virt_fn(4)      # Calls virtual method.
+
+    b = B(2, 3)
+    # -> 6. `fn` is _not_ marked as virtual, so the parent method is invoked.
+    call_a_fn(b)
+    # -> 24.0. `virt_fn` is marked as virtual, so the child method is invoked.
+    call_a_virt_fn(b)
 
   Args:
     unsafe_override: Overrides existing registered extension types.
@@ -176,6 +374,15 @@ def extension_type(
     extension_qtype = M.derived_qtype.get_labeled_qtype(
         extension_type_registry.BASE_QTYPE, original_class.__name__
     ).qvalue
+    extension_type_registry.register_extension_type(
+        original_class, extension_qtype, unsafe_override=unsafe_override
+    )
+
+    # Virtual methods construction.
+    virtual_methods = {
+        name: _make_virtual_method(name, method, original_class)
+        for name, method in class_meta.virtual_methods.items()
+    }
 
     # QValue construction.
     qvalue_class_attrs = {}
@@ -185,7 +392,10 @@ def extension_type(
               _UPCAST_EXPR, x=self
           ).get_attr(k, qtype)
       )
-    qvalue_class_attrs |= class_meta.methods
+    # Methods.
+    qvalue_class_attrs |= class_meta.non_virtual_methods
+    for name, virtual_method in virtual_methods.items():
+      qvalue_class_attrs[name] = virtual_method.method
     qvalue_class = type(
         f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
     )
@@ -202,10 +412,12 @@ def extension_type(
       )
     expr_view_methods = {
         name: method
-        for name, method in class_meta.methods.items()
+        for name, method in class_meta.non_virtual_methods.items()
         if arolla.abc.is_allowed_expr_view_member_name(name)
     }
     expr_view_class_attrs |= expr_view_methods
+    for name, virtual_method in virtual_methods.items():
+      expr_view_class_attrs[name] = virtual_method.method
 
     expr_view_class = type(
         f'{original_class.__name__}ExprView',
@@ -213,6 +425,24 @@ def extension_type(
         expr_view_class_attrs,
     )
     arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)
+
+    # Trace functors. To prevent hard to understand errors when doing
+    # MyExtensionType(1, 2) inside of virtual methods, we attach a raising
+    # __new__ instead.
+    original_class.__new__ = _raise_new
+    if virtual_methods:
+      functors = {
+          _make_functor_attr_name(name): functor_factories.trace_py_fn(
+              vm.functor_impl
+          )
+          for name, vm in virtual_methods.items()
+      }
+      # Create a single Object containing all the methods. This will be used as
+      # a prototype / base object.
+      functors_obj = objects.Object(**functors)
+    else:
+      # Avoid creating an additional indirection if there are no functors.
+      functors_obj = None
 
     def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
       bound_args = class_meta.signature.bind(*args, **kwargs)
@@ -224,7 +454,7 @@ def extension_type(
             k: _cast_input_expr(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
-        obj = M.objects.make_object(None, **field_values)
+        obj = M.objects.make_object(functors_obj, **field_values)
         ext = M.derived_qtype.downcast(extension_qtype, obj)
         return M.annotation.qtype(ext, extension_qtype)
       else:
@@ -234,7 +464,7 @@ def extension_type(
         }
         return arolla.eval(
             _get_downcast_expr(extension_qtype),
-            x=objects.Object(**field_values),
+            x=objects.Object(functors_obj, **field_values),
         )
 
     cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
@@ -242,12 +472,7 @@ def extension_type(
         parameters=[cls_p] + list(class_meta.signature.parameters.values()),
         return_annotation=inspect.Parameter.empty,
     )
-
     original_class.__new__ = dispatching_new
-    extension_type_registry.register_extension_type(
-        original_class, extension_qtype, unsafe_override=unsafe_override
-    )
-
     return original_class
 
   return impl

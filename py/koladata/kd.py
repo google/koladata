@@ -109,6 +109,8 @@ extension_types.is_koda_extension_type = (
 extension_types.is_koda_extension = (
     _extension_type_registry.is_koda_extension
 )
+extension_types.virtual = _extension_types.virtual
+extension_types.override = _extension_types.override
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))

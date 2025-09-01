@@ -14,6 +14,7 @@
 
 import inspect
 import re
+from typing import Self
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -37,7 +38,6 @@ from koladata.types import schema_constants
 
 M = arolla.M | derived_qtype.M
 I = input_container.InputContainer('I')
-C = input_container.InputContainer('C')
 ds = data_slice.DataSlice.from_vals
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
@@ -266,6 +266,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     testing.assert_equal(MyExtensionType(I.self).eval(1), MyExtensionType(1))
 
   def test_inputs(self):
+    C = input_container.InputContainer('C')  # pylint: disable=invalid-name
+
     @ext_types.extension_type()
     class MyExtensionType:
       x: schema_constants.INT32
@@ -553,6 +555,276 @@ class ExtensionTypesTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
       _ = casted.y
+
+  def test_virtual_methods(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      @ext_types.virtual()
+      def fn1(self, v):
+        return self.x + v
+
+    @ext_types.extension_type()
+    class B(A):
+      y: schema_constants.FLOAT32
+
+      def non_virt(self, v):
+        return (self.y + v) * 2
+
+      @ext_types.virtual()
+      def fn2(self, x):
+        return self.x + x
+
+      @ext_types.override()
+      def fn1(self, v):
+        return self.non_virt(self.fn2(self.x + self.y + v))
+
+    @ext_types.extension_type()
+    class C(B):
+
+      @ext_types.override()  # Chained
+      def fn1(self, v):
+        return self.y - v
+
+    with self.subTest('eager_no_casting'):
+      b = B(1, 2)
+      testing.assert_equal(b.fn1(3), ds(18.0))
+
+    with self.subTest('lazy_no_casting'):
+      b = B(I.x, I.y)
+      testing.assert_equal(b.fn1(3).eval(x=1, y=2), ds(18.0))
+
+    with self.subTest('eager_with_cast_to_parent'):
+      b = B(1, 2)
+      a = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(a.fn1(3), ds(18.0))
+
+    with self.subTest('lazy_with_cast_to_parent'):
+      b = B(I.x, I.y)
+      a = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(18.0))
+
+    with self.subTest('eager_with_cast_chained_override'):
+      c = C(1, 2)
+      a = extension_type_registry.dynamic_cast(
+          c, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(a.fn1(3), ds(-1.0))
+
+    with self.subTest('lazy_with_cast_chained_override'):
+      c = C(I.x, I.y)
+      a = extension_type_registry.dynamic_cast(
+          c, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(-1.0))
+
+  def test_virtual_method_constructs_self_error(self):
+
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+      @ext_types.virtual()
+      def fn(self):
+        return A(self.y, self.x).x  # pytype: disable=wrong-arg-count
+
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'A.*is not ready to be initialized - constructing extension type'
+        ' construction from inside of a @virtual method is not supported',
+    ):
+      ext_types.extension_type()(A)
+
+  def test_virtual_method_self_return(self):
+
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+      @ext_types.virtual()
+      def fn(self) -> Self:
+        return self
+
+    @ext_types.extension_type()
+    class B(A):
+      z: schema_constants.INT32
+
+      @ext_types.override()
+      def fn(self) -> Self:
+        return self
+
+    with self.subTest('eager'):
+      b = B(1, 2, 3)
+      testing.assert_equal(b.fn(), B(1, 2, 3))
+
+    with self.subTest('lazy'):
+      b = B(I.x, I.y, I.z)
+      testing.assert_equal(b.fn().eval(x=1, y=2, z=3), B(1, 2, 3))
+
+    with self.subTest('eager_with_casting'):
+      b = B(1, 2, 3)
+      a = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      res = a.fn()
+      testing.assert_equal(
+          res.qtype, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(
+          extension_type_registry.dynamic_cast(
+              res, extension_type_registry.get_extension_qtype(B)
+          ),
+          B(1, 2, 3),
+      )
+
+    with self.subTest('lazy_with_casting'):
+      b = B(I.x, I.y, I.z)
+      a = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(
+          a.fn().eval(x=1, y=2, z=3).qtype,
+          extension_type_registry.get_extension_qtype(A),
+      )
+      testing.assert_equal(
+          extension_type_registry.dynamic_cast(
+              a.fn(), extension_type_registry.get_extension_qtype(B)
+          ).eval(x=1, y=2, z=3),
+          B(1, 2, 3),
+      )
+
+  def test_virtual_method_extension_type_return(self):
+
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+    @ext_types.extension_type()
+    class B:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+      @ext_types.virtual()
+      def fn(self) -> A:
+        return A(self.y, self.x)
+
+    with self.subTest('eager'):
+      b = B(1, 2)
+      testing.assert_equal(b.fn(), A(2, 1))
+
+    with self.subTest('lazy'):
+      b = B(I.x, I.y)
+      testing.assert_equal(b.fn().eval(x=1, y=2), A(2, 1))
+
+  def test_virtual_method_other_return(self):
+
+    @ext_types.extension_type()
+    class A:
+      db: data_bag.DataBag
+
+      @ext_types.virtual()
+      def fn(self) -> data_bag.DataBag:
+        return self.db
+
+    with self.subTest('eager'):
+      db = data_bag.DataBag.empty()
+      a = A(db)
+      testing.assert_equal(a.fn(), db)
+
+    with self.subTest('lazy'):
+      db = data_bag.DataBag.empty()
+      a = A(I.db)
+      testing.assert_equal(a.fn().eval(db=db), db)
+
+  def test_virtual_methods_no_annotation_on_ancestor(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      def fn(self, v):
+        return self.x + v
+
+    @ext_types.extension_type()
+    class B(A):
+
+      def fn(self, v):  # Allowed
+        return self.x - v
+
+    class C(B):
+
+      @ext_types.virtual()
+      def fn(self, v):
+        return self.x + v + 1
+
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'redefinition of an existing method fn for the class <class'
+        " '__main__.ExtensionTypesTest.test_virtual_methods_no_annotation_on_ancestor.<locals>.C'>"
+        ' is not allowed for the @virtual annotation',
+    ):
+      ext_types.extension_type()(C)
+
+  def test_virtual_methods_no_annotation_on_child(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      @ext_types.virtual()
+      def fn(self, v):
+        return self.x + v
+
+    @ext_types.extension_type()
+    class B(A):
+
+      @ext_types.override()  # Allowed
+      def fn(self, v):
+        return self.x + v
+
+    class C(B):
+
+      def fn(self, v):  # Missing annotation.
+        return self.x + v
+
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'missing @override annotation on class <class'
+        " '__main__.ExtensionTypesTest.test_virtual_methods_no_annotation_on_child.<locals>.C'>"
+        ' for the @virtual method fn defined on an ancestor class',
+    ):
+      ext_types.extension_type()(C)
+
+  def test_virtual_methods_no_virtual_base_for_override(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      def fn(self, v):
+        return self.x + v
+
+    @ext_types.extension_type()
+    class B(A):
+      pass
+
+    class C(B):
+
+      @ext_types.override()
+      def fn(self, v):
+        return self.x + v
+
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'the @override annotation on class <class'
+        " '__main__.ExtensionTypesTest.test_virtual_methods_no_virtual_base_for_override.<locals>.C'>"
+        ' requires a @virtual annotation on an ancestor for the method fn',
+    ):
+      ext_types.extension_type()(C)
 
 
 if __name__ == '__main__':

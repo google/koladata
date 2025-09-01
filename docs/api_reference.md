@@ -9302,7 +9302,7 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
   Internally, this function creates the following:
   -  A new `QType` for the extension type, which is a labeled `QType` on top of
-    a TUPLE.
+    an arolla::Object.
   - A `QValue` class for representing evaluated instances of the extension type.
   - An `ExprView` class for representing expressions that will evaluate to the
     extension type.
@@ -9321,7 +9321,8 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
     the schema of the underlying `DataSlice` (if relevant).
   - All fields must have type annotations.
   - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
-    `JaggedShape`, and other extension types.
+    `JaggedShape`, and other extension types. Additionally, any QType can be
+    used as an annotation.
 
   Example:
     @extension_type()
@@ -9334,6 +9335,52 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
     # Creates a QValue instance of MyPoint.
     p1 = MyPoint(x=1.0, y=2.0)
+
+  Extension type inheritance is supported through Python inheritance. Passing an
+  extension type argument to a functor will automatically upcast / downcast the
+  argument to the correct extension type based on the argument annotation. To
+  support calling a child class&#39;s methods after upcasting, the parent method
+  must be annotated with @kd.extension_types.virtual() and the child method
+  must be annotated with @kd.extension_types.override(). Internally, this traces
+  the methods into Functors. Virtual methods _require_ proper return
+  annotations (and if relevant, input argument annotations).
+
+  Example:
+    @kd.extension_type(unsafe_override=True)
+    class A:
+      x: kd.INT32
+
+      def fn(self, y):  # Normal method.
+        return self.x + y
+
+      @kd.extension_types.virtual()
+      def virt_fn(self, y):  # Virtual method.
+        return self.x * y
+
+    @kd.extension_type(unsafe_override=True)
+    class B(A):  # Inherits from A.
+      y: kd.FLOAT32
+
+      def fn(self, y):
+        return self.x + self.y + y
+
+      @kd.extension_types.override()
+      def virt_fn(self, y):
+        return self.x * self.y * y
+
+    @kd.fn
+    def call_a_fn(a: A):  # Automatically casts to A.
+      return a.fn(4)      # Calls non-virtual method.
+
+    @kd.fn
+    def call_a_virt_fn(a: A):  # Automatically casts to A.
+      return a.virt_fn(4)      # Calls virtual method.
+
+    b = B(2, 3)
+    # -&gt; 6. `fn` is _not_ marked as virtual, so the parent method is invoked.
+    call_a_fn(b)
+    # -&gt; 24.0. `virt_fn` is marked as virtual, so the child method is invoked.
+    call_a_virt_fn(b)
 
   Args:
     unsafe_override: Overrides existing registered extension types.
