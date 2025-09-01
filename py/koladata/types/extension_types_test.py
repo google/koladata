@@ -635,10 +635,89 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         NotImplementedError,
-        'A.*is not ready to be initialized - constructing extension type'
-        ' construction from inside of a @virtual method is not supported',
+        'A.*is not ready to be initialized - direct extension type'
+        ' construction from inside of a @virtual method is not supported -'
+        ' please use `self.with_attrs` instead',
     ):
       ext_types.extension_type()(A)
+
+  def test_with_attrs(self):
+
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+      def fn(self, new_x) -> Self:
+        return self.with_attrs(x=new_x, y=self.x)  # pytype: disable=attribute-error
+
+      @ext_types.virtual()
+      def virtual_fn(self, new_x) -> Self:
+        return self.with_attrs(x=new_x, y=self.x)  # pytype: disable=attribute-error
+
+    with self.subTest('eager'):
+      a = A(1, 2)
+      testing.assert_equal(a.with_attrs(x=3).x, ds(3))
+      testing.assert_equal(a.with_attrs(x=3).y, ds(2))
+
+    with self.subTest('lazy'):
+      a = A(I.x, I.y)
+      testing.assert_equal(a.with_attrs(x=I.z).x.eval(x=1, y=2, z=3), ds(3))
+      testing.assert_equal(a.with_attrs(x=I.z).y.eval(x=1, y=2, z=3), ds(2))
+
+    with self.subTest('eager_fn'):
+      a = A(1, 2)
+      testing.assert_equal(a.fn(3).x, ds(3))
+      testing.assert_equal(a.fn(3).y, ds(1))
+      testing.assert_equal(a.virtual_fn(3).x, ds(3))
+      testing.assert_equal(a.virtual_fn(3).y, ds(1))
+
+    with self.subTest('lazy_fn'):
+      a = A(I.x, I.y)
+      testing.assert_equal(a.fn(3).x.eval(x=1, y=2), ds(3))
+      testing.assert_equal(a.fn(3).y.eval(x=1, y=2), ds(1))
+      testing.assert_equal(a.virtual_fn(3).x.eval(x=1, y=2), ds(3))
+      testing.assert_equal(a.virtual_fn(3).y.eval(x=1, y=2), ds(1))
+
+  def test_with_attrs_wrong_type(self):
+    @ext_types.extension_type()
+    class A:
+      x: data_slice.DataSlice
+
+    with self.subTest('eager'):
+      a = A(1)
+      a_updated = a.with_attrs(x=data_bag.DataBag.empty())
+      with self.assertRaisesRegex(
+          ValueError,
+          "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
+          ' actual type DATA_BAG'
+      ):
+        _ = a_updated.x
+
+    with self.subTest('lazy'):
+      a = A(I.x)
+      a_updated = a.with_attrs(x=I.z)
+      with self.assertRaisesRegex(
+          ValueError,
+          "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
+          ' actual type DATA_BAG'
+      ):
+        _ = a_updated.x.eval(x=1, z=data_bag.DataBag.empty())
+
+  def test_with_attrs_non_existent_attr(self):
+    @ext_types.extension_type()
+    class A:
+      x: data_slice.DataSlice
+
+    with self.subTest('eager'):
+      a = A(1)
+      with self.assertRaisesRegex(KeyError, 'y'):
+        _ = a.with_attrs(y=2)
+
+    with self.subTest('lazy'):
+      a = A(I.x)
+      with self.assertRaisesRegex(KeyError, 'y'):
+        _ = a.with_attrs(y=I.y)
 
   def test_virtual_method_self_return(self):
 
@@ -825,6 +904,30 @@ class ExtensionTypesTest(parameterized.TestCase):
         ' requires a @virtual annotation on an ancestor for the method fn',
     ):
       ext_types.extension_type()(C)
+
+  def test_forbidden_attrs(self):
+
+    class A:
+      with_attrs: data_slice.DataSlice
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'forbidden attribute: with_attrs',
+    ):
+      ext_types.extension_type()(A)
+
+  def test_forbidden_methods(self):
+
+    class A:
+
+      def with_attrs(self):
+        pass
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'forbidden attribute: with_attrs',
+    ):
+      ext_types.extension_type()(A)
 
 
 if __name__ == '__main__':

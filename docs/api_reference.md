@@ -9323,6 +9323,8 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
   - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
     `JaggedShape`, and other extension types. Additionally, any QType can be
     used as an annotation.
+  - The `with_attrs` method is automatically added, allowing for attributes to
+    be dynamically updated.
 
   Example:
     @extension_type()

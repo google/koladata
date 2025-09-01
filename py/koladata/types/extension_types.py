@@ -181,13 +181,23 @@ def _assert_allowed_no_tag(original_class: type[Any], attr: str):
           f' @virtual method {attr} defined on an ancestor class'
       )
 
+_FORBIDDEN_ATTRS = frozenset({
+    'with_attrs',
+})
+
 
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
   data_class = dataclasses.dataclass()(original_class)
-  fields = {f.name: f for f in dataclasses.fields(data_class)}
+  fields = {}
+  for f in dataclasses.fields(data_class):
+    if f.name in _FORBIDDEN_ATTRS:
+      raise ValueError(f'forbidden attribute: {f.name}')
+    fields[f.name] = f
   non_virtual_methods, virtual_methods = {}, {}
   for attr in dir(data_class):
+    if attr in _FORBIDDEN_ATTRS:
+      raise ValueError(f'forbidden attribute: {attr}')
     if attr in fields:
       continue
     method = getattr(data_class, attr)
@@ -254,13 +264,43 @@ def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
     return py_boxing.as_qvalue_or_expr(value)
 
 
-# TODO: Support `with_attrs`, or allow virtual methods to construct
-# self.
 def _raise_new(cls, *args, **kwargs):
   del args, kwargs
   raise NotImplementedError(
-      f'{repr(cls)} is not ready to be initialized - constructing extension'
-      ' type construction from inside of a @virtual method is not supported'
+      f'{repr(cls)} is not ready to be initialized - direct extension type'
+      ' construction from inside of a @virtual method is not supported -'
+      ' please use `self.with_attrs` instead'
+  )
+
+
+# TODO: Move this to kd.extensions.with_attrs instead.
+def _make_extension_expr(
+    attrs: Mapping[str, Any],
+    field_annotations: Mapping[str, Any],
+    extension_qtype: arolla.QType,
+    prototype: arolla.Expr | None,
+) -> arolla.Expr:
+  """Creates an extension from the provided attributes."""
+  attrs = {
+      k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
+  }
+  obj = M.objects.make_object(prototype, **attrs)
+  ext = M.derived_qtype.downcast(extension_qtype, obj)
+  return M.annotation.qtype(ext, extension_qtype)
+
+
+def _make_extension_qvalue(
+    attrs: Mapping[str, Any],
+    field_annotations: Mapping[str, Any],
+    extension_qtype: arolla.QType,
+    prototype: arolla.Expr | None,
+) -> arolla.Expr:
+  """Creates an extension from the provided attributes."""
+  attrs = {
+      k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
+  }
+  return arolla.eval(
+      _get_downcast_expr(extension_qtype), x=objects.Object(prototype, **attrs)
   )
 
 
@@ -295,6 +335,8 @@ def extension_type(
   - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
     `JaggedShape`, and other extension types. Additionally, any QType can be
     used as an annotation.
+  - The `with_attrs` method is automatically added, allowing for attributes to
+    be dynamically updated.
 
   Example:
     @extension_type()
@@ -396,6 +438,14 @@ def extension_type(
     qvalue_class_attrs |= class_meta.non_virtual_methods
     for name, virtual_method in virtual_methods.items():
       qvalue_class_attrs[name] = virtual_method.method
+    qvalue_class_attrs['with_attrs'] = (
+        lambda self, **attrs: _make_extension_qvalue(
+            attrs,
+            class_meta.field_annotations,
+            extension_qtype,
+            arolla.eval(_UPCAST_EXPR, x=self),
+        )
+    )
     qvalue_class = type(
         f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
     )
@@ -418,6 +468,14 @@ def extension_type(
     expr_view_class_attrs |= expr_view_methods
     for name, virtual_method in virtual_methods.items():
       expr_view_class_attrs[name] = virtual_method.method
+    expr_view_class_attrs['with_attrs'] = (
+        lambda self, **attrs: _make_extension_expr(
+            attrs,
+            class_meta.field_annotations,
+            extension_qtype,
+            M.derived_qtype.upcast(extension_qtype, self),
+        )
+    )
 
     expr_view_class = type(
         f'{original_class.__name__}ExprView',
@@ -450,21 +508,18 @@ def extension_type(
       field_values = bound_args.arguments
 
       if arolla.Expr in (type(v) for v in field_values.values()):
-        field_values = {
-            k: _cast_input_expr(v, class_meta.field_annotations[k])
-            for k, v in field_values.items()
-        }
-        obj = M.objects.make_object(functors_obj, **field_values)
-        ext = M.derived_qtype.downcast(extension_qtype, obj)
-        return M.annotation.qtype(ext, extension_qtype)
+        return _make_extension_expr(
+            field_values,
+            class_meta.field_annotations,
+            extension_qtype,
+            functors_obj,
+        )
       else:
-        field_values = {
-            k: _cast_input_qvalue(v, class_meta.field_annotations[k])
-            for k, v in field_values.items()
-        }
-        return arolla.eval(
-            _get_downcast_expr(extension_qtype),
-            x=objects.Object(functors_obj, **field_values),
+        return _make_extension_qvalue(
+            field_values,
+            class_meta.field_annotations,
+            extension_qtype,
+            functors_obj,
         )
 
     cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
