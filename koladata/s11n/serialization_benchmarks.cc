@@ -144,7 +144,5 @@ BENCHMARK(BM_DataSliceDeserialization<float>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<arolla::Text>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<internal::ObjectId>)->Range(1, kMaxSize);
 
-// BENCHMARK(BM_DataItemDeserialization);
-
 }  // namespace
 }  // namespace koladata
