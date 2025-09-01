@@ -309,8 +309,8 @@ def _get_schema_node_name(
 
   if child_schema_item == kd.OBJECT:
     raise ValueError(
-        'OBJECT schemas are not supported. Please use a structured schema'
-        ' instead'
+        'OBJECT schemas are not supported. Please use a structured schema, or'
+        ' remove the data, or serialize it and attach it as BYTES data instead'
     )
 
   assert child_schema_item == kd.SCHEMA, (
