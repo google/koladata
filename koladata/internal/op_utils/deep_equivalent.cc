@@ -16,7 +16,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -117,7 +116,7 @@ class EquivalentComparator : public AbstractComparator {
       return false;
     }
     if (!lhs.item.holds_value<ObjectId>() ||
-        !rhs.item.holds_value<ObjectId>()) {
+        !rhs.item.holds_value<ObjectId>() || params_.ids_equality) {
       // If lhs and rhs are NaNs, they are considered not equal.
       return lhs.item == rhs.item;
     }

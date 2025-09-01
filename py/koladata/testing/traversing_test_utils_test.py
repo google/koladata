@@ -252,6 +252,86 @@ class TraversingTestUtilsTest(absltest.TestCase):
       b = bag_b.new(x=bag_b.new(y=1))
       traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
 
+  def test_assert_deep_equivalent_ids_equality(self):
+    traversing_test_utils.assert_deep_equivalent(
+        bag().uu(x=1, y=2), bag().uu(x=1, y=2), ids_equality=True
+    )
+
+  def test_assert_deep_equivalent_diff_ids_equality(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataItem\(Entity\(x=1\), schema:'
+        r' ENTITY\(x=INT32\)\)\n'
+        r'Actual: DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\),'
+        r' with difference:\n'
+        r'modified:\n'
+        r'expected:\n'
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)\n'
+        r'-> actual:\n'
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.new(x=1)
+      b = bag_b.new(x=1)
+      traversing_test_utils.assert_deep_equivalent(a, b, ids_equality=True)
+
+  def test_assert_deep_equivalent_diff_ids_equality_nested(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataItem\(Entity\(.*\), schema: .*\)\n'
+        r'Actual: DataItem\(Entity\(.*\), schema: .*\),'
+        r' with difference:\n'
+        r'modified:\n'
+        r'expected.b:\n'
+        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\)\)\n'
+        r'-> actual.b:\n'
+        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\)\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.uu(a=1, b=bag_a.uu(c=1))
+      b = bag_b.uu(a=1, b=bag_b.uu(c=1))
+      b.b = bag_b.uu(c=2)
+      b.b.c = 1
+      traversing_test_utils.assert_deep_equivalent(a, b, ids_equality=True)
+
+  def test_assert_deep_equivalent_diff_ids_not_raised_nested(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.uu(a=1, b=bag_a.uu(c=1))
+    b = bag_b.uu(a=1, b=bag_b.uu(c=1))
+    b.b = bag_b.uu(c=2)
+    b.b.c = 1
+    traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_diff_schema_ids_equality_nested(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataItem\(Entity\(.*\), schema: .*\)\n'
+        r'Actual: DataItem\(Entity\(.*\), schema: .*\),'
+        r' with difference:\n'
+        r'modified schema:\n'
+        r'expected:\n'
+        r'(\#[0-9a-zA-Z]{22})\n'
+        r'-> actual:\n'
+        r'(\#[0-9a-zA-Z]{22})',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.uu(a=1, b=bag_a.uu(c=1, schema=bag_a.named_schema('foo')))
+      b = bag_b.uu(a=1, b=bag_b.uu(c=1, schema=bag_b.named_schema('bar')))
+      traversing_test_utils.assert_deep_equivalent(
+          a, b, ids_equality=True, schemas_equality=True
+      )
+
+  def test_assert_deep_equivalent_schema_nested(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.uu(a=1, b=bag_a.uu(c=1, schema=bag_a.named_schema('foo')))
+    b = bag_b.uu(a=1, b=bag_b.uu(c=1, schema=bag_b.named_schema('bar')))
+    _ = traversing_test_utils.assert_deep_equivalent(a, b, ids_equality=True)
+
 
 if __name__ == '__main__':
   absltest.main()

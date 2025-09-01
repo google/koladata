@@ -41,7 +41,7 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/2, /*parse_kwargs=*/false,
-      {"partial", "schemas_equality", "msg"}));
+      {"partial", "schemas_equality", "ids_equality", "msg"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -64,9 +64,15 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (!ParseBoolArg(args, "schemas_equality", schemas_equality)) {
     return nullptr;
   }
+  bool ids_equality = false;
+  if (!ParseBoolArg(args, "ids_equality", ids_equality)) {
+    return nullptr;
+  }
   // TODO: get max_count from kwargs.
   testing::DeepEquivalentParams comparison_params = {
-      .partial = partial, .schemas_equality = schemas_equality};
+      .partial = partial,
+      .schemas_equality = schemas_equality,
+      .ids_equality = ids_equality};
   ASSIGN_OR_RETURN(
       auto mismatches,
       testing::DeepEquivalentMismatches(*actual_ds, *expected_ds,

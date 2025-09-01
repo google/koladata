@@ -48,6 +48,8 @@ class DeepEquivalentOp {
     bool partial;
     // If true, the schema ObjectIds are compared.
     bool schemas_equality;
+    // If true, the ObjectIds are compared.
+    bool ids_equality;
   };
 
   explicit DeepEquivalentOp(DataBagImpl* new_databag,
