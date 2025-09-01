@@ -307,7 +307,7 @@ def _make_extension_qvalue(
 def extension_type(
     unsafe_override=False,
 ) -> Callable[[type[Any]], type[arolla.AnyQValue]]:
-  """Creates a Koda extension type from the the given original class.
+  """Creates a Koda extension type from the given original class.
 
   This function is intended to be used as a class decorator. The decorated class
   serves as a schema for the new extension type.

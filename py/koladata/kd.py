@@ -41,8 +41,6 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
-from koladata.types import extension_type_registry as _extension_type_registry
-from koladata.types import extension_types as _extension_types
 from koladata.types import iterable_qvalue as _iterable_qvalue
 from koladata.types import jagged_shape as _jagged_shape
 from koladata.types import list_item as _list_item
@@ -95,22 +93,6 @@ types.SchemaItem = _schema_item.SchemaItem
 types.Stream = _functor_parallel_clib.Stream
 types.StreamReader = _functor_parallel_clib.StreamReader
 types.StreamWriter = _functor_parallel_clib.StreamWriter
-
-### Extension types.
-extension_type = _eager_only(_extension_types.extension_type)
-extension_types = _same_when_tracing(_py_types.ModuleType('extension_types'))
-extension_types.extension_type = _extension_types.extension_type
-extension_types.get_extension_qtype = (
-    _extension_type_registry.get_extension_qtype
-)
-extension_types.is_koda_extension_type = (
-    _extension_type_registry.is_koda_extension_type
-)
-extension_types.is_koda_extension = (
-    _extension_type_registry.is_koda_extension
-)
-extension_types.virtual = _extension_types.virtual
-extension_types.override = _extension_types.override
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))

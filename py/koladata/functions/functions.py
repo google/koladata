@@ -29,6 +29,8 @@ from koladata.functions import tuples as _tuples
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
+from koladata.types import extension_type_registry as _extension_type_registry
+from koladata.types import extension_types as _extension_types
 from koladata.types import general_eager_ops as _general_eager_ops
 
 bag = _object_factories.bag
@@ -192,4 +194,17 @@ tuples = _py_types.SimpleNamespace(
     # Re-implementation of operators that require inputs to be literals.
     get_nth=_tuples.get_nth,
     get_namedtuple_field=_tuples.get_namedtuple_field,
+)
+
+# Extension types.
+extension_type = _extension_types.extension_type
+extension_types = _py_types.SimpleNamespace(
+    extension_type=_extension_types.extension_type,
+    get_extension_qtype=_extension_type_registry.get_extension_qtype,
+    is_koda_extension_type=_extension_type_registry.is_koda_extension_type,
+    is_koda_extension=_extension_type_registry.is_koda_extension,
+    virtual=_extension_types.virtual,
+    override=_extension_types.override,
+    # Re-implementation of operators that require inputs to be literals.
+    dynamic_cast=_extension_type_registry.dynamic_cast,
 )

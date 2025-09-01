@@ -25,6 +25,7 @@ from koladata.operators import core as _
 from koladata.operators import curves as _
 from koladata.operators import dicts as _
 from koladata.operators import entities as _
+from koladata.operators import extension_types as _
 from koladata.operators import functor as _
 from koladata.operators import ids as _
 from koladata.operators import iterables as _

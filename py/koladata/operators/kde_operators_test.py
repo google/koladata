@@ -62,6 +62,14 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     'core.container',
     'dir',
     'list',  # TODO: Remove this once `list` is added to `kde`.
+    # Extension type util.
+    'extension_type',
+    'extension_types.extension_type',
+    'extension_types.get_extension_qtype',
+    'extension_types.is_koda_extension_type',
+    'extension_types.is_koda_extension',
+    'extension_types.virtual',
+    'extension_types.override',
 ])
 
 

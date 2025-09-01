@@ -17,9 +17,10 @@ Category  | Subcategory | Description
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
  | [curves](#kd.curves) | Operators working with curves.
- | [expr](#kd.expr) | Expr utilities.
- | [entities](#kd.entities) | Operators that work solely with entities.
  | [dicts](#kd.dicts) | Operators working with dictionaries.
+ | [entities](#kd.entities) | Operators that work solely with entities.
+ | [expr](#kd.expr) | Expr utilities.
+ | [extension_types](#kd.extension_types) | Extension type functionality.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
  | [iterables](#kd.iterables) | Operators that work with iterables. These APIs are in active development and might change often.
@@ -1353,237 +1354,6 @@ Returns:
 
 </section>
 
-### kd.expr {#kd.expr}
-
-Expr utilities.
-
-<section class="zippy closed">
-
-**Operators**
-
-### `kd.expr.as_expr(arg)` {#kd.expr.as_expr}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts Python values into Exprs.</code></pre>
-
-### `kd.expr.get_input_names(expr, container=InputContainer('I'))` {#kd.expr.get_input_names}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns names of `container` inputs used in `expr`.</code></pre>
-
-### `kd.expr.get_name(expr)` {#kd.expr.get_name}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of the given Expr, or None if it does not have one.</code></pre>
-
-### `kd.expr.is_input(expr)` {#kd.expr.is_input}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is an input `I`.</code></pre>
-
-### `kd.expr.is_literal(expr)` {#kd.expr.is_literal}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a Koda Literal.</code></pre>
-
-### `kd.expr.is_packed_expr(ds)` {#kd.expr.is_packed_expr}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the argument is a DataItem containing an Expr.</code></pre>
-
-### `kd.expr.is_variable(expr)` {#kd.expr.is_variable}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a variable `V`.</code></pre>
-
-### `kd.expr.literal(value)` {#kd.expr.literal}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs an expr with a LiteralOperator wrapping the provided QValue.</code></pre>
-
-### `kd.expr.pack_expr(expr)` {#kd.expr.pack_expr}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Packs the given Expr into a DataItem.</code></pre>
-
-### `kd.expr.sub(expr, *subs)` {#kd.expr.sub}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with provided expressions replaced.
-
-  Example usage:
-    kd.sub(expr, (from_1, to_1), (from_2, to_2), ...)
-
-  For the special case of a single substitution, you can also do:
-    kd.sub(expr, from, to)
-
-  It does the substitution by traversing &#39;expr&#39; post-order and comparing
-  fingerprints of sub-Exprs in the original expression and those in in &#39;subs&#39;.
-  For example,
-
-    kd.sub(I.x + I.y, (I.x, I.z), (I.x + I.y, I.k)) -&gt; I.k
-
-    kd.sub(I.x + I.y, (I.x, I.y), (I.y + I.y, I.z)) -&gt; I.y + I.y
-
-  It does not do deep transformation recursively. For example,
-
-    kd.sub(I.x + I.y, (I.x, I.z), (I.y, I.x)) -&gt; I.z + I.x
-
-  Args:
-    expr: Expr which substitutions are applied to
-    *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
-      arguments from and to. The keys should be expressions, and the values
-      should be possible to convert to expressions using kd.as_expr.
-
-  Returns:
-    A new Expr with substitutions.</code></pre>
-
-### `kd.expr.sub_by_name(expr, /, **subs)` {#kd.expr.sub_by_name}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with named subexpressions replaced.
-
-  Use `kde.with_name(expr, name)` to create a named subexpression.
-
-  Example:
-    foo = kde.with_name(I.x, &#39;foo&#39;)
-    bar = kde.with_name(I.y, &#39;bar&#39;)
-    expr = foo + bar
-    kd.sub_by_name(expr, foo=I.z)
-    # -&gt; I.z + kde.with_name(I.y, &#39;bar&#39;)
-
-  Args:
-    expr: an expression.
-    **subs: mapping from subexpression name to replacement node.</code></pre>
-
-### `kd.expr.sub_inputs(expr, container=InputContainer('I'), /, **subs)` {#kd.expr.sub_inputs}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an expression with `container` inputs replaced with Expr(s).</code></pre>
-
-### `kd.expr.unpack_expr(ds)` {#kd.expr.unpack_expr}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Unpacks an Expr stored in a DataItem.</code></pre>
-
-### `kd.expr.unwrap_named(expr)` {#kd.expr.unwrap_named}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Unwraps a named Expr, raising if it is not named.</code></pre>
-
-</section>
-
-### kd.entities {#kd.entities}
-
-Operators that work solely with entities.
-
-<section class="zippy closed">
-
-**Operators**
-
-### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.like}
-Aliases:
-
-- [kd.new_like](#kd.new_like)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the shape and sparsity from shape_and_mask_from.
-
-  Returns immutable Entities.
-
-  Args:
-    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
-      DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      You can also pass schema=&#39;name&#39; as a shortcut for
-      schema=kd.named_schema(&#39;name&#39;).
-    overwrite_schema: if schema attribute is missing and the attribute is being
-      set through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.</code></pre>
-
-### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.new}
-Aliases:
-
-- [kd.new](#kd.new)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities with given attrs.
-
-  Returns an immutable Entity.
-
-  Args:
-    arg: optional Python object to be converted to an Entity.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      You can also pass schema=&#39;name&#39; as a shortcut for
-      schema=kd.named_schema(&#39;name&#39;).
-    overwrite_schema: if schema attribute is missing and the attribute is being
-      set through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args present.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.</code></pre>
-
-### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped}
-Aliases:
-
-- [kd.new_shaped](#kd.new_shaped)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the given shape.
-
-  Returns immutable Entities.
-
-  Args:
-    shape: JaggedShape that the returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      You can also pass schema=&#39;name&#39; as a shortcut for
-      schema=kd.named_schema(&#39;name&#39;).
-    overwrite_schema: if schema attribute is missing and the attribute is being
-      set through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.</code></pre>
-
-### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped_as}
-Aliases:
-
-- [kd.new_shaped_as](#kd.new_shaped_as)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda entities with shape of the given DataSlice.
-
-  Returns immutable Entities.
-
-  Args:
-    shape_from: DataSlice, whose shape the returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      You can also pass schema=&#39;name&#39; as a shortcut for
-      schema=kd.named_schema(&#39;name&#39;).
-    overwrite_schema: if schema attribute is missing and the attribute is being
-      set through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.</code></pre>
-
-### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.entities.uu}
-Aliases:
-
-- [kd.uu](#kd.uu)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates UuEntities with given attrs.
-
-  Returns an immutable UU Entity.
-
-  Args:
-    seed: string to seed the uuid computation with.
-    schema: optional DataSlice schema. If not specified, a UuSchema
-      will be automatically created based on the schemas of the passed **attrs.
-    overwrite_schema: if schema attribute is missing and the attribute is being
-      set through `attrs`, schema is successfully updated.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.</code></pre>
-
-</section>
-
 ### kd.dicts {#kd.dicts}
 
 Operators working with dictionaries.
@@ -1908,6 +1678,371 @@ Args:
   x: DataSlice of dicts to update.
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.</code></pre>
+
+</section>
+
+### kd.entities {#kd.entities}
+
+Operators that work solely with entities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.like}
+Aliases:
+
+- [kd.new_like](#kd.new_like)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the shape and sparsity from shape_and_mask_from.
+
+  Returns immutable Entities.
+
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      You can also pass schema=&#39;name&#39; as a shortcut for
+      schema=kd.named_schema(&#39;name&#39;).
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.</code></pre>
+
+### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.new}
+Aliases:
+
+- [kd.new](#kd.new)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities with given attrs.
+
+  Returns an immutable Entity.
+
+  Args:
+    arg: optional Python object to be converted to an Entity.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      You can also pass schema=&#39;name&#39; as a shortcut for
+      schema=kd.named_schema(&#39;name&#39;).
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args present.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.</code></pre>
+
+### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped}
+Aliases:
+
+- [kd.new_shaped](#kd.new_shaped)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the given shape.
+
+  Returns immutable Entities.
+
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      You can also pass schema=&#39;name&#39; as a shortcut for
+      schema=kd.named_schema(&#39;name&#39;).
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.</code></pre>
+
+### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped_as}
+Aliases:
+
+- [kd.new_shaped_as](#kd.new_shaped_as)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda entities with shape of the given DataSlice.
+
+  Returns immutable Entities.
+
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      You can also pass schema=&#39;name&#39; as a shortcut for
+      schema=kd.named_schema(&#39;name&#39;).
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.</code></pre>
+
+### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.entities.uu}
+Aliases:
+
+- [kd.uu](#kd.uu)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates UuEntities with given attrs.
+
+  Returns an immutable UU Entity.
+
+  Args:
+    seed: string to seed the uuid computation with.
+    schema: optional DataSlice schema. If not specified, a UuSchema
+      will be automatically created based on the schemas of the passed **attrs.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.</code></pre>
+
+</section>
+
+### kd.expr {#kd.expr}
+
+Expr utilities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.expr.as_expr(arg)` {#kd.expr.as_expr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts Python values into Exprs.</code></pre>
+
+### `kd.expr.get_input_names(expr, container=InputContainer('I'))` {#kd.expr.get_input_names}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns names of `container` inputs used in `expr`.</code></pre>
+
+### `kd.expr.get_name(expr)` {#kd.expr.get_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of the given Expr, or None if it does not have one.</code></pre>
+
+### `kd.expr.is_input(expr)` {#kd.expr.is_input}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is an input `I`.</code></pre>
+
+### `kd.expr.is_literal(expr)` {#kd.expr.is_literal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a Koda Literal.</code></pre>
+
+### `kd.expr.is_packed_expr(ds)` {#kd.expr.is_packed_expr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the argument is a DataItem containing an Expr.</code></pre>
+
+### `kd.expr.is_variable(expr)` {#kd.expr.is_variable}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a variable `V`.</code></pre>
+
+### `kd.expr.literal(value)` {#kd.expr.literal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs an expr with a LiteralOperator wrapping the provided QValue.</code></pre>
+
+### `kd.expr.pack_expr(expr)` {#kd.expr.pack_expr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Packs the given Expr into a DataItem.</code></pre>
+
+### `kd.expr.sub(expr, *subs)` {#kd.expr.sub}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with provided expressions replaced.
+
+  Example usage:
+    kd.sub(expr, (from_1, to_1), (from_2, to_2), ...)
+
+  For the special case of a single substitution, you can also do:
+    kd.sub(expr, from, to)
+
+  It does the substitution by traversing &#39;expr&#39; post-order and comparing
+  fingerprints of sub-Exprs in the original expression and those in in &#39;subs&#39;.
+  For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.x + I.y, I.k)) -&gt; I.k
+
+    kd.sub(I.x + I.y, (I.x, I.y), (I.y + I.y, I.z)) -&gt; I.y + I.y
+
+  It does not do deep transformation recursively. For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.y, I.x)) -&gt; I.z + I.x
+
+  Args:
+    expr: Expr which substitutions are applied to
+    *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
+      arguments from and to. The keys should be expressions, and the values
+      should be possible to convert to expressions using kd.as_expr.
+
+  Returns:
+    A new Expr with substitutions.</code></pre>
+
+### `kd.expr.sub_by_name(expr, /, **subs)` {#kd.expr.sub_by_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with named subexpressions replaced.
+
+  Use `kde.with_name(expr, name)` to create a named subexpression.
+
+  Example:
+    foo = kde.with_name(I.x, &#39;foo&#39;)
+    bar = kde.with_name(I.y, &#39;bar&#39;)
+    expr = foo + bar
+    kd.sub_by_name(expr, foo=I.z)
+    # -&gt; I.z + kde.with_name(I.y, &#39;bar&#39;)
+
+  Args:
+    expr: an expression.
+    **subs: mapping from subexpression name to replacement node.</code></pre>
+
+### `kd.expr.sub_inputs(expr, container=InputContainer('I'), /, **subs)` {#kd.expr.sub_inputs}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an expression with `container` inputs replaced with Expr(s).</code></pre>
+
+### `kd.expr.unpack_expr(ds)` {#kd.expr.unpack_expr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unpacks an Expr stored in a DataItem.</code></pre>
+
+### `kd.expr.unwrap_named(expr)` {#kd.expr.unwrap_named}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unwraps a named Expr, raising if it is not named.</code></pre>
+
+</section>
+
+### kd.extension_types {#kd.extension_types}
+
+Extension type functionality.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.extension_types.dynamic_cast(value, qtype)` {#kd.extension_types.dynamic_cast}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Up-, down-, and side-casts `value` to `qtype`.</code></pre>
+
+### `kd.extension_types.extension_type(unsafe_override=False)` {#kd.extension_types.extension_type}
+Aliases:
+
+- [kd.extension_type](#kd.extension_type)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Koda extension type from the given original class.
+
+  This function is intended to be used as a class decorator. The decorated class
+  serves as a schema for the new extension type.
+
+  Internally, this function creates the following:
+  -  A new `QType` for the extension type, which is a labeled `QType` on top of
+    an arolla::Object.
+  - A `QValue` class for representing evaluated instances of the extension type.
+  - An `ExprView` class for representing expressions that will evaluate to the
+    extension type.
+
+  It replaces the decorated class with a new class that acts as a factory. This
+  factory&#39;s `__new__` method dispatches to either create an `Expr` or a `QValue`
+  instance, depending on the types of the arguments provided.
+
+  The fields of the dataclass are exposed as properties on both the `QValue` and
+  `ExprView` classes. Any methods defined on the dataclass are also carried
+  over.
+
+  Note:
+  - The decorated class must not have its own `__new__` method.
+  - The type annotations on the fields of the dataclass are used to determine
+    the schema of the underlying `DataSlice` (if relevant).
+  - All fields must have type annotations.
+  - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
+    `JaggedShape`, and other extension types. Additionally, any QType can be
+    used as an annotation.
+  - The `with_attrs` method is automatically added, allowing for attributes to
+    be dynamically updated.
+
+  Example:
+    @extension_type()
+    class MyPoint:
+      x: kd.FLOAT32
+      y: kd.FLOAT32
+
+      def norm(self):
+        return (self.x**2 + self.y**2)**0.5
+
+    # Creates a QValue instance of MyPoint.
+    p1 = MyPoint(x=1.0, y=2.0)
+
+  Extension type inheritance is supported through Python inheritance. Passing an
+  extension type argument to a functor will automatically upcast / downcast the
+  argument to the correct extension type based on the argument annotation. To
+  support calling a child class&#39;s methods after upcasting, the parent method
+  must be annotated with @kd.extension_types.virtual() and the child method
+  must be annotated with @kd.extension_types.override(). Internally, this traces
+  the methods into Functors. Virtual methods _require_ proper return
+  annotations (and if relevant, input argument annotations).
+
+  Example:
+    @kd.extension_type(unsafe_override=True)
+    class A:
+      x: kd.INT32
+
+      def fn(self, y):  # Normal method.
+        return self.x + y
+
+      @kd.extension_types.virtual()
+      def virt_fn(self, y):  # Virtual method.
+        return self.x * y
+
+    @kd.extension_type(unsafe_override=True)
+    class B(A):  # Inherits from A.
+      y: kd.FLOAT32
+
+      def fn(self, y):
+        return self.x + self.y + y
+
+      @kd.extension_types.override()
+      def virt_fn(self, y):
+        return self.x * self.y * y
+
+    @kd.fn
+    def call_a_fn(a: A):  # Automatically casts to A.
+      return a.fn(4)      # Calls non-virtual method.
+
+    @kd.fn
+    def call_a_virt_fn(a: A):  # Automatically casts to A.
+      return a.virt_fn(4)      # Calls virtual method.
+
+    b = B(2, 3)
+    # -&gt; 6. `fn` is _not_ marked as virtual, so the parent method is invoked.
+    call_a_fn(b)
+    # -&gt; 24.0. `virt_fn` is marked as virtual, so the child method is invoked.
+    call_a_virt_fn(b)
+
+  Args:
+    unsafe_override: Overrides existing registered extension types.
+
+  Returns:
+    A new class that serves as a factory for the extension type.</code></pre>
+
+### `kd.extension_types.get_extension_qtype(cls)` {#kd.extension_types.get_extension_qtype}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the QType for the given extension type class.</code></pre>
+
+### `kd.extension_types.is_koda_extension(x)` {#kd.extension_types.is_koda_extension}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given object is an instance of a Koda extension type.</code></pre>
+
+### `kd.extension_types.is_koda_extension_type(cls)` {#kd.extension_types.is_koda_extension_type}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given type is a registered Koda extension type.</code></pre>
+
+### `kd.extension_types.override()` {#kd.extension_types.override}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as overriding a virtual method.</code></pre>
+
+### `kd.extension_types.virtual()` {#kd.extension_types.virtual}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as virtual, allowing it to be overridden.</code></pre>
 
 </section>
 
@@ -9295,100 +9430,7 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
 ### `kd.extension_type(unsafe_override=False)` {#kd.extension_type}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Koda extension type from the the given original class.
-
-  This function is intended to be used as a class decorator. The decorated class
-  serves as a schema for the new extension type.
-
-  Internally, this function creates the following:
-  -  A new `QType` for the extension type, which is a labeled `QType` on top of
-    an arolla::Object.
-  - A `QValue` class for representing evaluated instances of the extension type.
-  - An `ExprView` class for representing expressions that will evaluate to the
-    extension type.
-
-  It replaces the decorated class with a new class that acts as a factory. This
-  factory&#39;s `__new__` method dispatches to either create an `Expr` or a `QValue`
-  instance, depending on the types of the arguments provided.
-
-  The fields of the dataclass are exposed as properties on both the `QValue` and
-  `ExprView` classes. Any methods defined on the dataclass are also carried
-  over.
-
-  Note:
-  - The decorated class must not have its own `__new__` method.
-  - The type annotations on the fields of the dataclass are used to determine
-    the schema of the underlying `DataSlice` (if relevant).
-  - All fields must have type annotations.
-  - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
-    `JaggedShape`, and other extension types. Additionally, any QType can be
-    used as an annotation.
-  - The `with_attrs` method is automatically added, allowing for attributes to
-    be dynamically updated.
-
-  Example:
-    @extension_type()
-    class MyPoint:
-      x: kd.FLOAT32
-      y: kd.FLOAT32
-
-      def norm(self):
-        return (self.x**2 + self.y**2)**0.5
-
-    # Creates a QValue instance of MyPoint.
-    p1 = MyPoint(x=1.0, y=2.0)
-
-  Extension type inheritance is supported through Python inheritance. Passing an
-  extension type argument to a functor will automatically upcast / downcast the
-  argument to the correct extension type based on the argument annotation. To
-  support calling a child class&#39;s methods after upcasting, the parent method
-  must be annotated with @kd.extension_types.virtual() and the child method
-  must be annotated with @kd.extension_types.override(). Internally, this traces
-  the methods into Functors. Virtual methods _require_ proper return
-  annotations (and if relevant, input argument annotations).
-
-  Example:
-    @kd.extension_type(unsafe_override=True)
-    class A:
-      x: kd.INT32
-
-      def fn(self, y):  # Normal method.
-        return self.x + y
-
-      @kd.extension_types.virtual()
-      def virt_fn(self, y):  # Virtual method.
-        return self.x * y
-
-    @kd.extension_type(unsafe_override=True)
-    class B(A):  # Inherits from A.
-      y: kd.FLOAT32
-
-      def fn(self, y):
-        return self.x + self.y + y
-
-      @kd.extension_types.override()
-      def virt_fn(self, y):
-        return self.x * self.y * y
-
-    @kd.fn
-    def call_a_fn(a: A):  # Automatically casts to A.
-      return a.fn(4)      # Calls non-virtual method.
-
-    @kd.fn
-    def call_a_virt_fn(a: A):  # Automatically casts to A.
-      return a.virt_fn(4)      # Calls virtual method.
-
-    b = B(2, 3)
-    # -&gt; 6. `fn` is _not_ marked as virtual, so the parent method is invoked.
-    call_a_fn(b)
-    # -&gt; 24.0. `virt_fn` is marked as virtual, so the child method is invoked.
-    call_a_virt_fn(b)
-
-  Args:
-    unsafe_override: Overrides existing registered extension types.
-
-  Returns:
-    A new class that serves as a factory for the extension type.</code></pre>
+Alias for [kd.extension_types.extension_type](#kd.extension_types.extension_type) operator.
 
 ### `kd.extract(ds, schema=unspecified)` {#kd.extract}
 

@@ -175,6 +175,7 @@ py_library(
         ":curves",
         ":dicts",
         ":entities",
+        ":extension_types",
         ":functor",
         ":ids",
         ":iterables",
@@ -955,6 +956,18 @@ py_library(
         ":optools",
         "//py:python_path",
         "//py/koladata/types:qtypes",
+    ],
+)
+
+py_library(
+    name = "extension_types",
+    srcs = ["extension_types.py"],
+    deps = [
+        ":optools",
+        "//py:python_path",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 
