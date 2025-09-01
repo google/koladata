@@ -224,8 +224,7 @@ def extension_type(
             k: _cast_input_expr(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
-        nt = M.namedtuple.make(**field_values)
-        obj = M.objects.make_object(nt)
+        obj = M.objects.make_object(None, **field_values)
         ext = M.derived_qtype.downcast(extension_qtype, obj)
         return M.annotation.qtype(ext, extension_qtype)
       else:
