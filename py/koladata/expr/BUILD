@@ -168,6 +168,7 @@ py_test(
         "//py/koladata/functions:parallel",
         "//py/koladata/functor:functions",
         "//py/koladata/testing",
+        "//py/koladata/types:extension_type_registry",
         "//py/koladata/types:extension_types",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

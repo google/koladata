@@ -450,6 +450,110 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.assertRaisesRegex(TypeError, 'unhashable type'):
       _ = hash(expr)
 
+  def test_inheritance_casting(self):
+    @ext_types.extension_type()
+    class MyExtension:
+      x: schema_constants.INT32
+
+      def foo(self):
+        return self.x + 1
+
+    @ext_types.extension_type()
+    class MyChildExtension(MyExtension):
+      y: schema_constants.INT32
+
+      def foo(self):
+        return self.y
+
+    my_extension_qtype = extension_type_registry.get_extension_qtype(
+        MyExtension
+    )
+    my_child_extension_qtype = extension_type_registry.get_extension_qtype(
+        MyChildExtension
+    )
+    with self.subTest('cast_to_self'):
+      expr = extension_type_registry.dynamic_cast(
+          MyExtension(I.x), my_extension_qtype
+      )
+      self.assertIsInstance(expr, arolla.Expr)
+      testing.assert_equal(expr.eval(x=1), MyExtension(1))
+      testing.assert_equal(
+          extension_type_registry.dynamic_cast(
+              MyExtension(1), my_extension_qtype
+          ),
+          MyExtension(1),
+      )
+
+    with self.subTest('cast_to_parent'):
+      expr = extension_type_registry.dynamic_cast(
+          MyChildExtension(I.x, I.y), my_extension_qtype
+      )
+      self.assertIsInstance(expr, arolla.Expr)
+      res = expr.eval(x=1, y=3)
+      testing.assert_equal(res.qtype, my_extension_qtype)
+      testing.assert_equal(res.x, ds(1))
+      # By default, we also call the parent implementation of functions.
+      testing.assert_equal(expr.foo().eval(x=1, y=3), ds(2))
+      # Eager.
+      res = extension_type_registry.dynamic_cast(
+          MyChildExtension(1, 3), my_extension_qtype
+      )
+      testing.assert_equal(res.qtype, my_extension_qtype)
+      testing.assert_equal(res.x, ds(1))
+
+    with self.subTest('cast_to_child'):
+      # We can cast back to the child type again.
+      expr = extension_type_registry.dynamic_cast(
+          MyChildExtension(I.x, I.y), my_extension_qtype
+      )
+      expr = extension_type_registry.dynamic_cast(
+          expr, my_child_extension_qtype
+      )
+      self.assertIsInstance(expr, arolla.Expr)
+      testing.assert_equal(expr.eval(x=1, y=3), MyChildExtension(1, 3))
+      # By default, we then also call the child impl.
+      testing.assert_equal(expr.foo().eval(x=1, y=3), ds(3))
+
+  def test_inheritance_casting_incompatible_field_redefinition(self):
+    @ext_types.extension_type()
+    class MyExtension:
+      x: data_slice.DataSlice
+
+    @ext_types.extension_type()
+    class MyChildExtension(MyExtension):
+      x: data_bag.DataBag
+
+    my_extension_qtype = extension_type_registry.get_extension_qtype(
+        MyExtension
+    )
+    casted = extension_type_registry.dynamic_cast(
+        MyChildExtension(data_bag.DataBag.empty()), my_extension_qtype
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
+        ' actual type DATA_BAG',
+    ):
+      _ = casted.x
+
+  def test_inheritance_downcasting_incompatible_fields_error(self):
+    @ext_types.extension_type()
+    class MyExtension:
+      x: schema_constants.INT32
+
+    @ext_types.extension_type()
+    class MyChildExtension(MyExtension):
+      y: schema_constants.INT32
+
+    my_child_extension_qtype = extension_type_registry.get_extension_qtype(
+        MyChildExtension
+    )
+    casted = extension_type_registry.dynamic_cast(
+        MyExtension(1), my_child_extension_qtype
+    )
+    with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
+      _ = casted.y
+
 
 if __name__ == '__main__':
   absltest.main()

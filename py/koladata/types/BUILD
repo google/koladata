@@ -703,6 +703,7 @@ py_test(
         ":extension_type_registry",
         ":schema_constants",
         "//py:python_path",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
         "//py/koladata/testing",

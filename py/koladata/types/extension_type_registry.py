@@ -114,3 +114,22 @@ def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   """Returns a dummy value for the given extension type class."""
   extension_qtype = get_extension_qtype(cls)
   return wrap(objects.Object(), extension_qtype)
+
+
+# TODO: Move this to kd.extensions.dynamic_cast instead.
+@arolla.optools.as_lambda_operator('extensions.dynamic_cast')
+def _dynamic_cast(value, qtype):
+  up = M.derived_qtype.upcast(M.qtype.qtype_of(value), value)
+  down = M.derived_qtype.downcast(qtype, up)
+  return M.annotation.qtype(down, qtype)  # Forces view to be present.
+
+
+def dynamic_cast(
+    value: arolla.QValue | arolla.Expr, qtype: arolla.QType
+) -> arolla.AnyQValue | arolla.Expr:
+  """Up-, down-, and side-casts `value` to `qtype`."""
+  # TODO: Base decision on is_tracing_mode() instead.
+  if isinstance(value, arolla.Expr):
+    return _dynamic_cast(value, qtype)
+  else:
+    return arolla.eval(dynamic_cast(arolla.L.x, qtype), x=value)

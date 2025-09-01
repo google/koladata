@@ -22,6 +22,7 @@ from koladata.expr import tracing
 from koladata.functions import parallel
 from koladata.functor import functions
 from koladata.testing import testing
+from koladata.types import extension_type_registry
 from koladata.types import extension_types
 from koladata.types import schema_constants
 
@@ -299,6 +300,54 @@ class TracingTest(absltest.TestCase):
         e.eval(unused_e=VerySimpleExtension()),
         2,
     )
+
+  def test_extension_type_dynamic_casts(self):
+    @extension_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+    @extension_types.extension_type()
+    class B(A):
+      y: schema_constants.INT32
+
+    with self.subTest('self_cast'):
+      def self_cast_fn(b: B):
+        return b.y
+
+      expr = tracing.trace(self_cast_fn)
+      self.assertEqual(expr.eval(b=B(x=1, y=2)), 2)
+
+    with self.subTest('upcast'):
+      def upcast_fn(a: A):
+        return a.x
+
+      expr = tracing.trace(upcast_fn)
+      self.assertEqual(expr.eval(a=B(x=1, y=2)), 1)
+
+    with self.subTest('downcast'):
+      def downcast_fn(b: B):
+        return b.y
+
+      expr = tracing.trace(downcast_fn)
+      with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
+        expr.eval(b=A(x=1))
+
+      b = B(x=1, y=2)
+      b_upcasted = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      self.assertEqual(expr.eval(b=b_upcasted), 2)
+
+    with self.subTest('upcast_extension_type_result'):
+      def upcast_self_return_fn(a: A):
+        return a
+
+      expr = tracing.trace(upcast_self_return_fn)
+      b = B(x=1, y=2)
+      b_upcasted = extension_type_registry.dynamic_cast(
+          b, extension_type_registry.get_extension_qtype(A)
+      )
+      testing.assert_equal(expr.eval(a=b), b_upcasted)
 
 
 if __name__ == '__main__':
