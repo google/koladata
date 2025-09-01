@@ -644,26 +644,5 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertTrue(issubclass(tracing_decorator.FunctorFactory, Protocol))
 
 
-# TODO: Deprecate py_fn and wrapper arguments.
-class TracingDecoratorDeprecatedParamsTest(parameterized.TestCase):
-
-  def test_py_fn_error(self):
-    with self.assertRaisesWithLiteralMatch(
-        AssertionError,
-        'the argument `py_fn` to `trace_as_fn` is deprecated - please use'
-        ' `functor_factory=kd.py_fn` instead',
-    ):
-      tracing_decorator.TraceAsFnDecorator(py_fn=True)
-
-  def test_wrapper_error(self):
-    with self.assertRaisesWithLiteralMatch(
-        AssertionError,
-        'the argument `wrapper` to `trace_as_fn` is deprecated - please use'
-        ' e.g. `functor_factory=lamda fn, return_type_as: kd.py_fn(wrapper(fn),'
-        ' return_type_as=return_type_as)` instead',
-    ):
-      tracing_decorator.TraceAsFnDecorator(wrapper=lambda x: x)
-
-
 if __name__ == '__main__':
   absltest.main()

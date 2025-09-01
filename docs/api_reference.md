@@ -2679,7 +2679,7 @@ Aliases:
   Returns:
     A DataItem representing the functor.</code></pre>
 
-### `kd.functor.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None, py_fn=None, wrapper=None)` {#kd.functor.trace_as_fn}
+### `kd.functor.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None)` {#kd.functor.trace_as_fn}
 Aliases:
 
 - [kd.trace_as_fn](#kd.trace_as_fn)
@@ -10474,7 +10474,7 @@ Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
 
 Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
-### `kd.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None, py_fn=None, wrapper=None)` {#kd.trace_as_fn}
+### `kd.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None)` {#kd.trace_as_fn}
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
 

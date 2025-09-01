@@ -18,7 +18,7 @@ import abc
 import functools
 import inspect
 import types as py_types
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from arolla import arolla
 from koladata.expr import tracing_mode
@@ -247,8 +247,6 @@ class TraceAsFnDecorator:
       name: str | None = None,
       return_type_as: Any = None,
       functor_factory: FunctorFactory | None = None,
-      py_fn: bool | None = None,
-      wrapper: Callable[[py_types.FunctionType], Any] | None = None,
   ):
     """Initializes the decorator.
 
@@ -268,21 +266,7 @@ class TraceAsFnDecorator:
         For example, pass `functor_factory=kd.py_fn` to wrap the function as raw
         Python code rather than being traced. Defaults to
         `lambda fn, return_type_as: kd.trace_py_fn(fn)`, which performs tracing.
-      py_fn: (DEPRECATED - use `functor_factory` instead).
-      wrapper: (DEPRECATED - use `functor_factory` instead).
     """
-    # TODO: fully remove these arguments.
-    if py_fn is not None:
-      raise AssertionError(
-          'the argument `py_fn` to `trace_as_fn` is deprecated - please use'
-          ' `functor_factory=kd.py_fn` instead'
-      )
-    if wrapper is not None:
-      raise AssertionError(
-          'the argument `wrapper` to `trace_as_fn` is deprecated - please use'
-          ' e.g. `functor_factory=lamda fn, return_type_as:'
-          ' kd.py_fn(wrapper(fn), return_type_as=return_type_as)` instead'
-      )
     self._name = name
     self._return_type_as = return_type_as
     if functor_factory is None:
