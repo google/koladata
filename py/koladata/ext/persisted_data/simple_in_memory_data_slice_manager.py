@@ -98,6 +98,7 @@ class SimpleInMemoryDataSliceManager(
       at_path: data_slice_path_lib.DataSlicePath,
       attr_name: str,
       attr_value: kd.types.DataSlice,
+      description: str | None = None,
   ):
     self._check_is_valid_data_slice_path(at_path)
     self._check_has_entity_schema(at_path)

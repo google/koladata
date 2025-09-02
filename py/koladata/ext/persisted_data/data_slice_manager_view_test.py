@@ -29,15 +29,23 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_typical_usage(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = pidsm.PersistedIncrementalDataSliceManager(
+        persistence_dir,
+        description=(
+            'Initial state of manager for playing with queries and docs'
+        ),
+    )
     root = DataSliceManagerView(manager)
 
-    root.query = kd.list([
-        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
-        kd.named_schema('query').new(
-            query_id=1, text='How high is the Eiffel tower'
-        ),
-    ])
+    root.query = (
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
+                query_id=1, text='How high is the Eiffel tower'
+            ),
+        ]),
+        'Added queries with query_id and text',
+    )
 
     queries = root.query.get_list_items()
 
@@ -72,15 +80,18 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     )
 
-    queries.doc = kd.slice([
-        kd.list([
-            kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
-            kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+    queries.doc = (
+        kd.slice([
+            kd.list([
+                kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+                kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+            ]),
+            kd.list(
+                [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
+            ),
         ]),
-        kd.list(
-            [kd.named_schema('doc').new(doc_id=2, title='Tower of London')]
-        ),
-    ])
+        'Added docs to queries. Populated doc_id and title',
+    )
 
     docs = queries.doc.get_list_items()
 
@@ -283,24 +294,27 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
     with self.subTest('dict_operations'):
-      queries.token = kd.slice([
-          kd.dict(
-              {
+      queries.token = (
+          kd.slice([
+              kd.dict(
+                  {
+                      'How': token_info_schema.new(part_of_speech='DET'),
+                      'tall': token_info_schema.new(part_of_speech='ADJ'),
+                      'is': token_info_schema.new(part_of_speech='VERB'),
+                      'Obama': token_info_schema.new(part_of_speech='NOUN'),
+                  },
+              ),
+              kd.dict({
                   'How': token_info_schema.new(part_of_speech='DET'),
-                  'tall': token_info_schema.new(part_of_speech='ADJ'),
+                  'high': token_info_schema.new(part_of_speech='ADJ'),
                   'is': token_info_schema.new(part_of_speech='VERB'),
-                  'Obama': token_info_schema.new(part_of_speech='NOUN'),
-              },
-          ),
-          kd.dict({
-              'How': token_info_schema.new(part_of_speech='DET'),
-              'high': token_info_schema.new(part_of_speech='ADJ'),
-              'is': token_info_schema.new(part_of_speech='VERB'),
-              'the': token_info_schema.new(part_of_speech='DET'),
-              'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
-              'tower': token_info_schema.new(part_of_speech='NOUN'),
-          }),
-      ])
+                  'the': token_info_schema.new(part_of_speech='DET'),
+                  'Eiffel': token_info_schema.new(part_of_speech='NOUN'),
+                  'tower': token_info_schema.new(part_of_speech='NOUN'),
+              }),
+          ]),
+          'Added tokens of the query text',
+      )
 
       tokens = root.query.get_list_items().token
 
@@ -548,7 +562,6 @@ class DataSliceManagerViewTest(absltest.TestCase):
       # schema of the underlying data.
 
       self.assertTrue(hasattr(root, '__all__'))
-      assert hasattr(root, '__all__')  # to please pytype
 
       # A valid entity view:
       self.assertEqual(
@@ -650,24 +663,32 @@ class DataSliceManagerViewTest(absltest.TestCase):
       manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
       root = DataSliceManagerView(manager)
 
-      root.query = kd.list([
-          kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
-          kd.named_schema('query').new(
-              query_id=1, text='How high is the Eiffel tower'
-          ),
-      ])
+      root.query = (
+          kd.list([
+              kd.named_schema('query').new(
+                  query_id=0, text='How tall is Obama'
+              ),
+              kd.named_schema('query').new(
+                  query_id=1, text='How high is the Eiffel tower'
+              ),
+          ]),
+          'Added query with query_id and text populated',
+      )
 
       queries = root.query.get_list_items()
 
-      queries.doc = kd.slice([
-          kd.list([
-              kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
-              kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+      queries.doc = (
+          kd.slice([
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+                  kd.named_schema('doc').new(doc_id=2, title='Michelle Obama'),
+              ]),
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=3, title='Tower of London')
+              ]),
           ]),
-          kd.list(
-              [kd.named_schema('doc').new(doc_id=3, title='Tower of London')]
-          ),
-      ])
+          'Added doc with doc_id and title populated',
+      )
 
       return manager
 
@@ -675,7 +696,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
         manager: pidsm.PersistedIncrementalDataSliceManager,
     ) -> pidsm.PersistedIncrementalDataSliceManager:
       branch_dir = self.create_tempdir().full_path
-      manager = manager.branch(branch_dir)
+      manager = manager.branch(
+          branch_dir, description='Branch to showcase filtering'
+      )
 
       root = DataSliceManagerView(manager)
       queries = root.query.get_list_items()
@@ -686,11 +709,20 @@ class DataSliceManagerViewTest(absltest.TestCase):
       new_docs = docs.get_data_slice().select(
           kd.strings.contains(docs.title.get_data_slice(), 'Barack')
       )
-      queries.doc = new_docs.implode()
+      queries.doc = (
+          new_docs.implode(),
+          'Filtered docs to keep only those with "Barack" in the title',
+      )
       new_queries = queries.get_data_slice().select(
           kd.agg_any(kd.has(new_docs))
       )
-      root.query = new_queries.implode()
+      root.query = (
+          new_queries.implode(),
+          (
+              'Filtered queries to keep only those with at least one doc with'
+              ' "Barack" in the title'
+          ),
+      )
 
       return manager
 
@@ -744,6 +776,34 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     )
 
+    manager_history_descriptions = [
+        action_metadata.description
+        for action_metadata in manager._metadata.action_history
+    ]
+    self.assertEqual(
+        manager_history_descriptions,
+        [
+            'Initial state with an empty root DataSlice',
+            'Added query with query_id and text populated',
+            'Added doc with doc_id and title populated',
+        ],
+    )
+    filtered_manager_history_descriptions = [
+        action_metadata.description
+        for action_metadata in filtered_manager._metadata.action_history
+    ]
+    self.assertEqual(
+        filtered_manager_history_descriptions,
+        [
+            'Branch to showcase filtering',
+            'Filtered docs to keep only those with "Barack" in the title',
+            (
+                'Filtered queries to keep only those with at least one doc with'
+                ' "Barack" in the title'
+            ),
+        ],
+    )
+
   def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
     manager = pidsm.PersistedIncrementalDataSliceManager(
         self.create_tempdir().full_path
@@ -754,7 +814,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         AttributeError,
         re.escape(
             "attribute 'fingerprint' cannot be used with the dot syntax. Use"
-            " self.update('fingerprint', attr_value) instead"
+            " self.update('fingerprint', ...) instead"
         ),
     ):
       root.fingerprint = kd.item(123)
@@ -777,7 +837,6 @@ class DataSliceManagerViewTest(absltest.TestCase):
     self.assertEqual(
         kd.dir(root.get_data_slice(with_descendants=True)), ['fingerprint']
     )
-    assert hasattr(root, '__all__')  # to please pytype
     self.assertNotIn('fingerprint', root.__all__)
     self.assertEqual(
         root.__all__,

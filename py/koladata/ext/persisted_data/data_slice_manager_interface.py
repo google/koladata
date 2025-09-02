@@ -110,6 +110,7 @@ class DataSliceManagerInterface:
       at_path: data_slice_path_lib.DataSlicePath,
       attr_name: str,
       attr_value: kd.types.DataSlice,
+      description: str | None = None,
   ):
     """Updates the data and schema at the given data slice path.
 
@@ -187,5 +188,7 @@ class DataSliceManagerInterface:
       attr_name: The name of the attribute to update.
       attr_value: The value to assign to the attribute. The restrictions
         mentioned above apply.
+      description: A description of the update. Optional. If provided, it will
+        be stored in the history metadata of this manager.
     """
     raise NotImplementedError(type(self))

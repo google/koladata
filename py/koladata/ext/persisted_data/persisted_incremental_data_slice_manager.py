@@ -94,6 +94,7 @@ class PersistedIncrementalDataSliceManager(
       persistence_dir: str,
       *,
       fs: fs_interface.FileSystemInterface | None = None,
+      description: str = 'Initial state with an empty root DataSlice',
   ):
     """Initializes the manager.
 
@@ -104,6 +105,9 @@ class PersistedIncrementalDataSliceManager(
         initialized from the existing artifacts in the directory.
       fs: All interactions with the file system will go through this instance.
         If None, then the default interaction with the file system is used.
+      description: A description of the initial state of the DataSlice. This
+        description is stored in the history metadata. Only used if the
+        persistence_dir is empty or does not exist.
     """
     self._persistence_dir = persistence_dir
     self._fs = fs or fs_util.get_default_file_system_interaction()
@@ -152,7 +156,7 @@ class PersistedIncrementalDataSliceManager(
           action_history=[
               metadata_pb2.ActionMetadata(
                   timestamp=timestamp.from_current_time(),
-                  description='Initial state with an empty root DataSlice',
+                  description=description,
                   added_data_bag_name=sorted(
                       self._data_bag_manager.get_available_bag_names()
                   ),
@@ -352,6 +356,7 @@ class PersistedIncrementalDataSliceManager(
       at_path: data_slice_path_lib.DataSlicePath,
       attr_name: str,
       attr_value: kd.types.DataSlice,
+      description: str | None = None,
   ):
     """Updates the data and schema at the given data slice path.
 
@@ -429,6 +434,8 @@ class PersistedIncrementalDataSliceManager(
       attr_name: The name of the attribute to update.
       attr_value: The value to assign to the attribute. The restrictions
         mentioned above apply.
+      description: A description of the update. Optional. If provided, it will
+        be stored in the history metadata of this manager.
     """
     # The implementation below creates many small DataBags by traversing a
     # DataSlice. Conceptually, it would be much simpler and faster to traverse
@@ -702,7 +709,7 @@ class PersistedIncrementalDataSliceManager(
     self._metadata.action_history.append(
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_current_time(),
-            # TODO: add a user-provided description here
+            description=description,
             added_data_bag_name=[added.bag_name for added in data_bags_to_add],
             added_schema_bag_name=[new_schema_bag_name],
             added_snn_to_data_bags_update_bag_name=[map_update_bag_name],
@@ -718,6 +725,7 @@ class PersistedIncrementalDataSliceManager(
       self,
       output_dir: str,
       fs: fs_interface.FileSystemInterface | None = None,
+      description: str | None = None,
   ) -> PersistedIncrementalDataSliceManager:
     """Creates a branch of the state of this manager.
 
@@ -736,6 +744,8 @@ class PersistedIncrementalDataSliceManager(
         not exist yet or it must be empty.
       fs: All interactions with the file system for output_dir will happen via
         this instance. If None, then the interaction object of `self` is used.
+      description: A description of the branch. Optional. If provided, it will
+        be stored in the history metadata of the branch.
 
     Returns:
       A new branch of this manager.
@@ -791,7 +801,7 @@ class PersistedIncrementalDataSliceManager(
         action_history=[
             metadata_pb2.ActionMetadata(
                 timestamp=timestamp.from_current_time(),
-                # TODO: add a user-provided description here
+                description=description,
                 added_data_bag_name=sorted(
                     self._data_bag_manager.get_available_bag_names()
                 ),

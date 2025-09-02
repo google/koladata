@@ -50,6 +50,8 @@ class DataSliceManagerView:
   why the is_view_valid() method is not simply called is_valid() or valid().
   """
 
+  _HAS_DYNAMIC_ATTRIBUTES = True  # go/pytype-dynamic-attributes
+
   def __init__(
       self,
       manager: data_slice_manager_interface.DataSliceManagerInterface,
@@ -120,7 +122,12 @@ class DataSliceManagerView:
       return ds
     return data_slice_path_lib.get_subslice(ds, self._path_from_root)
 
-  def update(self, attr_name: str, attr_value: kd.types.DataSlice):
+  def update(
+      self,
+      attr_name: str,
+      attr_value: kd.types.DataSlice,
+      description: str | None = None,
+  ):
     """Updates the given attribute at the view path.
 
     The view path must be valid and associated with an entity schema, i.e.
@@ -131,16 +138,25 @@ class DataSliceManagerView:
       attr_name: The name of the attribute to update.
       attr_value: The value of the attribute to update. Restrictions imposed by
         the underlying DataSliceManager must be respected.
+      description: A description of the update. Optional. If provided, it will
+        be stored in the history metadata of the underlying DataSliceManager.
     """
     self._check_path_from_root_is_valid()
     self._data_slice_manager.update(
         at_path=self._path_from_root,
         attr_name=attr_name,
         attr_value=attr_value,
+        description=description,
     )
 
-  def __setattr__(self, attr_name: str, attr_value: kd.types.DataSlice):
-    """Sugar for self.update(attr_name, attr_value).
+  def __setattr__(
+      self,
+      attr_name: str,
+      attr_value_possibly_with_description: (
+          kd.types.DataSlice | tuple[kd.types.DataSlice, str]
+      ),
+  ):
+    """Sugar for self.update(attr_name, attr_value, description).
 
     The sugar only applies when
     kd.slices.internal_is_compliant_attr_name(attr_name) is True.
@@ -148,15 +164,25 @@ class DataSliceManagerView:
     Args:
       attr_name: The name of the attribute to set. It must be a valid Python
         identifier.
-      attr_value: The value of the attribute to set. Restrictions imposed by the
-        underlying DataSliceManager must be respected.
+      attr_value_possibly_with_description: The value of the attribute to set.
+        Restrictions imposed by the underlying DataSliceManager must be
+        respected. A description can be provided by passing a tuple where the
+        first element is the attribute value and the second is the description.
     """
+    if isinstance(attr_value_possibly_with_description, tuple):
+      attr_value, description = attr_value_possibly_with_description
+    else:
+      attr_value, description = attr_value_possibly_with_description, None
+    del attr_value_possibly_with_description
+
     if kd.slices.internal_is_compliant_attr_name(attr_name):
-      self.update(attr_name=attr_name, attr_value=attr_value)
+      self.update(
+          attr_name=attr_name, attr_value=attr_value, description=description
+      )
       return
     raise AttributeError(
         f"attribute '{attr_name}' cannot be used with the dot syntax. Use"
-        f" self.update('{attr_name}', attr_value) instead"
+        f" self.update('{attr_name}', ...) instead"
     )
 
   # Accessing the state.

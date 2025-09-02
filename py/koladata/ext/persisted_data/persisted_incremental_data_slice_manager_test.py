@@ -3690,14 +3690,16 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       return result
 
     persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(
+        persistence_dir, description='Initial state'
+    )
 
     self.assertLen(manager._metadata.action_history, 1)
     action_0 = manager._metadata.action_history[0]
     self.assertEqual(
         without_timestamp(action_0),
         metadata_pb2.ActionMetadata(
-            description='Initial state with an empty root DataSlice',
+            description='Initial state',
             added_data_bag_name=[''],
             added_schema_bag_name=[''],
             added_snn_to_data_bags_update_bag_name=[''],
@@ -3719,6 +3721,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             kd.named_schema('query').new(query_id='q1'),
             kd.named_schema('query').new(query_id='q2'),
         ]),
+        description='Added queries with only query_id populated',
     )
 
     self.assertLen(manager._metadata.action_history, 2)
@@ -3727,6 +3730,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(
         without_timestamp(action_1),
         metadata_pb2.ActionMetadata(
+            description='Added queries with only query_id populated',
             added_data_bag_name=sorted(
                 manager._data_bag_manager.get_available_bag_names() - {''}
             ),
@@ -3752,12 +3756,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
 
     branch_dir = self.create_tempdir().full_path
-    branch_manager = manager.branch(branch_dir)
+    branch_manager = manager.branch(
+        branch_dir, description='Branched queries with query_id'
+    )
     self.assertLen(branch_manager._metadata.action_history, 1)
     branch_action_0 = branch_manager._metadata.action_history[0]
     self.assertEqual(
         without_timestamp(branch_action_0),
         metadata_pb2.ActionMetadata(
+            description='Branched queries with query_id',
             added_data_bag_name=sorted(
                 manager._data_bag_manager.get_available_bag_names()
             ),
@@ -3787,6 +3794,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         attr_value=kd.slice(
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
+        description='Added query_text to queries',
     )
     self.assertLen(branch_manager._metadata.action_history, 2)
     self.assertEqual(
@@ -3796,6 +3804,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(
         without_timestamp(branch_action_1),
         metadata_pb2.ActionMetadata(
+            description='Added query_text to queries',
             added_data_bag_name=sorted(
                 branch_manager._data_bag_manager.get_available_bag_names()
                 - manager._data_bag_manager.get_available_bag_names()
