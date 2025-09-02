@@ -15,6 +15,7 @@
 #include "koladata/operators/binary_op.h"
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -28,6 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
@@ -78,6 +80,18 @@ struct TestOpDiv {
                           "division by zero");
     }
     return lhs / rhs;
+  }
+};
+
+struct TestOpDivOrMissing {
+  template <typename T>
+  absl::StatusOr<arolla::OptionalValue<T>> operator()(T lhs, T rhs) const
+    requires(std::is_arithmetic_v<T> && !std::is_same_v<T, bool>)
+  {
+    if (rhs == 0) {
+      return arolla::OptionalValue<T>();
+    }
+    return arolla::OptionalValue<T>(lhs / rhs);
   }
 };
 
@@ -461,6 +475,54 @@ TEST(BinaryOpTest, StatusPropagation) {
   EXPECT_THAT(BinaryOpEval<TestOpDiv>(slice1d, slice2d_with_zero),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("division by zero")));
+}
+
+TEST(BinaryOpTest, OptionalResult) {
+  internal::DataItem i32(schema::kInt32);
+  auto shape2d = DataSlice::JaggedShape::FromEdges(
+                     {arolla::DenseArrayEdge::FromSplitPoints(
+                          arolla::CreateDenseArray<int64_t>({0, 2}))
+                          .value(),
+                      arolla::DenseArrayEdge::FromSplitPoints(
+                          arolla::CreateDenseArray<int64_t>({0, 2, 4}))
+                          .value()})
+                     .value();
+
+  auto slice1d = DataSlice::CreateWithFlatShape(
+                     internal::DataSliceImpl::Create(
+                         arolla::CreateDenseArray<int32_t>({0, 1})),
+                     i32)
+                     .value();
+
+  auto slice2d =
+      DataSlice::Create(internal::DataSliceImpl::Create(
+                            arolla::CreateDenseArray<int32_t>({1, 0, 3, 4})),
+                        shape2d, i32)
+          .value();
+
+  // scalar / scalar
+  EXPECT_THAT(
+      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6),
+                                       DataSlice::CreateFromScalar(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
+  EXPECT_THAT(BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6),
+                                               DataSlice::CreateFromScalar(0)),
+              IsOkAndHolds(testing::IsEquivalentTo(
+                  *DataSlice::Create(internal::DataItem(), i32))));
+
+  // scalar / slice
+  EXPECT_THAT(
+      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6), slice1d)
+          ->slice(),
+      ElementsAre(std::nullopt, 6));
+
+  // slice / slice
+  EXPECT_THAT(BinaryOpEval<TestOpDivOrMissing>(slice1d, slice1d)->slice(),
+              ElementsAre(std::nullopt, 1));
+
+  // slice2d / slice
+  EXPECT_THAT(BinaryOpEval<TestOpDivOrMissing>(slice2d, slice1d)->slice(),
+              ElementsAre(std::nullopt, std::nullopt, 3, 4));
 }
 
 TEST(BinaryOpTest, BytesAndText) {

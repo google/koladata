@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -27,6 +28,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
 #include "arolla/dense_array/ops/dense_ops.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/qexpr/aggregation_ops_interface.h"
 #include "arolla/qexpr/operators/dense_array/lifter.h"
@@ -106,9 +108,16 @@ struct CastingAdapter {
   }
 };
 
+// Output type of Fn with arguments castable from T1, T2.
+// The type if returned without StatusOr.
 template <class Fn, class T1, class T2>
-using FnOutT = arolla::strip_statusor_t<decltype(CastingAdapter<Fn>{}(
-    std::declval<T1>(), std::declval<T2>()))>;
+using FnOutT = arolla::strip_statusor_t<
+    decltype(CastingAdapter<Fn>{}(std::declval<T1>(), std::declval<T2>()))>;
+
+// Output type of Fn with arguments castable from T1, T2.
+// It strips StatusOr and arolla::OptionalValue.
+template <class Fn, class T1, class T2>
+using BaseOutT = arolla::strip_optional_t<FnOutT<Fn, T1, T2>>;
 
 template <class Fn, class T1, class T2>
 static constexpr bool FnReturnsStatus =
@@ -153,7 +162,7 @@ absl::StatusOr<internal::DataSliceImpl> EvalSliceScalar(
       arolla::DenseOpFlags::kNoBitmapOffset |
       (arolla::IsRunOnMissingOp<Fn>::value ? arolla::DenseOpFlags::kRunOnMissing
                                            : 0);
-  using OutT = FnOutT<Fn, T1, T2>;
+  using OutT = BaseOutT<Fn, T1, T2>;
   using ArrayOutT = arolla::DenseArray<OutT>;
   constexpr bool HasStatus = FnReturnsStatus<Fn, T1, T2>;
   std::conditional_t<HasStatus, absl::StatusOr<ArrayOutT>, ArrayOutT> res;
@@ -249,7 +258,7 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
   const arolla::DenseArray<T1>& arr1 = in1.slice().values<T1>();
   const arolla::DenseArray<T2>& arr2 = in2.slice().values<T2>();
 
-  using OutT = FnOutT<Fn, T1, T2>;
+  using OutT = BaseOutT<Fn, T1, T2>;
   arolla::DenseArray<OutT> res_arr;
 
   if (shape1.rank() == shape2.rank()) {
@@ -264,14 +273,14 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
         res_arr,
         (arolla::CreateDenseOp<flags, decltype(fn), OutT>(fn)(arr1, arr2)));
   } else if (shape1.rank() < shape2.rank()) {
-    arolla::DenseGroupOps<
-        FnWithExpandAccumulator<Fn, OutT, T1, T2, /*SwapArgs=*/false>>
+    arolla::DenseGroupOps<FnWithExpandAccumulator<Fn, FnOutT<Fn, T1, T2>, T1,
+                                                  T2, /*SwapArgs=*/false>>
         agg(arolla::GetHeapBufferFactory());
     ASSIGN_OR_RETURN(res_arr,
                      agg.Apply(shape1.GetBroadcastEdge(shape2), arr1, arr2));
   } else {
-    arolla::DenseGroupOps<
-        FnWithExpandAccumulator<Fn, OutT, T2, T1, /*SwapArgs=*/true>>
+    arolla::DenseGroupOps<FnWithExpandAccumulator<Fn, FnOutT<Fn, T1, T2>, T2,
+                                                  T1, /*SwapArgs=*/true>>
         agg(arolla::GetHeapBufferFactory());
     ASSIGN_OR_RETURN(res_arr,
                      agg.Apply(shape2.GetBroadcastEdge(shape1), arr2, arr1));
@@ -280,7 +289,9 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
   return internal::DataSliceImpl::Create(std::move(res_arr));
 }
 
-inline absl::StatusOr<schema::DType> DefaultEmptyAndUnknownHandler(
+// ObjectOrNoneHandler is used to deduce output type if one of input types
+// is either schema::kObject or schema::kNone.
+inline absl::StatusOr<schema::DType> DefaultObjectOrNoneHandler(
     schema::DType t1, schema::DType t2) {
   if (t1 == schema::kObject || t2 == schema::kNone) {
     return t1;
@@ -301,13 +312,13 @@ struct DummyArgsChecker {
 }  // namespace binary_op_impl
 
 template <class Fn, class ArgsChecker = binary_op_impl::DummyArgsChecker,
-          class EmptyAndUnknownHandler =
-              decltype(binary_op_impl::DefaultEmptyAndUnknownHandler)>
+          class ObjectOrNoneHandler =
+              decltype(binary_op_impl::DefaultObjectOrNoneHandler)>
 absl::StatusOr<DataSlice> BinaryOpEval(
     const DataSlice& in1, const DataSlice& in2,
     const ArgsChecker& args_checker = binary_op_impl::DummyArgsChecker(),
-    EmptyAndUnknownHandler empty_and_unknown_handler =
-        binary_op_impl::DefaultEmptyAndUnknownHandler) {
+    ObjectOrNoneHandler object_or_none_handler =
+        binary_op_impl::DefaultObjectOrNoneHandler) {
   if (in1.GetShape().rank() < in2.GetShape().rank()
           ? !in1.GetShape().IsBroadcastableTo(in2.GetShape())
           : !in2.GetShape().IsBroadcastableTo(in1.GetShape())) {
@@ -329,34 +340,39 @@ absl::StatusOr<DataSlice> BinaryOpEval(
   }
   schema::DType schema_type1 = in1.GetSchemaImpl().value<schema::DType>();
   schema::DType schema_type2 = in2.GetSchemaImpl().value<schema::DType>();
+  arolla::QTypePtr type1 = schema_type1.qtype();
+  arolla::QTypePtr type2 = schema_type2.qtype();
 
-  arolla::QTypePtr type1 =
-      schema_type1 == schema::kObject ? in1.dtype() : schema_type1.qtype();
-  arolla::QTypePtr type2 =
-      schema_type2 == schema::kObject ? in2.dtype() : schema_type2.qtype();
-
-  if (type1 == arolla::GetNothingQType() ||
-      type2 == arolla::GetNothingQType()) {
+  std::optional<schema::DType> output_dtype;
+  if (schema_type1 == schema::kNone || schema_type1 == schema::kObject ||
+      schema_type2 == schema::kNone || schema_type2 == schema::kObject) {
     RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
-    if (in1.impl_has_mixed_dtype() || in2.impl_has_mixed_dtype()) {
-      return absl::InvalidArgumentError(
-          "DataSlice with mixed types is not supported");
+    ASSIGN_OR_RETURN(output_dtype,
+                     object_or_none_handler(schema_type1, schema_type2));
+
+    if (schema_type1 == schema::kObject) {
+      type1 = in1.dtype();
     }
-    ASSIGN_OR_RETURN(schema::DType output_dtype,
-                     empty_and_unknown_handler(schema_type1, schema_type2));
-    if (output_shape.rank() == 0) {
-      return DataSlice::UnsafeCreate(internal::DataItem(),
-                                     internal::DataItem(output_dtype));
-    } else {
-      return DataSlice::UnsafeCreate(
-          internal::DataSliceImpl::CreateEmptyAndUnknownType(
-              output_shape.size()),
-          output_shape, internal::DataItem(output_dtype));
+    if (schema_type2 == schema::kObject) {
+      type2 = in2.dtype();
+    }
+    if (type1 == arolla::GetNothingQType() ||
+        type2 == arolla::GetNothingQType()) {
+      if (in1.impl_has_mixed_dtype() || in2.impl_has_mixed_dtype()) {
+        return absl::InvalidArgumentError(
+            "DataSlice with mixed types is not supported");
+      }
+      if (output_shape.rank() == 0) {
+        return DataSlice::UnsafeCreate(internal::DataItem(),
+                                       internal::DataItem(*output_dtype));
+      } else {
+        return DataSlice::UnsafeCreate(
+            internal::DataSliceImpl::CreateEmptyAndUnknownType(
+                output_shape.size()),
+            output_shape, internal::DataItem(*output_dtype));
+      }
     }
   }
-
-  bool output_type_is_object =
-      schema_type1 == schema::kObject || schema_type2 == schema::kObject;
 
   bool res_assigned = false;
   absl::StatusOr<DataSlice> res;
@@ -384,11 +400,8 @@ absl::StatusOr<DataSlice> BinaryOpEval(
                             binary_op_impl::CastingAdapter<
                                 Fn>::template is_invocable_v<T1, T2>) {
                 // NOTE: here T1, T2 correspond to schema types
-                internal::DataItem output_schema(
-                    output_type_is_object
-                        ? schema::kObject
-                        : schema::GetDType<
-                              binary_op_impl::FnOutT<Fn, T1, T2>>());
+                internal::DataItem output_schema(output_dtype.value_or(
+                    schema::GetDType<binary_op_impl::BaseOutT<Fn, T1, T2>>()));
                 if (in1.is_item() && in2.is_item()) {
                   if constexpr (binary_op_impl::FnReturnsStatus<Fn, T1, T2>) {
                     absl::StatusOr<internal::DataItem> output_value =

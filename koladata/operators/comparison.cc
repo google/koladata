@@ -14,10 +14,17 @@
 //
 #include "koladata/operators/comparison.h"
 
+#include <type_traits>
+
 #include "absl/log/check.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/qexpr/operators/core/logic_operators.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
@@ -25,42 +32,73 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
-#include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/binary_op.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
+namespace {
+
+// Similar to RETURN_IF_ERROR, but doesn't add an extra source location
+// to the status.
+#define KD_RETURN_AS_IS_IF_ERROR(X)      \
+  if (absl::Status st = (X); !st.ok()) { \
+    return st;                           \
+  }
+
+struct CanBeOrdered {
+  template <class T1, class T2>
+  constexpr static bool kIsInvocable =
+      (std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> &&
+      !std::is_same_v<T1, bool> && !std::is_same_v<T2, bool>) ||
+      (std::is_same_v<T1, bool> && std::is_same_v<T2, bool>) ||
+      (std::is_same_v<T1, arolla::Unit> && std::is_same_v<T2, arolla::Unit>) ||
+      (std::is_same_v<T1, arolla::Text> && std::is_same_v<T2, arolla::Text>) ||
+      (std::is_same_v<T1, arolla::Bytes> && std::is_same_v<T2, arolla::Bytes>);
+
+  explicit constexpr CanBeOrdered(absl::string_view name1,
+                                  absl::string_view name2)
+      : name1(name1), name2(name2) {}
+
+  absl::Status CheckArgs(const DataSlice& ds1, const DataSlice& ds2) const {
+    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeOrdered(name1, ds1));
+    KD_RETURN_AS_IS_IF_ERROR(ExpectCanBeOrdered(name2, ds2));
+    return ExpectHaveCommonPrimitiveSchema({name1, name2}, ds1, ds2);
+  }
+
+  const absl::string_view name1, name2;
+};
+
+#undef KD_RETURN_AS_IS_IF_ERROR
+
+absl::StatusOr<schema::DType> ReturnsMask(schema::DType t1, schema::DType t2) {
+  if (t1 == schema::kExpr || t2 == schema::kExpr) {
+    return absl::InvalidArgumentError("EXPR is not comparable");
+  }
+  return schema::kMask;
+}
+
+}  // namespace
+
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
-  return SimplePointwiseEval("core.less", {x, y},
-                             internal::DataItem(schema::kMask));
+  return BinaryOpEval<arolla::MaskLessOp>(x, y, CanBeOrdered("x", "y"),
+                                          ReturnsMask);
 }
 
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
-  return SimplePointwiseEval("core.greater", {x, y},
-                             internal::DataItem(schema::kMask));
+  return BinaryOpEval<arolla::MaskLessOp>(y, x, CanBeOrdered("y", "x"),
+                                          ReturnsMask);
 }
 
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
-  return SimplePointwiseEval("core.less_equal", {x, y},
-                             internal::DataItem(schema::kMask));
+  return BinaryOpEval<arolla::MaskLessEqualOp>(x, y, CanBeOrdered("x", "y"),
+                                               ReturnsMask);
 }
 
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
-  return SimplePointwiseEval("core.greater_equal", {x, y},
-                             internal::DataItem(schema::kMask));
+  return BinaryOpEval<arolla::MaskLessEqualOp>(y, x, CanBeOrdered("y", "x"),
+                                               ReturnsMask);
 }
 
 absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {

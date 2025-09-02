@@ -115,18 +115,48 @@ class ComparisonGreaterTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_qtype_difference(self):
-    x = ds([1, 2, 3])
-    y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             r"""kd.comparison.greater: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
 
-Schema for `x`: INT32
-Schema for `y`: STRING"""
+Schema for `y`: STRING
+Schema for `x`: INT32"""
         ),
     ):
-      expr_eval.eval(kde.comparison.greater(I.x, I.y), x=x, y=y)
+      expr_eval.eval(
+          kde.comparison.greater(I.x, I.y),
+          x=ds([1, 2, 3]),
+          y=ds(['a', 'b', 'c']),
+      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            r"""kd.comparison.greater: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
+
+Schema for `y`: BOOLEAN
+Schema for `x`: INT32"""
+        ),
+    ):
+      expr_eval.eval(
+          kde.comparison.greater(I.x, I.y),
+          x=ds([1, 2, 3]),
+          y=ds([False, True, False]),
+      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            r"""kd.comparison.greater: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
+
+Schema for `y`: STRING
+Schema for `x`: BYTES"""
+        ),
+    ):
+      expr_eval.eval(
+          kde.comparison.greater(I.x, I.y),
+          x=ds([b'1', b'2', b'3']),
+          y=ds(['a', 'b', 'c']),
+      )
 
   def test_unordered_types(self):
     empty = ds([None, None])

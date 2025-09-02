@@ -122,8 +122,8 @@ class ComparisonGreaterEqualTest(parameterized.TestCase):
         re.escape(
             r"""kd.comparison.greater_equal: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
 
-Schema for `x`: INT32
-Schema for `y`: STRING"""
+Schema for `y`: STRING
+Schema for `x`: INT32"""
         ),
     ):
       expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=x, y=y)
