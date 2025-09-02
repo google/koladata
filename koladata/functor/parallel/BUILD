@@ -901,6 +901,7 @@ cc_library(
         "//koladata/internal/op_utils:qexpr",
         "//koladata/iterables:iterable_qtype",
         "//koladata/operators:lib",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",

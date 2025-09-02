@@ -126,5 +126,17 @@ TEST(ExecutorTest, TaskCopying) {
   }
 }
 
+TEST(ExecutorTest, IsExecutorTask) {
+  ExecutorPtr executor = std::make_shared<TestExecutor>();
+  ASSERT_FALSE(IsExecutorTask());
+  bool called = false;
+  executor->Schedule([&] {
+    ASSERT_TRUE(IsExecutorTask());
+    called = true;
+  });
+  ASSERT_FALSE(IsExecutorTask());
+  EXPECT_TRUE(called);
+}
+
 }  // namespace
 }  // namespace koladata::functor::parallel

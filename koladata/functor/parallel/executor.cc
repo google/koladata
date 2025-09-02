@@ -26,8 +26,12 @@
 
 namespace koladata::functor::parallel {
 
-thread_local constinit Executor* absl_nullable
-    CurrentExecutorScopeGuard::thread_local_current_executor_ = nullptr;
+thread_local constinit CurrentExecutorScopeGuard::ThreadLocalData
+    CurrentExecutorScopeGuard::thread_local_data_;
+
+bool IsExecutorTask() {
+  return CurrentExecutorScopeGuard::thread_local_data_.is_executor_task;
+}
 
 absl::StatusOr<ExecutorPtr absl_nonnull> CurrentExecutor() noexcept {
   if (auto* result = CurrentExecutorScopeGuard::current_executor()) {
@@ -39,18 +43,19 @@ absl::StatusOr<ExecutorPtr absl_nonnull> CurrentExecutor() noexcept {
 CurrentExecutorScopeGuard::CurrentExecutorScopeGuard(
     ExecutorPtr absl_nullable executor) noexcept
     : executor_(std::move(executor)),
-      previous_executor_(
-          std::exchange(thread_local_current_executor_, executor_.get())) {}
+      previous_executor_(std::exchange(thread_local_data_.current_executor,
+                                       executor_.get())) {}
 
 CurrentExecutorScopeGuard::~CurrentExecutorScopeGuard() {
-  CHECK_EQ(thread_local_current_executor_, executor_.get())
+  auto& data = thread_local_data_;
+  CHECK_EQ(data.current_executor, executor_.get())
       << "CurrentExecutorScopeGuard: Scope nesting invariant "
          "violated!";
-  thread_local_current_executor_ = previous_executor_;
+  data.current_executor = previous_executor_;
 }
 
 Executor* absl_nullable CurrentExecutorScopeGuard::current_executor() noexcept {
-  return thread_local_current_executor_;
+  return thread_local_data_.current_executor;
 }
 
 }  // namespace koladata::functor::parallel

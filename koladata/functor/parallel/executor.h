@@ -83,6 +83,16 @@ class Executor : public std::enable_shared_from_this<Executor> {
 
 using ExecutorPtr = std::shared_ptr<Executor>;
 
+// Checks if the current control flow is a task running on an executor.
+//
+// Note: When this function returns `true`, there is no guarantee that
+// `CurrentExecutor()` will return the executor the task is running on.
+// This is because the result of `CurrentExecutor()` can be overridden
+// using `CurrentExecutorScopeGuard`.
+//
+// IMPORTANT: The implementation uses thread_local storage.
+bool IsExecutorTask();
+
 // Returns the current executor.
 //
 // For tasks running on an executor, this function returns the executor.
@@ -126,10 +136,17 @@ class [[nodiscard]] CurrentExecutorScopeGuard final {
   ExecutorPtr absl_nullable const executor_;
   Executor* absl_nullable const previous_executor_;
 
-  static thread_local constinit Executor* absl_nullable
-      thread_local_current_executor_;
+  struct ThreadLocalData {
+    Executor* absl_nullable current_executor = nullptr;
+    bool is_executor_task = false;
+  };
+
+  // Note: `constinit` is essential for performance. Without it, a hidden guard
+  // variable for initialization might be introduced.
+  static thread_local constinit ThreadLocalData thread_local_data_;
 
   friend class Executor;
+  friend bool IsExecutorTask();
 };
 
 // Note: Using a template parameter rather than a fixed `TaskFn` to have
@@ -140,12 +157,11 @@ auto Executor::Schedule(Task&& task) noexcept
     -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>> {
   return DoSchedule([executor = shared_from_this(),
                      task = std::forward<Task>(task)]() mutable {
-    auto* const previous_executor =
-        CurrentExecutorScopeGuard::thread_local_current_executor_;
-    CurrentExecutorScopeGuard::thread_local_current_executor_ = executor.get();
+    auto& data = CurrentExecutorScopeGuard::thread_local_data_;
+    const auto previous_data = data;
+    data = {.current_executor = executor.get(), .is_executor_task = true};
     std::move(task)();
-    CurrentExecutorScopeGuard::thread_local_current_executor_ =
-        previous_executor;
+    data = previous_data;
   });
 }
 
