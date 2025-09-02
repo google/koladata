@@ -26,6 +26,7 @@ from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
+from koladata.ext.persisted_data import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
 from koladata.ext.persisted_data import simple_in_memory_data_slice_manager
 from koladata.ext.persisted_data import test_only_schema_node_name_helper
@@ -3676,6 +3677,159 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       self.assertEmpty(trunk_fs.method_calls)
     else:
       self.assertNotEmpty(trunk_fs.method_calls)
+
+  def test_action_history_is_tracked_in_metadata(self):
+
+    def without_timestamp(
+        action_metadata: metadata_pb2.ActionMetadata,
+    ) -> metadata_pb2.ActionMetadata:
+      self.assertTrue(action_metadata.HasField('timestamp'))
+      result = metadata_pb2.ActionMetadata()
+      result.CopyFrom(action_metadata)
+      result.ClearField('timestamp')
+      return result
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+
+    self.assertLen(manager._metadata.action_history, 1)
+    action_0 = manager._metadata.action_history[0]
+    self.assertEqual(
+        without_timestamp(action_0),
+        metadata_pb2.ActionMetadata(
+            description='Initial state with an empty root DataSlice',
+            added_data_bag_name=[''],
+            added_schema_bag_name=[''],
+            added_snn_to_data_bags_update_bag_name=[''],
+            creation=metadata_pb2.CreationAction(),
+        ),
+    )
+    # Metadata is written to disk:
+    self.assertEqual(
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(), persistence_dir
+        ),
+        manager._metadata,
+    )
+
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            kd.named_schema('query').new(query_id='q1'),
+            kd.named_schema('query').new(query_id='q2'),
+        ]),
+    )
+
+    self.assertLen(manager._metadata.action_history, 2)
+    self.assertEqual(manager._metadata.action_history[0], action_0)
+    action_1 = manager._metadata.action_history[1]
+    self.assertEqual(
+        without_timestamp(action_1),
+        metadata_pb2.ActionMetadata(
+            added_data_bag_name=sorted(
+                manager._data_bag_manager.get_available_bag_names() - {''}
+            ),
+            added_schema_bag_name=sorted(
+                manager._schema_bag_manager.get_available_bag_names() - {''}
+            ),
+            added_snn_to_data_bags_update_bag_name=sorted(
+                manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+                - {''}
+            ),
+            attribute_update=metadata_pb2.AttributeUpdateAction(
+                at_path='',
+                attr_name='query',
+            ),
+        ),
+    )
+    # Metadata is written to disk:
+    self.assertEqual(
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(), persistence_dir
+        ),
+        manager._metadata,
+    )
+
+    branch_dir = self.create_tempdir().full_path
+    branch_manager = manager.branch(branch_dir)
+    self.assertLen(branch_manager._metadata.action_history, 1)
+    branch_action_0 = branch_manager._metadata.action_history[0]
+    self.assertEqual(
+        without_timestamp(branch_action_0),
+        metadata_pb2.ActionMetadata(
+            added_data_bag_name=sorted(
+                manager._data_bag_manager.get_available_bag_names()
+            ),
+            added_schema_bag_name=sorted(
+                manager._schema_bag_manager.get_available_bag_names()
+            ),
+            added_snn_to_data_bags_update_bag_name=sorted(
+                manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+            ),
+            branch=metadata_pb2.BranchAction(
+                parent_persistence_directory=persistence_dir,
+                parent_action_history_index=1,
+            ),
+        ),
+    )
+    # Metadata is written to disk:
+    self.assertEqual(
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(), branch_dir
+        ),
+        branch_manager._metadata,
+    )
+
+    branch_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How tall is Obama', 'How high is the Eiffel tower']
+        ),
+    )
+    self.assertLen(branch_manager._metadata.action_history, 2)
+    self.assertEqual(
+        branch_manager._metadata.action_history[0], branch_action_0
+    )
+    branch_action_1 = branch_manager._metadata.action_history[1]
+    self.assertEqual(
+        without_timestamp(branch_action_1),
+        metadata_pb2.ActionMetadata(
+            added_data_bag_name=sorted(
+                branch_manager._data_bag_manager.get_available_bag_names()
+                - manager._data_bag_manager.get_available_bag_names()
+            ),
+            added_schema_bag_name=sorted(
+                branch_manager._schema_bag_manager.get_available_bag_names()
+                - manager._schema_bag_manager.get_available_bag_names()
+            ),
+            added_snn_to_data_bags_update_bag_name=sorted(
+                branch_manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+                - manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+            ),
+            attribute_update=metadata_pb2.AttributeUpdateAction(
+                at_path='.query[:]',
+                attr_name='query_text',
+            ),
+        ),
+    )
+    # Metadata is written to disk:
+    self.assertEqual(
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(), branch_dir
+        ),
+        branch_manager._metadata,
+    )
+    # The trunk is not affected by the updates to the branch.
+    self.assertEqual(manager._metadata.action_history[0], action_0)
+    self.assertEqual(manager._metadata.action_history[1], action_1)
+    self.assertEqual(
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(), persistence_dir
+        ),
+        manager._metadata,
+    )
 
 
 if __name__ == '__main__':

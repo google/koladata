@@ -24,6 +24,7 @@ import datetime
 import os
 from typing import AbstractSet, Generator
 
+from google.protobuf import timestamp
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -146,10 +147,24 @@ class PersistedIncrementalDataSliceManager(
               schema_node_name_to_data_bags_updates_dir, fs=self._fs
           )
       )
-      self._metadata = (
-          metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
-              version='1.0.0'
-          )
+      self._metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
+          version='1.0.0',
+          action_history=[
+              metadata_pb2.ActionMetadata(
+                  timestamp=timestamp.from_current_time(),
+                  description='Initial state with an empty root DataSlice',
+                  added_data_bag_name=sorted(
+                      self._data_bag_manager.get_available_bag_names()
+                  ),
+                  added_schema_bag_name=sorted(
+                      self._schema_bag_manager.get_available_bag_names()
+                  ),
+                  added_snn_to_data_bags_update_bag_name=sorted(
+                      self._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+                  ),
+                  creation=metadata_pb2.CreationAction(),
+              )
+          ],
       )
       _persist_metadata(self._fs, self._persistence_dir, self._metadata)
     else:
@@ -634,7 +649,9 @@ class PersistedIncrementalDataSliceManager(
         #    on the root entity's bag, and this dep was added a long time ago.
         dbm.BagToAdd(bag_name, bag, dependencies=(dbm._INITIAL_BAG_NAME,))  # pylint: disable=protected-access
         # We sort based on the bag name to make the order deterministic. The
-        # code is also functionally correct without the sorting. The bag manager
+        # code is also functionally correct without the sorting (all the bags
+        # are sub-bags of stub_with_update.get_bag(), so all overlaps are
+        # consistent and it does not matter which order we use). The bag manager
         # remembers the total order in which the bags are added, and will always
         # compose a selection of bags in the fixed order that is consistent with
         # that total order. Adding the bags here in a deterministic order can be
@@ -644,9 +661,10 @@ class PersistedIncrementalDataSliceManager(
         for bag_name, bag in sorted(merged_bag_name_to_merged_bag.items())
     ]
     self._data_bag_manager.add_bags(data_bags_to_add)
+    new_schema_bag_name = self._get_timestamped_bag_name()
     schema_bags_to_add = [
         dbm.BagToAdd(
-            self._get_timestamped_bag_name(),
+            new_schema_bag_name,
             new_schema_bag,
             # We don't specify fine-grained dependencies for the time being.
             # Instead, we always load+use all the schema bags, and we rely on
@@ -670,9 +688,10 @@ class PersistedIncrementalDataSliceManager(
             existing_bag_names, kd.slice(new_bag_names, schema=kd.STRING)
         )
       snn_to_data_bags_updates.append(update_bag)
+    map_update_bag_name = self._get_timestamped_bag_name()
     self._schema_node_name_to_data_bags_updates_manager.add_bags([
         dbm.BagToAdd(
-            self._get_timestamped_bag_name(),
+            map_update_bag_name,
             kd.bags.updated(*snn_to_data_bags_updates).merge_fallbacks(),
             # We don't specify fine-grained dependencies. Instead, we always
             # load+use all the update bags, and we rely on the manager's
@@ -680,6 +699,20 @@ class PersistedIncrementalDataSliceManager(
             dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
         )
     ])
+    self._metadata.action_history.append(
+        metadata_pb2.ActionMetadata(
+            timestamp=timestamp.from_current_time(),
+            # TODO: add a user-provided description here
+            added_data_bag_name=[added.bag_name for added in data_bags_to_add],
+            added_schema_bag_name=[new_schema_bag_name],
+            added_snn_to_data_bags_update_bag_name=[map_update_bag_name],
+            attribute_update=metadata_pb2.AttributeUpdateAction(
+                at_path=at_path.to_string(),
+                attr_name=attr_name,
+            ),
+        )
+    )
+    _persist_metadata(self._fs, self._persistence_dir, self._metadata)
 
   def branch(
       self,
@@ -732,9 +765,6 @@ class PersistedIncrementalDataSliceManager(
             output_dir
         ),
     )
-    # For now, the branch metadata is the same as the metadata of `self`:
-    branch_metadata = self._metadata
-    _persist_metadata(branch_fs, output_dir, branch_metadata)
 
     # Create branches of the various bag managers with all their bags.
     self._schema_bag_manager.create_branch(
@@ -755,6 +785,33 @@ class PersistedIncrementalDataSliceManager(
         output_dir=os.path.join(output_dir, 'data_bags'),
         fs=branch_fs,
     )
+
+    branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
+        version='1.0.0',
+        action_history=[
+            metadata_pb2.ActionMetadata(
+                timestamp=timestamp.from_current_time(),
+                # TODO: add a user-provided description here
+                added_data_bag_name=sorted(
+                    self._data_bag_manager.get_available_bag_names()
+                ),
+                added_schema_bag_name=sorted(
+                    self._schema_bag_manager.get_available_bag_names()
+                ),
+                added_snn_to_data_bags_update_bag_name=sorted(
+                    self._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+                ),
+                branch=metadata_pb2.BranchAction(
+                    parent_persistence_directory=self._persistence_dir,
+                    parent_action_history_index=len(
+                        self._metadata.action_history
+                    )
+                    - 1,
+                ),
+            )
+        ],
+    )
+    _persist_metadata(branch_fs, output_dir, branch_metadata)
 
     return PersistedIncrementalDataSliceManager(output_dir, fs=branch_fs)
 

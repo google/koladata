@@ -61,6 +61,7 @@ py_library(
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 
@@ -73,6 +74,7 @@ py_test(
         ":fs_implementation",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
+        ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":schema_helper",
         ":simple_in_memory_data_slice_manager",
         ":test_only_schema_node_name_helper",
@@ -86,6 +88,7 @@ py_test(
 proto_library(
     name = "persisted_incremental_data_slice_manager_metadata_proto",
     srcs = ["persisted_incremental_data_slice_manager_metadata.proto"],
+    deps = ["@com_google_protobuf//:timestamp_proto"],
 )
 
 py_proto_library(

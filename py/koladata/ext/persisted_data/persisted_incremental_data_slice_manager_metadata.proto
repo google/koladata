@@ -16,7 +16,65 @@ edition = "2023";
 
 package koladata.ext.persisted_data;
 
+import "google/protobuf/timestamp.proto";
+
 message PersistedIncrementalDataSliceManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
+
+  // Metadata about the actions that were applied to the manager. The order here
+  // reflects the chronological order in which the actions were applied. Only
+  // actions with side-effects on the persisted representation are recorded
+  // here.
+  repeated ActionMetadata action_history = 2;
+}
+
+message ActionMetadata {
+  // The UTC timestamp of the action.
+  google.protobuf.Timestamp timestamp = 1;
+
+  // A description of the action. Optional. Typically provided by the user,
+  // although some modifications may have descriptions that are programmatically
+  // generated.
+  string description = 2;
+
+  // The names of the data bags that were added to the various bag managers as a
+  // result of the action. These fields should be understood as sets; the order
+  // of the elements does not have any significance. It is the responsibility of
+  // each bag manager to remember the order in which the bags were added.
+  repeated string added_data_bag_name = 3;
+  repeated string added_schema_bag_name = 4;
+  repeated string added_snn_to_data_bags_update_bag_name = 5;
+
+  // More information about the specific kind of action.
+  oneof action_kind {
+    CreationAction creation = 6;
+    AttributeUpdateAction attribute_update = 7;
+    BranchAction branch = 8;
+  }
+}
+
+message CreationAction {}
+
+message AttributeUpdateAction {
+  // The data slice path at which the attribute was updated. Produced by
+  // DataSlicePath.to_string(). Example: ".query[:]"
+  string at_path = 1;
+
+  // The name of the attribute that was updated.
+  // Example: for at_path = ".query[:]", attr_name = "query_text" or attr_name =
+  // "doc". Since the attribute value can contain entities with attributes of
+  // their own, the update can affect more attributes than just attr_name, which
+  // simply records the attr_name argument of the update call.
+  string attr_name = 2;
+}
+
+message BranchAction {
+  // The persistence directory from which the branch was created. It is an
+  // absolute path.
+  string parent_persistence_directory = 1;
+
+  // The index of the action in the parent manager's action_history on top of
+  // which the branch was created.
+  int32 parent_action_history_index = 2;
 }
