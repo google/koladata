@@ -27,6 +27,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops {
@@ -89,6 +90,12 @@ struct IntegerArgs {
 };
 
 #undef KD_RETURN_AS_IS_IF_ERROR
+
+// Output type deduction policy for BinaryOpEval which always returns a fixed
+// type regardless of input types.
+constexpr auto BinaryOpReturns(schema::DType t) {
+  return [t](schema::DType t1, schema::DType t2) -> schema::DType { return t; };
+}
 
 // Verifies that DataItem is compatible with type T. I.e. contains T or missing.
 template <class T>

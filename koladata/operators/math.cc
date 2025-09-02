@@ -76,8 +76,7 @@ struct AddableArgs {
 
 #undef KD_RETURN_AS_IS_IF_ERROR
 
-absl::StatusOr<schema::DType> ReturnFloatForInts(schema::DType t1,
-                                                 schema::DType t2) {
+schema::DType ReturnFloatForInts(schema::DType t1, schema::DType t2) {
   if (t1 == schema::kInt32 || t1 == schema::kInt64) t1 = schema::kFloat32;
   if (t2 == schema::kInt32 || t2 == schema::kInt64) t2 = schema::kFloat32;
   if (t1 == schema::kObject || t2 == schema::kNone) {

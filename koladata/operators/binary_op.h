@@ -87,6 +87,15 @@ using common_type_t =
 // `common_type_t` reimplements casting rules defined in
 // `schema_internal::GetDTypeLattice`. GetDTypeLattice can't be used here
 // directly because we need type deduction in compile time.
+//
+// `CastingAdapter<Fn>{}(arolla::meta::type<T1>, arolla::meta::type<T2>,
+//                       view_type_t<T1>, view_type_t<T2>)`
+// either calls the corresponding overload on `Fn` or fallbacks to
+// `CastingAdapter<Fn>{}(view_type_t<T1>, view_type_t<T2>)`.
+// Passing `meta::type<>` is needed to allow having different behavior for types
+// with the same view_type_t. Currently the only such case is arolla::Bytes and
+// arolla::Text which both have view type absl::string_view.
+//
 // TODO: try to reuse GetDTypeLattice.
 template <class Fn>
 struct CastingAdapter {
@@ -104,6 +113,20 @@ struct CastingAdapter {
     } else {
       using CommonT = common_type_t<T1, T2>;
       return Fn{}(CommonT(v1), CommonT(v2));
+    }
+  }
+
+  template <class T1, class T2>
+  auto operator()(arolla::meta::type<T1>, arolla::meta::type<T2>,
+                  arolla::view_type_t<T1> v1, arolla::view_type_t<T2> v2)
+    requires(is_invocable_v<T1, T2>)
+  {
+    if constexpr (std::is_invocable_v<
+                      Fn, arolla::meta::type<T1>, arolla::meta::type<T2>,
+                      arolla::view_type_t<T1>, arolla::view_type_t<T2>>) {
+      return Fn{}(arolla::meta::type<T1>{}, arolla::meta::type<T2>{}, v1, v2);
+    } else {
+      return (*this)(v1, v2);
     }
   }
 };
@@ -168,12 +191,14 @@ absl::StatusOr<internal::DataSliceImpl> EvalSliceScalar(
   std::conditional_t<HasStatus, absl::StatusOr<ArrayOutT>, ArrayOutT> res;
   if (swap_args) {
     auto fn = [&](arolla::view_type_t<T1> varr) {
-      return CastingAdapter<Fn>{}(val, varr);
+      return CastingAdapter<Fn>{}(arolla::meta::type<T2>{},
+                                  arolla::meta::type<T1>{}, val, varr);
     };
     res = arolla::CreateDenseOp<flags, decltype(fn), OutT>(fn)(arr);
   } else {
     auto fn = [&](arolla::view_type_t<T1> varr) {
-      return CastingAdapter<Fn>{}(varr, val);
+      return CastingAdapter<Fn>{}(arolla::meta::type<T1>{},
+                                  arolla::meta::type<T2>{}, varr, val);
     };
     res = arolla::CreateDenseOp<flags, decltype(fn), OutT>(fn)(arr);
   }
@@ -197,9 +222,13 @@ class FnWithExpandAccumulator final
 
   void Add(arolla::view_type_t<ChildT> cval) final {
     if constexpr (SwapArgs) {
-      ConsumeResult(CastingAdapter<Fn>{}(cval, pval_));
+      ConsumeResult(CastingAdapter<Fn>{}(arolla::meta::type<ChildT>{},
+                                         arolla::meta::type<ParentT>{}, cval,
+                                         pval_));
     } else {
-      ConsumeResult(CastingAdapter<Fn>{}(pval_, cval));
+      ConsumeResult(CastingAdapter<Fn>{}(arolla::meta::type<ParentT>{},
+                                         arolla::meta::type<ChildT>{}, pval_,
+                                         cval));
     }
   }
 
@@ -267,7 +296,8 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
                                ? arolla::DenseOpFlags::kRunOnMissing
                                : 0);
     auto fn = [](arolla::view_type_t<T1> v1, arolla::view_type_t<T2> v2) {
-      return CastingAdapter<Fn>{}(v1, v2);
+      return CastingAdapter<Fn>{}(arolla::meta::type<T1>{},
+                                  arolla::meta::type<T2>{}, v1, v2);
     };
     ASSIGN_OR_RETURN(
         res_arr,
@@ -291,8 +321,8 @@ absl::StatusOr<internal::DataSliceImpl> EvalSlice(const DataSlice& in1,
 
 // ObjectOrNoneHandler is used to deduce output type if one of input types
 // is either schema::kObject or schema::kNone.
-inline absl::StatusOr<schema::DType> DefaultObjectOrNoneHandler(
-    schema::DType t1, schema::DType t2) {
+inline schema::DType DefaultObjectOrNoneHandler(schema::DType t1,
+                                                schema::DType t2) {
   if (t1 == schema::kObject || t2 == schema::kNone) {
     return t1;
   } else {
@@ -347,8 +377,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
   if (schema_type1 == schema::kNone || schema_type1 == schema::kObject ||
       schema_type2 == schema::kNone || schema_type2 == schema::kObject) {
     RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
-    ASSIGN_OR_RETURN(output_dtype,
-                     object_or_none_handler(schema_type1, schema_type2));
+    output_dtype = object_or_none_handler(schema_type1, schema_type2);
 
     if (schema_type1 == schema::kObject) {
       type1 = in1.dtype();

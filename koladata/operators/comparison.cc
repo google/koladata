@@ -33,6 +33,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
 #include "koladata/operators/binary_op.h"
+#include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -72,33 +73,26 @@ struct CanBeOrdered {
 
 #undef KD_RETURN_AS_IS_IF_ERROR
 
-absl::StatusOr<schema::DType> ReturnsMask(schema::DType t1, schema::DType t2) {
-  if (t1 == schema::kExpr || t2 == schema::kExpr) {
-    return absl::InvalidArgumentError("EXPR is not comparable");
-  }
-  return schema::kMask;
-}
-
 }  // namespace
 
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y) {
   return BinaryOpEval<arolla::MaskLessOp>(x, y, CanBeOrdered("x", "y"),
-                                          ReturnsMask);
+                                          BinaryOpReturns(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y) {
   return BinaryOpEval<arolla::MaskLessOp>(y, x, CanBeOrdered("y", "x"),
-                                          ReturnsMask);
+                                          BinaryOpReturns(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y) {
   return BinaryOpEval<arolla::MaskLessEqualOp>(x, y, CanBeOrdered("x", "y"),
-                                               ReturnsMask);
+                                               BinaryOpReturns(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
   return BinaryOpEval<arolla::MaskLessEqualOp>(y, x, CanBeOrdered("y", "x"),
-                                               ReturnsMask);
+                                               BinaryOpReturns(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {

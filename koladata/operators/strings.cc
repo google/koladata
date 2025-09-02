@@ -15,6 +15,7 @@
 #include "koladata/operators/strings.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,6 +37,8 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
+#include "arolla/qexpr/operators/strings/find.h"
+#include "arolla/qexpr/operators/strings/strings.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -43,6 +46,7 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -52,6 +56,7 @@
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
+#include "koladata/operators/binary_op.h"
 #include "koladata/operators/unary_op.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
@@ -199,6 +204,95 @@ struct EncodeBase64Op {
   };
 };
 
+struct ConsistentStringOrBytes {
+  template <class T1, class T2>
+  constexpr static bool kIsInvocable =
+      (std::is_same_v<T1, arolla::Text> && std::is_same_v<T2, arolla::Text>) ||
+      (std::is_same_v<T1, arolla::Bytes> && std::is_same_v<T2, arolla::Bytes>);
+
+  explicit constexpr ConsistentStringOrBytes(absl::string_view name1,
+                                             absl::string_view name2)
+      : name1(name1), name2(name2) {}
+
+  absl::Status CheckArgs(const DataSlice& ds1, const DataSlice& ds2) const {
+    return ExpectConsistentStringOrBytes({name1, name2}, ds1, ds2);
+  }
+
+  const absl::string_view name1;
+  const absl::string_view name2;
+};
+
+struct StringOrBytesArg {
+  template <class T>
+  constexpr static bool kIsInvocable =
+      std::is_same_v<T, arolla::Text> || std::is_same_v<T, arolla::Bytes>;
+
+  explicit constexpr StringOrBytesArg(absl::string_view name) : name(name) {}
+
+  absl::Status CheckArgs(const DataSlice& ds) const {
+    return ExpectConsistentStringOrBytes({name}, ds);
+  }
+
+  const absl::string_view name;
+};
+
+struct StringArg {
+  template <class T>
+  constexpr static bool kIsInvocable = std::is_same_v<T, arolla::Text>;
+
+  explicit constexpr StringArg(absl::string_view name) : name(name) {}
+
+  absl::Status CheckArgs(const DataSlice& ds) const {
+    return ExpectString(name, ds);
+  }
+
+  const absl::string_view name;
+};
+
+struct OccurrenceCountOp {
+  int64_t operator()(arolla::meta::type<arolla::Bytes>,
+                     arolla::meta::type<arolla::Bytes>, absl::string_view str,
+                     absl::string_view substr) const {
+    return arolla::BytesSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  int64_t operator()(arolla::meta::type<arolla::Text>,
+                     arolla::meta::type<arolla::Text>, absl::string_view str,
+                     absl::string_view substr) const {
+    return arolla::TextSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  int64_t operator()(const arolla::Bytes& str,
+                     const arolla::Bytes& substr) const {
+    return arolla::BytesSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  int64_t operator()(const arolla::Text& str,
+                     const arolla::Text& substr) const {
+    return arolla::TextSubstringOccurrenceCountOp{}(str, substr);
+  }
+};
+
+struct LengthOp {
+  int64_t operator()(arolla::meta::type<arolla::Bytes>,
+                     absl::string_view s) const {
+    return s.length();
+  }
+
+  int64_t operator()(const arolla::Bytes& bytes) const {
+    return bytes.length();
+  }
+
+  int64_t operator()(arolla::meta::type<arolla::Text>,
+                     absl::string_view s) const {
+    return arolla::TextLengthOp{}(s);
+  }
+
+  int64_t operator()(const arolla::Text& text) const {
+    return arolla::TextLengthOp{}(text);
+  }
+};
+
 }  // namespace
 
 absl::StatusOr<arolla::OperatorPtr> FormatOperatorFamily::DoGetOperator(
@@ -222,16 +316,15 @@ absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep) {
 
 absl::StatusOr<DataSlice> Contains(const DataSlice& x,
                                    const DataSlice& substr) {
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr));
-  return SimplePointwiseEval(
-      "strings.contains", {x, substr},
-      /*output_schema=*/internal::DataItem(schema::kMask));
+  return BinaryOpEval<arolla::ContainsOp>(
+      x, substr, ConsistentStringOrBytes("x", "substr"),
+      BinaryOpReturns(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"x", "substr"}, x, substr));
-  return SimplePointwiseEval("strings.count", {x, substr},
-                             internal::DataItem(schema::kInt64));
+  return BinaryOpEval<OccurrenceCountOp>(x, substr,
+                                         ConsistentStringOrBytes("x", "substr"),
+                                         BinaryOpReturns(schema::kInt64));
 }
 
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
@@ -307,19 +400,17 @@ absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
 }
 
 absl::StatusOr<DataSlice> Length(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("x", x));
-  return SimplePointwiseEval("strings.length", {x},
-                             internal::DataItem(schema::kInt64));
+  return UnaryOpEval<LengthOp>(x, StringOrBytesArg("x"), schema::kInt64);
 }
 
 absl::StatusOr<DataSlice> Lower(const DataSlice& x) {
   // TODO: Add support for BYTES.
-  RETURN_IF_ERROR(ExpectString("x", x));
-  return SimplePointwiseEval("strings.lower", {x},
-                             internal::DataItem(schema::kString));
+  return UnaryOpEval<arolla::LowerOp>(x, StringArg("x"), schema::kString);
 }
 
 absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars) {
+  // Note: can't use BinaryOpEval because result can be present even if `chars`
+  // is missing.
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars));
   return SimplePointwiseEval("strings.lstrip", {s, chars});
 }
@@ -409,6 +500,8 @@ absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
 }
 
 absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars) {
+  // Note: can't use BinaryOpEval because result can be present even if `chars`
+  // is missing.
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars));
   return SimplePointwiseEval("strings.rstrip", {s, chars});
 }
@@ -457,6 +550,8 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
 }
 
 absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars) {
+  // Note: can't use BinaryOpEval because result can be present even if `chars`
+  // is missing.
   RETURN_IF_ERROR(ExpectConsistentStringOrBytes({"s", "chars"}, s, chars));
   return SimplePointwiseEval("strings.strip", {s, chars});
 }
@@ -474,9 +569,7 @@ absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
 
 absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   // TODO: Add support for BYTES.
-  RETURN_IF_ERROR(ExpectString("x", x));
-  return SimplePointwiseEval("strings.upper", {x},
-                             internal::DataItem(schema::kString));
+  return UnaryOpEval<arolla::UpperOp>(x, StringArg("x"), schema::kString);
 }
 
 }  // namespace koladata::ops

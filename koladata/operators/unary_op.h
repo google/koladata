@@ -26,6 +26,7 @@
 #include "arolla/qexpr/operators/dense_array/lifter.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "arolla/util/view_types.h"
 #include "koladata/data_slice.h"
@@ -82,7 +83,14 @@ absl::StatusOr<DataSlice> EvalSlice(const DataSlice& in,
       arolla::DenseOpFlags::kNoBitmapOffset |
       (arolla::IsRunOnMissingOp<Fn>::value ? arolla::DenseOpFlags::kRunOnMissing
                                            : 0);
-  auto fn = [](arolla::view_type_t<T> v) { return Fn{}(v); };
+  auto fn = [](arolla::view_type_t<T> v) {
+    if constexpr (std::is_invocable_v<Fn, arolla::meta::type<T>,
+                                      arolla::view_type_t<T>>) {
+      return Fn{}(arolla::meta::type<T>{}, v);
+    } else {
+      return Fn{}(v);
+    }
+  };
   auto r =
       arolla::CreateDenseOp<flags, decltype(fn), OutT>(fn)(slice.values<T>());
   if constexpr (arolla::IsStatusOrT<decltype(r)>::value) {

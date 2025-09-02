@@ -199,6 +199,7 @@ cc_library(
         "@com_google_arolla//arolla/qexpr/operators/core:lib",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/qexpr/operators/math:lib",
+        "@com_google_arolla//arolla/qexpr/operators/strings:lib",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/qtype/standard_type_properties",
         "@com_google_arolla//arolla/serving",
