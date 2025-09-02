@@ -116,13 +116,7 @@ def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   return wrap(objects.Object(), extension_qtype)
 
 
-def dynamic_cast(
-    value: arolla.QValue | arolla.Expr, qtype: arolla.QType
-) -> arolla.AnyQValue | arolla.Expr:
+def dynamic_cast(value: arolla.QValue, qtype: arolla.QType) -> arolla.AnyQValue:
   """Up-, down-, and side-casts `value` to `qtype`."""
   dc = arolla.abc.lookup_operator('kd.extension_types.dynamic_cast')
-  # TODO: Base decision on is_tracing_mode() instead.
-  if isinstance(value, arolla.Expr):
-    return dc(value, qtype)
-  else:
-    return arolla.eval(dc(arolla.L.x, qtype), x=value)
+  return arolla.eval(dc(arolla.L.x, qtype), x=value)

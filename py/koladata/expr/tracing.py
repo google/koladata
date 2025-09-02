@@ -101,7 +101,9 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
     arg_value = I[param.name]
     if extension_type_registry.is_koda_extension_type(param.annotation):
       ext_qtype = extension_type_registry.get_extension_qtype(param.annotation)
-      arg_value = extension_type_registry.dynamic_cast(arg_value, ext_qtype)
+      arg_value = arolla.abc.aux_bind_op(
+          'kd.extension_types.dynamic_cast', arg_value, ext_qtype
+      )
     return arg_value
 
   try:

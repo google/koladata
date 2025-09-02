@@ -96,6 +96,7 @@ def _make_virtual_method(
     self_annotation: The type of `self`.
   """
   sig = inspect.signature(method, eval_str=True)
+  self_qtype = extension_type_registry.get_extension_qtype(self_annotation)
   output_qtype = None
   return_type_as = None
   if sig.return_annotation is not inspect.Parameter.empty:
@@ -110,17 +111,15 @@ def _make_virtual_method(
   # NOTE: We do not trace here, since we have yet to register an expr view.
   @functools.wraps(method)
   def functor_impl(self, *args, **kwargs):
-    res = method(self, *args, **kwargs)
+    # Cast to self in order to downcast from a parent type.
+    self_casted = arolla.abc.aux_bind_op(
+        'kd.extension_types.dynamic_cast', self, self_qtype
+    )
+    res = method(self_casted, *args, **kwargs)
     if output_qtype is not None:
       return M.derived_qtype.upcast(M.qtype.qtype_of(res), res)
     else:
       return res
-
-  # Mark `self` as an extension type, allowing it to be upcasted / downcasted
-  # using the existing casting support in `kd.fn`.
-  annotations = functor_impl.__annotations__  # pytype: disable=attribute-error
-  annotations['self'] = self_annotation
-  functor_impl.__annotations__ = annotations
 
   @functools.wraps(method)
   def method_impl(self, *args, **kwargs):

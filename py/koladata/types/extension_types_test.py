@@ -25,6 +25,7 @@ from koladata.expr import introspection
 from koladata.expr import view
 from koladata.functions import functions as _
 from koladata.functor import functor_factories
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
@@ -39,6 +40,7 @@ from koladata.types import schema_constants
 M = arolla.M | derived_qtype.M
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     extension_type_registry.BASE_QTYPE, '_MyTestExtension'
@@ -474,7 +476,7 @@ class ExtensionTypesTest(parameterized.TestCase):
         MyChildExtension
     )
     with self.subTest('cast_to_self'):
-      expr = extension_type_registry.dynamic_cast(
+      expr = kde.extension_types.dynamic_cast(
           MyExtension(I.x), my_extension_qtype
       )
       self.assertIsInstance(expr, arolla.Expr)
@@ -487,7 +489,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       )
 
     with self.subTest('cast_to_parent'):
-      expr = extension_type_registry.dynamic_cast(
+      expr = kde.extension_types.dynamic_cast(
           MyChildExtension(I.x, I.y), my_extension_qtype
       )
       self.assertIsInstance(expr, arolla.Expr)
@@ -505,10 +507,10 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('cast_to_child'):
       # We can cast back to the child type again.
-      expr = extension_type_registry.dynamic_cast(
+      expr = kde.extension_types.dynamic_cast(
           MyChildExtension(I.x, I.y), my_extension_qtype
       )
-      expr = extension_type_registry.dynamic_cast(
+      expr = kde.extension_types.dynamic_cast(
           expr, my_child_extension_qtype
       )
       self.assertIsInstance(expr, arolla.Expr)
@@ -604,7 +606,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_cast_to_parent'):
       b = B(I.x, I.y)
-      a = extension_type_registry.dynamic_cast(
+      a = kde.extension_types.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(18.0))
@@ -618,7 +620,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_cast_chained_override'):
       c = C(I.x, I.y)
-      a = extension_type_registry.dynamic_cast(
+      a = kde.extension_types.dynamic_cast(
           c, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(-1.0))
@@ -764,7 +766,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_casting'):
       b = B(I.x, I.y, I.z)
-      a = extension_type_registry.dynamic_cast(
+      a = kde.extension_types.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(
@@ -772,7 +774,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           extension_type_registry.get_extension_qtype(A),
       )
       testing.assert_equal(
-          extension_type_registry.dynamic_cast(
+          kde.extension_types.dynamic_cast(
               a.fn(), extension_type_registry.get_extension_qtype(B)
           ).eval(x=1, y=2, z=3),
           B(1, 2, 3),

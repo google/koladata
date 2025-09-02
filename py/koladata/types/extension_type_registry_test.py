@@ -18,7 +18,6 @@ from absl.testing import parameterized
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.functions import functions as _
 from koladata.testing import testing
@@ -210,7 +209,8 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
       extension_type_registry.get_dummy_value(MyExtensionType)
 
   def test_dynamic_cast(self):
-    # NOTE: This is more thoroughly tested in extension_types_test.py.
+    # NOTE: This is more thoroughly tested in extension_types_test.py and
+    # operators/tests/extension_types_dynamic_cast_test.py.
     class A:
       pass
 
@@ -230,23 +230,8 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     a = extension_type_registry.wrap(obj, a_type)
     b = extension_type_registry.wrap(obj, b_type)
 
-    with self.subTest('eager'):
-      testing.assert_equal(extension_type_registry.dynamic_cast(a, b_type), b)
-      testing.assert_equal(extension_type_registry.dynamic_cast(b, a_type), a)
-
-    with self.subTest('lazy'):
-      testing.assert_equal(
-          expr_eval.eval(
-              extension_type_registry.dynamic_cast(I.a, b_type), a=a
-          ),
-          b,
-      )
-      testing.assert_equal(
-          expr_eval.eval(
-              extension_type_registry.dynamic_cast(I.b, a_type), b=b
-          ),
-          a,
-      )
+    testing.assert_equal(extension_type_registry.dynamic_cast(a, b_type), b)
+    testing.assert_equal(extension_type_registry.dynamic_cast(b, a_type), a)
 
 
 if __name__ == '__main__':
