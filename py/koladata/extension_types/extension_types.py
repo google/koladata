@@ -271,7 +271,7 @@ def _raise_new(cls, *args, **kwargs):
   )
 
 
-# TODO: Move this to kd.extensions.with_attrs instead.
+# TODO: Implement kd.extension_types.make.
 def _make_extension_expr(
     attrs: Mapping[str, Any],
     field_annotations: Mapping[str, Any],
@@ -299,6 +299,20 @@ def _make_extension_qvalue(
   return extension_type_registry.wrap(
       objects.Object(prototype, **attrs), extension_qtype
   )
+
+
+def _with_attrs_expr(ext, attrs, field_annotations):
+  attrs = {
+      k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
+  }
+  return arolla.abc.aux_bind_op('kd.extension_types.with_attrs', ext, **attrs)
+
+
+def _with_attrs_qvalue(ext, attrs, field_annotations):
+  attrs = {
+      k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
+  }
+  return arolla.abc.aux_eval_op('kd.extension_types.with_attrs', ext, **attrs)
 
 
 def extension_type(
@@ -435,13 +449,8 @@ def extension_type(
     qvalue_class_attrs |= class_meta.non_virtual_methods
     for name, virtual_method in virtual_methods.items():
       qvalue_class_attrs[name] = virtual_method.method
-    qvalue_class_attrs['with_attrs'] = (
-        lambda self, **attrs: _make_extension_qvalue(
-            attrs,
-            class_meta.field_annotations,
-            extension_qtype,
-            arolla.abc.aux_eval_op('kd.extension_types.unwrap', self),
-        )
+    qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_qvalue(
+        self, attrs, class_meta.field_annotations
     )
     qvalue_class = type(
         f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
@@ -452,6 +461,7 @@ def extension_type(
     # ExprView construction.
     expr_view_class_attrs = {}
     for name, qtype in class_meta.field_qtypes.items():
+      # TODO: Add kd.extension_types.get_attr.
       expr_view_class_attrs[name] = property(
           lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
               arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
@@ -468,11 +478,8 @@ def extension_type(
     for name, virtual_method in virtual_methods.items():
       expr_view_class_attrs[name] = virtual_method.method
     expr_view_class_attrs['with_attrs'] = (
-        lambda self, **attrs: _make_extension_expr(
-            attrs,
-            class_meta.field_annotations,
-            extension_qtype,
-            arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
+        lambda self, **attrs: _with_attrs_expr(
+            self, attrs, class_meta.field_annotations
         )
     )
 

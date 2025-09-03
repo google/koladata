@@ -22,7 +22,7 @@ from koladata.operators import optools
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M
+M = arolla.M | derived_qtype.M | objects.M
 P = arolla.P
 INT64 = schema_constants.INT64
 constraints = arolla.optools.constraints
@@ -74,3 +74,11 @@ def unwrap(ext):
 def dynamic_cast(ext, qtype):
   """Up-, down-, and side-casts `value` to `qtype`."""
   return wrap(unwrap(ext), qtype)
+
+
+@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.as_lambda_operator('kd.extension_types.with_attrs')
+def with_attrs(ext, **attrs):
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  obj = M.objects.make_object(unwrap(ext), attrs)
+  return wrap(obj, M.qtype.qtype_of(ext))

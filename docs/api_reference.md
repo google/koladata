@@ -2048,6 +2048,9 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as virtual, allowing it to be overridden.</code></pre>
 
+### `kd.extension_types.with_attrs(ext, **attrs)` {#kd.extension_types.with_attrs}
+*No description*
+
 ### `kd.extension_types.wrap(x, qtype)` {#kd.extension_types.wrap}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
