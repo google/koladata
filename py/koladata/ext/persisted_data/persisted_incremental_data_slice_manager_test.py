@@ -3703,9 +3703,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_seconds(1756729753),
             description='Initial state',
-            added_data_bag_name=[''],
-            added_schema_bag_name=[''],
-            added_snn_to_data_bags_update_bag_name=[''],
+            added_data_bag_names=[''],
+            added_schema_bag_names=[''],
+            added_snn_to_data_bags_update_bag_names=[''],
             creation=metadata_pb2.CreationAction(),
         ),
     )
@@ -3742,13 +3742,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_seconds(1756729754),
             description='Added queries with only query_id populated',
-            added_data_bag_name=sorted(
+            added_data_bag_names=sorted(
                 manager._data_bag_manager.get_available_bag_names() - {''}
             ),
-            added_schema_bag_name=sorted(
+            added_schema_bag_names=sorted(
                 manager._schema_bag_manager.get_available_bag_names() - {''}
             ),
-            added_snn_to_data_bags_update_bag_name=sorted(
+            added_snn_to_data_bags_update_bag_names=sorted(
                 manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
                 - {''}
             ),
@@ -3785,13 +3785,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_seconds(1756729755),
             description='Branched queries with query_id',
-            added_data_bag_name=sorted(
+            added_data_bag_names=sorted(
                 manager._data_bag_manager.get_available_bag_names()
             ),
-            added_schema_bag_name=sorted(
+            added_schema_bag_names=sorted(
                 manager._schema_bag_manager.get_available_bag_names()
             ),
-            added_snn_to_data_bags_update_bag_name=sorted(
+            added_snn_to_data_bags_update_bag_names=sorted(
                 manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
             ),
             branch=metadata_pb2.BranchAction(
@@ -3834,15 +3834,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_seconds(1756729756),
             description='Added query_text to queries',
-            added_data_bag_name=sorted(
+            added_data_bag_names=sorted(
                 branch_manager._data_bag_manager.get_available_bag_names()
                 - manager._data_bag_manager.get_available_bag_names()
             ),
-            added_schema_bag_name=sorted(
+            added_schema_bag_names=sorted(
                 branch_manager._schema_bag_manager.get_available_bag_names()
                 - manager._schema_bag_manager.get_available_bag_names()
             ),
-            added_snn_to_data_bags_update_bag_name=sorted(
+            added_snn_to_data_bags_update_bag_names=sorted(
                 branch_manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
                 - manager._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
             ),

@@ -42,9 +42,9 @@ message ActionMetadata {
   // result of the action. These fields should be understood as sets; the order
   // of the elements does not have any significance. It is the responsibility of
   // each bag manager to remember the order in which the bags were added.
-  repeated string added_data_bag_name = 3;
-  repeated string added_schema_bag_name = 4;
-  repeated string added_snn_to_data_bags_update_bag_name = 5;
+  repeated string added_data_bag_names = 3;
+  repeated string added_schema_bag_names = 4;
+  repeated string added_snn_to_data_bags_update_bag_names = 5;
 
   // More information about the specific kind of action.
   oneof action_kind {

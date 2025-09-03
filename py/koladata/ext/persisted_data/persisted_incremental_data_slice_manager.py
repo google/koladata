@@ -210,13 +210,13 @@ class PersistedIncrementalDataSliceManager(
               metadata_pb2.ActionMetadata(
                   timestamp=timestamp.from_current_time(),
                   description=description,
-                  added_data_bag_name=sorted(
+                  added_data_bag_names=sorted(
                       self._data_bag_manager.get_available_bag_names()
                   ),
-                  added_schema_bag_name=sorted(
+                  added_schema_bag_names=sorted(
                       self._schema_bag_manager.get_available_bag_names()
                   ),
-                  added_snn_to_data_bags_update_bag_name=sorted(
+                  added_snn_to_data_bags_update_bag_names=sorted(
                       self._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
                   ),
                   creation=metadata_pb2.CreationAction(),
@@ -823,9 +823,9 @@ class PersistedIncrementalDataSliceManager(
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_current_time(),
             description=description,
-            added_data_bag_name=[added.bag_name for added in data_bags_to_add],
-            added_schema_bag_name=[new_schema_bag_name],
-            added_snn_to_data_bags_update_bag_name=[map_update_bag_name],
+            added_data_bag_names=[added.bag_name for added in data_bags_to_add],
+            added_schema_bag_names=[new_schema_bag_name],
+            added_snn_to_data_bags_update_bag_names=[map_update_bag_name],
             attribute_update=metadata_pb2.AttributeUpdateAction(
                 at_path=at_path.to_string(),
                 attr_name=attr_name,
@@ -928,10 +928,10 @@ class PersistedIncrementalDataSliceManager(
     snn_to_data_bags_update_bag_names = set()
     for index in range(action_history_index + 1):
       action = self._metadata.action_history[index]
-      data_bag_names.update(action.added_data_bag_name)
-      schema_bag_names.update(action.added_schema_bag_name)
+      data_bag_names.update(action.added_data_bag_names)
+      schema_bag_names.update(action.added_schema_bag_names)
       snn_to_data_bags_update_bag_names.update(
-          action.added_snn_to_data_bags_update_bag_name
+          action.added_snn_to_data_bags_update_bag_names
       )
 
     self._data_bag_manager.create_branch(
@@ -956,13 +956,9 @@ class PersistedIncrementalDataSliceManager(
             metadata_pb2.ActionMetadata(
                 timestamp=timestamp.from_current_time(),
                 description=description,
-                added_data_bag_name=sorted(
-                    data_bag_names
-                ),
-                added_schema_bag_name=sorted(
-                    schema_bag_names
-                ),
-                added_snn_to_data_bags_update_bag_name=sorted(
+                added_data_bag_names=sorted(data_bag_names),
+                added_schema_bag_names=sorted(schema_bag_names),
+                added_snn_to_data_bags_update_bag_names=sorted(
                     snn_to_data_bags_update_bag_names
                 ),
                 branch=metadata_pb2.BranchAction(
