@@ -1105,7 +1105,7 @@ Args:
   x: Entity for which the attributes update is being created.
   **attrs: attrs to set in the update.</code></pre>
 
-### `kd.core.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.core.stub}
+### `kd.core.stub(x, attrs=DataSlice([], schema: NONE))` {#kd.core.stub}
 Aliases:
 
 - [kd.stub](#kd.stub)
@@ -3144,7 +3144,7 @@ JSON serialization operators.
 
 **Operators**
 
-### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
+### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
 Aliases:
 
 - [kd.from_json](#kd.from_json)
@@ -6714,12 +6714,34 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `kd.slices.get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25)` {#kd.slices.get_repr}
+### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False)` {#kd.slices.get_repr}
 Aliases:
 
 - [kd.get_repr](#kd.get_repr)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a string representation of the DataSlice `x`.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a string representation of the DataSlice `x`.
+
+Args:
+  x: DataSlice to represent.
+  depth: Maximum depth when printing nested DataSlices.
+  item_limit: When it is a DataSlice, it means the maximum number of items to
+    show across all dimensions. When it is a DataItem, it means the maximum
+    number of entity/object attributes, list items, or dict key/value pairs to
+    show. Must be non-negative, or an error will be raised.
+  item_limit_per_dimension: The maximum number of items to show per dimension
+    in a DataSlice. It is only enforced when the size of DataSlice is larger
+    than `item_limit`. Must be non-negative, or an error will be raised.
+  format_html: When true, attributes and object ids are wrapped in HTML tags
+    to make it possible to style with CSS and interpret interactions with JS.
+  max_str_len: Maximum length of repr string to show for text and
+    bytes if non negative.
+  show_attributes: When true, show the attributes of the entity/object in non
+    DataItem DataSlice.
+  show_databag_id: When true, the repr will show the databag id.
+  show_shape: When true, the repr will show the shape.
+  show_schema: When true, the repr will show the schema.
+Returns:
+  A string representation of the DataSlice `x`.</code></pre>
 
 ### `kd.slices.group_by(x, *args, sort=False)` {#kd.slices.group_by}
 Aliases:
@@ -9510,7 +9532,7 @@ Alias for [kd.core.freeze](#kd.core.freeze) operator.
 
 Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
-### `kd.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.from_json}
+### `kd.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.from_json}
 
 Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
@@ -9693,7 +9715,7 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
 
-### `kd.get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25)` {#kd.get_repr}
+### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False)` {#kd.get_repr}
 
 Alias for [kd.slices.get_repr](#kd.slices.get_repr) operator.
 
@@ -10392,7 +10414,7 @@ Alias for [kd.core.strict_attrs](#kd.core.strict_attrs) operator.
 
 Alias for [kd.core.strict_with_attrs](#kd.core.strict_with_attrs) operator.
 
-### `kd.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.stub}
+### `kd.stub(x, attrs=DataSlice([], schema: NONE))` {#kd.stub}
 
 Alias for [kd.core.stub](#kd.core.stub) operator.
 
@@ -12059,7 +12081,7 @@ Args:
   x: Entity for which the attributes update is being created.
   **attrs: attrs to set in the update.</code></pre>
 
-### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataSlice.stub}
+### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE))` {#DataSlice.stub}
 Aliases:
 
 - [DataItem.stub](#DataItem.stub)
@@ -13199,7 +13221,7 @@ Alias for [DataSlice.shallow_clone](#DataSlice.shallow_clone) operator.
 
 Alias for [DataSlice.strict_with_attrs](#DataSlice.strict_with_attrs) operator.
 
-### `DataItem.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataItem.stub}
+### `DataItem.stub(self, attrs=DataSlice([], schema: NONE))` {#DataItem.stub}
 
 Alias for [DataSlice.stub](#DataSlice.stub) operator.
 

@@ -496,52 +496,51 @@ class DataSliceTest(parameterized.TestCase):
       (
           'int32',
           ds([1, 2]),
-          'DataSlice([1, 2], schema: INT32, ndims: 1, size: 2)',
+          'DataSlice([1, 2], schema: INT32)',
           '[1, 2]',
       ),
       (
           'int64',
           ds([1, 2], schema_constants.INT64),
-          'DataSlice([1, 2], schema: INT64, ndims: 1, size: 2)',
+          'DataSlice([1, 2], schema: INT64)',
           '[1, 2]',
       ),
       (
           'int64_as_object',
           bag().obj(ds([1, 2], schema_constants.INT64)).no_bag(),
-          'DataSlice([int64{1}, int64{2}], schema: OBJECT, ndims: 1, size: 2)',
+          'DataSlice([int64{1}, int64{2}], schema: OBJECT)',
           '[int64{1}, int64{2}]',
       ),
       (
           'float32',
           ds([1.0, 1.5]),
-          'DataSlice([1.0, 1.5], schema: FLOAT32, ndims: 1, size: 2)',
+          'DataSlice([1.0, 1.5], schema: FLOAT32)',
           '[1.0, 1.5]',
       ),
       (
           'float64',
           ds([1.0, 1.5], schema_constants.FLOAT64),
-          'DataSlice([1.0, 1.5], schema: FLOAT64, ndims: 1, size: 2)',
+          'DataSlice([1.0, 1.5], schema: FLOAT64)',
           '[1.0, 1.5]',
       ),
       (
           'float32_as_object',
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT32)).no_bag(),
-          'DataSlice([1.0, 1.5], schema: OBJECT, ndims: 1, size: 2)',
+          'DataSlice([1.0, 1.5], schema: OBJECT)',
           '[1.0, 1.5]',
       ),
       (
           'float64_as_object',
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_bag(),
           (
-              'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT, ndims:'
-              ' 1, size: 2)'
+              'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT)'
           ),
           '[float64{1.0}, float64{1.5}]',
       ),
       (
           'boolean',
           ds([True, False]),
-          'DataSlice([True, False], schema: BOOLEAN, ndims: 1, size: 2)',
+          'DataSlice([True, False], schema: BOOLEAN)',
           '[True, False]',
       ),
       (
@@ -559,7 +558,7 @@ class DataSliceTest(parameterized.TestCase):
       (
           'mask DataSlice',
           ds([mask_constants.present, mask_constants.missing]),
-          'DataSlice([present, missing], schema: MASK, ndims: 1, size: 2)',
+          'DataSlice([present, missing], schema: MASK)',
           '[present, missing]',
       ),
       (
@@ -567,7 +566,7 @@ class DataSliceTest(parameterized.TestCase):
           ds([mask_constants.present, mask_constants.missing]).with_schema(
               schema_constants.OBJECT
           ),
-          'DataSlice([present, None], schema: OBJECT, ndims: 1, size: 2)',
+          'DataSlice([present, None], schema: OBJECT)',
           '[present, None]',
       ),
       (
@@ -579,19 +578,19 @@ class DataSliceTest(parameterized.TestCase):
       (
           'text list',
           ds(['a', 'b']),
-          "DataSlice(['a', 'b'], schema: STRING, ndims: 1, size: 2)",
+          "DataSlice(['a', 'b'], schema: STRING)",
           "['a', 'b']",
       ),
       (
           'bytes',
           ds([b'a', b'b']),
-          "DataSlice([b'a', b'b'], schema: BYTES, ndims: 1, size: 2)",
+          "DataSlice([b'a', b'b'], schema: BYTES)",
           "[b'a', b'b']",
       ),
       (
           'int32_with_object',
           ds([1, 2]).with_schema(schema_constants.OBJECT),
-          'DataSlice([1, 2], schema: OBJECT, ndims: 1, size: 2)',
+          'DataSlice([1, 2], schema: OBJECT)',
           '[1, 2]',
       ),
       (
@@ -599,34 +598,33 @@ class DataSliceTest(parameterized.TestCase):
           ds([1, 'abc', True, 1.0, arolla.int64(1), arolla.float64(1.0)]),
           (
               "DataSlice([1, 'abc', True, 1.0, int64{1}, float64{1.0}], schema:"
-              ' OBJECT, ndims: 1, size: 6)'
+              ' OBJECT)'
           ),
           "[1, 'abc', True, 1.0, int64{1}, float64{1.0}]",
       ),
       (
           'int32_with_none',
           ds([1, None]),
-          'DataSlice([1, None], schema: INT32, ndims: 1, size: 2)',
+          'DataSlice([1, None], schema: INT32)',
           '[1, None]',
       ),
       (
           'empty',
           ds([], schema_constants.INT64),
-          'DataSlice([], schema: INT64, ndims: 1, size: 0)',
+          'DataSlice([], schema: INT64)',
           '[]',
       ),
       (
           'empty_int64_internal',
           ds(arolla.dense_array_int64([])),
-          'DataSlice([], schema: INT64, ndims: 1, size: 0)',
+          'DataSlice([], schema: INT64)',
           '[]',
       ),
       (
           'multidim',
           ds([[[1], [2]], [[3], [4], [5]]]),
           (
-              'DataSlice([[[1], [2]], [[3], [4], [5]]], schema: INT32, ndims:'
-              ' 3, size: 5)'
+              'DataSlice([[[1], [2]], [[3], [4], [5]]], schema: INT32)'
           ),
           '[[[1], [2]], [[3], [4], [5]]]',
       ),
@@ -635,7 +633,7 @@ class DataSliceTest(parameterized.TestCase):
           ds(['a' * 1000]),
           'DataSlice([\n'
           f"  '{'a' * 128}'...'{'a' * 128}',\n"
-          '], schema: STRING, ndims: 1, size: 1)',
+          '], schema: STRING)',
           f"[\n  '{'a' * 1000}',\n]",  # No truncation.
       ),
       (
@@ -643,7 +641,7 @@ class DataSliceTest(parameterized.TestCase):
           ds([b'a' * 1000]),
           'DataSlice([\n'
           f"  b'{'a' * 128}'...'{'a' * 128}',\n"
-          '], schema: BYTES, ndims: 1, size: 1)',
+          '], schema: BYTES)',
           f"[\n  b'{'a' * 1000}',\n]",  # No truncation.
       ),
   )
@@ -658,7 +656,7 @@ class DataSliceTest(parameterized.TestCase):
         repr(x),
         (
             'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
-            ' ENTITY(x=INT32), ndims: 1, size: 3)'
+            ' ENTITY(x=INT32))'
         ),
     )
     self.assertEqual(
@@ -671,7 +669,7 @@ class DataSliceTest(parameterized.TestCase):
         repr(y),
         (
             'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
-            ' foo(x=INT32), ndims: 1, size: 3)'
+            ' foo(x=INT32))'
         ),
     )
     self.assertEqual(
@@ -682,8 +680,7 @@ class DataSliceTest(parameterized.TestCase):
     z = db.obj(x=ds([1, 2, 3]))
     self.assertEqual(
         repr(z),
-        'DataSlice([Obj(x=1), Obj(x=2), Obj(x=3)], schema: OBJECT, ndims: 1,'
-        ' size: 3)',
+        'DataSlice([Obj(x=1), Obj(x=2), Obj(x=3)], schema: OBJECT)',
     )
     self.assertEqual(
         str(z),
@@ -695,13 +692,13 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(x=ds([[x for x in range(5)] for y in range(4)]))
     self.assertEqual(
         repr(x),
-        'DataSlice(attrs: [x], schema: ENTITY(x=INT32), ndims: 2, size: 20)',
+        'DataSlice(attrs: [x], schema: ENTITY(x=INT32))',
     )
 
     y = db.obj(x=ds([[x for x in range(5)] for y in range(4)]))
     self.assertEqual(
         repr(y),
-        'DataSlice(attrs: [x], schema: OBJECT, ndims: 2, size: 20)',
+        'DataSlice(attrs: [x], schema: OBJECT)',
     )
 
   # Special case for itemid, since it includes a non-deterministic id.

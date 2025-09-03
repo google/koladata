@@ -59,7 +59,13 @@ absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
 // kd.slices.get_repr.
 absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& item_limit,
-                                  const DataSlice& item_limit_per_dimension);
+                                  const DataSlice& item_limit_per_dimension,
+                                  const DataSlice& format_html,
+                                  const DataSlice& max_str_len,
+                                  const DataSlice& show_attributes,
+                                  const DataSlice& show_databag_id,
+                                  const DataSlice& show_shape,
+                                  const DataSlice& show_schema);
 
 // kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(

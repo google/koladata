@@ -1773,7 +1773,24 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
                                        .show_databag_id = false,
                                        .show_shape = false}),
               Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], "
-                 "schema: ENTITY(b=ENTITY(a=INT32)), ndims: 1, size: 2)"));
+                 "schema: ENTITY(b=ENTITY(a=INT32)))"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_NoSchemaDataBagOrShape) {
+  auto db = DataBag::EmptyMutable();
+  auto value_1 = test::DataSlice<int>({1, 2});
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(db, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice entity_2,
+                       EntityCreator::FromAttrs(db, {"b"}, {entity}));
+  EXPECT_THAT(DataSliceRepr(entity_2,
+                            {
+                                .show_attributes = true,
+                                .show_databag_id = false,
+                                .show_shape = false,
+                                .show_schema = false,
+                            }),
+              Eq("[Entity(b=Entity(a=1)), Entity(b=Entity(a=2))]"));
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
@@ -1784,13 +1801,13 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
     ASSERT_OK_AND_ASSIGN(
         DataSlice entity,
         EntityCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
-    EXPECT_THAT(DataSliceRepr(entity, {.item_limit = 2,
-                                       .item_limit_per_dimension = 2,
-                                       .show_attributes = true,
-                                       .show_databag_id = false,
-                                       .show_shape = false}),
-                Eq("DataSlice(attrs: [a, b], schema: ENTITY(a=INT32, b=INT32), "
-                   "ndims: 1, size: 10)"));
+    EXPECT_THAT(
+        DataSliceRepr(entity, {.item_limit = 2,
+                               .item_limit_per_dimension = 2,
+                               .show_attributes = true,
+                               .show_databag_id = false,
+                               .show_shape = false}),
+        Eq("DataSlice(attrs: [a, b], schema: ENTITY(a=INT32, b=INT32))"));
   }
   {
     // Entities with OBJECT schema.
@@ -1799,13 +1816,12 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
     ASSERT_OK_AND_ASSIGN(
         DataSlice obj,
         ObjectCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
-    EXPECT_THAT(
-        DataSliceRepr(obj, {.item_limit = 2,
-                            .item_limit_per_dimension = 2,
-                            .show_attributes = true,
-                            .show_databag_id = false,
-                            .show_shape = false}),
-        Eq("DataSlice(attrs: [a, b], schema: OBJECT, ndims: 1, size: 10)"));
+    EXPECT_THAT(DataSliceRepr(obj, {.item_limit = 2,
+                                    .item_limit_per_dimension = 2,
+                                    .show_attributes = true,
+                                    .show_databag_id = false,
+                                    .show_shape = false}),
+                Eq("DataSlice(attrs: [a, b], schema: OBJECT)"));
   }
 }
 
@@ -1814,13 +1830,12 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
     // Primirive DataSlice.
     auto db = DataBag::EmptyMutable();
     auto ints = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
-    EXPECT_THAT(
-        DataSliceRepr(ints, {.item_limit = 2,
-                             .item_limit_per_dimension = 2,
-                             .show_attributes = true,
-                             .show_databag_id = false,
-                             .show_shape = false}),
-        Eq("DataSlice([1, 2, ...], schema: INT32, ndims: 1, size: 10)"));
+    EXPECT_THAT(DataSliceRepr(ints, {.item_limit = 2,
+                                     .item_limit_per_dimension = 2,
+                                     .show_attributes = true,
+                                     .show_databag_id = false,
+                                     .show_shape = false}),
+                Eq("DataSlice([1, 2, ...], schema: INT32)"));
   }
   {
     // Mixed OBJECT DataSlice with entities and primitives.
@@ -1838,8 +1853,7 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
                                          .show_attributes = true,
                                          .show_databag_id = false,
                                          .show_shape = false}),
-                Eq("DataSlice([42, Obj(a=1, b=1), ...], schema: OBJECT, ndims: "
-                   "1, size: 4)"));
+                Eq("DataSlice([42, Obj(a=1, b=1), ...], schema: OBJECT)"));
   }
 }
 
@@ -1853,11 +1867,11 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(db, {"a"}, {value_1}, schema));
 
-  EXPECT_THAT(DataSliceRepr(entity, {.show_attributes = true,
-                                     .show_databag_id = false,
-                                     .show_shape = false}),
-              Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64), "
-                 "ndims: 1, size: 2)"));
+  EXPECT_THAT(
+      DataSliceRepr(entity, {.show_attributes = true,
+                             .show_databag_id = false,
+                             .show_shape = false}),
+      Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64))"));
 }
 
 TEST(DataSliceReprTest, SchemaToStr) {

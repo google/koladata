@@ -27,6 +27,7 @@
 
 namespace koladata {
 
+// LINT.IfChange
 struct ReprOption {
   // The maximum depth when printing nested DataItem.
   int64_t depth = 5;
@@ -49,9 +50,12 @@ struct ReprOption {
   bool show_attributes = false;
   // When true, the repr will show the databag id.
   bool show_databag_id = true;
-  // When true, the repr will show the shape, otherwise only show ndims.
+  // When true, the repr will show the shape.
   bool show_shape = true;
+  // When true, the repr will show the schema.
+  bool show_schema = true;
 };
+// LINT.ThenChange(//py/koladata/operators/slices.py)
 
 // Returns the string for python __str__.
 absl::StatusOr<std::string> DataSliceToStr(

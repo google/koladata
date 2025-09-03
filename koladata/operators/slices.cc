@@ -1062,7 +1062,13 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
 
 absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& item_limit,
-                                  const DataSlice& item_limit_per_dimension) {
+                                  const DataSlice& item_limit_per_dimension,
+                                  const DataSlice& format_html,
+                                  const DataSlice& max_str_len,
+                                  const DataSlice& show_attributes,
+                                  const DataSlice& show_databag_id,
+                                  const DataSlice& show_shape,
+                                  const DataSlice& show_schema) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
   if (depth_int < 0) {
     return absl::InvalidArgumentError("depth parameter must be non-negative");
@@ -1080,14 +1086,32 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
     return absl::InvalidArgumentError(
         "item_limit_per_dimension parameter must be non-negative");
   }
+  ASSIGN_OR_RETURN(bool format_html_bool,
+                   GetBoolArgument(format_html, "format_html"));
   ASSIGN_OR_RETURN(
-      auto repr, DataSliceToStr(x, ReprOption{
-                                       .depth = depth_int,
-                                       .item_limit = size_t(item_limit_int),
-                                       .item_limit_per_dimension =
-                                           size_t(item_limit_per_dimension_in),
-                                       .show_attributes = true,
-                                   }));
+      int64_t max_str_len_int,
+      GetIntegerArgument(max_str_len, "unbounded_type_max_len"));
+  ASSIGN_OR_RETURN(bool show_attributes_bool,
+                   GetBoolArgument(show_attributes, "show_attributes"));
+  ASSIGN_OR_RETURN(bool show_databag_id_bool,
+                   GetBoolArgument(show_databag_id, "show_databag_id"));
+  ASSIGN_OR_RETURN(bool show_shape_bool,
+                   GetBoolArgument(show_shape, "show_shape"));
+  ASSIGN_OR_RETURN(bool show_schema_bool,
+                   GetBoolArgument(show_schema, "show_schema"));
+  auto repr = DataSliceRepr(
+      x, ReprOption{
+             .depth = depth_int,
+             .item_limit = size_t(item_limit_int),
+             .item_limit_per_dimension = size_t(item_limit_per_dimension_in),
+             .format_html = format_html_bool,
+             .unbounded_type_max_len =
+                 static_cast<int32_t>(max_str_len_int),
+             .show_attributes = show_attributes_bool,
+             .show_databag_id = show_databag_id_bool,
+             .show_shape = show_shape_bool,
+             .show_schema = show_schema_bool,
+         });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));
 }

@@ -2132,8 +2132,44 @@ def str_(x):
         qtype_utils.expect_data_slice(P.x),
     ],
 )
-def get_repr(x, depth=25, item_limit=200, item_limit_per_dimension=25):  # pylint: disable=unused-argument
-  """Returns a string representation of the DataSlice `x`."""
+def get_repr(
+    x,
+    /,
+    *,
+    depth=25,
+    item_limit=200,
+    item_limit_per_dimension=25,
+    format_html=False,
+    max_str_len=100,
+    show_attributes=True,
+    show_databag_id=False,
+    show_shape=False,
+    show_schema=False,
+):  # pylint: disable=unused-argument
+  """Returns a string representation of the DataSlice `x`.
+
+  Args:
+    x: DataSlice to represent.
+    depth: Maximum depth when printing nested DataSlices.
+    item_limit: When it is a DataSlice, it means the maximum number of items to
+      show across all dimensions. When it is a DataItem, it means the maximum
+      number of entity/object attributes, list items, or dict key/value pairs to
+      show. Must be non-negative, or an error will be raised.
+    item_limit_per_dimension: The maximum number of items to show per dimension
+      in a DataSlice. It is only enforced when the size of DataSlice is larger
+      than `item_limit`. Must be non-negative, or an error will be raised.
+    format_html: When true, attributes and object ids are wrapped in HTML tags
+      to make it possible to style with CSS and interpret interactions with JS.
+    max_str_len: Maximum length of repr string to show for text and
+      bytes if non negative.
+    show_attributes: When true, show the attributes of the entity/object in non
+      DataItem DataSlice.
+    show_databag_id: When true, the repr will show the databag id.
+    show_shape: When true, the repr will show the shape.
+    show_schema: When true, the repr will show the schema.
+  Returns:
+    A string representation of the DataSlice `x`.
+  """
   raise NotImplementedError('implemented in the backend')
 
 

@@ -67,7 +67,7 @@ class SlicesGetReprTest(parameterized.TestCase):
           ds('DICT{STRING, INT32}'),
       ),
       (
-          'milti_dim_entity',
+          'multi_dim_entity',
           db.new(a=ds([1, 2])),
           ds('[Entity(a=1), Entity(a=2)]'),
       ),
@@ -79,7 +79,7 @@ class SlicesGetReprTest(parameterized.TestCase):
 
   def test_depth(self):
     res = eval_op('kd.slices.get_repr', db.obj(a=db.obj(a=1), b='foo'), depth=1)
-    self.assertRegex(res.to_py(), r"Obj\(a=\$.{22}, b='foo'\)")
+    self.assertRegex(res.to_py(), r"^Obj\(a=\$.{22}, b='foo'\)$")
 
   def test_item_limit(self):
     res = eval_op('kd.slices.get_repr', ds([1, 2]), item_limit=1)
@@ -94,14 +94,78 @@ class SlicesGetReprTest(parameterized.TestCase):
     )
     testing.assert_equal(res, ds('[[1, 2, ...], [4, ...]]'))
 
+  def test_format_html(self):
+    res = eval_op('kd.slices.get_repr', ds(['foo', 'bar']), format_html=True)
+    testing.assert_equal(
+        res,
+        ds(
+            '[<span slice-index="0">\'foo\'</span>, <span'
+            ' slice-index="1">\'bar\'</span>]'
+        ),
+    )
+
+  def test_max_str_len(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds(['foo', 'bar']),
+        max_str_len=1,
+    )
+    testing.assert_equal(res, ds("['f'...'o', 'b'...'r']"))
+
+  def test_show_attributes(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        db.obj(a=ds([1, 2])),
+        show_attributes=False,
+    )
+    self.assertRegex(res.to_py(), r'^\[Obj:\$.{22}, Obj:\$.{22}\]$')
+
+  def test_show_databag_id(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        db.obj(a=ds([1, 2])),
+        show_databag_id=True,
+    )
+    self.assertRegex(
+        res.to_py(),
+        r'^DataSlice\(\[Obj\(a=1\), Obj\(a=2\)\], bag_id: \$.{4}\)$',
+    )
+
+  def test_show_shape(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds([[1, 2], [3, 4]]),
+        show_shape=True,
+    )
+    testing.assert_equal(
+        res, ds('DataSlice([[1, 2], [3, 4]], shape: JaggedShape(2, 2))')
+    )
+
+  def test_show_schema(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds([1, 2]),
+        show_schema=True,
+    )
+    testing.assert_equal(res, ds('DataSlice([1, 2], schema: INT32)'))
+
+  def test_print_only_attr_names(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        db.new(a=ds([1, 2])),
+        item_limit=1,
+        show_attributes=True,
+    )
+    testing.assert_equal(res, ds('DataSlice(attrs: [a])'))
+
   @parameterized.named_parameters(
       # Dict order is not deterministic.
       (
           'dict',
           db.dict({'a': 1, 'b': 2}),
-          r'Dict{\'a\'=1, \'b\'=2}|Dict{\'b\'=2, \'a\'=1}',
+          r'^Dict{\'a\'=1, \'b\'=2}|Dict{\'b\'=2, \'a\'=1}$',
       ),
-      ('empy_object', db.obj(), r'Obj\(\):\$.{22}'),
+      ('empy_object', db.obj(), r'^Obj\(\):\$.{22}$'),
   )
   def test_eval_like(self, x, expected_regex):
     res = eval_op('kd.slices.get_repr', x).internal_as_py()

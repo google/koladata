@@ -926,9 +926,14 @@ std::string AttrNamesOrEmpty(const DataSlice& ds) {
 
 std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
-  absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
   bool only_print_attr_names =
       ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
+  // Wrap in DataItem/DataSlice only if we have need to print something other
+  // than the DataSlice literal.
+  if (option.show_databag_id || option.show_shape || option.show_schema ||
+      only_print_attr_names) {
+    absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
+  }
   // If the data slice is too large, we will not print the
   // whole data slice.
   if (only_print_attr_names) {
@@ -939,24 +944,24 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
     ds.VisitImpl(
         [&](const auto& impl) { return absl::StrAppend(&result, impl); });
   }
-  absl::StrAppend(&result, ", schema: ");
-  if (auto schema = DataSliceToStr(ds.GetSchema(), option); schema.ok()) {
-    absl::StrAppend(&result, *schema);
-  } else {
-    absl::StrAppend(&result, ds.GetSchemaImpl());
-  }
-  if (!ds.is_item()) {
-    if (option.show_shape) {
-      absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
+  if (option.show_schema) {
+    absl::StrAppend(&result, ", schema: ");
+    if (auto schema = DataSliceToStr(ds.GetSchema(), option); schema.ok()) {
+      absl::StrAppend(&result, *schema);
     } else {
-      absl::StrAppend(&result, ", ndims: ", ds.GetShape().rank(),
-                      ", size: ", ds.GetShape().size());
+      absl::StrAppend(&result, ds.GetSchemaImpl());
     }
+  }
+  if (!ds.is_item() && option.show_shape) {
+    absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));
   }
   if (option.show_databag_id && ds.GetBag() != nullptr) {
     absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(ds.GetBag()));
   }
-  absl::StrAppend(&result, ")");
+  if (option.show_databag_id || option.show_shape || option.show_schema ||
+      only_print_attr_names) {
+    absl::StrAppend(&result, ")");
+  }
   return result;
 }
 

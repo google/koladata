@@ -168,7 +168,7 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
         arolla.testing.any_cause_message_regex(
             re.escape(
                 'expected a python callable, got no_fn=DataSlice([missing],'
-                ' schema: MASK, ndims: 1, size: 1)'
+                ' schema: MASK)'
             )
         ),
     ):
