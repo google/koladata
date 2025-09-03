@@ -120,6 +120,27 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'kd.math.t_distribution_inverse_cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.degrees_of_freedom),
+    ],
+)
+def t_distribution_inverse_cdf(x, degrees_of_freedom):  # pylint: disable=unused-argument
+  """Student's t-distribution inverse CDF.
+
+  Args:
+    x: A DataSlice of numbers.
+    degrees_of_freedom: A DataSlice of numbers.
+
+  Return:
+    t_distribution_inverse_cdf(x).
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'kd.math.exp',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),

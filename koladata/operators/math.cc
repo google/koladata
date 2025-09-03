@@ -311,6 +311,16 @@ absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                            /*primary_operand_indices=*/{{0}});
 }
 
+absl::StatusOr<DataSlice> TDistributionInverseCdf(
+    const DataSlice& x,
+    const DataSlice& degrees_of_freedom) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x));
+  RETURN_IF_ERROR(ExpectNumeric("degrees_of_freedom", degrees_of_freedom));
+  return SimplePointwiseEval("math.t_distribution_inverse_cdf",
+                             {x, degrees_of_freedom});
+}
+
+
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x),

@@ -4,3 +4,4 @@ google-benchmark
 ipython
 numpy
 pandas
+scipy

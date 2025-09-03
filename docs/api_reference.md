@@ -4499,6 +4499,17 @@ The result is a zero-dimensional DataItem.
 Args:
   x: A DataSlice of numbers.</code></pre>
 
+### `kd.math.t_distribution_inverse_cdf(x, degrees_of_freedom)` {#kd.math.t_distribution_inverse_cdf}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Student&#39;s t-distribution inverse CDF.
+
+Args:
+  x: A DataSlice of numbers.
+  degrees_of_freedom: A DataSlice of numbers.
+
+Return:
+  t_distribution_inverse_cdf(x).</code></pre>
+
 </section>
 
 ### kd.objs {#kd.objs}

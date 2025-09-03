@@ -258,6 +258,7 @@ OPERATOR("kd.math.round", Round);
 OPERATOR("kd.math.sigmoid", Sigmoid);
 OPERATOR("kd.math.sign", Sign);
 OPERATOR("kd.math.subtract", Subtract);
+OPERATOR("kd.math.t_distribution_inverse_cdf", TDistributionInverseCdf);
 //
 OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());

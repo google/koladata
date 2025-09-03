@@ -107,6 +107,10 @@ absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights);
 absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                                         const DataSlice& cdf_arg);
 
+// kd.math._t_distribution_inverse_cdf.
+absl::StatusOr<DataSlice> TDistributionInverseCdf(
+  const DataSlice& x, const DataSlice& degrees_of_freedom);
+
 // kd.math._agg_mean.
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x);
 
