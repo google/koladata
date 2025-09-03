@@ -35,7 +35,6 @@ from koladata.types import schema_item
 
 M = arolla.M | derived_qtype.M | objects.M
 
-_UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
 _VIRTUAL_METHOD_ATTR = '_kd_extension_type_virtual_method'
 _OVERRIDE_METHOD_ATTR = '_kd_extension_type_override_method'
 
@@ -58,11 +57,6 @@ def override():
     return fn
 
   return impl
-
-
-@functools.lru_cache
-def _get_downcast_expr(qtype):
-  return M.derived_qtype.downcast(qtype, arolla.L.x)
 
 
 def _make_functor_attr_name(method_name: str) -> str:
@@ -108,7 +102,9 @@ def _make_virtual_method(
       return_type_as = py_boxing.get_dummy_qvalue(sig.return_annotation)
     if extension_type_registry.is_koda_extension(return_type_as):
       output_qtype = return_type_as.qtype
-      return_type_as = arolla.eval(_UPCAST_EXPR, x=return_type_as)
+      return_type_as = arolla.abc.aux_eval_op(
+          'kd.extension_types.unwrap', return_type_as
+      )
 
   # NOTE: We do not trace here, since we have yet to register an expr view.
   @functools.wraps(method)
@@ -119,7 +115,7 @@ def _make_virtual_method(
     )
     res = method(self_casted, *args, **kwargs)
     if output_qtype is not None:
-      return M.derived_qtype.upcast(M.qtype.qtype_of(res), res)
+      return arolla.abc.aux_bind_op('kd.extension_types.unwrap', res)
     else:
       return res
 
@@ -129,9 +125,11 @@ def _make_virtual_method(
     res = fn(self, *args, **kwargs, return_type_as=return_type_as)
     if output_qtype is not None:
       if isinstance(res, arolla.Expr):
-        return M.derived_qtype.downcast(output_qtype, res)
+        return arolla.abc.aux_bind_op(
+            'kd.extension_types.wrap', res, output_qtype
+        )
       else:
-        return arolla.eval(_get_downcast_expr(output_qtype), x=res)
+        return extension_type_registry.wrap(res, output_qtype)
     else:
       return res
 
@@ -285,8 +283,7 @@ def _make_extension_expr(
       k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
   }
   obj = M.objects.make_object(prototype, **attrs)
-  ext = M.derived_qtype.downcast(extension_qtype, obj)
-  return M.annotation.qtype(ext, extension_qtype)
+  return arolla.abc.aux_bind_op('kd.extension_types.wrap', obj, extension_qtype)
 
 
 def _make_extension_qvalue(
@@ -299,8 +296,8 @@ def _make_extension_qvalue(
   attrs = {
       k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
   }
-  return arolla.eval(
-      _get_downcast_expr(extension_qtype), x=objects.Object(prototype, **attrs)
+  return extension_type_registry.wrap(
+      objects.Object(prototype, **attrs), extension_qtype
   )
 
 
@@ -430,8 +427,8 @@ def extension_type(
     qvalue_class_attrs = {}
     for name, qtype in class_meta.field_qtypes.items():
       qvalue_class_attrs[name] = property(
-          lambda self, k=name, qtype=qtype: arolla.eval(
-              _UPCAST_EXPR, x=self
+          lambda self, k=name, qtype=qtype: arolla.abc.aux_eval_op(
+              'kd.extension_types.unwrap', self
           ).get_attr(k, qtype)
       )
     # Methods.
@@ -443,7 +440,7 @@ def extension_type(
             attrs,
             class_meta.field_annotations,
             extension_qtype,
-            arolla.eval(_UPCAST_EXPR, x=self),
+            arolla.abc.aux_eval_op('kd.extension_types.unwrap', self),
         )
     )
     qvalue_class = type(
@@ -457,7 +454,9 @@ def extension_type(
     for name, qtype in class_meta.field_qtypes.items():
       expr_view_class_attrs[name] = property(
           lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
-              M.derived_qtype.upcast(M.qtype.qtype_of(self), self), k, qtype
+              arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
+              k,
+              qtype,
           )
       )
     expr_view_methods = {
@@ -473,7 +472,7 @@ def extension_type(
             attrs,
             class_meta.field_annotations,
             extension_qtype,
-            M.derived_qtype.upcast(extension_qtype, self),
+            arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
         )
     )
 

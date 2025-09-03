@@ -64,6 +64,7 @@ arolla_cc_operator_package(
         "@com_google_arolla//arolla/derived_qtype/operators",
         "@com_google_arolla//arolla/jagged_shape/expr",
         "@com_google_arolla//arolla/objects/operators",
+        "@com_google_arolla//arolla/objects/s11n",
         "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",
     ],
 )
@@ -965,9 +966,11 @@ py_library(
     deps = [
         ":optools",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/objects",
     ],
 )
 

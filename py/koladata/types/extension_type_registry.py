@@ -14,7 +14,6 @@
 
 """Extension type registry."""
 
-import functools
 from typing import Any
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
@@ -25,15 +24,6 @@ import bidict
 M = arolla.M | derived_qtype.M
 
 BASE_QTYPE = objects.OBJECT
-
-
-@functools.lru_cache
-def _get_downcast_expr(qtype):
-  return M.derived_qtype.downcast(qtype, arolla.L.x)
-
-
-_UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
-
 _EXTENSION_TYPE_REGISTRY = bidict.bidict()  # cls -> QType.
 
 
@@ -97,23 +87,21 @@ def is_koda_extension(x: Any) -> bool:
   return x.qtype in _EXTENSION_TYPE_REGISTRY.inverse
 
 
-def wrap(x: objects.Object, qtype: arolla.QType) -> Any:
-  """Wraps `x` into an instance of the given extension type."""
-  _ = _get_extension_cls(qtype)  # Check that it's registered
-  return arolla.eval(_get_downcast_expr(qtype), x=x)
-
-
-def unwrap(x: Any) -> arolla.types.Tuple:
-  """Unwraps an extension type into the underlying type."""
-  if not is_koda_extension(x):
-    raise ValueError(f'expected an extension type, got: {type(x)}')
-  return arolla.eval(_UPCAST_EXPR, x=x)
-
-
 def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   """Returns a dummy value for the given extension type class."""
   extension_qtype = get_extension_qtype(cls)
   return wrap(objects.Object(), extension_qtype)
+
+
+# Eager versions of kde operators that require specific implementations (due to
+# requiring literal inputs).
+
+
+def wrap(x: objects.Object, qtype: arolla.QType) -> Any:
+  """Wraps `x` into an instance of the given extension type."""
+  _ = _get_extension_cls(qtype)  # Check that it's registered
+  wrap_op = arolla.abc.lookup_operator('kd.extension_types.wrap')
+  return arolla.eval(wrap_op(arolla.L.x, qtype), x=x)
 
 
 def dynamic_cast(value: arolla.QValue, qtype: arolla.QType) -> arolla.AnyQValue:

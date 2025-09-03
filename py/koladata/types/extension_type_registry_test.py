@@ -20,6 +20,7 @@ from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
 from koladata.expr import input_container
 from koladata.functions import functions as _
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
@@ -29,6 +30,7 @@ from koladata.types import schema_constants
 M = arolla.M | derived_qtype.M
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     extension_type_registry.BASE_QTYPE, '_MyTestExtension'
@@ -45,6 +47,10 @@ extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
 
 class _MyOtherTestExtension:
   pass
+
+
+def unwrap(x):
+  return arolla.abc.aux_eval_op('kd.extension_types.unwrap', x)
 
 
 class ExtensionTypeRegistryTest(parameterized.TestCase):
@@ -71,14 +77,15 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     obj = objects.Object(x=ds(0), y=ds(1))
     wrapped_obj = extension_type_registry.wrap(obj, _EXT_TYPE)
     self.assertEqual(wrapped_obj.qtype, _EXT_TYPE)
-    unwrapped_obj = extension_type_registry.unwrap(wrapped_obj)
+    unwrapped_obj = unwrap(wrapped_obj)
     self.assertIsInstance(unwrapped_obj, objects.Object)
     testing.assert_equal(unwrapped_obj, obj)
 
   def test_wrap_invalid_input(self):
     extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected OBJECT, got value: INT32')
+        ValueError,
+        re.escape('expected one of [OBJECT], got obj: INT32'),
     ):
       extension_type_registry.wrap(123, _EXT_TYPE)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
@@ -99,18 +106,10 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     ):
       extension_type_registry.wrap(obj, _EXT_TYPE)
 
-  def test_unwrap_not_registered(self):
-    extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    obj = objects.Object(x=ds(1), y=ds(2))
-    ext = extension_type_registry.wrap(obj, _EXT_TYPE)
-    extension_type_registry._EXTENSION_TYPE_REGISTRY.clear()
-    with self.assertRaisesRegex(ValueError, 'expected an extension type'):
-      extension_type_registry.unwrap(ext)
-
   def test_unwrap_invalid_input(self):
     extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
     with self.assertRaisesRegex(ValueError, 'expected an extension type'):
-      extension_type_registry.unwrap(ds([1, 2, 3]))
+      unwrap(ds([1, 2, 3]))
 
   def test_registry(self):
     # Before registration.

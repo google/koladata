@@ -686,6 +686,7 @@ py_test(
         "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",

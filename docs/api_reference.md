@@ -2040,9 +2040,17 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as overriding a virtual method.</code></pre>
 
+### `kd.extension_types.unwrap(ext)` {#kd.extension_types.unwrap}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unwraps the extension type `ext` into an arolla::Object.</code></pre>
+
 ### `kd.extension_types.virtual()` {#kd.extension_types.virtual}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as virtual, allowing it to be overridden.</code></pre>
+
+### `kd.extension_types.wrap(x, qtype)` {#kd.extension_types.wrap}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
 
 </section>
 

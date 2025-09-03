@@ -102,8 +102,10 @@ class ExtensionTypesTest(parameterized.TestCase):
     )
     self.assertIsInstance(expr, arolla.Expr)
     testing.assert_equal(
-        extension_type_registry.unwrap(expr.eval(x=1, y=2)),
-        extension_type_registry.unwrap(value),
+        arolla.abc.aux_eval_op(
+            'kd.extension_types.unwrap', expr.eval(x=1, y=2)
+        ),
+        arolla.abc.aux_eval_op('kd.extension_types.unwrap', value),
     )
 
   def test_kd_fn(self):
