@@ -3908,6 +3908,220 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       )[0]
       self.assertEqual(manager_action_0.timestamp, '2025.09.01 14:29:13')
 
+  def test_branch_with_action_history_index(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+
+    query_schema = kd.named_schema('query')
+    query_data = kd.list([
+        query_schema.new(query_id='q1'),
+        query_schema.new(query_id='q2'),
+    ])
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=query_data,
+        description='Added queries with only query_id populated',
+    )
+
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        kd.new(query=query_data),
+    )
+    trunk_manager_schema_with_query_data = trunk_manager.get_schema()
+
+    doc_schema = kd.named_schema('doc')
+    trunk_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        ]),
+        description='Added docs to queries',
+    )
+
+    self.assertEqual(
+        [action.description for action in trunk_manager.get_action_history()],
+        [
+            'Initial state with an empty root DataSlice',
+            'Added queries with only query_id populated',
+            'Added docs to queries',
+        ],
+    )
+
+    branch_dir = self.create_tempdir().full_path
+    # Branching on top of the action that added queries by passing index 1:
+    branch_manager = trunk_manager.branch(branch_dir, action_history_index=1)
+
+    # Right after branching, the branch has the same state as the trunk had
+    # before docs were added.
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_schema(), trunk_manager_schema_with_query_data
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        kd.new(query=query_data),
+    )
+    # The branch does not have docs:
+    self.assertFalse(branch_manager.exists(parse_dsp('.query[:].doc[:]')))
+
+    # Creating the branch did not copy any of the bags. It created metadata
+    # files to point to the trunk's bags.
+    for subdir in [
+        'data_bags',
+        'schema_bags',
+        'snn_to_data_bags_updates',
+    ]:
+      self.assertEqual(
+          os.listdir(os.path.join(branch_dir, subdir)), ['metadata.pb']
+      )
+
+    # The branch has a single action in its history.
+    branch_action_history = branch_manager.get_action_history()
+    self.assertLen(branch_action_history, 1)
+    self.assertEqual(
+        branch_action_history[0].parent_persistence_directory,  # pytype: disable=attribute-error
+        trunk_dir,
+    )
+    self.assertEqual(branch_action_history[0].parent_action_history_index, 1)  # pytype: disable=attribute-error
+
+    # This update is for the trunk only.
+    trunk_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How tall is Obama', 'How high is the Eiffel tower']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+    # The branch does not see the update to the trunk.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "data slice path '.query[:].query_text' passed in argument"
+            " 'populate' is invalid"
+        ),
+    ):
+      branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text'))
+    # New instances for branch_dir also don't see the update.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "data slice path '.query[:].query_text' passed in argument"
+            " 'populate' is invalid"
+        ),
+    ):
+      PersistedIncrementalDataSliceManager(branch_dir).get_data_slice_at(
+          parse_dsp('.query[:].query_text')
+      )
+
+    # This update is for the branch only.
+    branch_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(
+            ['How high is the statue of Liberty', 'How low is the dead sea']
+        ),
+    )
+    # The trunk does not see the update.
+    kd.testing.assert_deep_equivalent(
+        trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+    # New instances for trunk_dir also don't see the update.
+    kd.testing.assert_deep_equivalent(
+        PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
+            parse_dsp('.query[:].query_text')
+        ),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+    )
+
+  def test_branch_with_invalid_and_valid_action_history_index(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+
+    query_schema = kd.named_schema('query')
+    query_data = kd.list([
+        query_schema.new(query_id='q1'),
+        query_schema.new(query_id='q2'),
+    ])
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=query_data,
+        description='Added queries with only query_id populated',
+    )
+
+    doc_schema = kd.named_schema('doc')
+    trunk_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        ]),
+        description='Added docs to queries',
+    )
+
+    # The action history has 3 elements:
+    self.assertLen(trunk_manager.get_action_history(), 3)
+    self.assertEqual(
+        [action.description for action in trunk_manager.get_action_history()],
+        [
+            'Initial state with an empty root DataSlice',
+            'Added queries with only query_id populated',
+            'Added docs to queries',
+        ],
+    )
+
+    for too_small_index in range(-7, -3):
+      branch_dir = self.create_tempdir().full_path
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              f'action_history_index {too_small_index} is out of bounds. Valid'
+              ' values are in the range [-3, 3)'
+          ),
+      ):
+        trunk_manager.branch(branch_dir, action_history_index=too_small_index)
+
+    for too_large_index in range(3, 10):
+      branch_dir = self.create_tempdir().full_path
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              f'action_history_index {too_large_index} is out of bounds. Valid'
+              ' values are in the range [-3, 3)'
+          ),
+      ):
+        trunk_manager.branch(branch_dir, action_history_index=too_large_index)
+
+    for valid_index in range(-3, 3):
+      branch_dir = self.create_tempdir().full_path
+      branch_manager = trunk_manager.branch(
+          branch_dir, action_history_index=valid_index
+      )
+      # Index values in the action history metadata are never negative. I.e.
+      # they are always absolute indexes and never relative to the last action.
+      self.assertGreaterEqual(
+          branch_manager.get_action_history()[0].parent_action_history_index,  # pytype: disable=attribute-error
+          0,
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

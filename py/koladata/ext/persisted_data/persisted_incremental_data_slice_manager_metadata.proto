@@ -75,6 +75,9 @@ message BranchAction {
   string parent_persistence_directory = 1;
 
   // The index of the action in the parent manager's action_history on top of
-  // which the branch was created.
+  // which the branch was created. Always >= 0, so the index is always absolute
+  // and never relative to the last action. Relative indices would be ambiguous
+  // because one can perform more actions on the parent manager after the branch
+  // is created.
   int32 parent_action_history_index = 2;
 }

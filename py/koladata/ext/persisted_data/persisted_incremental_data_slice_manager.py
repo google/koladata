@@ -837,6 +837,8 @@ class PersistedIncrementalDataSliceManager(
   def branch(
       self,
       output_dir: str,
+      *,
+      action_history_index: int = -1,
       fs: fs_interface.FileSystemInterface | None = None,
       description: str | None = None,
   ) -> PersistedIncrementalDataSliceManager:
@@ -852,9 +854,21 @@ class PersistedIncrementalDataSliceManager(
     * New calls to `update` this manager will not affect the branch.
     * New calls to `update` the branch will not affect this manager.
 
+    Use the action_history_index argument to use a previous state of this
+    manager as the basis for the branch. That is useful for rolling back to a
+    previous state without modifying/updating this manager.
+
     Args:
       output_dir: the new persistence directory to use for the branch. It must
         not exist yet or it must be empty.
+      action_history_index: The index of the action in the action history of
+        this manager that should be used as the basis for the branch. The
+        initial state of the branch manager's DataSlice will be the same as it
+        was in this manager right after the action at the given index was
+        performed. The value of action_history_index must be a valid index of
+        self.get_action_history(). By default, the branch is created on top of
+        the last action, i.e. the branch is based on the state that is current
+        when branch() is called.
       fs: All interactions with the file system for output_dir will happen via
         this instance. If None, then the interaction object of `self` is used.
       description: A description of the branch. Optional. If provided, it will
@@ -863,6 +877,26 @@ class PersistedIncrementalDataSliceManager(
     Returns:
       A new branch of this manager.
     """
+    if not (
+        -len(self._metadata.action_history)
+        <= action_history_index
+        < len(self._metadata.action_history)
+    ):
+      raise ValueError(
+          f'action_history_index {action_history_index} is out of bounds. Valid'
+          f' values are in the range [{-len(self._metadata.action_history)},'
+          f' {len(self._metadata.action_history)})'
+      )
+    # We normalize the action history index to be in the range
+    # [0, len(self._metadata.action_history)). That way it is ready for the
+    # BranchAction proto, which uses absolute indexes (and not indexes relative
+    # to the last action, because new actions can be performed on this manager
+    # after this method returns).
+    if action_history_index < 0:
+      action_history_index = (
+          len(self._metadata.action_history) + action_history_index
+      )
+
     branch_fs = fs or self._fs
     del fs  # Use branch_fs henceforth.
 
@@ -889,23 +923,30 @@ class PersistedIncrementalDataSliceManager(
         ),
     )
 
-    # Create branches of the various bag managers with all their bags.
+    data_bag_names = set()
+    schema_bag_names = set()
+    snn_to_data_bags_update_bag_names = set()
+    for index in range(action_history_index + 1):
+      action = self._metadata.action_history[index]
+      data_bag_names.update(action.added_data_bag_name)
+      schema_bag_names.update(action.added_schema_bag_name)
+      snn_to_data_bags_update_bag_names.update(
+          action.added_snn_to_data_bags_update_bag_name
+      )
+
+    self._data_bag_manager.create_branch(
+        data_bag_names,
+        output_dir=os.path.join(output_dir, 'data_bags'),
+        fs=branch_fs,
+    )
     self._schema_bag_manager.create_branch(
-        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
-        with_all_dependents=True,
+        schema_bag_names,
         output_dir=os.path.join(output_dir, 'schema_bags'),
         fs=branch_fs,
     )
     self._schema_node_name_to_data_bags_updates_manager.create_branch(
-        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
-        with_all_dependents=True,
+        snn_to_data_bags_update_bag_names,
         output_dir=os.path.join(output_dir, 'snn_to_data_bags_updates'),
-        fs=branch_fs,
-    )
-    self._data_bag_manager.create_branch(
-        {dbm._INITIAL_BAG_NAME},  # pylint: disable=protected-access
-        with_all_dependents=True,
-        output_dir=os.path.join(output_dir, 'data_bags'),
         fs=branch_fs,
     )
 
@@ -916,20 +957,17 @@ class PersistedIncrementalDataSliceManager(
                 timestamp=timestamp.from_current_time(),
                 description=description,
                 added_data_bag_name=sorted(
-                    self._data_bag_manager.get_available_bag_names()
+                    data_bag_names
                 ),
                 added_schema_bag_name=sorted(
-                    self._schema_bag_manager.get_available_bag_names()
+                    schema_bag_names
                 ),
                 added_snn_to_data_bags_update_bag_name=sorted(
-                    self._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
+                    snn_to_data_bags_update_bag_names
                 ),
                 branch=metadata_pb2.BranchAction(
                     parent_persistence_directory=self._persistence_dir,
-                    parent_action_history_index=len(
-                        self._metadata.action_history
-                    )
-                    - 1,
+                    parent_action_history_index=action_history_index,
                 ),
             )
         ],
