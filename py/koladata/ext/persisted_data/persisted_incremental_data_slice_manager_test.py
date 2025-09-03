@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import os
 import re
 import shutil
@@ -20,6 +21,7 @@ from typing import Generator
 from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
+from google.protobuf import timestamp
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -3678,17 +3680,17 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     else:
       self.assertNotEmpty(trunk_fs.method_calls)
 
-  def test_action_history_is_tracked_in_metadata(self):
-
-    def without_timestamp(
-        action_metadata: metadata_pb2.ActionMetadata,
-    ) -> metadata_pb2.ActionMetadata:
-      self.assertTrue(action_metadata.HasField('timestamp'))
-      result = metadata_pb2.ActionMetadata()
-      result.CopyFrom(action_metadata)
-      result.ClearField('timestamp')
-      return result
-
+  @mock.patch.object(
+      timestamp,
+      'from_current_time',
+      side_effect=[
+          timestamp.from_seconds(1756729753),
+          timestamp.from_seconds(1756729754),
+          timestamp.from_seconds(1756729755),
+          timestamp.from_seconds(1756729756),
+      ],
+  )
+  def test_action_history_is_tracked_in_metadata(self, _):
     persistence_dir = self.create_tempdir().full_path
     manager = PersistedIncrementalDataSliceManager(
         persistence_dir, description='Initial state'
@@ -3697,8 +3699,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertLen(manager._metadata.action_history, 1)
     action_0 = manager._metadata.action_history[0]
     self.assertEqual(
-        without_timestamp(action_0),
+        action_0,
         metadata_pb2.ActionMetadata(
+            timestamp=timestamp.from_seconds(1756729753),
             description='Initial state',
             added_data_bag_name=[''],
             added_schema_bag_name=[''],
@@ -3712,6 +3715,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             fs_implementation.FileSystemInteraction(), persistence_dir
         ),
         manager._metadata,
+    )
+    # And it is surfaced in the history. We test the repr here because that is
+    # what users will see in interactive sessions.
+    self.assertEqual(
+        repr(manager.get_action_history(tz=datetime.timezone.utc)),
+        "[CreationMetadata(description='Initial state', timestamp='2025-09-01"
+        " 12:29:13 UTC')]",
     )
 
     manager.update(
@@ -3728,8 +3738,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(manager._metadata.action_history[0], action_0)
     action_1 = manager._metadata.action_history[1]
     self.assertEqual(
-        without_timestamp(action_1),
+        action_1,
         metadata_pb2.ActionMetadata(
+            timestamp=timestamp.from_seconds(1756729754),
             description='Added queries with only query_id populated',
             added_data_bag_name=sorted(
                 manager._data_bag_manager.get_available_bag_names() - {''}
@@ -3754,6 +3765,14 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ),
         manager._metadata,
     )
+    # And it is surfaced in the history.
+    self.assertEqual(
+        repr(manager.get_action_history(tz=datetime.timezone.utc)),
+        "[CreationMetadata(description='Initial state', timestamp='2025-09-01"
+        " 12:29:13 UTC'), AttributeUpdateMetadata(description='Added queries"
+        " with only query_id populated', timestamp='2025-09-01 12:29:14 UTC',"
+        " at_path='', attr_name='query')]",
+    )
 
     branch_dir = self.create_tempdir().full_path
     branch_manager = manager.branch(
@@ -3762,8 +3781,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertLen(branch_manager._metadata.action_history, 1)
     branch_action_0 = branch_manager._metadata.action_history[0]
     self.assertEqual(
-        without_timestamp(branch_action_0),
+        branch_action_0,
         metadata_pb2.ActionMetadata(
+            timestamp=timestamp.from_seconds(1756729755),
             description='Branched queries with query_id',
             added_data_bag_name=sorted(
                 manager._data_bag_manager.get_available_bag_names()
@@ -3787,6 +3807,14 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ),
         branch_manager._metadata,
     )
+    # And it is surfaced in the history.
+    self.assertEqual(
+        repr(branch_manager.get_action_history(tz=datetime.timezone.utc)),
+        "[BranchMetadata(description='Branched queries with query_id',"
+        " timestamp='2025-09-01 12:29:15 UTC',"
+        f" parent_persistence_directory='{persistence_dir}',"
+        ' parent_action_history_index=1)]',
+    )
 
     branch_manager.update(
         at_path=parse_dsp('.query[:]'),
@@ -3802,8 +3830,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     branch_action_1 = branch_manager._metadata.action_history[1]
     self.assertEqual(
-        without_timestamp(branch_action_1),
+        branch_action_1,
         metadata_pb2.ActionMetadata(
+            timestamp=timestamp.from_seconds(1756729756),
             description='Added query_text to queries',
             added_data_bag_name=sorted(
                 branch_manager._data_bag_manager.get_available_bag_names()
@@ -3830,6 +3859,17 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ),
         branch_manager._metadata,
     )
+    # And it is surfaced in the history.
+    self.assertEqual(
+        repr(branch_manager.get_action_history(tz=datetime.timezone.utc)),
+        "[BranchMetadata(description='Branched queries with query_id',"
+        " timestamp='2025-09-01 12:29:15 UTC',"
+        f" parent_persistence_directory='{persistence_dir}',"
+        ' parent_action_history_index=1),'
+        " AttributeUpdateMetadata(description='Added query_text to queries',"
+        " timestamp='2025-09-01 12:29:16 UTC', at_path='.query[:]',"
+        " attr_name='query_text')]",
+    )
     # The trunk is not affected by the updates to the branch.
     self.assertEqual(manager._metadata.action_history[0], action_0)
     self.assertEqual(manager._metadata.action_history[1], action_1)
@@ -3839,6 +3879,34 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ),
         manager._metadata,
     )
+    self.assertEqual(
+        repr(manager.get_action_history(tz=datetime.timezone.utc)),
+        "[CreationMetadata(description='Initial state', timestamp='2025-09-01"
+        " 12:29:13 UTC'), AttributeUpdateMetadata(description='Added queries"
+        " with only query_id populated', timestamp='2025-09-01 12:29:14 UTC',"
+        " at_path='', attr_name='query')]",
+    )
+
+    with self.subTest('get_action_history_uses_local_timezone_by_default'):
+      manager_action_0 = manager.get_action_history()[0]
+      self.assertTrue(
+          manager_action_0.timestamp.endswith(
+              f' {datetime.datetime.now().astimezone().tzname()}'
+          )
+      )
+
+    with self.subTest('get_action_history_with_specified_timezone'):
+      manager_action_0 = manager.get_action_history(
+          tz=datetime.timezone(datetime.timedelta(hours=2), name='CEST')
+      )[0]
+      self.assertEqual(manager_action_0.timestamp, '2025-09-01 14:29:13 CEST')
+
+    with self.subTest('get_action_history_with_specified_timestamp_format'):
+      manager_action_0 = manager.get_action_history(
+          tz=datetime.timezone(datetime.timedelta(hours=2), name='CEST'),
+          timestamp_format='%Y.%m.%d %H:%M:%S',
+      )[0]
+      self.assertEqual(manager_action_0.timestamp, '2025.09.01 14:29:13')
 
 
 if __name__ == '__main__':

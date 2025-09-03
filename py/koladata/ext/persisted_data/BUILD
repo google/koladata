@@ -82,6 +82,7 @@ py_test(
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 

@@ -20,6 +20,7 @@ PersistedIncrementalDataSliceManager.
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import os
 from typing import AbstractSet, Generator
@@ -47,6 +48,58 @@ class _BagIdManager:
     bag_id = self._next_bag_id
     self._next_bag_id += 1
     return bag_id
+
+
+@dataclasses.dataclass(frozen=True)
+class ActionMetadata:
+  """Metadata about an action applied to PersistedIncrementalDataSliceManager.
+
+  Only actions with side-effects on the persisted representation are recorded.
+
+  Metadata should ideally be represented in a format that can render in a
+  human-readable way out of the box. The reason is that the primary use case for
+  the metadata is to surface history information to users in interactive
+  sessions or during debugging. So as a rule of thumb, the data should be
+  organized in a way that is easy to consume. E.g. it should be flattened, not
+  (deeply) nested, and timestamps and DataSlicePath are presented as
+  human-readable strings.
+  """
+
+  # A description of the action. Might be empty. It is usually provided by the
+  # user, although some modifications may have descriptions that are
+  # programmatically generated.
+  description: str
+  # The timestamp of the action. The format and timezone are specified in the
+  # arguments of PersistedIncrementalDataSliceManager.get_action_history().
+  timestamp: str
+
+
+@dataclasses.dataclass(frozen=True)
+class CreationMetadata(ActionMetadata):
+  """Metadata about the creation of a PersistedIncrementalDataSliceManager."""
+
+  pass
+
+
+@dataclasses.dataclass(frozen=True)
+class AttributeUpdateMetadata(ActionMetadata):
+  """Metadata about an attribute update action."""
+
+  # The data slice path at which the attribute was updated.
+  at_path: str
+  # The name of the attribute that was updated.
+  attr_name: str
+
+
+@dataclasses.dataclass(frozen=True)
+class BranchMetadata(ActionMetadata):
+  """Metadata about a branch creation action."""
+
+  # The persistence directory from which the branch was created.
+  parent_persistence_directory: str
+  # The index of the action in the parent manager's action_history on top of
+  # which the branch was created.
+  parent_action_history_index: int
 
 
 class PersistedIncrementalDataSliceManager(
@@ -349,6 +402,66 @@ class PersistedIncrementalDataSliceManager(
         populate_including_descendants=populate_including_descendants,
     )
     return data_slice_path_lib.get_subslice(ds, path)
+
+  def get_action_history(
+      self,
+      tz: datetime.tzinfo | None = None,
+      timestamp_format: str = '%Y-%m-%d %H:%M:%S %Z',
+  ) -> list[ActionMetadata]:
+    """Returns the history of actions applied to this manager.
+
+    Only actions with side-effects on the persisted representation are
+    included.
+
+    Args:
+      tz: The timezone to use for the timestamps. If None, then the local
+        timezone is used.
+      timestamp_format: The format of the timestamps in the returned metadata.
+
+    Returns:
+      The history of actions applied to this manager in the order they were
+      applied.
+    """
+
+    def _format_timestamp(action_metadata: metadata_pb2.ActionMetadata) -> str:
+      dt = timestamp.to_datetime(
+          action_metadata.timestamp, tz=datetime.timezone.utc
+      )
+      return dt.astimezone(tz).strftime(timestamp_format)
+
+    result = []
+    for action_metadata in self._metadata.action_history:
+      action = action_metadata.WhichOneof('action_kind')
+      if action == 'creation':
+        result.append(
+            CreationMetadata(
+                description=action_metadata.description,
+                timestamp=_format_timestamp(action_metadata),
+            )
+        )
+        continue
+      if action == 'attribute_update':
+        result.append(
+            AttributeUpdateMetadata(
+                description=action_metadata.description,
+                timestamp=_format_timestamp(action_metadata),
+                at_path=action_metadata.attribute_update.at_path,
+                attr_name=action_metadata.attribute_update.attr_name,
+            )
+        )
+        continue
+      if action == 'branch':
+        result.append(
+            BranchMetadata(
+                description=action_metadata.description,
+                timestamp=_format_timestamp(action_metadata),
+                parent_persistence_directory=action_metadata.branch.parent_persistence_directory,
+                parent_action_history_index=action_metadata.branch.parent_action_history_index,
+            )
+        )
+        continue
+      raise ValueError(f'unknown action kind: {action}')
+    return result
 
   def update(
       self,
