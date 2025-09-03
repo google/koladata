@@ -6092,7 +6092,6 @@ TEST(DataSliceCastingTest, SchemaAttr_DifferentExplicitSchemas) {
                HasSubstr("different types: INT64 and FLOAT32")));
 }
 
-// TODO(b/329836487); Explore if this should succeed.
 TEST(DataSliceCastingTest, SchemaAttr_DifferentButCompatibleExplicitSchemas) {
   auto db = DataBag::EmptyMutable();
 
