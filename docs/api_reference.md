@@ -11955,7 +11955,18 @@ Aliases:
 
 - [DataItem.set_attr](#DataItem.set_attr)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an attribute `attr_name` to `value`.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an attribute `attr_name` to `value`.
+
+Requires DataSlice to have a mutable DataBag attached. Compared to
+`__setattr__`, it allows overwriting the schema for attribute `attr_name` when
+`overwrite_schema` is True. Additionally, it allows `attr_name` to be a
+non-Python-identifier (e.g. &#34;123-f&#34;, &#34;5&#34;, &#34;%#$&#34;, etc.). `attr_name` still has to
+be a valid UTF-8 unicode.
+
+Args:
+  attr_name: UTF-8 unicode representing the attribute name.
+  value: new value for attribute `attr_name`.
+  overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
 ### `DataSlice.set_attrs(*, overwrite_schema=False, **attrs)` {#DataSlice.set_attrs}
 Aliases:

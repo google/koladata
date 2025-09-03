@@ -1245,13 +1245,23 @@ Returns:
      "  attr_name: name of the attribute to get.\n"
      "  default: optional default value to fill missing items.\n"
      "           Note that this value can be fully omitted."},
-    // TODO: Add proper docstring when the rest of functionality in
-    // terms of dicts and lists is done.
     {"set_attr", (PyCFunction)PyDataSlice_set_attr,
      METH_FASTCALL | METH_KEYWORDS,
      "set_attr(attr_name, value, /, overwrite_schema=False)\n"
      "--\n\n"
-     "Sets an attribute `attr_name` to `value`."},
+     R"""(Sets an attribute `attr_name` to `value`.
+
+Requires DataSlice to have a mutable DataBag attached. Compared to
+`__setattr__`, it allows overwriting the schema for attribute `attr_name` when
+`overwrite_schema` is True. Additionally, it allows `attr_name` to be a
+non-Python-identifier (e.g. "123-f", "5", "%#$", etc.). `attr_name` still has to
+be a valid UTF-8 unicode.
+
+Args:
+  attr_name: UTF-8 unicode representing the attribute name.
+  value: new value for attribute `attr_name`.
+  overwrite_schema: if True, schema for attribute is always updated.
+)"""},
     {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
      "set_attrs(*, overwrite_schema=False, **attrs)\n"
