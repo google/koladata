@@ -349,6 +349,21 @@ class FromPyTest(parameterized.TestCase):
     self.assertFalse(item.get_bag().is_mutable())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive_float64(self, from_py_fn):
+    item = from_py_fn(0.1, schema=schema_constants.FLOAT64)
+    testing.assert_equal(item, fns.float64(0.1))
+
+    float_list = from_py_fn(
+        [0.1], schema=kde.list_schema(schema_constants.FLOAT64).eval()
+    )
+    testing.assert_equal(float_list[:].no_bag(), fns.float64([0.1]))
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_string_t0_float64_fails(self, from_py_fn):
+    with self.assertRaisesRegex(ValueError, 'the schema is incompatible'):
+      _ = from_py_fn('3.14', schema=schema_constants.FLOAT64)
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
   def test_primitive_int_enum(self, from_py_fn):
     class MyIntEnum(enum.IntEnum):
       A = 1

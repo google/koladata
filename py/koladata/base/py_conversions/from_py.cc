@@ -28,7 +28,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
-#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -231,26 +230,18 @@ class FromPyConverter {
 
     if (py_objects.empty() || IsPrimitiveOrQValue(py_objects, schema)) {
       DataItem schema_item;
-      if (IsObjectSchema(schema)) {
-        schema_item = DataItem(schema::kObject);
+      if (schema) {
+        schema_item = schema->item();
       }
-      // We need implicit casting here, so we provide an empty schema if schema
-      // is not OBJECT.
-      // TODO: avoid precision loss when migrated to v2.
+      // If schema is OBJECT, we need to cast the result to object explicitly to
+      // support Entity -> Object casting.
+      // TODO(b/391097990) use implicit casting when schema inference is more
+      // flexible.
       ASSIGN_OR_RETURN(
           DataSlice res_slice,
           DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
-                                  adoption_queue_));
-      if (schema) {
-        ASSIGN_OR_RETURN(res_slice, CastToImplicit(res_slice, schema->item()),
-                         [&](absl::Status status) {
-                           return CreateIncompatibleSchemaErrorFromStatus(
-                               std::move(status),
-                               res_slice.GetSchema().WithBag(
-                                   adoption_queue_.GetBagWithFallbacks()),
-                               *schema);
-                         }(_));
-      }
+                                  adoption_queue_,
+                                  /*explicit_cast=*/IsObjectSchema(schema)));
       return res_slice;
     }
 

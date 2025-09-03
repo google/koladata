@@ -50,9 +50,15 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
 // Creates a DataSlice from a flat vector of PyObject(s), shape and type of
 // items. In case, edges is empty, we have a single value and treat it as 0-dim
 // output.
+// If the schema is provided, the resulting DataSlice will always be
+// created with that schema. If `explicit_cast` is true, the `schema` must be
+// provided and the resulting DataSlice will be explicitly casted to it.
+// Otherwise, the aggregated schema of the elements must be implicitly castable
+// to the provided schema (if any).
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
-    internal::DataItem schema, AdoptionQueue& adoption_queue);
+    internal::DataItem schema, AdoptionQueue& adoption_queue,
+    bool explicit_cast = false);
 
 // Parses the Python list and returns flattened items (borrowed references)
 // together with the appropriate JaggedShape. This is the same logic as used

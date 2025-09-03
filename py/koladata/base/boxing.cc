@@ -76,7 +76,6 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/object_factories.h"
-#include "koladata/schema_utils.h"
 #include "koladata/uuid_utils.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -152,7 +151,7 @@ class EmbeddingDataBag {
 //
 // `embedding_db` is updated by calling `embedding_db.EmbedSchema` with the
 // schema of the parsed `py_obj` iff the `py_obj` is an entity.
-template <bool explicit_cast, class Callback>
+template <class Callback>
 absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
                            AdoptionQueue& adoption_queue,
                            schema::CommonSchemaAggregator& schema_agg,
@@ -190,12 +189,10 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
     return absl::OkStatus();
   }
   if (PyFloat_Check(py_obj)) {
-    if constexpr (explicit_cast) {
-      if (explicit_schema == schema::kFloat64) {
-        schema_agg.Add(schema::kFloat64);
-        callback(static_cast<double>(PyFloat_AsDouble(py_obj)));
-        return absl::OkStatus();
-      }
+    if (explicit_schema == schema::kFloat64) {
+      schema_agg.Add(schema::kFloat64);
+      callback(static_cast<double>(PyFloat_AsDouble(py_obj)));
+      return absl::OkStatus();
     }
     // NOTE: Parsing as float32 may lead to precision loss in case the final
     // schema is FLOAT64. However, if the final schema is e.g. OBJECT, we should
@@ -313,8 +310,10 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
   ASSIGN_OR_RETURN((auto [py_objects, shape]),
                    FlattenPyList(py_list, /*max_depth=*/0));
 
+  const bool explicit_cast = schema.has_value();
   return DataSliceFromPyFlatList(py_objects, std::move(shape),
-                                 std::move(schema), adoption_queue);
+                                 std::move(schema), adoption_queue,
+                                 explicit_cast);
 }
 
 }  // namespace
@@ -341,7 +340,11 @@ absl::Status CreateIncompatibleSchemaErrorFromStatus(
 
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
-    DataItem schema, AdoptionQueue& adoption_queue) {
+    DataItem schema, AdoptionQueue& adoption_queue, bool explicit_cast) {
+  if (explicit_cast && !schema.has_value()) {
+    return absl::InvalidArgumentError(
+        "schema must be provided for explicit_cast");
+  }
   int64_t res_size = flat_list.size();
 
   // Helper lambdas for parsing text and bytes.
@@ -387,66 +390,73 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
         bldr.InsertIfNotSet<T>(bitmask, {}, str_buffer);
       };
 
-  auto impl = [&]<bool explicit_cast>() -> absl::StatusOr<DataSlice> {
-    internal::SliceBuilder bldr(res_size);
-    schema::CommonSchemaAggregator schema_agg;
-    schema_agg.Add(schema::kNone);
-    EmbeddingDataBag embedding_db;
-    int64_t text_total_size = 0;
-    std::vector<std::pair<int64_t, absl::string_view>> texts;
-    int64_t bytes_total_size = 0;
-    std::vector<std::pair<int64_t, absl::string_view>> bytes;
-    for (int i = 0; i < res_size; ++i) {
-      auto parse_cb = [&]<class T>(T&& value) {
-        if constexpr (std::is_same_v<T, DataItem::View<Text>>) {
-          texts.reserve(res_size);
-          text_total_size += value.view.size();
-          texts.emplace_back(i, value.view);
-        } else if constexpr (std::is_same_v<T, DataItem::View<Bytes>>) {
-          bytes.reserve(res_size);
-          bytes_total_size += value.view.size();
-          bytes.emplace_back(i, value.view);
-        } else if constexpr (std::is_same_v<std::decay_t<T>, DataItem>) {
-          bldr.InsertIfNotSetAndUpdateAllocIds(i, std::forward<T>(value));
-        } else {
-          bldr.InsertIfNotSet(i, std::forward<T>(value));
-        }
-      };
-      RETURN_IF_ERROR(ParsePyObject<explicit_cast>(flat_list[i], schema,
-                                                   adoption_queue, schema_agg,
-                                                   embedding_db, parse_cb));
-    }
-
-    if (!texts.empty()) {
-      add_str_array(std::type_identity<arolla::Text>{}, bldr, texts,
-                    text_total_size);
-    }
-    if (!bytes.empty()) {
-      add_str_array(std::type_identity<arolla::Bytes>{}, bldr, bytes,
-                    bytes_total_size);
-    }
-    if constexpr (!explicit_cast) {
-      ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
-                       KodaErrorCausedByNoCommonSchemaError(
-                           _, adoption_queue.GetBagWithFallbacks()));
-    }
-    // The slice should be casted explicitly if the schema is provided by the
-    // user. If this is gathered from data, it is validated to be implicitly
-    // castable when finding the common schema. The schema attributes are not
-    // validated, and are instead assumed to be part of the adoption queue.
-    ASSIGN_OR_RETURN(auto res,
-                     CreateWithSchema(std::move(bldr).Build(), std::move(shape),
-                                      std::move(schema)));
-    // Entity slices embedded to the aux db should be part of the final merged
-    // db.
-    adoption_queue.Add(embedding_db.GetBag());
-    return res;
-  };
-  if (schema.has_value()) {
-    return impl.operator()<true>();
-  } else {
-    return impl.operator()<false>();
+  internal::SliceBuilder bldr(res_size);
+  schema::CommonSchemaAggregator schema_agg;
+  schema_agg.Add(schema::kNone);
+  EmbeddingDataBag embedding_db;
+  int64_t text_total_size = 0;
+  std::vector<std::pair<int64_t, absl::string_view>> texts;
+  int64_t bytes_total_size = 0;
+  std::vector<std::pair<int64_t, absl::string_view>> bytes;
+  for (int i = 0; i < res_size; ++i) {
+    auto parse_cb = [&]<class T>(T&& value) {
+      if constexpr (std::is_same_v<T, DataItem::View<Text>>) {
+        texts.reserve(res_size);
+        text_total_size += value.view.size();
+        texts.emplace_back(i, value.view);
+      } else if constexpr (std::is_same_v<T, DataItem::View<Bytes>>) {
+        bytes.reserve(res_size);
+        bytes_total_size += value.view.size();
+        bytes.emplace_back(i, value.view);
+      } else if constexpr (std::is_same_v<std::decay_t<T>, DataItem>) {
+        bldr.InsertIfNotSetAndUpdateAllocIds(i, std::forward<T>(value));
+      } else {
+        bldr.InsertIfNotSet(i, std::forward<T>(value));
+      }
+    };
+    RETURN_IF_ERROR(ParsePyObject(flat_list[i], schema, adoption_queue,
+                                  schema_agg, embedding_db, parse_cb));
   }
+
+  if (!texts.empty()) {
+    add_str_array(std::type_identity<arolla::Text>{}, bldr, texts,
+                  text_total_size);
+  }
+  if (!bytes.empty()) {
+    add_str_array(std::type_identity<arolla::Bytes>{}, bldr, bytes,
+                  bytes_total_size);
+  }
+  if (!explicit_cast) {
+    ASSIGN_OR_RETURN(DataItem agg_schema, std::move(schema_agg).Get(),
+                     KodaErrorCausedByNoCommonSchemaError(
+                         _, adoption_queue.GetBagWithFallbacks()));
+    if (schema.has_value()) {
+      if (!schema::IsImplicitlyCastableTo(agg_schema, schema)) {
+        ASSIGN_OR_RETURN(
+            DataSlice agg_schema_ds,
+            DataSlice::Create(agg_schema, internal::DataItem(schema::kSchema),
+                              adoption_queue.GetBagWithFallbacks()));
+        ASSIGN_OR_RETURN(
+            DataSlice schema_ds,
+            DataSlice::Create(schema, internal::DataItem(schema::kSchema),
+                              adoption_queue.GetBagWithFallbacks()));
+        return CreateIncompatibleSchemaError(agg_schema_ds, schema_ds);
+      }
+    } else {
+      schema = std::move(agg_schema);
+    }
+  }
+  // The slice should be casted explicitly if the schema is provided by the
+  // user. If this is gathered from data, it is validated to be implicitly
+  // castable when finding the common schema. The schema attributes are not
+  // validated, and are instead assumed to be part of the adoption queue.
+  ASSIGN_OR_RETURN(auto res,
+                   CreateWithSchema(std::move(bldr).Build(), std::move(shape),
+                                    std::move(schema)));
+  // Entity slices embedded to the aux db should be part of the final merged
+  // db.
+  adoption_queue.Add(embedding_db.GetBag());
+  return res;
 }
 
 // Parses the Python list and returns flattened items together with appropriate
@@ -579,16 +589,16 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
     schema_item = schema->item();
     EmbeddingDataBag embedding_db;
     schema::CommonSchemaAggregator unused_schema_agg;
-    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/true>(
-        py_obj, /*explicit_schema=*/schema_item, adoption_queue,
-        unused_schema_agg, embedding_db, to_data_item_fn));
+    RETURN_IF_ERROR(ParsePyObject(py_obj, /*explicit_schema=*/schema_item,
+                                  adoption_queue, unused_schema_agg,
+                                  embedding_db, to_data_item_fn));
     // Entity slices embedded to the aux db should be part of the final merged
     // db.
     adoption_queue.Add(embedding_db.GetBag());
   } else {
     schema::CommonSchemaAggregator schema_agg;
     EmbeddingDataBag unused_embedding_db;
-    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/false>(
+    RETURN_IF_ERROR(ParsePyObject(
         py_obj, /*explicit_schema=*/internal::DataItem(), adoption_queue,
         schema_agg, unused_embedding_db, to_data_item_fn));
     DCHECK_EQ(unused_embedding_db.GetBag(), nullptr);
@@ -1136,18 +1146,20 @@ class UniversalConverter {
   // expensive callbacks to Python (parsing dataclasses) and the point of this
   // `Try...` method is to skip doing expensive Python callbacks on each Python
   // scalar.
-  absl::Status TryParsePythonScalar(PyObject* py_obj) {
+  absl::Status TryParsePythonScalar(
+      PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt) {
     EmbeddingDataBag unused_embedding_db;
     schema::CommonSchemaAggregator schema_agg;
     internal::DataItem res_item;
-    internal::DataItem schema_item;
+    internal::DataItem schema_item =
+        schema ? internal::DataItem(schema->item()) : internal::DataItem();
     auto to_data_item_fn = [&res_item]<class T>(T&& value) {
       res_item = internal::DataItem(std::forward<T>(value));
     };
     // NOTE: If there is a DataBag `py_obj`, it is added to the adoption_queue.
-    RETURN_IF_ERROR(ParsePyObject</*explicit_cast=*/false>(
-        py_obj, /*explicit_schema=*/internal::DataItem(), adoption_queue_,
-        schema_agg, unused_embedding_db, to_data_item_fn));
+    RETURN_IF_ERROR(ParsePyObject(py_obj, /*explicit_schema=*/schema_item,
+                                  adoption_queue_, schema_agg,
+                                  unused_embedding_db, to_data_item_fn));
     DCHECK_EQ(unused_embedding_db.GetBag(), nullptr);
     ASSIGN_OR_RETURN(schema_item, std::move(schema_agg).Get());
     // The original bag was added to the adoption_queue, so returning an item
@@ -1215,7 +1227,7 @@ class UniversalConverter {
     }
     // First trying the Python "scalar" conversion to avoid doing expensive
     // `AttrProvider` checks (e.g. dataclasses) on each leaf Python object.
-    absl::Status status = TryParsePythonScalar(py_obj);
+    absl::Status status = TryParsePythonScalar(py_obj, schema);
     if (status.ok()) {
       objects_in_progress_.erase(cache_key);
       return status;
