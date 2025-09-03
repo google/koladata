@@ -329,6 +329,14 @@ class DataSliceManagerView:
         ),
     )
 
+  def __getitem__(self, value: Any) -> DataSliceManagerView:
+    """Sugar for self.get_list_items()."""
+    if value != slice(None):
+      raise ValueError(
+          f'only the [:] syntax is supported; got a request for [{value}]'
+      )
+    return self.get_list_items()
+
   def get_dict_keys(self) -> DataSliceManagerView:
     """Returns a view of the dict keys.
 

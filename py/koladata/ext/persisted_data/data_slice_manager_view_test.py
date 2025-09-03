@@ -47,7 +47,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         'Added queries with query_id and text',
     )
 
-    queries = root.query.get_list_items()
+    queries = root.query[:]
 
     expected_query_schema = kd.named_schema(
         'query', query_id=kd.INT32, text=kd.STRING
@@ -93,7 +93,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         'Added docs to queries. Populated doc_id and title',
     )
 
-    docs = queries.doc.get_list_items()
+    docs = queries.doc[:]
 
     self.assertEqual(
         docs.title.get_schema(),
@@ -316,7 +316,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           'Added tokens of the query text',
       )
 
-      tokens = root.query.get_list_items().token
+      tokens = root.query[:].token
 
       kd.testing.assert_deep_equivalent(
           tokens.get_schema(),
@@ -424,7 +424,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
             query_id=1, text='How high is the Eiffel tower'
         ),
     ])
-    query = root.query.get_list_items()
+    query = root.query[:]
 
     query.doc = kd.slice([
         kd.list([
@@ -436,7 +436,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     ])
     doc_list = query.doc
-    doc = doc_list.get_list_items()
+    doc = doc_list[:]
     doc_title = doc.title
 
     token_info_schema = kd.named_schema('token_info', part_of_speech=kd.STRING)
@@ -535,6 +535,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
         re.escape("invalid data slice path: '.query[:].doc'"),
     ):
       doc_list.get_list_items()
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("invalid data slice path: '.query[:].doc'"),
+    ):
+      doc_list[:]  # pylint: disable=pointless-statement
     with self.assertRaisesRegex(
         ValueError,
         re.escape("invalid data slice path: '.query[:].tokens'"),
@@ -675,7 +680,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           'Added query with query_id and text populated',
       )
 
-      queries = root.query.get_list_items()
+      queries = root.query[:]
 
       queries.doc = (
           kd.slice([
@@ -701,8 +706,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
       root = DataSliceManagerView(manager)
-      queries = root.query.get_list_items()
-      docs = queries.doc.get_list_items()
+      queries = root.query[:]
+      docs = queries.doc[:]
 
       # Filter the docs to only keep the ones with "Barack" in the title, and
       # filter the queries to only keep the ones with at least one such doc.
@@ -853,6 +858,42 @@ class DataSliceManagerViewTest(absltest.TestCase):
             'update',
         ],
     )
+
+  def test_getitem_raises_error_for_invalid_argument(self):
+    manager = pidsm.PersistedIncrementalDataSliceManager(
+        self.create_tempdir().full_path
+    )
+    root = DataSliceManagerView(manager)
+    root.query = kd.list([
+        kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+        kd.named_schema('query').new(
+            query_id=1, text='How high is the Eiffel tower'
+        ),
+    ])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('only the [:] syntax is supported; got a request for [1]'),
+    ):
+      _ = root.query[1]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'only the [:] syntax is supported; got a request for [slice(0, 2,'
+            ' None)]'
+        ),
+    ):
+      _ = root.query[0:2]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'only the [:] syntax is supported; got a request for [slice(0, 2,'
+            ' 1)]'
+        ),
+    ):
+      _ = root.query[0:2:1]
 
 
 if __name__ == '__main__':
