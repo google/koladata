@@ -40,7 +40,7 @@ def cond_add_fn(x, y):
 class KdTest(absltest.TestCase):
 
   def test_types(self):
-    self.assertIsInstance(kd.types, types.ModuleType)
+    self.assertIsInstance(kd.types, types.SimpleNamespace)
     self.assertIsInstance(kd.bag(), kd.types.DataBag)
     self.assertIsInstance(kd.slice([1, 2, 3]), kd.types.DataSlice)
     self.assertIsInstance(kd.item(5), kd.types.DataItem)

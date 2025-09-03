@@ -80,7 +80,7 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
 
 
 ### Used as type annotations in user's code.
-types = _eager_only(_py_types.ModuleType('types'))
+types = _eager_only(_py_types.SimpleNamespace())
 types.DataBag = _data_bag.DataBag
 types.DataItem = _data_item.DataItem
 types.DataSlice = _data_slice.DataSlice
@@ -96,14 +96,14 @@ types.StreamReader = _functor_parallel_clib.StreamReader
 types.StreamWriter = _functor_parallel_clib.StreamWriter
 
 ### Koda QTypes.
-qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
+qtypes = _same_when_tracing(_py_types.SimpleNamespace())
 qtypes.DATA_SLICE = _qtypes.DATA_SLICE
 qtypes.NON_DETERMINISTIC_TOKEN = _qtypes.NON_DETERMINISTIC_TOKEN
 qtypes.DATA_BAG = _qtypes.DATA_BAG
 qtypes.EXECUTOR = _qtypes.EXECUTOR
 
 ### Tools for defining operators.
-optools = _eager_only(_py_types.ModuleType('optools'))
+optools = _eager_only(_py_types.SimpleNamespace())
 optools.add_alias = _optools.add_alias
 optools.add_to_registry = _optools.add_to_registry
 optools.as_backend_operator = _optools.as_backend_operator
@@ -124,7 +124,7 @@ optools.unified_non_deterministic_kwarg = (
 optools.WITH_PY_FUNCTION_TO_PY_OBJECT = _py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
 
 ### Operator constraints.
-optools.constraints = _py_types.ModuleType('constraints')
+optools.constraints = _py_types.SimpleNamespace()
 optools.constraints.expect_data_slice = _qtype_utils.expect_data_slice
 optools.constraints.expect_data_slice_args = _qtype_utils.expect_data_slice_args
 optools.constraints.expect_data_slice_kwargs = (
@@ -140,7 +140,7 @@ optools.constraints.expect_jagged_shape_or_unspecified = (
 )
 
 ### Tools for eager operators.
-optools.eager = _py_types.ModuleType('optools')
+optools.eager = _py_types.SimpleNamespace()
 optools.eager.EagerOperator = _eager_op_utils.EagerOperator
 
 
@@ -213,7 +213,7 @@ duck_list = _same_when_tracing(_type_checking.duck_list)
 duck_dict = _same_when_tracing(_type_checking.duck_dict)
 static_when_tracing = _same_when_tracing(_type_checking.static_when_tracing)
 
-expr = _eager_only(_py_types.ModuleType('expr'))
+expr = _eager_only(_py_types.SimpleNamespace())
 expr.literal = _literal_operator.literal
 expr.get_name = _introspection.get_name
 expr.unwrap_named = _introspection.unwrap_named
