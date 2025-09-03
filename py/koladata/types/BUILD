@@ -61,13 +61,13 @@ py_test(
         ":data_slice",
         ":ellipsis",
         ":extension_type_registry",
-        ":extension_types",
         ":jagged_shape",
         ":literal_operator",
         ":py_boxing",
         ":schema_item",
         "//py:python_path",
         "//py/koladata/expr:input_container",
+        "//py/koladata/extension_types",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -665,27 +665,6 @@ py_test(
 )
 
 py_library(
-    name = "extension_types",
-    srcs = ["extension_types.py"],
-    deps = [
-        ":data_bag",
-        ":data_slice",
-        ":extension_type_registry",
-        ":jagged_shape",
-        ":py_boxing",
-        ":qtypes",
-        ":schema_constants",
-        ":schema_item",
-        "//py:python_path",
-        "//py/koladata/expr:view",
-        "//py/koladata/functor:functor_factories",
-        "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/derived_qtype",
-        "@com_google_arolla//py/arolla/objects",
-    ],
-)
-
-py_library(
     name = "extension_type_registry",
     srcs = ["extension_type_registry.py"],
     deps = [
@@ -713,34 +692,6 @@ py_test(
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
         "@com_google_arolla//py/arolla/objects",
-    ],
-)
-
-py_test(
-    name = "extension_types_test",
-    srcs = ["extension_types_test.py"],
-    deps = [
-        ":data_bag",
-        ":data_item",
-        ":data_slice",
-        ":extension_type_registry",
-        ":extension_types",
-        ":jagged_shape",
-        ":qtypes",
-        ":schema_constants",
-        "//py:python_path",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:introspection",
-        "//py/koladata/expr:view",
-        "//py/koladata/functions",
-        "//py/koladata/functor:functor_factories",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 

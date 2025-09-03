@@ -23,6 +23,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view as _
+from koladata.extension_types import extension_types
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
@@ -31,7 +32,6 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import extension_types
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import signature_utils
@@ -270,9 +270,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         functor_factories.trace_py_fn(my_model)
         .get_attr('__qualname__')
         .no_bag(),
-        ds(
-            'FunctorFactoriesTest.test_trace_py_fn_qualname.<locals>.my_model'
-        ),
+        ds('FunctorFactoriesTest.test_trace_py_fn_qualname.<locals>.my_model'),
     )
 
   def test_trace_py_fn_module(self):
@@ -444,12 +442,8 @@ class FunctorFactoriesTest(absltest.TestCase):
       return x
 
     testing.assert_equal(
-        functor_factories.py_fn(my_py_fn)
-        .get_attr('__qualname__')
-        .no_bag(),
-        ds(
-            'FunctorFactoriesTest.test_py_fn_qualname.<locals>.my_py_fn'
-        ),
+        functor_factories.py_fn(my_py_fn).get_attr('__qualname__').no_bag(),
+        ds('FunctorFactoriesTest.test_py_fn_qualname.<locals>.my_py_fn'),
     )
 
   def test_py_fn_module(self):
@@ -1111,22 +1105,10 @@ class FunctorFactoriesTest(absltest.TestCase):
         'kd.math.floordiv: division by zero',
     )
     tb = '\n'.join(traceback.format_tb(ex.__traceback__))  # pylint: disable=undefined-variable
-    self.assertIn(
-        'File "my_file.py", line 57, in fn1',
-        tb
-    )
-    self.assertIn(
-        'File "my_file.py", line 58, in',
-        tb
-    )
-    self.assertNotIn(
-        'File ""',
-        tb
-    )
-    self.assertNotIn(
-        'line 0',
-        tb
-    )
+    self.assertIn('File "my_file.py", line 57, in fn1', tb)
+    self.assertIn('File "my_file.py", line 58, in', tb)
+    self.assertNotIn('File ""', tb)
+    self.assertNotIn('line 0', tb)
 
   def test_extension_type_py_fn(self):
 

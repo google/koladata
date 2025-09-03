@@ -22,6 +22,7 @@ from IPython.core import ultratb
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.extension_types import extension_types
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
@@ -32,7 +33,6 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import extension_types
 from koladata.types import schema_constants
 
 

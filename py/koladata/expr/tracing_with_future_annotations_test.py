@@ -16,10 +16,10 @@ from __future__ import annotations  # MUST BE IMPORTED.
 
 from absl.testing import absltest
 from koladata.expr import tracing
+from koladata.extension_types import extension_types
 from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import extension_types
 from koladata.types import schema_constants
 
 

@@ -17,11 +17,11 @@ from absl.testing import parameterized
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.extension_types import extension_types
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
-from koladata.types import extension_types
 from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")

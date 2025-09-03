@@ -23,6 +23,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
+from koladata.extension_types import extension_types as ext_types
 from koladata.functions import functions as _
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
@@ -31,7 +32,6 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
-from koladata.types import extension_types as ext_types
 from koladata.types import jagged_shape
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -510,9 +510,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       expr = kde.extension_types.dynamic_cast(
           MyChildExtension(I.x, I.y), my_extension_qtype
       )
-      expr = kde.extension_types.dynamic_cast(
-          expr, my_child_extension_qtype
-      )
+      expr = kde.extension_types.dynamic_cast(expr, my_child_extension_qtype)
       self.assertIsInstance(expr, arolla.Expr)
       testing.assert_equal(expr.eval(x=1, y=3), MyChildExtension(1, 3))
       # By default, we then also call the child impl.
@@ -692,7 +690,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError,
           "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
-          ' actual type DATA_BAG'
+          ' actual type DATA_BAG',
       ):
         _ = a_updated.x
 
@@ -702,7 +700,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError,
           "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
-          ' actual type DATA_BAG'
+          ' actual type DATA_BAG',
       ):
         _ = a_updated.x.eval(x=1, z=data_bag.DataBag.empty())
 

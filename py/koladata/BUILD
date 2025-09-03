@@ -44,6 +44,7 @@ py_library(
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/extension_types:functions",
         "//py/koladata/functions",
         "//py/koladata/functor:boxing",
         "//py/koladata/functor:expr_container",

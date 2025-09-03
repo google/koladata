@@ -19,6 +19,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
+from koladata.extension_types import extension_types
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -26,7 +27,6 @@ from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import extension_type_registry
-from koladata.types import extension_types
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import py_boxing

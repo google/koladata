@@ -16,11 +16,11 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
+from koladata.extension_types import extension_types
 from koladata.functions import s11n
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import extension_types
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
@@ -107,14 +107,14 @@ class DumpsLoadsTest(parameterized.TestCase):
 
   def test_dumps_loads_objects(self):
     bag = kd.mutable_bag()
-    objs = bag.obj(a=kd.slice([1, 2, 3]*10))
+    objs = bag.obj(a=kd.slice([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(objs))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertTrue(loaded.is_mutable())
 
   def test_dumps_preserves_immutability(self):
     bag = kd.mutable_bag()
-    objs = bag.obj(a=kd.slice([1, 2, 3]*10))
+    objs = bag.obj(a=kd.slice([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertFalse(loaded.is_mutable())

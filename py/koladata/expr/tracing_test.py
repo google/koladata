@@ -19,11 +19,11 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing
+from koladata.extension_types import extension_types
 from koladata.functions import parallel
 from koladata.functor import functions
 from koladata.testing import testing
 from koladata.types import extension_type_registry
-from koladata.types import extension_types
 from koladata.types import schema_constants
 
 
@@ -311,6 +311,7 @@ class TracingTest(absltest.TestCase):
       y: schema_constants.INT32
 
     with self.subTest('self_cast'):
+
       def self_cast_fn(b: B):
         return b.y
 
@@ -318,6 +319,7 @@ class TracingTest(absltest.TestCase):
       self.assertEqual(expr.eval(b=B(x=1, y=2)), 2)
 
     with self.subTest('upcast'):
+
       def upcast_fn(a: A):
         return a.x
 
@@ -325,6 +327,7 @@ class TracingTest(absltest.TestCase):
       self.assertEqual(expr.eval(a=B(x=1, y=2)), 1)
 
     with self.subTest('downcast'):
+
       def downcast_fn(b: B):
         return b.y
 
@@ -339,6 +342,7 @@ class TracingTest(absltest.TestCase):
       self.assertEqual(expr.eval(b=b_upcasted), 2)
 
     with self.subTest('upcast_extension_type_result'):
+
       def upcast_self_return_fn(a: A):
         return a
 

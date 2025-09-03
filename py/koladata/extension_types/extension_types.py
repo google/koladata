@@ -42,6 +42,7 @@ _OVERRIDE_METHOD_ATTR = '_kd_extension_type_override_method'
 
 def virtual():
   """Marks the method as virtual, allowing it to be overridden."""
+
   def impl(fn: Callable[..., Any]) -> Callable[..., Any]:
     setattr(fn, _VIRTUAL_METHOD_ATTR, True)
     return fn
@@ -51,6 +52,7 @@ def virtual():
 
 def override():
   """Marks the method as overriding a virtual method."""
+
   def impl(fn: Callable[..., Any]) -> Callable[..., Any]:
     setattr(fn, _OVERRIDE_METHOD_ATTR, True)
     return fn
@@ -172,13 +174,12 @@ def _assert_allowed_override_tag(original_class: type[Any], attr: str):
 
 def _assert_allowed_no_tag(original_class: type[Any], attr: str):
   for cls in original_class.__mro__[1:]:
-    if hasattr(cls, attr) and hasattr(
-        getattr(cls, attr), _VIRTUAL_METHOD_ATTR
-    ):
+    if hasattr(cls, attr) and hasattr(getattr(cls, attr), _VIRTUAL_METHOD_ATTR):
       raise AssertionError(
           f'missing @override annotation on class {original_class} for the'
           f' @virtual method {attr} defined on an ancestor class'
       )
+
 
 _FORBIDDEN_ATTRS = frozenset({
     'with_attrs',

@@ -612,11 +612,11 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/extension_types",
         "//py/koladata/functions:s11n",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:extension_types",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",

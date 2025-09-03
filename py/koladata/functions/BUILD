@@ -40,8 +40,6 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:data_slice_py_ext",
-        "//py/koladata/types:extension_type_registry",
-        "//py/koladata/types:extension_types",
         "//py/koladata/types:general_eager_ops",
     ],
 )

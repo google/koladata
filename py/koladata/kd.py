@@ -26,6 +26,7 @@ from koladata.expr import introspection as _introspection
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
+from koladata.extension_types import functions as _extension_type_functions
 from koladata.functions import functions as _functions
 from koladata.functor import boxing as _
 from koladata.functor import expr_container as _expr_container
@@ -194,7 +195,7 @@ def _LoadImpureFunctions(*modules: _py_types.ModuleType):
           globals()[fn_name] = _eager_only(fn_val)
 
 
-_LoadImpureFunctions(_functions, _functor_functions)
+_LoadImpureFunctions(_functions, _functor_functions, _extension_type_functions)
 
 
 ### Expr-related functions, Input/Variable containers and operator container.
