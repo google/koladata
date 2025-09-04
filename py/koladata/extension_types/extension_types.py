@@ -105,6 +105,11 @@ def _make_virtual_method(
       return_type_as = arolla.abc.aux_eval_op(
           'kd.extension_types.unwrap', return_type_as
       )
+    # We fall back to whatever the user provided.
+    if return_type_as is None and isinstance(
+        sig.return_annotation, arolla.QValue
+    ):
+      return_type_as = sig.return_annotation
 
   # NOTE: We do not trace here, since we have yet to register an expr view.
   @functools.wraps(method)
@@ -122,7 +127,10 @@ def _make_virtual_method(
   @functools.wraps(method)
   def method_impl(self, *args, **kwargs):
     fn = getattr(self, _make_functor_attr_name(method_name))
-    res = fn(self, *args, **kwargs, return_type_as=return_type_as)
+    if return_type_as is not None and 'return_type_as' in kwargs:
+      raise ValueError('return_type_as is already set through annotations')
+    return_type_as_ = kwargs.pop('return_type_as', return_type_as)
+    res = fn(self, *args, **kwargs, return_type_as=return_type_as_)
     if output_qtype is not None:
       if isinstance(res, arolla.Expr):
         return arolla.abc.aux_bind_op(

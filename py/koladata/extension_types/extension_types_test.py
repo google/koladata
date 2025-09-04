@@ -824,6 +824,69 @@ class ExtensionTypesTest(parameterized.TestCase):
       a = A(I.db)
       testing.assert_equal(a.fn().eval(db=db), db)
 
+  def test_virtual_method_qvalue_return_annotation(self):
+
+    @ext_types.extension_type()
+    class A:
+
+      @ext_types.virtual()
+      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):
+        return kde.tuple(x, x)
+
+    with self.subTest('eager'):
+      a = A()
+      testing.assert_equal(a.fn(ds(2)), arolla.tuple(ds(2), ds(2)))
+
+    with self.subTest('lazy'):
+      a = A()
+      testing.assert_equal(a.fn(I.x).eval(x=ds(2)), arolla.tuple(ds(2), ds(2)))
+
+  def test_virtual_method_return_type_as(self):
+
+    @ext_types.extension_type()
+    class A:
+
+      @ext_types.virtual()
+      def fn(self, x):
+        return kde.tuple(x, x)
+
+    with self.subTest('eager'):
+      a = A()
+      testing.assert_equal(
+          a.fn(ds(2), return_type_as=arolla.tuple(ds(1), ds(1))),
+          arolla.tuple(ds(2), ds(2)),
+      )
+
+    with self.subTest('lazy'):
+      a = A()
+      testing.assert_equal(
+          a.fn(I.x, return_type_as=arolla.tuple(ds(1), ds(1))).eval(x=ds(2)),
+          arolla.tuple(ds(2), ds(2)),
+      )
+
+  def test_virtual_method_duplicaet_return_type(self):
+
+    @ext_types.extension_type()
+    class A:
+
+      @ext_types.virtual()
+      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):
+        return kde.tuple(x, x)
+
+    with self.subTest('eager'):
+      a = A()
+      with self.assertRaisesRegex(
+          ValueError, 'return_type_as is already set through annotations'
+      ):
+        a.fn(ds(2), return_type_as=arolla.tuple(ds(1), ds(1)))
+
+    with self.subTest('lazy'):
+      a = A()
+      with self.assertRaisesRegex(
+          ValueError, 'return_type_as is already set through annotations'
+      ):
+        a.fn(I.x, return_type_as=arolla.tuple(ds(1), ds(1)))
+
   def test_virtual_methods_no_annotation_on_ancestor(self):
     @ext_types.extension_type()
     class A:
