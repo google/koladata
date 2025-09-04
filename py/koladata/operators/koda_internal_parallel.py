@@ -76,7 +76,7 @@ def _replace_non_deterministic_leaf_with_param(expr):
   )
 
 
-@arolla.optools.add_to_registry()
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.make_executor',
     qtype_constraints=[

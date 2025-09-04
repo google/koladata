@@ -52,6 +52,7 @@ NAMEDTUPLES_OF_DATA_SLICES = (
     arolla.make_namedtuple_qtype(kwarg_0=DATA_SLICE, kwarg_1=DATA_SLICE),
 )
 
+EXECUTOR = qtypes.EXECUTOR
 
 DETECT_SIGNATURES_QTYPES = tuple(
     dict.fromkeys(

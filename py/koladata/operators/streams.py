@@ -41,8 +41,11 @@ def get_eager_executor():
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator('kd.streams.make_executor')
-def make_executor(thread_limit=0):
+@optools.as_lambda_operator(
+    'kd.streams.make_executor',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.thread_limit)],
+)
+def make_executor(*, thread_limit=0):
   """Returns a new executor.
 
   Note: The `thread_limit` limits the concurrency; however, the executor may
@@ -52,7 +55,9 @@ def make_executor(thread_limit=0):
     thread_limit: The number of threads to use. Must be non-negative; 0 means
       that the number of threads is selected automatically.
   """
-  return koda_internal_parallel.make_executor(thread_limit)
+  return koda_internal_parallel.make_executor(
+      arolla.abc.bind_op('koda_internal.to_arolla_int64', thread_limit)
+  )
 
 
 @optools.add_to_registry()

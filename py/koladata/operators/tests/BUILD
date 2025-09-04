@@ -8915,11 +8915,22 @@ py_test(
     srcs = ["koda_internal_parallel_make_executor_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators/tests/util:qtypes",
-        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "streams_make_executor_test",
+    srcs = ["streams_make_executor_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

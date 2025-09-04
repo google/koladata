@@ -8717,7 +8717,7 @@ Args:
 Returns:
   A stream with the given items.</code></pre>
 
-### `kd.streams.make_executor(thread_limit=0)` {#kd.streams.make_executor}
+### `kd.streams.make_executor(*, thread_limit=0)` {#kd.streams.make_executor}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new executor.
 
