@@ -439,6 +439,9 @@ class ExtensionTypesTest(parameterized.TestCase):
       def __eq__(self, other):
         return self.x + 1 == other.x
 
+      def __ne__(self, other):
+        return not (self == other)
+
       def __hash__(self):
         return hash(self.x)
 
@@ -864,7 +867,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           arolla.tuple(ds(2), ds(2)),
       )
 
-  def test_virtual_method_duplicaet_return_type(self):
+  def test_virtual_method_duplicate_return_type(self):
 
     @ext_types.extension_type()
     class A:
@@ -886,6 +889,34 @@ class ExtensionTypesTest(parameterized.TestCase):
           ValueError, 'return_type_as is already set through annotations'
       ):
         a.fn(I.x, return_type_as=arolla.tuple(ds(1), ds(1)))
+
+  def test_virtual_methods_builtin_methods_override(self):
+    # Regression test for b/443041888, ensuring that builtin methods can be
+    # made virtual.
+
+    @ext_types.extension_type()
+    class A:
+
+      @ext_types.virtual()
+      def __call__(self, x):
+        return x
+
+    @ext_types.extension_type()
+    class B(A):
+
+      @ext_types.override()
+      def __call__(self, x):
+        return x + 1
+
+    with self.subTest('without_casting'):
+      testing.assert_equal(A()(ds(1)), ds(1))
+      testing.assert_equal(B()(ds(1)), ds(2))
+
+    with self.subTest('with_upcasting'):
+      a_qtype = extension_type_registry.get_extension_qtype(A)
+      casted_b = extension_type_registry.dynamic_cast(B(), a_qtype)
+      testing.assert_equal(casted_b.qtype, a_qtype)  # Sanity check.
+      testing.assert_equal(casted_b(ds(1)), ds(2))
 
   def test_virtual_methods_no_annotation_on_ancestor(self):
     @ext_types.extension_type()
@@ -914,6 +945,30 @@ class ExtensionTypesTest(parameterized.TestCase):
         ' is not allowed for the @virtual annotation',
     ):
       ext_types.extension_type()(C)
+
+  def test_virtual_methods_user_defined_call_bad_override(self):
+    # Regression test for b/443041888, ensuring that builtin methods can be
+    # made virtual.
+
+    @ext_types.extension_type()
+    class A:
+
+      def __call__(self, x):
+        return x
+
+    class B(A):
+
+      @ext_types.virtual()
+      def __call__(self, x):
+        return x
+
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'redefinition of an existing method __call__ for the class <class'
+        " '__main__.ExtensionTypesTest.test_virtual_methods_user_defined_call_bad_override.<locals>.B'>"
+        ' is not allowed for the @virtual annotation',
+    ):
+      ext_types.extension_type()(B)
 
   def test_virtual_methods_no_annotation_on_child(self):
     @ext_types.extension_type()
@@ -993,6 +1048,63 @@ class ExtensionTypesTest(parameterized.TestCase):
         'forbidden attribute: with_attrs',
     ):
       ext_types.extension_type()(A)
+
+  def test_default_repr(self):
+    @ext_types.extension_type()
+    class A:
+      y: schema_constants.INT32
+      x: schema_constants.INT32
+
+      def fn(self):
+        return self.x
+
+      @ext_types.virtual()
+      def virt_fn(self):
+        return self.x
+
+    # TODO: Improve the default repr - especially by removing
+    # the functor print.
+    with self.subTest('eager'):
+      expected_repr = """LABEL[A]{Object{attributes={x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32)}, prototype=Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+  returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
+), schema: OBJECT)}}}}"""
+      self.assertEqual(repr(A(1, 2)), expected_repr)
+
+    with self.subTest('lazy'):
+      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+  returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
+), schema: OBJECT)}}, M.namedtuple.make('y,x', kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))), LABEL[A])"""
+      self.assertEqual(repr(A(I.x, I.y)), expected_repr)
+
+  def test_custom_repr(self):
+    @ext_types.extension_type()
+    class A:
+      y: schema_constants.INT32
+      x: schema_constants.INT32
+
+      def fn(self):
+        return self.x
+
+      @ext_types.virtual()
+      def virt_fn(self):
+        return self.x
+
+      def __repr__(self):
+        return f'A(x={self.x!r}, y={self.y!r})'
+
+    # TODO: Improve the default repr - especially by removing
+    # the functor print.
+    with self.subTest('eager'):
+      expected_repr = (
+          'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))'
+      )
+      self.assertEqual(repr(A(1, 2)), expected_repr)
+
+    with self.subTest('lazy'):
+      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
+  returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
+), schema: OBJECT)}}, M.namedtuple.make('y,x', kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))), LABEL[A])"""
+      self.assertEqual(repr(A(I.x, I.y)), expected_repr)
 
 
 if __name__ == '__main__':

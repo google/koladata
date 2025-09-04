@@ -17,6 +17,7 @@
 import dataclasses
 import functools
 import inspect
+import types
 from typing import Any, Callable, Mapping, Self
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
@@ -161,7 +162,12 @@ def _safe_issubclass(subcls: Any, cls: type[Any]) -> bool:
 def _assert_allowed_virtual_tag(original_class: type[Any], attr: str):
   method = getattr(original_class, attr)
   for cls in original_class.__mro__[1:]:
-    if hasattr(cls, attr) and getattr(cls, attr) is not method:
+    cls_attr = getattr(cls, attr, None)
+    if (
+        cls_attr is not None
+        and cls_attr is not method
+        and isinstance(cls_attr, types.FunctionType)
+    ):
       raise AssertionError(
           f'redefinition of an existing method {attr} for the class'
           f' {original_class} is not allowed for the @virtual annotation'
@@ -194,7 +200,8 @@ _FORBIDDEN_ATTRS = frozenset({
 
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
-  data_class = dataclasses.dataclass()(original_class)
+  # Keep `__init__` and disable the rest.
+  data_class = dataclasses.dataclass(repr=False, eq=False)(original_class)
   fields = {}
   for f in dataclasses.fields(data_class):
     if f.name in _FORBIDDEN_ATTRS:
@@ -207,7 +214,8 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
     if attr in fields:
       continue
     method = getattr(data_class, attr)
-    if not callable(method):
+    # Avoid builtin types - only add those defined by the user.
+    if not isinstance(method, types.FunctionType):
       continue
     if hasattr(method, _VIRTUAL_METHOD_ATTR):
       _assert_allowed_virtual_tag(original_class, attr)
