@@ -2015,6 +2015,27 @@ def unsafe_blocking_await(stream):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kd.streams.from_1d_slice'])
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_from_1d_slice',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.slice_),
+    ],
+    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
+)
+def stream_from_1d_slice(slice_):
+  """Converts a 1D DataSlice to a stream of DataItems.
+
+  Args:
+    slice_: A 1D DataSlice to be converted to a stream.
+
+  Returns:
+    A stream of DataItems, in the order of the slice. All returned
+    DataItems point to the same DataBag as the input DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_future',

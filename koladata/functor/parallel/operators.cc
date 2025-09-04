@@ -19,8 +19,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
 #include "koladata/functor/parallel/create_execution_context.h"
@@ -41,32 +43,12 @@ namespace {
 
 #define OPERATOR KODA_QEXPR_OPERATOR
 #define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
-
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-OPERATOR_FAMILY("koda_internal.parallel._stream_for_returns",
-                std::make_unique<StreamForReturnsOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel._stream_for_yields",
-                std::make_unique<StreamForYieldsOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel._stream_while_returns",
-                std::make_unique<StreamWhileReturnsOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel._stream_while_yields",
-                std::make_unique<StreamWhileYieldsOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.as_future",
-                std::make_unique<AsFutureOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.async_eval",
-                std::make_unique<AsyncEvalOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.async_unpack_tuple",
-                std::make_unique<AsyncUnpackTupleOperatorFamily>());
+#define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
+// go/keep-sorted start
 OPERATOR("koda_internal.parallel.create_execution_context",
          CreateExecutionContext);
 OPERATOR("koda_internal.parallel.current_executor",
          [](internal::NonDeterministicToken) { return CurrentExecutor(); });
-OPERATOR_FAMILY("koda_internal.parallel.empty_stream_like",
-                std::make_unique<EmptyStreamLikeOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.future_from_single_value_stream",
-                std::make_unique<FutureFromSingleValueStreamOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.future_iterable_from_stream",
-                std::make_unique<FutureIterableFromStreamOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_execution_context_qtype",
          []() { return arolla::GetQType<ExecutionContextPtr>(); });
 OPERATOR("koda_internal.parallel.get_future_qtype",
@@ -74,8 +56,6 @@ OPERATOR("koda_internal.parallel.get_future_qtype",
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
            return GetFutureQType(value_qtype);
          });
-OPERATOR_FAMILY("koda_internal.parallel.get_future_value_for_testing",
-                std::make_unique<GetFutureValueForTestingOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_stream_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
@@ -99,6 +79,29 @@ OPERATOR("koda_internal.parallel.make_executor",
            }
            return MakeExecutor(thread_limit);
          });
+OPERATOR("koda_internal.parallel.transform", TransformToParallel);
+OPERATOR_FAMILY("koda_internal.parallel._stream_for_returns",
+                std::make_unique<StreamForReturnsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_for_yields",
+                std::make_unique<StreamForYieldsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_while_returns",
+                std::make_unique<StreamWhileReturnsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_while_yields",
+                std::make_unique<StreamWhileYieldsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.as_future",
+                std::make_unique<AsFutureOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.async_eval",
+                std::make_unique<AsyncEvalOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.async_unpack_tuple",
+                std::make_unique<AsyncUnpackTupleOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.empty_stream_like",
+                std::make_unique<EmptyStreamLikeOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.future_from_single_value_stream",
+                std::make_unique<FutureFromSingleValueStreamOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.future_iterable_from_stream",
+                std::make_unique<FutureIterableFromStreamOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.get_future_value_for_testing",
+                std::make_unique<GetFutureValueForTestingOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_call",
                 std::make_unique<StreamCallOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain",
@@ -125,7 +128,6 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_concat",
                 std::make_unique<StreamReduceConcatOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_stack",
                 std::make_unique<StreamReduceStackOperatorFamily>());
-OPERATOR("koda_internal.parallel.transform", TransformToParallel);
 OPERATOR_FAMILY("koda_internal.parallel.transform_many",
                 std::make_unique<TransformManyOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unsafe_blocking_await",
@@ -134,6 +136,11 @@ OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_stream",
                 std::make_unique<UnwrapFutureToStreamOperatorFamily>());
+OPERATOR_WITH_SIGNATURE("koda_internal.parallel.stream_from_1d_slice",
+                        arolla::QExprOperatorSignature::Get(
+                            {arolla::GetQType<DataSlice>()},
+                            GetStreamQType(arolla::GetQType<DataSlice>())),
+                        &StreamFrom1dSlice);
 // go/keep-sorted end
 
 }  // namespace

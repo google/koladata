@@ -8633,6 +8633,17 @@ Args:
 Returns:
   Either a stream with a single returns value or a stream of yielded values.</code></pre>
 
+### `kd.streams.from_1d_slice(slice_)` {#kd.streams.from_1d_slice}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a 1D DataSlice to a stream of DataItems.
+
+Args:
+  slice_: A 1D DataSlice to be converted to a stream.
+
+Returns:
+  A stream of DataItems, in the order of the slice. All returned
+  DataItems point to the same DataBag as the input DataSlice.</code></pre>
+
 ### `kd.streams.get_default_executor()` {#kd.streams.get_default_executor}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the default executor.</code></pre>

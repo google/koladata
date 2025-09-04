@@ -19,10 +19,15 @@
 #include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 
 // go/keep-sorted start block=yes newline_separated=yes
+// koda_internal.parallel.stream_from_1d_slice operator.
+absl::StatusOr<StreamPtr> StreamFrom1dSlice(const DataSlice& slice);
+
 // koda_internal.parallel.stream_chain_from_stream operator.
 class EmptyStreamLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

@@ -59,6 +59,27 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
+
+absl::StatusOr<StreamPtr> StreamFrom1dSlice(const DataSlice& slice) {
+  const auto& shape = slice.GetShape();
+  if (shape.rank() != 1) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected a 1D data slice, got %d dimensions", shape.rank()));
+  }
+  const auto& slice_impl = slice.slice();
+  const auto& schema_impl = slice.GetSchemaImpl();
+  const auto& bag = slice.GetBag();
+  const int64_t size = shape.size();
+  auto [result, writer] = MakeStream(arolla::GetQType<DataSlice>(), size);
+  for (int64_t i = 0; i < size; ++i) {
+    RETURN_IF_ERROR(arolla::CheckCancellation());
+    writer->Write(arolla::TypedRef::FromValue(
+        DataSlice::UnsafeCreate(slice_impl[i], schema_impl, bag)));
+  }
+  std::move(*writer).Close();
+  return std::move(result);
+}
+
 namespace {
 
 class EmptyStreamLikeOp final : public arolla::QExprOperator {
