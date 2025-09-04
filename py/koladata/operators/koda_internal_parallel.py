@@ -1965,8 +1965,7 @@ def stream_await(arg):
       stream_case=arolla.types.DispatchCase(
           M.derived_qtype.downcast(
               M.derived_qtype.get_labeled_qtype(
-                  M.qtype.qtype_of(P.arg),
-                  'AWAIT',
+                  M.qtype.qtype_of(P.arg), 'AWAIT'
               ),
               P.arg,
           ),
@@ -1976,16 +1975,42 @@ def stream_await(arg):
   )(arg)
 
 
-@optools.add_to_registry(aliases=['kd.streams.unsafe_blocking_await'])
+@optools.add_to_registry(aliases=['kd.streams.sync_wait'])
 @optools.as_backend_operator(
-    'koda_internal.parallel.unsafe_blocking_await',
+    'koda_internal.parallel.sync_wait',
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream),
     ],
     qtype_inference_expr=M.qtype.get_value_qtype(P.stream),
 )
-def unsafe_blocking_await(stream):
+def sync_wait(stream):
   """Blocks until the given stream yields a single item.
+
+  NOTE: This operator cannot be used from an asynchronous task running on
+  an executor (even if it's an eager executor).
+
+  Args:
+    stream: A single-item input stream.
+
+  Returns:
+    The single item from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.streams.unsafe_blocking_wait'])
+@optools.as_backend_operator(
+    'koda_internal.parallel.unsafe_blocking_wait',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream),
+)
+def unsafe_blocking_wait(stream):
+  """Blocks until the given stream yields a single item.
+
+  Unlike `kd.streams.sync_wait`, this operator can be used from an asynchronous
+  task running on an executor, but that makes it inherently unsafe.
 
   IMPORTANT: This operator is inherently unsafe and should be used with extreme
   caution. It's primarily intended for transitional periods when migrating
@@ -1994,7 +2019,7 @@ def unsafe_blocking_await(stream):
 
   The main danger stems from its blocking nature: it blocks the calling thread
   until the stream is ready. However, if the task responsible for filling
-  the stream is also scheduled on the same executor, and all executor threads
+  the stream is also scheduled on the same executor, and all executor workers
   become blocked, that task may never execute, leading to a deadlock.
 
   While seemingly acceptable initially, prolonged or widespread use of this
@@ -3064,7 +3089,7 @@ def _internal_parallel_stream_map(
   kwargs_tuple = M.core.map_tuple(flatten, kwargs_tuple)
   kwargs = M.derived_qtype.downcast(M.qtype.qtype_of(kwargs), kwargs_tuple)
   indices = slices.index(mask_to_call.flatten()).select_present()
-  indices_stream = stream_from_iterable(iterables.from_1d_slice(indices))
+  indices_stream = stream_from_1d_slice(indices)
   invoke_fn = _create_pointwise_invoke_fn(
       executor, transformed_fns, args, kwargs
   )

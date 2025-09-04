@@ -149,8 +149,15 @@ class StreamWhileYieldsOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// koda_internal.parallel.unsafe_blocking_await operator.
-class UnsafeBlockingAwaitOperatorFamily final : public arolla::OperatorFamily {
+// koda_internal.parallel.sync_wait operator.
+class SyncWaitOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
+// koda_internal.parallel.unsafe_blocking_wait operator.
+class UnsafeBlockingWaitOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;

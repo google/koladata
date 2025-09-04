@@ -128,10 +128,12 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_concat",
                 std::make_unique<StreamReduceConcatOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_stack",
                 std::make_unique<StreamReduceStackOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.sync_wait",
+                std::make_unique<SyncWaitOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.transform_many",
                 std::make_unique<TransformManyOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.unsafe_blocking_await",
-                std::make_unique<UnsafeBlockingAwaitOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.unsafe_blocking_wait",
+                std::make_unique<UnsafeBlockingWaitOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_stream",

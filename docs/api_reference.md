@@ -8839,9 +8839,25 @@ Args:
 Returns:
   A single-item stream with the stacked data slice.</code></pre>
 
-### `kd.streams.unsafe_blocking_await(stream)` {#kd.streams.unsafe_blocking_await}
+### `kd.streams.sync_wait(stream)` {#kd.streams.sync_wait}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream yields a single item.
+
+NOTE: This operator cannot be used from an asynchronous task running on
+an executor (even if it&#39;s an eager executor).
+
+Args:
+  stream: A single-item input stream.
+
+Returns:
+  The single item from the stream.</code></pre>
+
+### `kd.streams.unsafe_blocking_wait(stream)` {#kd.streams.unsafe_blocking_wait}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream yields a single item.
+
+Unlike `kd.streams.sync_wait`, this operator can be used from an asynchronous
+task running on an executor, but that makes it inherently unsafe.
 
 IMPORTANT: This operator is inherently unsafe and should be used with extreme
 caution. It&#39;s primarily intended for transitional periods when migrating
@@ -8850,7 +8866,7 @@ changes instead of a complete migration in one step.
 
 The main danger stems from its blocking nature: it blocks the calling thread
 until the stream is ready. However, if the task responsible for filling
-the stream is also scheduled on the same executor, and all executor threads
+the stream is also scheduled on the same executor, and all executor workers
 become blocked, that task may never execute, leading to a deadlock.
 
 While seemingly acceptable initially, prolonged or widespread use of this
