@@ -132,6 +132,7 @@ py_library(
     srcs = ["data_slice.py"],
     deps = [
         ":data_bag_py_ext",
+        ":data_item_py_ext",
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",

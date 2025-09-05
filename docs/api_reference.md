@@ -2137,7 +2137,7 @@ Aliases:
   Returns:
     A new Koda functor with some parameters bound.</code></pre>
 
-### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
+### `kd.functor.call(fn, *args, return_type_as=None, **kwargs)` {#kd.functor.call}
 Aliases:
 
 - [kd.call](#kd.call)
@@ -2196,7 +2196,7 @@ Args:
 Returns:
   The updated namedtuple.</code></pre>
 
-### `kd.functor.call_fn_normally_when_parallel(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call_fn_normally_when_parallel}
+### `kd.functor.call_fn_normally_when_parallel(fn, *args, return_type_as=None, **kwargs)` {#kd.functor.call_fn_normally_when_parallel}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Special call that will invoke the functor normally in parallel mode.
 
@@ -2270,7 +2270,7 @@ Args:
   Returns:
     A DataItem representing the functor.</code></pre>
 
-### `kd.functor.flat_map_chain(iterable, fn, value_type_as=DataItem(None, schema: NONE))` {#kd.functor.flat_map_chain}
+### `kd.functor.flat_map_chain(iterable, fn, value_type_as=None)` {#kd.functor.flat_map_chain}
 Aliases:
 
 - [kd.flat_map_chain](#kd.flat_map_chain)
@@ -2303,7 +2303,7 @@ Args:
 Returns:
   The resulting iterable as chained output of `fn`.</code></pre>
 
-### `kd.functor.flat_map_interleaved(iterable, fn, value_type_as=DataItem(None, schema: NONE))` {#kd.functor.flat_map_interleaved}
+### `kd.functor.flat_map_interleaved(iterable, fn, value_type_as=None)` {#kd.functor.flat_map_interleaved}
 Aliases:
 
 - [kd.flat_map_interleaved](#kd.flat_map_interleaved)
@@ -2476,7 +2476,7 @@ corresponding scalar version.
 Args:
   x: DataSlice to check.</code></pre>
 
-### `kd.functor.if_(cond, yes_fn, no_fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.if_}
+### `kd.functor.if_(cond, yes_fn, no_fn, *args, return_type_as=None, **kwargs)` {#kd.functor.if_}
 Aliases:
 
 - [kd.if_](#kd.if_)
@@ -3279,7 +3279,7 @@ Args:
 Returns:
   A DataSlice with the same shape as `x` and schema `schema`.</code></pre>
 
-### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.json.to_json}
+### `kd.json.to_json(x, /, *, indent=None, ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.json.to_json}
 Aliases:
 
 - [kd.to_json](#kd.to_json)
@@ -3807,7 +3807,7 @@ Args:
 Returns:
   Coalesced DataSlice.</code></pre>
 
-### `kd.masking.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.masking.cond}
+### `kd.masking.cond(condition, yes, no=None)` {#kd.masking.cond}
 Aliases:
 
 - [kd.cond](#kd.cond)
@@ -5140,7 +5140,7 @@ Args:
 Returns:
   Result of fn applied on filtered args.</code></pre>
 
-### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=1, ndim=0, include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
+### `kd.py.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, item_completed_callback=None, **kwargs)` {#kd.py.map_py}
 Aliases:
 
 - [kd.map_py](#kd.map_py)
@@ -5222,7 +5222,7 @@ Args:
 Returns:
   Result DataSlice.</code></pre>
 
-### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_cond}
+### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_cond}
 Aliases:
 
 - [kd.map_py_on_cond](#kd.map_py_on_cond)
@@ -5255,7 +5255,7 @@ Args:
 Returns:
   Result DataSlice.</code></pre>
 
-### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
+### `kd.py.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_selected}
 Aliases:
 
 - [kd.map_py_on_selected](#kd.map_py_on_selected)
@@ -7777,7 +7777,7 @@ Operators that work with strings data.
 
 **Operators**
 
-### `kd.strings.agg_join(x, sep=DataItem(None, schema: NONE), ndim=unspecified)` {#kd.strings.agg_join}
+### `kd.strings.agg_join(x, sep=None, ndim=unspecified)` {#kd.strings.agg_join}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of strings joined on last ndim dimensions.
 
@@ -8020,7 +8020,7 @@ Args:
 Returns:
   A String DataSlice of lowercase strings.</code></pre>
 
-### `kd.strings.lstrip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.lstrip}
+### `kd.strings.lstrip(s, chars=None)` {#kd.strings.lstrip}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Strips whitespaces or the specified characters from the left side of `s`.
 
@@ -8260,7 +8260,7 @@ Returns:
   The offset of the last occurrence of `substr` in `s`, or missing if there
   are no occurrences.</code></pre>
 
-### `kd.strings.rstrip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.rstrip}
+### `kd.strings.rstrip(s, chars=None)` {#kd.strings.rstrip}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Strips whitespaces or the specified characters from the right side of `s`.
 
@@ -8285,7 +8285,7 @@ Args:
 Returns:
   Stripped string.</code></pre>
 
-### `kd.strings.split(x, sep=DataItem(None, schema: NONE))` {#kd.strings.split}
+### `kd.strings.split(x, sep=None)` {#kd.strings.split}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns x split by the provided separator.
 
@@ -8298,7 +8298,7 @@ Args:
   sep: If specified, will split by the specified string not omitting empty
     strings, otherwise will split by whitespaces while omitting empty strings.</code></pre>
 
-### `kd.strings.strip(s, chars=DataItem(None, schema: NONE))` {#kd.strings.strip}
+### `kd.strings.strip(s, chars=None)` {#kd.strings.strip}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Strips whitespaces or the specified characters from both sides of `s`.
 
@@ -8410,7 +8410,7 @@ Returns:
   If `arg` was a stream, it gets labeled with &#39;AWAIT&#39;. If `arg` was not
   a stream, `arg` is returned without modification.</code></pre>
 
-### `kd.streams.call(fn, *args, executor=unspecified, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.streams.call}
+### `kd.streams.call(fn, *args, executor=unspecified, return_type_as=None, **kwargs)` {#kd.streams.call}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor on the given executor and yields the result(s) as a stream.
 
@@ -8505,7 +8505,7 @@ Note: For the convenience, in Python environments, the default executor
 (see `get_default_executor`) is implicitly set as the current executor.
 However, this might not be not the case for other environments.</code></pre>
 
-### `kd.streams.flat_map_chained(stream, fn, *, executor=unspecified, value_type_as=DataItem(None, schema: NONE))` {#kd.streams.flat_map_chained}
+### `kd.streams.flat_map_chained(stream, fn, *, executor=unspecified, value_type_as=None)` {#kd.streams.flat_map_chained}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Executes flat maps over the given stream.
 
@@ -8533,7 +8533,7 @@ Args:
 Returns:
   The resulting interleaved results of `fn` calls.</code></pre>
 
-### `kd.streams.flat_map_interleaved(stream, fn, *, executor=unspecified, value_type_as=DataItem(None, schema: NONE))` {#kd.streams.flat_map_interleaved}
+### `kd.streams.flat_map_interleaved(stream, fn, *, executor=unspecified, value_type_as=None)` {#kd.streams.flat_map_interleaved}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Executes flat maps over the given stream.
 
@@ -8728,7 +8728,7 @@ Args:
   thread_limit: The number of threads to use. Must be non-negative; 0 means
     that the number of threads is selected automatically.</code></pre>
 
-### `kd.streams.map(stream, fn, *, executor=unspecified, value_type_as=DataItem(None, schema: NONE))` {#kd.streams.map}
+### `kd.streams.map(stream, fn, *, executor=unspecified, value_type_as=None)` {#kd.streams.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new stream by applying `fn` to each item in the input stream.
 
@@ -8746,7 +8746,7 @@ Args:
 Returns:
   The resulting stream.</code></pre>
 
-### `kd.streams.map_unordered(stream, fn, *, executor=unspecified, value_type_as=DataItem(None, schema: NONE))` {#kd.streams.map_unordered}
+### `kd.streams.map_unordered(stream, fn, *, executor=unspecified, value_type_as=None)` {#kd.streams.map_unordered}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new stream by applying `fn` to each item in the input `stream`.
 
@@ -9110,7 +9110,7 @@ Alias for [kd.slices.bool](#kd.slices.bool) operator.
 
 Alias for [kd.slices.bytes](#kd.slices.bytes) operator.
 
-### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
+### `kd.call(fn, *args, return_type_as=None, **kwargs)` {#kd.call}
 
 Alias for [kd.functor.call](#kd.functor.call) operator.
 
@@ -9252,7 +9252,7 @@ Alias for [kd.slices.concat](#kd.slices.concat) operator.
 
 Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
-### `kd.cond(condition, yes, no=DataItem(None, schema: NONE))` {#kd.cond}
+### `kd.cond(condition, yes, no=None)` {#kd.cond}
 
 Alias for [kd.masking.cond](#kd.masking.cond) operator.
 
@@ -9511,11 +9511,11 @@ Alias for [kd.core.extract](#kd.core.extract) operator.
 
 Alias for [kd.core.extract_bag](#kd.core.extract_bag) operator.
 
-### `kd.flat_map_chain(iterable, fn, value_type_as=DataItem(None, schema: NONE))` {#kd.flat_map_chain}
+### `kd.flat_map_chain(iterable, fn, value_type_as=None)` {#kd.flat_map_chain}
 
 Alias for [kd.functor.flat_map_chain](#kd.functor.flat_map_chain) operator.
 
-### `kd.flat_map_interleaved(iterable, fn, value_type_as=DataItem(None, schema: NONE))` {#kd.flat_map_interleaved}
+### `kd.flat_map_interleaved(iterable, fn, value_type_as=None)` {#kd.flat_map_interleaved}
 
 Alias for [kd.functor.flat_map_interleaved](#kd.functor.flat_map_interleaved) operator.
 
@@ -9818,7 +9818,7 @@ Alias for [kd.core.has_primitive](#kd.core.has_primitive) operator.
 
 Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
-### `kd.if_(cond, yes_fn, no_fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.if_}
+### `kd.if_(cond, yes_fn, no_fn, *args, return_type_as=None, **kwargs)` {#kd.if_}
 
 Alias for [kd.functor.if_](#kd.functor.if_) operator.
 
@@ -9971,15 +9971,15 @@ Alias for [kd.lists.size](#kd.lists.size) operator.
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
 
-### `kd.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=1, ndim=0, include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py}
+### `kd.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, item_completed_callback=None, **kwargs)` {#kd.map_py}
 
 Alias for [kd.py.map_py](#kd.py.map_py) operator.
 
-### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_cond}
+### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.map_py_on_cond}
 
 Alias for [kd.py.map_py_on_cond](#kd.py.map_py_on_cond) operator.
 
-### `kd.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_selected}
+### `kd.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.map_py_on_selected}
 
 Alias for [kd.py.map_py_on_selected](#kd.py.map_py_on_selected) operator.
 
@@ -10469,7 +10469,7 @@ Alias for [kd.schema.to_expr](#kd.schema.to_expr) operator.
 
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 
-### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.to_json}
+### `kd.to_json(x, /, *, indent=None, ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.to_json}
 
 Alias for [kd.json.to_json](#kd.json.to_json) operator.
 
@@ -11138,7 +11138,7 @@ Returns:
   All referenced entities will be copied with newly allocated ItemIds. Note
   that UUIDs will be copied as ItemIds.</code></pre>
 
-### `DataSlice.deep_uuid(self, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#DataSlice.deep_uuid}
+### `DataSlice.deep_uuid(self, schema=unspecified, *, seed='')` {#DataSlice.deep_uuid}
 Aliases:
 
 - [DataItem.deep_uuid](#DataItem.deep_uuid)
@@ -11263,7 +11263,7 @@ Args:
 Returns:
   Expanded DataSlice</code></pre>
 
-### `DataSlice.explode(self, ndim=DataItem(1, schema: INT64))` {#DataSlice.explode}
+### `DataSlice.explode(self, ndim=1)` {#DataSlice.explode}
 Aliases:
 
 - [DataItem.explode](#DataItem.explode)
@@ -11318,7 +11318,7 @@ Args:
 Returns:
   A new immutable DataBag with only the reachable attrs from &#39;ds&#39;.</code></pre>
 
-### `DataSlice.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataSlice.flatten}
+### `DataSlice.flatten(self, from_dim=0, to_dim=unspecified)` {#DataSlice.flatten}
 Aliases:
 
 - [DataItem.flatten](#DataItem.flatten)
@@ -11360,7 +11360,7 @@ Args:
   from_dim: start of dimensions to flatten. Defaults to `0` if unspecified.
   to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.</code></pre>
 
-### `DataSlice.flatten_end(self, n_times=DataItem(1, schema: INT64))` {#DataSlice.flatten_end}
+### `DataSlice.flatten_end(self, n_times=1)` {#DataSlice.flatten_end}
 Aliases:
 
 - [DataItem.flatten_end](#DataItem.flatten_end)
@@ -11632,7 +11632,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
 
-### `DataSlice.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataSlice.implode}
+### `DataSlice.implode(self, ndim=1, itemid=unspecified)` {#DataSlice.implode}
 Aliases:
 
 - [DataItem.implode](#DataItem.implode)
@@ -11907,7 +11907,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice x reshaped to the shape of DataSlice shape_from.</code></pre>
 
-### `DataSlice.select(self, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#DataSlice.select}
+### `DataSlice.select(self, fltr, expand_filter=True)` {#DataSlice.select}
 Aliases:
 
 - [DataItem.select](#DataItem.select)
@@ -12236,7 +12236,7 @@ Args:
 Returns:
   DataSlice with additional fallbacks.</code></pre>
 
-### `DataSlice.with_attr(self, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
+### `DataSlice.with_attr(self, attr_name, value, overwrite_schema=False)` {#DataSlice.with_attr}
 Aliases:
 
 - [DataItem.with_attr](#DataItem.with_attr)
@@ -12256,7 +12256,7 @@ Args:
   value: new value for attribute `attr_name`.
   overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
-### `DataSlice.with_attrs(self, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
+### `DataSlice.with_attrs(self, *, overwrite_schema=False, **attrs)` {#DataSlice.with_attrs}
 Aliases:
 
 - [DataItem.with_attrs](#DataItem.with_attrs)
@@ -12972,7 +12972,7 @@ Alias for [DataSlice.clone](#DataSlice.clone) operator.
 
 Alias for [DataSlice.deep_clone](#DataSlice.deep_clone) operator.
 
-### `DataItem.deep_uuid(self, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#DataItem.deep_uuid}
+### `DataItem.deep_uuid(self, schema=unspecified, *, seed='')` {#DataItem.deep_uuid}
 
 Alias for [DataSlice.deep_uuid](#DataSlice.deep_uuid) operator.
 
@@ -12996,7 +12996,7 @@ Alias for [DataSlice.enriched](#DataSlice.enriched) operator.
 
 Alias for [DataSlice.expand_to](#DataSlice.expand_to) operator.
 
-### `DataItem.explode(self, ndim=DataItem(1, schema: INT64))` {#DataItem.explode}
+### `DataItem.explode(self, ndim=1)` {#DataItem.explode}
 
 Alias for [DataSlice.explode](#DataSlice.explode) operator.
 
@@ -13008,11 +13008,11 @@ Alias for [DataSlice.extract](#DataSlice.extract) operator.
 
 Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
 
-### `DataItem.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataItem.flatten}
+### `DataItem.flatten(self, from_dim=0, to_dim=unspecified)` {#DataItem.flatten}
 
 Alias for [DataSlice.flatten](#DataSlice.flatten) operator.
 
-### `DataItem.flatten_end(self, n_times=DataItem(1, schema: INT64))` {#DataItem.flatten_end}
+### `DataItem.flatten_end(self, n_times=1)` {#DataItem.flatten_end}
 
 Alias for [DataSlice.flatten_end](#DataSlice.flatten_end) operator.
 
@@ -13108,7 +13108,7 @@ Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
 
 Alias for [DataSlice.has_bag](#DataSlice.has_bag) operator.
 
-### `DataItem.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataItem.implode}
+### `DataItem.implode(self, ndim=1, itemid=unspecified)` {#DataItem.implode}
 
 Alias for [DataSlice.implode](#DataSlice.implode) operator.
 
@@ -13208,7 +13208,7 @@ Alias for [DataSlice.reshape](#DataSlice.reshape) operator.
 
 Alias for [DataSlice.reshape_as](#DataSlice.reshape_as) operator.
 
-### `DataItem.select(self, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#DataItem.select}
+### `DataItem.select(self, fltr, expand_filter=True)` {#DataItem.select}
 
 Alias for [DataSlice.select](#DataSlice.select) operator.
 
@@ -13268,11 +13268,11 @@ Alias for [DataSlice.to_pytree](#DataSlice.to_pytree) operator.
 
 Alias for [DataSlice.updated](#DataSlice.updated) operator.
 
-### `DataItem.with_attr(self, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
+### `DataItem.with_attr(self, attr_name, value, overwrite_schema=False)` {#DataItem.with_attr}
 
 Alias for [DataSlice.with_attr](#DataSlice.with_attr) operator.
 
-### `DataItem.with_attrs(self, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
+### `DataItem.with_attrs(self, *, overwrite_schema=False, **attrs)` {#DataItem.with_attrs}
 
 Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
 

@@ -4043,6 +4043,14 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     testing.assert_equal(x_stub.get_schema().no_bag(), x.get_schema().no_bag())
 
+  def test_default_value_boxing(self):
+    # There are a few existing DataSlice methods with DataItem default values.
+    # We chose with_attrs() arbitrarily. If it will be ever refactored, please
+    # replace it with another method.
+    sig = inspect.signature(data_slice.DataSlice.with_attrs)
+    overwrite_schema_param = sig.parameters['overwrite_schema']
+    self.assertIsInstance(overwrite_schema_param.default, data_item.DataItem)
+
   # More comprehensive tests are in the core_with_attrs_test.py.
   def test_with_attrs(self):
     obj1 = bag().obj(x=1, y=2)
