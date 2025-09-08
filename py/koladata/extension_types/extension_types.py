@@ -355,7 +355,10 @@ def extension_type(
   over.
 
   Note:
-  - The decorated class must not have its own `__new__` method.
+  - The decorated class must not have its own `__new__` method - it will be
+    ignored.
+  - The decorated class must not have its own `__init__` method - it will be
+    ignored.
   - The type annotations on the fields of the dataclass are used to determine
     the schema of the underlying `DataSlice` (if relevant).
   - All fields must have type annotations.
