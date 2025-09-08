@@ -225,6 +225,7 @@ class PersistedIncrementalDataSliceManager(
       )
       _persist_metadata(self._fs, self._persistence_dir, self._metadata)
     else:
+      self._metadata = _read_metadata(self._fs, self._persistence_dir)
       self._root_dataslice = fs_util.read_slice_from_file(
           self._fs,
           _get_root_dataslice_filepath(self._persistence_dir),
@@ -235,9 +236,10 @@ class PersistedIncrementalDataSliceManager(
       self._schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
           schema_bags_dir, fs=self._fs
       )
-      self._schema_bag_manager.load_bags(
-          {dbm._INITIAL_BAG_NAME}, with_all_dependents=True  # all schema bags
-      )
+      schema_bags_to_load = set()
+      for action in self._metadata.action_history:
+        schema_bags_to_load.update(action.added_schema_bag_names)
+      self._schema_bag_manager.load_bags(schema_bags_to_load)
       self._schema_helper = schema_helper.SchemaHelper(
           self._root_dataslice.get_schema().updated(
               self._schema_bag_manager.get_loaded_bag()
@@ -256,10 +258,14 @@ class PersistedIncrementalDataSliceManager(
               schema_node_name_to_data_bags_updates_dir, fs=self._fs
           )
       )
+      update_bags_to_load = set()
+      for action in self._metadata.action_history:
+        update_bags_to_load.update(
+            action.added_snn_to_data_bags_update_bag_names
+        )
       self._schema_node_name_to_data_bags_updates_manager.load_bags(
-          {dbm._INITIAL_BAG_NAME}, with_all_dependents=True  # all update bags
+          update_bags_to_load
       )
-      self._metadata = _read_metadata(self._fs, self._persistence_dir)
 
   def get_schema(self) -> kd.types.DataSlice:
     """Returns the schema of the entire DataSlice managed by this manager."""
