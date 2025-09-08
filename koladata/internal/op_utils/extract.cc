@@ -1202,8 +1202,6 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
         "schema_databag and schema_fallbacks must be both present or both "
         "absent");
   }
-  // TODO: check for itemid and ds compatibility with a high level
-  // API instead.
   ASSIGN_OR_RETURN(auto filtered_itemid,
                    ValidateCompatibilityAndFilterItemid(ds, itemid));
   auto processor = CopyingProcessor(databag, std::move(fallbacks),
