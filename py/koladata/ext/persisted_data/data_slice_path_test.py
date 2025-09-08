@@ -290,7 +290,7 @@ class DataSlicePathTest(absltest.TestCase):
             DataSlicePath.from_actions(list(dsp.actions) + [action]),
         )
 
-  def test_get_subslices_of_entities_and_lists(self):
+  def test_evaluate_paths_on_entities_and_lists(self):
     query_schema = kd.named_schema('query')
     doc_schema = kd.named_schema('doc')
     new_query = query_schema.new
@@ -311,85 +311,65 @@ class DataSlicePathTest(absltest.TestCase):
     )
 
     kd.testing.assert_equivalent(
-        data_slice_path_lib.get_subslice(
-            root,
-            DataSlicePath.from_actions([
-                GetAttr('query'),
-                ListExplode(),
-                GetAttr('doc'),
-                ListExplode(),
-                GetAttr('doc_id'),
-            ]),
-        ),
+        DataSlicePath.from_actions([
+            GetAttr('query'),
+            ListExplode(),
+            GetAttr('doc'),
+            ListExplode(),
+            GetAttr('doc_id'),
+        ]).evaluate(root),
         root.query[:].doc[:].doc_id,
     )
     kd.testing.assert_equivalent(
-        data_slice_path_lib.get_subslice(
-            root,
-            DataSlicePath.from_actions(
-                [GetAttr('query'), ListExplode(), GetAttr('doc')]
-            ),
-        ),
+        DataSlicePath.from_actions(
+            [GetAttr('query'), ListExplode(), GetAttr('doc')]
+        ).evaluate(root),
         root.query[:].doc,
     )
 
-  def test_get_subslices_of_dict(self):
+  def test_evaluate_paths_on_dict(self):
     ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})
 
     kd.testing.assert_equivalent(
-        data_slice_path_lib.get_subslice(ds, DataSlicePath.from_actions([])),
+        DataSlicePath.from_actions([]).evaluate(ds),
         ds,
     )
     kd.testing.assert_equivalent(
-        data_slice_path_lib.get_subslice(
-            ds, DataSlicePath.from_actions([DictGetKeys()])
-        ),
+        DataSlicePath.from_actions([DictGetKeys()]).evaluate(ds),
         ds.get_keys(),
     )
     kd.testing.assert_equivalent(
-        data_slice_path_lib.get_subslice(
-            ds, DataSlicePath.from_actions([DictGetValues()])
-        ),
+        DataSlicePath.from_actions([DictGetValues()]).evaluate(ds),
         ds.get_values(),
     )
 
-  def test_get_subslices_with_incompatible_data_slices_and_paths(self):
+  def test_evaluate_paths_on_incompatible_data_slices(self):
     ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})
     with self.assertRaisesRegex(
         ValueError,
         re.escape('cannot get or set attributes on schema: INT32'),
     ):
-      data_slice_path_lib.get_subslice(
-          ds, DataSlicePath.from_actions([DictGetKeys(), DictGetValues()])
-      )
+      DataSlicePath.from_actions([DictGetKeys(), DictGetValues()]).evaluate(ds)
     with self.assertRaisesRegex(
         ValueError,
         re.escape('cannot get or set attributes on schema: STRING'),
     ):
-      data_slice_path_lib.get_subslice(
-          ds, DataSlicePath.from_actions([DictGetValues(), DictGetKeys()])
-      )
+      DataSlicePath.from_actions([DictGetValues(), DictGetKeys()]).evaluate(ds)
     with self.assertRaisesRegex(
         ValueError,
         re.escape('primitives do not have attributes, got STRING'),
     ):
-      data_slice_path_lib.get_subslice(
-          ds, DataSlicePath.from_actions([DictGetValues(), GetAttr('foo')])
-      )
+      DataSlicePath.from_actions([DictGetValues(), GetAttr('foo')]).evaluate(ds)
     with self.assertRaisesRegex(
         ValueError,
         re.escape("the attribute 'bar' is missing on the schema"),
     ):
-      data_slice_path_lib.get_subslice(
-          ds, DataSlicePath.from_actions([GetAttr('bar')])
-      )
+      DataSlicePath.from_actions([GetAttr('bar')]).evaluate(ds)
     with self.assertRaisesRegex(
         ValueError,
         re.escape('cannot explode'),
     ):
-      data_slice_path_lib.get_subslice(
-          ds, DataSlicePath.from_actions([ListExplode()])
-      )
+      DataSlicePath.from_actions([ListExplode()]).evaluate(ds)
 
   def test_generate_available_data_paths(self):
     self.maxDiff = None

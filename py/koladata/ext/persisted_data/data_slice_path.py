@@ -462,27 +462,22 @@ class DataSlicePath:
   def __str__(self) -> str:
     return self.to_string()
 
+  def evaluate(self, data_slice: kd.types.DataSlice) -> kd.types.DataSlice:
+    """Evaluates this path on `data_slice`.
 
-def get_subslice(
-    data_slice: kd.types.DataSlice, data_slice_path: DataSlicePath
-) -> kd.types.DataSlice:
-  """Returns the subslice of `data_slice` at `data_slice_path`.
+    Args:
+      data_slice: the DataSlice on which this path must be evaluated.
 
-  Args:
-    data_slice: the DataSlice to extract the subslice from.
-    data_slice_path: the data slice path of the subslice to extract. It must be
-      a valid data slice path for the schema of data_slice.
+    Returns:
+      The part of `data_slice` at the path defined by `self`.
 
-  Returns:
-    The subslice of `data_slice` at `data_slice_path`.
-
-  Raises:
-    ValueError: if the data_slice_path is not valid for `data_slice`.
-  """
-  result = data_slice
-  for action in data_slice_path.actions:
-    result = action.evaluate(result)
-  return result
+    Raises:
+      ValueError: if this path is not valid for `data_slice`.
+    """
+    result = data_slice
+    for action in self.actions:
+      result = action.evaluate(result)
+    return result
 
 
 def generate_data_slice_paths_for_arbitrary_data_slice_with_schema(

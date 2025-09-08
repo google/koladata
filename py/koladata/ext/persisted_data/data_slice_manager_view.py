@@ -120,7 +120,7 @@ class DataSliceManagerView:
     )
     if with_ancestors:
       return ds
-    return data_slice_path_lib.get_subslice(ds, self._path_from_root)
+    return self._path_from_root.evaluate(ds)
 
   def update(
       self,

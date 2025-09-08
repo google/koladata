@@ -401,7 +401,7 @@ class PersistedIncrementalDataSliceManager(
         populate=populate,
         populate_including_descendants=populate_including_descendants,
     )
-    return data_slice_path_lib.get_subslice(ds, path)
+    return path.evaluate(ds)
 
   def get_action_history(
       self,

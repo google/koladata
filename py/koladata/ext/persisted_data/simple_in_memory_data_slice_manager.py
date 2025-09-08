@@ -90,7 +90,7 @@ class SimpleInMemoryDataSliceManager(
         populate=populate,
         populate_including_descendants=populate_including_descendants,
     )
-    return data_slice_path_lib.get_subslice(ds, path)
+    return path.evaluate(ds)
 
   def update(
       self,
@@ -111,7 +111,7 @@ class SimpleInMemoryDataSliceManager(
     del attr_value  # To avoid accidental misuse.
     ds = self._ds.updated(
         kd.attrs(
-            data_slice_path_lib.get_subslice(self._ds, at_path),
+            at_path.evaluate(self._ds),
             **{attr_name: extracted_attr_value},
             overwrite_schema=True,
         )
