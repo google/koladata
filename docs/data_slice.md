@@ -82,11 +82,149 @@ Create rank-1 DataSlice. Shape is created as
 
 ### Operations on `DataSlice`
 
-[`DataSliceOp`](https://github.com/google/koladata/blob/main//koladata/data_slice_op.h)
-is a utility for invoking operator functors on DataSlices that supports unary
-and binary operators with overloads for `DataItem` and `DataSliceImpl`.
+The recommended way of implementing unary and binary operations is
+[UnaryOpEval](http://cs///koladata/operators/unary_op.h)
+and
+[BinaryOpEval](http://cs///koladata/operators/binary_op.h).
+It allows to create a pointwise operation directly from a scalar C++ functor.
+It automatically adds vectorization, broadcasting, and casting to a common type;
+can propagate absl::Status; supports optional output.
 
-#### Unary operators
+Limitations:
+
+- It doesn't support multitype slices (e.g. mixed slice with strings and floats
+    at the same time).
+- It doesn't support aggregation.
+- It doesn't support special handling of missing arguments. If in one of
+  the arguments the value is missing, the output is also missing.
+
+Here is a simple example:
+
+```
+struct MultiplyOp {
+  using run_on_missing = std::true_type;
+
+  template <typename T>
+  T operator()(T lhs, T rhs) const { return lhs * rhs; }
+};
+
+struct AbsOp {
+  using run_on_missing = std::true_type;
+
+  template <typename T>
+  T operator()(T a) const { return a >= 0 ? a : -a; }
+};
+
+absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y) {
+  return BinaryOpEval<MultiplyOp>(x, y, NumericArgs("x", "y"));
+}
+
+absl::StatusOr<DataSlice> Abs(const DataSlice& x) {
+  return UnaryOpEval<AbsOp>(x, NumericArgs("x"));
+}
+```
+
+Note: The line `using run_on_missing = std::true_type` is optional. If present,
+the functor will be evaluated even on missing uninitialized inputs, but
+the result will be ignored. It is useful for very cheap operations to avoid
+one extra branch per item.
+
+`NumericArgs` (implemented in [operators/utils.h](http://cs///koladata/operators/utils.h))
+defines a constexpr boolean `kIsInvocable<...>` which limits available type
+combinations (to prevent e.g. instantiation of the overload
+`MultiplyOp::operator()<Text, Text>` which wouldn't compile), and provides
+a function `CheckArgs` to format error messages. This argument is optional.
+If this argument is missing, then UnaryOpEval/BinaryOpEval supports all
+type combinations supported by the functor.
+
+An example without args checker argument:
+
+```
+struct SqrtOp {
+  float operator()(int32_t x) const { return std::sqrt(static_cast<float>(x)); }
+  float operator()(int64_t x) const { return std::sqrt(static_cast<float>(x)); }
+  float operator()(float x) const { return std::sqrt(x); }
+  double operator()(double x) const { return std::sqrt(x); }
+};
+
+absl::StatusOr<DataSlice> Sqrt(const DataSlice& x) {
+  return UnaryOpEval<SqrtOp>(x);
+}
+```
+
+#### BinaryOpEval Bytes/Text example
+
+In case of `arolla::Bytes` and `arolla::Text` the UnaryOpEval/BinaryOpEval
+operation definition should also have overload on `absl::string_view` (because
+`DataSliceImpl` internally stores all string data in a single buffer and only
+provides a view; getting actual Bytes/Text would require copying of
+the underlying data).
+
+Some operations may require different handling of Bytes and Text. In this case
+`arolla::meta::type<T>` can be used as a tag to distinguish the types.
+See example:
+
+```
+struct OccurrenceCountOp {
+  // Implementation on Bytes.
+  // Used for evaluation in scalar case, but also important for overload
+  // deduction (i.e. that [Bytes, Bytes] args are supported) in batch case.
+  int64_t operator()(const arolla::Bytes& str,
+                     const arolla::Bytes& substr) const {
+    return arolla::BytesSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  // Implementation on Text.
+  // Used for evaluation in scalar case, but also important for overload
+  // deduction (i.e. that [Text, Text] args are supported) in batch case.
+  int64_t operator()(const arolla::Text& str,
+                     const arolla::Text& substr) const {
+    return arolla::TextSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  // Implementation on view_type of Bytes.
+  // `arolla::meta::type` args are needed to distinguish from Text which has
+  // the same view type.
+  int64_t operator()(arolla::meta::type<arolla::Bytes>,
+                     arolla::meta::type<arolla::Bytes>, absl::string_view str,
+                     absl::string_view substr) const {
+    return arolla::BytesSubstringOccurrenceCountOp{}(str, substr);
+  }
+
+  int64_t operator()(arolla::meta::type<arolla::Text>,
+                     arolla::meta::type<arolla::Text>, absl::string_view str,
+                     absl::string_view substr) const {
+    return arolla::TextSubstringOccurrenceCountOp{}(str, substr);
+  }
+};
+
+absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr) {
+  return BinaryOpEval<OccurrenceCountOp>(x, substr,
+                                         ConsistentStringOrBytes("x", "substr"),
+                                         BinaryOpReturns(schema::kInt64));
+}
+```
+
+The last (optional) argument of BinaryOpEval is a policy to choose the output
+schema if one of the inputs is either `schema::kObject` or `schema::kNone` (in
+this case the output schema can't be deduced from the functor defining
+the operation). `BinaryOpReturns` is a simple policy returning a fixed output
+schema regardless of the inputs:
+
+```
+constexpr auto BinaryOpReturns(schema::DType t) {
+  return [t](schema::DType t1, schema::DType t2) -> schema::DType { return t; };
+}
+```
+
+#### DataSliceOp
+
+In the cases where UnaryOpEval/BinaryOpEval functionality is not enough,
+there is an option to have a manual implementation of a unary/binary operation
+using
+[`DataSliceOp`](https://github.com/google/koladata/blob/main//koladata/data_slice_op.h).
+It is a utility for invoking operator functors on DataSlices that supports unary
+and binary operators with overloads for `DataItem` and `DataSliceImpl`.
 
 Unary operators are simply invoked with the provided `DataItem`/`DataSliceImpl`.
 The overloads may return either `DataItem` or `DataSliceImpl` irrespective
@@ -103,8 +241,6 @@ struct MyUnaryOp {
 DataSliceOp<MyUnaryOp>(slice, std::move(result_shape),
                        std::move(result_schema), std::move(result_bag));
 ```
-
-#### Binary operators
 
 For binary operators, the behavior depends on the available overloads. At
 minimum, there must exist a `(DataItem, DataItem)` and a `(DataSliceImpl,
