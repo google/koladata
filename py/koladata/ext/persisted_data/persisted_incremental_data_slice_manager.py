@@ -469,6 +469,10 @@ class PersistedIncrementalDataSliceManager(
       raise ValueError(f'unknown action kind: {action}')
     return result
 
+  def get_persistence_directory(self) -> str:
+    """Returns the persistence directory of this manager."""
+    return self._persistence_dir
+
   def update(
       self,
       *,

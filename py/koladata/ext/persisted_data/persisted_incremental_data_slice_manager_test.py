@@ -4124,6 +4124,40 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           0,
       )
 
+  def test_get_persistence_directory(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    self.assertEqual(manager.get_persistence_directory(), persistence_dir)
+
+    query_schema = kd.named_schema('query')
+    new_query = query_schema.new
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list(
+            [new_query(query_id='q1'), new_query(query_id='q2')]
+        ),
+        description='Added queries with only query_id populated',
+    )
+    self.assertEqual(manager.get_persistence_directory(), persistence_dir)
+
+    branch_dir = self.create_tempdir().full_path
+    branch_manager = manager.branch(
+        branch_dir, description='Branched queries with query_id'
+    )
+    self.assertEqual(branch_manager.get_persistence_directory(), branch_dir)
+    branch_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How tall is Obama', 'How high is the Eiffel tower']
+        ),
+        description='Added query_text to queries',
+    )
+    self.assertEqual(branch_manager.get_persistence_directory(), branch_dir)
+
+    self.assertEqual(manager.get_persistence_directory(), persistence_dir)
+
 
 if __name__ == '__main__':
   absltest.main()
