@@ -18,7 +18,7 @@ import dataclasses
 import functools
 import inspect
 import types
-from typing import Any, Callable, Mapping, Self
+from typing import Any, Callable, Mapping, Self, Sequence
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
@@ -152,6 +152,7 @@ class _ClassMeta:
   virtual_methods: Mapping[str, Callable[..., Any]]
   field_annotations: Mapping[str, Any]
   field_qtypes: Mapping[str, arolla.QType]
+  original_attributes: Sequence[str]
 
 
 def _safe_issubclass(subcls: Any, cls: type[Any]) -> bool:
@@ -261,6 +262,7 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       virtual_methods=virtual_methods,
       field_annotations=field_annotations,
       field_qtypes=field_qtypes,
+      original_attributes=list(fields.keys()),
   )
 
 
@@ -329,6 +331,26 @@ def _with_attrs_qvalue(ext, attrs, field_annotations):
       k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
   }
   return arolla.abc.aux_eval_op('kd.extension_types.with_attrs', ext, **attrs)
+
+
+def _get_default_repr_fn(
+    class_name: str, attrs: Sequence[str]
+) -> Callable[[Any], str]:
+  """Returns a QValue repr function used if not overridden by the user."""
+  sorted_attrs = sorted(attrs)
+
+  def __repr__(self) -> str:  # pylint: disable=invalid-name
+    """Returns a string representation of the extension type."""
+    def get_attr(attr: str) -> str:
+      try:
+        return repr(getattr(self, attr))
+      except ValueError:
+        return '<unknown>'
+
+    attrs_str = ', '.join(f'{attr}={get_attr(attr)}' for attr in sorted_attrs)
+    return f'{class_name}({attrs_str})'
+
+  return __repr__
 
 
 def extension_type(
@@ -471,6 +493,12 @@ def extension_type(
     qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_qvalue(
         self, attrs, class_meta.field_annotations
     )
+    if '__repr__' not in qvalue_class_attrs:
+      # TODO: Consider registering this to C++ instead, s.t. all
+      # extension types get printed nicely, not just QValues in python.
+      qvalue_class_attrs['__repr__'] = _get_default_repr_fn(
+          original_class.__name__, class_meta.original_attributes
+      )
     qvalue_class = type(
         f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
     )

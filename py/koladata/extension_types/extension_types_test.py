@@ -19,6 +19,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from arolla.objects import objects
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
@@ -37,7 +38,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M
+M = arolla.M | derived_qtype.M | objects.M
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
@@ -1062,19 +1063,38 @@ class ExtensionTypesTest(parameterized.TestCase):
       def virt_fn(self):
         return self.x
 
-    # TODO: Improve the default repr - especially by removing
-    # the functor print.
     with self.subTest('eager'):
-      expected_repr = """LABEL[A]{Object{attributes={x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32)}, prototype=Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
-  returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
-), schema: OBJECT)}}}}"""
-      self.assertEqual(repr(A(1, 2)), expected_repr)
+      # NOTE: the functor representing the virtual method is _not_ included.
+      self.assertEqual(
+          repr(A(1, 2)),
+          'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))',
+      )
 
     with self.subTest('lazy'):
       expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
   returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
 ), schema: OBJECT)}}, M.namedtuple.make('y,x', kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))), LABEL[A])"""
       self.assertEqual(repr(A(I.x, I.y)), expected_repr)
+
+  def test_default_repr_with_unknown_attr(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+    a_qtype = extension_type_registry.get_extension_qtype(A)
+    with self.subTest('eager'):
+      a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
+      self.assertEqual(repr(a), 'A(x=DataItem(1, schema: INT32), y=<unknown>)')
+
+    with self.subTest('lazy'):
+      a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
+      expr = M.core.identity(a)
+      expected_repr = (
+          'M.core.identity(LABEL[A]{Object{attributes={x=DataItem(1, schema:'
+          ' INT32)}}})'
+      )
+      self.assertEqual(repr(expr), expected_repr)
 
   def test_custom_repr(self):
     @ext_types.extension_type()
@@ -1090,13 +1110,12 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self.x
 
       def __repr__(self):
-        return f'A(x={self.x!r}, y={self.y!r})'
+        return f'CustomReprOfA(x={self.x!r}, y={self.y!r})'
 
-    # TODO: Improve the default repr - especially by removing
-    # the functor print.
     with self.subTest('eager'):
       expected_repr = (
-          'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))'
+          'CustomReprOfA(x=DataItem(2, schema: INT32), y=DataItem(1, schema:'
+          ' INT32))'
       )
       self.assertEqual(repr(A(1, 2)), expected_repr)
 
