@@ -1071,7 +1071,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       )
 
     with self.subTest('lazy'):
-      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
   returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
 ), schema: OBJECT)}}, M.namedtuple.make('y,x', kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))), LABEL[A])"""
       self.assertEqual(repr(A(I.x, I.y)), expected_repr)
@@ -1120,7 +1120,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       self.assertEqual(repr(A(1, 2)), expected_repr)
 
     with self.subTest('lazy'):
-      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={virt_fn__functor_impl=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
+      expected_repr = """kd.extension_types.wrap(M.objects.make_object(Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
   returns=M.objects.get_object_attr(kd.extension_types.unwrap(kd.extension_types.dynamic_cast(S, LABEL[A])), 'x', DATA_SLICE),
 ), schema: OBJECT)}}, M.namedtuple.make('y,x', kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))), LABEL[A])"""
       self.assertEqual(repr(A(I.x, I.y)), expected_repr)

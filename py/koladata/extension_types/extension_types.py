@@ -61,7 +61,7 @@ def override():
 
 
 def _make_functor_attr_name(method_name: str) -> str:
-  return f'{method_name}__functor_impl'
+  return f'_functor_impl__{method_name}'
 
 
 @dataclasses.dataclass(frozen=True)
@@ -147,6 +147,7 @@ def _make_virtual_method(
 
 @dataclasses.dataclass(frozen=True)
 class _ClassMeta:
+  name: str
   signature: inspect.Signature
   non_virtual_methods: Mapping[str, Callable[..., Any]]
   virtual_methods: Mapping[str, Callable[..., Any]]
@@ -257,6 +258,7 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
     field_annotations[_make_functor_attr_name(name)] = schema_constants.OBJECT
 
   return _ClassMeta(
+      name=original_class.__name__,
       signature=sig,
       non_virtual_methods=non_virtual_methods,
       virtual_methods=virtual_methods,
@@ -351,6 +353,115 @@ def _get_default_repr_fn(
     return f'{class_name}({attrs_str})'
 
   return __repr__
+
+
+def _make_qvalue_class(
+    class_meta: _ClassMeta, virtual_methods: Mapping[str, _VirtualMethod]
+) -> type[arolla.AnyQValue]:
+  """Creates a qvalue specialization class."""
+  qvalue_class_attrs = {}
+  for name, qtype in class_meta.field_qtypes.items():
+    qvalue_class_attrs[name] = property(
+        lambda self, k=name, qtype=qtype: arolla.abc.aux_eval_op(
+            'kd.extension_types.unwrap', self
+        ).get_attr(k, qtype)
+    )
+  # Methods.
+  qvalue_class_attrs |= class_meta.non_virtual_methods
+  for name, virtual_method in virtual_methods.items():
+    qvalue_class_attrs[name] = virtual_method.method
+  qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_qvalue(
+      self, attrs, class_meta.field_annotations
+  )
+  if '__repr__' not in qvalue_class_attrs:
+    # TODO: Consider registering this to C++ instead, s.t. all
+    # extension types get printed nicely, not just QValues in python.
+    qvalue_class_attrs['__repr__'] = _get_default_repr_fn(
+        class_meta.name, class_meta.original_attributes
+    )
+  return type(f'{class_meta.name}_QValue', (arolla.QValue,), qvalue_class_attrs)
+
+
+def _make_expr_view_class(
+    class_meta: _ClassMeta, virtual_methods: Mapping[str, _VirtualMethod]
+) -> type[arolla.AnyQValue]:
+  """Creates an expr view class."""
+  expr_view_class_attrs = {}
+  for name, qtype in class_meta.field_qtypes.items():
+    # TODO: Add kd.extension_types.get_attr.
+    expr_view_class_attrs[name] = property(
+        lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
+            arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
+            k,
+            qtype,
+        )
+    )
+  expr_view_methods = {
+      name: method
+      for name, method in class_meta.non_virtual_methods.items()
+      if arolla.abc.is_allowed_expr_view_member_name(name)
+  }
+  expr_view_class_attrs |= expr_view_methods
+  for name, virtual_method in virtual_methods.items():
+    expr_view_class_attrs[name] = virtual_method.method
+  expr_view_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_expr(
+      self, attrs, class_meta.field_annotations
+  )
+  return type(
+      f'{class_meta.name}_ExprView', (view.BaseKodaView,), expr_view_class_attrs
+  )
+
+
+def _make_functor_prototype(
+    virtual_methods: Mapping[str, _VirtualMethod],
+) -> objects.Object | None:
+  """Returns an arolla::Object containing all the virtual methods or None."""
+  if not virtual_methods:
+    return None
+  functors = {
+      _make_functor_attr_name(name): functor_factories.trace_py_fn(
+          vm.functor_impl
+      )
+      for name, vm in virtual_methods.items()
+  }
+  # Create a single Object containing all the methods. This will be used as
+  # a prototype / base object.
+  return objects.Object(**functors)
+
+
+def _make_dispatch_fn(
+    class_meta: _ClassMeta,
+    extension_qtype: arolla.QType,
+    functors_obj: objects.Object | None,
+) -> Callable[..., arolla.AnyQValue | arolla.Expr]:
+  """Constructs a <QValue, ExprView>-dispatching function."""
+
+  def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
+    bound_args = class_meta.signature.bind(*args, **kwargs)
+    bound_args.apply_defaults()
+    field_values = bound_args.arguments
+
+    if arolla.Expr in (type(v) for v in field_values.values()):
+      return _make_extension_expr(
+          field_values,
+          class_meta.field_annotations,
+          extension_qtype,
+          functors_obj,
+      )
+    else:
+      return _make_extension_qvalue(
+          field_values,
+          class_meta.field_annotations,
+          extension_qtype,
+          functors_obj,
+      )
+
+  cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
+  dispatching_new.__signature__ = class_meta.signature.replace(
+      parameters=[cls_p] + list(class_meta.signature.parameters.values()),
+      return_annotation=inspect.Parameter.empty,
+  )
+  return dispatching_new
 
 
 def extension_type(
@@ -461,12 +572,12 @@ def extension_type(
         ' `@extension_type()` instead of `@extension_type`?'
     )
 
-  def impl(original_class: type[Any]) -> type[arolla.AnyQValue]:
+  def impl(original_class: type[Any]) -> type[Any]:
     class_meta = _get_class_meta(original_class)
 
     # QType definitions.
     extension_qtype = M.derived_qtype.get_labeled_qtype(
-        extension_type_registry.BASE_QTYPE, original_class.__name__
+        extension_type_registry.BASE_QTYPE, class_meta.name
     ).qvalue
     extension_type_registry.register_extension_type(
         original_class, extension_qtype, unsafe_override=unsafe_override
@@ -479,108 +590,23 @@ def extension_type(
     }
 
     # QValue construction.
-    qvalue_class_attrs = {}
-    for name, qtype in class_meta.field_qtypes.items():
-      qvalue_class_attrs[name] = property(
-          lambda self, k=name, qtype=qtype: arolla.abc.aux_eval_op(
-              'kd.extension_types.unwrap', self
-          ).get_attr(k, qtype)
-      )
-    # Methods.
-    qvalue_class_attrs |= class_meta.non_virtual_methods
-    for name, virtual_method in virtual_methods.items():
-      qvalue_class_attrs[name] = virtual_method.method
-    qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_qvalue(
-        self, attrs, class_meta.field_annotations
-    )
-    if '__repr__' not in qvalue_class_attrs:
-      # TODO: Consider registering this to C++ instead, s.t. all
-      # extension types get printed nicely, not just QValues in python.
-      qvalue_class_attrs['__repr__'] = _get_default_repr_fn(
-          original_class.__name__, class_meta.original_attributes
-      )
-    qvalue_class = type(
-        f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
-    )
-
+    qvalue_class = _make_qvalue_class(class_meta, virtual_methods)
     arolla.abc.register_qvalue_specialization(extension_qtype, qvalue_class)
 
     # ExprView construction.
-    expr_view_class_attrs = {}
-    for name, qtype in class_meta.field_qtypes.items():
-      # TODO: Add kd.extension_types.get_attr.
-      expr_view_class_attrs[name] = property(
-          lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
-              arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
-              k,
-              qtype,
-          )
-      )
-    expr_view_methods = {
-        name: method
-        for name, method in class_meta.non_virtual_methods.items()
-        if arolla.abc.is_allowed_expr_view_member_name(name)
-    }
-    expr_view_class_attrs |= expr_view_methods
-    for name, virtual_method in virtual_methods.items():
-      expr_view_class_attrs[name] = virtual_method.method
-    expr_view_class_attrs['with_attrs'] = (
-        lambda self, **attrs: _with_attrs_expr(
-            self, attrs, class_meta.field_annotations
-        )
-    )
-
-    expr_view_class = type(
-        f'{original_class.__name__}ExprView',
-        (view.BaseKodaView,),
-        expr_view_class_attrs,
-    )
+    expr_view_class = _make_expr_view_class(class_meta, virtual_methods)
     arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)
 
     # Trace functors. To prevent hard to understand errors when doing
     # MyExtensionType(1, 2) inside of virtual methods, we attach a raising
     # __new__ instead.
     original_class.__new__ = _raise_new
-    if virtual_methods:
-      functors = {
-          _make_functor_attr_name(name): functor_factories.trace_py_fn(
-              vm.functor_impl
-          )
-          for name, vm in virtual_methods.items()
-      }
-      # Create a single Object containing all the methods. This will be used as
-      # a prototype / base object.
-      functors_obj = objects.Object(**functors)
-    else:
-      # Avoid creating an additional indirection if there are no functors.
-      functors_obj = None
+    functors_obj = _make_functor_prototype(virtual_methods)
 
-    def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
-      bound_args = class_meta.signature.bind(*args, **kwargs)
-      bound_args.apply_defaults()
-      field_values = bound_args.arguments
-
-      if arolla.Expr in (type(v) for v in field_values.values()):
-        return _make_extension_expr(
-            field_values,
-            class_meta.field_annotations,
-            extension_qtype,
-            functors_obj,
-        )
-      else:
-        return _make_extension_qvalue(
-            field_values,
-            class_meta.field_annotations,
-            extension_qtype,
-            functors_obj,
-        )
-
-    cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    dispatching_new.__signature__ = class_meta.signature.replace(
-        parameters=[cls_p] + list(class_meta.signature.parameters.values()),
-        return_annotation=inspect.Parameter.empty,
+    # Attach the dispatching functor.
+    original_class.__new__ = _make_dispatch_fn(
+        class_meta, extension_qtype, functors_obj
     )
-    original_class.__new__ = dispatching_new
     return original_class
 
   return impl
