@@ -41,3 +41,17 @@ class FileSystemInteraction(fs_interface.FileSystemInterface):
 
   def glob(self, pattern: str) -> Collection[str]:
     return glob.glob(pattern)
+
+  def rename(self, oldpath: str, newpath: str, overwrite: bool = False):
+    if not overwrite:
+      # On Unix systems, the `os.rename` call below will not raise an error if
+      # the destination already exists. We have to do the check ourselves.
+      # Since another process could write to `newpath` after our check and
+      # before the rename, file-to-file renaming is unfortunately not atomic on
+      # Unix systems with the current API of the os module.
+      if self.exists(newpath):
+        raise ValueError(f'Destination {newpath} already exists.')
+      os.rename(oldpath, newpath)
+      return
+
+    os.replace(oldpath, newpath)

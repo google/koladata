@@ -63,6 +63,79 @@ class FsImplementationTest(parameterized.TestCase):
     fs.remove(os.path.join(test_dir, 'file.txt'))
     self.assertFalse(fs.exists(os.path.join(test_dir, 'file.txt')))
 
+    # Renaming: file-to-file.
+    test_dir = self.create_tempdir().full_path
+    with fs.open(os.path.join(test_dir, 'file.txt'), 'w') as f:
+      f.write('test_content')
+    # Case 1: overwrite=False, destination does not exist.
+    fs.rename(
+        os.path.join(test_dir, 'file.txt'),
+        os.path.join(test_dir, 'renamed_file.txt'),
+    )
+    self.assertTrue(fs.exists(os.path.join(test_dir, 'renamed_file.txt')))
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'file.txt')))
+    with fs.open(os.path.join(test_dir, 'file.txt'), 'w') as f:
+      f.write('new_content')
+    # Case 2: overwrite=False, destination already exists.
+    with self.assertRaises(Exception):
+      fs.rename(
+          os.path.join(test_dir, 'file.txt'),
+          os.path.join(test_dir, 'renamed_file.txt'),
+          # Overwrite is False by default.
+      )
+    # Case 3: overwrite=True, destination already exists.
+    fs.rename(
+        os.path.join(test_dir, 'file.txt'),
+        os.path.join(test_dir, 'renamed_file.txt'),
+        overwrite=True,
+    )
+    with fs.open(os.path.join(test_dir, 'renamed_file.txt'), 'r') as f:
+      self.assertEqual(f.read(), 'new_content')
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'file.txt')))
+    # Case 4: overwrite=True, destination does not exist.
+    fs.rename(
+        os.path.join(test_dir, 'renamed_file.txt'),
+        os.path.join(test_dir, 'file.txt'),
+        overwrite=True,
+    )
+    with fs.open(os.path.join(test_dir, 'file.txt'), 'r') as f:
+      self.assertEqual(f.read(), 'new_content')
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'renamed_file.txt')))
+
+    # Renaming: directory-to-directory.
+    fs.make_dirs(os.path.join(test_dir, 'subdir'))
+    # Case 1: overwrite=False, destination does not exist.
+    fs.rename(
+        os.path.join(test_dir, 'subdir'),
+        os.path.join(test_dir, 'renamed_subdir'),
+    )
+    self.assertTrue(fs.exists(os.path.join(test_dir, 'renamed_subdir')))
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'subdir')))
+    fs.make_dirs(os.path.join(test_dir, 'subdir'))
+    # Case 2: overwrite=False, destination already exists.
+    with self.assertRaises(Exception):
+      fs.rename(
+          os.path.join(test_dir, 'subdir'),
+          os.path.join(test_dir, 'renamed_subdir'),
+          # Overwrite is False by default.
+      )
+    # Case 3: overwrite=True, destination already exists.
+    fs.rename(
+        os.path.join(test_dir, 'subdir'),
+        os.path.join(test_dir, 'renamed_subdir'),
+        overwrite=True,
+    )
+    self.assertTrue(fs.exists(os.path.join(test_dir, 'renamed_subdir')))
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'subdir')))
+    # Case 4: overwrite=True, destination does not exist.
+    fs.rename(
+        os.path.join(test_dir, 'renamed_subdir'),
+        os.path.join(test_dir, 'subdir'),
+        overwrite=True,
+    )
+    self.assertTrue(fs.exists(os.path.join(test_dir, 'subdir')))
+    self.assertFalse(fs.exists(os.path.join(test_dir, 'renamed_subdir')))
+
 
 if __name__ == '__main__':
   absltest.main()

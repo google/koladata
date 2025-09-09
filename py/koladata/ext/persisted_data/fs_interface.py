@@ -37,3 +37,17 @@ class FileSystemInterface:
 
   def glob(self, pattern: str) -> Collection[str]:
     raise NotImplementedError
+
+  def rename(self, oldpath: str, newpath: str, overwrite: bool = False):
+    """Rename or move a file or a directory.
+
+    Atomicity should be an aspirational goal for implementations, especially for
+    file-to-file renaming. It is unfortunately not an API guarantee at present.
+
+    Args:
+      oldpath: the file or directory to be moved.
+      newpath: the new name of the file or directory.
+      overwrite: boolean; if False, it is an error for newpath to be occupied by
+        an existing file or directory.
+    """
+    raise NotImplementedError
