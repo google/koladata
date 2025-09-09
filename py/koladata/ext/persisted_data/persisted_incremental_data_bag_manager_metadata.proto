@@ -20,6 +20,13 @@ message PersistedIncrementalDataBagManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
 
+  // The number of times the metadata was updated. Always set. Starts at 0 and
+  // is incremented by 1 with each update.
+  // This is used to make sure that updates to the manager are transactional.
+  // It helps to detect concurrent writers and prevents them from overwriting
+  // each other's changes.
+  int64 metadata_update_number = 3;
+
   // The metadata of the data bags that are managed by the manager. The order
   // here reflects the order in which the bags were added to the manager.
   // The initial bag is always at index 0.

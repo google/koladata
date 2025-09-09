@@ -24,6 +24,7 @@ import dataclasses
 import itertools
 import os
 from typing import AbstractSet, Collection, Iterable
+import uuid
 
 from koladata import kd
 from koladata.ext.persisted_data import fs_interface
@@ -45,6 +46,16 @@ class BagToAdd:
 
 class PersistedIncrementalDataBagManager:
   """Manager of a DataBag that is assembled from multiple smaller bags.
+
+  Short version of the contract:
+  * Instances are not thread-safe.
+  * Multiple instances can be created for the same persistence directory:
+    * Multiple readers are allowed.
+    * The effects of write operations (calls to add_bags()) are not propagated
+      to other instances that already exist.
+    * Concurrent writers are not allowed. A write operation will fail if the
+      state of the persistence directory was modified in the meantime by another
+      instance.
 
   It is often convenient to create a DataBag by incrementally adding smaller
   bags, where each of the smaller bags is an update to the large DataBag.
@@ -77,12 +88,13 @@ class PersistedIncrementalDataBagManager:
   provided that it is not modified externally and that there is sufficient space
   to accommodate the writes.
 
-  This class is not thread-safe. However, in the absence of writes, i.e. calls
-  to add_bags(), multiple instances of this class can concurrently read from the
-  same persistence directory. So creating multiple instances and calling
-  get_available_bag_names() or get_minimal_bag() concurrently is fine in the
-  absence of writes. Only a single instance should exist during a write
-  operation.
+  This class is not thread-safe. When an instance is created for a persistence
+  directory that is already populated, then the instance is initialized with
+  the current state found in the persistence directory at that point in time.
+  Write operations (calls to add_bags()) by other instances for the same
+  persistence directory are not propagated to this instance. A write operation
+  will fail if the state of the persistence directory was modified in the
+  meantime by another instance.
   """
 
   def __init__(
@@ -109,13 +121,16 @@ class PersistedIncrementalDataBagManager:
       self._fs.make_dirs(self._persistence_dir)
     if not self._fs.glob(os.path.join(self._persistence_dir, '*')):  # Empty dir
       self._metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
-          version='1.0.0'
+          version='1.0.0',
+          # Using -1 here looks strange, but the self._add_bags() call below to
+          # add the initial bag will bump it to 0 in a moment.
+          metadata_update_number=-1,
       )
       self._add_bags(
           [BagToAdd(_INITIAL_BAG_NAME, kd.bag(), dependencies=tuple())]
       )
     else:
-      self._metadata = self._read_metadata()
+      self._metadata = _read_latest_metadata(self._fs, self._persistence_dir)
       self._load_bags_into_cache({_INITIAL_BAG_NAME})
 
   def get_available_bag_names(self) -> AbstractSet[str]:
@@ -336,6 +351,7 @@ class PersistedIncrementalDataBagManager:
 
     branch_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
     branch_metadata.version = self._metadata.version
+    branch_metadata.metadata_update_number = 0
     # The branch will be consistent with the total order of the bags in the
     # current manager, i.e. the order in which the bags were added.
     for bag_metadata in self._metadata.data_bag_metadata:
@@ -347,8 +363,7 @@ class PersistedIncrementalDataBagManager:
         branch_bag_metadata.directory = self._persistence_dir
       branch_metadata.data_bag_metadata.append(branch_bag_metadata)
 
-    with fs.open(self._get_metadata_filepath(output_dir), 'wb') as f:
-      f.write(branch_metadata.SerializeToString())
+    _persist_metadata(fs, output_dir, branch_metadata)
 
   def clear_cache(self):
     """Clears the cache of loaded bags.
@@ -426,19 +441,39 @@ class PersistedIncrementalDataBagManager:
     for future in futures:
       future.result()
 
+    new_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
+    new_metadata.CopyFrom(self._metadata)
+    new_metadata.metadata_update_number += 1
     for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
-      bag_name = bag_to_add.bag_name
-      bag = bag_to_add.bag
-      dependencies = bag_to_add.dependencies
-      self._loaded_bags_cache[bag_name] = bag
-      self._metadata.data_bag_metadata.append(
+      new_metadata.data_bag_metadata.append(
           metadata_pb2.DataBagMetadata(
-              name=bag_name,
+              name=bag_to_add.bag_name,
               filename=bag_filename,
-              dependencies=dependencies,
+              dependencies=bag_to_add.dependencies,
           )
       )
-    self._persist_metadata()
+
+    # Persist the new metadata in a transactional way. Concurrent writers are
+    # detected and prevented from overwriting each other's changes when self._fs
+    # supports atomic file-to-file renames.
+    try:
+      _persist_metadata(self._fs, self._persistence_dir, new_metadata)
+      self._metadata = new_metadata
+    except KeyboardInterrupt:
+      # The user pressed Ctrl+C. Just in case the interrupt happened exactly
+      # between the two lines above, we reset the state of the manager to make
+      # sure that the cached metadata is consistent with the metadata on disk.
+      self.__init__(self._persistence_dir, fs=self._fs)
+      raise
+
+    # Update the cache after the metadata is successfully committed to disk.
+    # If the commit fails, then the cache should not be updated at all, which
+    # is why this code follows the transactional update of the metadata above.
+    # If the cache is partially updated, e.g. when a KeyboardInterrupt happens
+    # during the loop below, then the state of the current manager is still
+    # consistent.
+    for bag_to_add in bags_to_add:
+      self._loaded_bags_cache[bag_to_add.bag_name] = bag_to_add.bag
 
   def _make_single_bag(self, bag_names: AbstractSet[str]) -> kd.types.DataBag:
     """Returns a single bag with the data of bag_names.
@@ -583,78 +618,93 @@ class PersistedIncrementalDataBagManager:
 
   def _get_fresh_bag_filenames(self, num_filenames: int) -> list[str]:
     """Returns `num_filenames` filenames for bags that have not been used before."""
-    # If desired, the naming scheme employed here can be used in the future to
-    # detect some forms of concurrent writes. As the class docstring mentions,
-    # concurrent writes by multiple managers for the same persistence directory
-    # are disallowed.
-    # The idea of the naming/detection scheme is as follows:
-    # 1. We list all the bag files in the persistence directory.
-    # 2. We extract the bag number from each filename.
-    # 3. We compute the maximum bag number and add 1 to it. This is the new bag
-    #    number. It is a local variable of this manager instance, i.e. it is
-    #    kept in memory and not persisted anywhere.
-    # 4. We persist the new bag in a temp file whose name is based on a uuid.
-    # 5. When the temp file is fully written, we rename it to the new bag
-    #    filename from step 3. Since renaming is atomic on most filesystems, and
-    #    will raise an error if the target filename exists, it will ensure that
-    #    no other process persisted a bag while we were working.
-    # It should be noted that this scheme is far from complete, as it will still
-    # allow interleaved writes by concurrent manager instances. Such writes are
-    # still problematic, because a write by one instance won't be detected by
-    # the other instance, and hence inconsistencies will arise. Moreover,
-    # multiple other files get persisted, such as the bag dependencies, and the
-    # scheme described above does not achieve/detect atomicity of multi-file
-    # writes/overwrites.
-    # If desired, one can design much more foolproof schemes by using
-    # a readers-writer lock file in the persistence directory.
-    # See https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock.
-    # Such an implementation would enforce the contract of this class by
-    # allowing concurrent readers but enforcing exclusive access for a writer.
-    all_bag_filenames = self._fs.glob(
-        os.path.join(self._persistence_dir, 'bag-[0-9]*.kd')
-    )
-    bag_numbers = [
-        int(
-            filepath.removeprefix(self._persistence_dir)
-            .removeprefix(os.sep)
-            .removeprefix('bag-')
-            .removesuffix('.kd')
-        )
-        for filepath in all_bag_filenames
-    ]
-    max_bag_number = max(bag_numbers) if bag_numbers else -1
-    new_bag_numbers = [max_bag_number + n + 1 for n in range(num_filenames)]
-    return [f'bag-{bag_number:012d}.kd' for bag_number in new_bag_numbers]
+    session_id = _get_uuid()
+    return [f'bag-{session_id}-{i:012d}.kd' for i in range(num_filenames)]
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
     fs_util.write_bag_to_file(
         self._fs, bag, self._get_bag_filepath_from_filename(bag_filename)
     )
 
-  def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
+  def _get_bag_filepath(self, bag_name: str) -> str:
     bag_metadata = next(
         m for m in self._metadata.data_bag_metadata if m.name == bag_name
     )
     if bag_metadata.HasField('directory'):
-      bag_filepath = os.path.join(bag_metadata.directory, bag_metadata.filename)
+      return os.path.join(bag_metadata.directory, bag_metadata.filename)
     else:
-      bag_filepath = self._get_bag_filepath_from_filename(bag_metadata.filename)
+      return self._get_bag_filepath_from_filename(bag_metadata.filename)
+
+  def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
+    bag_filepath = self._get_bag_filepath(bag_name)
     return fs_util.read_bag_from_file(self._fs, bag_filepath)
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
     return os.path.join(self._persistence_dir, bag_filename)
 
-  def _persist_metadata(self):
-    with self._fs.open(self._get_metadata_filepath(), 'wb') as f:
-      f.write(self._metadata.SerializeToString())
 
-  def _read_metadata(
-      self,
-  ) -> metadata_pb2.PersistedIncrementalDataBagManagerMetadata:
-    with self._fs.open(self._get_metadata_filepath(), 'rb') as f:
-      return metadata_pb2.PersistedIncrementalDataBagManagerMetadata.FromString(
-          f.read()
-      )
+def _get_uuid() -> str:
+  return str(uuid.uuid1())
 
-  def _get_metadata_filepath(self, persistence_dir: str | None = None) -> str:
-    return os.path.join(persistence_dir or self._persistence_dir, 'metadata.pb')
+
+# The update number is padded to 12 digits in filenames.
+_UPDATE_NUMBER_NUM_DIGITS = 12
+
+
+def _persist_metadata(
+    fs: fs_interface.FileSystemInterface,
+    persistence_dir: str,
+    metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
+):
+  """Persists the given metadata to disk.
+
+  The writing of the metadata is atomic if `fs.rename(src_file, dst_file,
+  overwrite=False)` is atomic, i.e. if the given `fs` object to interact with
+  the file system supports atomic file-to-file renaming. In that case,
+  concurrent writers are detected and prevented from overwriting each other's
+  changes.
+
+  Args:
+    fs: The filesystem interface to use.
+    persistence_dir: The persistence directory of the manager.
+    metadata: The metadata to persist.
+  """
+  update_number = str(metadata.metadata_update_number).zfill(
+      _UPDATE_NUMBER_NUM_DIGITS
+  )
+  final_filepath = os.path.join(persistence_dir, f'metadata-{update_number}.pb')
+  if fs.exists(final_filepath):
+    # Fail fast if the metadata already exists. No point in writing a temporary
+    # file that will end up not being used because of this error.
+    raise ValueError(
+        f'While attemping to commit update {metadata.metadata_update_number},'
+        ' we detected that it is already present in the destination directory'
+        f' {persistence_dir}. Some other process must have updated the'
+        ' directory in parallel. Updates via this manager are not possible'
+        ' anymore. Consider calling create_branch() with a new directory to'
+        ' create a new manager instance with the same state as this one but'
+        ' that can perform updates, or create a new manager instance for'
+        f' {persistence_dir} and attempt the update again.'
+    )
+  temp_filepath = os.path.join(
+      persistence_dir,
+      f'metadata-{update_number}-{_get_uuid()}.pb',
+  )
+  with fs.open(temp_filepath, 'wb') as f:
+    f.write(metadata.SerializeToString())
+  fs.rename(temp_filepath, final_filepath, overwrite=False)
+
+
+def _read_latest_metadata(
+    fs: fs_interface.FileSystemInterface,
+    persistence_dir: str,
+) -> metadata_pb2.PersistedIncrementalDataBagManagerMetadata:
+  update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
+  committed_metadata_filepaths = fs.glob(
+      os.path.join(persistence_dir, f'metadata-{update_number_pattern}.pb')
+  )
+  latest_metadata_filepath = max(committed_metadata_filepaths)
+  with fs.open(latest_metadata_filepath, 'rb') as f:
+    return metadata_pb2.PersistedIncrementalDataBagManagerMetadata.FromString(
+        f.read()
+    )

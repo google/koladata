@@ -18,6 +18,7 @@ import re
 import shutil
 from unittest import mock
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
@@ -26,7 +27,7 @@ from koladata.ext.persisted_data import persisted_incremental_data_bag_manager a
 BagToAdd = pidbm.BagToAdd
 
 
-class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
+class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def assert_equivalent_bags(self, bag0, bag1):
     kd.testing.assert_equivalent(bag0.merge_fallbacks(), bag1.merge_fallbacks())
@@ -428,10 +429,15 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           [
               'exists',  # Check if persistence_dir exists.
               'glob',  # It does exist. Check if it is empty.
-              'glob',  # To compute the filename for the initial bag.
-              'exists',  # Check if such a file already exists. It does not.
+              # Check if the filename slated for use by the initial bag already
+              # exists. It does not.
+              'exists',
               'open',  # To write the initial bag.
-              'open',  # To write the metadata.
+              # Check if the final filename for the metadata already exists. It
+              # does not.
+              'exists',
+              'open',  # To write the metadata to a temp file with a unique name
+              'rename',  # The temporary metadata file to the final one.
           ],
       )
 
@@ -451,6 +457,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           [
               'exists',  # Check if persistence_dir exists. It does.
               'glob',  # See whether it is empty. It is not.
+              'glob',  # To find the latest metadata file.
               'open',  # To read the metadata.
               'open',  # To read the initial bag.
           ],
@@ -469,10 +476,15 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       self.assertEqual(
           method_names_called,
           [
-              'glob',  # To find the filename for the new bag.
-              'exists',  # Check if the new bag already exists. It does not.
+              # Check if the filename for the new bag already exists. It does
+              # not.
+              'exists',
               'open',  # To write the new bag.
-              'open',  # To write the metadata.
+              # Check if the final filename for the metadata already exists. It
+              # does not.
+              'exists',
+              'open',  # To write the metadata to a temp file with a unique name
+              'rename',  # The temporary metadata file to the final one.
           ],
       )
 
@@ -544,7 +556,10 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           # To read bag1 from persistence_dir:
           [
               mock.call.open(
-                  os.path.join(persistence_dir, 'bag-000000000001.kd'), 'rb'
+                  os.path.join(
+                      persistence_dir, manager._get_bag_filepath('bag1')
+                  ),
+                  'rb',
               )
           ],
       )
@@ -570,8 +585,8 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
               'exists',  # Check if the output_dir exists. It does.
               'glob',  # Check if output_dir is empty. It is.
               # The new manager adds two bags. For each one, it calls the
-              # methods documented in the sub-test `load_bag` above.
-              *(['glob', 'exists', 'open', 'open'] * 2),
+              # methods documented in the sub-test `load_bags` above.
+              *(['exists', 'open', 'exists', 'open', 'rename'] * 2),
           ],
       )
 
@@ -613,7 +628,9 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
               'exists',  # Check if output_dir exists. It does.
               'glob',  # Check if output_dir is empty. It is.
               # The implementation goes ahead and writes the new metadata file:
-              'open',  # To write the metadata.
+              'exists',
+              'open',
+              'rename',
           ],
       )
 
@@ -950,7 +967,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         bag_names=['trunk2'], with_all_dependents=True, output_dir=branch_dir
     )
     # Only the metadata file is created. No bag files are copied.
-    self.assertEqual(os.listdir(branch_dir), ['metadata.pb'])
+    self.assertEqual(os.listdir(branch_dir), ['metadata-000000000000.pb'])
     branch_manager = pidbm.PersistedIncrementalDataBagManager(branch_dir)
     self.assertEqual(
         branch_manager.get_available_bag_names(),
@@ -1025,7 +1042,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     branch_manager.create_branch(
         bag_names=['branch1'], output_dir=twig_dir, fs=branch_manager._fs
     )
-    self.assertEqual(os.listdir(twig_dir), ['metadata.pb'])
+    self.assertEqual(os.listdir(twig_dir), ['metadata-000000000000.pb'])
     twig_manager = pidbm.PersistedIncrementalDataBagManager(twig_dir)
     self.assertEqual(
         twig_manager.get_available_bag_names(),
@@ -1106,6 +1123,129 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         'The output_dir must be empty or not exist yet.',
     ):
       manager.create_branch(bag_names=[''], output_dir=output_dir)
+
+  def test_basic_concurrent_readers_writers(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=('',)
+        ),
+    ])
+
+    another_manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    another_manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('bag1',)
+        ),
+    ])
+
+    # The write operation of `another_manager` is not propagated to `manager`.
+    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1'})
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("The following bags are not available: ['bag2']"),
+    ):
+      manager.load_bags({'bag2'})
+
+    # Concurrent writes are detected and prevented.
+    with self.assertRaisesRegex(
+        ValueError,
+        'While attemping to commit update 2, we detected that it is already'
+        ' present in the destination directory',
+    ):
+      manager.add_bags([
+          pidbm.BagToAdd(
+              bag_name='bag3', bag=kd.attrs(kd.new(), a=3), dependencies=('',)
+          ),
+      ])
+
+    # The attempt to add bag3 failed. Write operations are transactional, so
+    # bag3 is not available.
+    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1'})
+
+  @parameterized.named_parameters(
+      ('file_system_interaction', fs_implementation.FileSystemInteraction),
+  )
+  def test_keyboard_interrupt_during_add_bags(self, fs_factory):
+
+    def rename_then_keyboard_interrupt(
+        frompath,
+        topath,
+        overwrite: bool = False,
+    ):
+      fs_factory().rename(frompath, topath, overwrite)
+      raise KeyboardInterrupt()
+
+    def no_rename_only_keyboard_interrupt(
+        frompath,
+        topath,
+        overwrite: bool = False,
+    ):
+      del frompath, topath, overwrite  # Unused.
+      raise KeyboardInterrupt()
+
+    fs_rename_then_keyboard_interrupt = fs_factory()
+    fs_rename_then_keyboard_interrupt.rename = rename_then_keyboard_interrupt
+
+    fs_no_rename_only_keyboard_interrupt = fs_factory()
+    fs_no_rename_only_keyboard_interrupt.rename = (
+        no_rename_only_keyboard_interrupt
+    )
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(
+        persistence_dir, fs=fs_factory()
+    )
+    manager.add_bags([
+        pidbm.BagToAdd(
+            bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=('',)
+        ),
+    ])
+
+    manager._fs = fs_rename_then_keyboard_interrupt
+    with self.assertRaises(KeyboardInterrupt):
+      manager.add_bags([
+          pidbm.BagToAdd(
+              bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('',)
+          ),
+      ])
+    # The bag was successfully added, but the manager's state was reset, so
+    # there is nothing loaded in the cache.
+    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
+    self.assertEqual(manager.get_loaded_bag_names(), {''})
+
+    manager._fs = fs_no_rename_only_keyboard_interrupt
+    with self.assertRaises(KeyboardInterrupt):
+      manager.add_bags([
+          pidbm.BagToAdd(
+              bag_name='bag3', bag=kd.attrs(kd.new(), a=3), dependencies=('',)
+          ),
+      ])
+    # The state of the manager is not changed. Adding bags is transactional, so
+    # nothing is added when there is an error.
+    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
+    self.assertEqual(manager.get_loaded_bag_names(), {''})
+
+    # add_bags() is transactional, so if one bag fails to be added, then none of
+    # them are added.
+    with self.assertRaises(KeyboardInterrupt):
+      manager.add_bags([
+          pidbm.BagToAdd(
+              bag_name='bag4',
+              bag=kd.attrs(kd.new(), a=4),
+              dependencies=('bag1',),
+          ),
+          pidbm.BagToAdd(
+              bag_name='bag5',
+              bag=kd.attrs(kd.new(), a=5),
+              dependencies=('bag4',),
+          ),
+      ])
+    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
+    # Moreover, the KeyboardInterrupt caused the state of the manager to be
+    # reset, so there is nothing in the cache:
+    self.assertEqual(manager.get_loaded_bag_names(), {''})
 
 
 if __name__ == '__main__':

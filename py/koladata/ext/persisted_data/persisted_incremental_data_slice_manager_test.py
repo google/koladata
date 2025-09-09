@@ -3492,7 +3492,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         'snn_to_data_bags_updates',
     ]:
       self.assertEqual(
-          os.listdir(os.path.join(branch_dir, subdir)), ['metadata.pb']
+          os.listdir(os.path.join(branch_dir, subdir)),
+          ['metadata-000000000000.pb'],
       )
 
     # This update is for the trunk only.
@@ -3978,7 +3979,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         'snn_to_data_bags_updates',
     ]:
       self.assertEqual(
-          os.listdir(os.path.join(branch_dir, subdir)), ['metadata.pb']
+          os.listdir(os.path.join(branch_dir, subdir)),
+          ['metadata-000000000000.pb'],
       )
 
     # The branch has a single action in its history.
