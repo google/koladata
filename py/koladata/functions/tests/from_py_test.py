@@ -271,8 +271,7 @@ class FromPyTest(parameterized.TestCase):
     l = from_py_fn([input_obj, input_obj])
     self.assertNotEqual(l[0].get_itemid(), l[1].get_itemid())
     self.assertEqual(l[0].to_py(), l[1].to_py())
-    # TODO: support dict_as_obj=True in v2.
-    o = fns.from_py({'x': input_obj, 'y': input_obj}, dict_as_obj=True)
+    o = from_py_fn({'x': input_obj, 'y': input_obj}, dict_as_obj=True)
     self.assertNotEqual(o.x.get_itemid(), o.y.get_itemid())
     self.assertEqual(o.x.to_py(), o.y.to_py())
 
@@ -332,6 +331,19 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(
         d[ds(['a', 'b'])].no_bag(), ds([1, 3.14], schema_constants.OBJECT)
     )
+
+  def test_dict_as_obj_with_dict_schema(self):
+    # Python dictionary keys and values can be various Python / Koda objects
+    # that are normalized to Koda Items.
+    d = fns._from_py_v2(
+        {ds('a'): [1, 2], 'b': [42]},
+        schema=kde.dict_schema(
+            schema_constants.STRING, kde.list_schema(schema_constants.INT32)
+        ).eval(),
+        dict_as_obj=True,
+    )
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
+    testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_primitive(self, from_py_fn):
@@ -658,22 +670,25 @@ assigned schema: INT32"""),
     # NOTE: Schema bag is unchanged and treated similar to other inputs.
     testing.assert_equal(item, entity)
 
-  def test_dict_as_obj_if_schema_provided(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_if_schema_provided(self, from_py_fn):
     schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
-    d = fns.from_py({'a': 2}, schema=schema)
+    d = from_py_fn({'a': 2}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
     testing.assert_equal(d.a, ds(2).with_bag(d.get_bag()))
 
-  def test_dict_as_obj_if_schema_provided_with_nested_object(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_if_schema_provided_with_nested_object(self, from_py_fn):
     schema = kde.named_schema(
         'foo', a=schema_constants.INT32, b=schema_constants.OBJECT
     ).eval()
-    d = fns.from_py({'a': 2, 'b': {'x': 'abc'}}, schema=schema)
+    d = from_py_fn({'a': 2, 'b': {'x': 'abc'}}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
 
-  def test_obj_in_list_if_schema_provided(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_obj_in_list_if_schema_provided(self, from_py_fn):
     @dataclasses.dataclass
     class TestClass:
       a: int
@@ -682,7 +697,7 @@ assigned schema: INT32"""),
       schema = kde.list_schema(
           kde.named_schema('foo', a=schema_constants.INT32)
       ).eval()
-      d = fns.from_py([{'a': 2}, {'a': 3}], schema=schema, dict_as_obj=True)
+      d = from_py_fn([{'a': 2}, {'a': 3}], schema=schema, dict_as_obj=True)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
@@ -754,9 +769,11 @@ assigned schema: INT32"""),
       with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
         _ = fns.from_py([fns.new(a=2), d], schema=schema, dict_as_obj=True)
 
-  def test_dict_as_obj_object(self):
-    obj = fns.from_py(
-        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_object(self, from_py_fn):
+    obj = from_py_fn(
+        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        dict_as_obj=True,
     )
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c'])
@@ -766,14 +783,41 @@ assigned schema: INT32"""),
     testing.assert_equal(b.x.no_bag(), ds('abc'))
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
-  def test_dict_as_obj_entity_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_object_different_keys_values(self, from_py_fn):
+    obj = from_py_fn(
+        [
+            {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+            {'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        ],
+        dict_as_obj=True,
+    )
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
+    first_obj = obj[:].S[0]
+    self.assertCountEqual(fns.dir(first_obj), ['a', 'b', 'c'])
+    testing.assert_equal(first_obj.a.no_bag(), ds(42))
+    b = first_obj.b
+    testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(first_obj.c.no_bag(), ds(b'xyz'))
+
+    second_obj = obj[:].S[1]
+    self.assertCountEqual(fns.dir(second_obj), ['b', 'c'])
+    b = second_obj.b
+    testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(second_obj.c.no_bag(), ds(b'xyz'))
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_with_schema(self, from_py_fn):
     schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
         b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     ).eval()
-    entity = fns.from_py(
-        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+    entity = from_py_fn(
+        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        dict_as_obj=True,
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
@@ -784,14 +828,53 @@ assigned schema: INT32"""),
     testing.assert_equal(b.x.no_bag(), ds('abc'))
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
-  def test_dict_as_obj_entity_with_nested_object(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_with_schema_and_different_keys_values(
+      self, from_py_fn
+  ):
+    entity_schema = kde.schema.new_schema(
+        a=schema_constants.FLOAT32,
+        b=kde.schema.new_schema(x=schema_constants.STRING),
+        c=schema_constants.BYTES,
+    ).eval()
+    schema = kde.schema.list_schema(entity_schema).eval()
+    entity = from_py_fn(
+        [
+            {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+            {'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        ],
+        dict_as_obj=True,
+        schema=schema,
+    )
+    testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
+    first_entity = entity[:].S[0]
+    self.assertCountEqual(fns.dir(first_entity), ['a', 'b', 'c'])
+    testing.assert_equal(first_entity.a.no_bag(), ds(42.0))
+    b = first_entity.b
+    testing.assert_equal(b.get_schema().no_bag(), entity_schema.b.no_bag())
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(first_entity.c.no_bag(), ds(b'xyz'))
+
+    second_entity = entity[:].S[1]
+    self.assertCountEqual(fns.dir(second_entity), ['a', 'b', 'c'])
+    testing.assert_equal(
+        second_entity.a.no_bag(), ds(None, schema_constants.FLOAT32)
+    )
+    b = second_entity.b
+    testing.assert_equal(b.get_schema().no_bag(), entity_schema.b.no_bag())
+    testing.assert_equal(b.x.no_bag(), ds('abc'))
+    testing.assert_equal(second_entity.c.no_bag(), ds(b'xyz'))
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_with_nested_object(self, from_py_fn):
     schema = kde.schema.new_schema(
         a=schema_constants.INT64,
         b=schema_constants.OBJECT,
         c=schema_constants.BYTES,
     ).eval()
-    entity = fns.from_py(
-        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+    entity = from_py_fn(
+        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        dict_as_obj=True,
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
@@ -802,10 +885,12 @@ assigned schema: INT32"""),
     testing.assert_equal(obj_b.x.no_bag(), ds('abc'))
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
-  def test_dict_as_obj_entity_incomplete_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_incomplete_schema(self, from_py_fn):
     schema = kde.schema.new_schema(b=schema_constants.OBJECT).eval()
-    entity = fns.from_py(
-        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+    entity = from_py_fn(
+        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        dict_as_obj=True,
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
@@ -815,41 +900,46 @@ assigned schema: INT32"""),
     )
     testing.assert_equal(entity.b.x.no_bag(), ds('abc'))
 
-  def test_dict_as_obj_entity_empty_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_empty_schema(self, from_py_fn):
     schema = kde.schema.new_schema().eval()
-    entity = fns.from_py(
-        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+    entity = from_py_fn(
+        {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+        dict_as_obj=True,
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(fns.dir(entity), [])
 
-  def test_dict_as_obj_bag_adoption(self):
-    obj_b = fns.from_py({'x': 'abc'}, dict_as_obj=True)
-    obj = fns.from_py({'a': 42, 'b': obj_b}, dict_as_obj=True)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_bag_adoption(self, from_py_fn):
+    obj_b = from_py_fn({'x': 'abc'}, dict_as_obj=True)
+    obj = from_py_fn({'a': 42, 'b': obj_b}, dict_as_obj=True)
     testing.assert_equal(obj.b.x.no_bag(), ds('abc'))
 
-  def test_dict_as_obj_entity_incompatible_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_entity_incompatible_schema(self, from_py_fn):
     schema = kde.schema.new_schema(
         a=schema_constants.INT64,
         b=kde.schema.new_schema(x=schema_constants.FLOAT32),
         c=schema_constants.FLOAT32,
     ).eval()
-    with self.assertRaisesRegex(
-        ValueError, "schema for attribute 'x' is incompatible"
-    ):
-      fns.from_py(
-          {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
+    error_msg = "schema for attribute 'x' is incompatible"
+    with self.assertRaisesRegex(ValueError, error_msg):
+      from_py_fn(
+          {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
+          dict_as_obj=True,
           schema=schema,
       )
 
-  def test_dict_as_obj_dict_key_is_data_item(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_dict_key_is_data_item(self, from_py_fn):
     # Object.
-    obj = fns.from_py({ds('a'): 42}, dict_as_obj=True)
+    obj = from_py_fn({ds('a'): 42}, dict_as_obj=True)
     self.assertCountEqual(fns.dir(obj), ['a'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non STRING schema with STRING item.
-    entity = fns.from_py(
+    entity = from_py_fn(
         {ds('a', schema_constants.OBJECT): 42},
         dict_as_obj=True,
         schema=kde.schema.new_schema(a=schema_constants.INT32).eval(),
@@ -857,20 +947,22 @@ assigned schema: INT32"""),
     self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
 
-  def test_dict_as_obj_non_unicode_key(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_non_unicode_key(self, from_py_fn):
     with self.assertRaisesRegex(
         ValueError,
         'dict_as_obj requires keys to be valid unicode objects, got bytes'
     ):
-      fns.from_py({b'xyz': 42}, dict_as_obj=True)
+      from_py_fn({b'xyz': 42}, dict_as_obj=True)
 
-  def test_dict_as_obj_non_text_data_item(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_as_obj_non_text_data_item(self, from_py_fn):
     with self.assertRaisesRegex(TypeError, 'unhashable type'):
-      fns.from_py({ds(['abc']): 42}, dict_as_obj=True)
+      from_py_fn({ds(['abc']): 42}, dict_as_obj=True)
     with self.assertRaisesRegex(
         ValueError, "dict keys cannot be non-STRING DataItems, got b'abc'"
     ):
-      fns.from_py({ds(b'abc'): 42}, dict_as_obj=True)
+      from_py_fn({ds(b'abc'): 42}, dict_as_obj=True)
 
   def test_incompatible_schema(self):
     entity = fns.new(x=1)

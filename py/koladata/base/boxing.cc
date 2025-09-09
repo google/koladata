@@ -622,8 +622,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
   return res_no_db.WithBag(std::move(db));
 }
 
-namespace {
-
 // Parses a Python unicode or Koda DataItem into a absl::string_view if
 // possible. Otherwise, returns an error (with dict key specific error message).
 absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
@@ -657,6 +655,8 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
       "dict_as_obj requires keys to be valid unicode objects, got %s",
       Py_TYPE(py_key)->tp_name));
 }
+
+namespace {
 
 constexpr static absl::string_view kChildItemIdSeed = "__from_py_child__";
 constexpr static absl::string_view kChildAttributeAttributeName = "attr_name";

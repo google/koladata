@@ -25,7 +25,7 @@ namespace koladata::python {
 // New version of GenericFromPyObject; it will eventually replace the old one.
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
-                                    size_t from_dim);
+                                    size_t from_dim, bool dict_as_obj);
 
 }  // namespace koladata::python
 

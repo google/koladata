@@ -150,6 +150,12 @@ absl::Status CreateIncompatibleSchemaErrorFromStatus(
 // Returns true if the given object is a scalar Python object or a QValue.
 bool IsPyScalarOrQValueObject(PyObject* py_obj);
 
+// Parses a Python unicode or Koda DataItem into a absl::string_view if
+// possible. Otherwise, returns an error (with dict key specific error message).
+// TODO: move to a more appropriate file when launching
+// `from_py_v2` (like `koladata/base`).
+absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key);
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_

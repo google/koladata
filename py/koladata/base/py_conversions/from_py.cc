@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/base/optimization.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -59,8 +60,8 @@ bool IsStructSchema(const std::optional<DataSlice>& schema) {
 // Helper class for converting Python objects to DataSlices.
 class FromPyConverter {
  public:
-  explicit FromPyConverter(AdoptionQueue& adoption_queue)
-      : adoption_queue_(adoption_queue) {}
+  explicit FromPyConverter(AdoptionQueue& adoption_queue, bool dict_as_obj)
+      : adoption_queue_(adoption_queue), dict_as_obj_(dict_as_obj) {}
 
   absl::StatusOr<DataSlice> Convert(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
@@ -107,6 +108,23 @@ class FromPyConverter {
     return PyDict_Check(py_objects[0]);
   }
 
+  // Returns true if the given Python objects should be parsed as a dict,
+  // but converted to objects or entities.
+  bool IsDictAsObj(const std::vector<PyObject*>& py_objects,
+                   const std::optional<DataSlice>& schema) {
+    if (py_objects.empty()) {
+      return false;
+    }
+
+    if (!PyDict_Check(py_objects[0])) {
+      return false;
+    }
+    if (schema && schema->IsDictSchema()) {
+      return false;
+    }
+    return dict_as_obj_ || (schema && schema->IsEntitySchema());
+  }
+
   // If `schema` is a struct schema, returns the `attr_name` attribute of the
   // schema. Otherwise returns OBJECT schema. We cannot call recursively
   // ConvertImpl with `nullopt` schema, because otherwise child items will not
@@ -126,18 +144,21 @@ class FromPyConverter {
   }
 
   // Returns true if the given Python objects should be treated as an entity by
-  // checking the schema. If all objects are None, returns false.
+  // checking the schema.
   bool IsEntity(const std::vector<PyObject*>& py_objects,
                 const std::optional<DataSlice>& schema) {
     return IsStructSchema(schema) && schema->IsEntitySchema();
   }
 
+  // Returns true if the given Python objects should be treated as a primitive
+  // or a QValue, either because of the schema or because of the type of the
+  // first object.
   bool IsPrimitiveOrQValue(const std::vector<PyObject*>& py_objects,
                            const std::optional<DataSlice>& schema) {
     if (schema && schema->IsPrimitiveSchema()) {
       return true;
     }
-    DCHECK_EQ(py_objects.size(), 1);
+    DCHECK_GE(py_objects.size(), 1);
     PyObject* obj = py_objects[0];
     return IsPyScalarOrQValueObject(obj);
   }
@@ -221,13 +242,6 @@ class FromPyConverter {
       }
     }
 
-    if (IsListOrTuple(py_objects, schema)) {
-      return ConvertListOrTuple(py_objects, cur_shape, schema);
-    }
-    if (IsDict(py_objects, schema)) {
-      return ConvertDict(py_objects, cur_shape, schema);
-    }
-
     if (py_objects.empty() || IsPrimitiveOrQValue(py_objects, schema)) {
       DataItem schema_item;
       if (schema) {
@@ -245,6 +259,16 @@ class FromPyConverter {
       return res_slice;
     }
 
+    if (IsListOrTuple(py_objects, schema)) {
+      return ConvertListOrTuple(py_objects, cur_shape, schema);
+    }
+    if (IsDictAsObj(py_objects, schema)) {
+      return ConvertDictAsObj(py_objects, cur_shape, schema);
+    }
+    if (IsDict(py_objects, schema)) {
+      return ConvertDict(py_objects, cur_shape, schema);
+    }
+
     if (IsEntity(py_objects, schema)) {
       DCHECK(schema.has_value());
       return ConvertEntities(py_objects, cur_shape, *schema);
@@ -257,10 +281,9 @@ class FromPyConverter {
       }
     }
 
-    DCHECK(!py_objects.empty());
     DCHECK_EQ(py_objects.size(), 1);
 
-    return ConvertObject(py_objects[0], cur_shape);
+    return ConvertObject(py_objects[0]);
   }
 
   // Converts a list of Python objects to a List DataSlice, assuming that
@@ -307,6 +330,42 @@ class FromPyConverter {
     return list;
   }
 
+  // Returns a vector of pairs of (key, value) for each dict in `py_dicts`.
+  // If there is a schema mismatch, returns an error with the given message.
+  absl::Status GetDictKeysAndValues(
+      std::vector<PyObject*> py_dicts,
+      std::vector<std::vector<std::pair<PyObject*, PyObject*>>>& py_keys_values,
+      absl::string_view error_message_for_schema_mismatch) {
+    py_keys_values.resize(py_dicts.size());
+
+    for (int dict_index = 0; dict_index < py_dicts.size(); ++dict_index) {
+      PyObject* py_obj = py_dicts[dict_index];
+      std::vector<std::pair<PyObject*, PyObject*>>& cur_dict_keys_values =
+          py_keys_values[dict_index];
+      if (!PyDict_CheckExact(py_obj)) {
+        // This can only happen if there is a schema provided; otherwise we
+        // always parse objects one by one.
+        return absl::InvalidArgumentError(error_message_for_schema_mismatch);
+      }
+
+      const size_t dict_size = PyDict_Size(py_obj);
+
+      cur_dict_keys_values.resize(dict_size);
+      Py_ssize_t pos = 0;
+
+      for (auto it = cur_dict_keys_values.rbegin();
+           it != cur_dict_keys_values.rend(); ++it) {
+        if (!PyDict_Next(py_obj, &pos, &it->first, &it->second)) {
+          return absl::InternalError(
+              "failed to get the next key and value from the dictionary.");
+        }
+      }
+      DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
+    }
+
+    return absl::OkStatus();
+  }
+
   // Converts a list of Python objects to a Dict DataSlice, assuming that
   // all of them are dicts. Calls `ConvertImpl` both for the keys and values
   // and uses the result as dict keys and values; after that
@@ -326,32 +385,20 @@ class FromPyConverter {
     ASSIGN_OR_RETURN(
         DataSlice value_schema,
         GetSchemaAttrOrObjectSchema(schema, schema::kDictValuesSchemaAttr));
-    for (PyObject* py_obj : py_objects) {
-      if (!PyDict_Check(py_obj)) {
-        // This can only happen if there is a schema provided; otherwise we
-        // always parse objects one by one.
-        return absl::InvalidArgumentError("schema mismatch: expected dict");
+
+    std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
+    RETURN_IF_ERROR(GetDictKeysAndValues(
+        py_objects, py_keys_values,
+        "schema mismatch: expected dict object for dict schema"));
+
+    for (const std::vector<std::pair<PyObject*, PyObject*>>&
+             cur_dict_keys_values : py_keys_values) {
+      shape_builder.Add(cur_dict_keys_values.size());
+      for (const std::pair<PyObject*, PyObject*>& key_value :
+           cur_dict_keys_values) {
+        next_level_py_keys.push_back(key_value.first);
+        next_level_py_values.push_back(key_value.second);
       }
-
-      const size_t dict_size = PyDict_Size(py_obj);
-      std::vector<PyObject*> cur_dict_keys;
-      std::vector<PyObject*> cur_dict_values;
-      cur_dict_keys.resize(dict_size);
-      cur_dict_values.resize(dict_size);
-      Py_ssize_t pos = 0;
-
-      for (size_t i = dict_size; i > 0; --i) {
-        CHECK(PyDict_Next(py_obj, &pos, &cur_dict_keys[i - 1],
-                          &cur_dict_values[i - 1]));
-      }
-      DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
-
-      shape_builder.Add(dict_size);
-      next_level_py_keys.insert(next_level_py_keys.end(), cur_dict_keys.begin(),
-                                cur_dict_keys.end());
-      next_level_py_values.insert(next_level_py_values.end(),
-                                  cur_dict_values.begin(),
-                                  cur_dict_values.end());
     }
     ASSIGN_OR_RETURN(DataSlice::JaggedShape next_level_shape,
                      std::move(shape_builder).Build());
@@ -373,6 +420,81 @@ class FromPyConverter {
       return ObjectCreator::ConvertWithoutAdopt(GetBag(), dict);
     }
     return dict;
+  }
+
+  // Converts a list of Python dicts to an Object or Entity DataSlice,
+  // depending on the schema.
+  absl::StatusOr<DataSlice> ConvertDictAsObj(
+      const std::vector<PyObject*>& py_objects,
+      const DataSlice::JaggedShape& cur_shape,
+      const std::optional<DataSlice>& schema) {
+    const bool is_struct_schema = IsStructSchema(schema);
+
+    absl::flat_hash_map<absl::string_view, std::vector<PyObject*>>
+        attr_python_values_map;
+
+    DataSlice::AttrNamesSet schema_attr_names;
+    if (is_struct_schema) {
+      ASSIGN_OR_RETURN(schema_attr_names, schema->GetAttrNames());
+    }
+
+    std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
+    RETURN_IF_ERROR(GetDictKeysAndValues(
+        py_objects, py_keys_values,
+        "schema mismatch: expected dict object when parsing dict as object"));
+
+    int i = 0;
+    for (const std::vector<std::pair<PyObject*, PyObject*>>&
+             cur_dict_keys_values : py_keys_values) {
+      for (const std::pair<PyObject*, PyObject*>& key_value :
+           cur_dict_keys_values) {
+        ASSIGN_OR_RETURN(absl::string_view key,
+                         PyDictKeyAsStringView(key_value.first));
+        PyObject* py_value = key_value.second;
+        // If there is a schema, we only parse the attributes that are
+        // mentioned in the schema. Otherwise, we will fail when calling
+        // `EntityCreator::Shaped` below.
+        if (!is_struct_schema || schema_attr_names.contains(key)) {
+          std::vector<PyObject*>& attr_values = attr_python_values_map[key];
+          if (attr_values.size() < py_objects.size()) {
+            attr_values.resize(py_objects.size(), Py_None);
+          }
+          attr_values[i] = py_value;
+        }
+      }
+      ++i;
+    }
+
+    std::vector<absl::string_view> attr_names;
+    attr_names.reserve(attr_python_values_map.size());
+
+    if (is_struct_schema) {
+      // Used for entities: for each attribute, we have a list of values, one
+      // for each object.
+      std::vector<std::vector<PyObject*>> attributes_values(
+          attr_python_values_map.size());
+
+      i = 0;
+      for (const auto& [key, values] : attr_python_values_map) {
+        attr_names.push_back(key);
+        attributes_values[i] = values;
+        ++i;
+      }
+      return CreateEntitiesFromAttrNamesAndValues(attr_names, attributes_values,
+                                                  cur_shape, *schema);
+    }
+
+    // Used for objects: we have a single list of values, one for each
+    // attribute.
+    std::vector<PyObject*> attr_values;
+
+    for (const auto& [key, values] : attr_python_values_map) {
+      attr_names.push_back(key);
+      DCHECK_EQ(values.size(), 1);
+      attr_values.push_back(values[0]);
+    }
+
+    return ConvertObjectFromAttrNamesAndValues(attr_names, attr_values);
   }
 
   // Converts a list of Python objects to an Entity DataSlice, assuming that
@@ -416,28 +538,46 @@ class FromPyConverter {
       }
     }
 
-    std::vector<std::optional<DataSlice>> attr_schemas(attr_names_vec.size());
-    for (int i = 0; i < attr_names_vec.size(); ++i) {
-      ASSIGN_OR_RETURN(attr_schemas[i], schema.GetAttr(attr_names_vec[i]));
+    return CreateEntitiesFromAttrNamesAndValues(
+        attr_names_vec, attr_python_values_vec, cur_shape, schema);
+  }
+
+  // Converts a list of Python objects to an Entity DataSlice, assuming that
+  // all of them have the same schema. First gets a list of attribute names from
+  // the schema, then for each object in the list, gets the values of the
+  // attributes and finally creates an Entity DataSlice.
+  absl::StatusOr<DataSlice> CreateEntitiesFromAttrNamesAndValues(
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<std::vector<PyObject*>>& attr_python_values_vec,
+      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema) {
+    DCHECK(schema.IsEntitySchema());
+
+    std::vector<std::optional<DataSlice>> attr_schemas(attr_names.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      ASSIGN_OR_RETURN(attr_schemas[i], schema.GetAttr(attr_names[i]));
     }
     DCHECK_EQ(attr_schemas.size(), attr_python_values_vec.size());
 
     std::vector<DataSlice> values;
     values.reserve(attr_names.size());
     for (int i = 0; i < attr_names.size(); ++i) {
+      std::optional<DataSlice> attr_schema = std::move(attr_schemas[i]);
+      if (attr_schema && attr_schema->IsPrimitiveSchema()) {
+        // This is a hack to get a nice error message with the attribute name.
+        attr_schema = std::nullopt;
+      }
       ASSIGN_OR_RETURN(
           values.emplace_back(),
-          ConvertImpl(attr_python_values_vec[i], cur_shape, attr_schemas[i]));
+          ConvertImpl(attr_python_values_vec[i], cur_shape, attr_schema));
     }
 
-    return EntityCreator::Shaped(GetBag(), cur_shape, attr_names_vec, values,
+    return EntityCreator::Shaped(GetBag(), cur_shape, attr_names, values,
                                  schema);
   }
 
   // Converts a Python object (dataclass) to an Entity. Since we don't have a
   // schema, we get attribute names and values from the dataclass itself.
-  absl::StatusOr<DataSlice> ConvertObject(
-      PyObject* py_obj, const DataSlice::JaggedShape& cur_shape) {
+  absl::StatusOr<DataSlice> ConvertObject(PyObject* py_obj) {
     // This is a case when we try to parse a single PyObject as a dataclass
     // object. Checking that it is a dataclass is expensive, so we try to get
     // the attributes of a dataclass immediately.
@@ -452,20 +592,28 @@ class FromPyConverter {
           "could not parse object as a dataclass");
     }
 
-    DCHECK(attr_names_and_values->attr_names.size() ==
-           attr_names_and_values->values.size());
-    const size_t size = attr_names_and_values->attr_names.size();
-    std::vector<absl::string_view> attr_names(
+    std::vector<absl::string_view> attr_names_views(
         attr_names_and_values->attr_names.begin(),
         attr_names_and_values->attr_names.end());
-    std::vector<DataSlice> values(size);
+
+    return ConvertObjectFromAttrNamesAndValues(attr_names_views,
+                                               attr_names_and_values->values);
+  }
+
+  absl::StatusOr<DataSlice> ConvertObjectFromAttrNamesAndValues(
+      const std::vector<absl::string_view>& attr_names,
+      const std::vector<PyObject*>& values) {
+    DCHECK(attr_names.size() == values.size());
+    const size_t size = attr_names.size();
+
+    std::vector<DataSlice> converted_values(size);
     for (int i = 0; i < size; ++i) {
-      ASSIGN_OR_RETURN(
-          values[i],
-          ConvertImpl({attr_names_and_values->values[i]},
-                      DataSlice::JaggedShape::Empty(), std::nullopt));
+      ASSIGN_OR_RETURN(converted_values[i],
+                       ConvertImpl({values[i]}, DataSlice::JaggedShape::Empty(),
+                                   std::nullopt));
     }
-    return ObjectCreator::Shaped(GetBag(), cur_shape, attr_names, values);
+    return ObjectCreator::Shaped(GetBag(), DataSlice::JaggedShape::Empty(),
+                                 attr_names, converted_values);
   }
 
   const DataBagPtr& GetBag() {
@@ -479,13 +627,14 @@ class FromPyConverter {
   DataBagPtr db_;
   AdoptionQueue& adoption_queue_;
   DataClassesUtil dataclasses_util_;
+  bool dict_as_obj_;
 };
 
 }  // namespace
 
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
-                                    size_t from_dim) {
+                                    size_t from_dim, bool dict_as_obj) {
   AdoptionQueue adoption_queue;
   DataItem schema_item;
   if (schema) {
@@ -493,9 +642,9 @@ absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
     adoption_queue.Add(*schema);
     schema_item = schema->item();
   }
-  ASSIGN_OR_RETURN(
-      DataSlice res_slice,
-      FromPyConverter(adoption_queue).Convert(py_obj, schema, from_dim));
+  ASSIGN_OR_RETURN(DataSlice res_slice,
+                   FromPyConverter(adoption_queue, dict_as_obj)
+                       .Convert(py_obj, schema, from_dim));
 
   DataBagPtr res_db = res_slice.GetBag();
   DCHECK(res_db == nullptr || res_db->IsMutable());
