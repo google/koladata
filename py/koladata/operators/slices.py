@@ -2145,6 +2145,7 @@ def get_repr(
     show_databag_id=False,
     show_shape=False,
     show_schema=False,
+    show_item_id=False,
 ):  # pylint: disable=unused-argument
   """Returns a string representation of the DataSlice `x`.
 
@@ -2167,6 +2168,7 @@ def get_repr(
     show_databag_id: When true, the repr will show the databag id.
     show_shape: When true, the repr will show the shape.
     show_schema: When true, the repr will show the schema.
+    show_item_id: When true, the repr will show the itemids for objects.
   Returns:
     A string representation of the DataSlice `x`.
   """

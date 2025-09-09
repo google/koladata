@@ -54,6 +54,8 @@ struct ReprOption {
   bool show_shape = true;
   // When true, the repr will show the schema.
   bool show_schema = true;
+  // When true, the repr will show the itemids for objects.
+  bool show_item_id = false;
 };
 // LINT.ThenChange(//py/koladata/operators/slices.py)
 

@@ -6717,7 +6717,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False)` {#kd.slices.get_repr}
+### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.slices.get_repr}
 Aliases:
 
 - [kd.get_repr](#kd.get_repr)
@@ -6743,6 +6743,7 @@ Args:
   show_databag_id: When true, the repr will show the databag id.
   show_shape: When true, the repr will show the shape.
   show_schema: When true, the repr will show the schema.
+  show_item_id: When true, the repr will show the itemids for objects.
 Returns:
   A string representation of the DataSlice `x`.</code></pre>
 
@@ -9745,7 +9746,7 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
 
-### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False)` {#kd.get_repr}
+### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.get_repr}
 
 Alias for [kd.slices.get_repr](#kd.slices.get_repr) operator.
 

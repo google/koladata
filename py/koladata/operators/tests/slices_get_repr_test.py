@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
@@ -148,6 +149,46 @@ class SlicesGetReprTest(parameterized.TestCase):
         show_schema=True,
     )
     testing.assert_equal(res, ds('DataSlice([1, 2], schema: INT32)'))
+
+  def test_show_itemid(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        db.new(a=1),
+        show_schema=True,
+        show_item_id=True,
+    )
+    self.assertRegex(
+        res.internal_as_py(),
+        r'DataItem\(Entity\(a=1\), schema: ENTITY\(a=INT32\), item_id:'
+        r' Entity:\$.{22}\)',
+    )
+
+  def test_show_itemid_schema(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        db.new_schema(a=schema_constants.INT32),
+        show_schema=True,
+        show_item_id=True,
+    )
+    self.assertRegex(
+        res.internal_as_py(),
+        r'DataItem\(ENTITY\(a=INT32\), schema: SCHEMA, item_id:'
+        r' Schema:\$.{22}\)',
+    )
+
+  def test_functor_itemid(self):
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()
+    res = eval_op(
+        'kd.slices.get_repr',
+        fn,
+        show_schema=True,
+        show_item_id=True,
+    )
+    self.assertRegex(
+        res.internal_as_py(),
+        r'DataItem\(Functor\[self=Entity\(self_not_specified=present\), .*\]'
+        r'\(returns=I.x \+ I.y\), schema: OBJECT, item_id: Entity:\$.{22}\)',
+    )
 
   def test_print_only_attr_names(self):
     res = eval_op(

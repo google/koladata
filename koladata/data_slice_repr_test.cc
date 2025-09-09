@@ -1874,6 +1874,41 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
       Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64))"));
 }
 
+TEST(DataSliceReprTest, DataSliceRepr_ShowItemId) {
+  auto db = DataBag::EmptyMutable();
+  auto value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(db, {"a"}, {value_1}));
+  EXPECT_THAT(
+      DataSliceRepr(entity,
+                    {
+                        .show_attributes = true,
+                        .show_databag_id = false,
+                        .show_shape = false,
+                        .show_item_id = true,
+                    }),
+      MatchesRegex(
+          R"regexp(DataItem\(Entity\(a=1\), schema: ENTITY\(a=INT32\), item_id: Entity:\$[0-9a-zA-Z]{22}\))regexp"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_ShowItemIdList) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice data_slice,
+      CreateNestedList(db, test::DataSlice<int>({1, 2, 3}),
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
+  EXPECT_THAT(
+      DataSliceRepr(data_slice,
+                    {
+                        .show_attributes = true,
+                        .show_databag_id = false,
+                        .show_shape = false,
+                        .show_item_id = true,
+                    }),
+      MatchesRegex(
+          R"regexp(DataItem\(List\[1, 2, 3\], schema: LIST\[OBJECT\], item_id: List:\$[0-9a-zA-Z]{22}\))regexp"));
+}
+
 TEST(DataSliceReprTest, SchemaToStr) {
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kObject)), Eq("OBJECT"));
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kInt32)), Eq("INT32"));

@@ -1068,7 +1068,8 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& show_attributes,
                                   const DataSlice& show_databag_id,
                                   const DataSlice& show_shape,
-                                  const DataSlice& show_schema) {
+                                  const DataSlice& show_schema,
+                                  const DataSlice& show_item_id) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
   if (depth_int < 0) {
     return absl::InvalidArgumentError("depth parameter must be non-negative");
@@ -1099,6 +1100,8 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                    GetBoolArgument(show_shape, "show_shape"));
   ASSIGN_OR_RETURN(bool show_schema_bool,
                    GetBoolArgument(show_schema, "show_schema"));
+  ASSIGN_OR_RETURN(bool show_item_id_bool,
+                   GetBoolArgument(show_schema, "show_item_id"));
   auto repr = DataSliceRepr(
       x, ReprOption{
              .depth = depth_int,
@@ -1111,6 +1114,7 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
              .show_databag_id = show_databag_id_bool,
              .show_shape = show_shape_bool,
              .show_schema = show_schema_bool,
+             .show_item_id = show_item_id_bool,
          });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));

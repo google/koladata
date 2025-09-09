@@ -930,8 +930,10 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
       ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
   // Wrap in DataItem/DataSlice only if we have need to print something other
   // than the DataSlice literal.
-  if (option.show_databag_id || option.show_shape || option.show_schema ||
-      only_print_attr_names) {
+  bool wrap_repr =
+      (option.show_databag_id || option.show_shape || option.show_schema ||
+       option.show_item_id || only_print_attr_names);
+  if (wrap_repr) {
     absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
   }
   // If the data slice is too large, we will not print the
@@ -958,8 +960,11 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   if (option.show_databag_id && ds.GetBag() != nullptr) {
     absl::StrAppend(&result, ", bag_id: ", GetBagIdRepr(ds.GetBag()));
   }
-  if (option.show_databag_id || option.show_shape || option.show_schema ||
-      only_print_attr_names) {
+  if (option.show_item_id && ds.is_item() &&
+      ds.item().holds_value<ObjectId>()) {
+    absl::StrAppend(&result, ", item_id: ", ds.item().value<ObjectId>());
+  }
+  if (wrap_repr) {
     absl::StrAppend(&result, ")");
   }
   return result;
