@@ -23,7 +23,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import os
-from typing import AbstractSet, Generator
+from typing import Collection, Generator
 
 from google.protobuf import timestamp
 from koladata import kd
@@ -303,9 +303,9 @@ class PersistedIncrementalDataSliceManager(
 
   def get_data_slice(
       self,
-      populate: AbstractSet[data_slice_path_lib.DataSlicePath] | None = None,
+      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
       populate_including_descendants: (
-          AbstractSet[data_slice_path_lib.DataSlicePath] | None
+          Collection[data_slice_path_lib.DataSlicePath] | None
       ) = None,
   ) -> kd.types.DataSlice:
     """Returns the dataslice with data for the requested data slice paths.
@@ -332,8 +332,8 @@ class PersistedIncrementalDataSliceManager(
     Returns:
       The root dataslice populated with data for the requested data slice paths.
     """
-    populate = populate or set()
-    populate_including_descendants = populate_including_descendants or set()
+    populate = set(populate or [])
+    populate_including_descendants = set(populate_including_descendants or [])
     for path in populate:
       if not self.exists(path):
         raise ValueError(
