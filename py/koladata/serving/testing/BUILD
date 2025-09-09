@@ -43,6 +43,10 @@ koladata_serialized_slices(
     testonly = True,
     slices = {
         "ask_about_serving": koladata_trace_py_fn("koladata.serving.testing.test_functors.ask_about_serving"),
+        "non_deterministic_functor": koladata_trace_py_fn(
+            "koladata.serving.testing.test_functors.non_deterministic_functor",
+            experimental_deterministic_mode = True,
+        ),
     } | {
         # Generating 10 functors to check there is no ordering issue.
         "plus_{}".format(n): call_python_function(
@@ -51,6 +55,22 @@ koladata_serialized_slices(
             deps = [":test_functors"],
         )
         for n in range(1, 11)
+    },
+    tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
+)
+
+koladata_serialized_slices(
+    name = "other_serialized_test_functors_for_determinism_test",
+    testonly = True,
+    slices = {
+        "non_deterministic_functor": koladata_trace_py_fn(
+            "koladata.serving.testing.test_functors.non_deterministic_functor",
+            experimental_deterministic_mode = True,
+        ),
+        "non_deterministic_functor_with_different_name": koladata_trace_py_fn(
+            "koladata.serving.testing.test_functors.non_deterministic_functor_with_different_name",
+            experimental_deterministic_mode = True,
+        ),
     },
     tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
 )

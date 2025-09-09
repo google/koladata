@@ -17,7 +17,7 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
-load("@rules_python//python:defs.bzl", "py_library")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -66,9 +66,34 @@ py_library(
     srcs = ["serving_impl.py"],
     visibility = ["//visibility:public"],
     deps = [
+        ":determinism",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/type_checking",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "determinism",
+    srcs = ["determinism.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "determinism_test",
+    srcs = ["determinism_test.py"],
+    deps = [
+        ":determinism",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/operators:koda_internal_parallel",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
 )

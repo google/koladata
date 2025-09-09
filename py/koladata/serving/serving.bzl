@@ -11,7 +11,8 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 # TODO: Make disabling type checking optional.
 def koladata_trace_py_fn(
         function,
-        deps = []):
+        deps = [],
+        experimental_deterministic_mode = False):
     """Constructs call_python_function spec for tracing a Python function as a Koda functor.
 
     Pass the result to koladata_serialized_functors or koladata_cc_embedded_slices BUILD rules.
@@ -20,10 +21,14 @@ def koladata_trace_py_fn(
     Args:
       function: fully qualified Python function name to trace.
       deps: Dependencies for the function, e.g. the python library defining it.
+      experimental_deterministic_mode: (Best-effort) try to freeze the generated functor to make the
+          build deterministic.
+          The logic is experimental and currently does not support functors with non-scalar
+          literals, non-uu schema literals, dict literals with non-primitive keys, etc.
     """
     return call_python_function(
         "koladata.serving.serving_impl.trace_py_fn",
-        args = [function],
+        args = [function, experimental_deterministic_mode],
         deps = deps + ["//py/koladata/serving:serving_impl"],
     )
 

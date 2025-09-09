@@ -34,4 +34,16 @@ def ask_about_serving(
 ) -> kd.types.DataSlice:
   return call_external_fn("How to serve Koda functors?")
 
+
+XYSchema = kd.schema.uu_schema(x=kd.INT32, y=kd.INT32)
+
+
+def non_deterministic_functor(x, y) -> kd.types.DataSlice:
+  literal = kd.eager.new(x=57, y=7, schema=XYSchema)
+  return kd.obj(args=XYSchema.new(x=x, y=y), literal=literal)
+
+
+non_deterministic_functor_with_different_name = non_deterministic_functor
+
+
 TEST_DS = kd.slice([1, 2, 3])

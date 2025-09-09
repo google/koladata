@@ -20,6 +20,7 @@ from typing import Any
 
 from arolla import arolla
 from koladata import kd
+from koladata.serving import determinism
 from koladata.type_checking import type_checking
 
 
@@ -34,11 +35,16 @@ def _import_object(path: str) -> Any:
   return getattr(module, object_name)
 
 
-def trace_py_fn(function_path: str) -> kd.types.DataSlice:
+def trace_py_fn(
+    function_path: str, experimental_deterministic_mode: bool = False
+) -> kd.types.DataSlice:
   """Traces a Python function into a Koda functor."""
   with type_checking.disable_traced_type_checking():
     fn = _import_object(function_path)
     fn = kd.fn(fn)
+
+    if experimental_deterministic_mode:
+      fn = determinism.Determinizer(seed=function_path).make_deterministic(fn)
   return fn
 
 
