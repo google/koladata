@@ -37,4 +37,5 @@ extension_types = _py_types.SimpleNamespace(
     # Re-implementation of operators that require inputs to be literals.
     dynamic_cast=_extension_type_registry.dynamic_cast,
     wrap=_extension_type_registry.wrap,
+    get_attr=_extension_type_registry.get_attr,
 )

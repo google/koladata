@@ -22,8 +22,10 @@ from koladata.expr import input_container
 from koladata.functions import functions as _
 from koladata.operators import kde_operators
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
+from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
@@ -231,6 +233,39 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
 
     testing.assert_equal(extension_type_registry.dynamic_cast(a, b_type), b)
     testing.assert_equal(extension_type_registry.dynamic_cast(b, a_type), a)
+
+  def test_get_attr(self):
+    # NOTE: This is more thoroughly tested in extension_types_test.py and
+    # operators/tests/extension_types_get_attr_test.py.
+    class A:
+      pass
+
+    a_type = M.derived_qtype.get_labeled_qtype(
+        extension_type_registry.BASE_QTYPE, 'A'
+    ).qvalue
+    extension_type_registry.register_extension_type(A, a_type)
+
+    db = data_bag.DataBag.empty()
+    obj = objects.Object(x=ds(1), y=db)
+    a = extension_type_registry.wrap(obj, a_type)
+    testing.assert_equal(
+        extension_type_registry.get_attr(a, 'x', qtypes.DATA_SLICE),
+        ds(1),
+    )
+    testing.assert_equal(
+        extension_type_registry.get_attr(a, 'y', qtypes.DATA_BAG),
+        db,
+    )
+
+    with self.assertRaisesRegex(ValueError, "attribute not found: 'z'"):
+      _ = extension_type_registry.get_attr(a, 'z', qtypes.DATA_SLICE)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        "looked for attribute 'x' with type DATA_BAG, but the attribute has"
+        ' actual type DATA_SLICE',
+    ):
+      _ = extension_type_registry.get_attr(a, 'x', qtypes.DATA_BAG)
 
 
 if __name__ == '__main__':

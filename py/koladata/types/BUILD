@@ -681,8 +681,10 @@ py_test(
     name = "extension_type_registry_test",
     srcs = ["extension_type_registry_test.py"],
     deps = [
+        ":data_bag",
         ":data_slice",
         ":extension_type_registry",
+        ":qtypes",
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/expr:input_container",

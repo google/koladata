@@ -362,9 +362,9 @@ def _make_qvalue_class(
   qvalue_class_attrs = {}
   for name, qtype in class_meta.field_qtypes.items():
     qvalue_class_attrs[name] = property(
-        lambda self, k=name, qtype=qtype: arolla.abc.aux_eval_op(
-            'kd.extension_types.unwrap', self
-        ).get_attr(k, qtype)
+        lambda self, k=name, qtype=qtype: extension_type_registry.get_attr(
+            self, k, qtype
+        )
     )
   # Methods.
   qvalue_class_attrs |= class_meta.non_virtual_methods
@@ -388,12 +388,9 @@ def _make_expr_view_class(
   """Creates an expr view class."""
   expr_view_class_attrs = {}
   for name, qtype in class_meta.field_qtypes.items():
-    # TODO: Add kd.extension_types.get_attr.
     expr_view_class_attrs[name] = property(
-        lambda self, k=name, qtype=qtype: M.objects.get_object_attr(
-            arolla.abc.aux_bind_op('kd.extension_types.unwrap', self),
-            k,
-            qtype,
+        lambda self, k=name, qtype=qtype: arolla.abc.aux_bind_op(
+            'kd.extension_types.get_attr', self, k, qtype
         )
     )
   expr_view_methods = {

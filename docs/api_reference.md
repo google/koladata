@@ -2027,6 +2027,10 @@ Aliases:
   Returns:
     A new class that serves as a factory for the extension type.</code></pre>
 
+### `kd.extension_types.get_attr(ext, attr, qtype)` {#kd.extension_types.get_attr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attribute of `ext` with name `attr` and type `qtype`.</code></pre>
+
 ### `kd.extension_types.get_extension_qtype(cls)` {#kd.extension_types.get_extension_qtype}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the QType for the given extension type class.</code></pre>

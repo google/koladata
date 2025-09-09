@@ -108,3 +108,11 @@ def dynamic_cast(value: arolla.QValue, qtype: arolla.QType) -> arolla.AnyQValue:
   """Up-, down-, and side-casts `value` to `qtype`."""
   dc = arolla.abc.lookup_operator('kd.extension_types.dynamic_cast')
   return arolla.eval(dc(arolla.L.x, qtype), x=value)
+
+
+def get_attr(
+    ext: arolla.QValue, attr: str | arolla.QValue, qtype: arolla.QType
+):
+  """Returns the attribute of `ext` with name `attr` and type `qtype`."""
+  ga = arolla.abc.lookup_operator('kd.extension_types.get_attr')
+  return arolla.eval(ga(arolla.L.ext, attr, qtype), ext=ext)

@@ -18,6 +18,7 @@ from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
 from koladata.expr import view
+from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.types import schema_constants
 
@@ -82,3 +83,11 @@ def with_attrs(ext, **attrs):
   attrs = arolla.optools.fix_trace_kwargs(attrs)
   obj = M.objects.make_object(unwrap(ext), attrs)
   return wrap(obj, M.qtype.qtype_of(ext))
+
+
+@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.as_lambda_operator('kd.extension_types.get_attr')
+def get_attr(ext, attr, qtype):
+  """Returns the attribute of `ext` with name `attr` and type `qtype`."""
+  attr = arolla_bridge.to_arolla_text(attr)
+  return M.objects.get_object_attr(unwrap(ext), attr, qtype)

@@ -964,6 +964,7 @@ py_library(
     name = "extension_types",
     srcs = ["extension_types.py"],
     deps = [
+        ":arolla_bridge",
         ":optools",
         "//py:python_path",
         "//py/koladata/expr:view",
