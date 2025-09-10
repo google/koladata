@@ -1197,55 +1197,100 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     manager = pidbm.PersistedIncrementalDataBagManager(
         persistence_dir, fs=fs_factory()
     )
+    bag1 = kd.attrs(kd.new(), a=1)
     manager.add_bags([
-        pidbm.BagToAdd(
-            bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=('',)
-        ),
+        pidbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=('',)),
     ])
-
-    manager._fs = fs_rename_then_keyboard_interrupt
-    with self.assertRaises(KeyboardInterrupt):
-      manager.add_bags([
-          pidbm.BagToAdd(
-              bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('',)
-          ),
-      ])
-    # The bag was successfully added, but the manager's state was reset, so
-    # there is nothing loaded in the cache.
-    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
-    self.assertEqual(manager.get_loaded_bag_names(), {''})
+    available_bag_names = manager.get_available_bag_names()
+    loaded_bag_names = manager.get_loaded_bag_names()
 
     manager._fs = fs_no_rename_only_keyboard_interrupt
     with self.assertRaises(KeyboardInterrupt):
       manager.add_bags([
           pidbm.BagToAdd(
-              bag_name='bag3', bag=kd.attrs(kd.new(), a=3), dependencies=('',)
+              bag_name='bag2', bag=kd.attrs(kd.new(), a=3), dependencies=('',)
           ),
       ])
     # The state of the manager is not changed. Adding bags is transactional, so
     # nothing is added when there is an error.
-    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
-    self.assertEqual(manager.get_loaded_bag_names(), {''})
+    self.assertEqual(manager.get_available_bag_names(), available_bag_names)
+    # It may have loaded additional bags into the cache, but it doesn't remove
+    # bags from the cache.
+    self.assertEqual(
+        manager.get_loaded_bag_names() & loaded_bag_names, loaded_bag_names
+    )
 
     # add_bags() is transactional, so if one bag fails to be added, then none of
     # them are added.
     with self.assertRaises(KeyboardInterrupt):
       manager.add_bags([
           pidbm.BagToAdd(
-              bag_name='bag4',
+              bag_name='bag3',
               bag=kd.attrs(kd.new(), a=4),
               dependencies=('bag1',),
           ),
           pidbm.BagToAdd(
-              bag_name='bag5',
+              bag_name='bag4',
               bag=kd.attrs(kd.new(), a=5),
-              dependencies=('bag4',),
+              dependencies=('bag3',),
           ),
       ])
-    self.assertEqual(manager.get_available_bag_names(), {'', 'bag1', 'bag2'})
-    # Moreover, the KeyboardInterrupt caused the state of the manager to be
-    # reset, so there is nothing in the cache:
-    self.assertEqual(manager.get_loaded_bag_names(), {''})
+    self.assertEqual(manager.get_available_bag_names(), available_bag_names)
+    # It may have loaded additional bags into the cache, but it doesn't remove
+    # bags from the cache.
+    self.assertEqual(
+        manager.get_loaded_bag_names() & loaded_bag_names, loaded_bag_names
+    )
+
+    manager._fs = fs_rename_then_keyboard_interrupt
+    with self.assertRaises(KeyboardInterrupt):
+      manager.add_bags([
+          pidbm.BagToAdd(
+              bag_name='bag5', bag=kd.attrs(kd.new(), a=2), dependencies=('',)
+          ),
+      ])
+    # The update was successfully committed to disk, but the manager's state
+    # was not updated to the new revision.
+    self.assertEqual(manager.get_available_bag_names(), available_bag_names)
+    self.assertEqual(
+        manager.get_loaded_bag_names() & loaded_bag_names, loaded_bag_names
+    )
+
+    # Because the update was successfully committed to disk, but the manager's
+    # state was not updated to the new revision, the manager cannot perform
+    # further write operations.
+    bag6 = kd.attrs(kd.new(), a=6)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'While attemping to commit update 2, we detected that it is already'
+            ' present in the destination directory'
+        ),
+    ):
+      manager.add_bags([
+          pidbm.BagToAdd(bag_name='bag6', bag=bag6, dependencies=('',)),
+      ])
+
+    # But the manager can still perform reads, but at 1 version behind the
+    # latest revision.
+    kd.testing.assert_equivalent(
+        manager.get_minimal_bag({'bag1'}).merge_fallbacks(),
+        bag1,
+    )
+
+    # And the manager can be branched, and the update can be applied to the
+    # branch.
+    manager._fs = fs_factory()  # Don't raise on rename anymore.
+    branch_dir = self.create_tempdir().full_path
+    manager.create_branch({''}, with_all_dependents=True, output_dir=branch_dir)
+    branch_manager = pidbm.PersistedIncrementalDataBagManager(branch_dir)
+    branch_manager.add_bags([
+        pidbm.BagToAdd(bag_name='bag6', bag=bag6, dependencies=('',)),
+    ])
+    kd.testing.assert_equivalent(
+        branch_manager.get_minimal_bag({'bag6'}).merge_fallbacks(),
+        bag6,
+    )
 
 
 if __name__ == '__main__':

@@ -24,6 +24,7 @@ import dataclasses
 import datetime
 import os
 from typing import Collection, Generator
+import uuid
 
 from google.protobuf import timestamp
 from koladata import kd
@@ -107,6 +108,16 @@ class PersistedIncrementalDataSliceManager(
 ):
   """Manager of a DataSlice that is assembled from multiple smaller data slices.
 
+  Short version of the contract:
+  * Instances are not thread-safe.
+  * Multiple instances can be created for the same persistence directory:
+    * Multiple readers are allowed.
+    * The effects of write operations (calls to update()) are not propagated
+      to other instances that already exist.
+    * Concurrent writers are not allowed. A write operation will fail if the
+      state of the persistence directory was modified in the meantime by another
+      instance.
+
   It is often convenient to create a DataSlice by incrementally adding smaller
   slices, where each of the smaller slices is an update to the large DataSlice.
   This also provides the opportunity to persist the updates separately.
@@ -128,11 +139,15 @@ class PersistedIncrementalDataSliceManager(
   modified externally and that there is sufficient space to accommodate the
   writes.
 
-  This class is not thread-safe. However, in the absence of writes, i.e. calls
-  to update(), multiple instances of this class can concurrently read from the
-  same persistence directory. So creating multiple instances and calling
-  get_schema() or get_data_slice() concurrently is fine in the absence of
-  writes. Only a single instance should exist during a write operation.
+  This class is not thread-safe. When an instance is created for a persistence
+  directory that is already populated, then the instance is initialized with
+  the current state found in the persistence directory at that point in time.
+  Write operations (calls to update()) by other instances for the same
+  persistence directory are not propagated to this instance. A write operation
+  will fail if the state of the persistence directory was modified in the
+  meantime by another instance. Multiple instances can be created for the same
+  persistence directory and concurrently read from it. So creating multiple
+  instances and calling get_schema() or get_data_slice() concurrently is fine.
 
   Implementation details:
 
@@ -206,6 +221,7 @@ class PersistedIncrementalDataSliceManager(
       )
       self._metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
           version='1.0.0',
+          metadata_update_number=0,
           action_history=[
               metadata_pb2.ActionMetadata(
                   timestamp=timestamp.from_current_time(),
@@ -225,7 +241,7 @@ class PersistedIncrementalDataSliceManager(
       )
       _persist_metadata(self._fs, self._persistence_dir, self._metadata)
     else:
-      self._metadata = _read_metadata(self._fs, self._persistence_dir)
+      self._metadata = _read_latest_metadata(self._fs, self._persistence_dir)
       self._root_dataslice = fs_util.read_slice_from_file(
           self._fs,
           _get_root_dataslice_filepath(self._persistence_dir),
@@ -236,13 +252,12 @@ class PersistedIncrementalDataSliceManager(
       self._schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
           schema_bags_dir, fs=self._fs
       )
-      schema_bags_to_load = set()
+      schema_bag_names = set()
       for action in self._metadata.action_history:
-        schema_bags_to_load.update(action.added_schema_bag_names)
-      self._schema_bag_manager.load_bags(schema_bags_to_load)
+        schema_bag_names.update(action.added_schema_bag_names)
       self._schema_helper = schema_helper.SchemaHelper(
           self._root_dataslice.get_schema().updated(
-              self._schema_bag_manager.get_loaded_bag()
+              self._schema_bag_manager.get_minimal_bag(schema_bag_names)
           )
       )
       self._initial_schema_node_name_to_data_bag_names = (
@@ -269,8 +284,11 @@ class PersistedIncrementalDataSliceManager(
 
   def get_schema(self) -> kd.types.DataSlice:
     """Returns the schema of the entire DataSlice managed by this manager."""
+    schema_bag_names = set()
+    for action in self._metadata.action_history:
+      schema_bag_names.update(action.added_schema_bag_names)
     return self._root_dataslice.get_schema().updated(
-        self._schema_bag_manager.get_loaded_bag()
+        self._schema_bag_manager.get_minimal_bag(schema_bag_names)
     )
 
   def generate_paths(
@@ -755,7 +773,21 @@ class PersistedIncrementalDataSliceManager(
     }
 
     # The processing so far has no errors, so the user inputs are valid and the
-    # update can be performed. We proceed to update the attributes of "self".
+    # update can be performed. We proceed to update the attributes of "self". We
+    # do so in a way that is transactional: the state of "self" must either be
+    # the same as before in case something fails (e.g. the disk storage is out
+    # of space), or the update succeeds. The code is only truly transactional
+    # if self._fs supports atomic file-to-file renames. Concurrent writers are
+    # then also properly detected and prevented from overwriting each other's
+    # changes.
+
+    # Add bags to the various bag managers. It is okay if there is an exception
+    # somewhere and not all the bag managers commit their changes to disk,
+    # because `self` will always interact with bag managers using explicit sets
+    # of bag names. I.e. `self` will never rely on what happens to be committed
+    # to disk or loaded in a bag manager. Instead, it will only ask for bags
+    # mentioned in self._metadata, so if self._metadata is not updated, then it
+    # does not matter if a bag manager has some extra bags.
     data_bags_to_add = [
         # Depend only on the bag manager's root bag - the trivial set of
         # dependencies.
@@ -804,7 +836,7 @@ class PersistedIncrementalDataSliceManager(
         )
     ]
     self._schema_bag_manager.add_bags(schema_bags_to_add)
-    self._schema_helper = schema_helper.SchemaHelper(new_full_schema)
+    new_schema_helper = schema_helper.SchemaHelper(new_full_schema)
     snn_to_data_bags_updates = []
     for snn, new_bag_names in snn_to_merged_bag_name.items():
       existing_bag_names = self._get_data_bag_names(snn)
@@ -829,7 +861,10 @@ class PersistedIncrementalDataSliceManager(
             dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
         )
     ])
-    self._metadata.action_history.append(
+    new_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata()
+    new_metadata.CopyFrom(self._metadata)
+    new_metadata.metadata_update_number += 1
+    new_metadata.action_history.append(
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_current_time(),
             description=description,
@@ -842,7 +877,27 @@ class PersistedIncrementalDataSliceManager(
             ),
         )
     )
-    _persist_metadata(self._fs, self._persistence_dir, self._metadata)
+    # Persist the new metadata in a transactional way. Concurrent writers are
+    # detected and prevented from overwriting each other's changes when self._fs
+    # supports atomic file-to-file renames.
+    _persist_metadata(self._fs, self._persistence_dir, new_metadata)
+    # The new metadata has be committed to disk. The persistence directory is
+    # now at a new revision, but `self` is still at the revision where it was
+    # when update() was called. Next, we want to update the state of "self" in a
+    # transactional way to the new revision. That is difficult to do in Python,
+    # so we detect potential issues and surface them to the user.
+    try:
+      self._metadata = new_metadata
+      self._schema_helper = new_schema_helper
+    except BaseException as e:
+      # Some exception occurred, e.g. a KeyboardInterrupt.
+      # Each of the assignments in the try block is atomic. Just in case the
+      # exception or interrupt happened right between the two assignments.
+      e.add_note(
+          'The manager is in an inconsistent state. Please use a new manager'
+          ' instance to avoid data corruption.'
+      )
+      raise
 
   def branch(
       self,
@@ -962,6 +1017,7 @@ class PersistedIncrementalDataSliceManager(
 
     branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
         version='1.0.0',
+        metadata_update_number=0,
         action_history=[
             metadata_pb2.ActionMetadata(
                 timestamp=timestamp.from_current_time(),
@@ -999,8 +1055,13 @@ class PersistedIncrementalDataSliceManager(
 
   def _get_schema_node_name_to_data_bag_names(self) -> kd.types.DataItem:
     """Returns the full Koda DICT that maps schema node names to data bag names."""
+    update_bag_names = set()
+    for action in self._metadata.action_history:
+      update_bag_names.update(action.added_snn_to_data_bags_update_bag_names)
     return self._initial_schema_node_name_to_data_bag_names.updated(
-        self._schema_node_name_to_data_bags_updates_manager.get_loaded_bag()
+        self._schema_node_name_to_data_bags_updates_manager.get_minimal_bag(
+            update_bag_names
+        )
     )
 
   def _get_data_bag_names(
@@ -1049,20 +1110,68 @@ def _get_metadata_filepath(persistence_dir: str) -> str:
   return os.path.join(persistence_dir, 'metadata.pb')
 
 
+def _get_uuid() -> str:
+  return str(uuid.uuid1())
+
+
+# The update number is padded to 12 digits in filenames.
+_UPDATE_NUMBER_NUM_DIGITS = 12
+
+
 def _persist_metadata(
     fs: fs_interface.FileSystemInterface,
     persistence_dir: str,
     metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata,
 ):
-  with fs.open(_get_metadata_filepath(persistence_dir), 'wb') as f:
+  """Persists the given metadata to disk.
+
+  The writing of the metadata is atomic if `fs.rename(src_file, dst_file,
+  overwrite=False)` is atomic, i.e. if the given `fs` object to interact with
+  the file system supports atomic file-to-file renaming. In that case,
+  concurrent writers are detected and prevented from overwriting each other's
+  changes.
+
+  Args:
+    fs: The filesystem interface to use.
+    persistence_dir: The persistence directory of the manager.
+    metadata: The metadata to persist.
+  """
+  update_number = str(metadata.metadata_update_number).zfill(
+      _UPDATE_NUMBER_NUM_DIGITS
+  )
+  final_filepath = os.path.join(persistence_dir, f'metadata-{update_number}.pb')
+  if fs.exists(final_filepath):
+    # Fail fast if the metadata already exists. No point in writing a temporary
+    # file that will end up not being used because of this error.
+    raise ValueError(
+        f'While attemping to commit update {metadata.metadata_update_number},'
+        ' we detected that it is already present in the destination directory'
+        f' {persistence_dir}. Some other process must have updated the'
+        ' directory in parallel. Updates via this manager are not possible'
+        ' anymore. Consider calling branch() with a new directory to'
+        ' create a new manager instance with the same state as this one but'
+        ' that can perform updates, or create a new manager instance for'
+        f' {persistence_dir} and attempt the update again.'
+    )
+  temp_filepath = os.path.join(
+      persistence_dir,
+      f'metadata-{update_number}-{_get_uuid()}.pb',
+  )
+  with fs.open(temp_filepath, 'wb') as f:
     f.write(metadata.SerializeToString())
+  fs.rename(temp_filepath, final_filepath, overwrite=False)
 
 
-def _read_metadata(
+def _read_latest_metadata(
     fs: fs_interface.FileSystemInterface,
     persistence_dir: str,
 ) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:
-  with fs.open(_get_metadata_filepath(persistence_dir), 'rb') as f:
+  update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
+  committed_metadata_filepaths = fs.glob(
+      os.path.join(persistence_dir, f'metadata-{update_number_pattern}.pb')
+  )
+  latest_metadata_filepath = max(committed_metadata_filepaths)
+  with fs.open(latest_metadata_filepath, 'rb') as f:
     return metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
         f.read()
     )

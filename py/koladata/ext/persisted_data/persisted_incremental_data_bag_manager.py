@@ -456,21 +456,29 @@ class PersistedIncrementalDataBagManager:
     # Persist the new metadata in a transactional way. Concurrent writers are
     # detected and prevented from overwriting each other's changes when self._fs
     # supports atomic file-to-file renames.
+    _persist_metadata(self._fs, self._persistence_dir, new_metadata)
+    # The new metadata has be committed to disk. The persistence directory is
+    # now at a new revision, but `self` is still at the revision where it was
+    # when update() was called. Next, we want to update the state of "self" in a
+    # transactional way to the new revision.
     try:
-      _persist_metadata(self._fs, self._persistence_dir, new_metadata)
+      # This assignment is atomic. The only purpose of this try block is to
+      # show where to put assignments to future attributes that are conceptually
+      # part of the transaction. Note that populating the cache is not part of
+      # the transaction; it is done below after this try-except block.
       self._metadata = new_metadata
-    except KeyboardInterrupt:
-      # The user pressed Ctrl+C. Just in case the interrupt happened exactly
-      # between the two lines above, we reset the state of the manager to make
-      # sure that the cached metadata is consistent with the metadata on disk.
-      self.__init__(self._persistence_dir, fs=self._fs)
+    except BaseException as e:
+      e.add_note(
+          'The manager is in an inconsistent state. Please use a new manager'
+          ' instance to avoid data corruption.'
+      )
       raise
 
-    # Update the cache after the metadata is successfully committed to disk.
-    # If the commit fails, then the cache should not be updated at all, which
-    # is why this code follows the transactional update of the metadata above.
+    # Populate the cache of "self" with data of the new revision. No changes to
+    # the cache should happen before the state of "self" is updated to the new
+    # revision, which is why this code must follow the try-except block above.
     # If the cache is partially updated, e.g. when a KeyboardInterrupt happens
-    # during the loop below, then the state of the current manager is still
+    # during the loop below, then the state of the current manager remains
     # consistent.
     for bag_to_add in bags_to_add:
       self._loaded_bags_cache[bag_to_add.bag_name] = bag_to_add.bag

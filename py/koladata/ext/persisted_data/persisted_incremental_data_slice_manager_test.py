@@ -3712,7 +3712,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_metadata(
+        persisted_incremental_data_slice_manager._read_latest_metadata(
             fs_implementation.FileSystemInteraction(), persistence_dir
         ),
         manager._metadata,
@@ -3761,7 +3761,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_metadata(
+        persisted_incremental_data_slice_manager._read_latest_metadata(
             fs_implementation.FileSystemInteraction(), persistence_dir
         ),
         manager._metadata,
@@ -3803,7 +3803,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_metadata(
+        persisted_incremental_data_slice_manager._read_latest_metadata(
             fs_implementation.FileSystemInteraction(), branch_dir
         ),
         branch_manager._metadata,
@@ -3855,7 +3855,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_metadata(
+        persisted_incremental_data_slice_manager._read_latest_metadata(
             fs_implementation.FileSystemInteraction(), branch_dir
         ),
         branch_manager._metadata,
@@ -3875,7 +3875,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(manager._metadata.action_history[0], action_0)
     self.assertEqual(manager._metadata.action_history[1], action_1)
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_metadata(
+        persisted_incremental_data_slice_manager._read_latest_metadata(
             fs_implementation.FileSystemInteraction(), persistence_dir
         ),
         manager._metadata,
@@ -4157,6 +4157,165 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(branch_manager.get_persistence_directory(), branch_dir)
 
     self.assertEqual(manager.get_persistence_directory(), persistence_dir)
+
+  def test_basic_concurrent_readers_writers(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([kd.new(query_id='q1')]),
+        description='Added queries with only query_id populated',
+    )
+    manager_schema = manager.get_schema()
+
+    another_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    another_manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),
+        description='Added docs to queries',
+    )
+
+    # The write operation of `another_manager` is not propagated to `manager`.
+    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    self.assertFalse(manager.exists(parse_dsp('.query[:].doc[:]')))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "data slice path '.query[:].doc[:]' passed in argument 'populate'"
+            ' is invalid'
+        ),
+    ):
+      manager.get_data_slice(populate={parse_dsp('.query[:].doc[:]')})
+
+    # Concurrent writes are detected and prevented.
+    with self.assertRaisesRegex(
+        ValueError,
+        'While attemping to commit update 2, we detected that it is already'
+        ' present in the destination directory',
+    ):
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='query_text',
+          attr_value=kd.slice(['How tall is Obama']),
+          description='Added query_text to queries',
+      )
+
+    # The attempt to add query_text failed. Write operations are transactional,
+    # so query_text is not available.
+    self.assertFalse(manager.exists(parse_dsp('.query[:].query_text')))
+    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+
+  @parameterized.named_parameters(
+      ('file_system_interaction', fs_implementation.FileSystemInteraction),
+  )
+  def test_keyboard_interrupt_during_update(self, fs_factory):
+
+    def rename_then_keyboard_interrupt(
+        frompath,
+        topath,
+        overwrite: bool = False,
+    ):
+      fs_factory().rename(frompath, topath, overwrite)
+      raise KeyboardInterrupt()
+
+    def no_rename_only_keyboard_interrupt(
+        frompath,
+        topath,
+        overwrite: bool = False,
+    ):
+      del frompath, topath, overwrite  # Unused.
+      raise KeyboardInterrupt()
+
+    fs_rename_then_keyboard_interrupt = fs_factory()
+    fs_rename_then_keyboard_interrupt.rename = rename_then_keyboard_interrupt
+
+    fs_no_rename_only_keyboard_interrupt = fs_factory()
+    fs_no_rename_only_keyboard_interrupt.rename = (
+        no_rename_only_keyboard_interrupt
+    )
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager(
+        persistence_dir, fs=fs_factory()
+    )
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([kd.new(query_id='q1')]),
+        description='Added queries with only query_id populated',
+    )
+    num_successful_actions = len(manager.get_action_history())
+    manager_schema = manager.get_schema()
+
+    manager._fs = fs_no_rename_only_keyboard_interrupt
+    with self.assertRaises(KeyboardInterrupt):
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='query_text',
+          attr_value=kd.slice(['How tall is Obama']),
+          description='Added query_text to queries',
+      )
+    # The state of the manager is not changed. Updates are transactional, so
+    # nothing is added when there is an error.
+    self.assertFalse(manager.exists(parse_dsp('.query[:].query_text')))
+    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    self.assertLen(manager.get_action_history(), num_successful_actions)
+    # The cache is also not emptied: more than just the initial bag is loaded.
+    self.assertGreater(len(manager._data_bag_manager.get_loaded_bag_names()), 1)
+
+    manager._fs = fs_rename_then_keyboard_interrupt
+    with self.assertRaises(KeyboardInterrupt):
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='doc',
+          attr_value=kd.slice(
+              [kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]
+          ),
+          description='Added docs to queries',
+      )
+    # The update was successfully committed to disk, but the manager's state
+    # was not updated to the new revision.
+    self.assertFalse(manager.exists(parse_dsp('.query[:].doc[:].doc_id')))
+    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    self.assertLen(manager.get_action_history(), num_successful_actions)
+    # The cache is also not emptied: more than just the initial bag is loaded.
+    self.assertGreater(len(manager._data_bag_manager.get_loaded_bag_names()), 1)
+
+    # Because the update was successfully committed to disk, but the manager's
+    # state was not updated to the new revision, the manager cannot make further
+    # updates.
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'While attemping to commit update 2, we detected that it is already'
+            ' present in the destination directory'
+        ),
+    ):
+      manager.update(
+          at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)
+      )
+
+    # But the manager can still perform reads, albeit not at the latest
+    # revision.
+    kd.testing.assert_deep_equivalent(
+        manager.get_data_slice_at(parse_dsp('.query[:].query_id')),
+        kd.slice(['q1']),
+    )
+
+    # And the manager can be branched, and the update can be applied to the
+    # branch.
+    manager._fs = fs_factory()  # Don't raise on rename anymore.
+    branch_dir = self.create_tempdir().full_path
+    branch_manager = manager.branch(branch_dir)
+    branch_manager.update(
+        at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)
+    )
+    kd.testing.assert_deep_equivalent(
+        branch_manager.get_data_slice_at(parse_dsp('.foo')),
+        kd.item(1),
+    )
 
 
 if __name__ == '__main__':
