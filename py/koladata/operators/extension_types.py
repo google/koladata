@@ -78,11 +78,26 @@ def dynamic_cast(ext, qtype):
 
 
 @optools.add_to_registry(view=None)  # Provided by the QType.
-@optools.as_lambda_operator('kd.extension_types.with_attrs')
-def with_attrs(ext, **attrs):
+@optools.as_lambda_operator('kd.extension_types.make')
+def make(qtype, prototype=arolla.unspecified(), /, **attrs):
+  """Returns an extension type of the given `qtype` with the given `attrs`.
+
+  Args:
+    qtype: the output qtype of the extension type.
+    prototype: parent object (arolla.Object).
+    **attrs: attributes of the extension type.
+  """
   attrs = arolla.optools.fix_trace_kwargs(attrs)
-  obj = M.objects.make_object(unwrap(ext), attrs)
-  return wrap(obj, M.qtype.qtype_of(ext))
+  obj = M.objects.make_object(prototype, attrs)
+  return wrap(obj, qtype)
+
+
+@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.as_lambda_operator('kd.extension_types.with_attrs')
+def with_attrs(ext, /, **attrs):
+  """Returns `ext` containing the given `attrs`."""
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return arolla.abc.bind_op(make, M.qtype.qtype_of(ext), unwrap(ext), attrs)
 
 
 @optools.add_to_registry(view=None)  # Provided by the QType.

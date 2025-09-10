@@ -291,7 +291,6 @@ def _raise_new(cls, *args, **kwargs):
   )
 
 
-# TODO: Implement kd.extension_types.make.
 def _make_extension_expr(
     attrs: Mapping[str, Any],
     field_annotations: Mapping[str, Any],
@@ -302,8 +301,11 @@ def _make_extension_expr(
   attrs = {
       k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
   }
-  obj = M.objects.make_object(prototype, **attrs)
-  return arolla.abc.aux_bind_op('kd.extension_types.wrap', obj, extension_qtype)
+  if prototype is None:
+    prototype = arolla.unspecified()
+  return arolla.abc.aux_bind_op(
+      'kd.extension_types.make', extension_qtype, prototype, **attrs
+  )
 
 
 def _make_extension_qvalue(
@@ -316,9 +318,7 @@ def _make_extension_qvalue(
   attrs = {
       k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
   }
-  return extension_type_registry.wrap(
-      objects.Object(prototype, **attrs), extension_qtype
-  )
+  return extension_type_registry.make(extension_qtype, prototype, **attrs)
 
 
 def _with_attrs_expr(ext, attrs, field_annotations):

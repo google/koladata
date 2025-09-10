@@ -267,6 +267,37 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     ):
       _ = extension_type_registry.get_attr(a, 'x', qtypes.DATA_BAG)
 
+  def test_make(self):
+    # NOTE: This is more thoroughly tested in extension_types_test.py and
+    # operators/tests/extension_types_make_test.py.
+    class A:
+      pass
+
+    a_type = M.derived_qtype.get_labeled_qtype(
+        extension_type_registry.BASE_QTYPE, 'A'
+    ).qvalue
+    extension_type_registry.register_extension_type(A, a_type)
+
+    with self.subTest('empty'):
+      res = extension_type_registry.make(a_type)
+      expected = extension_type_registry.wrap(objects.Object(), a_type)
+      testing.assert_equal(res, expected)
+
+    with self.subTest('attrs'):
+      res = extension_type_registry.make(a_type, x=1, y=2)
+      expected = extension_type_registry.wrap(
+          objects.Object(x=ds(1), y=ds(2)), a_type
+      )
+      testing.assert_equal(res, expected)
+
+    with self.subTest('prototype'):
+      prototype = objects.Object(a=arolla.int32(1))
+      res = extension_type_registry.make(a_type, prototype, x=1, y=2)
+      expected = extension_type_registry.wrap(
+          objects.Object(prototype, x=ds(1), y=ds(2)), a_type
+      )
+      testing.assert_equal(res, expected)
+
 
 if __name__ == '__main__':
   absltest.main()

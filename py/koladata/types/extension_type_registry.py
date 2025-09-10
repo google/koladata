@@ -116,3 +116,28 @@ def get_attr(
   """Returns the attribute of `ext` with name `attr` and type `qtype`."""
   ga = arolla.abc.lookup_operator('kd.extension_types.get_attr')
   return arolla.eval(ga(arolla.L.ext, attr, qtype), ext=ext)
+
+
+def make(
+    qtype: arolla.QType,
+    prototype: objects.Object | None = None,
+    /,
+    **attrs: Any,
+):
+  """Returns an extension type of the given `qtype` with the given `attrs`.
+
+  Args:
+    qtype: the output qtype of the extension type.
+    prototype: parent object (arolla.Object).
+    **attrs: attributes of the extension type.
+  """
+  if prototype is None:
+    prototype = arolla.unspecified()
+  attrs = arolla.abc.aux_eval_op('kd.namedtuple', **attrs)
+  return arolla.eval(
+      arolla.abc.bind_op(
+          'kd.extension_types.make', qtype, arolla.L.prototype, arolla.L.attrs
+      ),
+      prototype=prototype,
+      attrs=attrs,
+  )

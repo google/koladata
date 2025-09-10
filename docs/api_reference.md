@@ -2043,6 +2043,15 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given type is a registered Koda extension type.</code></pre>
 
+### `kd.extension_types.make(qtype, prototype=None, /, **attrs)` {#kd.extension_types.make}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an extension type of the given `qtype` with the given `attrs`.
+
+  Args:
+    qtype: the output qtype of the extension type.
+    prototype: parent object (arolla.Object).
+    **attrs: attributes of the extension type.</code></pre>
+
 ### `kd.extension_types.override()` {#kd.extension_types.override}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as overriding a virtual method.</code></pre>
@@ -2055,8 +2064,9 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the method as virtual, allowing it to be overridden.</code></pre>
 
-### `kd.extension_types.with_attrs(ext, **attrs)` {#kd.extension_types.with_attrs}
-*No description*
+### `kd.extension_types.with_attrs(ext, /, **attrs)` {#kd.extension_types.with_attrs}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `ext` containing the given `attrs`.</code></pre>
 
 ### `kd.extension_types.wrap(x, qtype)` {#kd.extension_types.wrap}
 

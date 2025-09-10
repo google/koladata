@@ -38,4 +38,5 @@ extension_types = _py_types.SimpleNamespace(
     dynamic_cast=_extension_type_registry.dynamic_cast,
     wrap=_extension_type_registry.wrap,
     get_attr=_extension_type_registry.get_attr,
+    make=_extension_type_registry.make,
 )
