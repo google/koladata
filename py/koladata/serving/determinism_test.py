@@ -290,15 +290,16 @@ class DeterminizerTest(parameterized.TestCase):
       )
 
     def test_functor(x, y):
-      return koda_internal_parallel.stream_from_future(
+      # TODO: b/442760508 - Stop using koda_internal_parallel once possible.
+      return kd.streams.sync_wait(koda_internal_parallel.stream_from_future(
           test_parallel_functor(
-              koda_internal_parallel.current_executor(),
+              kd.streams.current_executor(),
               koda_internal_parallel.as_future(schema.new(x=x, y=y)),
               return_type_as=koda_internal_parallel.as_future(
                   kd.eager.types.DataSlice
               ),
           )
-      )
+      ))
 
     fn = kd.fn(test_functor)
 
@@ -318,20 +319,13 @@ class DeterminizerTest(parameterized.TestCase):
         self.assertEqual(len(det_fn_tokens), len(fn_tokens))
         self.assertNotEqual(set(det_fn_tokens), set(fn_tokens))
 
-    result = fn(
-        57, 38, return_type_as=koda_internal_parallel.stream_make().eval()
-    ).read_all(timeout=5.0)[0]
-    det_result = det_fn(
-        57, 38, return_type_as=koda_internal_parallel.stream_make().eval()
-    ).read_all(timeout=5.0)[0]
-
     kd.testing.assert_deep_equivalent(
-        det_result,
+        det_fn(57, 38),
         schema.new(x=1, y=19, literal=schema.new(x=1, y=2)),
         schemas_equality=True,
     )
     kd.testing.assert_deep_equivalent(
-        det_result, result, schemas_equality=True
+        det_fn(57, 38), fn(57, 38), schemas_equality=True
     )
 
   def test_non_scalar_slice(self):
