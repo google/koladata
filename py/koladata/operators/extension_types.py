@@ -28,6 +28,8 @@ P = arolla.P
 INT64 = schema_constants.INT64
 constraints = arolla.optools.constraints
 
+_NULL_OBJ = objects.Object(_is_null_marker=arolla.present())
+
 
 # NOTE(b/417369165): Consider implementing in C++ to support validating that
 # `qtype` is a labeled qtype.
@@ -97,9 +99,18 @@ def make(qtype, prototype=arolla.unspecified(), /, **attrs):
 def with_attrs(ext, /, **attrs):
   """Returns `ext` containing the given `attrs`."""
   attrs = arolla.optools.fix_trace_kwargs(attrs)
+  # NOTE: Using Arolla operators for performance reasons. The following snippet
+  # adds ~50ns to the runtime, while using Koda primitives adds ~1us.
+  ext = M.core.with_assertion(
+      ext,
+      ~M.objects.has_object_attr(unwrap(ext), '_is_null_marker'),
+      'expected a non-null extension type',
+  )
   return arolla.abc.bind_op(make, M.qtype.qtype_of(ext), unwrap(ext), attrs)
 
 
+# Consider asserting that `ext` is not null. Note that this adds ~50ns overhead
+# compared to the existing total time of ~80ns.
 @optools.add_to_registry(view=None)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.get_attr')
 def get_attr(ext, attr, qtype):
@@ -116,3 +127,26 @@ def has_attr(ext, attr):
   return arolla_bridge.to_data_slice(
       M.objects.has_object_attr(unwrap(ext), attr)
   )
+
+
+@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.as_lambda_operator('kd.extension_types.make_null')
+def make_null(qtype):
+  """Returns a null instance of an extension type.
+
+  WARNING: Not to be confused with the standard `kd.extension_types.make`!
+
+  A null instance of an extension type has no attributes and calling `getattr`
+  or `with_attrs` on it will raise an error.
+
+  Args:
+    qtype: QType of the extension type.
+  """
+  return wrap(_NULL_OBJ, qtype)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator('kd.extension_types.is_null')
+def is_null(ext):
+  """Returns present iff `ext` is null."""
+  return has_attr(ext, '_is_null_marker')

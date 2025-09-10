@@ -1920,6 +1920,34 @@ Extension type functionality.
 
 **Operators**
 
+### `kd.extension_types.NullableMixin()` {#kd.extension_types.NullableMixin}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Mixin class that adds nullability methods to the extension type.
+
+  Adds two methods:
+    * `get_null` - Class method that returns a null instance of the extension
+      type. Wrapper around `kd.extension_types.make_null`.
+    * `is_null` - Returns present iff the object is null. Wrapper around
+      `kd.extension_types.is_null`.
+
+  A null instance of an extension type has no attributes and calling `getattr`
+  or `with_attrs` on it will raise an error.
+
+  Example:
+    @kd.extension_type()
+    class A(kd.extension_types.NullableMixin):
+      x: kd.INT32
+
+    # Normal usage.
+    a = A(1)
+    a.x  # -&gt; 1.
+    a.is_null()  # kd.missing
+
+    # Null usage.
+    a_null = A.get_null()
+    a_null.x  # ERROR
+    a_null.is_null()  # kd.present</code></pre>
+
 ### `kd.extension_types.dynamic_cast(value, qtype)` {#kd.extension_types.dynamic_cast}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Up-, down-, and side-casts `value` to `qtype`.</code></pre>
@@ -2047,6 +2075,10 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given type is a registered Koda extension type.</code></pre>
 
+### `kd.extension_types.is_null(ext)` {#kd.extension_types.is_null}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff `ext` is null.</code></pre>
+
 ### `kd.extension_types.make(qtype, prototype=None, /, **attrs)` {#kd.extension_types.make}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an extension type of the given `qtype` with the given `attrs`.
@@ -2055,6 +2087,10 @@ Aliases:
     qtype: the output qtype of the extension type.
     prototype: parent object (arolla.Object).
     **attrs: attributes of the extension type.</code></pre>
+
+### `kd.extension_types.make_null(qtype)` {#kd.extension_types.make_null}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a null instance of an extension type.</code></pre>
 
 ### `kd.extension_types.override()` {#kd.extension_types.override}
 

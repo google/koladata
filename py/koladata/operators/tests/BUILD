@@ -10147,3 +10147,48 @@ py_test(
         "@com_google_arolla//py/arolla/objects",
     ],
 )
+
+py_test(
+    name = "extension_types_make_null_test",
+    srcs = ["extension_types_make_null_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/extension_types",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_type_registry",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/objects",
+    ],
+)
+
+py_test(
+    name = "extension_types_is_null_test",
+    srcs = ["extension_types_is_null_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/extension_types",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_type_registry",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/objects",
+    ],
+)

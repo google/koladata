@@ -141,3 +141,10 @@ def make(
       prototype=prototype,
       attrs=attrs,
   )
+
+
+def make_null(qtype: arolla.QType) -> arolla.AnyQValue:
+  """Returns a null instance of an extension type."""
+  return arolla.eval(
+      arolla.abc.bind_op('kd.extension_types.make_null', qtype), qtype=qtype
+  )

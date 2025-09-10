@@ -21,6 +21,7 @@ tested in kd_test.py.
 import types as _py_types
 
 from koladata.extension_types import extension_types as _extension_types
+from koladata.extension_types import util as _util
 from koladata.types import extension_type_registry as _extension_type_registry
 
 # Top level definitions.
@@ -34,9 +35,11 @@ extension_types = _py_types.SimpleNamespace(
     is_koda_extension=_extension_type_registry.is_koda_extension,
     virtual=_extension_types.virtual,
     override=_extension_types.override,
+    NullableMixin=_util.NullableMixin,
     # Re-implementation of operators that require inputs to be literals.
     dynamic_cast=_extension_type_registry.dynamic_cast,
     wrap=_extension_type_registry.wrap,
     get_attr=_extension_type_registry.get_attr,
     make=_extension_type_registry.make,
+    make_null=_extension_type_registry.make_null,
 )

@@ -298,6 +298,22 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
       )
       testing.assert_equal(res, expected)
 
+  def test_make_null(self):
+    # NOTE: This is more thoroughly tested in extension_types_test.py and
+    # operators/tests/extension_types_make_null_test.py.
+    class A:
+      pass
+
+    a_type = M.derived_qtype.get_labeled_qtype(
+        extension_type_registry.BASE_QTYPE, 'A'
+    ).qvalue
+    extension_type_registry.register_extension_type(A, a_type)
+    res = extension_type_registry.make_null(a_type)
+    expected = extension_type_registry.wrap(
+        objects.Object(_is_null_marker=arolla.present()), a_type
+    )
+    testing.assert_equal(res, expected)
+
 
 if __name__ == '__main__':
   absltest.main()

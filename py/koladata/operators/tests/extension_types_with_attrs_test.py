@@ -101,6 +101,13 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
     z = unwrapped_res.get_attr("z", qtypes.DATA_SLICE)
     testing.assert_equal(z, ds(2))
 
+  def test_with_attrs_on_null(self):
+    a_null = expr_eval.eval(kde.extension_types.make_null(A_qtype))
+    with self.assertRaisesRegex(
+        ValueError, "expected a non-null extension type"
+    ):
+      _ = expr_eval.eval(kde.extension_types.with_attrs(a_null, x=ds(1)))
+
   def test_view(self):
     self.assertFalse(view.has_koda_view(kde.extension_types.with_attrs(I.x)))
     # Has the view of the ext QType.
