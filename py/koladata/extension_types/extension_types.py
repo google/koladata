@@ -271,13 +271,28 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
 def _cast_input_qvalue(value: Any, annotation: Any) -> arolla.AnyQValue:
   if isinstance(annotation, schema_item.SchemaItem):
     return arolla.abc.aux_eval_op('kd.schema.cast_to_narrow', value, annotation)
+  elif extension_type_registry.is_koda_extension_type(annotation):
+    # TODO: Restrict to only support _upcasting_ by encoding the
+    # hierarchy into a derived QType chain, making this safe.
+    return extension_type_registry.dynamic_cast(
+        value, extension_type_registry.get_extension_qtype(annotation)
+    )
   else:
     return py_boxing.as_qvalue(value)
 
 
 def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
+  """Returns an expr casting `value` to the provided `annotation`."""
   if isinstance(annotation, schema_item.SchemaItem):
     return arolla.abc.aux_bind_op('kd.schema.cast_to_narrow', value, annotation)
+  elif extension_type_registry.is_koda_extension_type(annotation):
+    # TODO: Restrict to only support _upcasting_ by encoding the
+    # hierarchy into a derived QType chain, making this safe.
+    return arolla.abc.aux_bind_op(
+        'kd.extension_types.dynamic_cast',
+        value,
+        extension_type_registry.get_extension_qtype(annotation),
+    )
   else:
     return py_boxing.as_qvalue_or_expr(value)
 

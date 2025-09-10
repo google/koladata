@@ -210,6 +210,51 @@ class ExtensionTypesTest(parameterized.TestCase):
       ):
         _ = MyExtensionWithInt64Field(x=ds(1.0), y=ds(2))
 
+  def test_extension_type_upcasting(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+    @ext_types.extension_type()
+    class B(A):
+      y: schema_constants.INT32
+
+    @ext_types.extension_type()
+    class C:
+      a: A  # pytype: disable=invalid-annotation
+      b: B  # pytype: disable=invalid-annotation
+
+    a_qtype = extension_type_registry.get_extension_qtype(A)
+    b_qtype = extension_type_registry.get_extension_qtype(B)
+
+    with self.subTest('eager'):
+      b = B(1, 2)
+      c = C(b, b)
+      testing.assert_equal(
+          c.a, extension_type_registry.dynamic_cast(b, a_qtype)
+      )
+      testing.assert_equal(c.b, b)
+
+    with self.subTest('lazy'):
+      b = B(I.x, I.y)
+      c = C(b, b)
+      testing.assert_equal(
+          c.a.eval(x=1, y=2),
+          extension_type_registry.dynamic_cast(b.eval(x=1, y=2), a_qtype),
+      )
+      testing.assert_equal(c.b.eval(x=1, y=2), b.eval(x=1, y=2))
+
+    with self.subTest('error'):
+      # TODO: Only support upcasting and fail early.
+      a = A(1)
+      c = C(a, a)
+      testing.assert_equal(c.a, a)
+      testing.assert_equal(
+          c.b, extension_type_registry.dynamic_cast(a, b_qtype)
+      )
+      with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
+        _ = c.b.y
+
   def test_boxing(self):
     @ext_types.extension_type()
     class MyExtensionType:
