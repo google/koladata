@@ -1229,6 +1229,24 @@ r.S[1].get_obj_schema().z  # INT32
 r.S[0].get_obj_schema() == r.S[1].get_obj_schema()  # yes - shared
 ```
 
+Another way to define custom structured data types in Koda is by using
+[Extension Types](/koladata/g3doc/extension_types.md). These allow
+you to create user-defined data structures which look like Python dataclasses
+but integrate deeply with Koda's advanced features.
+
+```
+@kd.extension_type()
+class Point:
+  x: kd.FLOAT32
+  y: kd.FLOAT32
+
+  def norm(self):
+      return (self.x**2 + self.y**2)**0.5
+
+p = Point(x=3.0, y=4.0)
+p.norm()  #  5.0
+```
+
 ### Broadcasting and Aligning
 
 DataSlices are **compatible**, if they have compatible partition trees

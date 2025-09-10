@@ -481,6 +481,24 @@ d = kd.dict({'a': 1, 'b': '2'})
 d.get_schema()  # DICT{STRING, OBJECT}
 ```
 
+Another way to define custom structured data types in Koda is by using
+[Extension Types](/koladata/g3doc/extension_types.md). These allow
+you to create user-defined data structures which look like Python dataclasses
+but integrate deeply with Koda's advanced features.
+
+```
+@kd.extension_type()
+class Point:
+  x: kd.FLOAT32
+  y: kd.FLOAT32
+
+  def norm(self):
+      return (self.x**2 + self.y**2)**0.5
+
+p = Point(x=3.0, y=4.0)
+p.norm()  #  5.0
+```
+
 ## Sparsity and Masks
 
 **Sparsity** is a first-class concept in Koda. Every item in a DataSlice can be
