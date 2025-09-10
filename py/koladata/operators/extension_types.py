@@ -106,3 +106,13 @@ def get_attr(ext, attr, qtype):
   """Returns the attribute of `ext` with name `attr` and type `qtype`."""
   attr = arolla_bridge.to_arolla_text(attr)
   return M.objects.get_object_attr(unwrap(ext), attr, qtype)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator('kd.extension_types.has_attr')
+def has_attr(ext, attr):
+  """Returns present iff `attr` is an attribute of `ext`."""
+  attr = arolla_bridge.to_arolla_text(attr)
+  return arolla_bridge.to_data_slice(
+      M.objects.has_object_attr(unwrap(ext), attr)
+  )

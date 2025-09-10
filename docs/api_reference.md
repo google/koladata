@@ -2035,6 +2035,10 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the QType for the given extension type class.</code></pre>
 
+### `kd.extension_types.has_attr(ext, attr)` {#kd.extension_types.has_attr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff `attr` is an attribute of `ext`.</code></pre>
+
 ### `kd.extension_types.is_koda_extension(x)` {#kd.extension_types.is_koda_extension}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given object is an instance of a Koda extension type.</code></pre>
