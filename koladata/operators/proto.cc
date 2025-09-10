@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -39,7 +40,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/masking.h"
-#include "koladata/operators/shapes.h"
 #include "koladata/proto/from_proto.h"
 #include "koladata/proto/to_proto.h"
 #include "koladata/schema_utils.h"
@@ -101,13 +101,11 @@ absl::StatusOr<std::vector<absl::string_view>> GetExtensions(
 }
 
 absl::StatusOr<DataSlice> FromProtoMessages(
+    arolla::EvaluationContext* ctx,
     const std::vector<std::unique_ptr<google::protobuf::Message>>& messages,
-    const DataSlice::JaggedShape& input_shape,
-    const DataSlice& input_mask,
-    const DataSlice& parse_error_mask,
-    const DataSlice& extensions,
-    const DataSlice& itemids,
-    const DataSlice& schema,
+    const DataSlice::JaggedShape& input_shape, const DataSlice& input_mask,
+    const DataSlice& parse_error_mask, const DataSlice& extensions,
+    const DataSlice& itemids, const DataSlice& schema,
     const DataSlice& on_invalid) {
   std::vector<google::protobuf::Message*> message_ptrs;
   message_ptrs.reserve(messages.size());
@@ -130,7 +128,7 @@ absl::StatusOr<DataSlice> FromProtoMessages(
                                           itemids_value, schema_value));
 
   // (result & input_mask & ~parse_error_mask) | (on_invalid & parse_error_mask)
-  ASSIGN_OR_RETURN(auto not_parse_error_mask, HasNot(parse_error_mask));
+  ASSIGN_OR_RETURN(auto not_parse_error_mask, HasNot(ctx, parse_error_mask));
   ASSIGN_OR_RETURN(auto result_mask,
                    ApplyMask(input_mask, std::move(not_parse_error_mask)));
   ASSIGN_OR_RETURN(result, ApplyMask(result, std::move(result_mask)));
@@ -144,6 +142,7 @@ absl::StatusOr<DataSlice> FromProtoMessages(
 }  // namespace
 
 absl::StatusOr<DataSlice> FromProtoBytes(
+    arolla::EvaluationContext* ctx,
     const DataSlice& x,
     const DataSlice& proto_path,
     const DataSlice& extensions,
@@ -183,12 +182,14 @@ absl::StatusOr<DataSlice> FromProtoBytes(
                             std::move(parse_error_mask_builder).Build()),
                         x_flat.GetShape(), internal::DataItem(schema::kMask)));
   ASSIGN_OR_RETURN(auto input_mask_flat, ops::Has(std::move(x_flat)));
-  return FromProtoMessages(messages, x.GetShape(), std::move(input_mask_flat),
+  return FromProtoMessages(ctx, messages, x.GetShape(),
+                           std::move(input_mask_flat),
                            std::move(parse_error_mask_flat), extensions,
                            itemids, schema, on_invalid);
 }
 
 absl::StatusOr<DataSlice> FromProtoJson(
+    arolla::EvaluationContext* ctx,
     const DataSlice& x,
     const DataSlice& proto_path,
     const DataSlice& extensions,
@@ -230,7 +231,8 @@ absl::StatusOr<DataSlice> FromProtoJson(
                             std::move(parse_error_mask_builder).Build()),
                         x_flat.GetShape(), internal::DataItem(schema::kMask)));
   ASSIGN_OR_RETURN(auto input_mask_flat, ops::Has(std::move(x_flat)));
-  return FromProtoMessages(messages, x.GetShape(), std::move(input_mask_flat),
+  return FromProtoMessages(ctx, messages, x.GetShape(),
+                           std::move(input_mask_flat),
                            std::move(parse_error_mask_flat), extensions,
                            itemids, schema, on_invalid);
 }

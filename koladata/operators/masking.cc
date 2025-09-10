@@ -20,7 +20,11 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/status.h"
+#include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -29,6 +33,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/schema_utils.h"
@@ -90,6 +95,30 @@ absl::StatusOr<DataSlice> DisjointCoalesce(const DataSlice& x,
           std::move(aligned_slices.common_schema), std::move(res_db)),
       IntersectionErrorHandler(std::move(_), x, y));
   return res;
+}
+
+absl::StatusOr<DataSlice> HasNot(arolla::EvaluationContext* ctx,
+                                 const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectMask("x", x));
+  if (x.is_item()) {
+    return x.item().has_value()
+               ? DataSlice::UnsafeCreate(internal::DataItem(),
+                                         internal::DataItem(schema::kMask))
+               : DataSlice::CreateFromScalar(arolla::kUnit);
+  }
+  const auto& slice = x.slice();
+  if (slice.is_empty_and_unknown()) {
+    auto da = arolla::CreateConstDenseArray<arolla::Unit>(x.GetShape().size(),
+                                                          arolla::kUnit);
+    return DataSlice::UnsafeCreate(
+        internal::DataSliceImpl::Create(std::move(da)), x.GetShape(),
+        internal::DataItem(schema::kMask));
+  }
+  auto da =
+      arolla::DenseArrayPresenceNotOp()(ctx, slice.values<arolla::Unit>());
+  return DataSlice::UnsafeCreate(internal::DataSliceImpl::Create(std::move(da)),
+                                 x.GetShape(),
+                                 internal::DataItem(schema::kMask));
 }
 
 }  // namespace koladata::ops

@@ -226,6 +226,24 @@ cc_test(
 )
 
 cc_test(
+    name = "masking_benchmarks",
+    srcs = ["masking_benchmarks.cc"],
+    deps = [
+        ":lib",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//py/koladata/operators:base_cc_operators",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "string_benchmarks",
     srcs = ["string_benchmarks.cc"],
     deps = [
@@ -300,6 +318,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_protobuf//:json_util",

@@ -16,6 +16,7 @@
 #define KOLADATA_OPERATORS_PROTO_H_
 
 #include "absl/status/statusor.h"
+#include "arolla/qexpr/eval_context.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/uuid_utils.h"
@@ -24,6 +25,7 @@ namespace koladata::ops {
 
 // kd.proto.from_proto_bytes
 absl::StatusOr<DataSlice> FromProtoBytes(
+    arolla::EvaluationContext* ctx,
     const DataSlice& x, const DataSlice& proto_path,
     const DataSlice& extensions = UnspecifiedDataSlice(),
     const DataSlice& itemids = UnspecifiedDataSlice(),
@@ -37,6 +39,7 @@ absl::StatusOr<DataSlice> ToProtoBytes(
 
 // kd.proto.from_proto_json
 absl::StatusOr<DataSlice> FromProtoJson(
+    arolla::EvaluationContext* ctx,
     const DataSlice& x, const DataSlice& proto_path,
     const DataSlice& extensions = UnspecifiedDataSlice(),
     const DataSlice& itemids = UnspecifiedDataSlice(),

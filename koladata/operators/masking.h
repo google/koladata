@@ -20,6 +20,7 @@
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "arolla/qexpr/eval_context.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -68,11 +69,8 @@ inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
 }
 
 // kd.masking._has_not.
-inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectMask("x", x));
-  return SimplePointwiseEval("core.presence_not", {x},
-                             internal::DataItem(schema::kMask));
-}
+absl::StatusOr<DataSlice> HasNot(arolla::EvaluationContext* ctx,
+                                 const DataSlice& x);
 
 // kd.masking._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
