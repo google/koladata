@@ -1072,8 +1072,8 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                         "shape_size=%d != items_size=%d",
                         shape.size(), impl.size()));
   }
-  RETURN_IF_ERROR(VerifySchemaConsistency(schema, impl.dtype(),
-                                          impl.is_empty_and_unknown()));
+  RETURN_IF_ERROR(VerifyShallowSchemaConsistency(schema, impl.dtype(),
+                                                 impl.is_empty_and_unknown()));
   if (shape.rank() == 0) {
     return DataSlice(impl[0], std::move(shape), std::move(schema),
                      std::move(db), wholeness == Wholeness::kWhole);
@@ -1087,8 +1087,8 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
   RETURN_IF_ERROR(
-      VerifySchemaConsistency(schema, item.dtype(),
-                              /*empty_and_unknown=*/!item.has_value()));
+      VerifyShallowSchemaConsistency(schema, item.dtype(),
+                                     /*empty_and_unknown=*/!item.has_value()));
   return DataSlice(item, JaggedShape::Empty(), std::move(schema), std::move(db),
                    wholeness == Wholeness::kWhole);
 }
@@ -1125,8 +1125,8 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             DataBagPtr db,
                                             Wholeness wholeness) {
   RETURN_IF_ERROR(
-      VerifySchemaConsistency(schema, item.dtype(),
-                              /*empty_and_unknown=*/!item.has_value()));
+      VerifyShallowSchemaConsistency(schema, item.dtype(),
+                                     /*empty_and_unknown=*/!item.has_value()));
   if (shape.rank() == 0) {
     return DataSlice(item, std::move(shape), std::move(schema), std::move(db),
                      wholeness == Wholeness::kWhole);
@@ -2279,11 +2279,7 @@ absl::Status DataSlice::ClearDictOrList() const {
   }
 }
 
-// TODO: Explore whether deep schema verification through alloc_ids
-// is feasible and useful. Given that Dict and List schema do not have their
-// ObjectId flags, but rely on GetAttr, those checks should be closer to their
-// creation.
-absl::Status DataSlice::VerifySchemaConsistency(
+absl::Status DataSlice::VerifyShallowSchemaConsistency(
     const internal::DataItem& schema, arolla::QTypePtr dtype,
     bool empty_and_unknown) {
   RETURN_IF_ERROR(AssertIsSliceSchema(schema));

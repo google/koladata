@@ -147,8 +147,8 @@ class DataSlice {
                                 internal::DataItem schema,
                                 DataBagPtr db = nullptr,
                                 Wholeness wholeness = Wholeness::kNotWhole) {
-    DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
-                                      /*empty_and_unknown=*/!item.has_value()));
+    DCHECK_OK(VerifyShallowSchemaConsistency(
+        schema, item.dtype(), /*empty_and_unknown=*/!item.has_value()));
     return DataSlice(std::move(item), JaggedShape::Empty(), std::move(schema),
                      std::move(db), wholeness == Wholeness::kWhole);
   }
@@ -159,8 +159,8 @@ class DataSlice {
                                 Wholeness wholeness = Wholeness::kNotWhole) {
     DCHECK_EQ(shape.size(), impl.size());
     DCHECK_GT(shape.rank(), 0);
-    DCHECK_OK(VerifySchemaConsistency(schema, impl.dtype(),
-                                      impl.is_empty_and_unknown()));
+    DCHECK_OK(VerifyShallowSchemaConsistency(schema, impl.dtype(),
+                                             impl.is_empty_and_unknown()));
     return DataSlice(std::move(impl), std::move(shape), std::move(schema),
                      std::move(db), wholeness == Wholeness::kWhole);
   }
@@ -574,9 +574,9 @@ class DataSlice {
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are
   // items with mixed types or no items are present (empty_and_unknown == true).
-  static absl::Status VerifySchemaConsistency(const internal::DataItem& schema,
-                                              arolla::QTypePtr dtype,
-                                              bool empty_and_unknown);
+  static absl::Status VerifyShallowSchemaConsistency(
+      const internal::DataItem& schema, arolla::QTypePtr dtype,
+      bool empty_and_unknown);
 
   // Helper method for setting an attribute as if this DataSlice is a Schema
   // slice (schemas are stored in a dict and not in normal attribute storage).
