@@ -4540,6 +4540,10 @@ Args:
     softmax.
   ndim: The number of last dimensions to compute softmax over.</code></pre>
 
+### `kd.math.sqrt(x)` {#kd.math.sqrt}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise sqrt of the input.</code></pre>
+
 ### `kd.math.subtract(x, y)` {#kd.math.subtract}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise x - y.</code></pre>

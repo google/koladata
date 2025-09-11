@@ -70,6 +70,9 @@ absl::StatusOr<DataSlice> Floor(const DataSlice& x);
 // kd.math.round.
 absl::StatusOr<DataSlice> Round(const DataSlice& x);
 
+// kd.math.sqrt.
+absl::StatusOr<DataSlice> Sqrt(const DataSlice& x);
+
 // kd.math.pow.
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
 

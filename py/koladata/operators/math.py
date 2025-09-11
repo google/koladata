@@ -276,6 +276,18 @@ def divide(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.math.sqrt',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def sqrt(x):  # pylint: disable=unused-argument,g-doc-args
+  """Computes pointwise sqrt of the input."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(repr_fn=op_repr.pow_repr)
 @optools.as_backend_operator(
     'kd.math.pow',

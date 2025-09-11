@@ -171,6 +171,17 @@ struct Log10Op {
   double operator()(double x) const { return std::log10(x); }
 };
 
+struct SqrtOp {
+  float operator()(int32_t x) const {
+    return arolla::SqrtOp{}(static_cast<float>(x));
+  }
+  float operator()(int64_t x) const {
+    return arolla::SqrtOp{}(static_cast<float>(x));
+  }
+  float operator()(float x) const { return arolla::SqrtOp{}(x); }
+  double operator()(double x) const { return arolla::SqrtOp{}(x); }
+};
+
 }  // namespace
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
@@ -242,6 +253,10 @@ absl::StatusOr<DataSlice> Floor(const DataSlice& x) {
 
 absl::StatusOr<DataSlice> Round(const DataSlice& x) {
   return UnaryOpEval<arolla::RoundOp>(x, NumericArgs("x"));
+}
+
+absl::StatusOr<DataSlice> Sqrt(const DataSlice& x) {
+  return UnaryOpEval<SqrtOp>(x, NumericArgs("x"));
 }
 
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y) {
