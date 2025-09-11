@@ -745,22 +745,23 @@ class PersistedIncrementalDataSliceManager(
     new_bag_ids_to_merged_bag_name: dict[tuple[int, ...], str] = dict()
     merged_bag_name_to_merged_bag: dict[str, kd.types.DataBag] = dict()
     # The body of the next loop creates a new merged bag name and associates it
-    # with the merged bag. It processes the bag_ids in lexicographic order. Each
-    # newly generated bag name is increasing lexicographically, so as a result,
-    # iterating over the new merged bag names in lexicographic order will follow
-    # the same order as this loop. A fixed ordering is not required for
-    # correctness, but it can make debugging easier.
+    # with the merged bag. It processes the bag_ids in lexicographic order. A
+    # fixed ordering is not required for correctness, but it can make debugging
+    # easier. `merged_bag_names` records the order in which the merged bag names
+    # are created.
+    merged_bag_names: list[str] = []
     for bag_ids in sorted(schema_node_name_to_new_bag_ids.values()):
       if not bag_ids:
         continue
       bag_ids = tuple(bag_ids)
       if bag_ids in new_bag_ids_to_merged_bag_name:
         continue
-      merged_bag_name = self._get_timestamped_bag_name()
+      merged_bag_name = self._get_fresh_bag_name()
       new_bag_ids_to_merged_bag_name[bag_ids] = merged_bag_name
       merged_bag_name_to_merged_bag[merged_bag_name] = kd.bags.updated(
           *[new_bag_id_to_new_bag[bn] for bn in bag_ids]
       ).merge_fallbacks()
+      merged_bag_names.append(merged_bag_name)
 
     # The values in this dict are always empty or singleton lists.
     snn_to_merged_bag_name: dict[str, list[str]] = {
@@ -809,21 +810,24 @@ class PersistedIncrementalDataSliceManager(
         #    that it is not aliased elsewhere in the overall slice). So this
         #    conceptually requires removing the dependency of the complex entity
         #    on the root entity's bag, and this dep was added a long time ago.
-        dbm.BagToAdd(bag_name, bag, dependencies=(dbm._INITIAL_BAG_NAME,))  # pylint: disable=protected-access
-        # We sort based on the bag name to make the order deterministic. The
-        # code is also functionally correct without the sorting (all the bags
-        # are sub-bags of stub_with_update.get_bag(), so all overlaps are
-        # consistent and it does not matter which order we use). The bag manager
-        # remembers the total order in which the bags are added, and will always
-        # compose a selection of bags in the fixed order that is consistent with
-        # that total order. Adding the bags here in a deterministic order can be
-        # useful for debugging purposes, because then the total order of the
-        # bags is always the same for the same update and even for the same
-        # sequence of updates.
-        for bag_name, bag in sorted(merged_bag_name_to_merged_bag.items())
+        dbm.BagToAdd(
+            merged_bag_name,
+            merged_bag_name_to_merged_bag[merged_bag_name],
+            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
+        )
+        # We add bags in the order of `merged_bag_names`. The code is also
+        # functionally correct without a fixed order: all the bags are sub-bags
+        # of stub_with_update.get_bag(), so all overlaps are consistent and it
+        # does not matter which order we use. The bag manager remembers the
+        # total order in which the bags are added, and will always compose a
+        # selection of bags in the fixed order that is consistent with that
+        # total order. Using a fixed order here means that the total order of
+        # the bags is always the same for the same update and even for the same
+        # sequence of updates, which is useful for debugging.
+        for merged_bag_name in merged_bag_names
     ]
     self._data_bag_manager.add_bags(data_bags_to_add)
-    new_schema_bag_name = self._get_timestamped_bag_name()
+    new_schema_bag_name = self._get_fresh_bag_name()
     schema_bags_to_add = [
         dbm.BagToAdd(
             new_schema_bag_name,
@@ -850,7 +854,7 @@ class PersistedIncrementalDataSliceManager(
             existing_bag_names, kd.slice(new_bag_names, schema=kd.STRING)
         )
       snn_to_data_bags_updates.append(update_bag)
-    map_update_bag_name = self._get_timestamped_bag_name()
+    map_update_bag_name = self._get_fresh_bag_name()
     self._schema_node_name_to_data_bags_updates_manager.add_bags([
         dbm.BagToAdd(
             map_update_bag_name,
@@ -1088,10 +1092,8 @@ class PersistedIncrementalDataSliceManager(
       return None
     return bag_names
 
-  def _get_timestamped_bag_name(self) -> str:
-    return datetime.datetime.now(datetime.timezone.utc).strftime(
-        '%Y-%m-%d-%H-%M-%S-%f'
-    )
+  def _get_fresh_bag_name(self) -> str:
+    return _get_uuid()
 
 
 def _get_root_dataslice_filepath(persistence_dir: str) -> str:
