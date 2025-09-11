@@ -78,6 +78,10 @@ class FromPyConverter {
     return ConvertImpl(py_objects, cur_shape, schema);
   }
 
+  absl_nullable DataBagPtr GetCreatedBag() && {
+    return db_;
+  }
+
  private:
   // Returns true if the given Python objects should be treated as a list or
   // tuple, either because of the schema or because of the Python types.
@@ -640,25 +644,23 @@ absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
     adoption_queue.Add(*schema);
     schema_item = schema->item();
   }
+  FromPyConverter from_py_converter(adoption_queue, dict_as_obj);
   ASSIGN_OR_RETURN(DataSlice res_slice,
-                   FromPyConverter(adoption_queue, dict_as_obj)
-                       .Convert(py_obj, schema, from_dim));
+                   from_py_converter.Convert(py_obj, schema, from_dim));
 
-  DataBagPtr res_db = res_slice.GetBag();
-  DCHECK(res_db == nullptr || res_db->IsMutable());
-  if (res_slice.GetBag() == nullptr) {
+  DataBagPtr res_db = std::move(from_py_converter).GetCreatedBag();
+  if (res_db == nullptr) {
     ASSIGN_OR_RETURN(res_db, adoption_queue.GetCommonOrMergedDb());
     // If the result has no associated DataBag but an OBJECT schema was
     // requested, attach an empty DataBag.
     if (res_db == nullptr && IsObjectSchema(schema)) {
       res_db = DataBag::Empty();
     }
-    return res_slice.WithBag(std::move(res_db));
+  } else {
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
+    res_db->UnsafeMakeImmutable();
   }
-  DCHECK(res_db != nullptr);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
-  res_db->UnsafeMakeImmutable();
-  return res_slice;
+  return res_slice.WithBag(std::move(res_db));
 }
 
 }  // namespace koladata::python

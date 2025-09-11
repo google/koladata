@@ -774,7 +774,7 @@ class UniversalConverter {
       PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt,
       size_t from_dim = 0,
       const std::optional<DataSlice>& parent_itemid = std::nullopt,
-      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) && {
+      const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
     if (schema) {
       adoption_queue_.Add(*schema);
     }
@@ -849,6 +849,10 @@ class UniversalConverter {
     ASSIGN_OR_RETURN(keys, ComputeDataSlice(dict_size));
     ASSIGN_OR_RETURN(values, ComputeDataSlice(dict_size));
     return absl::OkStatus();
+  }
+
+  absl_nullable DataBagPtr GetCreatedBag() && {
+    return db_;
   }
 
  private:
@@ -1411,30 +1415,34 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
   }
+  DataBagPtr res_db = nullptr;
   if (!schema || schema->item() == schema::kObject) {
-    ASSIGN_OR_RETURN(res_slice, UniversalConverter<ObjectCreator>(
-                                    nullptr, adoption_queue, dict_as_obj)
-                                    .Convert(py_obj, schema, from_dim, itemid));
+    UniversalConverter<ObjectCreator> universal_converter(
+        nullptr, adoption_queue, dict_as_obj);
+    ASSIGN_OR_RETURN(
+        res_slice,
+        universal_converter.Convert(py_obj, schema, from_dim, itemid));
+    res_db = std::move(universal_converter).GetCreatedBag();
   } else {
-    ASSIGN_OR_RETURN(res_slice, UniversalConverter<EntityCreator>(
-                                    nullptr, adoption_queue, dict_as_obj)
-                                    .Convert(py_obj, schema, from_dim, itemid));
+    UniversalConverter<EntityCreator> universal_converter(
+        nullptr, adoption_queue, dict_as_obj);
+    ASSIGN_OR_RETURN(
+        res_slice,
+        universal_converter.Convert(py_obj, schema, from_dim, itemid));
+    res_db = std::move(universal_converter).GetCreatedBag();
   }
-  DataBagPtr res_db = res_slice.GetBag();
-  DCHECK(res_db == nullptr || res_db->IsMutable());
-  if (res_slice.GetBag() == nullptr) {
+  if (res_db == nullptr) {
     ASSIGN_OR_RETURN(res_db, adoption_queue.GetCommonOrMergedDb());
     // If the result has no associated DataBag but an OBJECT schema was
     // requested, attach an empty DataBag.
     if (res_db == nullptr && schema && schema->item() == schema::kObject) {
       res_db = DataBag::Empty();
     }
-    return res_slice.WithBag(std::move(res_db));
+  } else {
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
+    res_db->UnsafeMakeImmutable();
   }
-  DCHECK(res_db != nullptr);
-  RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
-  res_db->UnsafeMakeImmutable();
-  return res_slice;
+  return res_slice.WithBag(std::move(res_db));
 }
 
 }  // namespace koladata::python

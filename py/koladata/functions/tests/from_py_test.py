@@ -159,6 +159,7 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(
         l[:].S[1], ds(4, schema_constants.OBJECT).with_bag(l.get_bag())
     )
+    self.assertFalse(l.get_bag().is_mutable())
 
     l = from_py_fn([[1, 2, 3], 4], from_dim=1)
     testing.assert_equal(
@@ -167,6 +168,7 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(
         l.S[1], ds(4, schema_constants.OBJECT).with_bag(l.get_bag())
     )
+    self.assertFalse(l.get_bag().is_mutable())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_list_with_none(self, from_py_fn):
