@@ -100,15 +100,14 @@ class FromPyTest(parameterized.TestCase):
     )
 
     # The result databag is not the same in case of entity schema.
-    # TODO: make it work in v2.
     l1 = db.list()
     l2 = db.list()
-    res = fns.from_py([[l1, l2], [o1, o2]], from_dim=2)
+    res = from_py_fn([[l1, l2], [o1, o2]], from_dim=2)
     testing.assert_equivalent(
         res, ds([[l1, l2], [o1, o2]], schema_constants.OBJECT)
     )
 
-    res = fns.from_py([[o1, o2], [l1, l2], [42]], from_dim=2)
+    res = from_py_fn([[o1, o2], [l1, l2], [42]], from_dim=2)
     testing.assert_equivalent(
         res,
         ds([[o1, o2], [l1, l2], [42]], schema_constants.OBJECT),
@@ -132,11 +131,12 @@ class FromPyTest(parameterized.TestCase):
     res = from_py_fn(lst)
     testing.assert_equal(res[:].a.no_bag(), ds([12], schema_constants.INT32))
 
-  def test_different_bags(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_different_bags(self, from_py_fn):
     o1 = fns.obj()  # bag 1
     o2 = fns.list()  # bag 2
 
-    res = fns.from_py([[o1, o2], [42]], from_dim=2)
+    res = from_py_fn([[o1, o2], [42]], from_dim=2)
     testing.assert_equal(
         res.no_bag(),
         ds([[o1, o2], [42]], schema_constants.OBJECT).no_bag(),
@@ -654,9 +654,10 @@ assigned schema: INT32"""),
     item = from_py_fn(obj.ref())
     testing.assert_equal(item, obj.no_bag())
 
-  def test_entity_reference(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_entity_reference(self, from_py_fn):
     entity = fns.new(x=42).fork_bag()
-    item = fns.from_py(entity.ref())
+    item = from_py_fn(entity.ref())
     self.assertTrue(item.has_bag())
     testing.assert_equal(
         item.get_attr('__schema__').no_bag(), entity.get_schema().no_bag()
@@ -665,7 +666,7 @@ assigned schema: INT32"""),
         item.with_schema(entity.get_schema().no_bag()).no_bag(), entity.no_bag()
     )
 
-    item = fns.from_py(entity.ref(), schema=entity.get_schema())
+    item = from_py_fn(entity.ref(), schema=entity.get_schema())
     self.assertTrue(item.get_bag().is_mutable())
     # NOTE: Schema bag is unchanged and treated similar to other inputs.
     testing.assert_equal(item, entity)
@@ -964,7 +965,8 @@ assigned schema: INT32"""),
     ):
       from_py_fn({ds(b'abc'): 42}, dict_as_obj=True)
 
-  def test_incompatible_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_incompatible_schema(self, from_py_fn):
     entity = fns.new(x=1)
     schema = kde.schema.new_schema(x=schema_constants.INT32).eval()
     with self.assertRaisesRegex(
@@ -975,7 +977,7 @@ expected schema: ENTITY(x=INT32)
 assigned schema: ENTITY(x=INT32)'''
         ),
     ):
-      fns.from_py(entity, schema=schema)
+      from_py_fn(entity, schema=schema)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_dataclasses(self, from_py_fn):

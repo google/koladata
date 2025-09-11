@@ -184,6 +184,7 @@ class FromPyConverter {
       const DataSlice::JaggedShape& cur_shape,
       const std::optional<DataSlice>& object_schema = std::nullopt) {
     DCHECK(!object_schema || object_schema->item() == schema::kObject);
+    bool is_struct_schema = IsStructSchema(object_schema);
     const size_t size = py_objects.size();
     internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
@@ -191,7 +192,14 @@ class FromPyConverter {
       ASSIGN_OR_RETURN(
           DataSlice ds,
           ConvertImpl({py_objects[i]}, DataSlice::JaggedShape::Empty(),
-                      object_schema));
+                      object_schema, /*computing_object=*/true));
+      if (!is_struct_schema && ds.GetSchemaImpl().is_struct_schema()) {
+        // Converting only non-primitives to OBJECTs, in order to embed schema.
+        ASSIGN_OR_RETURN(ds, ObjectCreator::ConvertWithoutAdopt(GetBag(), ds));
+      }
+      if (size == 1) {
+        return ds.Reshape(cur_shape);
+      }
       DCHECK(ds.is_item());
       bldr.InsertIfNotSetAndUpdateAllocIds(i, ds.item());
       if (!object_schema) {
@@ -224,25 +232,30 @@ class FromPyConverter {
   // If there will be new lists/dicts/objects created, a new DataBag will be
   // created and added to the adoption queue. Also if there will be DataItems in
   // `py_objects`, they will also be added to `adoption_queue_`.
+  // `computing_object` is used to indicate that the current control flow
+  // originates from `ComputeObjectsSlice` and that each item is being processed
+  // 1-by-1. A "recursive" `ComputeObjectsSlice` should NOT be invoked. It can
+  // still happen deeper, when processing lists, dicts, etc.
+
   absl::StatusOr<DataSlice> ConvertImpl(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& schema) {
-    if (!IsStructSchema(schema)) {
-      // Processing OBJECTs.
-      if (py_objects.size() > 1) {
-        // Each item will be processed separately as an OBJECT. If size <= 1, we
-        // fallback to the rest of the functionality below that creates
-        // Lists / Dicts / Entities or a Primitive and assign it an OBJECT
-        // schema.
-        // TODO: At the moment primitives get assigned their true
-        // schema, when schema is std::nullopt, but in future in this branch
-        // will always be OBJECT.
-        return ComputeObjectsSlice(py_objects, cur_shape, schema);
-      }
+      const std::optional<DataSlice>& schema, bool computing_object = false) {
+    if (py_objects.empty()) {
+      return DataSlice::Create(
+          internal::DataSliceImpl::CreateEmptyAndUnknownType(0), cur_shape,
+          schema ? schema->item() : DataItem(schema::kNone));
     }
 
-    if (py_objects.empty() || IsPrimitiveOrQValue(py_objects, schema)) {
+    if (!IsStructSchema(schema) && !computing_object) {
+      // Processing elements one by one and creating a slice of them.
+      // TODO: At the moment primitives get assigned their true
+      // schema, when schema is std::nullopt, but in future in this branch
+      // will always be OBJECT.
+      return ComputeObjectsSlice(py_objects, cur_shape, schema);
+    }
+
+    if (IsPrimitiveOrQValue(py_objects, schema)) {
       DataItem schema_item;
       if (schema) {
         schema_item = schema->item();
@@ -251,12 +264,9 @@ class FromPyConverter {
       // support Entity -> Object casting.
       // TODO(b/391097990) use implicit casting when schema inference is more
       // flexible.
-      ASSIGN_OR_RETURN(
-          DataSlice res_slice,
-          DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
-                                  adoption_queue_,
-                                  /*explicit_cast=*/IsObjectSchema(schema)));
-      return res_slice;
+      return DataSliceFromPyFlatList(py_objects, cur_shape,
+                                     std::move(schema_item), adoption_queue_,
+                                     /*explicit_cast=*/IsObjectSchema(schema));
     }
 
     if (IsListOrTuple(py_objects, schema)) {
@@ -321,13 +331,7 @@ class FromPyConverter {
                                  item_schema));
     const std::optional<DataSlice>& schema_for_lists =
         is_struct_schema ? schema : std::nullopt;
-    ASSIGN_OR_RETURN(
-        DataSlice list,
-        CreateListShaped(GetBag(), cur_shape, list_items, schema_for_lists));
-    if (!is_struct_schema) {
-      return ObjectCreator::ConvertWithoutAdopt(GetBag(), list);
-    }
-    return list;
+    return CreateListShaped(GetBag(), cur_shape, list_items, schema_for_lists);
   }
 
   // Returns a vector of pairs of (key, value) for each dict in `py_dicts`.
@@ -412,14 +416,8 @@ class FromPyConverter {
     const std::optional<DataSlice>& schema_for_dicts =
         is_struct_schema ? schema : std::nullopt;
 
-    ASSIGN_OR_RETURN(
-        DataSlice dict,
-        CreateDictShaped(GetBag(), cur_shape, keys, values, schema_for_dicts));
-
-    if (!is_struct_schema) {
-      return ObjectCreator::ConvertWithoutAdopt(GetBag(), dict);
-    }
-    return dict;
+    return CreateDictShaped(GetBag(), cur_shape, keys, values,
+                            schema_for_dicts);
   }
 
   // Converts a list of Python dicts to an Object or Entity DataSlice,
