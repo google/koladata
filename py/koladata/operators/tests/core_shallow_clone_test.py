@@ -86,10 +86,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
         b=b_list,
         c=c_dict,
     )
-    # TODO: test no_follow, uu, uuid
     fb = bag()
-    o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
-    o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
+    o.get_schema().with_bag(fb).set_attr('d', schema_constants.INT32)
+    o.with_bag(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
@@ -98,43 +97,115 @@ class CoreShallowCloneTest(parameterized.TestCase):
       o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
-      result = eval_op('kd.shallow_clone', o_fb, schema=o_fb.get_schema())
+      result = expr_eval.eval(
+          kde.core.shallow_clone(o_fb, schema=o_fb.get_schema())
+      )
     else:
-      result = eval_op('kd.shallow_clone', o_fb)
+      result = expr_eval.eval(kde.core.shallow_clone(o_fb))
 
     self.assertFalse(result.get_bag().is_mutable())
-    testing.assert_equal(result.a.no_bag(), o_fb.a.no_bag())
-    testing.assert_equal(result.b.no_bag(), o_fb.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o_fb.c.no_bag())
     testing.assert_equal(
-        result.get_schema().a.no_bag(), o_fb.get_schema().a.no_bag()
+        result.a.get_attr('__schema__').no_bag(),
+        ds([None, None, None], schema=schema_constants.SCHEMA),
     )
-    testing.assert_equal(
-        result.get_schema().b.no_bag(), o_fb.get_schema().b.no_bag()
+    # Shallow cloned bag is not complete as it does not contain the schema of
+    # the OBJECT attrributes of the original slice.
+    schema_fb = bag()
+    o.a.with_bag(schema_fb).set_attr(
+        '__schema__', o.a.get_attr('__schema__').no_bag()
     )
-    testing.assert_equal(
-        result.get_schema().c.no_bag(), o_fb.get_schema().c.no_bag()
+    expected_db = bag()
+    expected = expected_db.new(
+        a=a_slice.no_bag(),
+        b=b_list.no_bag(),
+        c=c_dict.no_bag(),
+        d=ds([1, 2, 3]),
+        schema=o_fb.get_schema().no_bag(),
+        itemid=result.get_itemid(),
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o_fb.no_bag())
-    testing.assert_equal(
-        result.get_schema().no_bag(), o_fb.get_schema().no_bag()
+    testing.assert_deep_equivalent(
+        result.enriched(schema_fb),
+        expected.enriched(schema_fb),
+        schemas_equality=True,
+        ids_equality=True,
     )
 
-    expected_bag = bag()
-    result.get_schema().with_bag(expected_bag).set_attr(
-        'a', o_fb.get_schema().a.no_bag()
+  @parameterized.product(
+      noise_positioned_in_front=[True, False],
+      pass_schema=[True, False],
+  )
+  def test_uu(self, noise_positioned_in_front, pass_schema):
+    db = data_bag.DataBag.empty_mutable()
+    a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
+    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
+        itemid=b_list_ids,
     )
-    result.get_schema().with_bag(expected_bag).set_attr(
-        'b', o_fb.get_schema().b.no_bag()
+    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
+    o = db.new(
+        a=a_slice,
+        b=b_list,
+        c=c_dict,
     )
-    result.get_schema().with_bag(expected_bag).set_attr(
-        'c', o_fb.get_schema().c.no_bag()
+    fb_noise = bag()
+    noise = fb_noise.obj(a=[1, 2, 3])
+    if noise_positioned_in_front:
+      o_fb = o.with_bag(noise.enriched(db).get_bag())
+    else:
+      o_fb = o.enriched(fb_noise)
+
+    if pass_schema:
+      result = expr_eval.eval(
+          kde.core.shallow_clone(o_fb, schema=o_fb.get_schema())
+      )
+    else:
+      result = expr_eval.eval(kde.core.shallow_clone(o_fb))
+
+    self.assertFalse(result.get_bag().is_mutable())
+    testing.assert_equal(
+        result.a.get_attr('__schema__').no_bag(),
+        ds([None, None, None], schema=schema_constants.SCHEMA),
     )
-    result.with_bag(expected_bag).set_attr('a', o_fb.a.no_bag())
-    result.with_bag(expected_bag).set_attr('b', o_fb.b.no_bag())
-    result.with_bag(expected_bag).set_attr('c', o_fb.c.no_bag())
-    self.assertTrue(data_bag.exactly_equal(result.get_bag(), expected_bag))
+    # Shallow cloned bag is not complete as it does not contain the schema of
+    # the OBJECT attrributes of the original slice.
+    schema_fb = bag()
+    o.a.with_bag(schema_fb).set_attr(
+        '__schema__', o.a.get_attr('__schema__').no_bag()
+    )
+
+    expected_db = bag()
+    expected = expected_db.new(
+        a=a_slice.no_bag(),
+        b=b_list.no_bag(),
+        c=c_dict.no_bag(),
+        schema=o_fb.get_schema().no_bag(),
+        itemid=result.get_itemid(),
+    )
+    testing.assert_deep_equivalent(
+        result.enriched(schema_fb),
+        expected.enriched(schema_fb),
+        schemas_equality=True,
+        ids_equality=True,
+    )
+
+  def test_eval_nofollow(self):
+    db = data_bag.DataBag.empty_mutable()
+    a_slice = expr_eval.eval(kde.nofollow(db.new(x=ds([1, 2, None]))))
+
+    result = expr_eval.eval(kde.shallow_clone(a_slice))
+
+    self.assertFalse(result.get_bag().is_mutable())
+    self.assertFalse(data_bag.exactly_equal(result.get_bag(), db))
+    self.assertTrue(
+        data_bag.exactly_equal(
+            result.get_bag(), data_bag.DataBag.empty_mutable()
+        )
+    )
+    testing.assert_equal(
+        result.get_schema().no_bag(), a_slice.get_schema().no_bag()
+    )
 
   def test_with_empty_fallback(self):
     o = bag().new(a=ds([None]))

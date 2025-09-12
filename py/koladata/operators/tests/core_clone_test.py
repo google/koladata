@@ -37,9 +37,8 @@ class CoreCloneTest(parameterized.TestCase):
       pass_schema=[True, False],
   )
   def test_obj(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    b_slice = db.new(a=ds([1, None, 2]))
-    o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    b_slice = bag().new(a=ds([1, None, 2]))
+    o = bag().obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
@@ -48,22 +47,22 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
-    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
+    expected = bag().obj(
+        b=b_slice,
+        c=ds(['foo', 'bar', 'baz']),
+        itemid=result.get_itemid(),
+    )
+    testing.assert_deep_equivalent(
+        result, expected, schemas_equality=True, ids_equality=True
     )
 
   @parameterized.product(
       pass_schema=[True, False],
   )
   def test_obj_list(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    b_slice = db.new(a=ds([1, None, 2]))
-    a_slice = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
-    o = db.implode(a_slice)
+    b_slice = bag().new(a=ds([1, None, 2]))
+    a_slice = bag().obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    o = bag().implode(a_slice)
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
@@ -72,24 +71,19 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
-    testing.assert_equal(result[:].b.no_bag(), o[:].b.no_bag())
-    testing.assert_equal(result[:].c.no_bag(), o[:].c.no_bag())
-    testing.assert_equal(result[:].b.a.no_bag(), o[:].b.a.no_bag())
-    self.assertTrue(result.get_schema().is_list_schema())
-    testing.assert_equal(
-        result[:].b.get_schema().no_bag(),
-        o[:].b.get_schema().no_bag(),
+    expected = bag().implode(a_slice, itemid=result.get_itemid())
+    testing.assert_deep_equivalent(
+        result, expected, schemas_equality=True, ids_equality=True
     )
 
   @parameterized.product(
       pass_schema=[True, False],
   )
   def test_obj_dict(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    b_slice = db.new(a=ds([1, None, 2]))
-    values = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    b_slice = bag().new(a=ds([1, None, 2]))
+    values = bag().obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     keys = ds([0, 1, 2])
-    o = db.dict(keys, values)
+    o = bag().dict(keys, values)
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
@@ -98,23 +92,17 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
-    result_values = result[keys]
-    self.assertSetEqual(
-        set(result.get_keys().internal_as_py()), set(keys.internal_as_py())
+    expected = bag().dict(keys, values, itemid=result.get_itemid())
+    testing.assert_deep_equivalent(
+        result, expected, schemas_equality=True, ids_equality=True
     )
-    testing.assert_equal(result_values.no_bag(), values.no_bag())
-    testing.assert_equal(result_values.c.no_bag(), values.c.no_bag())
-    testing.assert_equal(result_values.b.no_bag(), values.b.no_bag())
-    testing.assert_equal(result_values.b.a.no_bag(), values.b.a.no_bag())
-    self.assertTrue(result.get_schema().is_dict_schema())
 
   @parameterized.product(
       pass_schema=[True, False],
   )
   def test_entity(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    b_slice = db.new(a=ds([1, None, 2]))
-    o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
+    b_slice = bag().new(a=ds([1, None, 2]))
+    o = bag().new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
@@ -123,25 +111,24 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
       testing.assert_equal(result.no_bag(), o.no_bag())
-    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(result.get_schema().no_bag(), o.get_schema().no_bag())
-    testing.assert_equal(
-        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
+    expected = bag().new(
+        b=b_slice,
+        c=ds(['foo', 'bar', 'baz']),
+        itemid=result.get_itemid(),
+        schema=o.get_schema(),
+    )
+    testing.assert_deep_equivalent(
+        result, expected, schemas_equality=True, ids_equality=True
     )
 
   @parameterized.product(
       pass_schema=[True, False],
   )
   def test_clone_only_reachable(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    fb = data_bag.DataBag.empty_mutable()
-    a_slice = db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    _ = fb.new(a=a_slice.no_bag(), c=ds([1, None, 2]))
-    o = db.new(a=a_slice)
-    merged_bag = o.enriched(fb).get_bag().merge_fallbacks()
-    o = o.with_bag(merged_bag)
+    a_slice = bag().new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
+    o = bag().new(a=a_slice)
+    fb = bag().new(a=a_slice.no_bag(), c=ds([1, None, 2]))
+    o = o.enriched(fb.get_bag())
     if pass_schema:
       result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
     else:
@@ -149,22 +136,63 @@ class CoreCloneTest(parameterized.TestCase):
 
     self.assertFalse(result.get_bag().is_mutable())
     with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.get_bag(), o.get_bag())
+      testing.assert_equal(result.no_bag(), o.no_bag())
 
-    expected_bag = data_bag.DataBag.empty_mutable()
-    result.get_schema().with_bag(expected_bag).set_attr(
-        'a', o.get_schema().a.no_bag()
+    expected = bag().new(
+        a=a_slice, itemid=result.get_itemid(), schema=o.get_schema()
     )
-    result.get_schema().with_bag(expected_bag).a.set_attr(
-        'b', schema_constants.INT32
+    testing.assert_deep_equivalent(
+        result, expected, schemas_equality=True, ids_equality=True
     )
-    result.get_schema().with_bag(expected_bag).a.set_attr(
-        'c', schema_constants.STRING
+    testing.assert_equivalent(result.get_bag(), expected.get_bag())
+
+  @parameterized.product(
+      noise_positioned_in_front=[True, False],
+      pass_schema=[True, False],
+  )
+  def test_uu(self, noise_positioned_in_front, pass_schema):
+    db = data_bag.DataBag.empty_mutable()
+    a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
+    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
+        itemid=b_list_ids,
     )
-    result.with_bag(expected_bag).set_attr('a', o.a.no_bag())
-    result.a.with_bag(expected_bag).set_attr('b', o.a.b.no_bag())
-    result.a.with_bag(expected_bag).set_attr('c', o.a.c.no_bag())
-    self.assertTrue(data_bag.exactly_equal(result.get_bag(), expected_bag))
+    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
+    o = db.new(
+        a=a_slice,
+        b=b_list,
+        c=c_dict,
+    )
+    fb_noise = bag()
+    noise = fb_noise.obj(a=[1, 2, 3])
+    if noise_positioned_in_front:
+      o_fb = o.with_bag(noise.enriched(db).get_bag())
+    else:
+      o_fb = o.enriched(fb_noise)
+
+    if pass_schema:
+      result = expr_eval.eval(kde.core.clone(o_fb, schema=o_fb.get_schema()))
+    else:
+      result = expr_eval.eval(kde.core.clone(o_fb))
+
+    self.assertFalse(result.get_bag().is_mutable())
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(result.no_bag(), o.no_bag())
+    expected = bag().new(
+        a=a_slice,
+        b=b_list,
+        c=c_dict,
+        schema=o.get_schema(),
+        itemid=result.get_itemid(),
+    )
+    testing.assert_deep_equivalent(
+        result,
+        expected,
+        schemas_equality=True,
+        ids_equality=True,
+    )
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))

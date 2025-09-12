@@ -60,7 +60,44 @@ class CoreExtractTest(parameterized.TestCase):
         b=b_list,
         c=c_dict,
     )
-    # TODO: test no_follow, uu, uuid
+    fb = data_bag.DataBag.empty_mutable()
+    o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
+    o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
+    fb_noise = data_bag.DataBag.empty_mutable()
+    noise = fb_noise.obj(a=[1, 2, 3])
+    if noise_positioned_in_front:
+      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
+    else:
+      o_fb = o.enriched(fb, fb_noise)
+
+    if pass_schema:
+      result = expr_eval.eval(kde.extract(o_fb, o_fb.get_schema()))
+    else:
+      result = expr_eval.eval(kde.extract(o_fb))
+
+    self.assertFalse(result.get_bag().is_mutable())
+    expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
+    testing.assert_equivalent(result.get_bag(), expected_bag)
+
+  @parameterized.product(
+      noise_positioned_in_front=[True, False],
+      pass_schema=[True, False],
+  )
+  def test_fallback_uu(self, noise_positioned_in_front, pass_schema):
+    db = data_bag.DataBag.empty_mutable()
+    a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
+    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list = db.implode(
+        db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
+        itemid=b_list_ids
+    )
+    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
+    o = db.new(
+        a=a_slice,
+        b=b_list,
+        c=c_dict,
+    )
     fb = data_bag.DataBag.empty_mutable()
     o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
     o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
