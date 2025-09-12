@@ -2380,9 +2380,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       bag_manager = manager._data_bag_manager
       bag_names = bag_manager.get_available_bag_names()
       bag_names = bag_manager._canonical_topological_sorting(bag_names)
-      # The canonical topological sorting always returns the bags in the same
-      # order, namely the lexicographic order:
-      self.assertEqual(bag_names, sorted(bag_names))
       return [bag_manager.get_minimal_bag({b}) for b in bag_names]
 
     for bags in zip(

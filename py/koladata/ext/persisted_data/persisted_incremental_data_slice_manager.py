@@ -872,7 +872,9 @@ class PersistedIncrementalDataSliceManager(
         metadata_pb2.ActionMetadata(
             timestamp=timestamp.from_current_time(),
             description=description,
-            added_data_bag_names=[added.bag_name for added in data_bags_to_add],
+            added_data_bag_names=sorted(
+                [added.bag_name for added in data_bags_to_add]
+            ),
             added_schema_bag_names=[new_schema_bag_name],
             added_snn_to_data_bags_update_bag_names=[map_update_bag_name],
             attribute_update=metadata_pb2.AttributeUpdateAction(
