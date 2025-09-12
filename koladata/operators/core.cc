@@ -792,10 +792,11 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
         ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
         internal::ShallowCloneOp clone_op(&result_db_impl.get());
         const internal::DataBagImpl* absl_nullable schema_db_impl = nullptr;
+        FlattenFallbackFinder schema_fb_finder;
         internal::DataBagImpl::FallbackSpan schema_fallbacks;
         if (schema_db != nullptr && schema_db != db) {
           schema_db_impl = &(schema_db->GetImpl());
-          FlattenFallbackFinder schema_fb_finder(*schema_db);
+          schema_fb_finder = FlattenFallbackFinder(*schema_db);
           schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
         }
         ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),

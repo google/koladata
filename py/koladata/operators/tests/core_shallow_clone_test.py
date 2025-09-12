@@ -136,6 +136,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
     result.with_bag(expected_bag).set_attr('c', o_fb.c.no_bag())
     self.assertTrue(data_bag.exactly_equal(result.get_bag(), expected_bag))
 
+  def test_with_empty_fallback(self):
+    o = bag().new(a=ds([None]))
+    o = o.enriched(bag())
+    _ = expr_eval.eval(kde.core.shallow_clone(o, schema=o.get_schema()))
+
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = kde.core.shallow_clone(x, z=bag().list([12]), t=bag().obj(b=5))
