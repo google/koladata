@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
@@ -78,8 +79,14 @@ class FromPyConverter {
     return ConvertImpl(py_objects, cur_shape, schema);
   }
 
+  // Returns a DataBag used to create additional triples (e.g.
+  // `kd.list([[1, 2], [3]], from_dim=1)` needs to create 2 lists and associate
+  // them with list values and this requires a DataBag. Note that some Python
+  // objects may also be DataItems with DataBags, but those are handled
+  // separately (through adoption_queue). If there are no new triples created
+  // during conversion, this method returns nullptr.
   absl_nullable DataBagPtr GetCreatedBag() && {
-    return db_;
+    return std::move(db_);
   }
 
  private:

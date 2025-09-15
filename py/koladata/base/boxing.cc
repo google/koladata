@@ -852,7 +852,7 @@ class UniversalConverter {
   }
 
   absl_nullable DataBagPtr GetCreatedBag() && {
-    return db_;
+    return std::move(db_);
   }
 
  private:
