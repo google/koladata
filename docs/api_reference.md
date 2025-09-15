@@ -3,7 +3,7 @@
 # Koda API Reference
 
 This document lists public **Koda** APIs, including operators (accessible from
-`kd` and `kde` packages) and methods of main abstractions (e.g.
+`kd` and `kd.eager` packages) and methods of main abstractions (e.g.
 DataSlice, DataBag, etc.).
 
 Category  | Subcategory | Description
