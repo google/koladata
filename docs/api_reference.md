@@ -7943,7 +7943,7 @@ Args:
  end: (optional int) Offset to stop the search, defaults to end of the string.
 
 Returns:
-  The offset of the last occurrence of `substr` in `s`, or missing if there
+  The offset of the first occurrence of `substr` in `s`, or missing if there
   are no occurrences.</code></pre>
 
 ### `kd.strings.format(fmt, /, **kwargs)` {#kd.strings.format}
