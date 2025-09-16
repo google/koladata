@@ -45,8 +45,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().obj(
         b=b_slice,
         c=ds(['foo', 'bar', 'baz']),
@@ -69,8 +68,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().implode(a_slice, itemid=result.get_itemid())
     testing.assert_deep_equivalent(
         result, expected, schemas_equality=True, ids_equality=True
@@ -90,8 +88,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().dict(keys, values, itemid=result.get_itemid())
     testing.assert_deep_equivalent(
         result, expected, schemas_equality=True, ids_equality=True
@@ -109,8 +106,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().new(
         b=b_slice,
         c=ds(['foo', 'bar', 'baz']),
@@ -135,8 +131,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
 
     expected = bag().new(
         a=a_slice, itemid=result.get_itemid(), schema=o.get_schema()
@@ -178,8 +173,7 @@ class CoreCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.core.clone(o_fb))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().new(
         a=a_slice,
         b=b_list,

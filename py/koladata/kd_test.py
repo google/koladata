@@ -70,8 +70,7 @@ class KdTest(absltest.TestCase):
     db1 = kd.bag()
     db2 = kd.bag()
     kd.testing.assert_equivalent(db1, db2)
-    with self.assertRaises(AssertionError):
-      kd.testing.assert_equal(db1, db2)
+    kd.testing.assert_not_equal(db1, db2)
 
   def test_data_slice_and_data_item_magic_methods(self):
     kd.testing.assert_equal(
@@ -112,8 +111,7 @@ class KdTest(absltest.TestCase):
     y = kd.new(a=1, b='abc')
     kd.testing.assert_equal(x.get_schema().a, kd.INT32.with_bag(x.get_bag()))
     kd.testing.assert_equal(x.get_schema().b, kd.STRING.with_bag(x.get_bag()))
-    with self.assertRaises(AssertionError):
-      kd.testing.assert_equal(x, y)
+    kd.testing.assert_not_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
   def test_objects(self):
@@ -121,8 +119,7 @@ class KdTest(absltest.TestCase):
     y = kd.obj(a=1, b='abc')
     kd.testing.assert_equal(x.get_schema(), kd.OBJECT.with_bag(x.get_bag()))
     kd.testing.assert_equal(y.get_schema(), kd.OBJECT.with_bag(y.get_bag()))
-    with self.assertRaises(AssertionError):
-      kd.testing.assert_equal(x, y)
+    kd.testing.assert_not_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
   def test_container(self):

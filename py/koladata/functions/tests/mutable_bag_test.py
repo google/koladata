@@ -42,8 +42,7 @@ class MutableBagTest(absltest.TestCase):
   def test_equality(self):
     db = fns.mutable_bag()
     testing.assert_equal(db, db)
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(db, fns.mutable_bag())
+    testing.assert_not_equal(db, fns.mutable_bag())
     db.new(a=1, b='text')
     testing.assert_equal(db, db)
 

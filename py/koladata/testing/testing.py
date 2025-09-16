@@ -19,6 +19,7 @@ from koladata.testing import test_utils as _test_utils
 from koladata.testing import traversing_test_utils as _traversing_test_utils
 
 assert_equal = _test_utils.assert_equal
+assert_not_equal = _test_utils.assert_not_equal
 assert_equivalent = _test_utils.assert_equivalent
 assert_allclose = _test_utils.assert_allclose
 assert_dicts_keys_equal = _test_utils.assert_dicts_keys_equal

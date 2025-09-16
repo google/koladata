@@ -598,28 +598,24 @@ assigned schema: STRING'''),
     with self.subTest('item'):
       entity = fns.new(a=42, b='abc')
       new_entity = fns.new(entity)
-      with self.assertRaises(AssertionError):
-        testing.assert_equal(entity.get_bag(), new_entity.get_bag())
+      testing.assert_not_equal(entity.get_bag(), new_entity.get_bag())
       testing.assert_equivalent(new_entity, entity)
     with self.subTest('slice'):
       entity = fns.new(a=ds([1, 2]), b='abc')
       new_entity = fns.new(entity)
-      with self.assertRaises(AssertionError):
-        testing.assert_equal(entity.get_bag(), new_entity.get_bag())
+      testing.assert_not_equal(entity.get_bag(), new_entity.get_bag())
       testing.assert_equivalent(new_entity, entity)
 
   def test_universal_converter_adopt_bag_data(self):
     nested = fns.obj(a=42, b='abc')
     entity = fns.new([1, 2, nested])
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(nested.get_bag(), entity.get_bag())
+    testing.assert_not_equal(nested.get_bag(), entity.get_bag())
     testing.assert_equal(entity[2].a, ds(42).with_bag(entity.get_bag()))
 
   def test_universal_converter_adopt_bag_schema(self):
     schema = kde.list_schema(schema_constants.FLOAT32).eval()
     entity = fns.new([1, 2, 3], schema=schema)
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(schema.get_bag(), entity.get_bag())
+    testing.assert_not_equal(schema.get_bag(), entity.get_bag())
     testing.assert_equal(
         entity[:].get_schema().no_bag(), schema_constants.FLOAT32
     )

@@ -115,6 +115,92 @@ class TestUtilsTest(parameterized.TestCase):
     with self.assertRaisesRegex(AssertionError, 'my error'):
       test_utils.assert_equal(ds([1, 2, 3]), ds([[1, 2], [3]]), msg='my error')
 
+  def test_assert_not_equal(self):
+    test_utils.assert_not_equal(ds([1, 2, 3]), ds([1, 2, 4]))
+    test_utils.assert_not_equal(
+        ds([1, 2, 3]).get_shape(), ds([1, 3]).get_shape()
+    )
+    db = bag()
+    db2 = bag()
+    test_utils.assert_not_equal(db, db2)
+    test_utils.assert_not_equal(None, db)
+
+  def test_assert_not_equal_ellipsis(self):
+    with self.assertRaises(AssertionError):
+      test_utils.assert_not_equal(ellipsis.ellipsis(), ellipsis.ellipsis())
+
+  def test_assert_not_equal_slice(self):
+    test_utils.assert_not_equal(
+        arolla.types.Slice(0, None), arolla.types.Slice(0, -1)
+    )
+    with self.assertRaises(AssertionError):
+      test_utils.assert_not_equal(
+          arolla.types.Slice(0, None), arolla.types.Slice(0, None)
+      )
+
+  def test_assert_not_equal_expr(self):
+    # Success.
+    lhs = kde.math.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    rhs = kde.math.subtract(1, 3)
+    test_utils.assert_not_equal(lhs, rhs)
+    # Failure.
+    lhs = kde.math.subtract(1, 3)
+    rhs = kde.math.subtract(1, 3)
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        f"""Exprs equal by fingerprint:
+  fingerprint={lhs.fingerprint}
+  actual:
+    DataItem(1, schema: INT32) - DataItem(3, schema: INT32)
+  expected:
+    DataItem(1, schema: INT32) - DataItem(3, schema: INT32)""",
+    ):
+      test_utils.assert_not_equal(lhs, rhs)
+    with self.assertRaisesRegex(AssertionError, 'my error'):
+      test_utils.assert_not_equal(lhs, rhs, msg='my error')
+
+  def test_assert_not_equal_diff_data_bag(self):
+    test_utils.assert_not_equal(
+        ds([1, 2, 3]).with_bag(bag()),
+        ds([1, 2, 3]).with_bag(bag()),
+    )
+
+  def test_assert_not_equal_error(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        re.compile(
+            'DataSlices are equal by fingerprint:.*DataSlice.*DataSlice.*',
+            re.MULTILINE | re.DOTALL,
+        ),
+    ):
+      test_utils.assert_not_equal(ds([[1, 2], [3]]), ds([[1, 2], [3]]))
+    with self.assertRaisesRegex(
+        AssertionError,
+        re.compile(
+            'QValues equal by fingerprint:.*JaggedShape.*JaggedShape.*',
+            re.MULTILINE | re.DOTALL,
+        ),
+    ):
+      test_utils.assert_not_equal(
+          ds([[1, 2], [3]]).get_shape(), ds([[1, 2], [3]]).get_shape()
+      )
+    with self.assertRaisesRegex(
+        AssertionError,
+        re.compile(
+            r'equal by fingerprint:.*DataBag \$[0-9a-f]{4}(\n|.)*'
+            r' DataBag \$[0-9a-f]{4}(\n|.)*',
+            re.MULTILINE | re.DOTALL,
+        ),
+    ):
+      db = bag().new(a=1).get_bag()
+      test_utils.assert_not_equal(db, db)
+
+  def test_assert_not_equal_error_custom_error_msg(self):
+    with self.assertRaisesRegex(AssertionError, 'my error'):
+      test_utils.assert_not_equal(
+          ds([1, 2, 3]), ds([1, 2, 3]), msg='my error'
+      )
+
   def test_assert_equivalent(self):
     test_utils.assert_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
     test_utils.assert_equivalent(

@@ -43,10 +43,9 @@ class IdsDeepUuidTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_uuid(o, o.get_schema()))
     else:
       result = expr_eval.eval(kde.deep_uuid(o))
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          expr_eval.eval(kde.at(result, 0)), expr_eval.eval(kde.at(result, 1))
-      )
+    testing.assert_not_equal(
+        expr_eval.eval(kde.at(result, 0)), expr_eval.eval(kde.at(result, 1))
+    )
     odb = data_bag.DataBag.empty_mutable()
     o2 = odb.obj(b=odb.new(a=1), c='foo')
     result2 = expr_eval.eval(kde.deep_uuid(o2))

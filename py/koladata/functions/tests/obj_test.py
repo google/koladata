@@ -174,8 +174,7 @@ class ObjTest(absltest.TestCase):
     )
 
     l = fns.list([[1, 2], [3]])
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(l.get_schema(), schema_constants.OBJECT)
+    testing.assert_not_equal(l.get_schema(), schema_constants.OBJECT)
     obj = fns.obj(l)
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(obj[:][:], ds([[1, 2], [3]]).with_bag(obj.get_bag()))
@@ -200,8 +199,7 @@ class ObjTest(absltest.TestCase):
     )
 
     d = fns.dict({'a': 42, 'b': 37})
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(d.get_schema(), schema_constants.OBJECT)
+    testing.assert_not_equal(d.get_schema(), schema_constants.OBJECT)
     obj = fns.obj(d)
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(obj, ds(['a', 'b']))

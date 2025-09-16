@@ -65,6 +65,30 @@ def _assert_expr_equal_by_fingerprint(
   raise AssertionError(msg)
 
 
+def _assert_expr_not_equal_by_fingerprint(
+    actual_value: _arolla.Expr,
+    expected_value: _arolla.Expr,
+    *,
+    msg: str | None = None,
+) -> None:
+  """Koda specific expr inequality check."""
+  # This implementation uses the prettified expr representation rather than the
+  # raw string representation to make Koda constructs such as kd.literal()
+  # easier to understand.
+  if actual_value.fingerprint != expected_value.fingerprint:
+    return
+  if not msg:
+    msg = (
+        'Exprs equal by fingerprint:\n'
+        + f'  fingerprint={actual_value.fingerprint}\n'
+        + '  actual:\n    '
+        + '\n    '.join(f'{actual_value!r}'.split('\n'))
+        + '\n  expected:\n    '
+        + '\n    '.join(f'{expected_value!r}'.split('\n'))
+    )
+  raise AssertionError(msg)
+
+
 def _assert_qvalue_equal_by_fingerprint(actual_value: _KodaVal,
                                         expected_value: _KodaVal,
                                         *,
@@ -105,6 +129,43 @@ def _assert_qvalue_equal_by_fingerprint(actual_value: _KodaVal,
   )
 
 
+def _assert_qvalue_not_equal_by_fingerprint(
+    actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
+):
+  """Koda specific qvalue inequality check by fingerprint."""
+  if not isinstance(actual_value, _arolla.QValue):
+    raise TypeError('`actual_value` must be a QValue, got ', type(actual_value))
+  if not isinstance(expected_value, _arolla.QValue):
+    raise TypeError(
+        '`expected_value` must be a QValue, got ', type(expected_value)
+    )
+  if actual_value.fingerprint != expected_value.fingerprint:
+    return
+  if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
+      expected_value, _data_slice.DataSlice
+  ):
+    raise AssertionError(
+        msg
+        or (
+            'DataSlices are equal by fingerprint:\n\n '
+            f' fingerprint={actual_value.fingerprint}\n'
+            f'  actual:\n    {actual_value._debug_repr()}\n'  # pylint: disable=protected-access
+            f'  expected:\n    {expected_value._debug_repr()}'  # pylint: disable=protected-access
+        )
+    )
+  raise AssertionError(
+      msg
+      or (
+          'QValues equal by fingerprint:\n'
+          + f'  fingerprint={actual_value.fingerprint}\n'
+          + '  actual:\n    '
+          + '\n    '.join(f'{actual_value!r}'.split('\n'))
+          + '\n  expected:\n    '
+          + '\n    '.join(f'{expected_value!r}'.split('\n'))
+      )
+  )
+
+
 def assert_equal(
     actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
 ) -> None:
@@ -136,6 +197,43 @@ def assert_equal(
     _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
   _assert_qvalue_equal_by_fingerprint(
+      actual_value, expected_value, msg=msg
+  )
+
+
+def assert_not_equal(
+    actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
+) -> None:
+  """Koda inequality check.
+
+  Compares the argument by their fingerprint:
+  * 2 DataSlice(s) are equal if their contents and JaggedShape(s) are
+    equal / equivalent and they reference the same DataBag instance.
+  * 2 DataBag(s) are equal if they are the same DataBag instance.
+  * 2 JaggedShape(s) are equal if they have the same number of dimensions and
+    all "sizes" in each dimension are equal.
+
+  NOTE: For JaggedShape equality and equivalence are the same thing.
+
+  Args:
+    actual_value: DataSlice, DataBag or JaggedShape.
+    expected_value: DataSlice, DataBag or JaggedShape.
+    msg: A custom error message.
+
+  Raises:
+    AssertionError: If actual_qvalue and expected_qvalue are equal.
+  """
+  # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
+  if actual_value is None and expected_value is None:
+    raise AssertionError(msg or 'Both values are None')
+  if actual_value is None or expected_value is None:
+    return
+  if isinstance(actual_value, _arolla.Expr) and isinstance(
+      expected_value, _arolla.Expr
+  ):
+    _assert_expr_not_equal_by_fingerprint(actual_value, expected_value, msg=msg)
+    return
+  _assert_qvalue_not_equal_by_fingerprint(
       actual_value, expected_value, msg=msg
   )
 

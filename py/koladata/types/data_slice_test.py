@@ -269,12 +269,10 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_unspecified(self):
     testing.assert_equal(data_slice.unspecified(), data_slice.unspecified())
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(ds(42), data_slice.unspecified())
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(
-          data_slice.unspecified().with_bag(bag()), data_slice.unspecified()
-      )
+    testing.assert_not_equal(ds(42), data_slice.unspecified())
+    testing.assert_not_equal(
+        data_slice.unspecified().with_bag(bag()), data_slice.unspecified()
+    )
 
   @parameterized.named_parameters(
       (
@@ -3479,8 +3477,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     else:
       result = o.clone()
 
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
@@ -3512,8 +3509,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     else:
       result = o.shallow_clone()
 
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     with self.assertRaisesWithPredicateMatch(
@@ -3546,10 +3542,8 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     else:
       result = o.deep_clone()
 
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
     testing.assert_equal(result.self.no_bag(), result.no_bag())
@@ -3580,8 +3574,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       result = o.deep_uuid(o.get_schema())
     else:
       result = o.deep_uuid()
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.S[0], result.S[1])
+    testing.assert_not_equal(result.S[0], result.S[1])
     odb = data_bag.DataBag.empty_mutable()
     o2 = odb.obj(b=odb.new(a=1), c='foo')
     result2 = o2.deep_uuid()

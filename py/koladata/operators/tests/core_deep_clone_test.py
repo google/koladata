@@ -53,10 +53,8 @@ class CoreDeepCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
     testing.assert_equal(result.self.no_bag(), result.no_bag())
@@ -79,10 +77,8 @@ class CoreDeepCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result[:].b.no_bag(), o[:].b.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result[:].b.no_bag(), o[:].b.no_bag())
     testing.assert_equal(result[:].c.no_bag(), o[:].c.no_bag())
     testing.assert_equal(result[:].b.a.no_bag(), o[:].b.a.no_bag())
     self.assertTrue(result.get_schema().is_list_schema())
@@ -106,26 +102,17 @@ class CoreDeepCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
     result_values = result[keys]
     self.assertSetEqual(
         set(result.get_keys().internal_as_py()), set(keys.internal_as_py())
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          result_values.no_bag(),
-          values.no_bag(),
-      )
+    testing.assert_not_equal(result_values.no_bag(), values.no_bag())
     testing.assert_equal(
         result_values.c.no_bag(),
         values.c.no_bag(),
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          result_values.b.no_bag(),
-          values.b.no_bag(),
-      )
+    testing.assert_not_equal(result_values.b.no_bag(), values.b.no_bag())
     testing.assert_equal(
         result_values.b.a.no_bag(),
         values.b.a.no_bag(),
@@ -145,10 +132,8 @@ class CoreDeepCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.no_bag(), o.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.b.no_bag(), o.b.no_bag())
+    testing.assert_not_equal(result.no_bag(), o.no_bag())
+    testing.assert_not_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
     testing.assert_equal(result.get_schema().no_bag(), o.get_schema().no_bag())
@@ -158,8 +143,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     testing.assert_equal(
         result.b.a.get_schema().no_bag(), o.b.a.get_schema().no_bag()
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.ref(), o.ref())
+    testing.assert_not_equal(result.ref(), o.ref())
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -192,8 +176,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
       result = expr_eval.eval(kde.deep_clone(o))
 
     self.assertFalse(result.get_bag().is_mutable())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(result.get_bag(), o.get_bag())
+    testing.assert_not_equal(result.get_bag(), o.get_bag())
 
     expected_bag = data_bag.DataBag.empty_mutable()
     result.get_schema().with_bag(expected_bag).set_attr(
@@ -281,18 +264,16 @@ class CoreDeepCloneTest(parameterized.TestCase):
     a = kde.core.deep_clone(ds_xy)
     b = kde.core.deep_clone(ds_xy)
     _ = expr_eval.eval(kde.uu(a=a, b=b))
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-          expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
-      )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-          expr_eval.eval(
-              kde.core.get_metadata(ds_xy.get_obj_schema())
-          ).no_bag(),
-      )
+    testing.assert_not_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+    )
+    testing.assert_not_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(
+            kde.core.get_metadata(ds_xy.get_obj_schema())
+        ).no_bag(),
+    )
     kde.core.with_metadata(a.get_obj_schema(), attrs='xy')
 
   def test_metadata_chains(self):
@@ -353,13 +334,11 @@ class CoreDeepCloneTest(parameterized.TestCase):
         expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
         expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).a.no_bag(),
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(a.a.no_bag(), b.a.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          a.a.no_bag(),
-          expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
-      )
+    testing.assert_not_equal(a.a.no_bag(), b.a.no_bag())
+    testing.assert_not_equal(
+        a.a.no_bag(),
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
+    )
 
   def test_metadata_object_explicit_schema(self):
     db = bag()
@@ -389,13 +368,11 @@ class CoreDeepCloneTest(parameterized.TestCase):
             kde.core.get_metadata(ds_xy.get_obj_schema())
         ).a.no_bag(),
     )
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(a.a.no_bag(), b.a.no_bag())
-    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
-      testing.assert_equal(
-          a.a.no_bag(),
-          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
-      )
+    testing.assert_not_equal(a.a.no_bag(), b.a.no_bag())
+    testing.assert_not_equal(
+        a.a.no_bag(),
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
+    )
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
