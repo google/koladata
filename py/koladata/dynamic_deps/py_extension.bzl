@@ -6,7 +6,7 @@ load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
-def _py_extension(  # buildifier: disable=unused-variable
+def _pytype_extension(  # buildifier: disable=unused-variable
         name = None,
         srcs = None,
         hdrs = None,
@@ -69,7 +69,9 @@ def koladata_py_extension(
         visibility = None,
         testonly = False,
         tags = [],
-        deps = None):
+        deps = None,
+        pytype_deps = (),
+        pytype_srcs = ()):
     """Builds a Koladata py extension module.
 
     All extensions created using this rule share the same instance of
@@ -85,8 +87,7 @@ def koladata_py_extension(
     incorrectly if each Python extension statically links to a "private" copy
     of the library (even when the symbols are hidden).
     """
-
-    _py_extension(
+    _pytype_extension(
         name = name,
         srcs = srcs,
         hdrs = hdrs,
