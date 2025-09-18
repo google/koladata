@@ -28,10 +28,14 @@ py_library(
     name = "persisted_data",
     srcs = ["persisted_data.py"],
     deps = [
+        ":data_slice_manager_interface",
+        ":data_slice_manager_view",
+        ":data_slice_path",
         ":fs_implementation",
         ":fs_interface",
         ":fs_util",
         ":persisted_incremental_data_bag_manager",
+        ":persisted_incremental_data_slice_manager",
         "//py:python_path",
     ],
 )

@@ -14,12 +14,29 @@
 
 """Facade module exposing selected functionality of the persisted_data package."""
 
+from koladata.ext.persisted_data import data_slice_manager_interface as _data_slice_manager_interface
+from koladata.ext.persisted_data import data_slice_manager_view as _data_slice_manager_view
+from koladata.ext.persisted_data import data_slice_path as _data_slice_path
 from koladata.ext.persisted_data import fs_implementation as _fs_implementation
 from koladata.ext.persisted_data import fs_interface as _fs_interface
 from koladata.ext.persisted_data import fs_util as _fs_util
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as _pidbm
+from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as _pidsm
 
 fs_interface = _fs_interface
 fs_implementation = _fs_implementation
 fs_util = _fs_util
+
+BagToAdd = _pidbm.BagToAdd
 PersistedIncrementalDataBagManager = _pidbm.PersistedIncrementalDataBagManager
+
+data_slice_path = _data_slice_path
+DataSlicePath = _data_slice_path.DataSlicePath
+DataSliceManagerInterface = (
+    _data_slice_manager_interface.DataSliceManagerInterface
+)
+DataSliceManagerView = _data_slice_manager_view.DataSliceManagerView
+persisted_incremental_data_slice_manager = _pidsm
+PersistedIncrementalDataSliceManager = (
+    _pidsm.PersistedIncrementalDataSliceManager
+)
