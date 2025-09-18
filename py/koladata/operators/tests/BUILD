@@ -10219,3 +10219,20 @@ py_test(
         "@com_google_arolla//py/arolla/objects",
     ],
 )
+
+py_test(
+    name = "core_flatten_cyclic_references_test",
+    srcs = ["core_flatten_cyclic_references_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)

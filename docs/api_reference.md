@@ -725,6 +725,24 @@ Args:
 Returns:
   A new immutable DataBag with only the reachable attrs from &#39;ds&#39;.</code></pre>
 
+### `kd.core.flatten_cyclic_references(x, *, max_recursion_depth)` {#kd.core.flatten_cyclic_references}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice with tree-like copy of the input DataSlice.
+
+The entities themselves and all their attributes including both top-level and
+non-top-level attributes are cloned (with new ItemIds) while creating the
+tree-like copy. The max_recursion_depth argument controls the maximum number
+of times the same entity can occur on the path from the root to a leaf.
+Note: resulting DataBag might have an exponential size, compared to the input
+DataBag.
+
+Args:
+  x: DataSlice to flatten.
+  max_recursion_depth: Maximum recursion depth.
+
+Returns:
+  A DataSlice with tree-like attributes structure.</code></pre>
+
 ### `kd.core.follow(x)` {#kd.core.follow}
 Aliases:
 

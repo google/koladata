@@ -40,6 +40,7 @@
 #include "koladata/operators/curves.h"
 #include "koladata/operators/dicts.h"
 #include "koladata/operators/entities.h"
+#include "koladata/operators/flatten_cyclic_references.h"
 #include "koladata/operators/ids.h"
 #include "koladata/operators/json.h"
 #include "koladata/operators/lists.h"
@@ -112,6 +113,8 @@ OPERATOR_FAMILY("kd.core._attrs_impl",
 OPERATOR("kd.core._clone", Clone, "kd.core.clone");
 OPERATOR("kd.core._deep_clone", DeepClone, "kd.core.deep_clone");
 OPERATOR("kd.core._extract", Extract, "kd.core.extract");
+OPERATOR("kd.core._flatten_cyclic_references",
+         FlattenCyclicReferences, "kd.core.flatten_cyclic_references");
 OPERATOR("kd.core._get_attr", GetAttr, "kd.core.get_attr");
 OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault,
          "kd.core.get_attr_with_default");

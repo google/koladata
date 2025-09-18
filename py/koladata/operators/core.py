@@ -908,6 +908,43 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   )(x, schema, overrides, optools.unified_non_deterministic_arg())
 
 
+@optools.as_backend_operator('kd.core._flatten_cyclic_references')
+def _flatten_cyclic_references(x, max_recursion_depth, non_deterministic):  # pylint: disable=unused-argument
+  """Creates a DataSlice with tree-like copy of the input DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.core.flatten_cyclic_references',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.max_recursion_depth),
+    ],
+)
+def flatten_cyclic_references(x, *, max_recursion_depth):  # pylint: disable=unused-argument
+  """Creates a DataSlice with tree-like copy of the input DataSlice.
+
+  The entities themselves and all their attributes including both top-level and
+  non-top-level attributes are cloned (with new ItemIds) while creating the
+  tree-like copy. The max_recursion_depth argument controls the maximum number
+  of times the same entity can occur on the path from the root to a leaf.
+  Note: resulting DataBag might have an exponential size, compared to the input
+  DataBag.
+
+  Args:
+    x: DataSlice to flatten.
+    max_recursion_depth: Maximum recursion depth.
+
+  Returns:
+    A DataSlice with tree-like attributes structure.
+  """
+  max_recursion_depth = arolla_bridge.to_arolla_int64(max_recursion_depth)
+  return _flatten_cyclic_references(
+      P.x, max_recursion_depth, optools.unified_non_deterministic_arg()
+  )
+
+
 @optools.add_to_registry(aliases=['kd.nofollow'])
 @optools.as_backend_operator(
     'kd.core.nofollow',
