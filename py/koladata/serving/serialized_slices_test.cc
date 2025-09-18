@@ -69,7 +69,8 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
           {arolla::TypedValue::FromValue(std::move(functor_names)),
            arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
            arolla::TypedValue::FromValue(CreateConstantFunctor(42))},
-          {}));
+          {},
+          /*riegeli_options=*/"snappy"));
   ASSERT_OK_AND_ASSIGN(auto functors, ParseSerializedSlices(data));
   ASSERT_THAT(functors, UnorderedElementsAre(Pair("f57", _), Pair("f42", _)));
   EXPECT_THAT(
@@ -100,7 +101,8 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(std::move(functor_names)),
                 arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
             },
-            {}));
+            {},
+            /*riegeli_options=*/"zstd"));
     EXPECT_THAT(
         ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
@@ -115,7 +117,8 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(std::move(functor_names)),
                 arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
             },
-            {}));
+            {},
+            /*riegeli_options=*/"brotli"));
     EXPECT_THAT(ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a full data slice")));
@@ -130,7 +133,8 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
                 arolla::TypedValue::FromValue(CreateConstantFunctor(42)),
             },
-            {}));
+            {},
+            /*riegeli_options=*/""));
     EXPECT_THAT(ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a slice of strings")));
@@ -144,7 +148,8 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(std::move(functor_names)),
                 arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
             },
-            {}));
+            {},
+            /*riegeli_options=*/"uncompressed"));
     EXPECT_THAT(
         ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
