@@ -15,18 +15,14 @@
 #include "koladata/internal/schema_utils.h"
 
 #include <array>
-#include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/overload.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -50,29 +46,6 @@
 
 namespace koladata::schema {
 
-// Adjacency list representation of the DType lattice.
-//
-// Each "row" in the lattice represents a DType, and each "column" represents a
-// directly adjacent greater DType.
-const schema_internal::DTypeLattice& schema_internal::GetDTypeLattice() {
-  static const absl::NoDestructor<DTypeLattice> lattice({
-      {kNone, {kItemId, kSchema, kInt32, kMask, kBool, kBytes, kString, kExpr}},
-      {kItemId, {}},
-      {kSchema, {}},
-      {kInt32, {kInt64}},
-      {kInt64, {kFloat32}},
-      {kFloat32, {kFloat64}},
-      {kFloat64, {kObject}},
-      {kMask, {kObject}},
-      {kBool, {kObject}},
-      {kBytes, {kObject}},
-      {kString, {kObject}},
-      {kExpr, {kObject}},
-      {kObject, {}},
-  });
-  return *lattice;
-}
-
 namespace {
 
 constexpr DTypeId kUnknownDType = -1;
@@ -95,30 +68,6 @@ class DTypeMatrix {
   }
 
  private:
-  // Returns a matrix where m[i][j] is true iff j is reachable from i.
-  static std::array<std::bitset<kNextDTypeId>, kNextDTypeId>
-  GetReachableDTypes() {
-    const auto& lattice = schema_internal::GetDTypeLattice();
-    // Initialize the adjacency matrix.
-    std::array<std::bitset<kNextDTypeId>, kNextDTypeId> reachable_dtypes;
-    for (const auto& [dtype_a, adjacent_dtypes] : lattice) {
-      auto dtype_a_int = dtype_a.type_id();
-      reachable_dtypes[dtype_a_int][dtype_a_int] = true;
-      for (const auto dtype_b : adjacent_dtypes) {
-        reachable_dtypes[dtype_a_int][dtype_b.type_id()] = true;
-      }
-    }
-    // Floyd-Warshall to find all reachable nodes.
-    for (DTypeId k = 0; k < kNextDTypeId; ++k) {
-      for (DTypeId i = 0; i < kNextDTypeId; ++i) {
-        if (reachable_dtypes[i][k]) {
-          reachable_dtypes[i] |= reachable_dtypes[k];
-        }
-      }
-    }
-    return reachable_dtypes;
-  }
-
   // Computes the common dtype matrix.
   //
   // Represented as a 2-dim array of size kNextDTypeId x kNextDTypeId, where the
@@ -128,11 +77,15 @@ class DTypeMatrix {
   // See http://shortn/_icYRr51SOr for a proof of correctness.
   static const MatrixImpl& GetMatrixImpl() {
     static const MatrixImpl matrix = [] {
-      const auto reachable_dtypes = GetReachableDTypes();
+      constexpr auto reachable_dtypes = schema_internal::GetReachableDTypes();
       auto get_common_dtype = [&reachable_dtypes](DTypeId a, DTypeId b) {
         // Compute the common upper bound.
-        auto cub = reachable_dtypes[a] & reachable_dtypes[b];
-        size_t cub_count = cub.count();
+        std::array<bool, kNextDTypeId> cub = reachable_dtypes[a];
+        size_t cub_count = 0;
+        for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+          cub[i] &= reachable_dtypes[b][i];
+          cub_count += cub[i];
+        }
         if (cub_count == 0) {
           return kUnknownDType;
         }
@@ -140,7 +93,7 @@ class DTypeMatrix {
         // the DType in `cub` where all common upper bounds are reachable from
         // it.
         for (DTypeId i = 0; i < kNextDTypeId; ++i) {
-          if (cub[i] && cub_count == reachable_dtypes[i].count()) {
+          if (cub[i] && cub == reachable_dtypes[i]) {
             return i;
           }
         }

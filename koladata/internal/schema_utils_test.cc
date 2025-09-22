@@ -50,40 +50,31 @@ using ::testing::Contains;
 using ::testing::HasSubstr;
 using ::testing::Not;
 using ::testing::NotNull;
-using ::testing::UnorderedElementsAreArray;
-
-TEST(SchemaUtilsTest, DTypeLattice) {
-  // Check that the lattice contains all supported dtypes. This ensures that
-  // the lattice stays up to date.
-  const schema_internal::DTypeLattice& lattice =
-      schema_internal::GetDTypeLattice();
-  std::vector<schema::DType> lattice_keys;
-  for (const auto& [key, _] : lattice) {
-    lattice_keys.push_back(key);
-  }
-  std::vector<schema::DType> expected_dtypes;
-  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
-    using T = typename decltype(tpe)::type;
-    expected_dtypes.push_back(schema::GetDType<T>());
-  });
-  EXPECT_THAT(lattice_keys, UnorderedElementsAreArray(expected_dtypes));
-}
 
 TEST(SchemaUtilsTest, DTypeLatticeIsAcyclic) {
   // Sanity check that the lattice is acyclic. This is otherwise not enforced.
   const schema_internal::DTypeLattice& lattice =
       schema_internal::GetDTypeLattice();
-  absl::flat_hash_set<schema::DType> visited;
-  std::function<void(schema::DType)> visit = [&](schema::DType dtype) {
+  absl::flat_hash_set<schema::DTypeId> visited;
+  bool cyclic = false;
+  std::function<void(schema::DTypeId)> visit = [&](schema::DTypeId dtype) {
+    cyclic |= visited.contains(dtype);
     // Loop detection.
     ASSERT_THAT(visited, Not(Contains(dtype)));
+    if (cyclic) {
+      return;
+    }
     visited.insert(dtype);
-    for (const auto& next_dtype : lattice.at(dtype)) {
-      visit(next_dtype);
+    for (schema::DTypeId next_dtype = 0; next_dtype < schema::kNextDTypeId;
+         ++next_dtype) {
+      if (lattice[dtype][next_dtype]) {
+        visit(next_dtype);
+      }
     }
     visited.erase(dtype);
   };
-  for (const auto& [dtype, _] : lattice) {
+  for (schema::DTypeId dtype = 0; dtype < schema::kNextDTypeId; ++dtype) {
+    visited.clear();
     visit(dtype);
   }
 }
@@ -110,10 +101,17 @@ INSTANTIATE_TEST_SUITE_P(
     CommonDTypeTestInit, CommonDTypeTest, ::testing::ValuesIn([] {
       // Generate test cases for all immediate connections.
       std::vector<CommonDTypeTestCase> test_cases;
-      for (const auto& [dtype, descendants] :
-           schema_internal::GetDTypeLattice()) {
+      constexpr auto lattice = schema_internal::GetDTypeLattice();
+      for (schema::DTypeId dtype_id = 0; dtype_id < schema::kNextDTypeId;
+           ++dtype_id) {
+        schema::DType dtype = schema::DType::UnsafeFromId(dtype_id);
         test_cases.push_back({{dtype, dtype}, dtype});  // Self loop.
-        for (const auto& descendant : descendants) {
+        for (schema::DTypeId descendant_id = 0;
+             descendant_id < schema::kNextDTypeId; ++descendant_id) {
+          if (!lattice[dtype_id][descendant_id]) {
+            continue;
+          }
+          schema::DType descendant = schema::DType::UnsafeFromId(descendant_id);
           // Commutative - so we test both directions.
           test_cases.push_back({{dtype, descendant}, descendant});
           test_cases.push_back({{descendant, dtype}, descendant});
@@ -160,10 +158,17 @@ INSTANTIATE_TEST_SUITE_P(
     CommonDTypeBinaryTestInit, CommonDTypeBinaryTest, ::testing::ValuesIn([] {
       // Generate test cases for all immediate connections.
       std::vector<CommonDTypeTestCase> test_cases;
-      for (const auto& [dtype, descendants] :
-           schema_internal::GetDTypeLattice()) {
+      constexpr auto lattice = schema_internal::GetDTypeLattice();
+      for (schema::DTypeId dtype_id = 0; dtype_id < schema::kNextDTypeId;
+           ++dtype_id) {
+        schema::DType dtype = schema::DType::UnsafeFromId(dtype_id);
         test_cases.push_back({{dtype, dtype}, dtype});  // Self loop.
-        for (const auto& descendant : descendants) {
+        for (schema::DTypeId descendant_id = 0;
+             descendant_id < schema::kNextDTypeId; ++descendant_id) {
+          if (!lattice[dtype_id][descendant_id]) {
+            continue;
+          }
+          schema::DType descendant = schema::DType::UnsafeFromId(descendant_id);
           // Commutative - so we test both directions.
           test_cases.push_back({{dtype, descendant}, descendant});
           test_cases.push_back({{descendant, dtype}, descendant});

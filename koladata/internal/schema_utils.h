@@ -15,13 +15,14 @@
 #ifndef KOLADATA_INTERNAL_SCHEMA_UTILS_H_
 #define KOLADATA_INTERNAL_SCHEMA_UTILS_H_
 
+#include <array>
+#include <bitset>
 #include <cstdint>
+#include <initializer_list>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/internal/data_bag.h"
@@ -35,15 +36,61 @@ namespace koladata::schema {
 namespace schema_internal {
 
 // Only used during program initialization.
-using DTypeLattice =
-    absl::flat_hash_map<schema::DType, std::vector<schema::DType>>;
+using DTypeLattice = std::array<std::array<bool, kNextDTypeId>, kNextDTypeId>;
 
 // Returns the lattice of DTypes used for CommonSchema resolution.
 //
 // See go/koda-type-promotion for more details.
 //
-// Exposed mainly for testing.
-const DTypeLattice& GetDTypeLattice();
+// Each "row" in the lattice matrix represents a DType, and each "column"
+// represents a directly adjacent greater DType.
+constexpr DTypeLattice GetDTypeLattice() {
+  DTypeLattice lattice = {};
+  constexpr auto fill_row = [&](std::initializer_list<DType> adjacent_dtypes) {
+    std::array<bool, kNextDTypeId> row = {};
+    for (DType adjacent_dtype : adjacent_dtypes) {
+      row[adjacent_dtype.type_id()] = true;
+    }
+    return row;
+  };
+  lattice[kNone.type_id()] = fill_row(
+      {kItemId, kSchema, kInt32, kMask, kBool, kBytes, kString, kExpr});
+  lattice[kItemId.type_id()] = fill_row({});
+  lattice[kSchema.type_id()] = fill_row({});
+  lattice[kInt32.type_id()] = fill_row({kInt64});
+  lattice[kInt64.type_id()] = fill_row({kFloat32});
+  lattice[kFloat32.type_id()] = fill_row({kFloat64});
+  lattice[kFloat64.type_id()] = fill_row({kObject});
+  lattice[kMask.type_id()] = fill_row({kObject});
+  lattice[kBool.type_id()] = fill_row({kObject});
+  lattice[kBytes.type_id()] = fill_row({kObject});
+  lattice[kString.type_id()] = fill_row({kObject});
+  lattice[kExpr.type_id()] = fill_row({kObject});
+  lattice[kObject.type_id()] = fill_row({});
+  return lattice;
+}
+
+// Returns a matrix where m[i][j] is true iff j is reachable from i.
+constexpr DTypeLattice GetReachableDTypes() {
+  // Initialize the adjacency matrix.
+  schema_internal::DTypeLattice reachable_dtypes =
+      schema_internal::GetDTypeLattice();
+  for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+    reachable_dtypes[i][i] = true;
+  }
+  // Floyd-Warshall to find all reachable nodes.
+  for (DTypeId k = 0; k < kNextDTypeId; ++k) {
+    for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+      if (!reachable_dtypes[i][k]) {
+        continue;
+      }
+      for (DTypeId j = 0; j < kNextDTypeId; ++j) {
+        reachable_dtypes[i][j] |= reachable_dtypes[k][j];
+      }
+    }
+  }
+  return reachable_dtypes;
+}
 
 // A helper class to aggregate seen dtypes and return the common dtype.
 class CommonDTypeAggregator {

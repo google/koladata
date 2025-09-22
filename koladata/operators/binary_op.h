@@ -42,6 +42,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -49,33 +50,15 @@ namespace koladata::ops {
 
 namespace binary_op_impl {
 
-template <class T>
-struct NextTypeToCast {
-  using type = void;
-};
-
-template <>
-struct NextTypeToCast<int32_t> {
-  using type = int64_t;
-};
-
-template <>
-struct NextTypeToCast<int64_t> {
-  using type = float;
-};
-
-template <>
-struct NextTypeToCast<float> {
-  using type = double;
-};
-
 template <class From, class To>
 struct IsCastable
-    : std::conditional_t<
-          std::is_same_v<From, To>, std::true_type,
-          std::conditional_t<
-              std::is_same_v<From, void>, std::false_type,
-              IsCastable<typename NextTypeToCast<From>::type, To>>> {};
+    : std::bool_constant<
+          schema::schema_internal::GetReachableDTypes()
+              [schema::GetDTypeId<From>()][schema::GetDTypeId<To>()]> {};
+
+// Some operators are attempting to find common type for string_view pair.
+template <class From>
+struct IsCastable<From, From> : std::true_type {};
 
 template <class T1, class T2>
 using common_type_t =
