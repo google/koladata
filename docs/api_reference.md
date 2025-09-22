@@ -45,6 +45,7 @@ Category  | Subcategory | Description
  | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
  | [npkd](#kd_ext.npkd) | Tools for Numpy <-> Koda interoperability.
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
+ | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
@@ -11052,6 +11053,343 @@ Aliases:
 ### `kd_ext.pdkd.to_dataframe(ds, cols=None, include_self=False)` {#kd_ext.pdkd.to_dataframe}
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
+
+</section>
+
+### kd_ext.persisted_data {#kd_ext.persisted_data}
+
+Tools for persisted incremental data.
+
+
+<section class="zippy open">
+
+**Namespaces**
+
+#### kd_ext.persisted_data.PersistedIncrementalDataBagManager {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
+
+`PersistedIncrementalDataBagManager` methods
+
+<section class="zippy closed">
+
+**Operators**
+
+### `PersistedIncrementalDataBagManager.add_bags(self, bags_to_add)` {#PersistedIncrementalDataBagManager.add_bags}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Adds the given bags to the manager, which will persist them.
+
+    Conceptually, the items of bags_to_add are added one by one in the order
+    specified by the list. Each item of bags_to_add is a BagToAdd object with:
+      - bag_name: The name of the bag to add. This must be a name that is not
+        already present in get_available_bag_names() or any preceding item of
+        bags_to_add.
+      - bag: The DataBag to add.
+      - dependencies: A non-empty collection of the names of the bags that `bag`
+        depends on. It should include all the direct dependencies. There is no
+        need to include transitive dependencies. All the names mentioned here
+        must already be present in get_available_bag_names() or must be the name
+        of some preceding item in bags_to_add.
+
+    The implementation does not simply add the bags one by one - internally it
+    persists them in parallel.
+
+    After this function returns, the bags and all their transitive dependencies
+    will be loaded and will hence be present in get_loaded_bag_names().
+
+    Args:
+      bags_to_add: A list of bags to add. They are added in the order given by
+        the list.</code></pre>
+
+### `PersistedIncrementalDataBagManager.clear_cache(self)` {#PersistedIncrementalDataBagManager.clear_cache}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Clears the cache of loaded bags.
+
+    After this method returns, get_loaded_bag_names() will return only {&#39;&#39;},
+    i.e. only the initial empty bag with name &#39;&#39; will still be loaded.</code></pre>
+
+### `PersistedIncrementalDataBagManager.create_branch(self, bag_names, *, with_all_dependents=False, output_dir, fs=None)` {#PersistedIncrementalDataBagManager.create_branch}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a branch of the current manager in a new persistence directory.
+
+    This function is very similar to extract_bags(), but it does not copy any of
+    the bags. Instead, it will simply point to the original files. A manager
+    for output_dir will therefore depend on the persistence directory of the
+    current manager, which should not be moved or deleted as long as output_dir
+    is used. After this function returns, the current manager and its branch
+    are independent: adding bags to the current manager will not affect the
+    branch, and similarly the branch won&#39;t affect the current manager.
+
+    To create a branch with all the bags managed by this manager, you can call
+    this function with the arguments bag_names=[&#39;&#39;], with_all_dependents=True.
+
+    Args:
+      bag_names: The names of the bags that must be included in the branch. They
+        must be a non-empty subset of get_available_bag_names(). The branch will
+        also include their transitive dependencies.
+      with_all_dependents: If True, then the branch will also include all the
+        dependents of bag_names. The dependents are computed transitively. All
+        the transitive dependencies of the dependents will also be included in
+        the branch.
+      output_dir: The directory in which the branch will be created. It must
+        either be empty or not exist yet.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance.</code></pre>
+
+### `PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=None)` {#PersistedIncrementalDataBagManager.extract_bags}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts the requested bags to the given output directory.
+
+    To extract all the bags managed by this manager, you can call this function
+    with the arguments bag_names=[&#39;&#39;], with_all_dependents=True.
+
+    Args:
+      bag_names: The names of the bags that will be extracted. They must be a
+        non-empty subset of get_available_bag_names(). The extraction will also
+        include their transitive dependencies.
+      with_all_dependents: If True, then the extracted bags will also include
+        all dependents of bag_names. The dependents are computed transitively.
+        All transitive dependencies of the dependents will also be included in
+        the extraction.
+      output_dir: The directory to which the bags will be extracted. It must
+        either be empty or not exist yet.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance.</code></pre>
+
+### `PersistedIncrementalDataBagManager.get_available_bag_names(self)` {#PersistedIncrementalDataBagManager.get_available_bag_names}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are managed by this manager.
+
+    They include the initial empty bag (named &#39;&#39;), all bags that have been added
+    to this manager instance, and all bags that were already persisted in the
+    persistence directory before this manager instance was created.</code></pre>
+
+### `PersistedIncrementalDataBagManager.get_loaded_bag(self)` {#PersistedIncrementalDataBagManager.get_loaded_bag}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a bag consisting of all the small bags that are currently loaded.</code></pre>
+
+### `PersistedIncrementalDataBagManager.get_loaded_bag_names(self)` {#PersistedIncrementalDataBagManager.get_loaded_bag_names}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are currently loaded in this manager.
+
+    The initial empty bag (with name &#39;&#39;) is always loaded, and the bags that
+    have been added to this manager instance or loaded by previous calls to
+    load_bags() and their transitive dependencies are also considered loaded.
+
+    Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
+    a side effect when they are needed but not loaded yet.</code></pre>
+
+### `PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names, *, with_all_dependents=False)` {#PersistedIncrementalDataBagManager.get_minimal_bag}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a minimal bag that includes bag_names and all their dependencies.
+
+    Args:
+      bag_names: The name of the bags whose data must be included in the result.
+        It must be a non-empty subset of get_available_bag_names(). These bags
+        and their transitive dependencies will be loaded if they are not loaded
+        yet.
+      with_all_dependents: If True, then the returned bag will also include all
+        the dependents of bag_names. The dependents are computed transitively.
+        All transitive dependencies of the dependents are then also included in
+        the result.
+
+    Returns:
+      A minimal bag that has the data of the requested small bags. It will not
+      include any unrelated bags that are already loaded.</code></pre>
+
+### `PersistedIncrementalDataBagManager.load_bags(self, bag_names, *, with_all_dependents=False)` {#PersistedIncrementalDataBagManager.load_bags}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Loads the requested bags and their transitive dependencies.
+
+    Args:
+      bag_names: The names of the bags that should be loaded. They must be a
+        subset of get_available_bag_names(). All their transitive dependencies
+        will be loaded as well.
+      with_all_dependents: If True, then all the dependents of bag_names will
+        also be loaded. The dependents are computed transitively. All transitive
+        dependencies of the dependents will also be loaded.</code></pre>
+
+</section>
+
+#### kd_ext.persisted_data.fs_interface {#kd_ext.persisted_data.fs_interface}
+
+File system interaction interface.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd_ext.persisted_data.fs_interface.Collection(*args, **kwargs)` {#kd_ext.persisted_data.fs_interface.Collection}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A generic version of collections.abc.Collection.</code></pre>
+
+### `kd_ext.persisted_data.fs_interface.FileSystemInterface()` {#kd_ext.persisted_data.fs_interface.FileSystemInterface}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface to interact with the file system.</code></pre>
+
+### `kd_ext.persisted_data.fs_interface.IO()` {#kd_ext.persisted_data.fs_interface.IO}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Generic base class for TextIO and BinaryIO.
+
+    This is an abstract, generic version of the return of open().
+
+    NOTE: This does not distinguish between the different possible
+    classes (text vs. binary, read vs. write vs. read/write,
+    append-only, unbuffered).  The TextIO and BinaryIO subclasses
+    below capture the distinctions between text vs. binary, which is
+    pervasive in the interface; however we currently do not offer a
+    way to track the other distinctions in the type system.</code></pre>
+
+</section>
+</section>
+<section class="zippy closed">
+
+**Operators**
+
+### `kd_ext.persisted_data.BagToAdd(bag_name, bag, dependencies)` {#kd_ext.persisted_data.BagToAdd}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">BagToAdd(bag_name: str, bag: koladata.types.data_bag.DataBag, dependencies: tuple[str, ...])</code></pre>
+
+### `kd_ext.persisted_data.DataSliceManagerInterface()` {#kd_ext.persisted_data.DataSliceManagerInterface}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface for data slice managers.</code></pre>
+
+### `kd_ext.persisted_data.DataSliceManagerView(manager, path_from_root=DataSlicePath(actions=()))` {#kd_ext.persisted_data.DataSliceManagerView}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A view of a DataSliceManager from a particular DataSlicePath.
+
+  This is a thin wrapper around a DataSliceManager and a DataSlicePath.
+
+  The DataSlicePath is called the &#34;view path&#34;. It is a full path, i.e. it is
+  relative to the root of the DataSliceManager.
+
+  The underlying DataSliceManager&#39;s state can be updated. As a result, a view
+  path can become invalid for the underlying manager. While the state of an
+  invalid view can still be extracted, e.g. via get_manager() and
+  get_path_from_root(), some of the methods, such as get_schema() and
+  get_data_slice(), will fail when is_view_valid() is False.
+
+  Implementation note: The method names should ideally contain verbs. That
+  should reduce the possible confusion between methods of the view and
+  attributes in the data, which are usually accessed as attributes, i.e. via
+  __getattr__(). For example, writing doc_view.title is more natural than
+  doc_view.get_attr(&#39;title&#39;), but if we define a method named &#39;title&#39; in this
+  class, then users cannot write doc_view.title anymore and will be forced to
+  write doc_view.get_attr(&#39;title&#39;). To avoid this, most of the methods start
+  with a verb, usually &#39;get&#39;, so we can use e.g. get_title() for the method.
+  Reducing the possibility for conflicts with data attributes is also the reason
+  why the is_view_valid() method is not simply called is_valid() or valid().</code></pre>
+
+### `kd_ext.persisted_data.DataSlicePath(actions)` {#kd_ext.persisted_data.DataSlicePath}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A data slice path.</code></pre>
+
+### `kd_ext.persisted_data.FileSystemInteraction(options=None)` {#kd_ext.persisted_data.FileSystemInteraction}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interactions with Google-internal file systems such as CNS.</code></pre>
+
+### `kd_ext.persisted_data.PersistedIncrementalDataBagManager(persistence_dir, *, fs=None)` {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataBag that is assembled from multiple smaller bags.
+
+  Short version of the contract:
+  * Instances are not thread-safe.
+  * Multiple instances can be created for the same persistence directory:
+    * Multiple readers are allowed.
+    * The effects of write operations (calls to add_bags()) are not propagated
+      to other instances that already exist.
+    * Concurrent writers are not allowed. A write operation will fail if the
+      state of the persistence directory was modified in the meantime by another
+      instance.
+
+  It is often convenient to create a DataBag by incrementally adding smaller
+  bags, where each of the smaller bags is an update to the large DataBag.
+
+  This also provides the opportunity to persist the smaller bags separately,
+  along with the stated dependencies among the smaller bags.
+
+  Then at a later point, usually in a different process, one can reassemble the
+  large DataBag. But instead of loading the entire DataBag, one can load only
+  the smaller bags that are needed, thereby saving loading time and memory. In
+  fact the smaller bags can be loaded incrementally, so that decisions about
+  which bags to load can be made on the fly instead of up-front. In that way,
+  the incremental creation of the large DataBag is mirrored by its incremental
+  consumption.
+
+  To streamline the consumption, you have to specify dependencies between the
+  smaller bags when they are added. It is trivial to specify a linear chain of
+  dependencies, but setting up a dependency DAG is easy and can significantly
+  improve the loading time and memory usage of data consumers. In fact this
+  class will always manage a rooted DAG of small bags, and a chain of bags is
+  just a special case.
+
+  This class manages the smaller bags, which are named, and their
+  interdependencies. It also handles the persistence of the smaller bags along
+  with some metadata to facilitate the later consumption of the data and also
+  its further augmentation. The persistence uses a filesystem directory, which
+  is hermetic in the sense that it can be moved or copied (although doing so
+  will break branches if any exist - see the docstring of create_branch()). The
+  persistence directory is consistent after each public operation of this class,
+  provided that it is not modified externally and that there is sufficient space
+  to accommodate the writes.
+
+  This class is not thread-safe. When an instance is created for a persistence
+  directory that is already populated, then the instance is initialized with
+  the current state found in the persistence directory at that point in time.
+  Write operations (calls to add_bags()) by other instances for the same
+  persistence directory are not propagated to this instance. A write operation
+  will fail if the state of the persistence directory was modified in the
+  meantime by another instance.</code></pre>
+
+### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(persistence_dir, *, fs=None, description='Initial state with an empty root DataSlice')` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataSlice that is assembled from multiple smaller data slices.
+
+  Short version of the contract:
+  * Instances are not thread-safe.
+  * Multiple instances can be created for the same persistence directory:
+    * Multiple readers are allowed.
+    * The effects of write operations (calls to update()) are not propagated
+      to other instances that already exist.
+    * Concurrent writers are not allowed. A write operation will fail if the
+      state of the persistence directory was modified in the meantime by another
+      instance.
+
+  It is often convenient to create a DataSlice by incrementally adding smaller
+  slices, where each of the smaller slices is an update to the large DataSlice.
+  This also provides the opportunity to persist the updates separately.
+  Then at a later point, usually in a different process, one can reassemble the
+  large DataSlice. But instead of loading the entire DataSlice, one can load
+  only the updates (parts) that are needed, thereby saving loading time and
+  memory. In fact the updates can be loaded incrementally, so that decisions
+  about which ones to load can be made on the fly instead of up-front. In that
+  way, the incremental creation of the large DataSlice is mirrored by the
+  incremental consumption of its subslices.
+
+  This class manages the DataSlice and its incremental updates. It also handles
+  the persistence of the updates along with some metadata to facilitate the
+  later consumption of the data and also its further augmentation. The
+  persistence uses a filesystem directory, which is hermetic in the sense that
+  it can be moved or copied (although doing so will break branches if any
+  exist - see the docstring of branch()). The persistence directory is
+  consistent after each public operation of this class, provided that it is not
+  modified externally and that there is sufficient space to accommodate the
+  writes.
+
+  This class is not thread-safe. When an instance is created for a persistence
+  directory that is already populated, then the instance is initialized with
+  the current state found in the persistence directory at that point in time.
+  Write operations (calls to update()) by other instances for the same
+  persistence directory are not propagated to this instance. A write operation
+  will fail if the state of the persistence directory was modified in the
+  meantime by another instance. Multiple instances can be created for the same
+  persistence directory and concurrently read from it. So creating multiple
+  instances and calling get_schema() or get_data_slice() concurrently is fine.
+
+  Implementation details:
+
+  The manager indexes each update DataBag with the schema node names for which
+  the update can possibly provide data. When a user requests a subslice,
+  the manager consults the index and asks the bag manager to load all the needed
+  updates (data bags).</code></pre>
 
 </section>
 
