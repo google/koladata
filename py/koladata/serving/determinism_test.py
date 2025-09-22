@@ -291,15 +291,17 @@ class DeterminizerTest(parameterized.TestCase):
 
     def test_functor(x, y):
       # TODO: b/442760508 - Stop using koda_internal_parallel once possible.
-      return kd.streams.sync_wait(koda_internal_parallel.stream_from_future(
-          test_parallel_functor(
-              kd.streams.current_executor(),
-              koda_internal_parallel.as_future(schema.new(x=x, y=y)),
-              return_type_as=koda_internal_parallel.as_future(
-                  kd.eager.types.DataSlice
-              ),
+      return kd.streams.sync_wait(
+          koda_internal_parallel.stream_from_future(
+              test_parallel_functor(
+                  kd.streams.current_executor(),
+                  koda_internal_parallel.as_future(schema.new(x=x, y=y)),
+                  return_type_as=koda_internal_parallel.as_future(
+                      kd.types.DataSlice
+                  ),
+              )
           )
-      ))
+      )
 
     fn = kd.fn(test_functor)
 

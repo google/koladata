@@ -80,7 +80,7 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
 
 
 ### Used as type annotations in user's code.
-types = _eager_only(_py_types.SimpleNamespace())
+types = _same_when_tracing(_py_types.SimpleNamespace())
 types.DataBag = _data_bag.DataBag
 types.DataItem = _data_item.DataItem
 types.DataSlice = _data_slice.DataSlice

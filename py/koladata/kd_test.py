@@ -327,6 +327,7 @@ class KdTest(absltest.TestCase):
       @kd.check_inputs(x=kd.duck_type(a=kd.INT32, b=kd.STRING))
       def g(x):
         return x.b
+
       return g(x)
 
     fn = kd.fn(f)
@@ -360,6 +361,7 @@ class KdTest(absltest.TestCase):
       @kd.check_inputs(x=kd.duck_list(kd.INT32))
       def g(x):
         return x[:]
+
       return g(x)
 
     fn = kd.fn(f)
@@ -374,7 +376,8 @@ class KdTest(absltest.TestCase):
       return kd.sort(x.get_values())
 
     kd.testing.assert_equal(
-        f(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2]))
+        f(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])
+    )
 
     with self.assertRaises(TypeError):
       _ = f(kd.dict({'a': '1', 'b': '2'}))
@@ -384,6 +387,7 @@ class KdTest(absltest.TestCase):
       @kd.check_inputs(x=kd.duck_dict(kd.STRING, kd.INT32))
       def g(x):
         return kd.sort(x.get_values())
+
       return g(x)
 
     fn = kd.fn(f)
@@ -593,6 +597,18 @@ class KdTest(absltest.TestCase):
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
 
+  def test_types_while_tracing(self):
+    @kd.trace_as_fn(return_type_as=kd.types.DataBag)
+    def f():
+      return kd.bag()
+
+    @kd.trace_as_fn(return_type_as=kd.types.DataBag)
+    def g(f):
+      return f(return_type_as=kd.types.DataBag)
+
+    bag = g(f)
+    self.assertIsInstance(bag, kd.types.DataBag)
+
   def test_to_py_sub_functor_regression(self):
     f = kd.fn(lambda x: kd.eager.V.g(x) + 2).with_attrs(g=kd.fn(lambda x: x))
     _ = kd.list([f]).to_py(max_depth=1)  # no error
@@ -603,7 +619,7 @@ class KdTest(absltest.TestCase):
     entity = kd.eval(entity)
     kd.testing.assert_equal(
         entity.get_schema().no_bag(),
-        kd.uu_schema(a=kd.INT32, b=kd.STRING).no_bag()
+        kd.uu_schema(a=kd.INT32, b=kd.STRING).no_bag(),
     )
     kd.testing.assert_equal(entity.a.no_bag(), kd.item(42))
     kd.testing.assert_equal(entity.b.no_bag(), kd.item('xyz'))
