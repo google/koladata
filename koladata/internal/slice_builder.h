@@ -305,8 +305,8 @@ template <typename T>
 typename arolla::Buffer<T>::Builder& SliceBuilder::GetBufferBuilder() {
   if (ScalarTypeId<T>() == current_type_id_) {
     // See comment at `current_type_id_` definition.
-    return std::get<typename arolla::Buffer<T>::Builder>(
-        std::get<TypedStorage<T>>(*current_storage_).data);
+    return *std::get_if<typename arolla::Buffer<T>::Builder>(
+        &std::get_if<TypedStorage<T>>(current_storage_)->data);
   } else {
     return GetBufferBuilderWithTypeChange<T>();
   }
@@ -316,12 +316,13 @@ template <typename T>
 typename arolla::Buffer<T>::Builder&
 SliceBuilder::GetBufferBuilderFromCurrentStorage() {
   DCHECK(std::holds_alternative<TypedStorage<T>>(*current_storage_));
-  TypedStorage<T>& tstorage = std::get<TypedStorage<T>>(*current_storage_);
+  TypedStorage<T>& tstorage = *std::get_if<TypedStorage<T>>(current_storage_);
   current_typeidx_ = tstorage.type_index;
   if (!std::holds_alternative<arolla::Buffer<T>>(tstorage.data)) {
-    return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
+    return *std::get_if<typename arolla::Buffer<T>::Builder>(&tstorage.data);
   }
-  const arolla::Buffer<T>& buf = std::get<arolla::Buffer<T>>(tstorage.data);
+  const arolla::Buffer<T>& buf =
+      *std::get_if<arolla::Buffer<T>>(&tstorage.data);
   typename arolla::Buffer<T>::Builder bldr(size());
   for (int64_t i = 0; i < size(); ++i) {
     if (types_buffer_.id_to_typeidx[i] == current_typeidx_) {
@@ -329,7 +330,7 @@ SliceBuilder::GetBufferBuilderFromCurrentStorage() {
     }
   }
   tstorage.data = std::move(bldr);
-  return std::get<typename arolla::Buffer<T>::Builder>(tstorage.data);
+  return *std::get_if<typename arolla::Buffer<T>::Builder>(&tstorage.data);
 }
 
 template <typename T>
@@ -347,8 +348,8 @@ SliceBuilder::GetBufferBuilderWithTypeChange() {
     *current_storage_ = TypedStorage<T>{
         current_typeidx_, typename arolla::Buffer<T>::Builder(size())};
     types_buffer_.types.push_back(ScalarTypeId<T>());
-    return std::get<typename arolla::Buffer<T>::Builder>(
-        std::get<TypedStorage<T>>(*current_storage_).data);
+    return *std::get_if<typename arolla::Buffer<T>::Builder>(
+        &std::get_if<TypedStorage<T>>(current_storage_)->data);
   }
   // The invariant can still be violated (storage can contain Buffer rather
   // than Builder), but GetBufferBuilderFromCurrentStorage handles it.

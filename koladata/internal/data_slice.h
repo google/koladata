@@ -158,14 +158,14 @@ class DataSliceImpl {
   const arolla::DenseArray<T>& values() const {
     DCHECK_EQ(internal_->values.size(), 1);
     DCHECK_EQ(internal_->dtype, arolla::GetQType<T>());
-    return std::get<arolla::DenseArray<T>>(internal_->values[0]);
+    return *std::get_if<arolla::DenseArray<T>>(&internal_->values[0]);
   }
 
   // Get values from the data slice for given type_idx (see TypesBuffer).
   template <class T>
   const arolla::DenseArray<T>& values(uint8_t type_idx) const {
     DCHECK_GT(internal_->values.size(), type_idx);
-    return std::get<arolla::DenseArray<T>>(internal_->values[type_idx]);
+    return *std::get_if<arolla::DenseArray<T>>(&internal_->values[type_idx]);
   }
 
   // Struct that holds type indices for each element. Can be empty for empty or

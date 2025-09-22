@@ -43,9 +43,9 @@ std::optional<arolla::ReprToken> KodaInputOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>&) {
   absl::string_view container_name =
-      node->node_deps()[0]->qvalue().value().UnsafeAs<arolla::Text>().view();
+      node->node_deps()[0]->qvalue()->UnsafeAs<arolla::Text>().view();
   absl::string_view input_key =
-      node->node_deps()[1]->qvalue().value().UnsafeAs<arolla::Text>().view();
+      node->node_deps()[1]->qvalue()->UnsafeAs<arolla::Text>().view();
   if (container_name == "I" && input_key == "self") {
     return arolla::ReprToken{"S"};
   }

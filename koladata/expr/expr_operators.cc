@@ -103,7 +103,7 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
   RETURN_IF_ERROR(ValidateTextLiteral(inputs[0], "container_name"));
   RETURN_IF_ERROR(ValidateTextLiteral(inputs[1], "input_key"));
   if (!arolla::IsIdentifier(
-          inputs[0].qvalue().value().UnsafeAs<arolla::Text>().view())) {
+          inputs[0].qvalue()->UnsafeAs<arolla::Text>().view())) {
     return absl::InvalidArgumentError(
         "expected container_name to be an identifier");
   }

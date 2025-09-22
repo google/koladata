@@ -316,7 +316,7 @@ ReprToken ReprTraits<::koladata::DataBagPtr>::operator()(
   }
   absl::StatusOr<std::string> statistics = koladata::DataBagStatistics(value);
   if (statistics.ok()) {
-    return ReprToken{statistics.value()};
+    return ReprToken{*std::move(statistics)};
   }
   return ReprToken{std::string(statistics.status().message())};
 }

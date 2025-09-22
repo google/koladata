@@ -259,7 +259,7 @@ class MultitypeDenseSource : public DenseSource {
           values_.emplace_back(ValueBuffer<T>(size_));
         }
         if constexpr (!std::is_same_v<T, arolla::Unit>) {
-          std::get<ValueBuffer<T>>(values_[typeidx])[offset] = v;
+          (*std::get_if<ValueBuffer<T>>(&values_[typeidx]))[offset] = v;
         }
       }
     });
@@ -389,7 +389,7 @@ class MultitypeDenseSource : public DenseSource {
   template <bool RemoveMissing, class T>
   void SetImpl(const ObjectIdArray& objects, const DenseArray<T>& array) {
     uint8_t typeidx = GetOrAddTypeIdx<T>();
-    ValueBuffer<T>& dst_vals = std::get<ValueBuffer<T>>(values_[typeidx]);
+    ValueBuffer<T>& dst_vals = *std::get_if<ValueBuffer<T>>(&values_[typeidx]);
     DCHECK_EQ(objects.size(), array.size());
     arolla::DenseArraysForEach(
         [&](int64_t, bool valid, ObjectId id, OptionalValue<view_type_t<T>> v) {
@@ -419,7 +419,7 @@ class MultitypeDenseSource : public DenseSource {
   void MergeArrayImpl(absl::Status& status, const DenseArray<T>& array,
                       ConflictHandlingOption option) {
     uint8_t typeidx = GetOrAddTypeIdx<T>();
-    ValueBuffer<T>& dst_vals = std::get<ValueBuffer<T>>(values_[typeidx]);
+    ValueBuffer<T>& dst_vals = *std::get_if<ValueBuffer<T>>(&values_[typeidx]);
     if (option.option == ConflictHandlingOption::Option::kKeepOriginal) {
       array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
         uint8_t& tidx = types_buffer_.id_to_typeidx[offset];

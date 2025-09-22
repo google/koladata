@@ -307,7 +307,7 @@ class CopyingProcessor {
 
   absl::Status NotifyLeaf(const QueuedSlice& slice) {
     if (leaf_callback_.has_value()) {
-      RETURN_IF_ERROR(leaf_callback_.value()(slice.slice, slice.schema));
+      RETURN_IF_ERROR((*leaf_callback_)(slice.slice, slice.schema));
     }
     return absl::OkStatus();
   }

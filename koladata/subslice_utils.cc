@@ -177,7 +177,7 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
   if (shape.rank() == 1 && slice_args.size() == 1 &&
       std::holds_alternative<DataSlice>(slice_args[0])) {
     // Fast path for the most common case.
-    return AtImpl(x, std::get<DataSlice>(slice_args[0]));
+    return AtImpl(x, *std::get_if<DataSlice>(&slice_args[0]));
   }
   arolla::EvaluationContext ctx;
   ASSIGN_OR_RETURN(
@@ -192,15 +192,16 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
     const auto& edge = shape.edges()[shape.rank() - slice_args.size() + i];
     auto slice_arg = std::move(slice_args[i]);
     if (std::holds_alternative<DataSlice>(slice_arg)) {
-      ASSIGN_OR_RETURN(chosen_indices,
-                       SubsliceChildIndicesForSingle(
-                           std::move(chosen_indices),
-                           std::move(std::get<DataSlice>(slice_arg)), edge));
+      ASSIGN_OR_RETURN(
+          chosen_indices,
+          SubsliceChildIndicesForSingle(
+              std::move(chosen_indices),
+              std::move(*std::get_if<DataSlice>(&slice_arg)), edge));
     } else {
       ASSIGN_OR_RETURN(chosen_indices,
                        SubsliceChildIndicesForRange(
                            std::move(chosen_indices),
-                           std::move(std::get<Slice>(slice_arg)), edge));
+                           std::move(*std::get_if<Slice>(&slice_arg)), edge));
     }
   }
   ASSIGN_OR_RETURN(auto flat_x, x.Flatten());

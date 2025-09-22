@@ -44,14 +44,14 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor_storage.h"
-#include "koladata/signature.h"
-#include "koladata/signature_storage.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -307,7 +307,7 @@ std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
     next_option.strip_quotes = false;
     if (auto content = DataItemToStr(item, schema, bag, next_option, wrapping);
         content.ok()) {
-      return std::move(content.value());
+      return *std::move(content);
     }
   }
   if (item.holds_value<ObjectId>()) {
@@ -655,7 +655,7 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
     } else {
       absl::StrAppend(&result, parameter.name);
       if (parameter.default_value.has_value()) {
-        auto default_value = parameter.default_value.value();
+        auto default_value = *parameter.default_value;
         // Default values are always DataItems.
         DCHECK(default_value.is_item());
         // We don't want to show the `DataItem()` wrapper to make the repr more

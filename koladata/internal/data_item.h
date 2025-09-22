@@ -172,7 +172,7 @@ class DataItem {
   // `holds_value` first.
   template <class T>
   const T& value() const {
-    return std::get<T>(data_);
+    return *std::get_if<T>(&data_);
   }
 
   // Returns number of present elements in DataItem (can be 0 or 1).
@@ -215,7 +215,7 @@ class DataItem {
   }
 
   bool is_itemid_schema() const {
-    return holds_value<schema::DType>() && (*this) == schema::kItemId;;
+    return holds_value<schema::DType>() && (*this) == schema::kItemId;
   }
 
   // Returns stable 128 bit Fingerprint.
@@ -260,7 +260,7 @@ class DataItem {
     template <typename VT, typename T = VT>
     bool EqImpl(const DataItem& a, const VT& b) const {
       if (std::holds_alternative<T>(a.data_)) {
-        return std::get<T>(a.data_) == b;
+        return *std::get_if<T>(&a.data_) == b;
       }
       return false;
     }
@@ -291,11 +291,12 @@ class DataItem {
         return a.data_.index() < ScalarTypeId<T>();
       }
       if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
-        return std::get<T>(a.data_).expr_fingerprint() < b.expr_fingerprint();
+        return std::get_if<T>(&a.data_)->expr_fingerprint() <
+               b.expr_fingerprint();
       } else if constexpr (std::is_same_v<T, schema::DType>) {
-        return schema::DType::Less()(std::get<T>(a.data_), b);
+        return schema::DType::Less()(*std::get_if<T>(&a.data_), b);
       } else {
-        return std::get<T>(a.data_) < b;
+        return *std::get_if<T>(&a.data_) < b;
       }
     }
   };
@@ -360,10 +361,10 @@ template <>
 inline bool DataItem::Eq::EqImpl<int64_t, int64_t>(const DataItem& a,
                                                    const int64_t& b) const {
   if (std::holds_alternative<int64_t>(a.data_)) {
-    return std::get<int64_t>(a.data_) == b;
+    return *std::get_if<int64_t>(&a.data_) == b;
   }
   if (std::holds_alternative<int32_t>(a.data_)) {
-    return std::get<int32_t>(a.data_) == b;
+    return *std::get_if<int32_t>(&a.data_) == b;
   }
   return false;
 }
@@ -378,10 +379,10 @@ template <>
 inline bool DataItem::Eq::EqImpl<double, double>(const DataItem& a,
                                                  const double& b) const {
   if (std::holds_alternative<double>(a.data_)) {
-    return std::get<double>(a.data_) == b;
+    return *std::get_if<double>(&a.data_) == b;
   }
   if (std::holds_alternative<float>(a.data_)) {
-    return std::get<float>(a.data_) == b;
+    return *std::get_if<float>(&a.data_) == b;
   }
   return false;
 }
@@ -396,10 +397,10 @@ template <>
 inline bool DataItem::Less::LessImpl<int64_t, int64_t>(const DataItem& a,
                                                        const int64_t& b) const {
   if (std::holds_alternative<int64_t>(a.data_)) {
-    return std::get<int64_t>(a.data_) < b;
+    return *std::get_if<int64_t>(&a.data_) < b;
   }
   if (std::holds_alternative<int32_t>(a.data_)) {
-    return std::get<int32_t>(a.data_) < b;
+    return *std::get_if<int32_t>(&a.data_) < b;
   }
   return a.data_.index() < ScalarTypeId<int64_t>();
 }
@@ -414,10 +415,10 @@ template <>
 inline bool DataItem::Less::LessImpl<double, double>(const DataItem& a,
                                                      const double& b) const {
   if (std::holds_alternative<double>(a.data_)) {
-    return std::get<double>(a.data_) < b;
+    return *std::get_if<double>(&a.data_) < b;
   }
   if (std::holds_alternative<float>(a.data_)) {
-    return std::get<float>(a.data_) < b;
+    return *std::get_if<float>(&a.data_) < b;
   }
   return a.data_.index() < ScalarTypeId<double>();
 }

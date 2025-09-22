@@ -394,9 +394,7 @@ void DataSliceImpl::ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
   // DenseArrays during DataSliceImpl creation.
   auto values_copy = internal_->values;
   std::sort(values_copy.begin(), values_copy.end(),
-            [&](const auto& l, const auto& r) {
-              return l.index() < r.index();
-            });
+            [](const auto& l, const auto& r) { return l.index() < r.index(); });
   for (const auto& val : values_copy) {
     combine(val);
   }
@@ -445,7 +443,7 @@ bool DataSliceImpl::IsEquivalentTo(const DataSliceImpl& other) const {
         [&](const auto& arr) {
           using ArrT = std::decay_t<decltype(arr)>;
           return arolla::ArraysAreEquivalent(
-              arr, std::get<ArrT>(other.internal_->values[0]));
+              arr, *std::get_if<ArrT>(&other.internal_->values[0]));
         },
         internal_->values[0]);
   }

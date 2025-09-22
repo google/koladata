@@ -75,8 +75,8 @@ class WhileOperator final : public arolla::QExprOperator {
         "kd.functor.while_",
         [condition_fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          body_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         output_var_slot = output_var_slot.value(), output_var_name,
-         is_returns_mode, initial_state_slot = input_slots[5],
+         output_var_slot = *output_var_slot, output_var_name, is_returns_mode,
+         initial_state_slot = input_slots[5],
          output_slot](arolla::EvaluationContext* /*ctx*/,
                       arolla::FramePtr frame) -> absl::Status {
           const auto& condition_fn = frame.Get(condition_fn_slot);

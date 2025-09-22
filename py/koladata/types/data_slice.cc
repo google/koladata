@@ -707,7 +707,7 @@ PyObject* PyDataSlice_str_with_options(PyObject* self,
   std::string result;
   absl::StatusOr<std::string> item_str = DataSliceToStr(self_ds, option);
   if (item_str.ok()) {
-    result = item_str.value();
+    result = *std::move(item_str);
   } else {
     self_ds.VisitImpl(
         [&](const auto& impl) { return absl::StrAppend(&result, impl); });

@@ -799,10 +799,10 @@ absl::StatusOr<DataSlice> CreateUu(
       ASSIGN_OR_RETURN(impl_res, internal::CreateUuidFromFields(
                                      seed, attr_names, aligned_values_impl));
     }
-    ASSIGN_OR_RETURN(auto ds, DataSlice::Create(
-                                  impl_res.value(),
-                                  aligned_values.begin()->GetShape(),
-                                  std::move(schema_item), db));
+    ASSIGN_OR_RETURN(auto ds,
+                     DataSlice::Create(*std::move(impl_res),
+                                       aligned_values.begin()->GetShape(),
+                                       std::move(schema_item), db));
     RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, overwrite_schema))
         .With(KodaErrorCausedByIncompableSchemaError(ds.GetBag(), values, ds));
     // Adopt into the databag only at the end to avoid garbage in the
@@ -838,39 +838,37 @@ absl::StatusOr<DataSlice> CreateUuObject(
     schemas.push_back(std::cref(slice.GetSchemaImpl()));
   }
 
-  return aligned_values.begin()->VisitImpl(
-      [&]<class ImplT>(ImplT) -> absl::StatusOr<DataSlice> {
-        std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
-        aligned_values_impl.reserve(aligned_values.size());
-        for (int i = 0; i < attr_names.size(); ++i) {
-          aligned_values_impl.push_back(
-              std::cref(aligned_values[i].impl<ImplT>()));
-        }
+  return aligned_values.begin()->VisitImpl([&]<class ImplT>(ImplT)
+                                               -> absl::StatusOr<DataSlice> {
+    std::vector<std::reference_wrapper<const ImplT>> aligned_values_impl;
+    aligned_values_impl.reserve(aligned_values.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      aligned_values_impl.push_back(std::cref(aligned_values[i].impl<ImplT>()));
+    }
 
-        std::optional<ImplT> impl_res;
-        if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
-          impl_res = internal::CreateUuidFromFields(seed, attr_names,
-                                                    aligned_values_impl);
-        } else {
-          ASSIGN_OR_RETURN(impl_res,
-                           internal::CreateUuidFromFields(seed, attr_names,
-                                                          aligned_values_impl));
-        }
-        ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                         db->GetMutableImpl());
-        for (int i = 0; i < attr_names.size(); ++i) {
-          RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
-                                                  aligned_values_impl[i]));
-        }
-        RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, impl_res.value(),
-                                        attr_names, schemas));
-        // Adopt into the databag only at the end to avoid garbage in the
-        // databag in case of error.
-        RETURN_IF_ERROR(AdoptValuesInto(values, *db));
-        return DataSlice::Create(
-            impl_res.value(), aligned_values.begin()->GetShape(),
-            internal::DataItem(schema::kObject), db);
-      });
+    std::optional<ImplT> impl_res;
+    if constexpr (std::is_same_v<internal::DataItem, ImplT>) {
+      impl_res =
+          internal::CreateUuidFromFields(seed, attr_names, aligned_values_impl);
+    } else {
+      ASSIGN_OR_RETURN(impl_res, internal::CreateUuidFromFields(
+                                     seed, attr_names, aligned_values_impl));
+    }
+    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                     db->GetMutableImpl());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      RETURN_IF_ERROR(db_mutable_impl.SetAttr(*impl_res, attr_names[i],
+                                              aligned_values_impl[i]));
+    }
+    RETURN_IF_ERROR(
+        SetObjectSchema(db_mutable_impl, *impl_res, attr_names, schemas));
+    // Adopt into the databag only at the end to avoid garbage in the
+    // databag in case of error.
+    RETURN_IF_ERROR(AdoptValuesInto(values, *db));
+    return DataSlice::Create(*std::move(impl_res),
+                             aligned_values.begin()->GetShape(),
+                             internal::DataItem(schema::kObject), db);
+  });
 }
 
 absl::StatusOr<DataSlice> CreateEntitySchema(

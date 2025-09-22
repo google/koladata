@@ -162,7 +162,7 @@ absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
   if (!returns.has_value()) {
     return absl::InternalError("no 'returns' after transformation");
   }
-  return CreateFunctor(returns.value(), signature, std::move(var_names),
+  return CreateFunctor(*returns, signature, std::move(var_names),
                        std::move(var_values));
 }
 

@@ -500,17 +500,17 @@ class DataSlice {
   // T.
   template <class T>
   const T& impl() const {
-    return std::get<T>(internal_->impl);
+    return *std::get_if<T>(&internal_->impl);
   }
 
   // Returns underlying implementation of DataSlice, if DataSliceImpl.
   const internal::DataSliceImpl& slice() const {
-    return std::get<internal::DataSliceImpl>(internal_->impl);
+    return *std::get_if<internal::DataSliceImpl>(&internal_->impl);
   }
 
   // Returns underlying implementation of DataSlice, if DataItem.
   const internal::DataItem& item() const {
-    return std::get<internal::DataItem>(internal_->impl);
+    return *std::get_if<internal::DataItem>(&internal_->impl);
   }
 
   // Returns true, if the underlying data is owned (DataItem holding a value or

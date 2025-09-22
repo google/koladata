@@ -152,8 +152,8 @@ class DataBagEqual {
 
   bool MatchAndExplain(const DataBagImpl& db, std::ostream* stream) const {
     using Triples = ::koladata::internal::debug::Triples;
-    Triples triples(db.ExtractContent().value());
-    Triples expected_triples(expected_db_.ExtractContent().value());
+    Triples triples(*db.ExtractContent());
+    Triples expected_triples(*expected_db_.ExtractContent());
     if (triples == expected_triples) {
       return true;
     } else {

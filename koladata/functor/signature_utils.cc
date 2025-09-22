@@ -238,7 +238,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
                           internal::DataItem(schema::kString)));
     DataSlice default_value;
     if (param.default_value.has_value()) {
-      default_value = param.default_value.value();
+      default_value = *param.default_value;
     } else {
       default_value = NoDefaultValueMarker();
     }

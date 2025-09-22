@@ -968,7 +968,7 @@ class RhsHandler {
         },
         lhs_schema.AsDataItemDenseArray(),
         attr_stored_schemas.AsDataItemDenseArray()));
-    return AttrSchemaMissingErrorStatus(first_missing_schema_item.value(),
+    return AttrSchemaMissingErrorStatus(*first_missing_schema_item,
                                         first_missing_schema_index);
   }
 

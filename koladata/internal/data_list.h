@@ -121,7 +121,7 @@ class DataList {
   void Set(int64_t index, DataItem item) {
     DCHECK(0 <= index && index < size_);
     if (std::holds_alternative<std::vector<DataItem>>(data_)) {
-      std::get<std::vector<DataItem>>(data_)[index] = std::move(item);
+      (*std::get_if<std::vector<DataItem>>(&data_))[index] = std::move(item);
     } else {
       item.VisitValue([&]<typename T>(const T&) {
         Set(index, std::move(item).MoveValue<T>());
@@ -176,7 +176,7 @@ class DataList {
   void Insert(int64_t index, DataItem item) {
     DCHECK(0 <= index && index <= size_);
     if (std::holds_alternative<std::vector<DataItem>>(data_)) {
-      std::vector<DataItem>& data = std::get<std::vector<DataItem>>(data_);
+      std::vector<DataItem>& data = *std::get_if<std::vector<DataItem>>(&data_);
       data.insert(data.begin() + index, std::move(item));
       size_ = data.size();
     } else {
@@ -221,7 +221,7 @@ class DataList {
         data_ = std::move(data);
         return;
       } else if (std::holds_alternative<std::vector<OptT>>(data_)) {
-        std::vector<OptT>& data = std::get<std::vector<OptT>>(data_);
+        std::vector<OptT>& data = *std::get_if<std::vector<OptT>>(&data_);
         fn(data);
         size_ = data.size();
         return;
@@ -230,7 +230,7 @@ class DataList {
     if (!std::holds_alternative<std::vector<DataItem>>(data_)) {
       ConvertToDataItems();
     }
-    std::vector<DataItem>& data = std::get<std::vector<DataItem>>(data_);
+    std::vector<DataItem>& data = *std::get_if<std::vector<DataItem>>(&data_);
     fn(data);
     size_ = data.size();
   }

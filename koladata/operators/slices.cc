@@ -136,7 +136,7 @@ class AlignOperator : public arolla::QExprOperator {
             const auto& input_slot = ds_input_slots[i];
             const DataSlice& input = frame.Get(input_slot);
             ASSIGN_OR_RETURN(DataSlice output,
-                             BroadcastToShape(input, largest_shape.value()));
+                             BroadcastToShape(input, *largest_shape));
             const auto& output_subslot =
                 output_slot.SubSlot(i).UnsafeToSlot<DataSlice>();
             frame.Set(output_subslot, std::move(output));
@@ -227,7 +227,7 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
       if (!impl.is_single_dtype()) {
         return true;
       }
-      if (result_dtype.has_value() && result_dtype.value() != impl.dtype()) {
+      if (result_dtype.has_value() && *result_dtype != impl.dtype()) {
         return true;
       }
       if (!result_dtype.has_value()) {
@@ -281,7 +281,7 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
           return absl::OkStatus();
         }));
     DCHECK(result.has_value());  // Always populated by callback.
-    return std::move(result).value();
+    return *std::move(result);
   }
 }
 
