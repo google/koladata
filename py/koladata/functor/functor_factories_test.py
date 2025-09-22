@@ -743,8 +743,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     f = functor_factories.bind(fn, return_type_as=example_tuple, x=2)
     testing.assert_equal(
-        f(return_type_as=example_tuple),
-        arolla.tuple(ds(2).with_bag(f.get_bag()), ds(2).with_bag(f.get_bag())),
+        f(return_type_as=example_tuple), arolla.tuple(ds(2), ds(2))
     )
     fn = functor_factories.py_fn(
         lambda x: fns.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda

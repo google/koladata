@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,6 +28,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/annotation_utils.h"
@@ -41,14 +43,17 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/repr.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/expr/expr_eval.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -342,6 +347,73 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
   return arolla::expr::TransformOnPostOrder(post_order, transform_node);
 }
 
+struct VariableProcessingFrame {
+  std::string variable_name;
+  std::vector<std::string> dependencies;
+  int64_t next_dependency_index = 0;
+};
+
+enum class VariableState {
+  kInStack,
+  kVisited,
+};
+
+// Returns the order in which the variables should be
+// evaluated through topological sorting.
+absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
+    const DataSlice& functor) {
+  // We implement depth-first search using our own stack to avoid recursion.
+  std::stack<VariableProcessingFrame> stack;
+  absl::flat_hash_map<std::string, VariableState> variable_state;
+
+  auto reach_variable = [&stack, &functor, &variable_state](
+                            absl::string_view variable_name) -> absl::Status {
+    auto [it, was_inserted] =
+        variable_state.emplace(variable_name, VariableState::kInStack);
+    if (!was_inserted) {
+      if (it->second == VariableState::kInStack) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "variable [%s] has a dependency cycle", variable_name));
+      }
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(auto variable, functor.GetAttr(variable_name));
+    // Note: koladata::functor::CreateFunctor validates that all variables
+    // are DataItems.
+    if (!variable.is_item()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "variable [%s] must be a data item, but has shape: %s", variable_name,
+          arolla::Repr(variable.GetShape())));
+    }
+    if (variable.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(auto expr,
+                       variable.item().value<arolla::expr::ExprQuote>().expr());
+      ASSIGN_OR_RETURN(auto dependencies, expr::GetExprVariables(expr));
+      stack.push({.variable_name = std::string(variable_name),
+                  .dependencies = std::move(dependencies)});
+    } else {
+      stack.push(
+          {.variable_name = std::string(variable_name), .dependencies = {}});
+    }
+    return absl::OkStatus();
+  };
+
+  RETURN_IF_ERROR(reach_variable(kReturnsAttrName));
+  std::vector<std::string> res;
+  while (!stack.empty()) {
+    auto& state = stack.top();
+    if (state.next_dependency_index >= state.dependencies.size()) {
+      variable_state[state.variable_name] = VariableState::kVisited;
+      res.push_back(state.variable_name);
+      stack.pop();
+      continue;
+    }
+    RETURN_IF_ERROR(
+        reach_variable(state.dependencies[state.next_dependency_index++]));
+  }
+  return res;
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> AutoVariables(
@@ -425,6 +497,55 @@ absl::StatusOr<DataSlice> AutoVariables(
   }
   return CreateFunctor(returns.mapped(), signature, std::move(var_names),
                        std::move(var_values));
+}
+
+absl::StatusOr<arolla::expr::ExprNodePtr> InlineAllVariables(
+    const DataSlice& functor) {
+  ASSIGN_OR_RETURN(auto eval_order, GetVariableEvaluationOrder(functor));
+  if (eval_order.empty() || eval_order.back() != kReturnsAttrName) {
+    return absl::InternalError(
+        "variable evaluation order does not end with returns");
+  }
+
+  ASSIGN_OR_RETURN(auto input_container, expr::InputContainer::Create("I"));
+  ASSIGN_OR_RETURN(auto db_ref, input_container.CreateInput(kSelfBagInput));
+
+  absl::flat_hash_map<std::string, arolla::expr::ExprNodePtr> vars;
+  vars.reserve(eval_order.size());
+  ASSIGN_OR_RETURN(auto var_container, expr::InputContainer::Create("V"));
+  for (const auto& variable_name : eval_order) {
+    ASSIGN_OR_RETURN(auto variable, functor.GetAttr(variable_name));
+    if (!variable.item().holds_value<arolla::expr::ExprQuote>()) {
+      arolla::expr::ExprNodePtr expr = arolla::expr::Literal(
+          arolla::TypedValue::FromValue(variable.WithBag(nullptr)));
+      if (!variable.item().has_value() ||
+          variable.item().holds_value<internal::ObjectId>()) {
+        ASSIGN_OR_RETURN(expr, arolla::expr::CallOp("kd.core.with_bag",
+                                                    {std::move(expr), db_ref}));
+      }
+      vars.emplace(variable_name, std::move(expr));
+      continue;
+    }
+    ASSIGN_OR_RETURN(auto expr,
+                     variable.item().value<arolla::expr::ExprQuote>().expr());
+    auto transform_expr = [&](arolla::expr::ExprNodePtr node)
+        -> absl::StatusOr<arolla::expr::ExprNodePtr> {
+      ASSIGN_OR_RETURN(std::optional<std::string> var_name,
+                       var_container.GetInputName(node));
+      if (!var_name.has_value()) {
+        return node;  // not a variable
+      }
+      auto it = vars.find(*var_name);
+      if (it == vars.end()) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("unknown variable: %s", *var_name));
+      }
+      return it->second;
+    };
+    ASSIGN_OR_RETURN(expr, arolla::expr::Transform(expr, transform_expr));
+    vars.emplace(variable_name, std::move(expr));
+  }
+  return vars[eval_order.back()];
 }
 
 }  // namespace koladata::functor

@@ -176,6 +176,15 @@ TEST(InputContainerTest, Container) {
           {MakeLiteral(arolla::TypedValue::FromValue(arolla::Text("V"))),
            MakeLiteral(arolla::TypedValue::FromValue(arolla::Text("a")))}));
   EXPECT_EQ(a->fingerprint(), expected_a->fingerprint());
+
+  // For historical reasons in some places we might get arolla literals rather
+  // than koladata::expr::LiteralOperator. Here we test that `GetInputName`
+  // doesn't fail in such cases.
+  ASSERT_OK_AND_ASSIGN(
+      auto c, arolla::expr::CallOp("koda_internal.input",
+                                   {arolla::expr::Literal(arolla::Text("V")),
+                                    arolla::expr::Literal(arolla::Text("c"))}));
+  EXPECT_THAT(container.GetInputName(c), IsOkAndHolds("c"));
 }
 
 }  // namespace

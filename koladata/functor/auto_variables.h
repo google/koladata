@@ -17,6 +17,8 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "arolla/expr/expr_node.h"
 #include "arolla/util/fingerprint.h"
 #include "koladata/data_slice.h"
 
@@ -96,6 +98,15 @@ namespace koladata::functor {
 absl::StatusOr<DataSlice> AutoVariables(
     const DataSlice& functor,
     absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract = {});
+
+constexpr absl::string_view kSelfBagInput = "__bag";
+
+// Makes the opposite to AutoVariables and inlines all variables of the functor
+// into a single expression.
+// In order to avoid circular ownership all references to the functor's data bag
+// are replaced with a special input `kSelfBagInput`.
+absl::StatusOr<arolla::expr::ExprNodePtr> InlineAllVariables(
+    const DataSlice& functor);
 
 }  // namespace koladata::functor
 

@@ -659,7 +659,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     transformed_fn = expr_eval.eval(
         koda_internal_parallel.transform(context, fn)
     )
-    with self.assertRaisesRegex(ValueError, 'inconsistent qtype'):
+    with self.assertRaisesRegex(ValueError, 'inconsistent annotation.qtype'):
       _ = transformed_fn(
           expr_eval.eval(koda_internal_parallel.get_eager_executor()),
           return_type_as=koda_internal_parallel.stream_make().eval(),

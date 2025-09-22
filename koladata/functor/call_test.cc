@@ -38,6 +38,7 @@
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
+#include "koladata/object_factories.h"
 #include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -202,8 +203,30 @@ TEST(CallTest, DataSliceVariable) {
   ASSERT_OK_AND_ASSIGN(auto result,
                        CallFunctorWithCompilationCache(fn, /*args=*/{},
                                                        /*kwnames=*/{}));
-  EXPECT_THAT(result.As<DataSlice>(),
-              IsOkAndHolds(IsEquivalentTo(var_a.WithBag(fn.GetBag()))));
+  EXPECT_THAT(result.As<DataSlice>(), IsOkAndHolds(IsEquivalentTo(var_a)));
+}
+
+TEST(CallTest, DataSliceObjectVariable) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto var_a, EntityCreator::FromAttrs(db, {"x"}, {test::DataItem(57)}));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(
+      auto returns_expr,
+      WrapExpr(arolla::expr::CallOp(
+          "kd.get_attr",
+          {CreateVariable("a"),
+           arolla::expr::Literal(test::DataItem(arolla::Text("x")))})));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, CreateFunctor(returns_expr, koda_signature, {"a"}, {var_a}));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       CallFunctorWithCompilationCache(fn, /*args=*/{},
+                                                       /*kwnames=*/{}));
+  EXPECT_THAT(
+      result.As<DataSlice>(),
+      IsOkAndHolds(IsEquivalentTo(test::DataItem(57).WithBag(fn.GetBag()))));
 }
 
 TEST(CallTest, EvalError) {

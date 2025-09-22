@@ -272,10 +272,12 @@ absl::StatusOr<arolla::expr::ExprNodePtr> InputContainer::CreateInput(
 absl::StatusOr<std::optional<std::string>> InputContainer::GetInputName(
     const arolla::expr::ExprNodePtr& node) const {
   if (!IsInput(node)) return std::nullopt;
-  if (node->node_deps().size() != 2) {
+  if (node->node_deps().size() != 2 ||
+      !node->node_deps()[0]->qvalue().has_value()) {
     return absl::FailedPreconditionError("invalid koda_internal.input node");
   }
-  if (node->node_deps()[0]->fingerprint() != cont_name_->fingerprint()) {
+  if (node->node_deps()[0]->qvalue()->GetFingerprint() !=
+      cont_name_->qvalue()->GetFingerprint()) {
     return std::nullopt;
   }
   const std::optional<arolla::TypedValue>& val = node->node_deps()[1]->qvalue();
