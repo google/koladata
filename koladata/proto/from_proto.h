@@ -111,8 +111,6 @@ absl::StatusOr<DataSlice> FromProto(
 // The DataBag `db` must be mutable, and the converted schema is added to it.
 // The result DataSlice will use `db` as its DataBag. If this method returns a
 // non-OK status, the contents of `db` are unspecified.
-//
-// TODO: Add a way to filter fields by name.
 absl::StatusOr<DataSlice> SchemaFromProto(
     const absl_nonnull DataBagPtr& db,
     const ::google::protobuf::Descriptor* absl_nonnull descriptor,
