@@ -70,7 +70,6 @@
 namespace koladata::ops {
 namespace {
 
-// TODO: Move to pointwise utils.
 template <typename Fn>
 absl::Status ForEachDataItem(const DataSlice& slice, Fn fn) {
   if (slice.GetShape().rank() != 1) {
@@ -89,7 +88,6 @@ absl::Status ForEachDataItem(const DataSlice& slice, Fn fn) {
   return absl::OkStatus();
 }
 
-// TODO: Move to pointwise utils.
 template <typename Fn>
 absl::Status ZipCallForEachDataItem(absl::Span<const DataSlice> slices, Fn fn) {
   if (slices.empty()) {
@@ -757,7 +755,6 @@ class JsonSaxParser final : public nlohmann::json::json_sax_t {
   const std::optional<absl::string_view> keys_attr_;
   const std::optional<absl::string_view> values_attr_;
   const internal::DataItem default_number_schema_impl_;
-  // TODO: Try using std::deque for performance.
   std::vector<StackFrame> stack_;
 };
 
@@ -832,9 +829,6 @@ absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
       [&](absl::string_view value) -> absl::StatusOr<internal::DataItem> {
     JsonSaxParser parser(bag, schema.item(), default_number_schema.item(),
                          keys_attr_value, values_attr_value);
-    // TODO: Support strict=false (i.e. recovering from
-    // truncated JSON input). Also maybe set ignore_comments if
-    // strict=false, although this is maybe too nlohmann-specific.
     nlohmann::json::sax_parse(value, &parser,
                               nlohmann::json::input_format_t::json,
                               /*strict=*/true, /*ignore_comments=*/false);

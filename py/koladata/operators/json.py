@@ -25,7 +25,6 @@ from koladata.types import schema_constants
 P = arolla.P
 
 
-# TODO: Possibly add itemid argument to match from_proto.
 @optools.add_to_registry(aliases=['kd.from_json'])
 @optools.as_backend_operator(
     'kd.json.from_json',
