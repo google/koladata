@@ -103,6 +103,29 @@ updated_p_value = p_value.with_attrs(x=6.0)
 print(updated_p_value.x) # Output: 6.0
 ```
 
+The `_extension_post_init` method can be used to implement custom initialization
+behavior in case the automatic implicit casting based on annotations is not
+enough. If defined, it will be called as the final step upon initialization:
+
+```python
+@kd.extension_type()
+class PositivePoint:
+  x: kd.FLOAT32
+  y: kd.FLOAT32
+
+  def _extension_post_init(self):
+    return kd.assertion.with_assertion(
+        self, (self.x > 0) & (self.y > 0), 'x and y must be positive'
+    )
+
+PositivePoint(1.0, 2.0)  # Works.
+PositivePoint(-1.0, 2.0)  # Raises with message 'x and y must be positive'.
+```
+
+The `_extension_post_init` method should take no arguments except for `self` and
+should return (the potentially modified)`self`. As with other methods, it's
+required to be traceable in order to function in a tracing context.
+
 ## Tracing
 
 Extension types are fully traceable, which allows them to be used directly as

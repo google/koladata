@@ -1170,6 +1170,103 @@ class ExtensionTypesTest(parameterized.TestCase):
 ), schema: OBJECT)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
       self.assertEqual(repr(A(I.x, I.y)), expected_repr)
 
+  def test_post_init(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      def _extension_post_init(self):
+        if isinstance(self, arolla.Expr):
+          return kde.assertion.with_assertion(
+              self, self.x > 0, 'x must be positive'
+          )
+        else:
+          if self.x <= 0:
+            raise ValueError('x must be positive')
+          return self
+
+    with self.subTest('eager'):
+      testing.assert_equal(A(2).x, ds(2))
+      with self.assertRaisesRegex(ValueError, 'x must be positive'):
+        _ = A(0)
+      # with_attrs does not call the post init method.
+      testing.assert_equal(A(2).with_attrs(x=0).x, ds(0))
+
+    with self.subTest('lazy'):
+      testing.assert_equal(A(I.x).eval(x=2).x, ds(2))
+      with self.assertRaisesRegex(ValueError, 'x must be positive'):
+        _ = A(I.x).eval(x=0)
+      # with_attrs does not call the post init method.
+      testing.assert_equal(A(I.x).with_attrs(x=0).eval(x=2).x, ds(0))
+
+  def test_post_init_no_return(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      def _extension_post_init(self):
+        if isinstance(self, arolla.Expr):
+          kde.assertion.with_assertion(self, self.x > 0, 'x must be positive')
+        else:
+          if self.x <= 0:
+            raise ValueError('x must be positive')
+
+    with self.subTest('eager'):
+      with self.assertRaisesRegex(
+          ValueError, '_extension_post_init must return an instance'
+      ):
+        _ = A(2)
+
+    with self.subTest('lazy'):
+      with self.assertRaisesRegex(
+          ValueError, '_extension_post_init must return an instance'
+      ):
+        _ = A(I.x)
+
+  def test_post_init_virtual(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      @ext_types.virtual()
+      def _extension_post_init(self) -> Self:
+        if isinstance(self, arolla.Expr):
+          return kde.assertion.with_assertion(self, None, 'not implemented')
+        else:
+          raise ValueError('not implemented')
+
+    @ext_types.extension_type()
+    class B(A):
+
+      @ext_types.override()
+      def _extension_post_init(self) -> Self:
+        if isinstance(self, arolla.Expr):
+          return kde.assertion.with_assertion(
+              self, self.x > 0, 'x must be positive'
+          )
+        else:
+          if self.x <= 0:
+            raise ValueError('x must be positive')
+          return self
+
+    with self.subTest('eager_a'):
+      with self.assertRaisesRegex(ValueError, 'not implemented'):
+        _ = A(2)
+
+    with self.subTest('lazy_a'):
+      with self.assertRaisesRegex(ValueError, 'not implemented'):
+        _ = A(2)
+
+    with self.subTest('eager_b'):
+      testing.assert_equal(B(2).x, ds(2))
+      with self.assertRaisesRegex(ValueError, 'x must be positive'):
+        _ = B(0)
+
+    with self.subTest('lazy_b'):
+      testing.assert_equal(B(I.x).eval(x=2).x, ds(2))
+      with self.assertRaisesRegex(ValueError, 'x must be positive'):
+        _ = B(I.x).eval(x=0)
+
 
 if __name__ == '__main__':
   absltest.main()

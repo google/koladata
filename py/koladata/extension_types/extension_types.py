@@ -448,25 +448,34 @@ def _make_dispatch_fn(
 ) -> Callable[..., arolla.AnyQValue | arolla.Expr]:
   """Constructs a <QValue, ExprView>-dispatching function."""
 
+  all_methods = set(class_meta.non_virtual_methods) | set(
+      class_meta.virtual_methods
+  )
+
   def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
     bound_args = class_meta.signature.bind(*args, **kwargs)
     bound_args.apply_defaults()
     field_values = bound_args.arguments
 
     if arolla.Expr in (type(v) for v in field_values.values()):
-      return _make_extension_expr(
+      value = _make_extension_expr(
           field_values,
           class_meta.field_annotations,
           extension_qtype,
           functors_obj,
       )
     else:
-      return _make_extension_qvalue(
+      value = _make_extension_qvalue(
           field_values,
           class_meta.field_annotations,
           extension_qtype,
           functors_obj,
       )
+    if '_extension_post_init' in all_methods:
+      value = value._extension_post_init()  # pylint: disable=protected-access
+      if value is None:
+        raise ValueError('_extension_post_init must return an instance')
+    return value
 
   cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
   dispatching_new.__signature__ = class_meta.signature.replace(
@@ -512,6 +521,12 @@ def extension_type(
     used as an annotation.
   - The `with_attrs` method is automatically added, allowing for attributes to
     be dynamically updated.
+  - If the class implements the `_extension_post_init(self)` method, it will be
+    called as the final step of instantiating the extension through
+    `MyExtension(...)`. The method should take `self`, do the necessary post
+    processing, and then return the (potentially modified) `self`. As with other
+    methods, it's required to be traceable in order to function in a tracing
+    context.
 
   Example:
     @extension_type()

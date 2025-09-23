@@ -2009,6 +2009,12 @@ Aliases:
     used as an annotation.
   - The `with_attrs` method is automatically added, allowing for attributes to
     be dynamically updated.
+  - If the class implements the `_extension_post_init(self)` method, it will be
+    called as the final step of instantiating the extension through
+    `MyExtension(...)`. The method should take `self`, do the necessary post
+    processing, and then return the (potentially modified) `self`. As with other
+    methods, it&#39;s required to be traceable in order to function in a tracing
+    context.
 
   Example:
     @extension_type()
