@@ -23,6 +23,8 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/internal/data_bag.h"
@@ -44,7 +46,7 @@ using DTypeLattice = std::array<std::array<bool, kNextDTypeId>, kNextDTypeId>;
 //
 // Each "row" in the lattice matrix represents a DType, and each "column"
 // represents a directly adjacent greater DType.
-constexpr DTypeLattice GetDTypeLattice() {
+consteval DTypeLattice GetDTypeLattice() {
   DTypeLattice lattice = {};
   constexpr auto fill_row = [&](std::initializer_list<DType> adjacent_dtypes) {
     std::array<bool, kNextDTypeId> row = {};
@@ -71,7 +73,7 @@ constexpr DTypeLattice GetDTypeLattice() {
 }
 
 // Returns a matrix where m[i][j] is true iff j is reachable from i.
-constexpr DTypeLattice GetReachableDTypes() {
+consteval DTypeLattice GetReachableDTypes() {
   // Initialize the adjacency matrix.
   schema_internal::DTypeLattice reachable_dtypes =
       schema_internal::GetDTypeLattice();
@@ -92,6 +94,9 @@ constexpr DTypeLattice GetReachableDTypes() {
   return reachable_dtypes;
 }
 
+constexpr auto kReachableDTypes = schema_internal::GetReachableDTypes();
+
+
 // A helper class to aggregate seen dtypes and return the common dtype.
 class CommonDTypeAggregator {
  public:
@@ -107,7 +112,66 @@ class CommonDTypeAggregator {
   Mask seen_dtypes_ = 0;
 };
 
+constexpr DTypeId kUnknownDType = -1;
+
+using MatrixImpl = std::array<std::array<DTypeId, kNextDTypeId>, kNextDTypeId>;
+
+// Computes the common dtype matrix.
+//
+// Represented as a 2-dim array of size kNextDTypeId x kNextDTypeId, where the
+// value at index [i, j] is the common dtype of dtype i and dtype j. If
+// no such dtype exists, the value is kUnknownDType.
+//
+// See http://shortn/_icYRr51SOr for a proof of correctness.
+consteval MatrixImpl GetMatrixImpl() {
+  constexpr auto get_common_dtype = [](DTypeId a, DTypeId b) {
+    // Compute the common upper bound.
+    std::array<bool, kNextDTypeId> cub = kReachableDTypes[a];
+    bool has_common_upper_bound = false;
+    for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+      cub[i] &= kReachableDTypes[b][i];
+      has_common_upper_bound = has_common_upper_bound || cub[i];
+    }
+    if (!has_common_upper_bound) {
+      return kUnknownDType;
+    }
+    // Find the unique least upper bound of the common upper bounds. This is
+    // the DType in `cub` where all common upper bounds are reachable from
+    // it.
+    for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+      if (cub[i] && cub == kReachableDTypes[i]) {
+        return i;
+      }
+    }
+    LOG(FATAL) << DType::UnsafeFromId(static_cast<DTypeId>(a)) << " and "
+               << DType::UnsafeFromId(static_cast<DTypeId>(b))
+               << " do not have a unique upper bound DType "
+                  "- the DType lattice is malformed";
+  };
+  MatrixImpl matrix;
+  for (DTypeId i = 0; i < kNextDTypeId; ++i) {
+    for (DTypeId j = 0; j < kNextDTypeId; ++j) {
+      matrix[i][j] = get_common_dtype(i, j);
+    }
+  }
+  return matrix;
+}
+
+constexpr MatrixImpl kMatrixImpl = GetMatrixImpl();
+
 }  // namespace schema_internal
+
+// Returns the common dtype of `a` and `b`.
+//
+// Requires the inputs to be in [0, kNextDTypeId). Returns kUnknownDType if no
+// common dtype exists.
+constexpr DTypeId CommonDType(DTypeId a, DTypeId b) {
+  DCHECK_GE(a, 0);
+  DCHECK_LT(a, kNextDTypeId);
+  DCHECK_GE(b, 0);
+  DCHECK_LT(b, kNextDTypeId);
+  return schema_internal::kMatrixImpl[a][b];
+}
 
 // Finds the supremum schema of all seen schemas according to the type promotion
 // lattice defined in go/koda-type-promotion.

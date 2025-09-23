@@ -16,7 +16,6 @@
 #define KOLADATA_OPERATORS_BINARY_OP_H_
 
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -50,20 +49,16 @@ namespace koladata::ops {
 
 namespace binary_op_impl {
 
-template <class From, class To>
-struct IsCastable
-    : std::bool_constant<
-          schema::schema_internal::GetReachableDTypes()
-              [schema::GetDTypeId<From>()][schema::GetDTypeId<To>()]> {};
+template <class T1, class T2>
+struct CommonType : schema::DTypeIdToType<schema::CommonDType(
+    schema::GetDTypeId<T1>(), schema::GetDTypeId<T2>())> {};
 
 // Some operators are attempting to find common type for string_view pair.
-template <class From>
-struct IsCastable<From, From> : std::true_type {};
+template <class T>
+struct CommonType<T, T> : std::type_identity<T> {};
 
 template <class T1, class T2>
-using common_type_t =
-    std::conditional_t<IsCastable<T1, T2>::value, T2,
-                       std::conditional_t<IsCastable<T2, T1>::value, T1, void>>;
+using common_type_t = CommonType<T1, T2>::type;
 
 // `CastingAdapter<Fn>{}(T1, T2)` calls either `Fn{}(T1, T2)` (if such overload
 // exists) or `Fn{}(common_type_t<T1, T2>, common_type_t<T1, T2>)` otherwise.
@@ -79,7 +74,6 @@ using common_type_t =
 // with the same view_type_t. Currently the only such case is arolla::Bytes and
 // arolla::Text which both have view type absl::string_view.
 //
-// TODO: try to reuse GetDTypeLattice.
 template <class Fn>
 struct CastingAdapter {
   template <class T1, class T2>

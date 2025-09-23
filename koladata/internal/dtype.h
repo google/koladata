@@ -110,6 +110,30 @@ static constexpr DTypeId GetDTypeId() {
   }
 }
 
+// Meta function to map DTypeId to the corresponding type.
+template <int TypeId>
+struct DTypeIdToType {};
+
+#define DECLARE_DTYPE_ID_TO_TYPE(TYPE) \
+  template <>                          \
+  struct DTypeIdToType<GetDTypeId<TYPE>()> : std::type_identity<TYPE> {};
+
+DECLARE_DTYPE_ID_TO_TYPE(int64_t);
+DECLARE_DTYPE_ID_TO_TYPE(int32_t);
+DECLARE_DTYPE_ID_TO_TYPE(float);
+DECLARE_DTYPE_ID_TO_TYPE(double);
+DECLARE_DTYPE_ID_TO_TYPE(bool);
+DECLARE_DTYPE_ID_TO_TYPE(arolla::Unit);
+DECLARE_DTYPE_ID_TO_TYPE(arolla::Bytes);
+DECLARE_DTYPE_ID_TO_TYPE(arolla::Text);
+DECLARE_DTYPE_ID_TO_TYPE(arolla::expr::ExprQuote);
+DECLARE_DTYPE_ID_TO_TYPE(ItemIdDType);
+DECLARE_DTYPE_ID_TO_TYPE(ObjectDType);
+DECLARE_DTYPE_ID_TO_TYPE(SchemaDType);
+DECLARE_DTYPE_ID_TO_TYPE(internal::MissingValue);
+
+#undef DECLARE_DTYPE_ID_TO_TYPE
+
 // Maximal possible int value DType can be initialized with (exclusive).
 inline constexpr int8_t kNextDTypeId = 14;
 

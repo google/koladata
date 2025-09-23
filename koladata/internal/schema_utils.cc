@@ -46,76 +46,6 @@
 
 namespace koladata::schema {
 
-namespace {
-
-constexpr DTypeId kUnknownDType = -1;
-
-// Matrix representation of the DTypeLattice.
-class DTypeMatrix {
-  using MatrixImpl =
-      std::array<std::array<DTypeId, kNextDTypeId>, kNextDTypeId>;
-
- public:
-  // Returns the common dtype of `a` and `b`.
-  //
-  // Requires the inputs to be in [0, kNextDTypeId). Returns kUnknownDType if no
-  // common dtype exists.
-  static DTypeId CommonDType(DTypeId a, DTypeId b) {
-    DCHECK_GE(a, 0);
-    DCHECK_LT(a, kNextDTypeId);
-    const auto& dtype_matrix = GetMatrixImpl();
-    return dtype_matrix[a][b];
-  }
-
- private:
-  // Computes the common dtype matrix.
-  //
-  // Represented as a 2-dim array of size kNextDTypeId x kNextDTypeId, where the
-  // value at index [i, j] is the common dtype of dtype i and dtype j. If
-  // no such dtype exists, the value is kUnknownDType.
-  //
-  // See http://shortn/_icYRr51SOr for a proof of correctness.
-  static const MatrixImpl& GetMatrixImpl() {
-    static const MatrixImpl matrix = [] {
-      constexpr auto reachable_dtypes = schema_internal::GetReachableDTypes();
-      auto get_common_dtype = [&reachable_dtypes](DTypeId a, DTypeId b) {
-        // Compute the common upper bound.
-        std::array<bool, kNextDTypeId> cub = reachable_dtypes[a];
-        size_t cub_count = 0;
-        for (DTypeId i = 0; i < kNextDTypeId; ++i) {
-          cub[i] &= reachable_dtypes[b][i];
-          cub_count += cub[i];
-        }
-        if (cub_count == 0) {
-          return kUnknownDType;
-        }
-        // Find the unique least upper bound of the common upper bounds. This is
-        // the DType in `cub` where all common upper bounds are reachable from
-        // it.
-        for (DTypeId i = 0; i < kNextDTypeId; ++i) {
-          if (cub[i] && cub == reachable_dtypes[i]) {
-            return i;
-          }
-        }
-        LOG(FATAL) << DType::UnsafeFromId(static_cast<DTypeId>(a)) << " and "
-                   << DType::UnsafeFromId(static_cast<DTypeId>(b))
-                   << " do not have a unique upper bound DType "
-                      "- the DType lattice is malformed";
-      };
-      MatrixImpl matrix;
-      for (DTypeId i = 0; i < kNextDTypeId; ++i) {
-        for (DTypeId j = 0; j < kNextDTypeId; ++j) {
-          matrix[i][j] = get_common_dtype(i, j);
-        }
-      }
-      return matrix;
-    }();
-    return matrix;
-  }
-};
-
-}  // namespace
-
 std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
     absl::Status& status) const {
   if (seen_dtypes_ == 0) {
@@ -129,7 +59,7 @@ std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
       return DType::UnsafeFromId(res_dtype_id);
     }
     DTypeId i = absl::countr_zero(mask);
-    DTypeId common_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
+    DTypeId common_dtype_id = CommonDType(res_dtype_id, i);
     if (ABSL_PREDICT_FALSE(common_dtype_id == kUnknownDType)) {
       status = arolla::WithPayload(
           absl::InvalidArgumentError("no common schema"),
@@ -228,8 +158,8 @@ bool IsImplicitlyCastableTo(const internal::DataItem& from_schema,
                             const internal::DataItem& to_schema) {
   DCHECK(from_schema.is_schema() && to_schema.is_schema());
   if (from_schema.holds_value<DType>() && to_schema.holds_value<DType>()) {
-    return DTypeMatrix::CommonDType(from_schema.value<DType>().type_id(),
-                                    to_schema.value<DType>().type_id()) ==
+    return CommonDType(from_schema.value<DType>().type_id(),
+                       to_schema.value<DType>().type_id()) ==
            to_schema.value<DType>().type_id();
   }
   if (from_schema.holds_value<internal::ObjectId>() &&

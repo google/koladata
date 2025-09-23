@@ -113,6 +113,14 @@ TEST(DType, TypesCoverage) {
       });
 }
 
+TEST(DType, DType2TypeMapping) {
+  constexpr auto verify = []<class T>(arolla::meta::type<T>) {
+    constexpr auto id = GetDTypeId<T>();
+    EXPECT_EQ(GetDTypeId<typename DTypeIdToType<id>::type>(), id);
+  };
+  arolla::meta::foreach_type(supported_dtype_values(), verify);
+}
+
 TEST(DType, DefaultDType) {
   EXPECT_EQ(DType(), kNone);
 }

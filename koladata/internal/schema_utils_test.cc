@@ -152,6 +152,12 @@ TEST_P(CommonDTypeBinaryTest, CommonDTypeBinary) {
   // DataItem inputs.
   EXPECT_THAT(CommonSchema(DataItem(lhs), DataItem(rhs)),
               IsOkAndHolds(DataItem(GetParam().expected_dtype)));
+  DTypeId common_dtype_id = CommonDType(lhs.type_id(), rhs.type_id());
+  if (GetParam().expected_dtype.has_value()) {
+    EXPECT_EQ(common_dtype_id, GetParam().expected_dtype->type_id());
+  } else {
+    EXPECT_EQ(common_dtype_id, schema_internal::kUnknownDType);
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(
