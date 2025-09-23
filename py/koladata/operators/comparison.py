@@ -14,21 +14,21 @@
 
 """Comparison DataSlice operators."""
 
-from arolla import arolla
-from koladata.operators import masking
-from koladata.operators import op_repr
-from koladata.operators import optools
-from koladata.operators import qtype_utils
+from arolla import arolla as _arolla
+from koladata.operators import masking as _masking
+from koladata.operators import op_repr as _op_repr
+from koladata.operators import optools as _optools
+from koladata.operators import qtype_utils as _qtype_utils
 
-P = arolla.P
+_P = _arolla.P
 
 
-@optools.add_to_registry(aliases=['kd.equal'], repr_fn=op_repr.equal_repr)
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.equal'], repr_fn=_op_repr.equal_repr)
+@_optools.as_backend_operator(
     'kd.comparison.equal',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def equal(x, y):  # pylint: disable=unused-argument
@@ -45,12 +45,12 @@ def equal(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.full_equal'])
-@optools.as_lambda_operator(
+@_optools.add_to_registry(aliases=['kd.full_equal'])
+@_optools.as_lambda_operator(
     'kd.comparison.full_equal',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def full_equal(x, y):  # pylint: disable=unused-argument
@@ -68,18 +68,18 @@ def full_equal(x, y):  # pylint: disable=unused-argument
     x: DataSlice.
     y: DataSlice.
   """
-  return masking.all_((x == y) | (masking.has_not(x) & masking.has_not(y)))
+  return _masking.all_((x == y) | (_masking.has_not(x) & _masking.has_not(y)))
 
 
-@optools.add_to_registry(
+@_optools.add_to_registry(
     aliases=['kd.not_equal'],
-    repr_fn=op_repr.not_equal_repr,
+    repr_fn=_op_repr.not_equal_repr,
 )
-@optools.as_lambda_operator(
+@_optools.as_lambda_operator(
     'kd.comparison.not_equal',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def not_equal(x, y):
@@ -93,18 +93,18 @@ def not_equal(x, y):
     x: DataSlice.
     y: DataSlice.
   """
-  return ~(x == y) & (masking.has(x) & masking.has(y))
+  return ~(x == y) & (_masking.has(x) & _masking.has(y))
 
 
-@optools.add_to_registry(
+@_optools.add_to_registry(
     aliases=['kd.greater'],
-    repr_fn=op_repr.greater_repr,
+    repr_fn=_op_repr.greater_repr,
 )
-@optools.as_backend_operator(
+@_optools.as_backend_operator(
     'kd.comparison.greater',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def greater(x, y):  # pylint: disable=unused-argument
@@ -121,12 +121,12 @@ def greater(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.less'], repr_fn=op_repr.less_repr)
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.less'], repr_fn=_op_repr.less_repr)
+@_optools.as_backend_operator(
     'kd.comparison.less',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def less(x, y):  # pylint: disable=unused-argument
@@ -143,15 +143,15 @@ def less(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
+@_optools.add_to_registry(
     aliases=['kd.greater_equal'],
-    repr_fn=op_repr.greater_equal_repr,
+    repr_fn=_op_repr.greater_equal_repr,
 )
-@optools.as_backend_operator(
+@_optools.as_backend_operator(
     'kd.comparison.greater_equal',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def greater_equal(x, y):  # pylint: disable=unused-argument
@@ -168,15 +168,15 @@ def greater_equal(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(
+@_optools.add_to_registry(
     aliases=['kd.less_equal'],
-    repr_fn=op_repr.less_equal_repr,
+    repr_fn=_op_repr.less_equal_repr,
 )
-@optools.as_backend_operator(
+@_optools.as_backend_operator(
     'kd.comparison.less_equal',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.y),
+        _qtype_utils.expect_data_slice(_P.x),
+        _qtype_utils.expect_data_slice(_P.y),
     ],
 )
 def less_equal(x, y):  # pylint: disable=unused-argument

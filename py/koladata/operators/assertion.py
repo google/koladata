@@ -14,50 +14,50 @@
 
 """Assertion Koda operators."""
 
-from arolla import arolla
-from koladata.operators import arolla_bridge
-from koladata.operators import optools
-from koladata.operators import qtype_utils
-from koladata.types import qtypes
+from arolla import arolla as _arolla
+from koladata.operators import arolla_bridge as _arolla_bridge
+from koladata.operators import optools as _optools
+from koladata.operators import qtype_utils as _qtype_utils
+from koladata.types import qtypes as _qtypes
 
 
-P = arolla.P
-M = arolla.M
-constraints = arolla.optools.constraints
+_P = _arolla.P
+_M = _arolla.M
+_constraints = _arolla.optools.constraints
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
+@_optools.add_to_registry()
+@_optools.as_backend_operator(
     'kd.assertion._with_assertion',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.condition),
-        qtype_utils.expect_data_slice(P.message_or_fn),
+        _qtype_utils.expect_data_slice(_P.condition),
+        _qtype_utils.expect_data_slice(_P.message_or_fn),
     ],
-    qtype_inference_expr=P.x,
+    qtype_inference_expr=_P.x,
 )
 def _with_assertion(x, condition, message_or_fn, args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
-@optools.as_lambda_operator(
+@_optools.add_to_registry()
+@_optools.as_lambda_operator(
     'kd.assertion.with_assertion',
     qtype_constraints=[
         (
-            (P.condition == arolla.UNIT)
-            | (P.condition == arolla.OPTIONAL_UNIT)
-            | (P.condition == qtypes.DATA_SLICE),
+            (_P.condition == _arolla.UNIT)
+            | (_P.condition == _arolla.OPTIONAL_UNIT)
+            | (_P.condition == _qtypes.DATA_SLICE),
             (
                 'expected a unit scalar, unit optional, or a DataSlice, got'
-                f' {constraints.name_type_msg(P.condition)}'
+                f' {_constraints.name_type_msg(_P.condition)}'
             ),
         ),
         (
-            (P.message_or_fn == arolla.TEXT)
-            | (P.message_or_fn == qtypes.DATA_SLICE),
+            (_P.message_or_fn == _arolla.TEXT)
+            | (_P.message_or_fn == _qtypes.DATA_SLICE),
             (
                 'expected TEXT or DATA_SLICE, got'
-                f' {constraints.name_type_msg(P.message_or_fn)}'
+                f' {_constraints.name_type_msg(_P.message_or_fn)}'
             ),
         ),
     ],
@@ -95,23 +95,23 @@ def with_assertion(x, condition, message_or_fn, *args):
       a functor producing such an error message.
     *args: Auxiliary data to be passed to the `message_or_fn` functor.
   """
-  args = arolla.optools.fix_trace_args(args)
+  args = _arolla.optools.fix_trace_args(args)
   # Note: consider optimizing the x == UNIT case.
   return _with_assertion(
       x,
-      arolla_bridge.to_data_slice(condition),
-      arolla_bridge.to_data_slice(message_or_fn),
+      _arolla_bridge.to_data_slice(condition),
+      _arolla_bridge.to_data_slice(message_or_fn),
       args,
   )
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
+@_optools.add_to_registry()
+@_optools.as_backend_operator(
     'kd.assertion.assert_primitive',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.arg_name),
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.primitive_schema),
+        _qtype_utils.expect_data_slice(_P.arg_name),
+        _qtype_utils.expect_data_slice(_P.ds),
+        _qtype_utils.expect_data_slice(_P.primitive_schema),
     ],
 )
 def assert_primitive(arg_name, ds, primitive_schema):  # pylint: disable=unused-argument
@@ -143,13 +143,13 @@ def assert_primitive(arg_name, ds, primitive_schema):  # pylint: disable=unused-
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
+@_optools.add_to_registry()
+@_optools.as_backend_operator(
     'kd.assertion.assert_present_scalar',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.arg_name),
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.primitive_schema),
+        _qtype_utils.expect_data_slice(_P.arg_name),
+        _qtype_utils.expect_data_slice(_P.ds),
+        _qtype_utils.expect_data_slice(_P.primitive_schema),
     ],
 )
 def assert_present_scalar(arg_name, ds, primitive_schema):  # pylint: disable=unused-argument

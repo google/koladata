@@ -14,25 +14,25 @@
 
 """DataSlice operators working with DataBags."""
 
-from arolla import arolla
-from arolla.jagged_shape import jagged_shape
-from koladata.operators import optools
-from koladata.operators import qtype_utils
+from arolla import arolla as _arolla
+from arolla.jagged_shape import jagged_shape as _jagged_shape
+from koladata.operators import optools as _optools
+from koladata.operators import qtype_utils as _qtype_utils
 from koladata.operators import view_overloads as _
-from koladata.types import py_boxing
-from koladata.types import qtypes
-from koladata.types import schema_constants
+from koladata.types import py_boxing as _py_boxing
+from koladata.types import qtypes as _qtypes
+from koladata.types import schema_constants as _schema_constants
 
-M = arolla.M | jagged_shape.M
-P = arolla.P
-MASK = schema_constants.MASK
-constraints = arolla.optools.constraints
+_M = _arolla.M | _jagged_shape.M
+_P = _arolla.P
+_MASK = _schema_constants.MASK
+_constraints = _arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kd.bag'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.bag'])
+@_optools.as_backend_operator(
     'kd.bags.new',
-    qtype_inference_expr=qtypes.DATA_BAG,
+    qtype_inference_expr=_qtypes.DATA_BAG,
     deterministic=False,
 )
 def _bag():
@@ -40,25 +40,25 @@ def _bag():
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.is_null_bag'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.is_null_bag'])
+@_optools.as_backend_operator(
     'kd.bags.is_null_bag',
-    qtype_constraints=[qtype_utils.expect_data_bag(P.bag)],
-    qtype_inference_expr=qtypes.DATA_SLICE,
+    qtype_constraints=[_qtype_utils.expect_data_bag(_P.bag)],
+    qtype_inference_expr=_qtypes.DATA_SLICE,
 )
 def is_null_bag(bag):  # pylint: disable=unused-argument
   """Returns `present` if DataBag `bag` is a NullDataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.enriched_bag'])
-@arolla.optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.enriched_bag'])
+@_arolla.optools.as_backend_operator(
     'kd.bags.enriched',
     qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.bags),
+        _qtype_utils.expect_data_bag_args(_P.bags),
     ],
-    qtype_inference_expr=qtypes.DATA_BAG,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    qtype_inference_expr=_qtypes.DATA_BAG,
+    experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
 )
 def enriched_bag(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag enriched by `bags`.
@@ -80,14 +80,14 @@ def enriched_bag(*bags):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.updated_bag'])
-@arolla.optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.updated_bag'])
+@_arolla.optools.as_backend_operator(
     'kd.bags.updated',
     qtype_constraints=[
-        qtype_utils.expect_data_bag_args(P.bags),
+        _qtype_utils.expect_data_bag_args(_P.bags),
     ],
-    qtype_inference_expr=qtypes.DATA_BAG,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    qtype_inference_expr=_qtypes.DATA_BAG,
+    experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
 )
 def updated_bag(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag updated by `bags`.

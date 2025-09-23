@@ -14,20 +14,20 @@
 
 """Koda operators that allocate new ItemIds."""
 
-from arolla import arolla
-from koladata.operators import jagged_shape
-from koladata.operators import optools
-from koladata.operators import qtype_utils
+from arolla import arolla as _arolla
+from koladata.operators import jagged_shape as _jagged_shape
+from koladata.operators import optools as _optools
+from koladata.operators import qtype_utils as _qtype_utils
 
 
-P = arolla.P
+_P = _arolla.P
 
 
-@optools.add_to_registry(aliases=['kd.new_itemid_shaped'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_itemid_shaped'])
+@_optools.as_backend_operator(
     'kd.allocation.new_itemid_shaped',
     qtype_constraints=[
-        qtype_utils.expect_jagged_shape(P.shape),
+        _qtype_utils.expect_jagged_shape(_P.shape),
     ],
     deterministic=False,
 )
@@ -36,18 +36,18 @@ def new_itemid_shaped(shape):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_itemid'])
-@optools.as_lambda_operator('kd.allocation.new_itemid')
+@_optools.add_to_registry(aliases=['kd.new_itemid'])
+@_optools.as_lambda_operator('kd.allocation.new_itemid')
 def new_itemid():
   """Allocates new ItemId."""
-  return new_itemid_shaped(jagged_shape.new())
+  return new_itemid_shaped(_jagged_shape.new())
 
 
-@optools.add_to_registry(aliases=['kd.new_itemid_like'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_itemid_like'])
+@_optools.as_backend_operator(
     'kd.allocation.new_itemid_like',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        _qtype_utils.expect_data_slice(_P.shape_and_mask_from),
     ],
     deterministic=False,
 )
@@ -56,18 +56,18 @@ def new_itemid_like(shape_and_mask_from):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_itemid_shaped_as'])
-@optools.as_lambda_operator('kd.allocation.new_itemid_shaped_as')
+@_optools.add_to_registry(aliases=['kd.new_itemid_shaped_as'])
+@_optools.as_lambda_operator('kd.allocation.new_itemid_shaped_as')
 def new_itemid_shaped_as(shape_from):
   """Allocates new ItemIds with the shape of shape_from."""
-  return new_itemid_shaped(jagged_shape.get_shape(shape_from))
+  return new_itemid_shaped(_jagged_shape.get_shape(shape_from))
 
 
-@optools.add_to_registry(aliases=['kd.new_listid_shaped'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_listid_shaped'])
+@_optools.as_backend_operator(
     'kd.allocation.new_listid_shaped',
     qtype_constraints=[
-        qtype_utils.expect_jagged_shape(P.shape),
+        _qtype_utils.expect_jagged_shape(_P.shape),
     ],
     deterministic=False,
 )
@@ -76,18 +76,18 @@ def new_listid_shaped(shape):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_listid'])
-@optools.as_lambda_operator('kd.allocation.new_listid')
+@_optools.add_to_registry(aliases=['kd.new_listid'])
+@_optools.as_lambda_operator('kd.allocation.new_listid')
 def new_listid():
   """Allocates new List ItemId."""
-  return new_listid_shaped(jagged_shape.new())
+  return new_listid_shaped(_jagged_shape.new())
 
 
-@optools.add_to_registry(aliases=['kd.new_listid_like'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_listid_like'])
+@_optools.as_backend_operator(
     'kd.allocation.new_listid_like',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        _qtype_utils.expect_data_slice(_P.shape_and_mask_from),
     ],
     deterministic=False,
 )
@@ -96,23 +96,23 @@ def new_listid_like(shape_and_mask_from):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_listid_shaped_as'])
-@optools.as_lambda_operator(
+@_optools.add_to_registry(aliases=['kd.new_listid_shaped_as'])
+@_optools.as_lambda_operator(
     'kd.allocation.new_listid_shaped_as',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_from),
+        _qtype_utils.expect_data_slice(_P.shape_from),
     ],
 )
 def new_listid_shaped_as(shape_from):  # pylint: disable=unused-argument
   """Allocates new List ItemIds with the shape of shape_from."""
-  return new_listid_shaped(jagged_shape.get_shape(shape_from))
+  return new_listid_shaped(_jagged_shape.get_shape(shape_from))
 
 
-@optools.add_to_registry(aliases=['kd.new_dictid_shaped'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_dictid_shaped'])
+@_optools.as_backend_operator(
     'kd.allocation.new_dictid_shaped',
     qtype_constraints=[
-        qtype_utils.expect_jagged_shape(P.shape),
+        _qtype_utils.expect_jagged_shape(_P.shape),
     ],
     deterministic=False,
 )
@@ -121,18 +121,18 @@ def new_dictid_shaped(shape):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_dictid'])
-@optools.as_lambda_operator('kd.allocation.new_dictid')
+@_optools.add_to_registry(aliases=['kd.new_dictid'])
+@_optools.as_lambda_operator('kd.allocation.new_dictid')
 def new_dictid():
   """Allocates new Dict ItemId."""
-  return new_dictid_shaped(jagged_shape.new())
+  return new_dictid_shaped(_jagged_shape.new())
 
 
-@optools.add_to_registry(aliases=['kd.new_dictid_like'])
-@optools.as_backend_operator(
+@_optools.add_to_registry(aliases=['kd.new_dictid_like'])
+@_optools.as_backend_operator(
     'kd.allocation.new_dictid_like',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_and_mask_from),
+        _qtype_utils.expect_data_slice(_P.shape_and_mask_from),
     ],
     deterministic=False,
 )
@@ -141,13 +141,13 @@ def new_dictid_like(shape_and_mask_from):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_dictid_shaped_as'])
-@optools.as_lambda_operator(
+@_optools.add_to_registry(aliases=['kd.new_dictid_shaped_as'])
+@_optools.as_lambda_operator(
     'kd.allocation.new_dictid_shaped_as',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.shape_from),
+        _qtype_utils.expect_data_slice(_P.shape_from),
     ],
 )
 def new_dictid_shaped_as(shape_from):  # pylint: disable=unused-argument
   """Allocates new Dict ItemIds with the shape of shape_from."""
-  return new_dictid_shaped(jagged_shape.get_shape(shape_from))
+  return new_dictid_shaped(_jagged_shape.get_shape(shape_from))
