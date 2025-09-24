@@ -14,10 +14,6 @@
 
 # kd_ext operator tests.
 
-package(default_visibility = [
-    "//koladata:internal",
-])
-
 licenses(["notice"])
 
 ##### Tests for public operators #####
