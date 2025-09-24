@@ -35,7 +35,7 @@ _constraints = _arolla.optools.constraints
     qtype_inference_expr=_qtypes.DATA_BAG,
     deterministic=False,
 )
-def _bag():
+def new():
   """Returns an empty DataBag."""
   raise NotImplementedError('implemented in the backend')
 
@@ -60,7 +60,7 @@ def is_null_bag(bag):  # pylint: disable=unused-argument
     qtype_inference_expr=_qtypes.DATA_BAG,
     experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
 )
-def enriched_bag(*bags):  # pylint: disable=unused-argument
+def enriched(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag enriched by `bags`.
 
    It adds `bags` as fallbacks rather than merging the underlying data thus
@@ -89,7 +89,7 @@ def enriched_bag(*bags):  # pylint: disable=unused-argument
     qtype_inference_expr=_qtypes.DATA_BAG,
     experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
 )
-def updated_bag(*bags):  # pylint: disable=unused-argument
+def updated(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag updated by `bags`.
 
    It adds `bags` as fallbacks rather than merging the underlying data thus
