@@ -151,9 +151,10 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r'Actual: DataItem\(.*\), with difference:\n'
         r'modified schema:\n'
         r'expected:\n'
-        r'OBJECT\n'
+        r'DataItem\(OBJECT, schema: SCHEMA\)\n'
         r'-> actual:\n'
-        r'.*',
+        r'DataItem\(ENTITY\(x=INT32\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -225,9 +226,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r'Actual: DataItem\(.*\), with difference:\n'
         r'modified schema:\n'
         r'expected.x:\n'
-        r'(\$[0-9a-zA-Z]{22})\n'
+        r'DataItem\(ENTITY\(y=INT32\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)\n'
         r'-> actual.x:\n'
-        r'(\$[0-9a-zA-Z]{22})',
+        r'DataItem\(ENTITY\(y=INT32\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -242,9 +245,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r'Actual: DataItem\(.*\), with difference:\n'
         r'modified schema:\n'
         r'expected:\n'
-        r'(\$[0-9a-zA-Z]{22})\n'
+        r'DataItem\(ENTITY\(x=.*\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)\n'
         r'-> actual:\n'
-        r'(\$[0-9a-zA-Z]{22})',
+        r'DataItem\(ENTITY\(x=.*\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -266,9 +271,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r' with difference:\n'
         r'modified:\n'
         r'expected:\n'
-        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)\n'
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\),'
+        r' item_id: Entity:\$[0-9a-zA-Z]{22}\)\n'
         r'-> actual:\n'
-        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)',
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\),'
+        r' item_id: Entity:\$[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -284,9 +291,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r' with difference:\n'
         r'modified:\n'
         r'expected.b:\n'
-        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\)\)\n'
+        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\),'
+        r' item_id: Entity:#[0-9a-zA-Z]{22}\)\n'
         r'-> actual.b:\n'
-        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\)\)',
+        r'DataItem\(Entity\(c=1\), schema: ENTITY\(c=INT32\),'
+        r' item_id: Entity:#[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -313,9 +322,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
         r' with difference:\n'
         r'modified schema:\n'
         r'expected:\n'
-        r'(\#[0-9a-zA-Z]{22})\n'
+        r'DataItem\(ENTITY\(a=INT32, b=bar\(.*\)\), schema: SCHEMA,'
+        r' item_id: Schema:#[0-9a-zA-Z]{22}\)\n'
         r'-> actual:\n'
-        r'(\#[0-9a-zA-Z]{22})',
+        r'DataItem\(ENTITY\(a=INT32, b=foo\(.*\)\), schema: SCHEMA,'
+        r' item_id: Schema:#[0-9a-zA-Z]{22}\)',
     ):
       bag_a = bag()
       bag_b = bag()

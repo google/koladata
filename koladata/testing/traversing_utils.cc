@@ -77,16 +77,13 @@ std::string GetPathRepr(
 
 absl::StatusOr<std::string> SchemaMismatchRepr(
     const std::vector<internal::TraverseHelper::TransitionKey>& path,
-    const DataSlice& lhs, const DataSlice& rhs) {
-  // TODO: Use DataItem repr with included schema ObjectId.
-  ASSIGN_OR_RETURN(
-      auto lhs_schema_repr,
-      DataItemToStr(lhs.GetSchema().item(), internal::DataItem(schema::kSchema),
-                    /*db=*/nullptr));
-  ASSIGN_OR_RETURN(
-      auto rhs_schema_repr,
-      DataItemToStr(rhs.GetSchema().item(), internal::DataItem(schema::kSchema),
-                    /*db=*/nullptr));
+    const DataSlice& lhs, const DataSlice& rhs,
+    ReprOption schema_repr_option) {
+  // For the schema mismatch, we always show the item ids as schemas with
+  // different item ids are not considered equivalent.
+  schema_repr_option.show_item_id = true;
+  auto lhs_schema_repr = DataSliceRepr(lhs.GetSchema(), schema_repr_option);
+  auto rhs_schema_repr = DataSliceRepr(rhs.GetSchema(), schema_repr_option);
   if (path.size() == 1 &&
       path[0].type == internal::TraverseHelper::TransitionType::kSchema) {
     // Modified the schema of the provided DataSlice.
@@ -101,7 +98,7 @@ absl::StatusOr<std::string> SchemaMismatchRepr(
 absl::StatusOr<std::string> DiffItemRepr(
     const internal::DeepEquivalentOp::DiffItem& diff,
     const internal::DataBagImpl& result_db_impl, const DataBagPtr& lhs_db,
-    const DataBagPtr& rhs_db) {
+    const DataBagPtr& rhs_db, const ReprOption& repr_option) {
   ASSIGN_OR_RETURN(
       auto diff_item,
       result_db_impl.GetAttr(diff.item, internal::DeepDiff::kDiffItemAttr));
@@ -123,7 +120,6 @@ absl::StatusOr<std::string> DiffItemRepr(
                    get_side_item(internal::DeepDiff::kLhsAttr, lhs_db));
   ASSIGN_OR_RETURN(auto rhs,
                    get_side_item(internal::DeepDiff::kRhsAttr, rhs_db));
-  ReprOption repr_option({.show_databag_id = false});
   if (lhs.has_value() && !rhs.has_value()) {
     return absl::StrFormat("added:\n%s:\n%s",
                            GetPathRepr(diff.path, kActualName),
@@ -137,7 +133,7 @@ absl::StatusOr<std::string> DiffItemRepr(
                      result_db_impl.GetAttr(
                          diff_item, internal::DeepDiff::kSchemaMismatchAttr));
     if (is_schema_mismatch.has_value()) {
-      return SchemaMismatchRepr(diff.path, *lhs, *rhs);
+      return SchemaMismatchRepr(diff.path, *lhs, *rhs, repr_option);
     } else {
       if (diff.path.size() == 1 &&
           diff.path[0].type ==
@@ -197,9 +193,13 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
                          deep_equivalent_op.GetDiffPaths(
                              result, internal::DataItem(schema::kObject),
                              /*max_count=*/max_count));
+        ReprOption repr_option(
+            {.show_databag_id = false,
+             .show_item_id = comparison_params.ids_equality});
         for (const auto& diff : diff_paths) {
-          ASSIGN_OR_RETURN(auto diff_item_repr,
-                           DiffItemRepr(diff, result_db_impl, lhs_db, rhs_db));
+          ASSIGN_OR_RETURN(
+              auto diff_item_repr,
+              DiffItemRepr(diff, result_db_impl, lhs_db, rhs_db, repr_option));
           mismatches.push_back(std::move(diff_item_repr));
         }
         return absl::OkStatus();
