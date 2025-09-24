@@ -92,17 +92,20 @@ def from_proto(
   """
   if isinstance(messages, (list, tuple)):
     messages = list(messages)
-    if not all(m is None or isinstance(m, message.Message) for m in messages):
-      raise ValueError(
-          f'messages must be Message or list of Message, got {messages}'
-      )
+    for i, m in enumerate(messages):
+      if m is not None and not isinstance(m, message.Message):
+        raise ValueError(
+            'messages must be Message or list of Message, got list containing'
+            f' type {type(m)} at index {i} with value {m}'
+        )
     result_is_item = False
   elif messages is None or isinstance(messages, message.Message):
     messages = [messages]
     result_is_item = True
   else:
     raise ValueError(
-        f'messages must be Message or list of Message, got {messages}'
+        'messages must be Message or list of Message, got'
+        f' type {type(messages)} with value {messages}'
     )
 
   if itemid is not None:
@@ -179,9 +182,7 @@ def schema_from_proto(
 
 
 def to_proto(
-    x: data_slice.DataSlice,
-    /,
-    message_class: Type[message.Message]
+    x: data_slice.DataSlice, /, message_class: Type[message.Message]
 ) -> list[message.Message | None] | message.Message | None:
   """Converts a DataSlice or DataItem to one or more proto messages.
 

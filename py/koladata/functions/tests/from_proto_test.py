@@ -41,7 +41,9 @@ class FromProtoTest(absltest.TestCase):
 
   def test_invalid_input_primitive(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'messages must be Message or list of Message, got 1'
+        ValueError,
+        "messages must be Message or list of Message, got type <class 'int'>"
+        ' with value 1',
     ):
       fns.from_proto(1)  # pytype: disable=wrong-arg-types
 
@@ -51,7 +53,9 @@ class FromProtoTest(absltest.TestCase):
 
   def test_invalid_input_list_primitive(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'messages must be Message or list of Message, got [1]'
+        ValueError,
+        'messages must be Message or list of Message, got list containing type'
+        " <class 'int'> at index 0 with value 1",
     ):
       fns.from_proto([1])  # pytype: disable=wrong-arg-types
 
