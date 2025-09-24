@@ -339,7 +339,7 @@ absl::StatusOr<DataSlice> BinaryOpEval(
                                                     : in2.GetShape();
 
   if (!in1.GetSchemaImpl().holds_value<schema::DType>() ||
-      !in1.GetSchemaImpl().holds_value<schema::DType>()) {
+      !in2.GetSchemaImpl().holds_value<schema::DType>()) {
     RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     return absl::InvalidArgumentError(
         absl::StrFormat("arguments must have primitive types, got %v, %v",

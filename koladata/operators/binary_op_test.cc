@@ -32,10 +32,12 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/testing/matchers.h"
 
@@ -621,6 +623,18 @@ TEST(BinaryOpTest, BytesAndText) {
       (BinaryOpEval<TestOpConcat>(bytes2d, bytes1d, Concatable())->slice()),
       ElementsAre(arolla::Bytes("xa"), arolla::Bytes("ya"), arolla::Bytes("zb"),
                   arolla::Bytes("vb")));
+}
+
+TEST(BinaryOpTest, NonDTypeSchema) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
+  auto i32 = DataSlice::CreateFromScalar(0);
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(entity, i32),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("arguments must have primitive types")));
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(i32, entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("arguments must have primitive types")));
 }
 
 }  // namespace

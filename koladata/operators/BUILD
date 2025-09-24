@@ -387,7 +387,9 @@ cc_test(
     srcs = ["binary_op_test.cc"],
     deps = [
         ":lib",
+        "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata:object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
