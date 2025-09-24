@@ -201,6 +201,7 @@ OPERATOR_FAMILY("kd.lists._concat",
 OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
 OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");
 OPERATOR("kd.lists._like", ListLike, "kd.lists.like");
+OPERATOR("kd.lists._new", List);
 OPERATOR_WITH_SIGNATURE(
     "kd.lists._shaped",
     arolla::QExprOperatorSignature::Get(

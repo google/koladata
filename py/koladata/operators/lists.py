@@ -22,8 +22,10 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices as slices_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -263,6 +265,132 @@ def implode(
   """
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _implode(x, arolla_bridge.to_arolla_int64(ndim), itemid)
+
+
+@optools.as_backend_operator(
+    'kd.lists._new',
+    deterministic=False,
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+    ],
+)
+def _new(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
+  """Internal implementation of kd.lists.new."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.list'])
+@arolla.optools.as_lambda_operator(
+    'kd.lists.new',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kd.lists.new]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_unspecified(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
+    ],
+)
+def new_(
+    items,
+    item_schema,
+    schema,
+    itemid,
+    non_deterministic,
+):  # pylint: disable=g-doc-args
+  """Creates list(s) by collapsing `items` into an immutable list.
+
+  If there is no argument, returns an empty Koda List.
+  If the argument is a Python list, creates a nested Koda List.
+
+  Examples:
+  kd.list() -> a single empty Koda List
+  kd.list([1, 2, 3]) -> Koda List with items 1, 2, 3
+  kd.list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
+    # items are Koda lists.
+
+  Args:
+    items: The items to use. If not specified, an empty list of OBJECTs will be
+      created.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from `items` or defaulted to OBJECT.
+    schema: The schema to use for the list. If specified, then item_schema must
+      not be specified.
+    itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+  Returns:
+    The slice with list/lists.
+  """
+  items = M.core.default_if_unspecified(items, data_slice.unspecified())
+  item_schema = M.core.default_if_unspecified(
+      item_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+  itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+  return arolla.types.DispatchOperator(
+      'items, item_schema, schema, itemid, non_deterministic',
+      everything_unspecified_case=arolla.types.DispatchCase(
+          data_slice.DataSlice.from_vals([], schema_constants.OBJECT),
+          condition=(
+              (P.items == arolla.UNSPECIFIED)
+              & (P.item_schema == arolla.UNSPECIFIED)
+          ),
+      ),
+      default=arolla.abc.bind_op(
+          _new, P.items, P.item_schema, P.schema, P.itemid, P.non_deterministic
+      ),
+  )(items, item_schema, schema, itemid, non_deterministic)
+
+
+def _is_unspecified(x):
+  return isinstance(x, arolla.abc.Unspecified)
+
+_NON_DETERMINISTIC_ARG = optools.unified_non_deterministic_arg()
+
+
+def _new_bind_args(
+    items=arolla.unspecified(),
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
+  """Binding policy for kd.lists.new."""
+  if isinstance(items, arolla.Expr):
+    return (items, item_schema, schema, itemid, _NON_DETERMINISTIC_ARG)
+
+  if isinstance(items, data_slice.DataSlice):
+    raise ValueError(
+        'kd.list does not accept DataSlice as an input, please use kd.implode'
+    )
+
+  schema_to_use = arolla.unspecified()
+  if not _is_unspecified(item_schema):
+    schema_to_use = item_schema
+  elif not _is_unspecified(schema):
+    schema_to_use = schema.get_item_schema()
+
+  if _is_unspecified(items) and _is_unspecified(schema_to_use):
+    return (
+        data_slice.DataSlice.from_vals([], schema_constants.OBJECT),
+        schema, item_schema, itemid, _NON_DETERMINISTIC_ARG,
+    )
+
+  if isinstance(schema_to_use, arolla.Expr) or (
+      not _is_unspecified(schema_to_use)
+      and schema_to_use != schema_constants.OBJECT
+  ):
+    schema_to_use = arolla.unspecified()
+  items, _ = slices_ops._slice_bind_args(items, schema_to_use)  # pylint: disable=protected-access
+  return (items, item_schema, schema, itemid, _NON_DETERMINISTIC_ARG)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    new_, _new_bind_args, make_literal_fn=py_boxing.literal
+)
 
 
 @arolla.optools.as_backend_operator(

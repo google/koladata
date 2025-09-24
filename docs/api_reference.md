@@ -3672,6 +3672,31 @@ Args:
 Returns:
   A new immutable DataBag containing the list with the appended items.</code></pre>
 
+### `kd.lists.new(items=unspecified, *, item_schema=unspecified, schema=unspecified, itemid=unspecified)` {#kd.lists.new}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates list(s) by collapsing `items` into an immutable list.
+
+If there is no argument, returns an empty Koda List.
+If the argument is a Python list, creates a nested Koda List.
+
+Examples:
+kd.list() -&gt; a single empty Koda List
+kd.list([1, 2, 3]) -&gt; Koda List with items 1, 2, 3
+kd.list([[1, 2, 3], [4, 5]]) -&gt; nested Koda List [[1, 2, 3], [4, 5]]
+  # items are Koda lists.
+
+Args:
+  items: The items to use. If not specified, an empty list of OBJECTs will be
+    created.
+  item_schema: the schema of the list items. If not specified, it will be
+    deduced from `items` or defaulted to OBJECT.
+  schema: The schema to use for the list. If specified, then item_schema must
+    not be specified.
+  itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
+
+Returns:
+  The slice with list/lists.</code></pre>
+
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
 Aliases:
 
