@@ -224,7 +224,7 @@ class OrderedSink final : public Sink {
   }
 
   bool PushItem(size_t offset, arolla::TypedValue&& item) final {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     DCHECK_LE(write_count_, offset);
     if (!Accepts(offset)) {
       return false;
@@ -252,7 +252,7 @@ class OrderedSink final : public Sink {
   }
 
   void PushStatus(size_t offset, absl::Status&& status) final {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     DCHECK_LE(write_count_, offset);
     if (!Accepts(offset)) {
       return;

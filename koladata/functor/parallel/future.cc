@@ -34,7 +34,7 @@ namespace koladata::functor::parallel {
 void Future::AddConsumer(ConsumerFn&& consumer) {
   std::optional<absl::StatusOr<arolla::TypedValue>> value;
   {
-    absl::MutexLock l(&lock_);
+    absl::MutexLock l(lock_);
     if (!value_) {
       consumers_.push_back(std::move(consumer));
       return;
@@ -52,7 +52,7 @@ void Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
   }
   std::vector<ConsumerFn> consumers;
   {
-    absl::MutexLock l(&lock_);
+    absl::MutexLock l(lock_);
     if (value_) {
       LOG(FATAL) << "future already has a value";
     }
@@ -66,7 +66,7 @@ void Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
 }
 
 absl::StatusOr<arolla::TypedValue> Future::GetValueForTesting() {
-  absl::MutexLock l(&lock_);
+  absl::MutexLock l(lock_);
   if (!value_) {
     return absl::InvalidArgumentError("future has no value");
   }

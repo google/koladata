@@ -44,7 +44,7 @@ class FutureQType final : public arolla::SimpleQType {
 class FutureQTypeRegistry {
  public:
   arolla::QTypePtr GetFutureQType(arolla::QTypePtr value_qtype) {
-    absl::WriterMutexLock l(&lock_);
+    absl::WriterMutexLock l(lock_);
     auto& result = registry_[value_qtype];
     if (!result) {
       result = std::make_unique<FutureQType>(value_qtype);

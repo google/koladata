@@ -58,7 +58,7 @@ class AsyncCountdown {
   void SetInput(size_t index, absl::StatusOr<arolla::TypedValue> value) {
     if (!value.ok()) {
       {
-        absl::MutexLock lock(&lock_);
+        absl::MutexLock lock(lock_);
         if (error_reported_) {
           return;
         }
@@ -75,7 +75,7 @@ class AsyncCountdown {
     }
     bool should_schedule = false;
     {
-      absl::MutexLock lock(&lock_);
+      absl::MutexLock lock(lock_);
       if (index < 0 || index >= input_values_.size()) {
         LOG(FATAL) << "index " << index << " is out of bounds [0, "
                    << input_values_.size() << ").";
@@ -100,7 +100,7 @@ class AsyncCountdown {
   void Schedule() {
     std::vector<std::optional<arolla::TypedValue>> input_values;
     {
-      absl::MutexLock lock(&lock_);
+      absl::MutexLock lock(lock_);
       input_values.swap(input_values_);
     }
 

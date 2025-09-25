@@ -91,7 +91,7 @@ class ExprTransformationCache {
  public:
   absl_nullable TransformedExprPtr LookupOrNull(
       const arolla::Fingerprint& fingerprint) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (auto* res = cache_.LookupOrNull(fingerprint)) {
       return *res;
     }
@@ -101,12 +101,12 @@ class ExprTransformationCache {
   absl_nonnull TransformedExprPtr Put(const arolla::Fingerprint& fingerprint,
                                       TransformedExprPtr value)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return *cache_.Put(fingerprint, std::move(value));
   }
 
   void Clear() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     cache_.Clear();
   }
 
@@ -210,7 +210,7 @@ class CompilationCache {
  public:
   CompiledExpr LookupOrNull(const arolla::Fingerprint& fingerprint)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (auto* res = cache_.LookupOrNull(fingerprint)) {
       // This copies std::function, which is fine since it is more or less a
       // shared_ptr.
@@ -221,12 +221,12 @@ class CompilationCache {
 
   CompiledExpr Put(const arolla::Fingerprint& fingerprint, CompiledExpr value)
       ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return *cache_.Put(fingerprint, std::move(value));
   }
 
   void Clear() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     cache_.Clear();
   }
 

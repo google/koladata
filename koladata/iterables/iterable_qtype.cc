@@ -43,7 +43,7 @@ class IterableQType final : public arolla::BasicDerivedQType {
 class IterableQTypeRegistry {
  public:
   arolla::QTypePtr GetIterableQType(arolla::QTypePtr value_qtype) {
-    absl::WriterMutexLock l(&lock_);
+    absl::WriterMutexLock l(lock_);
     auto& result = registry_[value_qtype];
     if (!result) {
       result = std::make_unique<IterableQType>(value_qtype);

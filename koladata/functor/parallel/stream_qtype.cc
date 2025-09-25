@@ -51,7 +51,7 @@ class StreamQType final : public SimpleQType {
 class StreamQTypeRegistry {
  public:
   QTypePtr GetStreamQType(QTypePtr value_qtype) {
-    absl::MutexLock lock(&lock_);
+    absl::MutexLock lock(lock_);
     auto& result = registry_[value_qtype];
     if (!result) {
       result = std::make_unique<StreamQType>(value_qtype);

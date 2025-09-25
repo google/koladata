@@ -190,7 +190,7 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
   DCHECK_EQ(value.GetType(), value_qtype());  // Tested by the public method.
   std::vector<absl::AnyInvocable<void() &&>> callbacks;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (status_.has_value()) {
       return InternalWriteResult::kClosed;
     }
@@ -210,7 +210,7 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
 void StreamImpl::InternalClose(absl::Status&& status) {
   std::vector<absl::AnyInvocable<void() &&>> callbacks;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     DCHECK(!status_.has_value());  // Protected by the atomic flag `closed_`
     if (status_.has_value()) {     // in the writer.
       return;
@@ -305,7 +305,7 @@ StreamReader::TryReadResult StreamImpl::Reader::TryRead() {
   if (offset_ < known_size_) [[likely]] {
     return chunk_->GetRef(offset_++);
   }
-  absl::MutexLock lock(&stream_->mutex_);
+  absl::MutexLock lock(stream_->mutex_);
   Update();
   TryReadResult result;
   if (offset_ < known_size_) {
@@ -333,7 +333,7 @@ void StreamImpl::Reader::Update() {
 void StreamImpl::Reader::SubscribeOnce(
     absl::AnyInvocable<void() &&>&& callback) {
   {
-    absl::MutexLock lock(&stream_->mutex_);
+    absl::MutexLock lock(stream_->mutex_);
     if (!stream_->status_.has_value()) {
       Update();
       if (offset_ == known_size_) {

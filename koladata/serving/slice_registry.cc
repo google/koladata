@@ -46,7 +46,7 @@ struct SliceRegistry {
 
 const DataSlice* absl_nullable GetRegisteredSlice(absl::string_view key) {
   SliceRegistry& r = SliceRegistry::get();
-  absl::MutexLock lock(&r.m);
+  absl::MutexLock lock(r.m);
   auto it = r.slices.find(key);
   if (it == r.slices.end()) {
     return nullptr;
@@ -57,7 +57,7 @@ const DataSlice* absl_nullable GetRegisteredSlice(absl::string_view key) {
 
 absl::Status RegisterSlice(absl::string_view key, DataSlice slice) {
   SliceRegistry& r = SliceRegistry::get();
-  absl::MutexLock lock(&r.m);
+  absl::MutexLock lock(r.m);
 
   auto [_, emplaced] =
       r.slices.try_emplace(key, std::make_unique<DataSlice>(std::move(slice)));

@@ -108,7 +108,7 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
   void AddInput(StreamReaderPtr input) {
     bool must_process_pending_inputs = false;
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (error_reported_) {
         return;
       }
@@ -164,7 +164,7 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
   void ProcessPendingInputs() {
     StreamReader* active_input = nullptr;
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       CHECK(!pending_inputs_.empty());
       CHECK(!error_reported_);
       active_input = pending_inputs_.front().get();
@@ -175,13 +175,13 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
         return;
       }
       if (result == ProcessInputResult::kError) {
-        absl::MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         pending_inputs_ = {};
         error_reported_ = true;
         return;
       }
       {
-        absl::MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
         pending_inputs_.pop();
         if (pending_inputs_.empty()) {
           return;

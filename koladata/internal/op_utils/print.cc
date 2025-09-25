@@ -36,12 +36,12 @@ class PrinterImpl final : public Printer {
 
   void SetPrintCallback(
       absl::AnyInvocable<void(absl::string_view) const> callback) override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     print_callback_ = std::move(callback);
   }
 
   void Print(absl::string_view message) const override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     print_callback_(message);
   }
 

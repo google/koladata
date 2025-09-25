@@ -80,7 +80,7 @@ class EvalCompiler {
     // a `std::shared_ptr`, we could use `std::shared_ptr<std::function<>>`.
     // Alternatively, we could consider having a thread-local cache that
     // requires no mutex and no function copying.
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (auto* hit =
             cache_->LookupOrNull(compiler_internal::LookupKey{op_name, inputs});
         hit != nullptr) {
@@ -107,14 +107,14 @@ class EvalCompiler {
                 // such cases the always clone thread safety policy is faster.
                 .SetAlwaysCloneThreadSafetyPolicy()
                 .CompileOperator(expr_op, input_types));
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return *cache_->Put(
         compiler_internal::Key{std::string(op_name), std::move(input_types)},
         std::move(fn));
   }
 
   static void Clear() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     cache_->Clear();
   }
 
@@ -307,7 +307,6 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
   }
   return create_error("DataSlice has no primitive schema");
 }
-
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
