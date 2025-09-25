@@ -16,14 +16,21 @@
 #define KOLADATA_TESTING_MATCHERS_H_
 
 #include <ostream>
+#include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/testing/traversing_utils.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::testing {
 namespace matchers_impl {
@@ -55,6 +62,59 @@ class DataSliceEquivalentMatcher {
   DataSlice expected_slice_;
 };
 
+class DataSliceDeepEquivalentMatcher {
+ public:
+  using is_gtest_matcher = void;
+
+  explicit DataSliceDeepEquivalentMatcher(
+      DataSlice expected_slice, DeepEquivalentParams comparison_params)
+      : expected_slice_(std::move(expected_slice)),
+        comparison_params_(comparison_params) {}
+
+  bool MatchAndExplain(const DataSlice& slice,
+                       ::testing::MatchResultListener* listener) const {
+    auto match_result_or = TryMatch(slice);
+    if (!match_result_or.ok()) {
+      *listener << match_result_or.status();
+      return false;
+    }
+    auto [is_equivalent, msg] = std::move(*match_result_or);
+    *listener << msg;
+    return is_equivalent;
+  }
+
+  void DescribeTo(::std::ostream* os) const {
+    *os << "is deep equivalent to " << DataSliceRepr(expected_slice_);
+  }
+  void DescribeNegationTo(::std::ostream* os) const {
+    *os << "is not deep equivalent to " << DataSliceRepr(expected_slice_);
+  }
+
+ private:
+  absl::StatusOr<std::pair<bool, std::string>> TryMatch(
+      const DataSlice& slice) const {
+    ASSIGN_OR_RETURN(
+        auto mismatches,
+        DeepEquivalentMismatches(slice, expected_slice_,
+                                 /*max_count=*/5, comparison_params_));
+    if (mismatches.empty()) {
+      return std::make_pair(
+          true, absl::StrCat(DataSliceRepr(slice), " which is equivalent"));
+    }
+    ReprOption repr_option(
+        {.depth = 1, .unbounded_type_max_len = 100, .show_databag_id = false});
+    auto expected_repr = DataSliceRepr(expected_slice_, repr_option);
+    auto actual_repr = DataSliceRepr(slice, repr_option);
+    std::string msg = absl::StrFormat(
+        "Expected: is equal to %s\nActual: %s, with difference:\n%s",
+        expected_repr, actual_repr, absl::StrJoin(mismatches, "\n"));
+    return std::make_pair(false, std::move(msg));
+  }
+
+  DataSlice expected_slice_;
+  DeepEquivalentParams comparison_params_;
+};
+
 }  // namespace matchers_impl
 
 // Returns GMock matcher for DataSlice equivalence.
@@ -64,6 +124,22 @@ class DataSliceEquivalentMatcher {
 //
 inline auto IsEquivalentTo(const DataSlice& expected_slice) {
   return matchers_impl::DataSliceEquivalentMatcher(expected_slice);
+}
+
+// Returns GMock matcher for DataSlice deep equivalence.
+//
+// Usage:
+//   EXPECT_THAT(my_data_slice, IsEquivalentTo(expected_slice));
+//   EXPECT_THAT(
+//       my_data_slice,
+//       IsDeepEquivalentTo(expected_slice, DeepEquivalentParams(
+//           {.partial = true, .ids_equality=true, .schema_equality=true})));
+//
+inline auto IsDeepEquivalentTo(const DataSlice& expected_slice,
+                               const DeepEquivalentParams& comparison_params =
+                                   DeepEquivalentParams()) {
+  return matchers_impl::DataSliceDeepEquivalentMatcher(expected_slice,
+                                                       comparison_params);
 }
 
 // Bring matchers for internal::DataSliceImpl and internal::DataItem into

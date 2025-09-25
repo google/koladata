@@ -28,10 +28,15 @@ cc_library(
     testonly = True,
     hdrs = ["matchers.h"],
     deps = [
+        ":traversing_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/jagged_shape/testing",
+        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest",
     ],
 )
@@ -41,7 +46,9 @@ cc_test(
     srcs = ["matchers_test.cc"],
     deps = [
         ":matchers",
+        "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata:object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
