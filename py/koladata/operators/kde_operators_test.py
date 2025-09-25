@@ -61,7 +61,6 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     'container',
     'core.container',
     'dir',
-    'list',  # TODO: Remove this once `list` is added to `kde`.
 ])
 
 
