@@ -296,7 +296,7 @@ def sqrt(x):  # pylint: disable=unused-argument,g-doc-args
         qtype_utils.expect_data_slice(P.y),
     ],
 )
-def _pow(x, y):  # pylint: disable=unused-argument
+def pow(x, y):  # pylint: disable=unused-argument,redefined-builtin
   """Computes pointwise x ** y."""
   raise NotImplementedError('implemented in the backend')
 
@@ -644,7 +644,7 @@ def argmax(x, ndim=arolla.unspecified()):
 
 @optools.add_to_registry(aliases=['kd.max'])
 @optools.as_lambda_operator('kd.math.max')
-def _max(x):
+def max(x):  # pylint: disable=redefined-builtin
   """Returns the maximum of items over all dimensions.
 
   The result is a zero-dimensional DataItem.
@@ -710,7 +710,7 @@ def agg_min(x, ndim=arolla.unspecified()):
 
 @optools.add_to_registry(aliases=['kd.min'])
 @optools.as_lambda_operator('kd.math.min')
-def _min(x):
+def min(x):  # pylint: disable=redefined-builtin
   """Returns the minimum of items over all dimensions.
 
   The result is a zero-dimensional DataItem.
@@ -932,6 +932,6 @@ def inverse_cdf(x, cdf_arg):
         qtype_utils.expect_data_slice(P.x),
     ],
 )
-def _is_nan(x):  # pylint: disable=unused-argument
+def is_nan(x):  # pylint: disable=unused-argument
   """Returns pointwise `kd.present|missing` if the input is NaN or not."""
   raise NotImplementedError('implemented in the backend')
