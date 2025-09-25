@@ -579,6 +579,7 @@ py_test(
         ":data_item",
         ":data_slice",
         ":jagged_shape",
+        ":qtypes",
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/functions/tests:test_py_pb2",
