@@ -336,18 +336,31 @@ def _make_extension_qvalue(
   return extension_type_registry.make(extension_qtype, prototype, **attrs)
 
 
-def _with_attrs_expr(ext, attrs, field_annotations):
+def _with_attrs_expr(
+    ext: Any, attrs: Mapping[str, Any], field_annotations: Mapping[str, Any]
+) -> arolla.Expr:
   attrs = {
       k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
   }
   return arolla.abc.aux_bind_op('kd.extension_types.with_attrs', ext, **attrs)
 
 
-def _with_attrs_qvalue(ext, attrs, field_annotations):
+def _with_attrs_qvalue(
+    ext: Any, attrs: Mapping[str, Any], field_annotations: Mapping[str, Any]
+) -> arolla.AnyQValue:
   attrs = {
       k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
   }
   return arolla.abc.aux_eval_op('kd.extension_types.with_attrs', ext, **attrs)
+
+
+def _with_attrs(
+    ext: Any, attrs: Mapping[str, Any], field_annotations: Mapping[str, Any]
+) -> arolla.Expr | arolla.AnyQValue:
+  if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
+    return _with_attrs_expr(ext, attrs, field_annotations)
+  else:
+    return _with_attrs_qvalue(ext, attrs, field_annotations)
 
 
 def _get_default_repr_fn(
@@ -358,6 +371,7 @@ def _get_default_repr_fn(
 
   def __repr__(self) -> str:  # pylint: disable=invalid-name
     """Returns a string representation of the extension type."""
+
     def get_attr(attr: str) -> str:
       try:
         return repr(getattr(self, attr))
@@ -385,7 +399,7 @@ def _make_qvalue_class(
   qvalue_class_attrs |= class_meta.non_virtual_methods
   for name, virtual_method in virtual_methods.items():
     qvalue_class_attrs[name] = virtual_method.method
-  qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_qvalue(
+  qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs(
       self, attrs, class_meta.field_annotations
   )
   if '__repr__' not in qvalue_class_attrs:

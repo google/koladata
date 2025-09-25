@@ -710,11 +710,17 @@ class ExtensionTypesTest(parameterized.TestCase):
       a = A(1, 2)
       testing.assert_equal(a.with_attrs(x=3).x, ds(3))
       testing.assert_equal(a.with_attrs(x=3).y, ds(2))
+      # Can also call the eager version with lazy inputs.
+      testing.assert_equal(a.with_attrs(x=I.z).x.eval(z=3), ds(3))
+      testing.assert_equal(a.with_attrs(x=I.z).y.eval(z=3), ds(2))
 
     with self.subTest('lazy'):
       a = A(I.x, I.y)
       testing.assert_equal(a.with_attrs(x=I.z).x.eval(x=1, y=2, z=3), ds(3))
       testing.assert_equal(a.with_attrs(x=I.z).y.eval(x=1, y=2, z=3), ds(2))
+      # Can also call the lazy version with eager inputs.
+      testing.assert_equal(a.with_attrs(x=3).x.eval(x=1, y=2), ds(3))
+      testing.assert_equal(a.with_attrs(x=3).y.eval(x=1, y=2), ds(2))
 
     with self.subTest('eager_fn'):
       a = A(1, 2)
