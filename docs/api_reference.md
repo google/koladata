@@ -47,9 +47,9 @@ Category  | Subcategory | Description
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
  | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
-[DataSlice](#DataSlice_category) | | `DataSlice` methods
-[DataBag](#DataBag_category) | | `DataBag` methods
-[DataItem](#DataItem_category) | | `DataItem` methods
+[DataSlice](#DataSlice_category) | | `DataSlice` class
+[DataBag](#DataBag_category) | | `DataBag` class
+[DataItem](#DataItem_category) | | `DataItem` class
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -11094,13 +11094,62 @@ Tools for persisted incremental data.
 
 **Namespaces**
 
-#### kd_ext.persisted_data.PersistedIncrementalDataBagManager {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
+#### `PersistedIncrementalDataBagManager` class {#PersistedIncrementalDataBagManager_category}
 
-`PersistedIncrementalDataBagManager` methods
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataBag that is assembled from multiple smaller bags.
+
+  Short version of the contract:
+  * Instances are not thread-safe.
+  * Multiple instances can be created for the same persistence directory:
+    * Multiple readers are allowed.
+    * The effects of write operations (calls to add_bags()) are not propagated
+      to other instances that already exist.
+    * Concurrent writers are not allowed. A write operation will fail if the
+      state of the persistence directory was modified in the meantime by another
+      instance.
+
+  It is often convenient to create a DataBag by incrementally adding smaller
+  bags, where each of the smaller bags is an update to the large DataBag.
+
+  This also provides the opportunity to persist the smaller bags separately,
+  along with the stated dependencies among the smaller bags.
+
+  Then at a later point, usually in a different process, one can reassemble the
+  large DataBag. But instead of loading the entire DataBag, one can load only
+  the smaller bags that are needed, thereby saving loading time and memory. In
+  fact the smaller bags can be loaded incrementally, so that decisions about
+  which bags to load can be made on the fly instead of up-front. In that way,
+  the incremental creation of the large DataBag is mirrored by its incremental
+  consumption.
+
+  To streamline the consumption, you have to specify dependencies between the
+  smaller bags when they are added. It is trivial to specify a linear chain of
+  dependencies, but setting up a dependency DAG is easy and can significantly
+  improve the loading time and memory usage of data consumers. In fact this
+  class will always manage a rooted DAG of small bags, and a chain of bags is
+  just a special case.
+
+  This class manages the smaller bags, which are named, and their
+  interdependencies. It also handles the persistence of the smaller bags along
+  with some metadata to facilitate the later consumption of the data and also
+  its further augmentation. The persistence uses a filesystem directory, which
+  is hermetic in the sense that it can be moved or copied (although doing so
+  will break branches if any exist - see the docstring of create_branch()). The
+  persistence directory is consistent after each public operation of this class,
+  provided that it is not modified externally and that there is sufficient space
+  to accommodate the writes.
+
+  This class is not thread-safe. When an instance is created for a persistence
+  directory that is already populated, then the instance is initialized with
+  the current state found in the persistence directory at that point in time.
+  Write operations (calls to add_bags()) by other instances for the same
+  persistence directory are not propagated to this instance. A write operation
+  will fail if the state of the persistence directory was modified in the
+  meantime by another instance.</code></pre>
 
 <section class="zippy closed">
 
-**Operators**
+**Members**
 
 ### `PersistedIncrementalDataBagManager.__init__(self, persistence_dir, *, fs=None)` {#PersistedIncrementalDataBagManager.__init__}
 
@@ -11496,13 +11545,13 @@ Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
 </section>
 
-## `DataSlice` methods {#DataSlice_category}
+## `DataSlice` class {#DataSlice_category}
 
 `DataSlice` represents a jagged array of items (i.e. primitive values, ItemIds).
 
 <section class="zippy closed">
 
-**Operators**
+**Members**
 
 ### `DataSlice.L` {#DataSlice.L}
 
@@ -12855,13 +12904,13 @@ Args:
 
 </section>
 
-## `DataBag` methods {#DataBag_category}
+## `DataBag` class {#DataBag_category}
 
 `DataBag` is a set of triples (Entity.Attribute => Value).
 
 <section class="zippy closed">
 
-**Operators**
+**Members**
 
 ### `DataBag.adopt(slice, /)` {#DataBag.adopt}
 
@@ -13344,13 +13393,13 @@ Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
 </section>
 
-## `DataItem` methods {#DataItem_category}
+## `DataItem` class {#DataItem_category}
 
 `DataItem` represents a single item (i.e. primitive value, ItemId).
 
 <section class="zippy closed">
 
-**Operators**
+**Members**
 
 ### `DataItem.L` {#DataItem.L}
 
