@@ -11102,6 +11102,18 @@ Tools for persisted incremental data.
 
 **Operators**
 
+### `PersistedIncrementalDataBagManager.__init__(self, persistence_dir, *, fs=None)` {#PersistedIncrementalDataBagManager.__init__}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Initializes the manager.
+
+    Args:
+      persistence_dir: The directory where the small bags and metadata will be
+        persisted. If it does not exist, or it is empty, then it will be
+        populated with an empty bag named &#39;&#39;. Otherwise, the manager will be
+        initialized from the existing artifacts in the directory.
+      fs: All interactions with the file system will go through this instance.
+        If None, then the default interaction with the file system is used.</code></pre>
+
 ### `PersistedIncrementalDataBagManager.add_bags(self, bags_to_add)` {#PersistedIncrementalDataBagManager.add_bags}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Adds the given bags to the manager, which will persist them.
