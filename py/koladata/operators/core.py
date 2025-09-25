@@ -289,7 +289,7 @@ def is_entity(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.attrs),
     ],
 )
-def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused-argument
+def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused-argument,redefined-outer-name
   """Copies a DataSlice's schema stub to a new DataBag.
 
   The "schema stub" of a DataSlice is a subset of its schema (including embedded
@@ -355,7 +355,7 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
     'kd.core._attrs_impl',
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def _attrs_impl(x, overwrite_schema, extend_schema, attrs):  # pylint: disable=unused-argument
+def _attrs_impl(x, overwrite_schema, extend_schema, attrs):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns a new DataBag containing attribute updates for `x`."""
   raise NotImplementedError('implemented in the backend')
 
@@ -369,7 +369,7 @@ def _attrs_impl(x, overwrite_schema, extend_schema, attrs):  # pylint: disable=u
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def _attrs(x, /, *, overwrite_schema=False, **attrs):
+def _attrs(x, /, *, overwrite_schema=False, **attrs):  # pylint: disable=redefined-outer-name
   """Returns a new DataBag containing attribute updates for `x`.
 
   Most common usage is to build an update using kd.attrs and than attach it as a
@@ -407,6 +407,9 @@ def _attrs(x, /, *, overwrite_schema=False, **attrs):
   )
 
 
+attrs = _attrs
+
+
 @optools.add_to_registry(aliases=['kd.strict_attrs'])
 @optools.as_lambda_operator(
     'kd.core.strict_attrs',
@@ -415,7 +418,7 @@ def _attrs(x, /, *, overwrite_schema=False, **attrs):
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def strict_attrs(x, /, **attrs):
+def strict_attrs(x, /, **attrs):  # pylint: disable=redefined-outer-name
   """Returns a new DataBag containing attribute updates for `x`.
 
   Strict version of kd.attrs disallowing adding new attributes.
@@ -445,7 +448,7 @@ def strict_attrs(x, /, **attrs):
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def _attr(x, attr_name, value, overwrite_schema=False):
+def _attr(x, attr_name, value, overwrite_schema=False):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns a new DataBag containing attribute `attr_name` update for `x`.
 
   This operator is useful if attr_name cannot be used as a key in keyword
@@ -473,7 +476,7 @@ def _attr(x, attr_name, value, overwrite_schema=False):
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def with_attrs(x, /, *, overwrite_schema=False, **attrs):
+def with_attrs(x, /, *, overwrite_schema=False, **attrs):  # pylint: disable=redefined-outer-name
   """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
 
   This is a shorter version of `x.updated(kd.attrs(x, ...))`.
@@ -518,7 +521,7 @@ def with_attrs(x, /, *, overwrite_schema=False, **attrs):
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def strict_with_attrs(x, /, **attrs):
+def strict_with_attrs(x, /, **attrs):  # pylint: disable=redefined-outer-name
   """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
 
   Strict version of kd.attrs disallowing adding new attributes.
@@ -1172,7 +1175,7 @@ def create_metadata(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def metadata(x, /, **attrs):  # pylint: disable=unused-argument
+def metadata(x, /, **attrs):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns a new DataBag containing metadata updates for `x`.
 
   Most common usage is to build an update using kd.metadata and than attach it
@@ -1221,7 +1224,7 @@ def get_metadata(x):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
 )
-def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument
+def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument,redefined-outer-name
   """Returns a DataSlice with a new DataBag containing updated metadata for `x`.
 
   This is a shorter version of `x.updated(kd.metadata(x, ...))`.
@@ -1251,7 +1254,7 @@ def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument
     qtype_inference_expr=P.x,
     deterministic=False,
 )
-def with_print(x, *args, sep=' ', end='\n'):  # pylint: disable=unused-argument
+def with_print(x, *args, sep=' ', end='\n'):  # pylint: disable=unused-argument,redefined-outer-name
   """Prints *args to stdout and returns `x`.
 
   The operator uses str(arg) for each of the *args, i.e. it is not pointwise,
