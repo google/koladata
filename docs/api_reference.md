@@ -8,7 +8,7 @@ DataSlice, DataBag, etc.).
 
 Category  | Subcategory | Description
 --------- | ----------- | ------------
-[kd](#kd_category) | | `kd` and `kde` operators
+[kd](#kd) | | `kd` and `kde` operators
  | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
  | [annotation](#kd.annotation) | Annotation operators.
  | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
@@ -40,18 +40,18 @@ Category  | Subcategory | Description
  | [strings](#kd.strings) | Operators that work with strings data.
  | [streams](#kd.streams) | Operators that work with streams of items. These APIs are in active development and might change often (b/424742492).
  | [tuples](#kd.tuples) | Operators to create tuples.
-[kd_ext](#kd_ext_category) | | `kd_ext` operators
+[kd_ext](#kd_ext) | | `kd_ext` operators
  | [contrib](#kd_ext.contrib) | External contributions not necessarily endorsed by Koda.
  | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
  | [npkd](#kd_ext.npkd) | Tools for Numpy <-> Koda interoperability.
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
  | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
-[DataSlice](#DataSlice_category) | | `DataSlice` class
-[DataBag](#DataBag_category) | | `DataBag` class
-[DataItem](#DataItem_category) | | `DataItem` class
+[DataSlice](#DataSlice) | | `DataSlice` class
+[DataBag](#DataBag) | | `DataBag` class
+[DataItem](#DataItem) | | `DataItem` class
 
-## `kd` and `kde` operators {#kd_category}
+## kd {#kd}
 
 `kd` and `kde` modules are containers for eager and lazy operators respectively.
 
@@ -10789,7 +10789,7 @@ Alias for [kd.slices.zip](#kd.slices.zip) operator.
 
 </section>
 
-## `kd_ext` operators {#kd_ext_category}
+## kd_ext {#kd_ext}
 
 Operators under the `kd_ext.xxx` modules for extension utilities. Importing from
 the following module is needed:
@@ -11094,7 +11094,7 @@ Tools for persisted incremental data.
 
 **Namespaces**
 
-#### `PersistedIncrementalDataBagManager` class {#PersistedIncrementalDataBagManager_category}
+#### kd_ext.persisted_data.PersistedIncrementalDataBagManager {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataBag that is assembled from multiple smaller bags.
 
@@ -11545,7 +11545,7 @@ Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
 </section>
 
-## `DataSlice` class {#DataSlice_category}
+## DataSlice {#DataSlice}
 
 `DataSlice` represents a jagged array of items (i.e. primitive values, ItemIds).
 
@@ -12904,7 +12904,7 @@ Args:
 
 </section>
 
-## `DataBag` class {#DataBag_category}
+## DataBag {#DataBag}
 
 `DataBag` is a set of triples (Entity.Attribute => Value).
 
@@ -13393,7 +13393,7 @@ Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
 </section>
 
-## `DataItem` class {#DataItem_category}
+## DataItem {#DataItem}
 
 `DataItem` represents a single item (i.e. primitive value, ItemId).
 
