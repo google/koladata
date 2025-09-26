@@ -11098,54 +11098,54 @@ Tools for persisted incremental data.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataBag that is assembled from multiple smaller bags.
 
-  Short version of the contract:
-  * Instances are not thread-safe.
-  * Multiple instances can be created for the same persistence directory:
-    * Multiple readers are allowed.
-    * The effects of write operations (calls to add_bags()) are not propagated
-      to other instances that already exist.
-    * Concurrent writers are not allowed. A write operation will fail if the
-      state of the persistence directory was modified in the meantime by another
-      instance.
+Short version of the contract:
+* Instances are not thread-safe.
+* Multiple instances can be created for the same persistence directory:
+  * Multiple readers are allowed.
+  * The effects of write operations (calls to add_bags()) are not propagated
+    to other instances that already exist.
+  * Concurrent writers are not allowed. A write operation will fail if the
+    state of the persistence directory was modified in the meantime by another
+    instance.
 
-  It is often convenient to create a DataBag by incrementally adding smaller
-  bags, where each of the smaller bags is an update to the large DataBag.
+It is often convenient to create a DataBag by incrementally adding smaller
+bags, where each of the smaller bags is an update to the large DataBag.
 
-  This also provides the opportunity to persist the smaller bags separately,
-  along with the stated dependencies among the smaller bags.
+This also provides the opportunity to persist the smaller bags separately,
+along with the stated dependencies among the smaller bags.
 
-  Then at a later point, usually in a different process, one can reassemble the
-  large DataBag. But instead of loading the entire DataBag, one can load only
-  the smaller bags that are needed, thereby saving loading time and memory. In
-  fact the smaller bags can be loaded incrementally, so that decisions about
-  which bags to load can be made on the fly instead of up-front. In that way,
-  the incremental creation of the large DataBag is mirrored by its incremental
-  consumption.
+Then at a later point, usually in a different process, one can reassemble the
+large DataBag. But instead of loading the entire DataBag, one can load only
+the smaller bags that are needed, thereby saving loading time and memory. In
+fact the smaller bags can be loaded incrementally, so that decisions about
+which bags to load can be made on the fly instead of up-front. In that way,
+the incremental creation of the large DataBag is mirrored by its incremental
+consumption.
 
-  To streamline the consumption, you have to specify dependencies between the
-  smaller bags when they are added. It is trivial to specify a linear chain of
-  dependencies, but setting up a dependency DAG is easy and can significantly
-  improve the loading time and memory usage of data consumers. In fact this
-  class will always manage a rooted DAG of small bags, and a chain of bags is
-  just a special case.
+To streamline the consumption, you have to specify dependencies between the
+smaller bags when they are added. It is trivial to specify a linear chain of
+dependencies, but setting up a dependency DAG is easy and can significantly
+improve the loading time and memory usage of data consumers. In fact this
+class will always manage a rooted DAG of small bags, and a chain of bags is
+just a special case.
 
-  This class manages the smaller bags, which are named, and their
-  interdependencies. It also handles the persistence of the smaller bags along
-  with some metadata to facilitate the later consumption of the data and also
-  its further augmentation. The persistence uses a filesystem directory, which
-  is hermetic in the sense that it can be moved or copied (although doing so
-  will break branches if any exist - see the docstring of create_branch()). The
-  persistence directory is consistent after each public operation of this class,
-  provided that it is not modified externally and that there is sufficient space
-  to accommodate the writes.
+This class manages the smaller bags, which are named, and their
+interdependencies. It also handles the persistence of the smaller bags along
+with some metadata to facilitate the later consumption of the data and also
+its further augmentation. The persistence uses a filesystem directory, which
+is hermetic in the sense that it can be moved or copied (although doing so
+will break branches if any exist - see the docstring of create_branch()). The
+persistence directory is consistent after each public operation of this class,
+provided that it is not modified externally and that there is sufficient space
+to accommodate the writes.
 
-  This class is not thread-safe. When an instance is created for a persistence
-  directory that is already populated, then the instance is initialized with
-  the current state found in the persistence directory at that point in time.
-  Write operations (calls to add_bags()) by other instances for the same
-  persistence directory are not propagated to this instance. A write operation
-  will fail if the state of the persistence directory was modified in the
-  meantime by another instance.</code></pre>
+This class is not thread-safe. When an instance is created for a persistence
+directory that is already populated, then the instance is initialized with
+the current state found in the persistence directory at that point in time.
+Write operations (calls to add_bags()) by other instances for the same
+persistence directory are not propagated to this instance. A write operation
+will fail if the state of the persistence directory was modified in the
+meantime by another instance.</code></pre>
 
 <section class="zippy closed">
 
