@@ -10596,9 +10596,9 @@ Alias for [kd.schema.to_object](#kd.schema.to_object) operator.
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to one or more proto messages.
 
   If `x` is a DataItem, this returns a single proto message object. Otherwise,
-  `x` must be a 1-D DataSlice, and this returns a list of proto message objects
-  with the same size as the input. Missing items in the input are returned as
-  python None in place of a message.
+  this returns a nested list of proto message objects with the same size and
+  shape as the input. Missing items in the input are returned as python None in
+  place of a message.
 
   Koda data structures are converted to equivalent proto messages, primitive
   fields, repeated fields, maps, and enums, based on the proto schema. Koda

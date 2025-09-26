@@ -105,6 +105,7 @@ py_library(
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "@com_google_protobuf//:protobuf_python",
     ],
 )

@@ -14,12 +14,21 @@
 
 """Koda functions for converting to and from protocol buffers."""
 
-from typing import Type
+from collections.abc import Iterator
+from typing import Any, Type
 
 from google.protobuf import message
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import mask_constants
+
+
+# Note: could use `tree.unflatten_as`, but it's not worth adding an additional
+# third-party dependency just for this.
+def _unflatten(shape: list[Any] | None, it: Iterator[Any]) -> list[Any]:
+  """Unflattens an iterator into a shape given by a nested list with None leaves."""
+  return [_unflatten(x, it) for x in shape] if shape is not None else next(it)
 
 
 def from_proto(
@@ -187,9 +196,9 @@ def to_proto(
   """Converts a DataSlice or DataItem to one or more proto messages.
 
   If `x` is a DataItem, this returns a single proto message object. Otherwise,
-  `x` must be a 1-D DataSlice, and this returns a list of proto message objects
-  with the same size as the input. Missing items in the input are returned as
-  python None in place of a message.
+  this returns a nested list of proto message objects with the same size and
+  shape as the input. Missing items in the input are returned as python None in
+  place of a message.
 
   Koda data structures are converted to equivalent proto messages, primitive
   fields, repeated fields, maps, and enums, based on the proto schema. Koda
@@ -211,4 +220,6 @@ def to_proto(
   Returns:
     A converted proto message or list of converted proto messages.
   """
-  return x._to_proto(message_class)  # pylint: disable=protected-access
+  x_shape = (x & mask_constants.missing).to_py()
+  results_flat = x.flatten()._to_proto(message_class)  # pylint: disable=protected-access
+  return _unflatten(x_shape, iter(results_flat))
