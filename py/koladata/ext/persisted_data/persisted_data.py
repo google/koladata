@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Facade module exposing selected functionality of the persisted_data package."""
+"""Tools for persisted incremental data."""
 
 from koladata.ext.persisted_data import data_slice_manager_interface as _data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_manager_view as _data_slice_manager_view

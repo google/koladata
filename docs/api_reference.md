@@ -43,8 +43,8 @@ Category  | Subcategory | Description
 [kd_ext](#kd_ext) | | `kd_ext` operators
  | [contrib](#kd_ext.contrib) | External contributions not necessarily endorsed by Koda.
  | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
- | [npkd](#kd_ext.npkd) | Tools for Numpy <-> Koda interoperability.
- | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
+ | [npkd](#kd_ext.npkd) | Tools for Numpy &lt;-&gt; Koda interoperability.
+ | [pdkd](#kd_ext.pdkd) | Tools for Pandas &lt;-&gt; Koda interoperability.
  | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
 [DataSlice](#DataSlice) | | `DataSlice` class
@@ -11087,7 +11087,7 @@ Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 
 ### kd_ext.persisted_data {#kd_ext.persisted_data}
 
-Tools for persisted incremental data.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Tools for persisted incremental data.</code></pre>
 
 
 <section class="zippy open">
@@ -11301,7 +11301,7 @@ meantime by another instance.</code></pre>
 
 #### kd_ext.persisted_data.fs_interface {#kd_ext.persisted_data.fs_interface}
 
-File system interaction interface.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface to interact with the file system.</code></pre>
 
 <section class="zippy closed">
 
