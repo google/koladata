@@ -188,7 +188,7 @@ Args:
  line_text: text of the line where the expr node was created
 </code></pre>
 
-### `kd.annotation.with_name(obj, name)` {#kd.annotation.with_name}
+### `kd.annotation.with_name(obj, name) -> Any` {#kd.annotation.with_name}
 Aliases:
 
 - [kd.with_name](#kd.with_name)
@@ -630,7 +630,7 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
-### `kd.core.container(**attrs)` {#kd.core.container}
+### `kd.core.container(**attrs) -> DataSlice` {#kd.core.container}
 Aliases:
 
 - [kd.container](#kd.container)
@@ -1491,7 +1491,7 @@ Args:
 Returns:
   A MASK DataItem.</code></pre>
 
-### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.like}
+### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dicts.like}
 Aliases:
 
 - [kd.dict_like](#kd.dict_like)
@@ -1523,7 +1523,7 @@ Aliases:
   Returns:
     A DataSlice with the dicts.</code></pre>
 
-### `kd.dicts.new(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.new}
+### `kd.dicts.new(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dicts.new}
 Aliases:
 
 - [kd.dict](#kd.dict)
@@ -1607,7 +1607,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.shaped}
+### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dicts.shaped}
 Aliases:
 
 - [kd.dict_shaped](#kd.dict_shaped)
@@ -1637,7 +1637,7 @@ Aliases:
   Returns:
     A DataSlice with the dicts.</code></pre>
 
-### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.shaped_as}
+### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dicts.shaped_as}
 Aliases:
 
 - [kd.dict_shaped_as](#kd.dict_shaped_as)
@@ -1706,7 +1706,7 @@ Operators that work solely with entities.
 
 **Operators**
 
-### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.like}
+### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.entities.like}
 Aliases:
 
 - [kd.new_like](#kd.new_like)
@@ -1730,7 +1730,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.new}
+### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.entities.new}
 Aliases:
 
 - [kd.new](#kd.new)
@@ -1755,7 +1755,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped}
+### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.entities.shaped}
 Aliases:
 
 - [kd.new_shaped](#kd.new_shaped)
@@ -1778,7 +1778,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped_as}
+### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.entities.shaped_as}
 Aliases:
 
 - [kd.new_shaped_as](#kd.new_shaped_as)
@@ -1801,7 +1801,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.entities.uu}
+### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs) -> DataSlice` {#kd.entities.uu}
 Aliases:
 
 - [kd.uu](#kd.uu)
@@ -1831,31 +1831,31 @@ Expr utilities.
 
 **Operators**
 
-### `kd.expr.as_expr(arg)` {#kd.expr.as_expr}
+### `kd.expr.as_expr(arg) -> Expr` {#kd.expr.as_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts Python values into Exprs.</code></pre>
 
-### `kd.expr.get_input_names(expr, container=InputContainer('I'))` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=InputContainer('I')) -> list[str]` {#kd.expr.get_input_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns names of `container` inputs used in `expr`.</code></pre>
 
-### `kd.expr.get_name(expr)` {#kd.expr.get_name}
+### `kd.expr.get_name(expr) -> str | None` {#kd.expr.get_name}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of the given Expr, or None if it does not have one.</code></pre>
 
-### `kd.expr.is_input(expr)` {#kd.expr.is_input}
+### `kd.expr.is_input(expr) -> bool` {#kd.expr.is_input}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is an input `I`.</code></pre>
 
-### `kd.expr.is_literal(expr)` {#kd.expr.is_literal}
+### `kd.expr.is_literal(expr) -> bool` {#kd.expr.is_literal}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a Koda Literal.</code></pre>
 
-### `kd.expr.is_packed_expr(ds)` {#kd.expr.is_packed_expr}
+### `kd.expr.is_packed_expr(ds) -> DataSlice` {#kd.expr.is_packed_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the argument is a DataItem containing an Expr.</code></pre>
 
-### `kd.expr.is_variable(expr)` {#kd.expr.is_variable}
+### `kd.expr.is_variable(expr) -> bool` {#kd.expr.is_variable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if `expr` is a variable `V`.</code></pre>
 
@@ -1863,11 +1863,11 @@ Expr utilities.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Constructs an expr with a LiteralOperator wrapping the provided QValue.</code></pre>
 
-### `kd.expr.pack_expr(expr)` {#kd.expr.pack_expr}
+### `kd.expr.pack_expr(expr) -> DataSlice` {#kd.expr.pack_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Packs the given Expr into a DataItem.</code></pre>
 
-### `kd.expr.sub(expr, *subs)` {#kd.expr.sub}
+### `kd.expr.sub(expr, *subs) -> Expr` {#kd.expr.sub}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with provided expressions replaced.
 
@@ -1898,7 +1898,7 @@ Expr utilities.
   Returns:
     A new Expr with substitutions.</code></pre>
 
-### `kd.expr.sub_by_name(expr, /, **subs)` {#kd.expr.sub_by_name}
+### `kd.expr.sub_by_name(expr, /, **subs) -> Expr` {#kd.expr.sub_by_name}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `expr` with named subexpressions replaced.
 
@@ -1915,15 +1915,15 @@ Expr utilities.
     expr: an expression.
     **subs: mapping from subexpression name to replacement node.</code></pre>
 
-### `kd.expr.sub_inputs(expr, container=InputContainer('I'), /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=InputContainer('I'), /, **subs) -> Expr` {#kd.expr.sub_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an expression with `container` inputs replaced with Expr(s).</code></pre>
 
-### `kd.expr.unpack_expr(ds)` {#kd.expr.unpack_expr}
+### `kd.expr.unpack_expr(ds) -> Expr` {#kd.expr.unpack_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Unpacks an Expr stored in a DataItem.</code></pre>
 
-### `kd.expr.unwrap_named(expr)` {#kd.expr.unwrap_named}
+### `kd.expr.unwrap_named(expr) -> Expr` {#kd.expr.unwrap_named}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Unwraps a named Expr, raising if it is not named.</code></pre>
 
@@ -1965,11 +1965,11 @@ Extension type functionality.
     a_null.x  # ERROR
     a_null.is_null()  # kd.present</code></pre>
 
-### `kd.extension_types.dynamic_cast(value, qtype)` {#kd.extension_types.dynamic_cast}
+### `kd.extension_types.dynamic_cast(value, qtype) -> Any` {#kd.extension_types.dynamic_cast}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Up-, down-, and side-casts `value` to `qtype`.</code></pre>
 
-### `kd.extension_types.extension_type(unsafe_override=False)` {#kd.extension_types.extension_type}
+### `kd.extension_types.extension_type(unsafe_override=False) -> Callable[[type[Any]], type[Any]]` {#kd.extension_types.extension_type}
 Aliases:
 
 - [kd.extension_type](#kd.extension_type)
@@ -2082,7 +2082,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attribute of `ext` with name `attr` and type `qtype`.</code></pre>
 
-### `kd.extension_types.get_extension_qtype(cls)` {#kd.extension_types.get_extension_qtype}
+### `kd.extension_types.get_extension_qtype(cls) -> QType` {#kd.extension_types.get_extension_qtype}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the QType for the given extension type class.</code></pre>
 
@@ -2090,11 +2090,11 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff `attr` is an attribute of `ext`.</code></pre>
 
-### `kd.extension_types.is_koda_extension(x)` {#kd.extension_types.is_koda_extension}
+### `kd.extension_types.is_koda_extension(x) -> bool` {#kd.extension_types.is_koda_extension}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given object is an instance of a Koda extension type.</code></pre>
 
-### `kd.extension_types.is_koda_extension_type(cls)` {#kd.extension_types.is_koda_extension_type}
+### `kd.extension_types.is_koda_extension_type(cls) -> bool` {#kd.extension_types.is_koda_extension_type}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff the given type is a registered Koda extension type.</code></pre>
 
@@ -2111,7 +2111,7 @@ Aliases:
     prototype: parent object (arolla.Object).
     **attrs: attributes of the extension type.</code></pre>
 
-### `kd.extension_types.make_null(qtype)` {#kd.extension_types.make_null}
+### `kd.extension_types.make_null(qtype) -> Any` {#kd.extension_types.make_null}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a null instance of an extension type.</code></pre>
 
@@ -2131,7 +2131,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `ext` containing the given `attrs`.</code></pre>
 
-### `kd.extension_types.wrap(x, qtype)` {#kd.extension_types.wrap}
+### `kd.extension_types.wrap(x, qtype) -> Any` {#kd.extension_types.wrap}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
 
@@ -2152,7 +2152,7 @@ Operators to create and call functors.
   Implements:
     (py_types.FunctionType, return_type_as: arolla.QValue) -&gt; DataItem</code></pre>
 
-### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
+### `kd.functor.allow_arbitrary_unused_inputs(fn_def) -> DataSlice` {#kd.functor.allow_arbitrary_unused_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a functor that allows unused inputs but otherwise behaves the same.
 
@@ -2174,7 +2174,7 @@ Operators to create and call functors.
     but with an additional `**__extra_inputs__` variadic keyword argument if
     there is no existing variadic keyword argument.</code></pre>
 
-### `kd.functor.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.functor.bind}
+### `kd.functor.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs) -> DataSlice` {#kd.functor.bind}
 Aliases:
 
 - [kd.bind](#kd.bind)
@@ -2323,7 +2323,7 @@ Args:
     not return a Iterable[DataSlice].
   **kwargs: The keyword arguments to pass to the call.</code></pre>
 
-### `kd.functor.expr_fn(returns, *, signature=None, auto_variables=False, **variables)` {#kd.functor.expr_fn}
+### `kd.functor.expr_fn(returns, *, signature=None, auto_variables=False, **variables) -> DataSlice` {#kd.functor.expr_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a functor.
 
@@ -2420,7 +2420,7 @@ Args:
 Returns:
   The resulting iterable as interleaved output of `fn`.</code></pre>
 
-### `kd.functor.fn(f, *, use_tracing=True, **kwargs)` {#kd.functor.fn}
+### `kd.functor.fn(f, *, use_tracing=True, **kwargs) -> DataSlice` {#kd.functor.fn}
 Aliases:
 
 - [kd.fn](#kd.fn)
@@ -2509,7 +2509,7 @@ Args:
 Returns:
   Either the return value or the iterable of yielded values.</code></pre>
 
-### `kd.functor.fstr_fn(returns, **kwargs)` {#kd.functor.fstr_fn}
+### `kd.functor.fstr_fn(returns, **kwargs) -> DataSlice` {#kd.functor.fstr_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor from format string.
 
@@ -2533,7 +2533,7 @@ Returns:
     returns: A format string.
     **kwargs: variable assignments.</code></pre>
 
-### `kd.functor.get_signature(fn_def)` {#kd.functor.get_signature}
+### `kd.functor.get_signature(fn_def) -> DataSlice` {#kd.functor.get_signature}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Retrieves the signature attached to the given functor.
 
@@ -2586,7 +2586,7 @@ Args:
 Returns:
   The result of the call of either `yes_fn` or `no_fn`.</code></pre>
 
-### `kd.functor.is_fn(obj)` {#kd.functor.is_fn}
+### `kd.functor.is_fn(obj) -> DataSlice` {#kd.functor.is_fn}
 Aliases:
 
 - [kd.is_fn](#kd.is_fn)
@@ -2644,7 +2644,7 @@ Args:
 Returns:
   The evaluation result.</code></pre>
 
-### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, include_missing=None, **defaults)` {#kd.functor.map_py_fn}
+### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, include_missing=None, **defaults) -> DataSlice` {#kd.functor.map_py_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor wrapping a python function for kd.map_py.
 
@@ -2663,7 +2663,7 @@ Returns:
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.</code></pre>
 
-### `kd.functor.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd.functor.py_fn}
+### `kd.functor.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults) -> DataSlice` {#kd.functor.py_fn}
 Aliases:
 
 - [kd.py_fn](#kd.py_fn)
@@ -2719,7 +2719,7 @@ Args:
 Returns:
   Result of the reduction as a single value.</code></pre>
 
-### `kd.functor.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults)` {#kd.functor.register_py_fn}
+### `kd.functor.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults) -> DataSlice` {#kd.functor.register_py_fn}
 Aliases:
 
 - [kd.register_py_fn](#kd.register_py_fn)
@@ -2812,7 +2812,7 @@ Aliases:
   the boxing rules on the returned value (for example, convert Python primitives
   to DataItems) to better emulate what will happen in tracing mode.</code></pre>
 
-### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.functor.trace_py_fn}
+### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults) -> DataSlice` {#kd.functor.trace_py_fn}
 Aliases:
 
 - [kd.trace_py_fn](#kd.trace_py_fn)
@@ -3496,7 +3496,7 @@ Args:
 Returns:
   DataSlice of lists with new itemd ids in a new immutable DataBag.</code></pre>
 
-### `kd.lists.concat(*lists)` {#kd.lists.concat}
+### `kd.lists.concat(*lists) -> DataSlice` {#kd.lists.concat}
 Aliases:
 
 - [kd.concat_lists](#kd.concat_lists)
@@ -3572,7 +3572,7 @@ Args:
 Returns:
   A MASK DataSlice with the same shape as `x`.</code></pre>
 
-### `kd.lists.implode(x, /, ndim=1, itemid=None)` {#kd.lists.implode}
+### `kd.lists.implode(x, /, ndim=1, itemid=None) -> DataSlice` {#kd.lists.implode}
 Aliases:
 
 - [kd.implode](#kd.implode)
@@ -3625,7 +3625,7 @@ Args:
 Returns:
   A MASK DataItem.</code></pre>
 
-### `kd.lists.like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.like}
+### `kd.lists.like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.lists.like}
 Aliases:
 
 - [kd.list_like](#kd.list_like)
@@ -3714,7 +3714,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `kd.lists.shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.shaped}
+### `kd.lists.shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.lists.shaped}
 Aliases:
 
 - [kd.list_shaped](#kd.list_shaped)
@@ -3736,7 +3736,7 @@ Aliases:
   Returns:
     A DataSlice with the lists.</code></pre>
 
-### `kd.lists.shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.shaped_as}
+### `kd.lists.shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.lists.shaped_as}
 Aliases:
 
 - [kd.list_shaped_as](#kd.list_shaped_as)
@@ -4629,7 +4629,7 @@ Operators that work solely with objects.
 
 **Operators**
 
-### `kd.objs.like(shape_and_mask_from, /, *, itemid=None, **attrs)` {#kd.objs.like}
+### `kd.objs.like(shape_and_mask_from, /, *, itemid=None, **attrs) -> DataSlice` {#kd.objs.like}
 Aliases:
 
 - [kd.obj_like](#kd.obj_like)
@@ -4647,7 +4647,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.objs.new(arg=unspecified, /, *, itemid=None, **attrs)` {#kd.objs.new}
+### `kd.objs.new(arg=unspecified, /, *, itemid=None, **attrs) -> DataSlice` {#kd.objs.new}
 Aliases:
 
 - [kd.obj](#kd.obj)
@@ -4666,7 +4666,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.</code></pre>
 
-### `kd.objs.shaped(shape, /, *, itemid=None, **attrs)` {#kd.objs.shaped}
+### `kd.objs.shaped(shape, /, *, itemid=None, **attrs) -> DataSlice` {#kd.objs.shaped}
 Aliases:
 
 - [kd.obj_shaped](#kd.obj_shaped)
@@ -4683,7 +4683,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.objs.shaped_as(shape_from, /, *, itemid=None, **attrs)` {#kd.objs.shaped_as}
+### `kd.objs.shaped_as(shape_from, /, *, itemid=None, **attrs) -> DataSlice` {#kd.objs.shaped_as}
 Aliases:
 
 - [kd.obj_shaped_as](#kd.obj_shaped_as)
@@ -4700,7 +4700,7 @@ Aliases:
   Returns:
     data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.objs.uu(seed=None, **attrs)` {#kd.objs.uu}
+### `kd.objs.uu(seed=None, **attrs) -> DataSlice` {#kd.objs.uu}
 Aliases:
 
 - [kd.uuobj](#kd.uuobj)
@@ -4795,7 +4795,7 @@ Operator definition and registration tooling.
   Returns:
     An overloadable registered operator.</code></pre>
 
-### `kd.optools.as_backend_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), deterministic=True, custom_boxing_fn_name_per_parameter=None)` {#kd.optools.as_backend_operator}
+### `kd.optools.as_backend_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), deterministic=True, custom_boxing_fn_name_per_parameter=None) -> Callable[[function], BackendOperator]` {#kd.optools.as_backend_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator for Koladata backend operators with a unified binding policy.
 
@@ -4821,7 +4821,7 @@ Operator definition and registration tooling.
     A decorator that constructs a backend operator based on the provided Python
     function signature.</code></pre>
 
-### `kd.optools.as_lambda_operator(name, *, qtype_constraints=(), deterministic=None, custom_boxing_fn_name_per_parameter=None, suppress_unused_parameter_warning=False)` {#kd.optools.as_lambda_operator}
+### `kd.optools.as_lambda_operator(name, *, qtype_constraints=(), deterministic=None, custom_boxing_fn_name_per_parameter=None, suppress_unused_parameter_warning=False) -> Callable[[function], LambdaOperator | RestrictedLambdaOperator]` {#kd.optools.as_lambda_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator for Koladata lambda operators with a unified binding policy.
 
@@ -4846,7 +4846,7 @@ Operator definition and registration tooling.
   Returns:
     A decorator that constructs a lambda operator by tracing a Python function.</code></pre>
 
-### `kd.optools.as_py_function_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), codec=None, deterministic=True, custom_boxing_fn_name_per_parameter=None)` {#kd.optools.as_py_function_operator}
+### `kd.optools.as_py_function_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), codec=None, deterministic=True, custom_boxing_fn_name_per_parameter=None) -> Callable[[function], Operator]` {#kd.optools.as_py_function_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a decorator for defining Koladata-specific py-function operators.
 
@@ -4872,19 +4872,19 @@ Operator definition and registration tooling.
       function per parameter (constants with the boxing functions look like:
       `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).</code></pre>
 
-### `kd.optools.as_qvalue(arg)` {#kd.optools.as_qvalue}
+### `kd.optools.as_qvalue(arg) -> QValue` {#kd.optools.as_qvalue}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts Python values into QValues.</code></pre>
 
-### `kd.optools.as_qvalue_or_expr(arg)` {#kd.optools.as_qvalue_or_expr}
+### `kd.optools.as_qvalue_or_expr(arg) -> Expr | QValue` {#kd.optools.as_qvalue_or_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts Python values into QValues or Exprs.</code></pre>
 
-### `kd.optools.equiv_to_op(this_op, that_op)` {#kd.optools.equiv_to_op}
+### `kd.optools.equiv_to_op(this_op, that_op) -> bool` {#kd.optools.equiv_to_op}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true iff the impl of `this_op` equals the impl of `that_op`.</code></pre>
 
-### `kd.optools.make_operators_container(*namespaces)` {#kd.optools.make_operators_container}
+### `kd.optools.make_operators_container(*namespaces) -> OperatorsContainer` {#kd.optools.make_operators_container}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an OperatorsContainer for the given namespaces.
 
@@ -4895,11 +4895,11 @@ Operator definition and registration tooling.
   Args:
     *namespaces: Namespaces to make available in the returned container.</code></pre>
 
-### `kd.optools.unified_non_deterministic_arg()` {#kd.optools.unified_non_deterministic_arg}
+### `kd.optools.unified_non_deterministic_arg() -> Expr` {#kd.optools.unified_non_deterministic_arg}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., arg)`.</code></pre>
 
-### `kd.optools.unified_non_deterministic_kwarg()` {#kd.optools.unified_non_deterministic_kwarg}
+### `kd.optools.unified_non_deterministic_kwarg() -> dict[str, Expr]` {#kd.optools.unified_non_deterministic_kwarg}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., **kwarg)`.</code></pre>
 
@@ -5079,7 +5079,7 @@ Operators for parallel computation.
 
 **Operators**
 
-### `kd.parallel.call_multithreaded(fn, /, *args, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs)` {#kd.parallel.call_multithreaded}
+### `kd.parallel.call_multithreaded(fn, /, *args, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs) -> Any` {#kd.parallel.call_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor with the given arguments.
 
@@ -5113,7 +5113,7 @@ Operators for parallel computation.
     is/has a stream, and this method needs to return multiple values at
     different times instead of one value at the end.</code></pre>
 
-### `kd.parallel.transform(fn, *, allow_runtime_transforms=False)` {#kd.parallel.transform}
+### `kd.parallel.transform(fn, *, allow_runtime_transforms=False) -> DataItem` {#kd.parallel.transform}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Transforms a functor to run in parallel.
 
@@ -5130,7 +5130,7 @@ Operators for parallel computation.
   Returns:
     The transformed functor.</code></pre>
 
-### `kd.parallel.yield_multithreaded(fn, /, *args, value_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs)` {#kd.parallel.yield_multithreaded}
+### `kd.parallel.yield_multithreaded(fn, /, *args, value_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs) -> Iterator[Any]` {#kd.parallel.yield_multithreaded}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor returning an iterable, and yields the results as they go.
 
@@ -5961,7 +5961,7 @@ OBJECT. It raises an Error if called on primitive schemas, ITEMID, etc.
 Args:
   schema: Schema DataSlice to wrap.</code></pre>
 
-### `kd.schema.schema_from_py(tpe)` {#kd.schema.schema_from_py}
+### `kd.schema.schema_from_py(tpe) -> DataSlice` {#kd.schema.schema_from_py}
 Aliases:
 
 - [kd.schema_from_py](#kd.schema_from_py)
@@ -6541,14 +6541,14 @@ Args:
 Returns:
   A new DataSlice with items selected by indices.</code></pre>
 
-### `kd.slices.bool(x)` {#kd.slices.bool}
+### `kd.slices.bool(x) -> DataSlice` {#kd.slices.bool}
 Aliases:
 
 - [kd.bool](#kd.bool)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.slice(x, kd.BOOLEAN).</code></pre>
 
-### `kd.slices.bytes(x)` {#kd.slices.bytes}
+### `kd.slices.bytes(x) -> DataSlice` {#kd.slices.bytes}
 Aliases:
 
 - [kd.bytes](#kd.bytes)
@@ -6795,21 +6795,21 @@ Args:
 Returns:
   Expanded DataSlice</code></pre>
 
-### `kd.slices.expr_quote(x)` {#kd.slices.expr_quote}
+### `kd.slices.expr_quote(x) -> DataSlice` {#kd.slices.expr_quote}
 Aliases:
 
 - [kd.expr_quote](#kd.expr_quote)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.slice(x, kd.EXPR).</code></pre>
 
-### `kd.slices.float32(x)` {#kd.slices.float32}
+### `kd.slices.float32(x) -> DataSlice` {#kd.slices.float32}
 Aliases:
 
 - [kd.float32](#kd.float32)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.slice(x, kd.FLOAT32).</code></pre>
 
-### `kd.slices.float64(x)` {#kd.slices.float64}
+### `kd.slices.float64(x) -> DataSlice` {#kd.slices.float64}
 Aliases:
 
 - [kd.float64](#kd.float64)
@@ -7021,14 +7021,14 @@ Args:
     Requires -get_ndim(x) &lt;= dim &lt; get_ndim(x).
     If dim &lt; 0 then dim = get_ndim(x) + dim.</code></pre>
 
-### `kd.slices.int32(x)` {#kd.slices.int32}
+### `kd.slices.int32(x) -> DataSlice` {#kd.slices.int32}
 Aliases:
 
 - [kd.int32](#kd.int32)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.slice(x, kd.INT32).</code></pre>
 
-### `kd.slices.int64(x)` {#kd.slices.int64}
+### `kd.slices.int64(x) -> DataSlice` {#kd.slices.int64}
 Aliases:
 
 - [kd.int64](#kd.int64)
@@ -7192,7 +7192,7 @@ Args:
   schema: schema DataItem to set. If `x` is already a DataItem, this will cast
     it to the given schema.</code></pre>
 
-### `kd.slices.mask(x)` {#kd.slices.mask}
+### `kd.slices.mask(x) -> DataSlice` {#kd.slices.mask}
 Aliases:
 
 - [kd.mask](#kd.mask)
@@ -7515,7 +7515,7 @@ Returns:
   The stacked DataSlice. If the input DataSlices come from different DataBags,
   this will refer to a merged immutable DataBag.</code></pre>
 
-### `kd.slices.str(x)` {#kd.slices.str}
+### `kd.slices.str(x) -> DataSlice` {#kd.slices.str}
 Aliases:
 
 - [kd.str](#kd.str)
@@ -9047,7 +9047,7 @@ Operators to create tuples.
 
 **Operators**
 
-### `kd.tuples.get_namedtuple_field(namedtuple, field_name)` {#kd.tuples.get_namedtuple_field}
+### `kd.tuples.get_namedtuple_field(namedtuple, field_name) -> Any` {#kd.tuples.get_namedtuple_field}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the value of the specified `field_name` from the `namedtuple`.
 
@@ -9055,7 +9055,7 @@ Operators to create tuples.
     namedtuple: a namedtuple.
     field_name: the name of the field to return.</code></pre>
 
-### `kd.tuples.get_nth(x, n)` {#kd.tuples.get_nth}
+### `kd.tuples.get_nth(x, n) -> Any` {#kd.tuples.get_nth}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the nth element of the tuple `x`.
 
@@ -9188,7 +9188,7 @@ Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
-### `kd.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.bind}
+### `kd.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs) -> DataSlice` {#kd.bind}
 
 Alias for [kd.functor.bind](#kd.functor.bind) operator.
 
@@ -9212,11 +9212,11 @@ Alias for [kd.bitwise.bitwise_or](#kd.bitwise.bitwise_or) operator.
 
 Alias for [kd.bitwise.bitwise_xor](#kd.bitwise.bitwise_xor) operator.
 
-### `kd.bool(x)` {#kd.bool}
+### `kd.bool(x) -> DataSlice` {#kd.bool}
 
 Alias for [kd.slices.bool](#kd.slices.bool) operator.
 
-### `kd.bytes(x)` {#kd.bytes}
+### `kd.bytes(x) -> DataSlice` {#kd.bytes}
 
 Alias for [kd.slices.bytes](#kd.slices.bytes) operator.
 
@@ -9358,7 +9358,7 @@ Alias for [kd.slices.collapse](#kd.slices.collapse) operator.
 
 Alias for [kd.slices.concat](#kd.slices.concat) operator.
 
-### `kd.concat_lists(*lists)` {#kd.concat_lists}
+### `kd.concat_lists(*lists) -> DataSlice` {#kd.concat_lists}
 
 Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
@@ -9366,7 +9366,7 @@ Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
 Alias for [kd.masking.cond](#kd.masking.cond) operator.
 
-### `kd.container(**attrs)` {#kd.container}
+### `kd.container(**attrs) -> DataSlice` {#kd.container}
 
 Alias for [kd.core.container](#kd.core.container) operator.
 
@@ -9402,11 +9402,11 @@ Alias for [kd.ids.deep_uuid](#kd.ids.deep_uuid) operator.
 
 Alias for [kd.slices.dense_rank](#kd.slices.dense_rank) operator.
 
-### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict}
+### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dict}
 
 Alias for [kd.dicts.new](#kd.dicts.new) operator.
 
-### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_like}
+### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dict_like}
 
 Alias for [kd.dicts.like](#kd.dicts.like) operator.
 
@@ -9414,11 +9414,11 @@ Alias for [kd.dicts.like](#kd.dicts.like) operator.
 
 Alias for [kd.schema.dict_schema](#kd.schema.dict_schema) operator.
 
-### `kd.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_shaped}
+### `kd.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dict_shaped}
 
 Alias for [kd.dicts.shaped](#kd.dicts.shaped) operator.
 
-### `kd.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_shaped_as}
+### `kd.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.dict_shaped_as}
 
 Alias for [kd.dicts.shaped_as](#kd.dicts.shaped_as) operator.
 
@@ -9430,7 +9430,7 @@ Alias for [kd.dicts.size](#kd.dicts.size) operator.
 
 Alias for [kd.dicts.dict_update](#kd.dicts.dict_update) operator.
 
-### `kd.dir(x)` {#kd.dir}
+### `kd.dir(x) -> list[str]` {#kd.dir}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of the given DataSlice.
 
@@ -9523,7 +9523,7 @@ Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce) operator
   Returns:
     A duck type constraint to be used in kd.check_inputs or kd.check_output.</code></pre>
 
-### `kd.dumps(x, /, *, riegeli_options=None)` {#kd.dumps}
+### `kd.dumps(x, /, *, riegeli_options=None) -> bytes` {#kd.dumps}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes a DataSlice or a DataBag.
 
@@ -9543,7 +9543,7 @@ Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce) operator
   Returns:
     Serialized data.</code></pre>
 
-### `kd.embed_schema(x)` {#kd.embed_schema}
+### `kd.embed_schema(x) -> DataSlice` {#kd.embed_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with OBJECT schema.
 
@@ -9578,7 +9578,7 @@ Alias for [kd.bags.enriched](#kd.bags.enriched) operator.
 
 Alias for [kd.comparison.equal](#kd.comparison.equal) operator.
 
-### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: ENTITY(self_not_specified=MASK)), /, **input_values)` {#kd.eval}
+### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: ENTITY(self_not_specified=MASK)), /, **input_values) -> Any` {#kd.eval}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the expr evaluated on the given `input_values`.
 
@@ -9605,11 +9605,11 @@ Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
 Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
-### `kd.expr_quote(x)` {#kd.expr_quote}
+### `kd.expr_quote(x) -> DataSlice` {#kd.expr_quote}
 
 Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
-### `kd.extension_type(unsafe_override=False)` {#kd.extension_type}
+### `kd.extension_type(unsafe_override=False) -> Callable[[type[Any]], type[Any]]` {#kd.extension_type}
 
 Alias for [kd.extension_types.extension_type](#kd.extension_types.extension_type) operator.
 
@@ -9637,15 +9637,15 @@ Alias for [kd.shapes.flatten](#kd.shapes.flatten) operator.
 
 Alias for [kd.shapes.flatten_end](#kd.shapes.flatten_end) operator.
 
-### `kd.float32(x)` {#kd.float32}
+### `kd.float32(x) -> DataSlice` {#kd.float32}
 
 Alias for [kd.slices.float32](#kd.slices.float32) operator.
 
-### `kd.float64(x)` {#kd.float64}
+### `kd.float64(x) -> DataSlice` {#kd.float64}
 
 Alias for [kd.slices.float64](#kd.slices.float64) operator.
 
-### `kd.fn(f, *, use_tracing=True, **kwargs)` {#kd.fn}
+### `kd.fn(f, *, use_tracing=True, **kwargs) -> DataSlice` {#kd.fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
@@ -9673,7 +9673,7 @@ Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
 Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
-### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None)` {#kd.from_proto}
+### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None) -> DataSlice` {#kd.from_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice representing proto data.
 
@@ -9743,7 +9743,7 @@ Alias for [kd.proto.from_proto_bytes](#kd.proto.from_proto_bytes) operator.
 
 Alias for [kd.proto.from_proto_json](#kd.proto.from_proto_json) operator.
 
-### `kd.from_py(py_obj, *, dict_as_obj=False, itemid=None, schema=None, from_dim=0)` {#kd.from_py}
+### `kd.from_py(py_obj, *, dict_as_obj=False, itemid=None, schema=None, from_dim=0) -> DataSlice` {#kd.from_py}
 Aliases:
 
 - [kd.from_pytree](#kd.from_pytree)
@@ -9772,7 +9772,7 @@ Aliases:
   Returns:
     A DataItem with the converted data.</code></pre>
 
-### `kd.from_pytree(py_obj, *, dict_as_obj=False, itemid=None, schema=None, from_dim=0)` {#kd.from_pytree}
+### `kd.from_pytree(py_obj, *, dict_as_obj=False, itemid=None, schema=None, from_dim=0) -> DataSlice` {#kd.from_pytree}
 
 Alias for [kd.from_py](#kd.from_py) operator.
 
@@ -9788,7 +9788,7 @@ Alias for [kd.comparison.full_equal](#kd.comparison.full_equal) operator.
 
 Alias for [kd.core.get_attr](#kd.core.get_attr) operator.
 
-### `kd.get_attr_names(x, *, intersection)` {#kd.get_attr_names}
+### `kd.get_attr_names(x, *, intersection) -> list[str]` {#kd.get_attr_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of the given DataSlice.
 
@@ -9932,7 +9932,7 @@ Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
 Alias for [kd.functor.if_](#kd.functor.if_) operator.
 
-### `kd.implode(x, /, ndim=1, itemid=None)` {#kd.implode}
+### `kd.implode(x, /, ndim=1, itemid=None) -> DataSlice` {#kd.implode}
 
 Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
@@ -9940,11 +9940,11 @@ Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
 Alias for [kd.slices.index](#kd.slices.index) operator.
 
-### `kd.int32(x)` {#kd.int32}
+### `kd.int32(x) -> DataSlice` {#kd.int32}
 
 Alias for [kd.slices.int32](#kd.slices.int32) operator.
 
-### `kd.int64(x)` {#kd.int64}
+### `kd.int64(x) -> DataSlice` {#kd.int64}
 
 Alias for [kd.slices.int64](#kd.slices.int64) operator.
 
@@ -9972,15 +9972,15 @@ Alias for [kd.core.is_entity](#kd.core.is_entity) operator.
 
 Alias for [kd.slices.is_expandable_to](#kd.slices.is_expandable_to) operator.
 
-### `kd.is_expr(obj)` {#kd.is_expr}
+### `kd.is_expr(obj) -> DataSlice` {#kd.is_expr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the given object is an Expr and kd.missing otherwise.</code></pre>
 
-### `kd.is_fn(obj)` {#kd.is_fn}
+### `kd.is_fn(obj) -> DataSlice` {#kd.is_fn}
 
 Alias for [kd.functor.is_fn](#kd.functor.is_fn) operator.
 
-### `kd.is_item(obj)` {#kd.is_item}
+### `kd.is_item(obj) -> DataSlice` {#kd.is_item}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the given object is a scalar DataItem and kd.missing otherwise.</code></pre>
 
@@ -10004,7 +10004,7 @@ Alias for [kd.core.is_primitive](#kd.core.is_primitive) operator.
 
 Alias for [kd.slices.is_shape_compatible](#kd.slices.is_shape_compatible) operator.
 
-### `kd.is_slice(obj)` {#kd.is_slice}
+### `kd.is_slice(obj) -> DataSlice` {#kd.is_slice}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the given object is a DataSlice and kd.missing otherwise.</code></pre>
 
@@ -10024,7 +10024,7 @@ Alias for [kd.comparison.less](#kd.comparison.less) operator.
 
 Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
-### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list}
+### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates list(s) by collapsing `items` into an immutable list.
 
@@ -10053,7 +10053,7 @@ Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
 Alias for [kd.lists.list_append_update](#kd.lists.list_append_update) operator.
 
-### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_like}
+### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.list_like}
 
 Alias for [kd.lists.like](#kd.lists.like) operator.
 
@@ -10061,11 +10061,11 @@ Alias for [kd.lists.like](#kd.lists.like) operator.
 
 Alias for [kd.schema.list_schema](#kd.schema.list_schema) operator.
 
-### `kd.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_shaped}
+### `kd.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.list_shaped}
 
 Alias for [kd.lists.shaped](#kd.lists.shaped) operator.
 
-### `kd.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_shaped_as}
+### `kd.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None) -> DataSlice` {#kd.list_shaped_as}
 
 Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
@@ -10073,7 +10073,7 @@ Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
 Alias for [kd.lists.size](#kd.lists.size) operator.
 
-### `kd.loads(x)` {#kd.loads}
+### `kd.loads(x) -> DataSlice | DataBag` {#kd.loads}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag.</code></pre>
 
@@ -10093,7 +10093,7 @@ Alias for [kd.py.map_py_on_cond](#kd.py.map_py_on_cond) operator.
 
 Alias for [kd.py.map_py_on_selected](#kd.py.map_py_on_selected) operator.
 
-### `kd.mask(x)` {#kd.mask}
+### `kd.mask(x) -> DataSlice` {#kd.mask}
 
 Alias for [kd.slices.mask](#kd.slices.mask) operator.
 
@@ -10179,7 +10179,7 @@ Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
 Alias for [kd.tuples.namedtuple](#kd.tuples.namedtuple) operator.
 
-### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new}
+### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.new}
 
 Alias for [kd.entities.new](#kd.entities.new) operator.
 
@@ -10215,7 +10215,7 @@ Alias for [kd.allocation.new_itemid_shaped](#kd.allocation.new_itemid_shaped) op
 
 Alias for [kd.allocation.new_itemid_shaped_as](#kd.allocation.new_itemid_shaped_as) operator.
 
-### `kd.new_like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_like}
+### `kd.new_like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.new_like}
 
 Alias for [kd.entities.like](#kd.entities.like) operator.
 
@@ -10235,11 +10235,11 @@ Alias for [kd.allocation.new_listid_shaped](#kd.allocation.new_listid_shaped) op
 
 Alias for [kd.allocation.new_listid_shaped_as](#kd.allocation.new_listid_shaped_as) operator.
 
-### `kd.new_shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_shaped}
+### `kd.new_shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.new_shaped}
 
 Alias for [kd.entities.shaped](#kd.entities.shaped) operator.
 
-### `kd.new_shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_shaped_as}
+### `kd.new_shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs) -> DataSlice` {#kd.new_shaped_as}
 
 Alias for [kd.entities.shaped_as](#kd.entities.shaped_as) operator.
 
@@ -10259,19 +10259,19 @@ Alias for [kd.schema.nofollow_schema](#kd.schema.nofollow_schema) operator.
 
 Alias for [kd.comparison.not_equal](#kd.comparison.not_equal) operator.
 
-### `kd.obj(arg=unspecified, /, *, itemid=None, **attrs)` {#kd.obj}
+### `kd.obj(arg=unspecified, /, *, itemid=None, **attrs) -> DataSlice` {#kd.obj}
 
 Alias for [kd.objs.new](#kd.objs.new) operator.
 
-### `kd.obj_like(shape_and_mask_from, /, *, itemid=None, **attrs)` {#kd.obj_like}
+### `kd.obj_like(shape_and_mask_from, /, *, itemid=None, **attrs) -> DataSlice` {#kd.obj_like}
 
 Alias for [kd.objs.like](#kd.objs.like) operator.
 
-### `kd.obj_shaped(shape, /, *, itemid=None, **attrs)` {#kd.obj_shaped}
+### `kd.obj_shaped(shape, /, *, itemid=None, **attrs) -> DataSlice` {#kd.obj_shaped}
 
 Alias for [kd.objs.shaped](#kd.objs.shaped) operator.
 
-### `kd.obj_shaped_as(shape_from, /, *, itemid=None, **attrs)` {#kd.obj_shaped_as}
+### `kd.obj_shaped_as(shape_from, /, *, itemid=None, **attrs) -> DataSlice` {#kd.obj_shaped_as}
 
 Alias for [kd.objs.shaped_as](#kd.objs.shaped_as) operator.
 
@@ -10295,11 +10295,11 @@ Alias for [kd.masking.present_shaped_as](#kd.masking.present_shaped_as) operator
 
 Alias for [kd.curves.pwl_curve](#kd.curves.pwl_curve) operator.
 
-### `kd.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd.py_fn}
+### `kd.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults) -> DataSlice` {#kd.py_fn}
 
 Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
-### `kd.py_reference(obj)` {#kd.py_reference}
+### `kd.py_reference(obj) -> PyObject` {#kd.py_reference}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps into a Arolla QValue using reference for serialization.
 
@@ -10336,7 +10336,7 @@ Alias for [kd.slices.range](#kd.slices.range) operator.
 
 Alias for [kd.core.ref](#kd.core.ref) operator.
 
-### `kd.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults)` {#kd.register_py_fn}
+### `kd.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults) -> DataSlice` {#kd.register_py_fn}
 
 Alias for [kd.functor.register_py_fn](#kd.functor.register_py_fn) operator.
 
@@ -10376,7 +10376,7 @@ Alias for [kd.random.sample](#kd.random.sample) operator.
 
 Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
-### `kd.schema_from_proto(message_class, /, *, extensions=None)` {#kd.schema_from_proto}
+### `kd.schema_from_proto(message_class, /, *, extensions=None) -> DataItem` {#kd.schema_from_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda schema representing a proto message class.
 
@@ -10409,7 +10409,7 @@ Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
 Alias for [kd.proto.schema_from_proto_path](#kd.proto.schema_from_proto_path) operator.
 
-### `kd.schema_from_py(tpe)` {#kd.schema_from_py}
+### `kd.schema_from_py(tpe) -> DataSlice` {#kd.schema_from_py}
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
 
@@ -10460,7 +10460,7 @@ Alias for [kd.dicts.select_values](#kd.dicts.select_values) operator.
     **attrs: attribute values that are converted to DataSlices with DataBag
       adoption.</code></pre>
 
-### `kd.set_schema(x, schema)` {#kd.set_schema}
+### `kd.set_schema(x, schema) -> DataSlice` {#kd.set_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of `x` with the provided `schema`.
 
@@ -10519,7 +10519,7 @@ Alias for [kd.slices.sort](#kd.slices.sort) operator.
 
 Alias for [kd.slices.stack](#kd.slices.stack) operator.
 
-### `kd.static_when_tracing(base_type=None)` {#kd.static_when_tracing}
+### `kd.static_when_tracing(base_type=None) -> _StaticWhenTraced` {#kd.static_when_tracing}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A constraint that the argument is static when tracing.
 
@@ -10539,7 +10539,7 @@ Alias for [kd.slices.stack](#kd.slices.stack) operator.
   Returns:
     A constraint that the argument is a static when tracing.</code></pre>
 
-### `kd.str(x)` {#kd.str}
+### `kd.str(x) -> DataSlice` {#kd.str}
 
 Alias for [kd.slices.str](#kd.slices.str) operator.
 
@@ -10591,7 +10591,7 @@ Alias for [kd.schema.to_none](#kd.schema.to_none) operator.
 
 Alias for [kd.schema.to_object](#kd.schema.to_object) operator.
 
-### `kd.to_proto(x, /, message_class)` {#kd.to_proto}
+### `kd.to_proto(x, /, message_class) -> list[Message | None] | Message | None` {#kd.to_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to one or more proto messages.
 
@@ -10628,7 +10628,7 @@ Alias for [kd.proto.to_proto_bytes](#kd.proto.to_proto_bytes) operator.
 
 Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
 
-### `kd.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#kd.to_py}
+### `kd.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True) -> Any` {#kd.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 
@@ -10644,11 +10644,11 @@ Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
     include_missing_attrs: whether to include attributes with None value in
       objects.</code></pre>
 
-### `kd.to_pylist(x)` {#kd.to_pylist}
+### `kd.to_pylist(x) -> list[Any]` {#kd.to_pylist}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Expands the outermost DataSlice dimension into a list of DataSlices.</code></pre>
 
-### `kd.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#kd.to_pytree}
+### `kd.to_pytree(ds, max_depth=2, include_missing_attrs=True) -> Any` {#kd.to_pytree}
 *No description*
 
 ### `kd.to_schema(x)` {#kd.to_schema}
@@ -10659,7 +10659,7 @@ Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
 
-### `kd.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.trace_py_fn}
+### `kd.trace_py_fn(f, *, auto_variables=True, **defaults) -> DataSlice` {#kd.trace_py_fn}
 
 Alias for [kd.functor.trace_py_fn](#kd.functor.trace_py_fn) operator.
 
@@ -10679,7 +10679,7 @@ Alias for [kd.tuples.tuple](#kd.tuples.tuple) operator.
 
 Alias for [kd.slices.unique](#kd.slices.unique) operator.
 
-### `kd.update_schema(obj, **attr_schemas)` {#kd.update_schema}
+### `kd.update_schema(obj, **attr_schemas) -> DataSlice` {#kd.update_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Updates the schema of `obj` DataSlice using given schemas for attrs.</code></pre>
 
@@ -10691,7 +10691,7 @@ Alias for [kd.core.updated](#kd.core.updated) operator.
 
 Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
-### `kd.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.uu}
+### `kd.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs) -> DataSlice` {#kd.uu}
 
 Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
@@ -10715,7 +10715,7 @@ Alias for [kd.ids.uuid_for_list](#kd.ids.uuid_for_list) operator.
 
 Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size) operator.
 
-### `kd.uuobj(seed=None, **attrs)` {#kd.uuobj}
+### `kd.uuobj(seed=None, **attrs) -> DataSlice` {#kd.uuobj}
 
 Alias for [kd.objs.uu](#kd.objs.uu) operator.
 
@@ -10763,7 +10763,7 @@ Alias for [kd.core.with_merged_bag](#kd.core.with_merged_bag) operator.
 
 Alias for [kd.core.with_metadata](#kd.core.with_metadata) operator.
 
-### `kd.with_name(obj, name)` {#kd.with_name}
+### `kd.with_name(obj, name) -> Any` {#kd.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
@@ -10836,7 +10836,7 @@ Utilities for manipulating nested data.
 
 **Operators**
 
-### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
+### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds) -> DataBag` {#kd_ext.nested_data.selected_path_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataBag where only the selected items are present in child lists.
 
@@ -10875,11 +10875,11 @@ Tools for Numpy <-> Koda interoperability.
 
 **Operators**
 
-### `kd_ext.npkd.from_array(arr)` {#kd_ext.npkd.from_array}
+### `kd_ext.npkd.from_array(arr) -> DataSlice` {#kd_ext.npkd.from_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a numpy array to a DataSlice.</code></pre>
 
-### `kd_ext.npkd.get_elements_indices_from_ds(ds)` {#kd_ext.npkd.get_elements_indices_from_ds}
+### `kd_ext.npkd.get_elements_indices_from_ds(ds) -> list[ndarray]` {#kd_ext.npkd.get_elements_indices_from_ds}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a list of np arrays representing the DataSlice&#39;s indices.
 
@@ -10911,7 +10911,7 @@ Tools for Numpy <-> Koda interoperability.
   Returns:
     list of np arrays representing the DataSlice&#39;s elements indices.</code></pre>
 
-### `kd_ext.npkd.reshape_based_on_indices(ds, indices)` {#kd_ext.npkd.reshape_based_on_indices}
+### `kd_ext.npkd.reshape_based_on_indices(ds, indices) -> DataSlice` {#kd_ext.npkd.reshape_based_on_indices}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Reshapes a DataSlice corresponding to the given indices.
 
@@ -10947,7 +10947,7 @@ Tools for Numpy <-> Koda interoperability.
   Returns:
     DataSlice reshaped based on the given indices.</code></pre>
 
-### `kd_ext.npkd.to_array(ds)` {#kd_ext.npkd.to_array}
+### `kd_ext.npkd.to_array(ds) -> ndarray` {#kd_ext.npkd.to_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice to a numpy array.</code></pre>
 
@@ -10961,7 +10961,7 @@ Tools for Pandas <-> Koda interoperability.
 
 **Operators**
 
-### `kd_ext.pdkd.df(ds, cols=None, include_self=False)` {#kd_ext.pdkd.df}
+### `kd_ext.pdkd.df(ds, cols=None, include_self=False) -> DataFrame` {#kd_ext.pdkd.df}
 Aliases:
 
 - [kd_ext.pdkd.to_dataframe](#kd_ext.pdkd.to_dataframe)
@@ -11051,7 +11051,7 @@ Aliases:
   Returns:
     DataFrame with columns from DataSlice fields.</code></pre>
 
-### `kd_ext.pdkd.from_dataframe(df_, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
+### `kd_ext.pdkd.from_dataframe(df_, as_obj=False) -> DataSlice` {#kd_ext.pdkd.from_dataframe}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice from the given pandas DataFrame.
 
@@ -11079,7 +11079,7 @@ Aliases:
   Returns:
     DataSlice of items with attributes from DataFrame columns.</code></pre>
 
-### `kd_ext.pdkd.to_dataframe(ds, cols=None, include_self=False)` {#kd_ext.pdkd.to_dataframe}
+### `kd_ext.pdkd.to_dataframe(ds, cols=None, include_self=False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 
@@ -11244,7 +11244,7 @@ meantime by another instance.</code></pre>
       fs: All interactions with the file system for output_dir will happen via
         this instance.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_available_bag_names(self)` {#PersistedIncrementalDataBagManager.get_available_bag_names}
+### `PersistedIncrementalDataBagManager.get_available_bag_names(self) -> Set[str]` {#PersistedIncrementalDataBagManager.get_available_bag_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are managed by this manager.
 
@@ -11252,11 +11252,11 @@ meantime by another instance.</code></pre>
     to this manager instance, and all bags that were already persisted in the
     persistence directory before this manager instance was created.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_loaded_bag(self)` {#PersistedIncrementalDataBagManager.get_loaded_bag}
+### `PersistedIncrementalDataBagManager.get_loaded_bag(self) -> DataBag` {#PersistedIncrementalDataBagManager.get_loaded_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a bag consisting of all the small bags that are currently loaded.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_loaded_bag_names(self)` {#PersistedIncrementalDataBagManager.get_loaded_bag_names}
+### `PersistedIncrementalDataBagManager.get_loaded_bag_names(self) -> Set[str]` {#PersistedIncrementalDataBagManager.get_loaded_bag_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are currently loaded in this manager.
 
@@ -11267,7 +11267,7 @@ meantime by another instance.</code></pre>
     Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
     a side effect when they are needed but not loaded yet.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names, *, with_all_dependents=False)` {#PersistedIncrementalDataBagManager.get_minimal_bag}
+### `PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names, *, with_all_dependents=False) -> DataBag` {#PersistedIncrementalDataBagManager.get_minimal_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a minimal bag that includes bag_names and all their dependencies.
 
@@ -11518,7 +11518,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Register DataSlice visualization in IPython.</code></pre>
 
-### `kd_ext.vis.visualize_slice(ds, options=None)` {#kd_ext.vis.visualize_slice}
+### `kd_ext.vis.visualize_slice(ds, options=None) -> _DataSliceViewState` {#kd_ext.vis.visualize_slice}
 Aliases:
 
 - [kd_g3_ext.vis.visualize_slice](#kd_g3_ext.vis.visualize_slice)
@@ -11531,15 +11531,15 @@ Aliases:
 
 **Operators**
 
-### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
+### `kd_ext.Fn(f, *, use_tracing=True, **kwargs) -> DataSlice` {#kd_ext.Fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PyFn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd_ext.PyFn}
+### `kd_ext.PyFn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults) -> DataSlice` {#kd_ext.PyFn}
 
 Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
-### `kd_ext.py_cloudpickle(obj)` {#kd_ext.py_cloudpickle}
+### `kd_ext.py_cloudpickle(obj) -> PyObject` {#kd_ext.py_cloudpickle}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps into a Arolla QValue using cloudpickle for serialization.</code></pre>
 
@@ -11590,7 +11590,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Clears all dicts or lists in this DataSlice</code></pre>
 
-### `DataSlice.clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataSlice.clone}
+### `DataSlice.clone(self, *, itemid=unspecified, schema=unspecified, **overrides) -> DataSlice` {#DataSlice.clone}
 Aliases:
 
 - [DataItem.clone](#DataItem.clone)
@@ -11618,7 +11618,7 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
-### `DataSlice.deep_clone(self, schema=unspecified, **overrides)` {#DataSlice.deep_clone}
+### `DataSlice.deep_clone(self, schema=unspecified, **overrides) -> DataSlice` {#DataSlice.deep_clone}
 Aliases:
 
 - [DataItem.deep_clone](#DataItem.deep_clone)
@@ -11646,7 +11646,7 @@ Returns:
   All referenced entities will be copied with newly allocated ItemIds. Note
   that UUIDs will be copied as ItemIds.</code></pre>
 
-### `DataSlice.deep_uuid(self, schema=unspecified, *, seed='')` {#DataSlice.deep_uuid}
+### `DataSlice.deep_uuid(self, schema=unspecified, *, seed='') -> DataSlice` {#DataSlice.deep_uuid}
 Aliases:
 
 - [DataItem.deep_uuid](#DataItem.deep_uuid)
@@ -11662,14 +11662,14 @@ Args:
 Returns:
   Result of recursive uuid application `x`.</code></pre>
 
-### `DataSlice.dict_size(self)` {#DataSlice.dict_size}
+### `DataSlice.dict_size(self) -> DataSlice` {#DataSlice.dict_size}
 Aliases:
 
 - [DataItem.dict_size](#DataItem.dict_size)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a Dict.</code></pre>
 
-### `DataSlice.display(self, options=None)` {#DataSlice.display}
+### `DataSlice.display(self, options=None) -> None` {#DataSlice.display}
 Aliases:
 
 - [DataItem.display](#DataItem.display)
@@ -11691,7 +11691,7 @@ Aliases:
 * For Entities schema is stored as &#39;__schema__&#39; attribute.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.</code></pre>
 
-### `DataSlice.enriched(self, *bag)` {#DataSlice.enriched}
+### `DataSlice.enriched(self, *bag) -> DataSlice` {#DataSlice.enriched}
 Aliases:
 
 - [DataItem.enriched](#DataItem.enriched)
@@ -11714,7 +11714,7 @@ Args:
 Returns:
   DataSlice with additional fallbacks.</code></pre>
 
-### `DataSlice.expand_to(self, target, ndim=unspecified)` {#DataSlice.expand_to}
+### `DataSlice.expand_to(self, target, ndim=unspecified) -> DataSlice` {#DataSlice.expand_to}
 Aliases:
 
 - [DataItem.expand_to](#DataItem.expand_to)
@@ -11771,7 +11771,7 @@ Args:
 Returns:
   Expanded DataSlice</code></pre>
 
-### `DataSlice.explode(self, ndim=1)` {#DataSlice.explode}
+### `DataSlice.explode(self, ndim=1) -> DataSlice` {#DataSlice.explode}
 Aliases:
 
 - [DataItem.explode](#DataItem.explode)
@@ -11798,7 +11798,7 @@ Args:
 Returns:
   DataSlice</code></pre>
 
-### `DataSlice.extract(self, schema=unspecified)` {#DataSlice.extract}
+### `DataSlice.extract(self, schema=unspecified) -> DataSlice` {#DataSlice.extract}
 Aliases:
 
 - [DataItem.extract](#DataItem.extract)
@@ -11812,7 +11812,7 @@ Args:
 Returns:
   A DataSlice with a new immutable DataBag attached.</code></pre>
 
-### `DataSlice.extract_bag(self, schema=unspecified)` {#DataSlice.extract_bag}
+### `DataSlice.extract_bag(self, schema=unspecified) -> DataBag` {#DataSlice.extract_bag}
 Aliases:
 
 - [DataItem.extract_bag](#DataItem.extract_bag)
@@ -11826,7 +11826,7 @@ Args:
 Returns:
   A new immutable DataBag with only the reachable attrs from &#39;ds&#39;.</code></pre>
 
-### `DataSlice.flatten(self, from_dim=0, to_dim=unspecified)` {#DataSlice.flatten}
+### `DataSlice.flatten(self, from_dim=0, to_dim=unspecified) -> DataSlice` {#DataSlice.flatten}
 Aliases:
 
 - [DataItem.flatten](#DataItem.flatten)
@@ -11868,7 +11868,7 @@ Args:
   from_dim: start of dimensions to flatten. Defaults to `0` if unspecified.
   to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.</code></pre>
 
-### `DataSlice.flatten_end(self, n_times=1)` {#DataSlice.flatten_end}
+### `DataSlice.flatten_end(self, n_times=1) -> DataSlice` {#DataSlice.flatten_end}
 Aliases:
 
 - [DataItem.flatten_end](#DataItem.flatten_end)
@@ -11885,7 +11885,7 @@ Args:
   n_times: number of dimensions to flatten from the end
     (0 &lt;= n_times &lt;= rank).</code></pre>
 
-### `DataSlice.follow(self)` {#DataSlice.follow}
+### `DataSlice.follow(self) -> DataSlice` {#DataSlice.follow}
 Aliases:
 
 - [DataItem.follow](#DataItem.follow)
@@ -11901,7 +11901,7 @@ Inverse of `nofollow`.
 Args:
   x: DataSlice to unwrap, if nofollowed.</code></pre>
 
-### `DataSlice.fork_bag(self)` {#DataSlice.fork_bag}
+### `DataSlice.fork_bag(self) -> DataSlice` {#DataSlice.fork_bag}
 Aliases:
 
 - [DataItem.fork_bag](#DataItem.fork_bag)
@@ -11956,7 +11956,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attached DataBag.</code></pre>
 
-### `DataSlice.get_dtype(self)` {#DataSlice.get_dtype}
+### `DataSlice.get_dtype(self) -> DataSlice` {#DataSlice.get_dtype}
 Aliases:
 
 - [DataItem.get_dtype](#DataItem.get_dtype)
@@ -11984,21 +11984,21 @@ Args:
 Returns:
   a primitive schema DataSlice.</code></pre>
 
-### `DataSlice.get_item_schema(self)` {#DataSlice.get_item_schema}
+### `DataSlice.get_item_schema(self) -> DataSlice` {#DataSlice.get_item_schema}
 Aliases:
 
 - [DataItem.get_item_schema](#DataItem.get_item_schema)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the item schema of a List schema`.</code></pre>
 
-### `DataSlice.get_itemid(self)` {#DataSlice.get_itemid}
+### `DataSlice.get_itemid(self) -> DataSlice` {#DataSlice.get_itemid}
 Aliases:
 
 - [DataItem.get_itemid](#DataItem.get_itemid)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to ITEMID using explicit (permissive) casting rules.</code></pre>
 
-### `DataSlice.get_key_schema(self)` {#DataSlice.get_key_schema}
+### `DataSlice.get_key_schema(self) -> DataSlice` {#DataSlice.get_key_schema}
 Aliases:
 
 - [DataItem.get_key_schema](#DataItem.get_key_schema)
@@ -12012,14 +12012,14 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns keys of all dicts in this DataSlice.</code></pre>
 
-### `DataSlice.get_ndim(self)` {#DataSlice.get_ndim}
+### `DataSlice.get_ndim(self) -> DataSlice` {#DataSlice.get_ndim}
 Aliases:
 
 - [DataItem.get_ndim](#DataItem.get_ndim)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `DataSlice.get_obj_schema(self)` {#DataSlice.get_obj_schema}
+### `DataSlice.get_obj_schema(self) -> DataSlice` {#DataSlice.get_obj_schema}
 Aliases:
 
 - [DataItem.get_obj_schema](#DataItem.get_obj_schema)
@@ -12041,7 +12041,7 @@ Args:
 Returns:
   A DataSlice of schemas.</code></pre>
 
-### `DataSlice.get_present_count(self)` {#DataSlice.get_present_count}
+### `DataSlice.get_present_count(self) -> DataSlice` {#DataSlice.get_present_count}
 Aliases:
 
 - [DataItem.get_present_count](#DataItem.get_present_count)
@@ -12067,7 +12067,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the shape of the DataSlice.</code></pre>
 
-### `DataSlice.get_size(self)` {#DataSlice.get_size}
+### `DataSlice.get_size(self) -> DataSlice` {#DataSlice.get_size}
 Aliases:
 
 - [DataItem.get_size](#DataItem.get_size)
@@ -12080,21 +12080,21 @@ Args:
 Returns:
   The size of `x`.</code></pre>
 
-### `DataSlice.get_sizes(self)` {#DataSlice.get_sizes}
+### `DataSlice.get_sizes(self) -> DataSlice` {#DataSlice.get_sizes}
 Aliases:
 
 - [DataItem.get_sizes](#DataItem.get_sizes)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of sizes of the DataSlice&#39;s shape.</code></pre>
 
-### `DataSlice.get_value_schema(self)` {#DataSlice.get_value_schema}
+### `DataSlice.get_value_schema(self) -> DataSlice` {#DataSlice.get_value_schema}
 Aliases:
 
 - [DataItem.get_value_schema](#DataItem.get_value_schema)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the value schema of a Dict schema`.</code></pre>
 
-### `DataSlice.get_values(self, key_ds=unspecified)` {#DataSlice.get_values}
+### `DataSlice.get_values(self, key_ds=unspecified) -> DataSlice` {#DataSlice.get_values}
 Aliases:
 
 - [DataItem.get_values](#DataItem.get_values)
@@ -12115,7 +12115,7 @@ Args:
 Returns:
   A DataSlice of values.</code></pre>
 
-### `DataSlice.has_attr(self, attr_name)` {#DataSlice.has_attr}
+### `DataSlice.has_attr(self, attr_name) -> DataSlice` {#DataSlice.has_attr}
 Aliases:
 
 - [DataItem.has_attr](#DataItem.has_attr)
@@ -12140,7 +12140,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
 
-### `DataSlice.implode(self, ndim=1, itemid=unspecified)` {#DataSlice.implode}
+### `DataSlice.implode(self, ndim=1, itemid=unspecified) -> DataSlice` {#DataSlice.implode}
 Aliases:
 
 - [DataItem.implode](#DataItem.implode)
@@ -12252,7 +12252,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff the attached DataBag is mutable.</code></pre>
 
-### `DataSlice.is_primitive(self)` {#DataSlice.is_primitive}
+### `DataSlice.is_primitive(self) -> DataSlice` {#DataSlice.is_primitive}
 Aliases:
 
 - [DataItem.is_primitive](#DataItem.is_primitive)
@@ -12292,14 +12292,14 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice represents a Struct Schema.</code></pre>
 
-### `DataSlice.list_size(self)` {#DataSlice.list_size}
+### `DataSlice.list_size(self) -> DataSlice` {#DataSlice.list_size}
 Aliases:
 
 - [DataItem.list_size](#DataItem.list_size)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a List.</code></pre>
 
-### `DataSlice.maybe(self, attr_name)` {#DataSlice.maybe}
+### `DataSlice.maybe(self, attr_name) -> DataSlice` {#DataSlice.maybe}
 Aliases:
 
 - [DataItem.maybe](#DataItem.maybe)
@@ -12327,7 +12327,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Pop a value from each list in this DataSlice</code></pre>
 
-### `DataSlice.ref(self)` {#DataSlice.ref}
+### `DataSlice.ref(self) -> DataSlice` {#DataSlice.ref}
 Aliases:
 
 - [DataItem.ref](#DataItem.ref)
@@ -12344,7 +12344,7 @@ is removed.
 Args:
   ds: DataSlice of ItemIds.</code></pre>
 
-### `DataSlice.repeat(self, sizes)` {#DataSlice.repeat}
+### `DataSlice.repeat(self, sizes) -> DataSlice` {#DataSlice.repeat}
 Aliases:
 
 - [DataItem.repeat](#DataItem.repeat)
@@ -12371,7 +12371,7 @@ Args:
   x: A DataSlice of data.
   sizes: A DataSlice of sizes that each value in `x` should be repeated for.</code></pre>
 
-### `DataSlice.reshape(self, shape)` {#DataSlice.reshape}
+### `DataSlice.reshape(self, shape) -> DataSlice` {#DataSlice.reshape}
 Aliases:
 
 - [DataItem.reshape](#DataItem.reshape)
@@ -12408,14 +12408,14 @@ Args:
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
     `kd.shapes.new`, with additional support for a `-1` placeholder dimension.</code></pre>
 
-### `DataSlice.reshape_as(self, shape_from)` {#DataSlice.reshape_as}
+### `DataSlice.reshape_as(self, shape_from) -> DataSlice` {#DataSlice.reshape_as}
 Aliases:
 
 - [DataItem.reshape_as](#DataItem.reshape_as)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice x reshaped to the shape of DataSlice shape_from.</code></pre>
 
-### `DataSlice.select(self, fltr, expand_filter=True)` {#DataSlice.select}
+### `DataSlice.select(self, fltr, expand_filter=True) -> DataSlice` {#DataSlice.select}
 Aliases:
 
 - [DataItem.select](#DataItem.select)
@@ -12453,7 +12453,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_items(self, fltr)` {#DataSlice.select_items}
+### `DataSlice.select_items(self, fltr) -> DataSlice` {#DataSlice.select_items}
 Aliases:
 
 - [DataItem.select_items](#DataItem.select_items)
@@ -12472,7 +12472,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_keys(self, fltr)` {#DataSlice.select_keys}
+### `DataSlice.select_keys(self, fltr) -> DataSlice` {#DataSlice.select_keys}
 Aliases:
 
 - [DataItem.select_keys](#DataItem.select_keys)
@@ -12491,7 +12491,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_present(self)` {#DataSlice.select_present}
+### `DataSlice.select_present(self) -> DataSlice` {#DataSlice.select_present}
 Aliases:
 
 - [DataItem.select_present](#DataItem.select_present)
@@ -12510,7 +12510,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_values(self, fltr)` {#DataSlice.select_values}
+### `DataSlice.select_values(self, fltr) -> DataSlice` {#DataSlice.select_values}
 Aliases:
 
 - [DataItem.select_values](#DataItem.select_values)
@@ -12575,7 +12575,7 @@ Args:
 Returns:
   DataSlice with the provided `schema`.</code></pre>
 
-### `DataSlice.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataSlice.shallow_clone}
+### `DataSlice.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides) -> DataSlice` {#DataSlice.shallow_clone}
 Aliases:
 
 - [DataItem.shallow_clone](#DataItem.shallow_clone)
@@ -12603,7 +12603,7 @@ Returns:
   A copy of the entities with new ItemIds where all top-level attributes are
   copied by reference.</code></pre>
 
-### `DataSlice.strict_with_attrs(self, **attrs)` {#DataSlice.strict_with_attrs}
+### `DataSlice.strict_with_attrs(self, **attrs) -> DataSlice` {#DataSlice.strict_with_attrs}
 Aliases:
 
 - [DataItem.strict_with_attrs](#DataItem.strict_with_attrs)
@@ -12616,7 +12616,7 @@ Args:
   x: Entity for which the attributes update is being created.
   **attrs: attrs to set in the update.</code></pre>
 
-### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE))` {#DataSlice.stub}
+### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE)) -> DataSlice` {#DataSlice.stub}
 Aliases:
 
 - [DataItem.stub](#DataItem.stub)
@@ -12647,7 +12647,7 @@ Args:
 Returns:
   DataSlice with the same schema stub in the new DataBag.</code></pre>
 
-### `DataSlice.take(self, indices)` {#DataSlice.take}
+### `DataSlice.take(self, indices) -> DataSlice` {#DataSlice.take}
 Aliases:
 
 - [DataItem.take](#DataItem.take)
@@ -12684,7 +12684,7 @@ Args:
 Returns:
   A new DataSlice with items selected by indices.</code></pre>
 
-### `DataSlice.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#DataSlice.to_py}
+### `DataSlice.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True) -> Any` {#DataSlice.to_py}
 Aliases:
 
 - [DataItem.to_py](#DataItem.to_py)
@@ -12702,7 +12702,7 @@ Aliases:
     include_missing_attrs: whether to include attributes with None value in
       objects.</code></pre>
 
-### `DataSlice.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#DataSlice.to_pytree}
+### `DataSlice.to_pytree(ds, max_depth=2, include_missing_attrs=True) -> Any` {#DataSlice.to_pytree}
 Aliases:
 
 - [DataItem.to_pytree](#DataItem.to_pytree)
@@ -12721,7 +12721,7 @@ Aliases:
     include_missing_attrs: whether to include attributes with None value in
       objects.</code></pre>
 
-### `DataSlice.updated(self, *bag)` {#DataSlice.updated}
+### `DataSlice.updated(self, *bag) -> DataSlice` {#DataSlice.updated}
 Aliases:
 
 - [DataItem.updated](#DataItem.updated)
@@ -12744,7 +12744,7 @@ Args:
 Returns:
   DataSlice with additional fallbacks.</code></pre>
 
-### `DataSlice.with_attr(self, attr_name, value, overwrite_schema=False)` {#DataSlice.with_attr}
+### `DataSlice.with_attr(self, attr_name, value, overwrite_schema=False) -> DataSlice` {#DataSlice.with_attr}
 Aliases:
 
 - [DataItem.with_attr](#DataItem.with_attr)
@@ -12764,7 +12764,7 @@ Args:
   value: new value for attribute `attr_name`.
   overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
-### `DataSlice.with_attrs(self, *, overwrite_schema=False, **attrs)` {#DataSlice.with_attrs}
+### `DataSlice.with_attrs(self, *, overwrite_schema=False, **attrs) -> DataSlice` {#DataSlice.with_attrs}
 Aliases:
 
 - [DataItem.with_attrs](#DataItem.with_attrs)
@@ -12803,7 +12803,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with DataBag `db`.</code></pre>
 
-### `DataSlice.with_dict_update(self, keys, values=unspecified)` {#DataSlice.with_dict_update}
+### `DataSlice.with_dict_update(self, keys, values=unspecified) -> DataSlice` {#DataSlice.with_dict_update}
 Aliases:
 
 - [DataItem.with_dict_update](#DataItem.with_dict_update)
@@ -12824,7 +12824,7 @@ Args:
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.</code></pre>
 
-### `DataSlice.with_list_append_update(self, append)` {#DataSlice.with_list_append_update}
+### `DataSlice.with_list_append_update(self, append) -> DataSlice` {#DataSlice.with_list_append_update}
 Aliases:
 
 - [DataItem.with_list_append_update](#DataItem.with_list_append_update)
@@ -12846,7 +12846,7 @@ Args:
 Returns:
   A DataSlice of lists in a new immutable DataBag.</code></pre>
 
-### `DataSlice.with_merged_bag(self)` {#DataSlice.with_merged_bag}
+### `DataSlice.with_merged_bag(self) -> DataSlice` {#DataSlice.with_merged_bag}
 Aliases:
 
 - [DataItem.with_merged_bag](#DataItem.with_merged_bag)
@@ -12866,7 +12866,7 @@ Args:
 Returns:
   A new DataSlice with an immutable DataBags.</code></pre>
 
-### `DataSlice.with_name(obj, name)` {#DataSlice.with_name}
+### `DataSlice.with_name(obj, name) -> Any` {#DataSlice.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
@@ -12886,7 +12886,7 @@ Args:
 Returns:
   DataSlice with the provided `schema`.</code></pre>
 
-### `DataSlice.with_schema_from_obj(self)` {#DataSlice.with_schema_from_obj}
+### `DataSlice.with_schema_from_obj(self) -> DataSlice` {#DataSlice.with_schema_from_obj}
 Aliases:
 
 - [DataItem.with_schema_from_obj](#DataItem.with_schema_from_obj)
@@ -12936,7 +12936,7 @@ Args:
 Returns:
   The &#34;stub&#34; with this DataBag attached.</code></pre>
 
-### `DataBag.concat_lists(self, /, *lists)` {#DataBag.concat_lists}
+### `DataBag.concat_lists(self, /, *lists) -> _DataSlice` {#DataBag.concat_lists}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
@@ -12957,15 +12957,15 @@ Returns:
   Returns:
     DataSlice of concatenated Lists</code></pre>
 
-### `DataBag.contents_repr(self, /, *, triple_limit=1000)` {#DataBag.contents_repr}
+### `DataBag.contents_repr(self, /, *, triple_limit=1000) -> ContentsReprWrapper` {#DataBag.contents_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of the DataBag contents.</code></pre>
 
-### `DataBag.data_triples_repr(self, *, triple_limit=1000)` {#DataBag.data_triples_repr}
+### `DataBag.data_triples_repr(self, *, triple_limit=1000) -> ContentsReprWrapper` {#DataBag.data_triples_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of the DataBag contents, omitting schema triples.</code></pre>
 
-### `DataBag.dict(self, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#DataBag.dict}
+### `DataBag.dict(self, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.dict}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Koda dict.
 
@@ -13007,7 +13007,7 @@ Returns:
   Returns:
     A DataSlice with the dict.</code></pre>
 
-### `DataBag.dict_like(self, shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#DataBag.dict_like}
+### `DataBag.dict_like(self, shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.dict_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
@@ -13039,7 +13039,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a dict schema from the schemas of the keys and values</code></pre>
 
-### `DataBag.dict_shaped(self, shape, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#DataBag.dict_shaped}
+### `DataBag.dict_shaped(self, shape, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.dict_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda dicts with the given shape.
 
@@ -13085,7 +13085,7 @@ Args:
 Returns:
   data_bag.DataBag</code></pre>
 
-### `DataBag.freeze(self)` {#DataBag.freeze}
+### `DataBag.freeze(self) -> DataBag` {#DataBag.freeze}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataBag equivalent to `self`.</code></pre>
 
@@ -13093,7 +13093,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag.</code></pre>
 
-### `DataBag.implode(self, x, /, ndim=1, itemid=None)` {#DataBag.implode}
+### `DataBag.implode(self, x, /, ndim=1, itemid=None) -> _DataSlice` {#DataBag.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Implodes a Dataslice `x` a specified number of times.
 
@@ -13124,7 +13124,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataBag is mutable.</code></pre>
 
-### `DataBag.list(self, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#DataBag.list}
+### `DataBag.list(self, /, items=None, *, item_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates list(s) by collapsing `items`.
 
@@ -13149,7 +13149,7 @@ Returns:
   Returns:
     A DataSlice with the list/lists.</code></pre>
 
-### `DataBag.list_like(self, shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#DataBag.list_like}
+### `DataBag.list_like(self, shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.list_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
@@ -13171,7 +13171,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a list schema from the schema of the items</code></pre>
 
-### `DataBag.list_shaped(self, shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#DataBag.list_shaped}
+### `DataBag.list_shaped(self, shape, /, items=None, *, item_schema=None, schema=None, itemid=None) -> _DataSlice` {#DataBag.list_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda lists with the given shape.
 
@@ -13192,7 +13192,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with all the fallbacks merged.</code></pre>
 
-### `DataBag.merge_inplace(self, other_bags, /, *, overwrite=True, allow_data_conflicts=True, allow_schema_conflicts=False)` {#DataBag.merge_inplace}
+### `DataBag.merge_inplace(self, other_bags, /, *, overwrite=True, allow_data_conflicts=True, allow_schema_conflicts=False) -> DataBag` {#DataBag.merge_inplace}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Copies all data from `other_bags` to this DataBag.
 
@@ -13325,7 +13325,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.schema_triples_repr(self, *, triple_limit=1000)` {#DataBag.schema_triples_repr}
+### `DataBag.schema_triples_repr(self, *, triple_limit=1000) -> ContentsReprWrapper` {#DataBag.schema_triples_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of schema triples in the DataBag.</code></pre>
 
@@ -13387,7 +13387,7 @@ Args:
 Returns:
   data_slice.DataSlice</code></pre>
 
-### `DataBag.with_name(obj, name)` {#DataBag.with_name}
+### `DataBag.with_name(obj, name) -> Any` {#DataBag.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
@@ -13428,7 +13428,7 @@ Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
 Alias for [DataSlice.append](#DataSlice.append) operator.
 
-### `DataItem.bind(self, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#DataItem.bind}
+### `DataItem.bind(self, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs) -> DataSlice` {#DataItem.bind}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `kwargs`.
 
@@ -13472,23 +13472,23 @@ Alias for [DataSlice.append](#DataSlice.append) operator.
 
 Alias for [DataSlice.clear](#DataSlice.clear) operator.
 
-### `DataItem.clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataItem.clone}
+### `DataItem.clone(self, *, itemid=unspecified, schema=unspecified, **overrides) -> DataSlice` {#DataItem.clone}
 
 Alias for [DataSlice.clone](#DataSlice.clone) operator.
 
-### `DataItem.deep_clone(self, schema=unspecified, **overrides)` {#DataItem.deep_clone}
+### `DataItem.deep_clone(self, schema=unspecified, **overrides) -> DataSlice` {#DataItem.deep_clone}
 
 Alias for [DataSlice.deep_clone](#DataSlice.deep_clone) operator.
 
-### `DataItem.deep_uuid(self, schema=unspecified, *, seed='')` {#DataItem.deep_uuid}
+### `DataItem.deep_uuid(self, schema=unspecified, *, seed='') -> DataSlice` {#DataItem.deep_uuid}
 
 Alias for [DataSlice.deep_uuid](#DataSlice.deep_uuid) operator.
 
-### `DataItem.dict_size(self)` {#DataItem.dict_size}
+### `DataItem.dict_size(self) -> DataSlice` {#DataItem.dict_size}
 
 Alias for [DataSlice.dict_size](#DataSlice.dict_size) operator.
 
-### `DataItem.display(self, options=None)` {#DataItem.display}
+### `DataItem.display(self, options=None) -> None` {#DataItem.display}
 
 Alias for [DataSlice.display](#DataSlice.display) operator.
 
@@ -13496,39 +13496,39 @@ Alias for [DataSlice.display](#DataSlice.display) operator.
 
 Alias for [DataSlice.embed_schema](#DataSlice.embed_schema) operator.
 
-### `DataItem.enriched(self, *bag)` {#DataItem.enriched}
+### `DataItem.enriched(self, *bag) -> DataSlice` {#DataItem.enriched}
 
 Alias for [DataSlice.enriched](#DataSlice.enriched) operator.
 
-### `DataItem.expand_to(self, target, ndim=unspecified)` {#DataItem.expand_to}
+### `DataItem.expand_to(self, target, ndim=unspecified) -> DataSlice` {#DataItem.expand_to}
 
 Alias for [DataSlice.expand_to](#DataSlice.expand_to) operator.
 
-### `DataItem.explode(self, ndim=1)` {#DataItem.explode}
+### `DataItem.explode(self, ndim=1) -> DataSlice` {#DataItem.explode}
 
 Alias for [DataSlice.explode](#DataSlice.explode) operator.
 
-### `DataItem.extract(self, schema=unspecified)` {#DataItem.extract}
+### `DataItem.extract(self, schema=unspecified) -> DataSlice` {#DataItem.extract}
 
 Alias for [DataSlice.extract](#DataSlice.extract) operator.
 
-### `DataItem.extract_bag(self, schema=unspecified)` {#DataItem.extract_bag}
+### `DataItem.extract_bag(self, schema=unspecified) -> DataBag` {#DataItem.extract_bag}
 
 Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
 
-### `DataItem.flatten(self, from_dim=0, to_dim=unspecified)` {#DataItem.flatten}
+### `DataItem.flatten(self, from_dim=0, to_dim=unspecified) -> DataSlice` {#DataItem.flatten}
 
 Alias for [DataSlice.flatten](#DataSlice.flatten) operator.
 
-### `DataItem.flatten_end(self, n_times=1)` {#DataItem.flatten_end}
+### `DataItem.flatten_end(self, n_times=1) -> DataSlice` {#DataItem.flatten_end}
 
 Alias for [DataSlice.flatten_end](#DataSlice.flatten_end) operator.
 
-### `DataItem.follow(self)` {#DataItem.follow}
+### `DataItem.follow(self) -> DataSlice` {#DataItem.follow}
 
 Alias for [DataSlice.follow](#DataSlice.follow) operator.
 
-### `DataItem.fork_bag(self)` {#DataItem.fork_bag}
+### `DataItem.fork_bag(self) -> DataSlice` {#DataItem.fork_bag}
 
 Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
 
@@ -13552,19 +13552,19 @@ Alias for [DataSlice.get_attr_names](#DataSlice.get_attr_names) operator.
 
 Alias for [DataSlice.get_bag](#DataSlice.get_bag) operator.
 
-### `DataItem.get_dtype(self)` {#DataItem.get_dtype}
+### `DataItem.get_dtype(self) -> DataSlice` {#DataItem.get_dtype}
 
 Alias for [DataSlice.get_dtype](#DataSlice.get_dtype) operator.
 
-### `DataItem.get_item_schema(self)` {#DataItem.get_item_schema}
+### `DataItem.get_item_schema(self) -> DataSlice` {#DataItem.get_item_schema}
 
 Alias for [DataSlice.get_item_schema](#DataSlice.get_item_schema) operator.
 
-### `DataItem.get_itemid(self)` {#DataItem.get_itemid}
+### `DataItem.get_itemid(self) -> DataSlice` {#DataItem.get_itemid}
 
 Alias for [DataSlice.get_itemid](#DataSlice.get_itemid) operator.
 
-### `DataItem.get_key_schema(self)` {#DataItem.get_key_schema}
+### `DataItem.get_key_schema(self) -> DataSlice` {#DataItem.get_key_schema}
 
 Alias for [DataSlice.get_key_schema](#DataSlice.get_key_schema) operator.
 
@@ -13572,15 +13572,15 @@ Alias for [DataSlice.get_key_schema](#DataSlice.get_key_schema) operator.
 
 Alias for [DataSlice.get_keys](#DataSlice.get_keys) operator.
 
-### `DataItem.get_ndim(self)` {#DataItem.get_ndim}
+### `DataItem.get_ndim(self) -> DataSlice` {#DataItem.get_ndim}
 
 Alias for [DataSlice.get_ndim](#DataSlice.get_ndim) operator.
 
-### `DataItem.get_obj_schema(self)` {#DataItem.get_obj_schema}
+### `DataItem.get_obj_schema(self) -> DataSlice` {#DataItem.get_obj_schema}
 
 Alias for [DataSlice.get_obj_schema](#DataSlice.get_obj_schema) operator.
 
-### `DataItem.get_present_count(self)` {#DataItem.get_present_count}
+### `DataItem.get_present_count(self) -> DataSlice` {#DataItem.get_present_count}
 
 Alias for [DataSlice.get_present_count](#DataSlice.get_present_count) operator.
 
@@ -13592,23 +13592,23 @@ Alias for [DataSlice.get_schema](#DataSlice.get_schema) operator.
 
 Alias for [DataSlice.get_shape](#DataSlice.get_shape) operator.
 
-### `DataItem.get_size(self)` {#DataItem.get_size}
+### `DataItem.get_size(self) -> DataSlice` {#DataItem.get_size}
 
 Alias for [DataSlice.get_size](#DataSlice.get_size) operator.
 
-### `DataItem.get_sizes(self)` {#DataItem.get_sizes}
+### `DataItem.get_sizes(self) -> DataSlice` {#DataItem.get_sizes}
 
 Alias for [DataSlice.get_sizes](#DataSlice.get_sizes) operator.
 
-### `DataItem.get_value_schema(self)` {#DataItem.get_value_schema}
+### `DataItem.get_value_schema(self) -> DataSlice` {#DataItem.get_value_schema}
 
 Alias for [DataSlice.get_value_schema](#DataSlice.get_value_schema) operator.
 
-### `DataItem.get_values(self, key_ds=unspecified)` {#DataItem.get_values}
+### `DataItem.get_values(self, key_ds=unspecified) -> DataSlice` {#DataItem.get_values}
 
 Alias for [DataSlice.get_values](#DataSlice.get_values) operator.
 
-### `DataItem.has_attr(self, attr_name)` {#DataItem.has_attr}
+### `DataItem.has_attr(self, attr_name) -> DataSlice` {#DataItem.has_attr}
 
 Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
 
@@ -13616,7 +13616,7 @@ Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
 
 Alias for [DataSlice.has_bag](#DataSlice.has_bag) operator.
 
-### `DataItem.implode(self, ndim=1, itemid=unspecified)` {#DataItem.implode}
+### `DataItem.implode(self, ndim=1, itemid=unspecified) -> DataSlice` {#DataItem.implode}
 
 Alias for [DataSlice.implode](#DataSlice.implode) operator.
 
@@ -13668,7 +13668,7 @@ Alias for [DataSlice.is_list_schema](#DataSlice.is_list_schema) operator.
 
 Alias for [DataSlice.is_mutable](#DataSlice.is_mutable) operator.
 
-### `DataItem.is_primitive(self)` {#DataItem.is_primitive}
+### `DataItem.is_primitive(self) -> DataSlice` {#DataItem.is_primitive}
 
 Alias for [DataSlice.is_primitive](#DataSlice.is_primitive) operator.
 
@@ -13680,11 +13680,11 @@ Alias for [DataSlice.is_primitive_schema](#DataSlice.is_primitive_schema) operat
 
 Alias for [DataSlice.is_struct_schema](#DataSlice.is_struct_schema) operator.
 
-### `DataItem.list_size(self)` {#DataItem.list_size}
+### `DataItem.list_size(self) -> DataSlice` {#DataItem.list_size}
 
 Alias for [DataSlice.list_size](#DataSlice.list_size) operator.
 
-### `DataItem.maybe(self, attr_name)` {#DataItem.maybe}
+### `DataItem.maybe(self, attr_name) -> DataSlice` {#DataItem.maybe}
 
 Alias for [DataSlice.maybe](#DataSlice.maybe) operator.
 
@@ -13700,39 +13700,39 @@ Alias for [DataSlice.no_bag](#DataSlice.no_bag) operator.
 
 Alias for [DataSlice.pop](#DataSlice.pop) operator.
 
-### `DataItem.ref(self)` {#DataItem.ref}
+### `DataItem.ref(self) -> DataSlice` {#DataItem.ref}
 
 Alias for [DataSlice.ref](#DataSlice.ref) operator.
 
-### `DataItem.repeat(self, sizes)` {#DataItem.repeat}
+### `DataItem.repeat(self, sizes) -> DataSlice` {#DataItem.repeat}
 
 Alias for [DataSlice.repeat](#DataSlice.repeat) operator.
 
-### `DataItem.reshape(self, shape)` {#DataItem.reshape}
+### `DataItem.reshape(self, shape) -> DataSlice` {#DataItem.reshape}
 
 Alias for [DataSlice.reshape](#DataSlice.reshape) operator.
 
-### `DataItem.reshape_as(self, shape_from)` {#DataItem.reshape_as}
+### `DataItem.reshape_as(self, shape_from) -> DataSlice` {#DataItem.reshape_as}
 
 Alias for [DataSlice.reshape_as](#DataSlice.reshape_as) operator.
 
-### `DataItem.select(self, fltr, expand_filter=True)` {#DataItem.select}
+### `DataItem.select(self, fltr, expand_filter=True) -> DataSlice` {#DataItem.select}
 
 Alias for [DataSlice.select](#DataSlice.select) operator.
 
-### `DataItem.select_items(self, fltr)` {#DataItem.select_items}
+### `DataItem.select_items(self, fltr) -> DataSlice` {#DataItem.select_items}
 
 Alias for [DataSlice.select_items](#DataSlice.select_items) operator.
 
-### `DataItem.select_keys(self, fltr)` {#DataItem.select_keys}
+### `DataItem.select_keys(self, fltr) -> DataSlice` {#DataItem.select_keys}
 
 Alias for [DataSlice.select_keys](#DataSlice.select_keys) operator.
 
-### `DataItem.select_present(self)` {#DataItem.select_present}
+### `DataItem.select_present(self) -> DataSlice` {#DataItem.select_present}
 
 Alias for [DataSlice.select_present](#DataSlice.select_present) operator.
 
-### `DataItem.select_values(self, fltr)` {#DataItem.select_values}
+### `DataItem.select_values(self, fltr) -> DataSlice` {#DataItem.select_values}
 
 Alias for [DataSlice.select_values](#DataSlice.select_values) operator.
 
@@ -13748,39 +13748,39 @@ Alias for [DataSlice.set_attrs](#DataSlice.set_attrs) operator.
 
 Alias for [DataSlice.set_schema](#DataSlice.set_schema) operator.
 
-### `DataItem.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataItem.shallow_clone}
+### `DataItem.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides) -> DataSlice` {#DataItem.shallow_clone}
 
 Alias for [DataSlice.shallow_clone](#DataSlice.shallow_clone) operator.
 
-### `DataItem.strict_with_attrs(self, **attrs)` {#DataItem.strict_with_attrs}
+### `DataItem.strict_with_attrs(self, **attrs) -> DataSlice` {#DataItem.strict_with_attrs}
 
 Alias for [DataSlice.strict_with_attrs](#DataSlice.strict_with_attrs) operator.
 
-### `DataItem.stub(self, attrs=DataSlice([], schema: NONE))` {#DataItem.stub}
+### `DataItem.stub(self, attrs=DataSlice([], schema: NONE)) -> DataSlice` {#DataItem.stub}
 
 Alias for [DataSlice.stub](#DataSlice.stub) operator.
 
-### `DataItem.take(self, indices)` {#DataItem.take}
+### `DataItem.take(self, indices) -> DataSlice` {#DataItem.take}
 
 Alias for [DataSlice.take](#DataSlice.take) operator.
 
-### `DataItem.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#DataItem.to_py}
+### `DataItem.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True) -> Any` {#DataItem.to_py}
 
 Alias for [DataSlice.to_py](#DataSlice.to_py) operator.
 
-### `DataItem.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#DataItem.to_pytree}
+### `DataItem.to_pytree(ds, max_depth=2, include_missing_attrs=True) -> Any` {#DataItem.to_pytree}
 
 Alias for [DataSlice.to_pytree](#DataSlice.to_pytree) operator.
 
-### `DataItem.updated(self, *bag)` {#DataItem.updated}
+### `DataItem.updated(self, *bag) -> DataSlice` {#DataItem.updated}
 
 Alias for [DataSlice.updated](#DataSlice.updated) operator.
 
-### `DataItem.with_attr(self, attr_name, value, overwrite_schema=False)` {#DataItem.with_attr}
+### `DataItem.with_attr(self, attr_name, value, overwrite_schema=False) -> DataSlice` {#DataItem.with_attr}
 
 Alias for [DataSlice.with_attr](#DataSlice.with_attr) operator.
 
-### `DataItem.with_attrs(self, *, overwrite_schema=False, **attrs)` {#DataItem.with_attrs}
+### `DataItem.with_attrs(self, *, overwrite_schema=False, **attrs) -> DataSlice` {#DataItem.with_attrs}
 
 Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
 
@@ -13788,19 +13788,19 @@ Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
 
 Alias for [DataSlice.with_bag](#DataSlice.with_bag) operator.
 
-### `DataItem.with_dict_update(self, keys, values=unspecified)` {#DataItem.with_dict_update}
+### `DataItem.with_dict_update(self, keys, values=unspecified) -> DataSlice` {#DataItem.with_dict_update}
 
 Alias for [DataSlice.with_dict_update](#DataSlice.with_dict_update) operator.
 
-### `DataItem.with_list_append_update(self, append)` {#DataItem.with_list_append_update}
+### `DataItem.with_list_append_update(self, append) -> DataSlice` {#DataItem.with_list_append_update}
 
 Alias for [DataSlice.with_list_append_update](#DataSlice.with_list_append_update) operator.
 
-### `DataItem.with_merged_bag(self)` {#DataItem.with_merged_bag}
+### `DataItem.with_merged_bag(self) -> DataSlice` {#DataItem.with_merged_bag}
 
 Alias for [DataSlice.with_merged_bag](#DataSlice.with_merged_bag) operator.
 
-### `DataItem.with_name(obj, name)` {#DataItem.with_name}
+### `DataItem.with_name(obj, name) -> Any` {#DataItem.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
@@ -13808,7 +13808,7 @@ Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
 Alias for [DataSlice.with_schema](#DataSlice.with_schema) operator.
 
-### `DataItem.with_schema_from_obj(self)` {#DataItem.with_schema_from_obj}
+### `DataItem.with_schema_from_obj(self) -> DataSlice` {#DataItem.with_schema_from_obj}
 
 Alias for [DataSlice.with_schema_from_obj](#DataSlice.with_schema_from_obj) operator.
 
