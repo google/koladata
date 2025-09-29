@@ -42,8 +42,8 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     auto result_db = DataBag::EmptyMutable();
-    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    internal::ExtractOp extract_op(&result_db_impl.get());
+    ASSIGN_OR_RETURN(auto& result_db_impl, result_db->GetMutableImpl());
+    internal::ExtractOp extract_op(&result_db_impl);
     if (schema_db != nullptr && schema_db != db) {
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       auto schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();

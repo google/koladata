@@ -496,8 +496,8 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaAttr(
 absl::StatusOr<std::pair<internal::DataSliceImpl, internal::DataSliceImpl>>
 GetAttrImpl(const internal::DataSliceImpl& aligned_obj,
             const internal::DataSliceImpl& aligned_attr_name,
-            const internal::DataItem& obj_schema,
-            const DataBag& db, bool allow_missing) {
+            const internal::DataItem& obj_schema, const DataBag& db,
+            bool allow_missing) {
   DCHECK_EQ(aligned_obj.size(), aligned_attr_name.size());
   // In case `aligned_obj` is empty, we still want to ensure that the schema
   // has the attribute so we don't exit early.
@@ -698,7 +698,7 @@ absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
                    GetBoolArgument(overwrite_schema, "overwrite_schema"));
   if (attr_name.is_item()) {
     ASSIGN_OR_RETURN(absl::string_view attr_name_view,
-                    GetStringArgument(attr_name, "attr_name"));
+                     GetStringArgument(attr_name, "attr_name"));
     return Attrs(x, overwrite_schema_arg, {attr_name_view}, {value});
   }
   RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
@@ -789,8 +789,8 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         const T& itemid_impl = itemid.impl<T>();
         auto result_db = DataBag::EmptyMutable();
-        ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-        internal::ShallowCloneOp clone_op(&result_db_impl.get());
+        ASSIGN_OR_RETURN(auto& result_db_impl, result_db->GetMutableImpl());
+        internal::ShallowCloneOp clone_op(&result_db_impl);
         const internal::DataBagImpl* absl_nullable schema_db_impl = nullptr;
         FlattenFallbackFinder schema_fb_finder;
         internal::DataBagImpl::FallbackSpan schema_fallbacks;
@@ -828,8 +828,8 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     auto result_db = DataBag::EmptyMutable();
-    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    internal::DeepCloneOp deep_clone_op(&result_db_impl.get());
+    ASSIGN_OR_RETURN(auto& result_db_impl, result_db->GetMutableImpl());
+    internal::DeepCloneOp deep_clone_op(&result_db_impl);
     ASSIGN_OR_RETURN(
         auto result_slice_impl,
         deep_clone_op(impl, schema_impl, db->GetImpl(), fallbacks_span));

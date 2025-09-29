@@ -36,8 +36,8 @@
 #include "arolla/util/cancellation.h"
 #include "arolla/util/unit.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/functor.h"
 #include "koladata/functor/cpp_function_bridge.h"
+#include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/signature.h"
@@ -145,9 +145,9 @@ TEST(WhileTest, FactorialYields) {
 
   ASSERT_OK_AND_ASSIGN(const auto& yields_seq,
                        var_values[0].As<arolla::Sequence>());
-  EXPECT_EQ(yields_seq.get().value_qtype(), arolla::GetQType<DataSlice>());
-  EXPECT_EQ(yields_seq.get().size(), 6);
-  auto yields_span = yields_seq.get().UnsafeSpan<DataSlice>();
+  EXPECT_EQ(yields_seq.value_qtype(), arolla::GetQType<DataSlice>());
+  EXPECT_EQ(yields_seq.size(), 6);
+  auto yields_span = yields_seq.UnsafeSpan<DataSlice>();
   EXPECT_FALSE(yields_span[0].item().has_value());
   EXPECT_EQ(yields_span[1].item().value<int64_t>(), 5);
   EXPECT_EQ(yields_span[2].item().value<int64_t>(), 20);
@@ -220,8 +220,7 @@ TEST(WhileTest, CancelEmptyFunctors) {
   ASSERT_OK_AND_ASSIGN(auto body,
                        CreateFunctor(body_returns, koda_signature, {}, {}));
 
-  arolla::CancellationContext::ScopeGuard::
-  current_cancellation_context()
+  arolla::CancellationContext::ScopeGuard::current_cancellation_context()
       ->Cancel();
 
   auto result = WhileWithCompilationCache(condition, body, {}, {});

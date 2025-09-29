@@ -330,8 +330,8 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
     auto next_part = [&]() -> absl::Status {
       if (part_it == extra_parts.end()) {
         return absl::InvalidArgumentError(absl::StrCat(
-          "DataSliceCompactProto has not enough values for type ",
-          arolla::GetQType<T>()->name()));
+            "DataSliceCompactProto has not enough values for type ",
+            arolla::GetQType<T>()->name()));
       }
       part_offset += part_size;
       values = &GetValuesFromDataSliceCompactProto<T>(*part_it++);
@@ -364,10 +364,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
               "DataSliceCompactProto has not enough values for type ",
               arolla::GetQType<T>()->name()));
         }
-        ASSIGN_OR_RETURN(arolla::expr::ExprQuote q,
+        ASSIGN_OR_RETURN(const arolla::expr::ExprQuote& q,
                          input_values[0].As<arolla::expr::ExprQuote>());
         input_values = input_values.subspan(1);
-        typed_bldr.InsertIfNotSet(cur, std::move(q));
+        typed_bldr.InsertIfNotSet(cur, q);
       } else {
         while (last_id >= part_offset + part_size) {
           RETURN_IF_ERROR(next_part());
@@ -509,8 +509,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceValue(
         absl::StrCat("wrong number of input_values in DecodeDataSliceValue: ",
                      input_values.size()));
   }
-  ASSIGN_OR_RETURN(auto shape, input_values[1].As<DataSlice::JaggedShape>());
-  ASSIGN_OR_RETURN(auto schema, input_values[2].As<internal::DataItem>());
+  ASSIGN_OR_RETURN(const auto& shape,
+                   input_values[1].As<DataSlice::JaggedShape>());
+  ASSIGN_OR_RETURN(const auto& schema,
+                   input_values[2].As<internal::DataItem>());
   DataBagPtr db = nullptr;
   if (input_values.size() == 4) {
     ASSIGN_OR_RETURN(db, input_values[3].As<DataBagPtr>());
@@ -551,7 +553,7 @@ absl::StatusOr<ValueDecoderResult> DecodeJaggedShapeValue(
 }
 
 template <typename T>
-absl::StatusOr<std::reference_wrapper<const T>> GetInputValue(
+absl::StatusOr<const T&> GetInputValue(
     absl::Span<const TypedValue> input_values, int index) {
   if (index < 0 || index >= input_values.size()) {
     return absl::InvalidArgumentError("invalid input value index");

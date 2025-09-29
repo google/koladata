@@ -310,8 +310,7 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
 
 TEST(DataSliceUtils, CreateWithSchemaFromDataError) {
   EXPECT_THAT(DataSlice::CreateWithSchemaFromData(
-                  internal::DataSliceImpl::Create(
-                      CreateDenseArray<int>({})),
+                  internal::DataSliceImpl::Create(CreateDenseArray<int>({})),
                   DataSlice::JaggedShape::Empty())
                   .status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -488,8 +487,7 @@ TEST(DataSliceTest, WithWholeness) {
     SCOPED_TRACE("Override flag doesn't help on mutable non empty DataBag");
     ASSERT_OK_AND_ASSIGN(auto db, DataBag::EmptyMutable()->Fork());
     auto obj = internal::DataItem(internal::AllocateSingleObject());
-    ASSERT_OK(
-        db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(obj, "a", internal::DataItem(1)));
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSlice::Create(obj, internal::DataItem(schema::kObject), db,
                                    DataSlice::Wholeness::kNotWhole));
@@ -505,8 +503,7 @@ TEST(DataSliceTest, FreezeDoesntBecomeWholeIfBagIsModified) {
     SCOPED_TRACE("Freeze updates whole information");
     ASSERT_OK_AND_ASSIGN(auto db, DataBag::EmptyMutable()->Fork());
     auto obj = internal::DataItem(internal::AllocateSingleObject());
-    ASSERT_OK(
-        db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(obj, "a", internal::DataItem(1)));
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSlice::Create(obj, internal::DataItem(schema::kObject), db,
                                    DataSlice::Wholeness::kWhole));
@@ -889,7 +886,7 @@ TEST(DataSliceTest, VerifyIsEntitySchema) {
                        HasSubstr("expected Entity schema, got OBJECT")));
 
   EXPECT_THAT(CreateListSchema(db, test::Schema(schema::kInt32))
-              ->VerifyIsEntitySchema(),
+                  ->VerifyIsEntitySchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected Entity schema, got LIST[INT32]")));
 
@@ -1365,31 +1362,27 @@ TEST(DataSliceTest, GetAttrNames_IntersectionInOneAllocation) {
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto& db_impl, db->GetMutableImpl());
   auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(5), 5);
   auto schemas_b = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(3), 3);
   auto schema = DataItem(internal::AllocateExplicitSchema());
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_a, "b", DataItem(schema::kString)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_b, "a", DataItem(schema::kString)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schema, "c", DataItem(schema::kFloat32)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(
-      DataSliceImpl::Create({schemas_a[0], schemas_a[1], schemas_a[2],
-                             schemas_b[0], schemas_b[1], schemas_b[2], schema,
-                             schemas_a[3], schemas_a[4]}),
-      DataSlice::JaggedShape::FlatFromSize(9), DataItem(schema::kSchema), db));
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_a, "b", DataItem(schema::kString)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_b, "a", DataItem(schema::kString)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schema, "c", DataItem(schema::kFloat32)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(DataSliceImpl::Create(
+                                     {schemas_a[0], schemas_a[1], schemas_a[2],
+                                      schemas_b[0], schemas_b[1], schemas_b[2],
+                                      schema, schemas_a[3], schemas_a[4]}),
+                                 DataSlice::JaggedShape::FlatFromSize(9),
+                                 DataItem(schema::kSchema), db));
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/true),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
 }
 
@@ -1409,33 +1402,32 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
 TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
   auto db = DataBag::EmptyMutable();
   auto fallback_db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
-  ASSERT_OK_AND_ASSIGN(auto fallback_db_impl, fallback_db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto& db_impl, db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto& fallback_db_impl, fallback_db->GetMutableImpl());
   auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(5), 5);
   auto schemas_b = DataSliceImpl::ObjectsFromAllocation(
       internal::AllocateExplicitSchemas(3), 3);
   auto schema = DataItem(internal::AllocateExplicitSchema());
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
+  ASSERT_OK(fallback_db_impl.SetSchemaAttr(schemas_a, "b",
+                                           DataItem(schema::kString)));
+  ASSERT_OK(fallback_db_impl.SetSchemaAttr(schemas_b, "a",
+                                           DataItem(schema::kString)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
   ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
-  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schemas_a, "b",
-                                                 DataItem(schema::kString)));
-  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schemas_b, "a",
-                                                 DataItem(schema::kString)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
-  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schema, "c",
-                                                 DataItem(schema::kFloat32)));
-  ASSERT_OK(
-      db_impl.get().SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
+      fallback_db_impl.SetSchemaAttr(schema, "c", DataItem(schema::kFloat32)));
+  ASSERT_OK(db_impl.SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
   db = DataBag::ImmutableEmptyWithFallbacks({db, fallback_db});
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(
-      DataSliceImpl::Create({schemas_a[0], schemas_a[1], schemas_a[2],
-                             schemas_b[0], schemas_b[1], schemas_b[2], schema,
-                             schemas_a[3], schemas_a[4]}),
-      DataSlice::JaggedShape::FlatFromSize(9), DataItem(schema::kSchema), db));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(DataSliceImpl::Create(
+                                     {schemas_a[0], schemas_a[1], schemas_a[2],
+                                      schemas_b[0], schemas_b[1], schemas_b[2],
+                                      schema, schemas_a[3], schemas_a[4]}),
+                                 DataSlice::JaggedShape::FlatFromSize(9),
+                                 DataItem(schema::kSchema), db));
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/true),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
 }
 
@@ -1585,8 +1577,7 @@ TEST(DataSliceTest, GetAttrNames_SchemaSliceMixed) {
   auto b = test::DataItem("a");
   auto c = test::DataItem(3.14);
   ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
+      auto ds, EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   auto schema_ds = test::MixedDataSlice<schema::DType, ObjectId>(
                        {schema::kInt32, std::nullopt},
                        {std::nullopt, ds.GetSchemaImpl().value<ObjectId>()})
@@ -1821,14 +1812,14 @@ TEST(DataSliceTest, EmbedSchema_MixedNotAllowed) {
 
 TEST(DataSliceTest, EmbedSchema_Object_Errors) {
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto& db_impl, db->GetMutableImpl());
   auto explicit_schema_1 = internal::AllocateExplicitSchema();
   auto explicit_schema_2 = internal::AllocateExplicitSchema();
 
   // Item
   auto item = DataItem(internal::AllocateSingleObject());
-  ASSERT_OK(db_impl.get().SetAttr(item, schema::kSchemaAttr,
-                                  DataItem(explicit_schema_1)));
+  ASSERT_OK(
+      db_impl.SetAttr(item, schema::kSchemaAttr, DataItem(explicit_schema_1)));
   auto value_item =
       test::DataItem(internal::AllocateSingleObject(), explicit_schema_1, db);
   // Check that it is okay to embed the same schema.
@@ -1843,10 +1834,10 @@ TEST(DataSliceTest, EmbedSchema_Object_Errors) {
 
   // Slice
   auto value_slice = test::AllocateDataSlice(2, explicit_schema_2, db);
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
-                                  DataItem(explicit_schema_2)));  // The same
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
-                                  DataItem(schema::kObject)));  // Different
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
+                            DataItem(explicit_schema_2)));  // The same
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
+                            DataItem(schema::kObject)));  // Different
 
   EXPECT_THAT(
       value_slice.EmbedSchema(false),
@@ -1854,8 +1845,8 @@ TEST(DataSliceTest, EmbedSchema_Object_Errors) {
                MatchesRegex(
                    "existing schemas .* differ from the provided schema .*")));
 
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
-                                  DataItem(schema::kObject)));  // Different
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
+                            DataItem(schema::kObject)));  // Different
   EXPECT_THAT(
       value_slice.EmbedSchema(false),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1863,10 +1854,10 @@ TEST(DataSliceTest, EmbedSchema_Object_Errors) {
                    "existing schemas .* differ from the provided schema .*")));
 
   // Conflict and missing
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
-                                  DataItem(explicit_schema_1)));  // Different
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
-                                  DataItem()));  // Empty
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
+                            DataItem(explicit_schema_1)));  // Different
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
+                            DataItem()));  // Empty
   EXPECT_THAT(
       value_slice.EmbedSchema(false),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1876,14 +1867,14 @@ TEST(DataSliceTest, EmbedSchema_Object_Errors) {
 
 TEST(DataSliceTest, EmbedSchema_Object_Overwrite) {
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto& db_impl, db->GetMutableImpl());
   auto explicit_schema_1 = internal::AllocateExplicitSchema();
   auto explicit_schema_2 = internal::AllocateExplicitSchema();
 
   // Item
   auto item = DataItem(internal::AllocateSingleObject());
-  ASSERT_OK(db_impl.get().SetAttr(item, schema::kSchemaAttr,
-                                  DataItem(explicit_schema_1)));
+  ASSERT_OK(
+      db_impl.SetAttr(item, schema::kSchemaAttr, DataItem(explicit_schema_1)));
   auto value_item =
       test::DataItem(internal::AllocateSingleObject(), explicit_schema_1, db);
   // Check that it is okay to embed the same schema.
@@ -1898,10 +1889,10 @@ TEST(DataSliceTest, EmbedSchema_Object_Overwrite) {
   // Slice
   auto slice = internal::DataSliceImpl::AllocateEmptyObjects(2);
   auto value_slice = test::AllocateDataSlice(2, explicit_schema_2, db);
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
-                                  DataItem(explicit_schema_2)));  // The same
-  ASSERT_OK(db_impl.get().SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
-                                  DataItem(schema::kObject)));  // Different
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[0], schema::kSchemaAttr,
+                            DataItem(explicit_schema_2)));  // The same
+  ASSERT_OK(db_impl.SetAttr(value_slice.slice()[1], schema::kSchemaAttr,
+                            DataItem(schema::kObject)));  // Different
 
   ASSERT_OK_AND_ASSIGN(auto embedded_slice, value_slice.EmbedSchema(true));
   ASSERT_OK_AND_ASSIGN(schema_attr,
@@ -3593,7 +3584,7 @@ TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
                         {std::nullopt, std::nullopt, std::nullopt})));
 
   // It respects the schema, not just the data.
-  ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+  ASSERT_OK(db->GetMutableImpl()->SetAttr(
       ds.slice(), "c",
       internal::DataSliceImpl::Create({internal::DataItem(1.0f),
                                        internal::DataItem(),
@@ -3626,7 +3617,7 @@ TEST(DataSliceTest, HasAttr_Primitives_ObjectCreator) {
                         {std::nullopt, std::nullopt, std::nullopt})));
 
   // It respects the schema, not just the data.
-  ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+  ASSERT_OK(db->GetMutableImpl()->SetAttr(
       ds.slice(), "c",
       internal::DataSliceImpl::Create({internal::DataItem(1.0f),
                                        internal::DataItem(),
@@ -4438,7 +4429,7 @@ TEST(DataSliceTest, ReplaceInList) {
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
-                      CreateListSchema(db, test::Schema(schema::kInt32)));
+                       CreateListSchema(db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       DataSlice::Create(
@@ -4460,10 +4451,9 @@ TEST(DataSliceTest, ReplaceInList) {
   auto incompatible_items2 =
       test::DataSlice<int>({42, 12, 13}, wrong_shape2, schema::kInt32);
 
-  EXPECT_THAT(
-      lists.ReplaceInList(0, std::nullopt, incompatible_items1),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("3 dimensions are required")));
+  EXPECT_THAT(lists.ReplaceInList(0, std::nullopt, incompatible_items1),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("3 dimensions are required")));
   EXPECT_THAT(lists.ReplaceInList(0, std::nullopt, incompatible_items2),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("cannot be expanded to")));
@@ -4733,7 +4723,7 @@ TEST(DataSliceTest, RemoveInList) {
                 IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(15))));
 
     EXPECT_THAT(EntityCreator::Shaped(forked_db, lists.GetShape(), {}, {})
-                ->RemoveInList(0, 1),
+                    ->RemoveInList(0, 1),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("attribute '__items__' is missing")));
   }
@@ -5293,7 +5283,7 @@ TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {
   // Values.
   ASSERT_OK_AND_ASSIGN(auto values, none_dict.GetDictValues());
   EXPECT_THAT(values, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
-                                                        schema::kNone, db)));
+                                                          schema::kNone, db)));
   // Lookup.
   auto lookup_keys = test::DataSlice<int>({1, 2, 3});
   EXPECT_THAT(
@@ -5382,7 +5372,7 @@ TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
                        /*keys=*/std::nullopt, /*values=*/std::nullopt));
   EXPECT_FALSE(dicts.ShouldApplyListOp());
   EXPECT_FALSE(test::EmptyDataSlice(dicts.GetShape(), dicts.GetSchemaImpl(), db)
-               .ShouldApplyListOp());
+                   .ShouldApplyListOp());
 
   // NONE schema.
   EXPECT_FALSE(test::EmptyDataSlice(3, schema::kNone).ShouldApplyListOp());
@@ -6018,10 +6008,10 @@ TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
 
   auto explicit_schema = internal::AllocateExplicitSchema();
   ASSERT_OK(test::Schema(explicit_schema, db)
-            .SetAttr("a", test::Schema(schema::kInt64)));
+                .SetAttr("a", test::Schema(schema::kInt64)));
   auto implicit_schema = GenerateImplicitSchema();
   ASSERT_OK(test::Schema(implicit_schema, db)
-            .SetAttr("a", test::Schema(schema::kInt32)));
+                .SetAttr("a", test::Schema(schema::kInt32)));
 
   auto schema_slice = test::DataSlice<ObjectId>(
       {explicit_schema, implicit_schema}, schema::kSchema);

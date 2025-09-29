@@ -314,9 +314,9 @@ absl::StatusOr<DataSlice> FlattenCyclicReferences(
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     auto result_db = DataBag::EmptyMutable();
-    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    FlattenCyclicReferencesOp flatten_cyclic_references_op(
-        &result_db_impl.get(), max_recursion_depth);
+    ASSIGN_OR_RETURN(auto& result_db_impl, result_db->GetMutableImpl());
+    FlattenCyclicReferencesOp flatten_cyclic_references_op(&result_db_impl,
+                                                           max_recursion_depth);
     ASSIGN_OR_RETURN(auto result_slice_impl,
                      flatten_cyclic_references_op(
                          impl, schema_impl, db->GetImpl(), fallbacks_span));
@@ -325,6 +325,5 @@ absl::StatusOr<DataSlice> FlattenCyclicReferences(
                              schema_impl, std::move(result_db));
   });
 }
-
 
 }  // namespace koladata::ops

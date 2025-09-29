@@ -87,9 +87,9 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
     // Has schema.
     auto entity_schema = internal::AllocateExplicitSchema();
-    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
-        internal::DataItem(obj), schema::kSchemaAttr,
-        internal::DataItem(entity_schema)));
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(internal::DataItem(obj),
+                                            schema::kSchemaAttr,
+                                            internal::DataItem(entity_schema)));
     EXPECT_THAT(GetNarrowedSchema(test::DataItem(obj, schema::kObject, db)),
                 IsEquivalentTo(internal::DataItem(entity_schema)));
   }
@@ -134,7 +134,7 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
     // Has schema.
     auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
-    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(
         slice.slice(), schema::kSchemaAttr,
         internal::DataSliceImpl::Create(
             {entity_schema, entity_schema, entity_schema})));
@@ -142,7 +142,7 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
     // Conflicting schema - fallback to OBJECT.
     auto entity_schema_2 =
         internal::DataItem(internal::AllocateExplicitSchema());
-    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(
         slice.slice()[0], schema::kSchemaAttr, entity_schema_2));
     EXPECT_THAT(GetNarrowedSchema(slice),
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
@@ -187,7 +187,7 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
   auto entity_schema = internal::AllocateExplicitSchema();
   auto db = DataBag::EmptyMutable();
   auto entity = test::AllocateDataSlice(3, entity_schema, db);
-  ASSERT_OK(db->GetMutableImpl()->get().SetSchemaAttr(
+  ASSERT_OK(db->GetMutableImpl()->SetSchemaAttr(
       internal::DataItem(entity_schema), "x",
       internal::DataItem(schema::kInt32)));
   EXPECT_EQ(DescribeSliceSchema(entity), "ENTITY(x=INT32)");

@@ -71,8 +71,7 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
   internal::DataItem a_schema(schema::kInt32);
   ASSERT_OK_AND_ASSIGN(
       internal::DataItem obj_schema,
-      db->GetMutableImpl()->get().CreateExplicitSchemaFromFields({"a"},
-                                                                 {a_schema}));
+      db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
   ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
   auto val = DataSlice::CreateFromScalar(42);
   ASSERT_OK_AND_ASSIGN(arolla::TypedValue res_tv,
@@ -105,11 +104,8 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromFunction) {
   internal::DataItem a_schema(schema::kInt32);
   ASSERT_OK_AND_ASSIGN(
       internal::DataItem obj_schema,
-      db->GetMutableImpl()->get().CreateExplicitSchemaFromFields({"a"},
-                                                                 {a_schema}));
-  ASSERT_OK_AND_ASSIGN(
-      auto obj,
-      DataSlice::Create(obj_item, obj_schema));
+      db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
+  ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
   auto val = DataSlice::CreateFromScalar(42);
   ASSERT_OK_AND_ASSIGN(arolla::TypedValue res_tv,
                        CallFunctorWithCompilationCache(

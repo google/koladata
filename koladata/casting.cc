@@ -353,8 +353,8 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
   // TODO: Consider adding support for immutable bags in the low
   // level ToObject.
   if (db != nullptr && db->IsMutable()) {
-    ASSIGN_OR_RETURN(auto db_impl, db->GetMutableImpl());
-    db_impl_ptr = &db_impl.get();
+    ASSIGN_OR_RETURN(auto& db_impl, db->GetMutableImpl());
+    db_impl_ptr = &db_impl;
   }
   ASSIGN_OR_RETURN(auto to_object,
                    schema::ToObject::Make(slice.GetSchemaImpl(),

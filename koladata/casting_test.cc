@@ -1188,7 +1188,7 @@ INSTANTIATE_TEST_SUITE_P(
       // Write another schema to the db.
       auto entity_schema_3 = internal::AllocateExplicitSchema();
       auto db = DataBag::EmptyMutable();
-      EXPECT_OK(db->GetMutableImpl().value().get().SetAttr(
+      EXPECT_OK(db->GetMutableImpl()->SetAttr(
           internal::DataItem(obj), schema::kSchemaAttr,
           internal::DataItem(entity_schema_3)));
 
@@ -1225,11 +1225,11 @@ TEST(Casting, EntityErrors) {
   auto entity_schema = internal::AllocateExplicitSchema();
   auto entity_schema_2 = internal::AllocateExplicitSchema();
   auto db = DataBag::EmptyMutable();
-  EXPECT_OK(db->GetMutableImpl().value().get().SetAttr(
-      internal::DataItem(obj), schema::kSchemaAttr,
-      internal::DataItem(entity_schema)));
+  EXPECT_OK(db->GetMutableImpl()->SetAttr(internal::DataItem(obj),
+                                          schema::kSchemaAttr,
+                                          internal::DataItem(entity_schema)));
   auto db2 = DataBag::EmptyMutable();
-  EXPECT_OK(db2->GetMutableImpl().value().get().SetAttr(
+  EXPECT_OK(db2->GetMutableImpl()->SetAttr(
       internal::DataItem(obj), schema::kSchemaAttr,
       internal::DataItem(entity_schema_2)));
 
@@ -1287,7 +1287,7 @@ TEST(Casting, EntityErrors) {
                        internal::DataItem(entity_schema)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        ContainsRegex("must have a DataBag.*when validating "
-                                    "equivalence of existing __schema__")));
+                                     "equivalence of existing __schema__")));
   // Missing __schema__.
   EXPECT_THAT(
       ToEntity(test::DataItem(internal::AllocateSingleObject(),
@@ -1331,8 +1331,8 @@ INSTANTIATE_TEST_SUITE_P(
       auto schema_slice = internal::DataSliceImpl::Create(
           3, internal::DataItem(internal::AllocateExplicitSchema()));
       auto db = DataBag::EmptyMutable();
-      EXPECT_OK(db->GetMutableImpl().value().get().SetAttr(
-          object_slice, schema::kSchemaAttr, schema_slice));
+      EXPECT_OK(db->GetMutableImpl()->SetAttr(object_slice, schema::kSchemaAttr,
+                                              schema_slice));
 
       std::vector<CastingTestCase> test_cases = {
           // DataSliceImpl cases.
@@ -1441,7 +1441,7 @@ TEST(Casting, ToObjectEmbedding) {
                     internal::DataItem(schema::kObject), db))));
 
     auto expected_db = DataBag::EmptyMutable();
-    auto& expected_db_impl = expected_db->GetMutableImpl().value().get();
+    auto& expected_db_impl = *expected_db->GetMutableImpl();
     ASSERT_OK(expected_db_impl.SetAttr(object_slice, schema::kSchemaAttr,
                                        schema_slice));
     EXPECT_THAT(db->GetImpl(), DataBagEqual(expected_db_impl));
@@ -1453,7 +1453,7 @@ TEST(Casting, ToObjectEmbedding) {
     EXPECT_THAT(ToObject(item), IsOkAndHolds(IsEquivalentTo(test::DataItem(
                                     object_slice[0], schema::kObject, db))));
     auto expected_db = DataBag::EmptyMutable();
-    auto& expected_db_impl = expected_db->GetMutableImpl().value().get();
+    auto& expected_db_impl = *expected_db->GetMutableImpl();
     ASSERT_OK(expected_db_impl.SetAttr(object_slice[0], schema::kSchemaAttr,
                                        schema_slice[0]));
     EXPECT_THAT(db->GetImpl(), DataBagEqual(expected_db_impl));
@@ -1461,7 +1461,7 @@ TEST(Casting, ToObjectEmbedding) {
   {
     // No schema validation (overwrite).
     auto db = DataBag::EmptyMutable();
-    auto& db_impl = db->GetMutableImpl().value().get();
+    auto& db_impl = *db->GetMutableImpl();
     ASSERT_OK(
         db_impl.SetAttr(object_slice[0], schema::kSchemaAttr, schema_slice[0]));
     auto schema_2 = internal::DataItem(internal::AllocateExplicitSchema());
@@ -1470,7 +1470,7 @@ TEST(Casting, ToObjectEmbedding) {
                 IsOkAndHolds(IsEquivalentTo(
                     test::DataItem(object_slice[0], schema::kObject, db))));
     auto expected_db = DataBag::EmptyMutable();
-    auto& expected_db_impl = expected_db->GetMutableImpl().value().get();
+    auto& expected_db_impl = *expected_db->GetMutableImpl();
     ASSERT_OK(expected_db_impl.SetAttr(object_slice[0], schema::kSchemaAttr,
                                        schema_2));
     EXPECT_THAT(db->GetImpl(), DataBagEqual(expected_db_impl));
@@ -1505,8 +1505,8 @@ TEST(Casting, ToObjectErrors) {
   {
     // Different schema compared to existing one.
     auto db = DataBag::EmptyMutable();
-    ASSERT_OK(db->GetMutableImpl().value().get().SetAttr(
-        object_slice, schema::kSchemaAttr, schema_slice));
+    ASSERT_OK(db->GetMutableImpl()->SetAttr(object_slice, schema::kSchemaAttr,
+                                            schema_slice));
     auto schema_2 = internal::DataItem(internal::AllocateExplicitSchema());
 
     // Slice.
@@ -1648,7 +1648,7 @@ TEST(Casting, CastToExplicit) {
     auto schema_2 = internal::DataItem(internal::AllocateExplicitSchema());
 
     auto db = DataBag::EmptyMutable();
-    auto& db_impl = db->GetMutableImpl().value().get();
+    auto& db_impl = *db->GetMutableImpl();
     ASSERT_OK(db_impl.SetAttr(obj, schema::kSchemaAttr, schema_1));
 
     auto item = test::DataItem(obj, schema_2, db);
@@ -1666,7 +1666,7 @@ TEST(Casting, CastToExplicit) {
                        /*validate_schema=*/false),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(obj, schema::kObject, db))));
     auto expected_db = DataBag::EmptyMutable();
-    auto& expected_db_impl = expected_db->GetMutableImpl().value().get();
+    auto& expected_db_impl = *expected_db->GetMutableImpl();
     ASSERT_OK(expected_db_impl.SetAttr(obj, schema::kSchemaAttr, schema_2));
     EXPECT_THAT(db->GetImpl(), DataBagEqual(expected_db_impl));
   }

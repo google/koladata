@@ -76,8 +76,7 @@ class DataBag : public arolla::RefcountedBase {
   bool IsMutable() const { return is_mutable_; }
 
   const internal::DataBagImpl& GetImpl() const { return *impl_; }
-  absl::StatusOr<std::reference_wrapper<internal::DataBagImpl>>
-  GetMutableImpl() {
+  absl::StatusOr<internal::DataBagImpl&> GetMutableImpl() {
     if (!is_mutable_) {
       return absl::InvalidArgumentError(
           "cannot modify/create item(s) on an immutable DataBag, perhaps use "
