@@ -17,6 +17,7 @@
 #include "koladata/functor/call.h"
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -29,6 +30,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
+#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
@@ -38,6 +40,8 @@
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
 #include "koladata/signature.h"
 #include "koladata/test_utils.h"
@@ -287,6 +291,5 @@ TEST(CallTest, Cancellation) {
                 StatusIs(absl::StatusCode::kCancelled));
   }
 }
-
 }  // namespace
 }  // namespace koladata::functor

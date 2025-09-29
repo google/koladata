@@ -14,15 +14,18 @@
 //
 #include "koladata/functor/call.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr_node.h"
@@ -68,11 +71,21 @@ absl::StatusOr<FunctorPreprocessingCache> ProcessFunctor(
                                    std::move(combined_expr)};
 }
 
+struct CounterGuardTag {};
+
+absl::Status VerifySufficientStackSize(size_t depth) {
+  return absl::OkStatus();
+}
+
 }  // namespace
 
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) {
+  thread_local size_t depth = 0;
+  ++depth;
+  absl::Cleanup depth_cleanup([&] { --depth; });
+  RETURN_IF_ERROR(VerifySufficientStackSize(depth));
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError(
