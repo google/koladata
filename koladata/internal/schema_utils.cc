@@ -14,8 +14,6 @@
 //
 #include "koladata/internal/schema_utils.h"
 
-#include <array>
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <type_traits>
