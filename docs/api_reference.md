@@ -5198,57 +5198,6 @@ Args:
 Returns:
   Result of fn applied on the arguments.</code></pre>
 
-### `kd.py.apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs)` {#kd.py.apply_py_on_cond}
-Aliases:
-
-- [kd.apply_py_on_cond](#kd.apply_py_on_cond)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies Python functions on args filtered with `cond` and `~cond`.
-
-It is equivalent to
-
-  yes_fn(
-      *( x &amp; cond for x in args ),
-      **{ k: (v &amp; cond) for k, v in kwargs.items() },
-  ) | no_fn(
-      *( x &amp; ~cond for x in args ),
-      **{ k: (v &amp; ~cond) for k, v in kwargs.items() },
-  )
-
-Args:
-  yes_fn: function to apply on filtered args.
-  no_fn: function to apply on inverse filtered args (this parameter can be
-    None).
-  cond: filter dataslice.
-  *args: arguments to filter and then pass to yes_fn and no_fn.
-  **kwargs: keyword arguments to filter and then pass to yes_fn and no_fn.
-
-Returns:
-  The union of results of yes_fn and no_fn applied on filtered args.</code></pre>
-
-### `kd.py.apply_py_on_selected(fn, cond, *args, **kwargs)` {#kd.py.apply_py_on_selected}
-Aliases:
-
-- [kd.apply_py_on_selected](#kd.apply_py_on_selected)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies Python function `fn` on args filtered with cond.
-
-It is equivalent to
-
-  fn(
-      *( x &amp; cond for x in args ),
-      **{ k: (v &amp; cond) for k, v in kwargs.items() },
-  )
-
-Args:
-  fn: function to apply on filtered args.
-  cond: filter dataslice.
-  *args: arguments to filter and then pass to fn.
-  **kwargs: keyword arguments to filter and then pass to fn.
-
-Returns:
-  Result of fn applied on filtered args.</code></pre>
-
 ### `kd.py.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, item_completed_callback=None, **kwargs)` {#kd.py.map_py}
 Aliases:
 
@@ -9155,14 +9104,6 @@ Alias for [kd.masking.apply_mask](#kd.masking.apply_mask) operator.
 ### `kd.apply_py(fn, *args, return_type_as=unspecified, **kwargs)` {#kd.apply_py}
 
 Alias for [kd.py.apply_py](#kd.py.apply_py) operator.
-
-### `kd.apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs)` {#kd.apply_py_on_cond}
-
-Alias for [kd.py.apply_py_on_cond](#kd.py.apply_py_on_cond) operator.
-
-### `kd.apply_py_on_selected(fn, cond, *args, **kwargs)` {#kd.apply_py_on_selected}
-
-Alias for [kd.py.apply_py_on_selected](#kd.py.apply_py_on_selected) operator.
 
 ### `kd.argmax(x, ndim=unspecified)` {#kd.argmax}
 

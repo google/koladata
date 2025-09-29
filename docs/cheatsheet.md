@@ -1635,41 +1635,51 @@ kd.map_py(f, 1, z=3, y=2) # mix of positional and keyword
 
 <section>
 
-### Conditional Apply Operators
+### Python Function Operators
 
 ```py
-# Note that 'a' is passed as a DataSlice
-def f1(a):
-  return a + 1
-
 a = kd.slice([1, 2, 3])
 
-# Apply Python python
-c = kd.apply_py_on_selected(f1, a > 1, a) # [None, 3, 4]
+# Use python for a simple operation transformation.
+def f1(a):
+  # Note that 'a' is passed as a DataSlice
+  return a + 1
 
-# Fill the missing items with values from 'a'
-c | a # [1, 3, 4]
+c = kd.apply_py(f1, a)  # [2, 3, 4]
 
-def f2(a, b):
-  return a + b
+# Random Shuffle.
+import random
 
+def f2(a):
+  a = a.to_py()  # Use .to_py() to convert DataSlice to a standard python list.
+  random.shuffle(a)
+  return kd.slice(a)
+
+kd.apply_py(f2, a)  # [3, 1, 2]
+
+# A simple aggregation.
 def f3(a, b):
-  return a - b
+  return sum(x * y for x, y in zip(a.to_py(), b.to_py()))
 
 b = kd.slice([4, 5, 6])
 
-kd.apply_py_on_cond(f2, f3, a > 1, a, b) # [-3, 7, 9]
+kd.apply_py(f3, a, b)  # 32
 
-# use kwargs
-kd.apply_py_on_cond(f2, f3, a > 1, b=b, a=a)
+# Using 'kwargs'.
+kd.apply_py(f3, a=a, b=b)
 
-# similarly map_py can be applied conditionally
-kd.map_py_on_selected(lambda a: a + 1, a > 1, a,
-                      schema=kd.INT32)
 
-kd.map_py_on_cond(lambda a, b: a + b,
-                  lambda a, b: a - b, a > 1, b=b, a=a,
-                  schema=kd.INT32)
+# 'kd.map_py' executes a python function row-wise, on the given slices.
+kd.map_py(lambda a: a + 1, a)
+
+# Conditional variant & schema for the resulting slice.
+kd.map_py_on_selected(
+    lambda a: a + 1, a > 1, a, schema=kd.FLOAT64
+)  # [None, 3.0, 4.0]
+
+kd.map_py_on_cond(
+    lambda a, b: a + b, lambda a, b: a - b, a > 1, b=b, a=a, schema=kd.INT64
+)  # [-3, 7, 9]
 ```
 
 </section>
@@ -2055,7 +2065,9 @@ print_input(kd.slice([1, 2, 3]))  # Returns [1, 2, 3].
 As with `kd.with_assertion`, the operator result *must* be used for it to be
 properly embedded into the traced Functor.
 
-The output may be truncated by default. Use e.g. [`kd.slices.get_repr`](api_reference.md#kd.slices.get_repr) to control the repr behavior.
+The output may be truncated by default. Use e.g.
+[`kd.slices.get_repr`](api_reference.md#kd.slices.get_repr) to control the repr
+behavior.
 
 </section>
 

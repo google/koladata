@@ -2070,23 +2070,20 @@ kd.sample_n(x, n=2, seed=342)
 
 ### Applying Python functions
 
-`kd.apply_py`, `kd.apply_py_on_selected` and `kd.apply_py_cond` can be used to
-apply python functions to DataSlices directly. Note, DataSlices can potentially
-sparse.
+The operator `kd.apply_py` executes a python function with the provided
+arguments. A call `kd.apply_py(fn, a, y=b)` is equivalent to calling `fn(a,
+y=b)` in python directly. The function `fn` can return a DataSlice or, for
+primitive types, return a python value directly.
 
 ```py
 a = kd.slice([1, 2, 3, 4])
 b = kd.slice([3, 4, 5, 6])
-# the same as (lambda x,y: x+y)(a, b)
+
 kd.apply_py(lambda x, y: x + y, a, b)  # [4,6,8,10]
-# the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2))
-kd.apply_py_on_selected(lambda x, y: x + y, a >= 2, a, b)  # [None,6,8,10]
-# the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2)) | (lambda x,y: x-y)(a & ~(a>=2), b & ~(b >= 2))
-kd.apply_py_on_cond(lambda x, y: x + y, lambda x, y: x - y, a >= 2, a, b)  # [-2,6,8,10]
 ```
 
-`map_py` and `map_py_on_cond` can be used to apply python functions to
-individual items.
+The operators `map_py` and `map_py_on_cond` can be used to apply python
+functions to individual items.
 
 ```py
 ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [], [7, 8, 9, 10]]])
