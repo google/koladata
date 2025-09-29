@@ -71,8 +71,6 @@ absl::StatusOr<FunctorPreprocessingCache> ProcessFunctor(
                                    std::move(combined_expr)};
 }
 
-struct CounterGuardTag {};
-
 absl::Status VerifySufficientStackSize(size_t depth) {
   return absl::OkStatus();
 }
