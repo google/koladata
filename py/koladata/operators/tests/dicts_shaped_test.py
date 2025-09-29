@@ -81,7 +81,7 @@ class DictShapedTest(parameterized.TestCase):
   def test_value(self, shape, kwargs):
     actual = expr_eval.eval(kde.dicts.shaped(shape, **kwargs))
     expected = bag().dict_shaped(shape, **kwargs)
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   def test_keys_values(self):
     keys = ds(['a', 'b'])
@@ -98,7 +98,7 @@ class DictShapedTest(parameterized.TestCase):
         keys,
         values,
     )
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   def test_db_is_immutable(self):
     d = expr_eval.eval(kde.dicts.shaped(jagged_shape.create_shape()))
@@ -139,9 +139,7 @@ class DictShapedTest(parameterized.TestCase):
         'creating a dict requires both keys and values, got only keys',
     ):
       expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2]), keys=ds(['a', 'b'])
-          )
+          kde.dicts.shaped(jagged_shape.create_shape([2]), keys=ds(['a', 'b']))
       )
 
   def test_only_values_arg_error(self):
@@ -150,9 +148,7 @@ class DictShapedTest(parameterized.TestCase):
         'creating a dict requires both keys and values, got only values',
     ):
       expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2]), values=ds([3, 7])
-          )
+          kde.dicts.shaped(jagged_shape.create_shape([2]), values=ds([3, 7]))
       )
 
   def test_incompatible_shape(self):
@@ -278,16 +274,12 @@ Assigned schema for keys: STRING""",
     shape = jagged_shape.create_shape([2], [2, 1])
     keys = ds([2, 3])
     values = ds([3, 7])
-    res_1 = expr_eval.eval(
-        kde.dicts.shaped(shape, keys=keys, values=values)
-    )
-    res_2 = expr_eval.eval(
-        kde.dicts.shaped(shape, keys=keys, values=values)
-    )
+    res_1 = expr_eval.eval(kde.dicts.shaped(shape, keys=keys, values=values))
+    res_2 = expr_eval.eval(kde.dicts.shaped(shape, keys=keys, values=values))
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
     expr = kde.dicts.shaped(shape, keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
@@ -295,7 +287,7 @@ Assigned schema for keys: STRING""",
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

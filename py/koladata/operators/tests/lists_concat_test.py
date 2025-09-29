@@ -106,7 +106,7 @@ class ListsConcatTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, lists, expected):
-    testing.assert_nested_lists_equal(
+    testing.assert_equivalent(
         expr_eval.eval(kde.lists.concat(*lists)), expected
     )
 

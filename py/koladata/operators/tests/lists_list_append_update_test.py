@@ -81,7 +81,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
   def test_eval(self, x, append, expected):
     update = expr_eval.eval(kde.lists.list_append_update(x, append))
     self.assertFalse(update.is_mutable())
-    testing.assert_nested_lists_equal(x.updated(update), expected)
+    testing.assert_equivalent(x.updated(update), expected)
 
   def test_db_adoption(self):
     db1 = bag()

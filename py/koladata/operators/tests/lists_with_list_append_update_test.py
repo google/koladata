@@ -80,7 +80,7 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, append, expected):
-    testing.assert_nested_lists_equal(
+    testing.assert_equivalent(
         eager.with_list_append_update(x, append), expected
     )
 

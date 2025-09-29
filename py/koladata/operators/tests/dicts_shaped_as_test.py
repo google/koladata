@@ -80,7 +80,7 @@ class DictShapedAsTest(parameterized.TestCase):
   def test_value(self, shape_from, kwargs):
     actual = expr_eval.eval(kde.dicts.shaped_as(shape_from, **kwargs))
     expected = bag().dict_shaped(shape_from.get_shape(), **kwargs)
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   def test_keys_values(self):
     shape_from = ds([5, 6])
@@ -98,7 +98,7 @@ class DictShapedAsTest(parameterized.TestCase):
         keys,
         values,
     )
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   def test_db_is_immutable(self):
     d = expr_eval.eval(kde.dicts.shaped_as(ds(5)))
@@ -277,7 +277,7 @@ Assigned schema for keys: STRING""",
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
     expr = kde.dicts.shaped_as(shape_from, keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
@@ -285,7 +285,7 @@ Assigned schema for keys: STRING""",
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

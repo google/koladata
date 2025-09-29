@@ -40,6 +40,7 @@ py_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
     deps = [
+        ":traversing_test_utils_py",
         "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",

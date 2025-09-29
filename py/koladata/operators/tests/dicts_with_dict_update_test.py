@@ -59,7 +59,7 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
       )
 
     x2 = expr_eval.eval(kde.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
-    testing.assert_dicts_equal(
+    testing.assert_equivalent(
         x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
 
@@ -73,8 +73,9 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
     x2 = expr_eval.eval(
         kde.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
     )
-    testing.assert_dicts_equal(
-        x2, fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
+    testing.assert_equivalent(
+        x2,
+        fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
     )
 
   def test_eval_keys_values_embedded_schema(self):
@@ -89,8 +90,9 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
       )
 
     x2 = expr_eval.eval(kde.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
-    testing.assert_dicts_equal(
-        x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
+    testing.assert_equivalent(
+        x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
+        schemas_equality=False,
     )
 
   def test_eval_dicts(self):
@@ -98,9 +100,7 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
     x2 = expr_eval.eval(
         kde.with_dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
     )
-    testing.assert_dicts_equal(
-        x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
-    )
+    testing.assert_equivalent(x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])))
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):

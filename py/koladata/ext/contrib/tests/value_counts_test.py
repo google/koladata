@@ -57,7 +57,7 @@ class ValueCountsTest(parameterized.TestCase):
   )
   def test_eval(self, x, expected):
     res = kd.eval(kde.contrib.value_counts(x))
-    kd.testing.assert_dicts_equal(res, expected)
+    kd.testing.assert_equivalent(res, expected)
 
   def test_scalar_error(self):
     with self.assertRaisesRegex(

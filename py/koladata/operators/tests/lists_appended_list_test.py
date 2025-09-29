@@ -82,7 +82,7 @@ class KodaAppendedListTest(parameterized.TestCase):
   )
   def test_eval(self, x, append, expected):
     result = eager.lists.appended_list(x, append)
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
 
   def test_db_adoption(self):

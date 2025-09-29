@@ -69,16 +69,16 @@ class KdExtTest(absltest.TestCase):
     res1 = kd_ext.contrib.value_counts(ds)
     res2 = kd_ext.eager.contrib.value_counts(ds)
     res3 = kd_ext.lazy.contrib.value_counts(ds).eval()
-    kd.testing.assert_dicts_equal(res1, expected)
-    kd.testing.assert_dicts_equal(res2, expected)
-    kd.testing.assert_dicts_equal(res3, expected)
+    kd.testing.assert_equivalent(res1, expected)
+    kd.testing.assert_equivalent(res2, expected)
+    kd.testing.assert_equivalent(res3, expected)
 
     def f(ds):
       return kd_ext.contrib.value_counts(ds)
 
     traced_f = kd.functor.trace_py_fn(f)
     res4 = traced_f(ds)
-    kd.testing.assert_dicts_equal(res4, expected)
+    kd.testing.assert_equivalent(res4, expected)
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(traced_f.returns).op,

@@ -85,12 +85,12 @@ class ConcatListsTest(parameterized.TestCase):
   def test_eval(self, lists, expected):
     # Test behavior with explicit existing DataBag.
     result = db.concat_lists(*lists)
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
     # Test behavior with implicit new DataBag.
     result = fns.concat_lists(*lists)
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     if lists:
       self.assertNotEqual(
           lists[0].get_bag().fingerprint, result.get_bag().fingerprint

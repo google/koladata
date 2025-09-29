@@ -95,24 +95,35 @@ class ImplodeTest(parameterized.TestCase):
           -1,
           db.list([[OBJ1, None, OBJ2], [3, 4]]),
       ),
-      (ds([OBJ3]), 1, db.list([OBJ3])),
       (ds([None]), 1, db.list([None])),
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
     result = db.implode(x, ndim)
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertEqual(result.get_bag().fingerprint, x.get_bag().fingerprint)
 
     # Test behavior with implicit new DataBag.
     result = fns.implode(x, ndim)
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
     # Check behavior with DataItem ndim.
     result = fns.implode(x, ds(ndim))
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
+
+  def test_eval_nan(self):
+    x = ds([OBJ3])
+    ndim = 1
+    expected = db.list([OBJ3])
+    result = db.implode(x, ndim)
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'expected\[0\].a:\nDataItem\(nan, schema: FLOAT32\)\n'
+        r'-> actual\[0\].a:\nDataItem\(nan, schema: FLOAT32\)',
+    ):
+      testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()

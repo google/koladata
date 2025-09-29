@@ -17,6 +17,7 @@
 from typing import Any, Optional
 
 from arolla import arolla as _arolla
+from koladata.testing import traversing_test_utils as _traversing_test_utils
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import
@@ -270,7 +271,13 @@ def _assert_equivalent_bags(
 
 
 def assert_equivalent(
-    actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
+    actual_value: _KodaVal,
+    expected_value: _KodaVal,
+    *,
+    partial: bool | None = None,
+    ids_equality: bool | None = None,
+    schemas_equality: bool | None = None,
+    msg: str | None = None,
 ):
   """Koda equivalency check.
 
@@ -285,6 +292,11 @@ def assert_equivalent(
   Args:
     actual_value: DataSlice, DataBag or JaggedShape.
     expected_value: DataSlice, DataBag or JaggedShape.
+    partial: Whether to check only the attributes present in the expected_value
+      (affects only DataSlice case).
+    ids_equality: Whether to check ids equality (affects only DataSlice case).
+    schemas_equality: Whether to check schema ids equality (affects only
+      DataSlice case).
     msg: A custom error message.
 
   Raises:
@@ -294,28 +306,31 @@ def assert_equivalent(
   # NOTE: None occurs frequently when comparing DataBag(s) from DataSlice(s).
   if actual_value is None and expected_value is None:
     return
+  if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
+      expected_value, _data_slice.DataSlice
+  ):
+    if partial is None: partial = False
+    if ids_equality is None: ids_equality = False
+    if schemas_equality is None: schemas_equality = True
+    _traversing_test_utils.assert_deep_equivalent(
+        actual_value,
+        expected_value,
+        partial=partial,
+        ids_equality=ids_equality,
+        schemas_equality=schemas_equality,
+        msg=msg,
+    )
+    return
+  if partial is not None:
+    raise AssertionError('`partial` is only supported for DataSlices')
+  if ids_equality is not None:
+    raise AssertionError('`ids_equality` is only supported for DataSlices')
+  if schemas_equality is not None:
+    raise AssertionError('`schemas_equality` is only supported for DataSlices')
   if isinstance(actual_value, _data_bag.DataBag) and isinstance(
       expected_value, _data_bag.DataBag
   ):
     _assert_equivalent_bags(actual_value, expected_value, msg=msg)
-    return
-  if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
-      expected_value, _data_slice.DataSlice
-  ):
-    _assert_qvalue_equal_by_fingerprint(
-        actual_value.no_bag(), expected_value.no_bag(), msg=msg
-    )
-    try:
-      _assert_equivalent_bags(actual_value.get_bag(), expected_value.get_bag())
-    except AssertionError:
-      raise AssertionError(
-          msg
-          or (
-              'DataSlices are not equivalent, because their DataBags are not'
-              f' equivalent\n\n  {_bag_content(actual_value.get_bag())} !='
-              f' {_bag_content(expected_value.get_bag())}'
-          )
-      ) from None
     return
   _assert_qvalue_equal_by_fingerprint(
       actual_value, expected_value, msg=msg
@@ -512,78 +527,6 @@ def assert_dicts_values_equal(
   """
   _expect_dicts(dicts)
   assert_unordered_equal(dicts.get_values().no_bag(), expected_values.no_bag())
-
-
-def assert_dicts_equal(
-    actual_dict: _data_slice.DataSlice,
-    expected_dict: _data_slice.DataSlice,
-):
-  """Koda check for Dict equality.
-
-  Koda Dict equality check includes checking the DataSlice(s) have the same
-  shape and schema. In addition, it verifies that the keys fetched from their
-  corresponding DataBag(s) are the same (regardless of their order in the last
-  dimension) and that the returned Dict values for those keys are the same.
-
-  NOTE: This assertion method checks for DataBag equality referenced by inputs.
-
-  NOTE: It also does not verify that ItemId(s) inside `actual_dict` and
-  `expected_dict` DataSlices are the same.
-
-  Args:
-    actual_dict: DataSlice.
-    expected_dict: DataSlice.
-
-  Raises:
-    AssertionError: If actual_dict and expected_dict do not represent equal Koda
-      Dicts.
-  """
-  _expect_dicts(actual_dict)
-  _expect_dicts(expected_dict)
-  _assert_equal_shape(actual_dict, expected_dict)
-  assert_dicts_keys_equal(actual_dict, expected_dict.get_keys())
-  same_order_keys = actual_dict.get_keys()
-  assert_equivalent(
-      # We need to skip checking the DataBags, as dict ItemId(s) are usually
-      # different.
-      actual_dict[same_order_keys].no_bag(),
-      expected_dict[same_order_keys].no_bag(),
-  )
-
-
-def assert_nested_lists_equal(
-    actual_list: _data_slice.DataSlice,
-    expected_list: _data_slice.DataSlice,
-):
-  """Koda check for nested List equality.
-
-  This checks that the DataSlices have the same shape and schema, and that the
-  corresponding values are either the same, or are nested Lists with the same
-  structure containing equivalent non-List values.
-
-  Args:
-    actual_list: DataSlice.
-    expected_list: DataSlice.
-
-  Raises:
-    AssertionError: If actual_list and expected_list do not represent equal Koda
-      nested Lists.
-  """
-  _expect_data_slice(actual_list)
-  _expect_data_slice(expected_list)
-  _assert_equal_schema(actual_list, expected_list)
-  _assert_equal_shape(actual_list, expected_list)
-
-  # Explode as many times as both actual and expected will allow, except if
-  # both are empty, which would allow infinite explosion.
-  while not (actual_list.is_empty() or expected_list.is_empty()):
-    try:
-      actual_list = actual_list[:]
-      expected_list = expected_list[:]
-    except ValueError:
-      break
-
-  assert_equivalent(actual_list.no_bag(), expected_list.no_bag())
 
 
 def _replace_non_deterministic(expr: _arolla.Expr) -> _arolla.Expr:

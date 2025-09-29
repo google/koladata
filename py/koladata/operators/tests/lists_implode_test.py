@@ -43,9 +43,11 @@ OBJ3 = db.obj(a=math.nan)
 
 QTYPE_SIGNATURES = frozenset([
     (
-        qtypes.DATA_SLICE, qtypes.DATA_SLICE, arg,
+        qtypes.DATA_SLICE,
+        qtypes.DATA_SLICE,
+        arg,
         qtypes.NON_DETERMINISTIC_TOKEN,
-        qtypes.DATA_SLICE
+        qtypes.DATA_SLICE,
     )
     for arg in [qtypes.DATA_SLICE, arolla.UNSPECIFIED]
 ])
@@ -110,18 +112,29 @@ class ListLikeTest(parameterized.TestCase):
           -1,
           db.list([[OBJ1, None, OBJ2], [3, 4]]),
       ),
-      (ds([OBJ3]), 1, db.list([OBJ3])),
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
     result = expr_eval.eval(kde.lists.implode(x, ndim))
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
 
     # Check behavior with DataItem ndim.
     result = expr_eval.eval(kde.lists.implode(x, ds(ndim)))
-    testing.assert_nested_lists_equal(result, expected)
+    testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
+
+  def test_eval_nan(self):
+    x = ds([OBJ3])
+    ndim = 1
+    expected = db.list([OBJ3])
+    result = db.implode(x, ndim)
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'expected\[0\].a:\nDataItem\(nan, schema: FLOAT32\)\n'
+        r'-> actual\[0\].a:\nDataItem\(nan, schema: FLOAT32\)',
+    ):
+      testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
     itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))

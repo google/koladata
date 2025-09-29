@@ -991,7 +991,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     kd.testing.assert_equivalent(
         manager.get_data_slice_at(
             parse_dsp('.tree_root.children[:].children')
-        ).extract(),
+        ),
         kd.slice(
             [None, None],
             schema=grandchildren_schema,
@@ -1047,6 +1047,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     kd.testing.assert_equivalent(
         node1.outgoing_edges[:].outgoing_edges[:].flatten(),
         kd.slice([node1]),
+        ids_equality=True,
     )
 
     manager = self.new_manager(dsm_class)
@@ -1129,6 +1130,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         .outgoing_edges[:]
         .flatten()
         .S[0],
+        ids_equality=True,
     )
     # Phrased a little differently:
     kd.testing.assert_equivalent(
@@ -1139,6 +1141,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         .flatten()
         .S[0]
         .no_bag(),
+        ids_equality=True,
     )
 
     manager_schema = manager.get_schema()
@@ -1199,6 +1202,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         .outgoing_edges[:]
         .flatten()
         .S[0],
+        ids_equality=True,
     )
     kd.testing.assert_equivalent(
         loaded_root_dataslice.node,
@@ -1206,6 +1210,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         .incoming_edges[:]
         .flatten()
         .S[0],
+        ids_equality=True,
     )
 
     manager_schema = manager.get_schema()
@@ -2145,7 +2150,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       expected_version = kd.item(123)
     else:
       expected_version = kd.item(None, schema=kd.INT32)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         explicit_metadata_version,
         expected_version,
     )
@@ -2175,7 +2180,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     actual_schema = manager.get_data_slice_at(
         parse_dsp('.query[:]')
     ).get_schema()
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         kd.get_metadata(actual_schema),
         kd.get_metadata(query_schema),
     )
@@ -2211,7 +2216,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # be able to tell that the update affects the query data.
     root = root.with_attrs(unrelated=unrelated_schema.new(x=42))
     # Yet the covert update takes place in vanilla Koda.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.query[:].query_id, kd.slice([100, 200])
     )
 
@@ -2284,7 +2289,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     actual_schema = manager.get_data_slice_at(
         parse_dsp('.query[:].doc[:]')
     ).get_schema()
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         kd.get_metadata(actual_schema),
         kd.get_metadata(updated_doc_schema),
     )
@@ -2520,7 +2525,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Start from a state where nothing is loaded in the pidsm.
     manager = self.copy_manager(manager)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_data_slice_at(
             parse_dsp('.query[:]'), with_all_descendants=True
         ),
@@ -2593,7 +2598,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           attr_value=kd.slice(['How tall is Barack Obama', None]),
       )
       kd.testing.assert_equivalent(
-          new_manager.get_data_slice_at(parse_dsp('.query[:].text')).no_bag(),
+          new_manager.get_data_slice_at(parse_dsp('.query[:].text')),
           kd.slice([
               'How tall is Barack Obama',  # It's now updated!
               None,  # It's now removed!
@@ -2613,7 +2618,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           ),
       )
       kd.testing.assert_equivalent(
-          manager.get_data_slice_at(parse_dsp('.query[:].text')).no_bag(),
+          manager.get_data_slice_at(parse_dsp('.query[:].text')),
           kd.slice([
               'How tall is Barack Obama',
               'How high is the Eiffel tower',
@@ -2848,8 +2853,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     kd.testing.assert_equivalent(
         manager.get_data_slice_at(
             parse_dsp('.query[:].doc[:].title')
-        ).extract(),
-        kd.slice([[], []], schema=kd.STRING).with_bag(kd.bag()),
+        ),
+        kd.slice([[], []], schema=kd.STRING),
     )
 
   def test_issues_with_allowing_kd_schema_as_a_subschema(self):
@@ -2938,17 +2943,18 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         )
     )
     # The schema of the main dataslice managed by the manager is updated.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.get_schema().query.get_item_schema(),
         new_query_schema,
     )
     # There is a new valid DataSlicePath for the new tokens attribute.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.query[:].tokens,
         kd.slice([None, None], schema=token_schema),
+        schemas_equality=False,
     )
     # The stored query schema is also updated.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.stored_query_schema,
         new_query_schema,
     )
@@ -2964,13 +2970,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         )
     )
     expected_query_schema = new_query_schema.with_attr('locale', kd.STRING)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.get_schema().query.get_item_schema(),
         expected_query_schema,
     )
     # This new attribute is also visible in the stored query schema, which has
     # schema kd.SCHEMA.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.stored_query_schema,
         expected_query_schema,
     )
@@ -3207,7 +3213,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # So below, we will re-construct the schema but omit certain attributes. It
     # is good to know the full query schema for copy-pasting and deleting
     # attributes from it.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         query_data.get_schema(),
         kd.list_schema(
             kd.named_schema(
@@ -3252,7 +3258,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       )
 
     # No query tokens.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_data_slice(
             populate={
                 parse_dsp('.query[:].text'),
@@ -3372,31 +3378,36 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         attr_name='query',
         attr_value=query_data,
     )
-    kd.testing.assert_deep_equivalent(
-        get_loaded_root_dataslice(manager), kd.new(query=query_data)
+    kd.testing.assert_equivalent(
+        get_loaded_root_dataslice(manager),
+        kd.new(query=query_data),
+        schemas_equality=False,
     )
 
     manager.clear_cache()
 
     # The data is not loaded anymore.
-    kd.testing.assert_deep_equivalent(
-        get_loaded_root_dataslice(manager), kd.new()
+    kd.testing.assert_equivalent(
+        get_loaded_root_dataslice(manager), kd.new(), schemas_equality=False
     )
     # The schema is still loaded.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_schema(),
-        kd.schema.new_schema(query=query_data.get_schema()),
+        kd.schema.new_schema(query=query_data.get_schema())
     )
 
     # The data can be loaded again.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_data_slice(
             populate_including_descendants={parse_dsp('.query')}
         ),
         kd.new(query=query_data),
+        schemas_equality=False,
     )
-    kd.testing.assert_deep_equivalent(
-        get_loaded_root_dataslice(manager), kd.new(query=query_data)
+    kd.testing.assert_equivalent(
+        get_loaded_root_dataslice(manager),
+        kd.new(query=query_data),
+        schemas_equality=False,
     )
 
     manager.clear_cache()
@@ -3427,7 +3438,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       manager_attr = getattr(manager, attr_name)
       new_manager_attr = getattr(new_manager, attr_name)
       if isinstance(manager_attr, kd.types.DataSlice):
-        kd.testing.assert_deep_equivalent(manager_attr, new_manager_attr)
+        kd.testing.assert_equivalent(
+            manager_attr, new_manager_attr
+        )
         continue
       if isinstance(manager_attr, PersistedIncrementalDataBagManager):
         assert_bag_managers_have_equivalent_state(
@@ -3435,8 +3448,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         )
         continue
       if attr_name == '_schema_helper':
-        kd.testing.assert_deep_equivalent(
-            manager_attr._schema, new_manager_attr._schema
+        kd.testing.assert_equivalent(
+            manager_attr._schema,
+            new_manager_attr._schema
         )
         continue
       self.assertEqual(manager_attr, new_manager_attr)
@@ -3469,10 +3483,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     branch_manager = trunk_manager.branch(branch_dir)
 
     # Right after branching, the branch and the trunk have the same state.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_schema(), trunk_manager.get_schema()
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice(
             populate_including_descendants={parse_dsp('')}
         ),
@@ -3501,7 +3515,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
@@ -3534,19 +3548,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     # The trunk does not see the update.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     # New instances for trunk_dir also don't see the update.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
             parse_dsp('.query[:].query_text')
         ),
@@ -3558,7 +3572,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     twig_manager = branch_manager.branch(twig_dir)
 
     # The twig is based on the current state of the branch. It has query_text.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(
             ['How high is the statue of Liberty', 'How low is the dead sea']
@@ -3573,19 +3587,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             ['How high is a rainforest giant', 'How high can humans jump']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(
             ['How high is a rainforest giant', 'How high can humans jump']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
@@ -3922,11 +3936,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         description='Added queries with only query_id populated',
     )
 
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice(
             populate_including_descendants={parse_dsp('')}
         ),
         kd.new(query=query_data),
+        schemas_equality=False,
     )
     trunk_manager_schema_with_query_data = trunk_manager.get_schema()
 
@@ -3956,14 +3971,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Right after branching, the branch has the same state as the trunk had
     # before docs were added.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_schema(), trunk_manager_schema_with_query_data
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice(
             populate_including_descendants={parse_dsp('')}
         ),
         kd.new(query=query_data),
+        schemas_equality=False,
     )
     # The branch does not have docs:
     self.assertFalse(branch_manager.exists(parse_dsp('.query[:].doc[:]')))
@@ -3997,7 +4013,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
@@ -4030,19 +4046,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     # The trunk does not see the update.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     # New instances for trunk_dir also don't see the update.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
             parse_dsp('.query[:].query_text')
         ),
@@ -4175,7 +4191,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
 
     # The write operation of `another_manager` is not propagated to `manager`.
-    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    kd.testing.assert_equivalent(manager.get_schema(), manager_schema)
     self.assertFalse(manager.exists(parse_dsp('.query[:].doc[:]')))
     with self.assertRaisesRegex(
         ValueError,
@@ -4202,7 +4218,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # The attempt to add query_text failed. Write operations are transactional,
     # so query_text is not available.
     self.assertFalse(manager.exists(parse_dsp('.query[:].query_text')))
-    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    kd.testing.assert_equivalent(manager.get_schema(), manager_schema)
 
   @parameterized.named_parameters(
       ('file_system_interaction', fs_implementation.FileSystemInteraction),
@@ -4257,7 +4273,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # The state of the manager is not changed. Updates are transactional, so
     # nothing is added when there is an error.
     self.assertFalse(manager.exists(parse_dsp('.query[:].query_text')))
-    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    kd.testing.assert_equivalent(manager.get_schema(), manager_schema)
     self.assertLen(manager.get_action_history(), num_successful_actions)
     # The cache is also not emptied: more than just the initial bag is loaded.
     self.assertGreater(len(manager._data_bag_manager.get_loaded_bag_names()), 1)
@@ -4275,7 +4291,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # The update was successfully committed to disk, but the manager's state
     # was not updated to the new revision.
     self.assertFalse(manager.exists(parse_dsp('.query[:].doc[:].doc_id')))
-    kd.testing.assert_deep_equivalent(manager.get_schema(), manager_schema)
+    kd.testing.assert_equivalent(manager.get_schema(), manager_schema)
     self.assertLen(manager.get_action_history(), num_successful_actions)
     # The cache is also not emptied: more than just the initial bag is loaded.
     self.assertGreater(len(manager._data_bag_manager.get_loaded_bag_names()), 1)
@@ -4296,7 +4312,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # But the manager can still perform reads, albeit not at the latest
     # revision.
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_data_slice_at(parse_dsp('.query[:].query_id')),
         kd.slice(['q1']),
     )
@@ -4309,7 +4325,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.foo')),
         kd.item(1),
     )

@@ -57,11 +57,13 @@ class DictsDictUpdateTest(parameterized.TestCase):
       )
 
     db2 = expr_eval.eval(kde.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
-    testing.assert_dicts_equal(
-        x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
+    testing.assert_equivalent(
+        x1.updated(db2),
+        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
     )
-    testing.assert_dicts_equal(
-        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+    testing.assert_equivalent(
+        x1.with_bag(db2),
+        fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
     )
 
   def test_eval_keys_values_slice_broadcast(self):
@@ -71,13 +73,14 @@ class DictsDictUpdateTest(parameterized.TestCase):
     ])
 
     db2 = expr_eval.eval(kde.dict_update(x1, ds(1), ds(2)))
-    testing.assert_dicts_equal(
-        x1.updated(db2), ds([
+    testing.assert_equivalent(
+        x1.updated(db2),
+        ds([
             fns.dict(ds([1, 2, 3]), ds([2, 5, 6])),
             fns.dict(ds([1, 7, 8]), ds([2, 9, 10])),
-        ])
+        ]),
     )
-    testing.assert_dicts_equal(
+    testing.assert_equivalent(
         x1.with_bag(db2),
         ds([
             fns.dict(ds([1]), ds([2])),
@@ -94,13 +97,14 @@ class DictsDictUpdateTest(parameterized.TestCase):
     db2 = expr_eval.eval(
         kde.dict_update(x1, ds([[1, 3, 7], [1, 2]]), ds([[8, 9, 10], [2, 1]]))
     )
-    testing.assert_dicts_equal(
-        x1.updated(db2), ds([
+    testing.assert_equivalent(
+        x1.updated(db2),
+        ds([
             fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
             fns.dict(ds([1, 2, 7, 8]), ds([2, 1, 9, 10])),
-        ])
+        ]),
     )
-    testing.assert_dicts_equal(
+    testing.assert_equivalent(
         x1.with_bag(db2),
         ds([
             fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
@@ -118,11 +122,13 @@ class DictsDictUpdateTest(parameterized.TestCase):
     db2 = expr_eval.eval(
         kde.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
     )
-    testing.assert_dicts_equal(
-        x1.updated(db2), fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
+    testing.assert_equivalent(
+        x1.updated(db2),
+        fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z'])),
     )
-    testing.assert_dicts_equal(
-        x1.with_bag(db2), fns.dict(ds([1, 3, 'x']), ds([8, 'y', 'z']))
+    testing.assert_equivalent(
+        x1.with_bag(db2),
+        fns.dict(ds([1, 3, 'x']), ds([8, 'y', 'z'])),
     )
 
   def test_eval_keys_values_embedded_schema(self):
@@ -137,11 +143,15 @@ class DictsDictUpdateTest(parameterized.TestCase):
       )
 
     db2 = expr_eval.eval(kde.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
-    testing.assert_dicts_equal(
-        x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
+    testing.assert_equivalent(
+        x1.updated(db2),
+        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
+        schemas_equality=False,
     )
-    testing.assert_dicts_equal(
-        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+    testing.assert_equivalent(
+        x1.with_bag(db2),
+        fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
+        schemas_equality=False,
     )
 
   def test_eval_dicts(self):
@@ -149,11 +159,13 @@ class DictsDictUpdateTest(parameterized.TestCase):
     db2 = expr_eval.eval(
         kde.dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
     )
-    testing.assert_dicts_equal(
-        x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
+    testing.assert_equivalent(
+        x1.updated(db2),
+        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
     )
-    testing.assert_dicts_equal(
-        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
+    testing.assert_equivalent(
+        x1.with_bag(db2),
+        fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
     )
 
   def test_error_primitive_schema(self):

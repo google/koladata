@@ -1241,7 +1241,7 @@ Assigned schema for keys: INT32""",
     with self.subTest('no arg'):
       x = db.dict()
       x['a'] = 1
-      testing.assert_dicts_equal(
+      testing.assert_equivalent(
           x,
           db.dict(
               {'a': 1},
@@ -1812,8 +1812,8 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     db2.uuobj(seed='1').y = 2
     o3 = db2.adopt(o1)
     self.assertEqual(o3.get_bag().fingerprint, db2.fingerprint)
-    testing.assert_equivalent(o3.x.no_bag(), ds(1))
-    testing.assert_equivalent(o3.y.no_bag(), ds(2))
+    testing.assert_equivalent(o3.x, ds(1))
+    testing.assert_equivalent(o3.y, ds(2))
 
   def test_adopt_stub_args_errors(self):
     with self.assertRaises(TypeError):  # Python runtime error.

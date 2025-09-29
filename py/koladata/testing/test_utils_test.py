@@ -197,9 +197,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_not_equal_error_custom_error_msg(self):
     with self.assertRaisesRegex(AssertionError, 'my error'):
-      test_utils.assert_not_equal(
-          ds([1, 2, 3]), ds([1, 2, 3]), msg='my error'
-      )
+      test_utils.assert_not_equal(ds([1, 2, 3]), ds([1, 2, 3]), msg='my error')
 
   def test_assert_equivalent(self):
     test_utils.assert_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
@@ -234,16 +232,13 @@ class TestUtilsTest(parameterized.TestCase):
     obj.b = 'a'
     test_utils.assert_equivalent(db1, db2)
 
+  def test_assert_equivalent_data_slice_with_noise_in_bag(self):
+    test_utils.assert_equivalent(
+        ds([1, 2, 3]).with_bag(bag()),
+        ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
+    )
+
   def test_assert_equivalent_error(self):
-    with self.assertRaisesRegex(
-        AssertionError,
-        r'DataSlices are not equivalent.*\n\n.*DataBag'
-        r' \$[0-9a-f]{4}:(\n|.)*SchemaBag:(\n|.)* != DataBag(\n|.)*',
-    ):
-      test_utils.assert_equivalent(
-          ds([1, 2, 3]).with_bag(bag()),
-          ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
-      )
     with self.assertRaisesRegex(
         AssertionError,
         r'DataBags are not equivalent.*\n\n.*DataBag \$[0-9a-f]{4}:(\n|.)* !='
@@ -256,12 +251,12 @@ class TestUtilsTest(parameterized.TestCase):
       test_utils.assert_equivalent(
           bag(), bag().new(a=1).get_bag(), msg='my error'
       )
-    with self.assertRaisesRegex(AssertionError, 'my error'):
-      test_utils.assert_equivalent(
-          ds([1, 2, 3]).with_bag(bag()),
-          ds([1, 2, 3]).with_bag(bag().new(a=1).get_bag()),
-          msg='my error',
-      )
+
+  def test_assert_equivalent_unexpected_args(self):
+    with self.assertRaisesRegex(
+        AssertionError, '`partial` is only supported for DataSlices'
+    ):
+      test_utils.assert_equivalent(bag(), bag(), partial=True)
 
   def test_assert_allclose(self):
     test_utils.assert_allclose(ds([2.71, 2.71]), ds([2.71, 2.71]))
@@ -380,11 +375,11 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_dicts_equal(self):
     d1 = bag().dict({'a': 42, 'b': 37})
     d2 = bag().dict(ds(['a', 'b']), ds([42, 37]))
-    test_utils.assert_dicts_equal(d1, d2)
+    test_utils.assert_equivalent(d1, d2)
 
     d1 = bag().dict(ds([['a', 'b'], ['c']]), 42)
     d2 = bag().dict(ds([['a', 'b'], ['c']]), 42)
-    test_utils.assert_dicts_equal(d1, d2)
+    test_utils.assert_equivalent(d1, d2)
 
   def test_assert_dicts_equal_with_float_value_equal(self):
     d1 = bag().dict({'a': 3.14, 'b': 2.71})
@@ -397,19 +392,23 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_dicts_equal_error(self):
     d1 = bag().dict(ds([['a', 'b'], ['c']]), 42)
     d2 = bag().dict(ds([['a'], ['b', 'c']]), 37)
-    with self.assertRaisesRegex(AssertionError, 'have different shapes'):
-      test_utils.assert_dicts_equal(d1, d2)
+    with self.assertRaisesRegex(
+        AssertionError, r'deleted:\nkey \'b\' in expected.S\[1\]'
+    ):
+      test_utils.assert_equivalent(d1, d2)
 
   def test_assert_nested_lists_equal(self):
     l1 = bag().list([[1], [2, 3]])
     l2 = bag().list([[1], [2, 3]])
-    test_utils.assert_nested_lists_equal(l1, l2)
+    test_utils.assert_equivalent(l1, l2)
 
   def test_assert_nested_lists_equal_error(self):
     l1 = bag().list([[1], [2, 3]])
     l2 = bag().list([[1, 2], [3]])
-    with self.assertRaisesRegex(AssertionError, 'DataSlices are not equal'):
-      test_utils.assert_nested_lists_equal(l1, l2)
+    with self.assertRaisesRegex(
+        AssertionError, r'added:\nitem at position 1 in list actual\[1\]:'
+    ):
+      test_utils.assert_equivalent(l1, l2)
 
   def test_assert_unordered_equal(self):
     test_utils.assert_unordered_equal(ds(1), ds(1))

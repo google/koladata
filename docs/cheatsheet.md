@@ -4489,8 +4489,8 @@ kd.testing.assert_equal(db1, db1)
 ### kd.testing.assert_equivalent
 
 ```py
-# Different from assert_equal, it check DataBags
-# are equivalent instead of the same instance
+# Different from assert_equal, it recursively checks that DataSlices content is
+# equivalent instead of the same instance
 ds1 = kd.uuobj(x=1)
 ds2 = kd.uuobj(x=1)
 kd.testing.assert_equivalent(ds1, ds2)
@@ -4499,7 +4499,8 @@ ds3 = kd.uuobj(x=kd.slice([1, 2]))
 # Fail as ds3.get_bag() has more contents than ds1.get_bag()
 kd.testing.assert_equivalent(ds1, ds3.S[0])
 
-# It works for DataBags too
+# It works for DataBags too, it checks that DataBags have the same content and
+# their fallbacks have the same content respectively.
 kd.testing.assert_equivalent(ds1.get_bag(),
                              ds2.get_bag())
 
@@ -4561,32 +4562,30 @@ kd.testing.assert_unordered_equal(ds5, ds6) # Fail
 
 ### Comparing Lists
 
-Note: `kd.testing.assert_nested_lists_equal` checks that the given Lists have
-the same shape and schema, and that the corresponding values are equal, in the
-sense that they have the same primitive, or the same ItemId, or are nested Lists
-that are recursively equal in the same sense. Notably, it does not require the
-lists themselves to have the same ItemIds - it is an assertion about their
-contents and not about their identities.
+Note: `kd.testing.assert_equivalent` checks that the given Lists have
+the same shape and schema, and that the corresponding values are equivalent.
+Notably, it does not require the lists themselves to have the same ItemIds - it
+is an assertion about their contents and not about their identities.
 
 ```py
 l1 = kd.list([1, 2, 3])
 l2 = kd.list([1, 2, 3])
-kd.testing.assert_nested_lists_equal(l1, l2)
+kd.testing.assert_equivalent(l1, l2)
 
 l3 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
 l4 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
-kd.testing.assert_nested_lists_equal(l3, l4)
+kd.testing.assert_equivalent(l3, l4)
 
 l5 = kd.list([kd.obj(x=1), kd.obj(x=2)])
 l6 = kd.list([kd.obj(x=1), kd.obj(x=3)])
-kd.testing.assert_nested_lists_equal(l5, l6) # Fail
+kd.testing.assert_equivalent(l5, l6) # Fail
 
 # Nested lists
 l7 = kd.list([[1, 2, 3],
               [kd.uuobj(x=1), kd.uuobj(x=2)]])
 l8 = kd.list([[1, 2, 3],
               [kd.uuobj(x=1), kd.uuobj(x=2)]])
-kd.testing.assert_nested_lists_equal(l7, l8)
+kd.testing.assert_equivalent(l7, l8)
 ```
 
 </section>
@@ -4595,7 +4594,7 @@ kd.testing.assert_nested_lists_equal(l7, l8)
 
 ### Comparing Dicts
 
-Note: `kd.testing.assert_dicts_equal` checks that the given Dicts have the same
+Note: `kd.testing.assert_equivalent` checks that the given Dicts have the same
 shape and schema. In addition, it verifies that the keys fetched from their
 corresponding DataBag(s) are the same (regardless of their order in the last
 dimension) and that the returned Dict values for those keys are equivalent.
@@ -4603,15 +4602,15 @@ dimension) and that the returned Dict values for those keys are equivalent.
 ```py
 d1 = kd.dict({'a': 1, 'b': 2})
 d2 = kd.dict({'a': 1, 'b': 2})
-kd.testing.assert_dicts_equal(d1, d2)
+kd.testing.assert_equivalent(d1, d2)
 
 d3 = kd.dict({'a': kd.uuobj(x=1)})
 d4 = kd.dict({'a': kd.uuobj(x=1)})
-kd.testing.assert_dicts_equal(d3, d4)
+kd.testing.assert_equivalent(d3, d4)
 
 d5 = kd.dict({'a': kd.obj(x=1)})
 d6 = kd.dict({'a': kd.obj(x=2)})
-kd.testing.assert_dicts_equal(d5, d6) # Fail
+kd.testing.assert_equivalent(d5, d6) # Fail
 
 # Only check keys/values
 kd.testing.assert_dicts_keys_equal(

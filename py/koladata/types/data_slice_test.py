@@ -888,12 +888,12 @@ class DataSliceTest(parameterized.TestCase):
     x = x.enriched(db1)
     self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_bag(), ds(1).no_bag())
+    testing.assert_equivalent(x.a, ds(1))
 
     x = x.with_bag(db2).enriched(db1, db1)
     self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_bag(), ds(1).no_bag())
+    testing.assert_equivalent(x.a, ds(1))
 
   def test_updated(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
@@ -909,12 +909,12 @@ class DataSliceTest(parameterized.TestCase):
     x = x.updated(db2)
     self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_bag(), ds(2).no_bag())
+    testing.assert_equivalent(x.a, ds(2))
 
     x = x.with_bag(db1).updated(db2, db2)
     self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
-    testing.assert_equivalent(x.a.no_bag(), ds(2).no_bag())
+    testing.assert_equivalent(x.a, ds(2))
 
   def test_ref(self):
     x = ds([1, 2, 3])
@@ -1358,7 +1358,7 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('set_list'):
       x.set_attr(ds(['a']), ds([db.list([1, 2])]), overwrite_schema=True)
-      testing.assert_nested_lists_equal(x.get_attr('a'), db.list([1, 2]))
+      testing.assert_equivalent(x.get_attr('a'), db.list([1, 2]))
 
     with self.subTest('set_attr_on_schema_slice'):
       schema_slice = ds([
@@ -1756,7 +1756,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     testing.assert_equal(o.b.y, ds(1234).with_bag(o.get_bag()))
     # Merged DataBag from creating a DataBag during boxing of complex Python
     # values.
-    testing.assert_dicts_equal(o.d, bag().dict({'a': 42}))
+    testing.assert_equivalent(o.d, bag().dict({'a': 42}))
     testing.assert_equal(o.l[:], ds([1, 2, 3]).with_bag(o.get_bag()))
 
   def test_set_multiple_attrs_wrong_overwrite_schema_type(self):
@@ -2498,7 +2498,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
   # More comprehensive tests are in dicts_with_dict_update_test.py.
   def test_with_dict_update(self):
     x1 = bag().dict(ds([1, 2]), ds([3, 4]))
-    testing.assert_dicts_equal(
+    testing.assert_equivalent(
         x1.with_dict_update(fns.dict({1: 5, 3: 6})),
         bag().dict(ds([1, 2, 3]), ds([5, 4, 6])),
     )
@@ -2509,7 +2509,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
     append = ds([5, 6])
     result = x.with_list_append_update(append)
 
-    testing.assert_nested_lists_equal(
+    testing.assert_equivalent(
         result,
         ds([fns.list([1, 2, 5]), fns.list([3, 4, 6])]),
     )
@@ -3434,14 +3434,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       result = o.extract()
 
     self.assertNotEqual(o.get_bag().fingerprint, result.get_bag().fingerprint)
-    testing.assert_equal(result.no_bag(), o.no_bag())
-    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
-    )
+    testing.assert_equivalent(result, o, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -3457,13 +3450,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
 
     self.assertNotEqual(o.get_bag().fingerprint, result.fingerprint)
     res_o = o.with_bag(result)
-    testing.assert_equal(res_o.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(res_o.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(res_o.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(res_o.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        res_o.b.get_schema().no_bag(), o.b.get_schema().no_bag()
-    )
+    testing.assert_equivalent(res_o, o, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -3478,18 +3465,13 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       result = o.clone()
 
     testing.assert_not_equal(result.no_bag(), o.no_bag())
-    testing.assert_equal(result.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        result.b.get_schema().no_bag(), o.b.get_schema().no_bag()
-    )
+    testing.assert_equivalent(result, o)
+    testing.assert_equivalent(result.b, o.b, ids_equality=True)
 
   def test_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.clone(z=bag().list([12]), t=bag().obj(b=5))
-    testing.assert_equivalent(res.y.extract(), x.y.extract())
+    testing.assert_equivalent(res.y, x.y, ids_equality=True)
     testing.assert_equal(res.z[:].no_bag(), ds([12]))
     testing.assert_equal(res.t.b.no_bag(), ds(5))
 
@@ -3521,9 +3503,13 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
   def test_shallow_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res = x.shallow_clone(z=bag().list([12]), t=bag().obj(b=5))
-    testing.assert_equivalent(res.y.no_bag(), x.y.no_bag())
-    testing.assert_equal(res.z[:].no_bag(), ds([12]))
-    testing.assert_equal(res.t.b.no_bag(), ds(5))
+    testing.assert_equivalent(
+        res.y.with_schema(schema_constants.ITEMID),
+        x.y.with_schema(schema_constants.ITEMID),
+        ids_equality=True,
+    )
+    testing.assert_equivalent(res.z[:], ds([12]))
+    testing.assert_equivalent(res.t.b, ds(5))
 
   def test_shallow_clone_non_deterministic(self):
     x = bag().obj(a=1)
@@ -3544,13 +3530,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
 
     testing.assert_not_equal(result.no_bag(), o.no_bag())
     testing.assert_not_equal(result.b.no_bag(), o.b.no_bag())
-    testing.assert_equal(result.c.no_bag(), o.c.no_bag())
-    testing.assert_equal(result.b.a.no_bag(), o.b.a.no_bag())
-    testing.assert_equal(result.self.no_bag(), result.no_bag())
-    testing.assert_equal(result.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        result.b.a.get_schema().no_bag(), o.b.a.get_schema().no_bag()
-    )
+    testing.assert_equivalent(result, o)
 
   def test_deep_clone_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))

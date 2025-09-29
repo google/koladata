@@ -69,7 +69,7 @@ class DictTest(parameterized.TestCase):
   def test_value(self, kwargs):
     actual = expr_eval.eval(kde.dicts.new(**kwargs))
     expected = bag().dict(**kwargs)
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   @parameterized.parameters(
       (ds(['a', 'b']), ds([3, 7])),
@@ -87,7 +87,7 @@ class DictTest(parameterized.TestCase):
         values,
     )
     self.assertEqual(actual.get_shape().rank(), keys.get_shape().rank() - 1)
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   @parameterized.parameters(
       ('a', 42),
@@ -101,7 +101,7 @@ class DictTest(parameterized.TestCase):
     )
     actual = expr_eval.eval(kde.dicts.new(keys, values, itemid=itemids))
     expected = bag().dict(keys, values, itemid=itemids)
-    testing.assert_dicts_equal(actual, expected)
+    testing.assert_equivalent(actual, expected)
 
   def test_itemid_itemds_keys_shape_incompatible(self):
     keys = ds([[[1], [2], [3]], [[4], [5], [6]]])
@@ -269,7 +269,7 @@ Assigned schema for keys: STRING""",
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
     expr = kde.dicts.new(keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
@@ -277,7 +277,7 @@ Assigned schema for keys: STRING""",
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
-    testing.assert_dicts_equal(res_1, res_2)
+    testing.assert_equivalent(res_1, res_2)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
