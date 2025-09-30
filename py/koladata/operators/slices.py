@@ -2141,6 +2141,7 @@ def get_repr(
     item_limit_per_dimension=25,
     format_html=False,
     max_str_len=100,
+    max_expr_quote_len=10000,
     show_attributes=True,
     show_databag_id=False,
     show_shape=False,
@@ -2163,6 +2164,8 @@ def get_repr(
       to make it possible to style with CSS and interpret interactions with JS.
     max_str_len: Maximum length of repr string to show for text and
       bytes if non negative.
+    max_expr_quote_len: Maximum length of repr string to show for expr quotes
+      if non negative.
     show_attributes: When true, show the attributes of the entity/object in non
       DataItem DataSlice.
     show_databag_id: When true, the repr will show the databag id.

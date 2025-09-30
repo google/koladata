@@ -337,7 +337,8 @@ std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
       item,
       {.show_dtype = is_obj_schema,
         .show_missing = is_mask_schema,
-        .unbounded_type_max_len = option.unbounded_type_max_len}));
+        .unbounded_type_max_len = option.unbounded_type_max_len,
+        .max_expr_quote_len = option.max_expr_quote_len}));
 }
 
 // Returns the string for python __str__ and part of __repr__.
@@ -766,7 +767,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     return wrapping.MaybeWrapObjectId(
         item, wrapping.MaybeEscape(
             DataItemRepr(item, {
-              .unbounded_type_max_len = option.unbounded_type_max_len})));
+              .unbounded_type_max_len = option.unbounded_type_max_len,
+              .max_expr_quote_len = option.max_expr_quote_len})));
   };
 
   if (!data_item.has_value()) {
@@ -888,7 +890,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
       DataItemRepr(data_item, {
         .strip_quotes = option.strip_quotes,
         .show_dtype = is_obj_schema,
-        .unbounded_type_max_len = option.unbounded_type_max_len}));
+        .unbounded_type_max_len = option.unbounded_type_max_len,
+        .max_expr_quote_len = option.max_expr_quote_len}));
 }
 
 }  // namespace

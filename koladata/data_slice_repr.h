@@ -45,6 +45,8 @@ struct ReprOption {
   bool format_html = false;
   // Maximum length of repr string to show for text and bytes if non negative.
   int32_t unbounded_type_max_len = -1;
+  // Maximum length of an ExprQuote repr string to show.
+  int32_t max_expr_quote_len = 10'000;
   // When true, show the attributes of the entity/object in non DataItem
   // DataSlice.
   bool show_attributes = false;

@@ -181,6 +181,18 @@ TruncatedString TruncateMiddle(absl::string_view str, int32_t max_len) {
   }
 }
 
+std::string TruncatedExprQuote(const arolla::expr::ExprQuote& expr_quote,
+                               int32_t max_len) {
+  std::string expr_quote_str = ExprQuoteDebugString(expr_quote);
+  if (max_len < 0 || expr_quote_str.size() <= max_len ||
+      max_len == std::numeric_limits<int32_t>::max()) {
+    return expr_quote_str;
+  }
+  expr_quote_str.resize(max_len);
+  absl::StrAppend(&expr_quote_str, "... ExprQuote max length reached ...");
+  return expr_quote_str;
+}
+
 }  // namespace
 
 std::string DataItemRepr(const DataItem& item,
@@ -200,7 +212,7 @@ std::string DataItemRepr(const DataItem& item,
                                 option.unbounded_type_max_len)
               .JoinAndEscapeBytes();
         } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
-          return ExprQuoteDebugString(val);
+          return TruncatedExprQuote(val, option.max_expr_quote_len);
         } else if constexpr (std::is_same_v<T, bool>) {
           return val ? "True" : "False";
         } else if constexpr (std::is_same_v<T, float> ||

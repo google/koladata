@@ -1065,6 +1065,7 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& item_limit_per_dimension,
                                   const DataSlice& format_html,
                                   const DataSlice& max_str_len,
+                                  const DataSlice& max_expr_quote_len,
                                   const DataSlice& show_attributes,
                                   const DataSlice& show_databag_id,
                                   const DataSlice& show_shape,
@@ -1092,6 +1093,9 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
   ASSIGN_OR_RETURN(
       int64_t max_str_len_int,
       GetIntegerArgument(max_str_len, "unbounded_type_max_len"));
+  ASSIGN_OR_RETURN(
+      int64_t max_expr_quote_len_int,
+      GetIntegerArgument(max_expr_quote_len, "max_expr_quote_len"));
   ASSIGN_OR_RETURN(bool show_attributes_bool,
                    GetBoolArgument(show_attributes, "show_attributes"));
   ASSIGN_OR_RETURN(bool show_databag_id_bool,
@@ -1110,6 +1114,7 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
              .format_html = format_html_bool,
              .unbounded_type_max_len =
                  static_cast<int32_t>(max_str_len_int),
+             .max_expr_quote_len = static_cast<int32_t>(max_expr_quote_len_int),
              .show_attributes = show_attributes_bool,
              .show_databag_id = show_databag_id_bool,
              .show_shape = show_shape_bool,

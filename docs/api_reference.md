@@ -6772,7 +6772,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.slices.get_repr}
+### `kd.slices.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.slices.get_repr}
 Aliases:
 
 - [kd.get_repr](#kd.get_repr)
@@ -6793,6 +6793,8 @@ Args:
     to make it possible to style with CSS and interpret interactions with JS.
   max_str_len: Maximum length of repr string to show for text and
     bytes if non negative.
+  max_expr_quote_len: Maximum length of repr string to show for expr quotes
+    if non negative.
   show_attributes: When true, show the attributes of the entity/object in non
     DataItem DataSlice.
   show_databag_id: When true, the repr will show the databag id.
@@ -9793,7 +9795,7 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
 
-### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.get_repr}
+### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.get_repr}
 
 Alias for [kd.slices.get_repr](#kd.slices.get_repr) operator.
 

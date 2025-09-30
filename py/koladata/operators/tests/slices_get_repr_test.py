@@ -199,6 +199,14 @@ class SlicesGetReprTest(parameterized.TestCase):
     )
     testing.assert_equal(res, ds('DataSlice(attrs: [a])'))
 
+  def test_expr_quote_max_len(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds(arolla.quote(kde.math.add(I.x, I.y))),
+        max_expr_quote_len=5,
+    )
+    testing.assert_equal(res, ds('I.x +... ExprQuote max length reached ...'))
+
   @parameterized.named_parameters(
       # Dict order is not deterministic.
       (
