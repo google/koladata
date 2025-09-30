@@ -108,24 +108,21 @@ std::string SchemaToStr(
   }
   const ObjectId& schema = schema_item.value<ObjectId>();
   auto it = triple_map.find(schema);
-  if (it == triple_map.end()) {
-    return "";
-  }
-  auto list_schema_str = AttrValueToStr(schema::kListItemsSchemaAttr,
-                                        it->second, triple_map, depth);
+  if (it != triple_map.end()) {
+    auto list_schema_str = AttrValueToStr(schema::kListItemsSchemaAttr,
+                                          it->second, triple_map, depth);
 
-  if (!list_schema_str.empty()) {
-    return absl::StrCat("list<", list_schema_str, ">");
-  }
-  auto key_schema_str =
-                   AttrValueToStr(schema::kDictKeysSchemaAttr, it->second,
-                                  triple_map, depth);
-  auto value_schema_str =
-                   AttrValueToStr(schema::kDictValuesSchemaAttr, it->second,
-                                  triple_map, depth);
-  if (!key_schema_str.empty() && !value_schema_str.empty()) {
-    return absl::StrCat(internal::DataItemRepr(schema_item), "[dict<",
-                        key_schema_str, ", ", value_schema_str, ">]");
+    if (!list_schema_str.empty()) {
+      return absl::StrCat("list<", list_schema_str, ">");
+    }
+    auto key_schema_str = AttrValueToStr(schema::kDictKeysSchemaAttr,
+                                         it->second, triple_map, depth);
+    auto value_schema_str = AttrValueToStr(schema::kDictValuesSchemaAttr,
+                                           it->second, triple_map, depth);
+    if (!key_schema_str.empty() && !value_schema_str.empty()) {
+      return absl::StrCat(internal::DataItemRepr(schema_item), "[dict<",
+                          key_schema_str, ", ", value_schema_str, ">]");
+    }
   }
   return DataItemRepr(schema_item);
 }
@@ -414,8 +411,6 @@ class ContentsReprBuilder {
         }
         seen_triples_.insert({dict.object, attr_str});
         auto value_str = SchemaToStr(dict.value, schema_triple_map);
-        if (value_str.empty())
-          continue;
         absl::StrAppend(
             &res_, absl::StrFormat("%s.%s => %s\n", ObjectIdStr(dict.object),
                                    AttributeRepr(attr_str), value_str));

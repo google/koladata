@@ -200,46 +200,49 @@ Top attrs:
       (
           'empty',
           bag(),
-          r"""DataBag \$[0-9a-f]{4}:
+          r"""^DataBag \$[0-9a-f]{4}:
 
 SchemaBag:
-""",
+$""",
       ),
       (
           'lists',
           bag().list([1, 2, 3]).get_bag(),
-          r"""DataBag \$[0-9a-f]{4}:
+          r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\]
 
 SchemaBag:
-""",
+#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32
+$""",
       ),
       (
           'dicts',
           bag().dict({'a': 1, 2: 'b'}).get_bag(),
-          r"""DataBag \$[0-9a-f]{4}:
+          r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\[2\] => 'b'
 \$[0-9a-zA-Z]{22}\['a'\] => 1
 
 SchemaBag:
-""",
+#[0-9a-zA-Z]{22}\.get_key_schema\(\) => OBJECT
+#[0-9a-zA-Z]{22}\.get_value_schema\(\) => OBJECT
+$""",
       ),
       (
           'entity',
           bag().new(a=1, b='a').get_bag(),
-          r"""DataBag \$[0-9a-f]{4}:
+          r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.a => 1
 \$[0-9a-zA-Z]{22}\.b => a
 
 SchemaBag:
 \$[0-9a-zA-Z]{22}\.a => INT32
 \$[0-9a-zA-Z]{22}\.b => STRING
-""",
+$""",
       ),
       (
           'object',
           bag().obj(a=1, b='a').get_bag(),
-          r"""DataBag \$[0-9a-f]{4}:
+          r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.a => 1
 \$[0-9a-zA-Z]{22}\.b => a
@@ -247,7 +250,7 @@ SchemaBag:
 SchemaBag:
 #[0-9a-zA-Z]{22}\.a => INT32
 #[0-9a-zA-Z]{22}\.b => STRING
-""",
+$""",
       ),
   )
   def test_contents_repr(self, db, expected_repr_regex):
@@ -263,21 +266,21 @@ SchemaBag:
     db.new(a=db.new(b=1))
     self.assertRegex(
         repr(db.contents_repr()),
-        r"""DataBag \$[0-9a-f]{4}:
+        r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.b => 1
 \$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
 
 SchemaBag:
 \$[0-9a-zA-Z]{22}\.b => INT32
 \$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
-""",
+$""",
     )
 
     db = bag()
     db.obj(a=db.obj(b=1))
     self.assertRegex(
         repr(db.contents_repr()),
-        r"""DataBag \$[0-9a-f]{4}:
+        r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.b => 1
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
@@ -286,7 +289,29 @@ SchemaBag:
 SchemaBag:
 #[0-9a-zA-Z]{22}\.(b|a) => (INT32|OBJECT)
 #[0-9a-zA-Z]{22}\.(b|a) => (OBJECT|INT32)
-""",
+$""",
+    )
+
+  def test_contents_repr_schema_metadata(self):
+    e = kde.new(a=kde.new(b=1)).eval()
+    e = e.updated(kde.metadata(e.get_schema(), foo='bar', obj=e).eval())
+
+    self.assertRegex(
+        repr(e.get_bag().contents_repr()),
+        r"""^DataBag \$[0-9a-f]{4}:
+\$[0-9a-zA-Z]{22}\.b => 1
+\$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
+#[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
+#[0-9a-zA-Z]{22}\.foo => bar
+#[0-9a-zA-Z]{22}\.obj => \$[0-9a-zA-Z]{22}
+
+SchemaBag:
+#[0-9a-zA-Z]{22}\.foo => STRING
+#[0-9a-zA-Z]{22}\.obj => \$[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.b => INT32
+\$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
+\$[0-9a-zA-Z]{22}\.__schema_metadata__ => #[0-9a-zA-Z]{22}
+$""",
     )
 
   def test_contents_repr_fallback(self):
@@ -294,12 +319,12 @@ SchemaBag:
     entity = db.new(x=1)
     ds2 = entity.with_bag(bag()).enriched(db)
     db_repr = repr(ds2.get_bag().contents_repr())
-    expected_repr = r"""DataBag \$[0-9a-f]{4}:
+    expected_repr = r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.x => 1
 
 SchemaBag:
 \$[0-9a-zA-Z]{22}\.x => INT32
-"""
+$"""
     self.assertRegex(
         db_repr, expected_repr, msg=f'\n\nregex={expected_repr}\n\ndb={db_repr}'
     )
@@ -311,14 +336,14 @@ SchemaBag:
       entity2 = entity.with_bag(db2).enriched(db)
       entity3 = entity2.with_bag(bag()).enriched(entity2.get_bag())
       db_repr = repr(entity3.get_bag().contents_repr())
-      expected_repr = r"""DataBag \$[0-9a-f]{4}:
+      expected_repr = r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.y => 2
 \$[0-9a-zA-Z]{22}\.x => 1
 
 SchemaBag:
 \$[0-9a-zA-Z]{22}\.y => INT32
 \$[0-9a-zA-Z]{22}\.x => INT32
-"""
+$"""
       self.assertRegex(
           db_repr,
           expected_repr,
@@ -330,7 +355,7 @@ SchemaBag:
     db.obj(a=1, b='a')
     self.assertRegex(
         repr(db.contents_repr(triple_limit=4)),
-        r"""DataBag \$[0-9a-f]{4}:
+        r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.a => 1
 \$[0-9a-zA-Z]{22}\.b => a
@@ -339,7 +364,7 @@ SchemaBag:
 #[0-9a-zA-Z]{22}\.a => INT32
 \.\.\.
 
-Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this""",
+Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_repr\(\)' to adjust this$""",
     )
     with self.subTest('invalid-type'):
       db = bag()
@@ -395,12 +420,12 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     db.obj(a=db.obj(b=1))
     self.assertRegex(
         repr(db.data_triples_repr()),
-        r"""DataBag \$[0-9a-f]{4}:
+        r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.b => 1
 \$[0-9a-zA-Z]{22}\.get_obj_schema\(\) => #[0-9a-zA-Z]{22}
 \$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
-""",
+$""",
     )
 
   def test_schema_triples_repr(self):
@@ -408,10 +433,10 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     db.obj(a=db.obj(b=1))
     self.assertRegex(
         repr(db.schema_triples_repr()),
-        r"""SchemaBag \$[0-9a-f]{4}:
+        r"""^SchemaBag \$[0-9a-f]{4}:
 \#[0-9a-zA-Z]{22}\.(b|a) => (INT32|OBJECT)
 \#[0-9a-zA-Z]{22}\.(b|a) => (OBJECT|INT32)
-""",
+$""",
     )
 
   def test_is_mutable(self):

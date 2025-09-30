@@ -420,13 +420,12 @@ TEST(DataBagReprTest,
   ASSERT_OK_AND_ASSIGN(
       auto ds2, EntityCreator::FromAttrs(db2, {"a"}, {ds1}));
 
-  EXPECT_THAT(
-      DataBagToStr(db2),
-      IsOkAndHolds(MatchesRegex(
-          R"regex(DataBag \$[0-9a-f]{4}:
+  EXPECT_THAT(DataBagToStr(db2), IsOkAndHolds(MatchesRegex(
+                                     R"regex(DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
 
 SchemaBag:
+\$[0-9a-zA-Z]{22}\.a => \$[0-9a-zA-Z]{22}
 )regex")));
 }
 
