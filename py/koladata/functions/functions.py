@@ -31,6 +31,7 @@ from koladata.types import data_slice as _data_slice
 from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops as _general_eager_ops
 
+bag = _object_factories.bag
 mutable_bag = _object_factories.mutable_bag
 
 uu = _object_factories.uu
@@ -66,6 +67,10 @@ container = _object_factories.container
 # are mutable in "core" namespace.
 core = _py_types.SimpleNamespace(
     container=_object_factories.container,
+)
+
+bags = _py_types.SimpleNamespace(
+    new=_object_factories.bag,
 )
 
 dicts = _py_types.SimpleNamespace(

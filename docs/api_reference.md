@@ -397,7 +397,9 @@ Aliases:
 
 - [kd.bag](#kd.bag)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty DataBag.</code></pre>
+- [DataBag.empty](#DataBag.empty)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
 
 ### `kd.bags.updated(*bags)` {#kd.bags.updated}
 Aliases:
@@ -13010,7 +13012,7 @@ Returns:
 
 ### `DataBag.empty()` {#DataBag.empty}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
+Alias for [kd.bags.new](#kd.bags.new) operator.
 
 ### `DataBag.empty_mutable()` {#DataBag.empty_mutable}
 

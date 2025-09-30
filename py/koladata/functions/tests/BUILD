@@ -27,6 +27,19 @@ package(default_visibility = [
 licenses(["notice"])
 
 py_test(
+    name = "bag_test",
+    srcs = ["bag_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "list_test",
     srcs = ["list_test.py"],
     deps = [

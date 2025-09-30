@@ -30,13 +30,11 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import jagged_shape
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
-immutable_bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 
 
@@ -2235,26 +2233,6 @@ class NullDataBagTest(absltest.TestCase):
 
   def test_str(self):
     self.assertEqual(str(data_bag.null_bag()), 'DataBag(null)')
-
-  def test_docstring(self):
-    self.assertEqual(
-        immutable_bag.__doc__, 'Returns an empty immutable DataBag.'
-    )
-
-  def test_qtype(self):
-    self.assertEqual(immutable_bag().qtype, qtypes.DATA_BAG)
-
-  def test_create(self):
-    self.assertIsInstance(immutable_bag(), data_bag.DataBag)
-    self.assertFalse(immutable_bag().is_mutable())
-
-  def test_equality(self):
-    db = immutable_bag()
-    testing.assert_equal(db, db)
-    testing.assert_not_equal(db, immutable_bag())
-
-  def test_equivalence(self):
-    testing.assert_equivalent(immutable_bag(), immutable_bag())
 
 
 if __name__ == '__main__':
