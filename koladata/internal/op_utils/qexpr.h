@@ -78,26 +78,31 @@ class KodaOperatorWrapper<flags, Fn, Ret, arolla::meta::type_list<Args...>> {
   // arguments. We avoid `Args&&... args` since this object will be fed into
   // arolla::meta::function_traits later which won't work.
   Ret operator()(Args... args) const {
+    auto eval = [&]() -> Ret {
+      if constexpr (kWrapError && arolla::IsStatusOrT<Ret>::value) {
+        auto result = func_(std::forward<Args>(args)...);
+        if (!result.ok()) {
+          return internal::OperatorEvalError(std::move(result).status(), name_);
+        }
+        return result;
+      } else if constexpr (kWrapError && std::is_same_v<Ret, absl::Status>) {
+        auto status = func_(std::forward<Args>(args)...);
+        if (!status.ok()) {
+          return internal::OperatorEvalError(std::move(status), name_);
+        }
+        return status;
+      } else {
+        return func_(std::forward<Args>(args)...);
+      }
+    };
     if constexpr (kProfile) {
       // TODO: Consider integrating this directly into Arolla
       // evaluation instead.
       arolla::profiling::TraceMe traceme(
           [&] { return absl::StrCat("<Op> ", name_); });
-    }
-    if constexpr (kWrapError && arolla::IsStatusOrT<Ret>::value) {
-      auto result = func_(std::forward<Args>(args)...);
-      if (!result.ok()) {
-        return internal::OperatorEvalError(result.status(), name_);
-      }
-      return result;
-    } else if constexpr (kWrapError && std::is_same_v<Ret, absl::Status>) {
-      auto status = func_(std::forward<Args>(args)...);
-      if (!status.ok()) {
-        return internal::OperatorEvalError(status, name_);
-      }
-      return status;
+      return eval();
     } else {
-      return func_(std::forward<Args>(args)...);
+      return eval();
     }
   }
 
