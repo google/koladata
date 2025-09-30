@@ -1103,7 +1103,7 @@ def for_(
     ],
     deterministic=False,
 )
-def bind(fn_def, return_type_as=data_slice.DataSlice, **kwargs):
+def bind(fn_def, /, *, return_type_as=data_slice.DataSlice, **kwargs):
   """Returns a Koda functor that partially binds a function to `kwargs`.
 
   This function is intended to work the same as functools.partial in Python.
