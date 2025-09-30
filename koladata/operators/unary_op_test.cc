@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -23,7 +24,11 @@
 #include "absl/status/statusor.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/memory/optional_value.h"
+#include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/operators/utils.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -109,6 +114,29 @@ TEST(UnaryOpTest, IsInvocable) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "argument `x` must be a slice of integer values, got a "
                        "slice of FLOAT64"));
+}
+
+TEST(UnaryOpTest, Errors) {
+  {
+    internal::SliceBuilder bldr(3);
+    bldr.InsertIfNotSet(0, 1);
+    bldr.InsertIfNotSet(2, 1.5);
+    auto arg = DataSlice::CreateWithFlatShape(
+                   std::move(bldr).Build(), internal::DataItem(schema::kObject))
+                   .value();
+    EXPECT_THAT(UnaryOpEval<TestOp>(arg),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "DataSlice with mixed types is not supported"));
+  }
+  {
+    auto arg = DataSlice::CreateWithFlatShape(
+                   internal::DataSliceImpl::AllocateEmptyObjects(3),
+                   internal::DataItem(schema::kItemId))
+                   .value();
+    EXPECT_THAT(UnaryOpEval<TestOp>(arg),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "argument must have primitive type, got ITEMID"));
+  }
 }
 
 }  // namespace

@@ -123,6 +123,10 @@ absl::StatusOr<DataSlice> UnaryOpEval(
 
   if (type == arolla::GetNothingQType()) {
     RETURN_IF_ERROR(args_checker.CheckArgs(in));
+    if (schema_type != schema::kObject && schema_type != schema::kNone) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "argument must have primitive type, got ", in.GetSchemaImpl()));
+    }
     if (in.impl_has_mixed_dtype()) {
       return absl::InvalidArgumentError(
           "DataSlice with mixed types is not supported");

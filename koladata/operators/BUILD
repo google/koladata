@@ -411,7 +411,10 @@ cc_test(
     srcs = ["unary_op_test.cc"],
     deps = [
         ":lib",
+        "//koladata:data_slice",
         "//koladata:test_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/testing:matchers",
         "@com_google_absl//absl/status",

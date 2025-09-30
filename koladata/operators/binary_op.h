@@ -351,8 +351,11 @@ absl::StatusOr<DataSlice> BinaryOpEval(
   arolla::QTypePtr type2 = schema_type2.qtype();
 
   std::optional<schema::DType> output_dtype;
-  if (schema_type1 == schema::kNone || schema_type1 == schema::kObject ||
-      schema_type2 == schema::kNone || schema_type2 == schema::kObject) {
+  const bool arg1_object_or_none =
+      schema_type1 == schema::kNone || schema_type1 == schema::kObject;
+  const bool arg2_object_or_none =
+      schema_type2 == schema::kNone || schema_type2 == schema::kObject;
+  if (arg1_object_or_none || arg2_object_or_none) {
     RETURN_IF_ERROR(args_checker.CheckArgs(in1, in2));
     output_dtype = object_or_none_handler(schema_type1, schema_type2);
 
@@ -362,8 +365,8 @@ absl::StatusOr<DataSlice> BinaryOpEval(
     if (schema_type2 == schema::kObject) {
       type2 = in2.dtype();
     }
-    if (type1 == arolla::GetNothingQType() ||
-        type2 == arolla::GetNothingQType()) {
+    if ((type1 == arolla::GetNothingQType() && arg1_object_or_none) ||
+        (type2 == arolla::GetNothingQType() && arg2_object_or_none)) {
       if (in1.impl_has_mixed_dtype() || in2.impl_has_mixed_dtype()) {
         return absl::InvalidArgumentError(
             "DataSlice with mixed types is not supported");

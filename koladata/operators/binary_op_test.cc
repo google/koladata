@@ -625,7 +625,7 @@ TEST(BinaryOpTest, BytesAndText) {
                   arolla::Bytes("vb")));
 }
 
-TEST(BinaryOpTest, NonDTypeSchema) {
+TEST(BinaryOpTest, NonPrimitiveTypes) {
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
   auto i32 = DataSlice::CreateFromScalar(0);
@@ -635,6 +635,20 @@ TEST(BinaryOpTest, NonDTypeSchema) {
   EXPECT_THAT(BinaryOpEval<TestOpSub>(i32, entity),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("arguments must have primitive types")));
+
+  auto ids = DataSlice::CreateWithFlatShape(
+                 internal::DataSliceImpl::AllocateEmptyObjects(3),
+                 internal::DataItem(schema::kItemId))
+                 .value();
+  auto i32_obj = DataSlice::Create(internal::DataItem(1),
+                                   internal::DataItem(schema::kObject))
+                     .value();
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(ids, i32_obj),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("unsupported type combination")));
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(i32_obj, ids),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("unsupported type combination")));
 }
 
 }  // namespace
