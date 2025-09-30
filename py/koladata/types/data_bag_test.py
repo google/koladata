@@ -292,6 +292,71 @@ SchemaBag:
 $""",
     )
 
+  def test_contents_repr_list_schema(self):
+    db = bag()
+    db.list([db.list([db.list([1, 2, 3])])])
+    db_repr = repr(db.contents_repr())
+    self.assertRegex(
+        db_repr,
+        r'^DataBag \$[0-9a-f]{4}:'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\]'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[\$[0-9a-zA-Z]{22}\]'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[\$[0-9a-zA-Z]{22}\]'
+        r'\n\nSchemaBag:',
+    )
+    # NOTE: the order of the lines below is not deterministic.
+    self.assertRegex(
+        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32'
+    )
+    self.assertRegex(
+        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<INT32>'
+    )
+    self.assertRegex(
+        db_repr,
+        r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<list<INT32>>',
+    )
+
+  def test_contents_repr_list_schema_with_fallbacks(self):
+    db1 = bag()
+    l1 = db1.list([db1.list([1, 2, 3])])
+    l2 = bag().list([l1.no_bag()]).enriched(db1)
+
+    db_repr = repr(l2.get_bag().contents_repr())
+
+    # Example repr:
+    #
+    # DataBag $c953:
+    # $0FBEY8IJ7tZm1ji3fNj6i5[:] => [$0FBEY8IJ7tZm1ji3fNj6i4]
+    # $0FBEY8IJ7tZm1ji3fNj6i3[:] => [1, 2, 3]
+    # $0FBEY8IJ7tZm1ji3fNj6i4[:] => [$0FBEY8IJ7tZm1ji3fNj6i3]
+    #
+    # SchemaBag:
+    # #7QVN5YrdNflAlbcdhFInmH.get_item_schema() => #7QS4RpW4kAUSqzshwVWnrb
+    # #7QS4RpW4kAUSqzshwVWnrb.get_item_schema() => list<INT32>
+    # #7QUhePdHCvsoCyAWAHwtzx.get_item_schema() => INT32
+
+    self.assertRegex(
+        db_repr,
+        r'^DataBag \$[0-9a-f]{4}:'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[\$[0-9a-zA-Z]{22}\]'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[1, 2, 3\]'
+        r'\n\$[0-9a-zA-Z]{22}\[:\] => \[\$[0-9a-zA-Z]{22}\]'
+        r'\n\nSchemaBag:',
+    )
+    # NOTE: the order of the lines below is not deterministic.
+    self.assertRegex(
+        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32'
+    )
+    self.assertRegex(
+        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<INT32>'
+    )
+    # TODO: b/448296645 - list<list<INT32>> is not visible here because the
+    # current implementation does not support crossing data bag boundaries.
+    self.assertRegex(
+        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => #[0-9a-zA-Z]{22}'
+    )
+    self.assertNotIn('list<list<INT32>>', db_repr)
+
   def test_contents_repr_schema_metadata(self):
     e = kde.new(a=kde.new(b=1)).eval()
     e = e.updated(kde.metadata(e.get_schema(), foo='bar', obj=e).eval())
