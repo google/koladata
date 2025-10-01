@@ -52,39 +52,40 @@ class _BagIdManager:
 
 
 @dataclasses.dataclass(frozen=True)
-class ActionMetadata:
-  """Metadata about an action applied to PersistedIncrementalDataSliceManager.
+class RevisionMetadata:
+  """Metadata about a revision of a PersistedIncrementalDataSliceManager.
 
-  Only actions with side-effects on the persisted representation are recorded.
+  A revision gets created for each successful write operation, i.e. an operation
+  that can mutate the data and/or schema managed by the manager.
 
-  Metadata should ideally be represented in a format that can render in a
-  human-readable way out of the box. The reason is that the primary use case for
-  the metadata is to surface history information to users in interactive
+  Revision metadata should ideally be represented in a format that can render in
+  a human-readable way out of the box. The reason is that the primary use case
+  of the metadata is to surface history information to users in interactive
   sessions or during debugging. So as a rule of thumb, the data should be
   organized in a way that is easy to consume. E.g. it should be flattened, not
   (deeply) nested, and timestamps and DataSlicePath are presented as
   human-readable strings.
   """
 
-  # A description of the action. Might be empty. It is usually provided by the
-  # user, although some modifications may have descriptions that are
+  # A description of the revision. Might be empty. It is usually provided by the
+  # user, although some operations may have descriptions that are
   # programmatically generated.
   description: str
-  # The timestamp of the action. The format and timezone are specified in the
-  # arguments of PersistedIncrementalDataSliceManager.get_action_history().
+  # The timestamp of the revision. The format and timezone are specified in the
+  # arguments of PersistedIncrementalDataSliceManager.get_revision_history().
   timestamp: str
 
 
 @dataclasses.dataclass(frozen=True)
-class CreationMetadata(ActionMetadata):
+class CreationMetadata(RevisionMetadata):
   """Metadata about the creation of a PersistedIncrementalDataSliceManager."""
 
   pass
 
 
 @dataclasses.dataclass(frozen=True)
-class AttributeUpdateMetadata(ActionMetadata):
-  """Metadata about an attribute update action."""
+class AttributeUpdateMetadata(RevisionMetadata):
+  """Metadata about an attribute update operation."""
 
   # The data slice path at which the attribute was updated.
   at_path: str
@@ -93,14 +94,14 @@ class AttributeUpdateMetadata(ActionMetadata):
 
 
 @dataclasses.dataclass(frozen=True)
-class BranchMetadata(ActionMetadata):
-  """Metadata about a branch creation action."""
+class BranchMetadata(RevisionMetadata):
+  """Metadata about a branch creation operation."""
 
   # The persistence directory from which the branch was created.
   parent_persistence_directory: str
-  # The index of the action in the parent manager's action_history on top of
+  # The index of the revision in the parent manager's revision_history on top of
   # which the branch was created.
-  parent_action_history_index: int
+  parent_revision_history_index: int
 
 
 class PersistedIncrementalDataSliceManager(
@@ -222,8 +223,8 @@ class PersistedIncrementalDataSliceManager(
       self._metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
           version='1.0.0',
           metadata_update_number=0,
-          action_history=[
-              metadata_pb2.ActionMetadata(
+          revision_history=[
+              metadata_pb2.RevisionMetadata(
                   timestamp=timestamp.from_current_time(),
                   description=description,
                   added_data_bag_names=sorted(
@@ -235,7 +236,7 @@ class PersistedIncrementalDataSliceManager(
                   added_snn_to_data_bags_update_bag_names=sorted(
                       self._schema_node_name_to_data_bags_updates_manager.get_available_bag_names()
                   ),
-                  creation=metadata_pb2.CreationAction(),
+                  creation=metadata_pb2.CreationMetadata(),
               )
           ],
       )
@@ -253,8 +254,8 @@ class PersistedIncrementalDataSliceManager(
           schema_bags_dir, fs=self._fs
       )
       schema_bag_names = set()
-      for action in self._metadata.action_history:
-        schema_bag_names.update(action.added_schema_bag_names)
+      for revision in self._metadata.revision_history:
+        schema_bag_names.update(revision.added_schema_bag_names)
       self._schema_helper = schema_helper.SchemaHelper(
           self._root_dataslice.get_schema().updated(
               self._schema_bag_manager.get_minimal_bag(schema_bag_names)
@@ -274,9 +275,9 @@ class PersistedIncrementalDataSliceManager(
           )
       )
       update_bags_to_load = set()
-      for action in self._metadata.action_history:
+      for revision in self._metadata.revision_history:
         update_bags_to_load.update(
-            action.added_snn_to_data_bags_update_bag_names
+            revision.added_snn_to_data_bags_update_bag_names
         )
       self._schema_node_name_to_data_bags_updates_manager.load_bags(
           update_bags_to_load
@@ -285,8 +286,8 @@ class PersistedIncrementalDataSliceManager(
   def get_schema(self) -> kd.types.DataSlice:
     """Returns the schema of the entire DataSlice managed by this manager."""
     schema_bag_names = set()
-    for action in self._metadata.action_history:
-      schema_bag_names.update(action.added_schema_bag_names)
+    for revision in self._metadata.revision_history:
+      schema_bag_names.update(revision.added_schema_bag_names)
     return self._root_dataslice.get_schema().updated(
         self._schema_bag_manager.get_minimal_bag(schema_bag_names)
     )
@@ -427,15 +428,15 @@ class PersistedIncrementalDataSliceManager(
     )
     return path.evaluate(ds)
 
-  def get_action_history(
+  def get_revision_history(
       self,
       tz: datetime.tzinfo | None = None,
       timestamp_format: str = '%Y-%m-%d %H:%M:%S %Z',
-  ) -> list[ActionMetadata]:
-    """Returns the history of actions applied to this manager.
+  ) -> list[RevisionMetadata]:
+    """Returns the history of the revisions of this manager.
 
-    Only actions with side-effects on the persisted representation are
-    included.
+    A revision gets created for each successful write operation, i.e. an
+    operation that can mutate the data and/or schema managed by the manager.
 
     Args:
       tz: The timezone to use for the timestamps. If None, then the local
@@ -443,48 +444,49 @@ class PersistedIncrementalDataSliceManager(
       timestamp_format: The format of the timestamps in the returned metadata.
 
     Returns:
-      The history of actions applied to this manager in the order they were
-      applied.
+      The history of revisions of this manager in the order they were created.
     """
 
-    def _format_timestamp(action_metadata: metadata_pb2.ActionMetadata) -> str:
+    def _format_timestamp(
+        revision_metadata: metadata_pb2.RevisionMetadata,
+    ) -> str:
       dt = timestamp.to_datetime(
-          action_metadata.timestamp, tz=datetime.timezone.utc
+          revision_metadata.timestamp, tz=datetime.timezone.utc
       )
       return dt.astimezone(tz).strftime(timestamp_format)
 
     result = []
-    for action_metadata in self._metadata.action_history:
-      action = action_metadata.WhichOneof('action_kind')
-      if action == 'creation':
+    for revision_metadata in self._metadata.revision_history:
+      revision = revision_metadata.WhichOneof('revision_kind')
+      if revision == 'creation':
         result.append(
             CreationMetadata(
-                description=action_metadata.description,
-                timestamp=_format_timestamp(action_metadata),
+                description=revision_metadata.description,
+                timestamp=_format_timestamp(revision_metadata),
             )
         )
         continue
-      if action == 'attribute_update':
+      if revision == 'attribute_update':
         result.append(
             AttributeUpdateMetadata(
-                description=action_metadata.description,
-                timestamp=_format_timestamp(action_metadata),
-                at_path=action_metadata.attribute_update.at_path,
-                attr_name=action_metadata.attribute_update.attr_name,
+                description=revision_metadata.description,
+                timestamp=_format_timestamp(revision_metadata),
+                at_path=revision_metadata.attribute_update.at_path,
+                attr_name=revision_metadata.attribute_update.attr_name,
             )
         )
         continue
-      if action == 'branch':
+      if revision == 'branch':
         result.append(
             BranchMetadata(
-                description=action_metadata.description,
-                timestamp=_format_timestamp(action_metadata),
-                parent_persistence_directory=action_metadata.branch.parent_persistence_directory,
-                parent_action_history_index=action_metadata.branch.parent_action_history_index,
+                description=revision_metadata.description,
+                timestamp=_format_timestamp(revision_metadata),
+                parent_persistence_directory=revision_metadata.branch.parent_persistence_directory,
+                parent_revision_history_index=revision_metadata.branch.parent_revision_history_index,
             )
         )
         continue
-      raise ValueError(f'unknown action kind: {action}')
+      raise ValueError(f'unknown revision kind: {revision}')
     return result
 
   def get_persistence_directory(self) -> str:
@@ -868,8 +870,8 @@ class PersistedIncrementalDataSliceManager(
     new_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
     new_metadata.metadata_update_number += 1
-    new_metadata.action_history.append(
-        metadata_pb2.ActionMetadata(
+    new_metadata.revision_history.append(
+        metadata_pb2.RevisionMetadata(
             timestamp=timestamp.from_current_time(),
             description=description,
             added_data_bag_names=sorted(
@@ -877,7 +879,7 @@ class PersistedIncrementalDataSliceManager(
             ),
             added_schema_bag_names=[new_schema_bag_name],
             added_snn_to_data_bags_update_bag_names=[map_update_bag_name],
-            attribute_update=metadata_pb2.AttributeUpdateAction(
+            attribute_update=metadata_pb2.AttributeUpdateMetadata(
                 at_path=at_path.to_string(),
                 attr_name=attr_name,
             ),
@@ -909,7 +911,7 @@ class PersistedIncrementalDataSliceManager(
       self,
       output_dir: str,
       *,
-      action_history_index: int = -1,
+      revision_history_index: int = -1,
       fs: fs_interface.FileSystemInterface | None = None,
       description: str | None = None,
   ) -> PersistedIncrementalDataSliceManager:
@@ -925,21 +927,21 @@ class PersistedIncrementalDataSliceManager(
     * New calls to `update` this manager will not affect the branch.
     * New calls to `update` the branch will not affect this manager.
 
-    Use the action_history_index argument to use a previous state of this
+    Use the revision_history_index argument to use a previous revision of this
     manager as the basis for the branch. That is useful for rolling back to a
     previous state without modifying/updating this manager.
 
     Args:
       output_dir: the new persistence directory to use for the branch. It must
         not exist yet or it must be empty.
-      action_history_index: The index of the action in the action history of
-        this manager that should be used as the basis for the branch. The
+      revision_history_index: The index of the revision in the revision history
+        of this manager that should be used as the basis for the branch. The
         initial state of the branch manager's DataSlice will be the same as it
-        was in this manager right after the action at the given index was
-        performed. The value of action_history_index must be a valid index of
-        self.get_action_history(). By default, the branch is created on top of
-        the last action, i.e. the branch is based on the state that is current
-        when branch() is called.
+        was in this manager right after the revision at the given index was
+        created. The value of revision_history_index must be a valid index of
+        self.get_revision_history(). By default, the branch is created on top of
+        the latest revision, i.e. the state that is current when branch() is
+        called.
       fs: All interactions with the file system for output_dir will happen via
         this instance. If None, then the interaction object of `self` is used.
       description: A description of the branch. Optional. If provided, it will
@@ -949,23 +951,24 @@ class PersistedIncrementalDataSliceManager(
       A new branch of this manager.
     """
     if not (
-        -len(self._metadata.action_history)
-        <= action_history_index
-        < len(self._metadata.action_history)
+        -len(self._metadata.revision_history)
+        <= revision_history_index
+        < len(self._metadata.revision_history)
     ):
       raise ValueError(
-          f'action_history_index {action_history_index} is out of bounds. Valid'
-          f' values are in the range [{-len(self._metadata.action_history)},'
-          f' {len(self._metadata.action_history)})'
+          f'revision_history_index {revision_history_index} is out of bounds.'
+          ' Valid values are in the range'
+          f' [{-len(self._metadata.revision_history)},'
+          f' {len(self._metadata.revision_history)})'
       )
-    # We normalize the action history index to be in the range
-    # [0, len(self._metadata.action_history)). That way it is ready for the
-    # BranchAction proto, which uses absolute indexes (and not indexes relative
-    # to the last action, because new actions can be performed on this manager
-    # after this method returns).
-    if action_history_index < 0:
-      action_history_index = (
-          len(self._metadata.action_history) + action_history_index
+    # We normalize the revision history index to be in the range
+    # [0, len(self._metadata.revision_history)). That way it is ready for the
+    # BranchMetadata proto, which uses absolute indexes (and not indexes
+    # relative to the last revision, because new revisions of this manager can
+    # be created after this method returns).
+    if revision_history_index < 0:
+      revision_history_index = (
+          len(self._metadata.revision_history) + revision_history_index
       )
 
     branch_fs = fs or self._fs
@@ -997,12 +1000,12 @@ class PersistedIncrementalDataSliceManager(
     data_bag_names = set()
     schema_bag_names = set()
     snn_to_data_bags_update_bag_names = set()
-    for index in range(action_history_index + 1):
-      action = self._metadata.action_history[index]
-      data_bag_names.update(action.added_data_bag_names)
-      schema_bag_names.update(action.added_schema_bag_names)
+    for index in range(revision_history_index + 1):
+      revision = self._metadata.revision_history[index]
+      data_bag_names.update(revision.added_data_bag_names)
+      schema_bag_names.update(revision.added_schema_bag_names)
       snn_to_data_bags_update_bag_names.update(
-          action.added_snn_to_data_bags_update_bag_names
+          revision.added_snn_to_data_bags_update_bag_names
       )
 
     self._data_bag_manager.create_branch(
@@ -1024,8 +1027,8 @@ class PersistedIncrementalDataSliceManager(
     branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
         version='1.0.0',
         metadata_update_number=0,
-        action_history=[
-            metadata_pb2.ActionMetadata(
+        revision_history=[
+            metadata_pb2.RevisionMetadata(
                 timestamp=timestamp.from_current_time(),
                 description=description,
                 added_data_bag_names=sorted(data_bag_names),
@@ -1033,9 +1036,9 @@ class PersistedIncrementalDataSliceManager(
                 added_snn_to_data_bags_update_bag_names=sorted(
                     snn_to_data_bags_update_bag_names
                 ),
-                branch=metadata_pb2.BranchAction(
+                branch=metadata_pb2.BranchMetadata(
                     parent_persistence_directory=self._persistence_dir,
-                    parent_action_history_index=action_history_index,
+                    parent_revision_history_index=revision_history_index,
                 ),
             )
         ],
@@ -1062,8 +1065,8 @@ class PersistedIncrementalDataSliceManager(
   def _get_schema_node_name_to_data_bag_names(self) -> kd.types.DataItem:
     """Returns the full Koda DICT that maps schema node names to data bag names."""
     update_bag_names = set()
-    for action in self._metadata.action_history:
-      update_bag_names.update(action.added_snn_to_data_bags_update_bag_names)
+    for revision in self._metadata.revision_history:
+      update_bag_names.update(revision.added_snn_to_data_bags_update_bag_names)
     return self._initial_schema_node_name_to_data_bag_names.updated(
         self._schema_node_name_to_data_bags_updates_manager.get_minimal_bag(
             update_bag_names

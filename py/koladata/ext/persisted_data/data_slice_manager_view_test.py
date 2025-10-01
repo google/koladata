@@ -781,24 +781,24 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     )
 
-    manager_history_descriptions = [
-        action_metadata.description
-        for action_metadata in manager._metadata.action_history
+    manager_revision_descriptions = [
+        revision_metadata.description
+        for revision_metadata in manager._metadata.revision_history
     ]
     self.assertEqual(
-        manager_history_descriptions,
+        manager_revision_descriptions,
         [
             'Initial state with an empty root DataSlice',
             'Added query with query_id and text populated',
             'Added doc with doc_id and title populated',
         ],
     )
-    filtered_manager_history_descriptions = [
-        action_metadata.description
-        for action_metadata in filtered_manager._metadata.action_history
+    filtered_manager_revision_descriptions = [
+        revision_metadata.description
+        for revision_metadata in filtered_manager._metadata.revision_history
     ]
     self.assertEqual(
-        filtered_manager_history_descriptions,
+        filtered_manager_revision_descriptions,
         [
             'Branch to showcase filtering',
             'Filtered docs to keep only those with "Barack" in the title',
