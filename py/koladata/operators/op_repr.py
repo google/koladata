@@ -24,14 +24,13 @@ from koladata.types import literal_operator
 from koladata.types import qtypes
 
 
-OperatorReprFn = Callable[
-    [arolla.Expr, arolla.abc.NodeTokenView], arolla.abc.ReprToken
-]
+ReprToken = arolla.abc.ReprToken
+OperatorReprFn = Callable[[arolla.Expr, arolla.abc.NodeTokenView], ReprToken]
 
 
 def default_op_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+) -> ReprToken:
   """Default repr function for Koda operators."""
   op = node.op
   assert op is not None
@@ -40,7 +39,7 @@ def default_op_repr(
       unified_binding_policy.UNIFIED_POLICY_PREFIX
   ):
     return unified_binding_policy.unified_op_repr(node, op, signature, tokens)
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
   res.text = f'{node.op.display_name}({dep_txt})'
   return res
@@ -64,47 +63,45 @@ def _slice_repr(
 
 def subslice_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+) -> ReprToken:
   """Repr for kd.slices.subslice."""
   parts = [
       _slice_repr(dep, tokens, abbreviation=False) for dep in node.node_deps
   ]
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   res.text = f'{node.op.display_name}({", ".join(parts)})'
   return res
 
 
 def subslicehelper_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+) -> ReprToken:
   """Repr for expr.S[...]."""
   ds_repr = tokens[node.node_deps[0]].text
   parts = [
       _slice_repr(dep, tokens, abbreviation=True) for dep in node.node_deps[1:]
   ]
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   res.text = f'{ds_repr}.S[{", ".join(parts)}]'
   return res
 
 
 def get_item_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+) -> ReprToken:
   """Repr for kd.core.get_item."""
   deps = node.node_deps
   assert len(deps) == 2, 'get_item expects exact two arguments.'
   x = tokens[deps[0]].text
   key_or_index = _slice_repr(deps[1], tokens, abbreviation=True)
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   res.text = f'{x}[{key_or_index}]'
   return res
 
 
-def call_repr(
-    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
   """Repr for kd.functor.call."""
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   deps = node.node_deps
   assert len(deps) == 5, 'call expects exactly five arguments.'
   func_repr = tokens[deps[0]].text
@@ -183,9 +180,9 @@ def _brackets_if(text: str, condition: bool) -> str:
 
 def getattr_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-) -> arolla.abc.ReprToken:
+) -> ReprToken:
   """Repr for kd.core.get_attr."""
-  res = arolla.abc.ReprToken()
+  res = ReprToken()
   if node.node_deps[2].qtype != arolla.UNSPECIFIED:
     return default_op_repr(node, tokens)
   if node.node_deps[1].qvalue is None or not isinstance(
@@ -198,8 +195,7 @@ def getattr_repr(
   if not isinstance(py_attr, str) or not _is_identifier(py_attr):
     return default_op_repr(node, tokens)
   obj = tokens[node.node_deps[0]]
-  res.precedence.left = 0
-  res.precedence.right = -1
+  res.precedence = ReprToken.PRECEDENCE_OP_SUBSCRIPTION
   res.text = (
       f'{_brackets_if(obj.text, obj.precedence.right >= res.precedence.left)}'
       f'.{py_attr}'
@@ -208,19 +204,17 @@ def getattr_repr(
 
 
 def _make_prefix_repr_fn(
-    symbol: str, left_precedence: int, right_precedence: int
+    symbol: str,
+    precedence: ReprToken.Precedence,
 ) -> OperatorReprFn:
   """Returns a custom repr function for a prefix operator."""
 
-  def repr_fn(
-      node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-  ) -> arolla.abc.ReprToken:
-    res = arolla.abc.ReprToken()
-    res.precedence.left = left_precedence
-    res.precedence.right = right_precedence
+  def repr_fn(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
+    res = ReprToken()
+    res.precedence = precedence
     token = tokens[node.node_deps[0]]
     res.text = symbol + _brackets_if(
-        token.text, token.precedence.left >= right_precedence
+        token.text, token.precedence.left >= precedence.right
     )
     return res
 
@@ -228,46 +222,47 @@ def _make_prefix_repr_fn(
 
 
 def _make_infix_repr_fn(
-    symbol: str, left_precedence: int, right_precedence: int
+    symbol: str,
+    precedence: ReprToken.Precedence,
 ) -> OperatorReprFn:
   """Returns a custom repr function for an infix operator."""
 
-  def repr_fn(
-      node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-  ) -> arolla.abc.ReprToken:
-    res = arolla.abc.ReprToken()
-    res.precedence.left = left_precedence
-    res.precedence.right = right_precedence
+  def repr_fn(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
+    res = ReprToken()
+    res.precedence = precedence
     lhs_t, rhs_t = tokens[node.node_deps[0]], tokens[node.node_deps[1]]
     lhs_res = _brackets_if(
-        lhs_t.text, lhs_t.precedence.right >= left_precedence
+        lhs_t.text, lhs_t.precedence.right >= precedence.left
     )
     rhs_res = _brackets_if(
-        rhs_t.text, rhs_t.precedence.left >= right_precedence
+        rhs_t.text, rhs_t.precedence.left >= precedence.right
     )
     res.text = f'{lhs_res} {symbol} {rhs_res}'
     return res
 
   return repr_fn
-#
+
+
 # Prefix operators.
-pos_repr = _make_prefix_repr_fn('+', 1, 1)
-neg_repr = _make_prefix_repr_fn('-', 1, 1)
-not_repr = _make_prefix_repr_fn('~', 1, 1)
+pos_repr = _make_prefix_repr_fn('+', ReprToken.PRECEDENCE_OP_UNARY)
+neg_repr = _make_prefix_repr_fn('-', ReprToken.PRECEDENCE_OP_UNARY)
+not_repr = _make_prefix_repr_fn('~', ReprToken.PRECEDENCE_OP_UNARY)
 
 # Infix operators.
-pow_repr = _make_infix_repr_fn('**', 1, 2)
-multiply_repr = _make_infix_repr_fn('*', 3, 2)
-divide_repr = _make_infix_repr_fn('/', 3, 2)
-floordiv_repr = _make_infix_repr_fn('//', 3, 2)
-mod_repr = _make_infix_repr_fn('%', 3, 2)
-add_repr = _make_infix_repr_fn('+', 5, 4)
-subtract_repr = _make_infix_repr_fn('-', 5, 4)
-apply_mask_repr = _make_infix_repr_fn('&', 7, 6)
-coalesce_repr = _make_infix_repr_fn('|', 9, 8)
-less_repr = _make_infix_repr_fn('<', 10, 10)
-less_equal_repr = _make_infix_repr_fn('<=', 10, 10)
-greater_repr = _make_infix_repr_fn('>', 10, 10)
-greater_equal_repr = _make_infix_repr_fn('>=', 10, 10)
-equal_repr = _make_infix_repr_fn('==', 10, 10)
-not_equal_repr = _make_infix_repr_fn('!=', 10, 10)
+pow_repr = _make_infix_repr_fn('**', ReprToken.PRECEDENCE_OP_POW)
+multiply_repr = _make_infix_repr_fn('*', ReprToken.PRECEDENCE_OP_MUL)
+divide_repr = _make_infix_repr_fn('/', ReprToken.PRECEDENCE_OP_MUL)
+floordiv_repr = _make_infix_repr_fn('//', ReprToken.PRECEDENCE_OP_MUL)
+mod_repr = _make_infix_repr_fn('%', ReprToken.PRECEDENCE_OP_MUL)
+add_repr = _make_infix_repr_fn('+', ReprToken.PRECEDENCE_OP_ADD)
+subtract_repr = _make_infix_repr_fn('-', ReprToken.PRECEDENCE_OP_ADD)
+apply_mask_repr = _make_infix_repr_fn('&', ReprToken.PRECEDENCE_OP_AND)
+coalesce_repr = _make_infix_repr_fn('|', ReprToken.PRECEDENCE_OP_OR)
+less_repr = _make_infix_repr_fn('<', ReprToken.PRECEDENCE_OP_COMPARISON)
+less_equal_repr = _make_infix_repr_fn('<=', ReprToken.PRECEDENCE_OP_COMPARISON)
+greater_repr = _make_infix_repr_fn('>', ReprToken.PRECEDENCE_OP_COMPARISON)
+greater_equal_repr = _make_infix_repr_fn(
+    '>=', ReprToken.PRECEDENCE_OP_COMPARISON
+)
+equal_repr = _make_infix_repr_fn('==', ReprToken.PRECEDENCE_OP_COMPARISON)
+not_equal_repr = _make_infix_repr_fn('!=', ReprToken.PRECEDENCE_OP_COMPARISON)
