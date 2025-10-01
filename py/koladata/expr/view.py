@@ -138,12 +138,6 @@ class KodaView(BaseKodaView):
   def freeze_bag(self) -> arolla.Expr:
     return _aux_bind_op('kd.freeze_bag', self)
 
-  def __lshift__(self, other) -> arolla.Expr:
-    return _aux_bind_op('kd.bags.updated', self, other)
-
-  def __rshift__(self, other) -> arolla.Expr:
-    return _aux_bind_op('kd.bags.enriched', self, other)
-
   def __getattr__(self, attr_name: str) -> arolla.Expr:
     if (
         attr_name.startswith('_')
@@ -248,6 +242,18 @@ class KodaView(BaseKodaView):
 
   def __rxor__(self, other: Any) -> arolla.Expr:
     return _aux_bind_op('kd.xor', other, self)
+
+  def __lshift__(self, other: Any) -> arolla.Expr:
+    return _aux_bind_op('koda_internal.view.lshift', self, other)
+
+  def __rlshift__(self, other: Any) -> arolla.Expr:
+    return _aux_bind_op('koda_internal.view.lshift', other, self)
+
+  def __rshift__(self, other: Any) -> arolla.Expr:
+    return _aux_bind_op('koda_internal.view.rshift', self, other)
+
+  def __rrshift__(self, other: Any) -> arolla.Expr:
+    return _aux_bind_op('koda_internal.view.rshift', other, self)
 
   def __invert__(self) -> arolla.Expr:
     return _aux_bind_op('kd.has_not', self)

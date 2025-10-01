@@ -99,6 +99,17 @@ def expect_data_bag_args(param) -> constraints.QTypeConstraint:
   )
 
 
+def expect_data_slice_or_data_bag(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a DataSlice or a DataBag."""
+  return (
+      (param == qtypes.DATA_SLICE) | (param == qtypes.DATA_BAG),
+      (
+          'expected DATA_SLICE or DATA_BAG, got'
+          f' {constraints.name_type_msg(param)}'
+      ),
+  )
+
+
 def expect_arolla_jagged_shape(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is an Arolla jagged shape."""
   return (

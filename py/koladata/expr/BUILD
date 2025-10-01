@@ -220,6 +220,7 @@ py_test(
         ":tracing_mode",
         ":view",
         "//py:python_path",
+        "//py/koladata/operators:core",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:view_overloads",
         "//py/koladata/testing",

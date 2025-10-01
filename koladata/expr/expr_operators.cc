@@ -71,8 +71,10 @@ absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
 
 arolla::TypedValue FreezeDataBagOrDataSlice(arolla::TypedValue value) {
   if (value.GetType() == arolla::GetQType<DataBagPtr>()) {
-    return arolla::TypedValue::FromValue(
-        value.UnsafeAs<DataBagPtr>()->Freeze());
+    DataBagPtr bag = value.UnsafeAs<DataBagPtr>();
+    if (bag != nullptr) {
+      return arolla::TypedValue::FromValue(bag->Freeze());
+    }
   } else if (value.GetType() == arolla::GetQType<DataSlice>()) {
     return arolla::TypedValue::FromValue(
         value.UnsafeAs<DataSlice>().FreezeBag());

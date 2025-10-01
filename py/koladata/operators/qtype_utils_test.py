@@ -65,6 +65,27 @@ class KodaQTypesTest(absltest.TestCase):
       ):
         _op(4)
 
+  def test_expect_data_slice_or_data_bag(self):
+
+    @arolla.optools.as_lambda_operator(
+        'op2.name',
+        qtype_constraints=[
+            qtype_utils.expect_data_slice_or_data_bag(arolla.P.x)
+        ],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(data_slice.DataSlice.from_vals(arolla.dense_array([1])))
+      _op(data_bag.DataBag.empty_mutable())
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError, 'expected DATA_SLICE or DATA_BAG, got x: INT32'
+      ):
+        _op(4)
+
   def test_expect_jagged_shape(self):
 
     @arolla.optools.as_lambda_operator(

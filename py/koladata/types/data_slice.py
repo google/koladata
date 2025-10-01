@@ -778,6 +778,26 @@ def _invert(self) -> DataSlice:
   return _eval_op('kd.has_not', self)
 
 
+@add_method(DataSlice, '__lshift__')
+@add_method(DataSlice, '__rrshift__')
+def _lshift(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
+  # This produces a nicer error message than kd.updated since it does not have
+  # *varargs.
+  return _eval_op('koda_internal.view.lshift', self, other)
+
+
+@add_method(DataSlice, '__rshift__')
+@add_method(DataSlice, '__rlshift__')
+def _rshift(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
+  # This produces a nicer error message than kd.enriched since it does not have
+  # *varargs.
+  return _eval_op('koda_internal.view.rshift', self, other)
+
+
 class SlicingHelper:
   """Slicing helper for DataSlice.
 

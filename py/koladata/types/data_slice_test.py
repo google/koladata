@@ -3340,6 +3340,32 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       )
     with self.subTest('not'):
       testing.assert_equal(~mask, ds([None, arolla.present(), None]))
+    with self.subTest('lshift'):
+      o = fns.new(x=1, y=2)
+      db = kde.attrs(o, x=3, z=4).eval()
+      testing.assert_equal((o << db).no_bag(), o.no_bag())
+      testing.assert_deep_equivalent(o << db, fns.new(x=3, y=2, z=4))
+      testing.assert_equal((db << o).no_bag(), o.no_bag())
+      testing.assert_deep_equivalent(db << o, fns.new(x=1, y=2, z=4))
+      with self.assertRaisesRegex(
+          ValueError,
+          'at least one argument must be a DATA_BAG, this operation is not'
+          ' supported on two DATA_SLICEs',
+      ):
+        _ = o << o
+    with self.subTest('rshift'):
+      o = fns.new(x=1, y=2)
+      db = kde.attrs(o, x=3, z=4).eval()
+      testing.assert_equal((o >> db).no_bag(), o.no_bag())
+      testing.assert_deep_equivalent(o >> db, fns.new(x=1, y=2, z=4))
+      testing.assert_equal((db >> o).no_bag(), o.no_bag())
+      testing.assert_deep_equivalent(db >> o, fns.new(x=3, y=2, z=4))
+      with self.assertRaisesRegex(
+          ValueError,
+          'at least one argument must be a DATA_BAG, this operation is not'
+          ' supported on two DATA_SLICEs',
+      ):
+        _ = o >> o
 
   def test_embed_schema_entity(self):
     db = bag()

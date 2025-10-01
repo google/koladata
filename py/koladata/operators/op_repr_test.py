@@ -394,6 +394,32 @@ class OpReprTest(parameterized.TestCase):
     register(kde.get_attr, op_repr.getattr_repr)
     self.assertEqual(repr(expr), expected_repr)
 
+  @parameterized.parameters(
+      (binary_op(L.x, L.y), 'L.x << L.y'),
+      (binary_op(binary_op(L.x, L.y), L.z), 'L.x << L.y << L.z'),
+      (binary_op(L.x, binary_op(L.y, L.z)), 'L.x << (L.y << L.z)'),
+      # Here we do test the precedence relationships since this operator does
+      # not exist in Arolla.
+      (M.core.presence_and(L.x, binary_op(L.y, L.z)), 'L.x & L.y << L.z'),
+      (M.math.add(L.x, binary_op(L.y, L.z)), 'L.x + (L.y << L.z)'),
+  )
+  def test_lshift_repr(self, expr, expected_repr):
+    register(binary_op, op_repr.lshift_repr)
+    self.assertEqual(repr(expr), expected_repr)
+
+  @parameterized.parameters(
+      (binary_op(L.x, L.y), 'L.x >> L.y'),
+      (binary_op(binary_op(L.x, L.y), L.z), 'L.x >> L.y >> L.z'),
+      (binary_op(L.x, binary_op(L.y, L.z)), 'L.x >> (L.y >> L.z)'),
+      # Here we do test the precedence relationships since this operator does
+      # not exist in Arolla.
+      (M.core.presence_and(L.x, binary_op(L.y, L.z)), 'L.x & L.y >> L.z'),
+      (M.math.add(L.x, binary_op(L.y, L.z)), 'L.x + (L.y >> L.z)'),
+  )
+  def test_rshift_repr(self, expr, expected_repr):
+    register(binary_op, op_repr.rshift_repr)
+    self.assertEqual(repr(expr), expected_repr)
+
 
 if __name__ == '__main__':
   absltest.main()

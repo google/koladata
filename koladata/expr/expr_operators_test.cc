@@ -62,6 +62,13 @@ TEST(LiteralOperatorTest, DatabagLiteral) {
     EXPECT_TRUE(attr.IsIdenticalTo(
         arolla::expr::ExprAttributes(literal_op->value())));
   }
+  // Null DataBag is supported.
+  {
+    DataBagPtr db = nullptr;
+    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
+        arolla::TypedValue::FromValue(db));
+    EXPECT_EQ(db, literal_op->value().UnsafeAs<DataBagPtr>());
+  }
 }
 
 TEST(LiteralOperatorTest, DataSliceLiteral) {

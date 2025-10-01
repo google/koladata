@@ -1965,14 +1965,32 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     o2.x = 2
     o2.y = 3
     db3 = bag()
-    o3 = db3.uuobj(x=1)
-    o3.x = 2
+    o3 = db3.obj(itemid=kde.uuid(x=1).eval())
     o3.y = 4
     o4 = o1.with_bag(db1 << db2 << db3)
     self.assertEqual(o4.x.no_bag(), ds(2))
     self.assertEqual(o4.y.no_bag(), ds(4))
+    o5 = o1 << db2 << db3
+    self.assertEqual(o5.x.no_bag(), ds(2))
+    self.assertEqual(o5.y.no_bag(), ds(4))
+    o6 = db2 << db3 << o1
+    self.assertEqual(o6.x.no_bag(), ds(1))
+    self.assertEqual(o6.y.no_bag(), ds(4))
 
-  def test_shift(self):
+  def test_shifts_null_bag(self):
+    db1 = bag()
+    o1 = db1.uuobj(x=1)
+    db2 = data_bag.null_bag()
+    testing.assert_equal(o1.with_bag(db1 << db2).x.no_bag(), ds(1))
+    testing.assert_equal(o1.with_bag(db1 >> db2).x.no_bag(), ds(1))
+    testing.assert_equal(o1.with_bag(db2 << db1).x.no_bag(), ds(1))
+    testing.assert_equal(o1.with_bag(db2 >> db1).x.no_bag(), ds(1))
+    self.assertIsInstance((db2 << db2), data_bag.DataBag)
+    self.assertEqual((db2 << db2).get_approx_size(), 0)
+    self.assertIsInstance((db2 >> db2), data_bag.DataBag)
+    self.assertEqual((db2 >> db2).get_approx_size(), 0)
+
+  def test_rshift(self):
     db1 = bag()
     o1 = db1.uuobj(x=1)
     db2 = bag()
@@ -1986,6 +2004,12 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     o3 = o1.with_bag(db1 >> db2 >> db3)
     testing.assert_equal(o3.x.no_bag(), ds(1))
     self.assertEqual(o3.y.no_bag(), ds(3))
+    o4 = o1 >> db2 >> db3
+    testing.assert_equal(o4.x.no_bag(), ds(1))
+    self.assertEqual(o4.y.no_bag(), ds(3))
+    o5 = db2 >> db3 >> o1
+    testing.assert_equal(o5.x.no_bag(), ds(2))
+    self.assertEqual(o5.y.no_bag(), ds(3))
 
   def test_ilshift(self):
     db1 = bag()

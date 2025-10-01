@@ -409,14 +409,20 @@ def _merge_inplace(
   return self
 
 
-def _enriched_bag(*dbs) -> DataBag:
-  """Returns a merged DataBag with priority for DataBags earlier in the list."""
-  return _eval_op('kd.enriched_bag', *dbs)
+def _rshift(self: DataBag | NullDataBag, other: Any) -> DataBag:
+  """Returns a merged DataBag with priority for `self`."""
+  if not isinstance(other, (DataBag, NullDataBag)):
+    # This routes both DataSlice and Expr to their respective implementations.
+    return NotImplemented
+  return _eval_op('kd.enriched_bag', self, other)
 
 
-def _updated_bag(*dbs) -> DataBag:
-  """Returns a merged DataBag with priority for DataBags later in the list."""
-  return _eval_op('kd.updated_bag', *dbs)
+def _lshift(self: DataBag | NullDataBag, other: Any) -> DataBag:
+  """Returns a merged DataBag with priority for `other`."""
+  if not isinstance(other, (DataBag, NullDataBag)):
+    # This routes both DataSlice and Expr to their respective implementations.
+    return NotImplemented
+  return _eval_op('kd.updated_bag', self, other)
 
 
 class ContentsReprWrapper:
@@ -469,8 +475,8 @@ DataBag.concat_lists = _concat_lists
 DataBag.freeze = _freeze
 DataBag.merge_inplace = _merge_inplace
 DataBag.with_name = _general_eager_ops.with_name
-DataBag.__lshift__ = _updated_bag
-DataBag.__rshift__ = _enriched_bag
+DataBag.__lshift__ = _lshift
+DataBag.__rshift__ = _rshift
 DataBag.contents_repr = _contents_repr
 DataBag.data_triples_repr = _data_triples_repr
 DataBag.schema_triples_repr = _schema_triples_repr
@@ -487,6 +493,12 @@ class NullDataBag(arolla.abc.QValue):
 
   def with_name(self, name: str | arolla.types.Text) -> NullDataBag:
     return _general_eager_ops.with_name(self, name)
+
+  def __lshift__(self, other: Any) -> DataBag:
+    return _lshift(self, other)
+
+  def __rshift__(self, other: Any) -> DataBag:
+    return _rshift(self, other)
 
 
 arolla.abc.register_qvalue_specialization(

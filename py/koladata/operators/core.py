@@ -1160,6 +1160,48 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(repr_fn=op_repr.lshift_repr)
+@optools.as_lambda_operator(
+    'koda_internal.view.lshift',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_or_data_bag(P.x),
+        qtype_utils.expect_data_slice_or_data_bag(P.y),
+        (
+            (P.x == qtypes.DATA_BAG) | (P.y == qtypes.DATA_BAG),
+            (
+                'at least one argument must be a DATA_BAG, this operation is'
+                ' not supported on two DATA_SLICEs'
+            ),
+        ),
+    ],
+)
+def lshift(x, y):
+  """Applies an update/enrich operation."""
+  return arolla.types.DispatchOperator(
+      'x, y',
+      x_is_slice_case=arolla.types.DispatchCase(
+          updated(P.x, P.y),
+          condition=(P.x == qtypes.DATA_SLICE) & (P.y == qtypes.DATA_BAG),
+      ),
+      y_is_slice_case=arolla.types.DispatchCase(
+          enriched(P.y, P.x),
+          condition=(P.y == qtypes.DATA_SLICE) & (P.x == qtypes.DATA_BAG),
+      ),
+      databag_case=arolla.types.DispatchCase(
+          bags.updated(P.x, P.y),
+          condition=(P.x == qtypes.DATA_BAG) & (P.y == qtypes.DATA_BAG),
+      ),
+  )(x, y)
+
+
+@optools.add_to_registry(repr_fn=op_repr.rshift_repr)
+@optools.as_lambda_operator('koda_internal.view.rshift')
+# The arguments are swapped so that error messages from lshift make sense.
+def rshift(y, x):
+  """Applies an enrich/update operation."""
+  return lshift(x, y)
+
+
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator('koda_internal.create_metadata')
 def create_metadata(x):  # pylint: disable=unused-argument

@@ -19,6 +19,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
 from koladata.expr import view
+from koladata.operators import core
 from koladata.operators import kde_operators
 from koladata.operators import view_overloads
 from koladata.testing import signature_test_utils
@@ -575,14 +576,30 @@ class KodaViewTest(parameterized.TestCase):
     )
 
   def test_lshift(self):
-    self.assert_exprs_equal(
-        op(C.x) << op(C.y), kde.bags.updated(op(C.x), op(C.y))
-    )
+    bag = data_bag.DataBag.empty()
+    null_bag = data_bag.null_bag()
+    self.assert_exprs_equal(op(C.x) << op(C.y), core.lshift(op(C.x), op(C.y)))
+    self.assert_exprs_equal(1 << op(C.y), core.lshift(1, op(C.y)))
+    self.assert_exprs_equal(ds(1) << op(C.y), core.lshift(1, op(C.y)))
+    self.assert_exprs_equal(bag << op(C.y), core.lshift(bag, op(C.y)))
+    self.assert_exprs_equal(null_bag << op(C.y), core.lshift(null_bag, op(C.y)))
+    self.assert_exprs_equal(op(C.x) << 1, core.lshift(op(C.x), 1))
+    self.assert_exprs_equal(op(C.x) << ds(1), core.lshift(op(C.x), 1))
+    self.assert_exprs_equal(op(C.x) << bag, core.lshift(op(C.x), bag))
+    self.assert_exprs_equal(op(C.x) << null_bag, core.lshift(op(C.x), null_bag))
 
   def test_rshift(self):
-    self.assert_exprs_equal(
-        op(C.x) >> op(C.y), kde.bags.enriched(op(C.x), op(C.y))
-    )
+    bag = data_bag.DataBag.empty()
+    null_bag = data_bag.null_bag()
+    self.assert_exprs_equal(op(C.x) >> op(C.y), core.rshift(op(C.x), op(C.y)))
+    self.assert_exprs_equal(1 >> op(C.y), core.rshift(1, op(C.y)))
+    self.assert_exprs_equal(ds(1) >> op(C.y), core.rshift(1, op(C.y)))
+    self.assert_exprs_equal(bag >> op(C.y), core.rshift(bag, op(C.y)))
+    self.assert_exprs_equal(null_bag >> op(C.y), core.rshift(null_bag, op(C.y)))
+    self.assert_exprs_equal(op(C.x) >> 1, core.rshift(op(C.x), 1))
+    self.assert_exprs_equal(op(C.x) >> ds(1), core.rshift(op(C.x), ds(1)))
+    self.assert_exprs_equal(op(C.x) >> bag, core.rshift(op(C.x), bag))
+    self.assert_exprs_equal(op(C.x) >> null_bag, core.rshift(op(C.x), null_bag))
 
   def test_bind(self):
     self.assert_non_deterministic_exprs_equal(
