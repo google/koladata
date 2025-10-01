@@ -33,6 +33,8 @@ from koladata.types import jagged_shape
 DataBag = _data_bag_py_ext.DataBag
 DataSlice = _data_slice_py_ext.DataSlice
 
+from_vals = DataSlice.from_vals
+
 _eval_op = _py_expr_eval_py_ext.eval_op
 
 

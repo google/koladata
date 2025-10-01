@@ -27,6 +27,8 @@ _eval_op = _py_expr_eval_py_ext.eval_op
 
 DataItem = _data_item_py_ext.DataItem
 
+from_vals = DataItem.from_vals
+
 
 ### Implementation of the DataItem's additional functionality.
 @data_slice.add_method(DataItem, '__hash__')  # pylint: disable=protected-access
