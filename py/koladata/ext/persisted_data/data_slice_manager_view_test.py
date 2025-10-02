@@ -1052,6 +1052,81 @@ class DataSliceManagerViewTest(absltest.TestCase):
           [root.query[:].doc[:]],
       )
 
+  def test_repr(self):
+    # Set up a plain Koda DataSlice with query and doc data.
+    query_schema = kd.named_schema('query')
+    new_query = query_schema.new
+    doc_schema = kd.named_schema('doc')
+    new_doc = doc_schema.new
+    query_ds = kd.slice([
+        new_query(
+            id=1,
+            text='How high is the Eiffel tower',
+            doc=kd.list([
+                new_doc(
+                    id=10, title='Attractions of Paris', content='foo' * 10000
+                )
+            ]),
+        ),
+        new_query(
+            id=2,
+            text='How high is the empire state building',
+            doc=kd.list([
+                new_doc(
+                    id=11,
+                    title='Attractions of New York',
+                    content='bar' * 10000,
+                ),
+                new_doc(
+                    id=12,
+                    title="The world's tallest buildings",
+                    content='baz' * 10000,
+                ),
+            ]),
+        ),
+    ])
+
+    # Set up a DataSliceManager with the data from above.
+    manager = pidsm.PersistedIncrementalDataSliceManager(
+        self.create_tempdir().full_path
+    )
+    root = DataSliceManagerView(manager)
+    root.query = query_ds.implode(ndim=-1)
+
+    manager_repr = repr(manager)
+    self.assertRegex(
+        manager_repr,
+        re.escape(
+            '<koladata.ext.persisted_data.persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager'
+            ' object at '
+        )
+        + r'\w+'
+        + re.escape('>'),
+    )
+
+    self.assertEqual(
+        repr(root),
+        f"DataSliceManagerView({manager_repr}, DataSlicePath(''))",
+    )
+    self.assertEqual(
+        repr(root.query[:]),
+        f"DataSliceManagerView({manager_repr}, DataSlicePath('.query[:]'))",
+    )
+    self.assertEqual(
+        repr(root.query[:].text),
+        (
+            f'DataSliceManagerView({manager_repr},'
+            " DataSlicePath('.query[:].text'))"
+        ),
+    )
+    self.assertEqual(
+        repr(root.query[:].doc[:].title),
+        (
+            f'DataSliceManagerView({manager_repr},'
+            " DataSlicePath('.query[:].doc[:].title'))"
+        ),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -79,6 +79,12 @@ class DataSliceManagerView:
         and self._path_from_root == other._path_from_root
     )
 
+  def __repr__(self) -> str:
+    return (
+        f'DataSliceManagerView({repr(self._data_slice_manager)},'
+        f' {repr(self._path_from_root)})'
+    )
+
   # Methods for accessing/updating the underlying DataSlice and its schema.
 
   def get_schema(self) -> kd.types.DataItem:
