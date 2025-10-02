@@ -605,6 +605,9 @@ class KodaViewTest(parameterized.TestCase):
     self.assert_non_deterministic_exprs_equal(
         C.fn.bind(x=17), kde.bind(C.fn, x=17)
     )
+    self.assert_non_deterministic_exprs_equal(
+        C.fn.bind(1, 2, x=17), kde.bind(C.fn, 1, 2, x=17)
+    )
 
   def test_unpacking_by_operator(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name

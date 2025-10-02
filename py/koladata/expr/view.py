@@ -638,9 +638,11 @@ class KodaView(BaseKodaView):
   def to_pytree(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('to_pytree', 'DataSlice')
 
-  def bind(self, *, return_type_as: Any = data_slice.DataSlice, **kwargs):
+  def bind(
+      self, *args, return_type_as: Any = data_slice.DataSlice, **kwargs
+  ) -> arolla.Expr:
     return _aux_bind_op(
-        'kd.bind', self, return_type_as=return_type_as, **kwargs
+        'kd.bind', self, *args, return_type_as=return_type_as, **kwargs
     )
 
   # Eager-only ListItem methods

@@ -105,7 +105,7 @@ class FunctorBindTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'parameter.*x.*specified twice'):
       _ = bound_fn(7)
 
-  def test_does_not_allow_positional(self):
+  def test_bind_positional_args(self):
     signature = signature_utils.signature([
         signature_utils.parameter(
             'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -115,10 +115,12 @@ class FunctorBindTest(absltest.TestCase):
         ),
     ])
     fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)), signature=signature)
-    with self.assertRaisesRegex(
-        TypeError, 'takes 1 positional argument but 2 were given'
-    ):
-      _ = kde.functor.bind(fn, 5).eval()
+    bound_fn = kde.functor.bind(fn, 5).eval()
+    testing.assert_equal(bound_fn(7), ds(12))
+    bound_fn_2 = kde.functor.bind(fn, 5, 7).eval()
+    testing.assert_equal(bound_fn_2(), ds(12))
+    bound_fn_3 = kde.functor.bind(fn, 5, y=7).eval()
+    testing.assert_equal(bound_fn_3(), ds(12))
 
   def test_bound_data_bag_conflict(self):
     x = kd.new(x=1)

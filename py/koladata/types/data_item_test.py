@@ -301,6 +301,9 @@ class DataItemTest(parameterized.TestCase):
   def test_bind(self):
     fn = functor_factories.trace_py_fn(lambda x, y: x + y).bind(y=2)
     self.assertEqual(fn(3), 5)
+    fn_pos = functor_factories.trace_py_fn(lambda x, y: x + y)
+    self.assertEqual(fn_pos.bind(5)(y=6), 11)
+    self.assertEqual(fn_pos.bind(5, y=6)(), 11)
     fn = functor_factories.trace_py_fn(
         lambda x, y: user_facing_kd.attrs(x, my_attr=y)
     ).bind(y=42, return_type_as=data_bag.DataBag)

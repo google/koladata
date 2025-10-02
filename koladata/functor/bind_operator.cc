@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/bind_operator.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -80,6 +81,19 @@ ExprNodePtr MakeArgumentNamesTuple(
   return Literal(arolla::MakeTuple(names));
 }
 
+absl::StatusOr<ExprNodePtr> MakeTupleOfVariables(
+    absl::Span<const std::string> variable_names) {
+  ASSIGN_OR_RETURN(auto v_container, expr::InputContainer::Create("V"));
+  std::vector<ExprNodePtr> variable_values;
+  variable_values.reserve(variable_names.size());
+  for (const auto& name : variable_names) {
+    ASSIGN_OR_RETURN(variable_values.emplace_back(),
+                     v_container.CreateInput(name));
+  }
+  return ::arolla::expr::BindOp("core.make_tuple", std::move(variable_values),
+                                {});
+}
+
 absl::StatusOr<ExprNodePtr> MakeNamedTupleOfVariables(
     absl::Span<const absl::string_view> variable_names) {
   ASSIGN_OR_RETURN(auto v_container, expr::InputContainer::Create("V"));
@@ -95,37 +109,63 @@ absl::StatusOr<ExprNodePtr> MakeNamedTupleOfVariables(
 }
 
 absl::StatusOr<ExprNodePtr> MakeCapturingLambdaExpr(
-    TypedRef return_type_as,
-    absl::Span<const absl::string_view> variable_names) {
+    TypedRef return_type_as, absl::Span<const std::string> aux_arg_names,
+    absl::Span<const absl::string_view> kwargs_names) {
   ASSIGN_OR_RETURN(auto i_container, expr::InputContainer::Create("I"));
   ASSIGN_OR_RETURN(auto v_container, expr::InputContainer::Create("V"));
-  std::vector<ExprNodePtr> args;
-  absl::flat_hash_map<std::string, ExprNodePtr> kwargs;
+  std::vector<ExprNodePtr> call_args;
+  absl::flat_hash_map<std::string, ExprNodePtr> call_kwargs;
 
-  ASSIGN_OR_RETURN(args.emplace_back(), v_container.CreateInput("_aux_fn"));
-  ASSIGN_OR_RETURN(kwargs["args"], i_container.CreateInput("args"));
+  ASSIGN_OR_RETURN(call_args.emplace_back(),
+                   v_container.CreateInput("_aux_fn"));
+
+  ASSIGN_OR_RETURN(ExprNodePtr args_tuple, MakeTupleOfVariables(aux_arg_names));
+  ASSIGN_OR_RETURN(call_kwargs["args"],
+                   ::arolla::expr::CallOp("core.concat_tuples",
+                                          {std::move(args_tuple),
+                                           i_container.CreateInput("args")}));
 
   ASSIGN_OR_RETURN(auto variables_named_tuple,
-                   MakeNamedTupleOfVariables(variable_names));
-  ASSIGN_OR_RETURN(kwargs["kwargs"],
+                   MakeNamedTupleOfVariables(kwargs_names));
+  ASSIGN_OR_RETURN(call_kwargs["kwargs"],
                    ::arolla::expr::CallOp("namedtuple.union",
                                           {std::move(variables_named_tuple),
                                            i_container.CreateInput("kwargs")}));
-  ASSIGN_OR_RETURN(kwargs[expr::kNonDeterministicParamName],
-                   expr::GenNonDeterministicToken());
-  kwargs["return_type_as"] = Literal(TypedValue(return_type_as));
 
-  return ::arolla::expr::BindOp("kd.functor.call", std::move(args),
-                                std::move(kwargs));
+  ASSIGN_OR_RETURN(call_kwargs[expr::kNonDeterministicParamName],
+                   expr::GenNonDeterministicToken());
+  call_kwargs["return_type_as"] = Literal(TypedValue(return_type_as));
+
+  return ::arolla::expr::BindOp("kd.functor.call", std::move(call_args),
+                                std::move(call_kwargs));
 }
 
 absl::StatusOr<DataSlice> CreateBind(
     const DataSlice& fn, TypedRef return_type_as,
-    std::vector<absl::string_view> variable_names,
-    std::vector<DataSlice> variable_values) {
+    std::vector<DataSlice> args_values,
+    std::vector<absl::string_view> kwargs_names,
+    std::vector<DataSlice> kwargs_values) {
   RETURN_IF_ERROR(ValidateFn(fn));
-  ASSIGN_OR_RETURN(auto capturing_lambda_expr,
-                   MakeCapturingLambdaExpr(return_type_as, variable_names));
+
+  int64_t num_args = args_values.size();
+  std::vector<absl::string_view> variable_names = kwargs_names;
+  std::vector<DataSlice> variable_values = std::move(kwargs_values);
+  variable_names.reserve(variable_names.size() + num_args + 1);
+  variable_values.reserve(variable_values.size() + num_args + 1);
+
+  std::vector<std::string> aux_arg_names;
+  aux_arg_names.reserve(num_args);
+  for (int64_t i = 0; i < num_args; ++i) {
+    aux_arg_names.push_back(absl::StrFormat("_aux_fn_arg_%d", i));
+  }
+  for (int64_t i = 0; i < num_args; ++i) {
+    variable_names.push_back(aux_arg_names[i]);
+    variable_values.push_back(std::move(args_values[i]));
+  }
+
+  ASSIGN_OR_RETURN(
+      auto capturing_lambda_expr,
+      MakeCapturingLambdaExpr(return_type_as, aux_arg_names, kwargs_names));
   auto capturing_lambda_slice = DataSlice::CreateFromScalar(
       arolla::expr::ExprQuote(std::move(capturing_lambda_expr)));
 
@@ -151,19 +191,23 @@ class BindOperator : public arolla::QExprOperator {
     return MakeBoundOperator(
         "kd.functor.bind",
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         return_type_as_slot = input_slots[1], vars_slot = input_slots[2],
+         args_slot = input_slots[1], return_type_as_slot = input_slots[2],
+         kwargs_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
           const auto& fn = frame.Get(fn_slot);
-          std::vector<absl::string_view> var_names =
-              ops::GetFieldNames(vars_slot);
-          std::vector<DataSlice> var_values =
-              ops::GetValueDataSlices(vars_slot, frame);
+          std::vector<absl::string_view> kwargs_names =
+              ops::GetFieldNames(kwargs_slot);
+          std::vector<DataSlice> kwargs_values =
+              ops::GetValueDataSlices(kwargs_slot, frame);
+          std::vector<DataSlice> args_values =
+              ops::GetValueDataSlices(args_slot, frame);
           ASSIGN_OR_RETURN(
               auto result,
               CreateBind(fn, TypedRef::FromSlot(return_type_as_slot, frame),
-                         std::move(var_names), std::move(var_values)));
+                         std::move(args_values), std::move(kwargs_names),
+                         std::move(kwargs_values)));
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -176,17 +220,18 @@ class BindOperator : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> BindOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 4) {
-    return absl::InvalidArgumentError("requires exactly 4 arguments");
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
         "requires first argument to be DataSlice");
   }
-  // input_types[1] is the return type, which is not used to verify the
+  RETURN_IF_ERROR(ops::VerifyTuple(input_types[1]));
+  // input_types[2] is the return type, which is not used to verify the
   // signature.
-  RETURN_IF_ERROR(ops::VerifyNamedTuple(input_types[2]));
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[3]));
+  RETURN_IF_ERROR(ops::VerifyNamedTuple(input_types[3]));
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<BindOperator>(input_types), input_types, output_type);
 }

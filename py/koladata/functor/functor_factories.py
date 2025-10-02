@@ -294,39 +294,42 @@ def register_py_fn(
 def bind(
     fn_def: data_slice.DataSlice,
     /,
-    *,
+    *args: Any,
     return_type_as: Any = data_slice.DataSlice,
     **kwargs: Any,
 ) -> data_slice.DataSlice:
-  """Returns a Koda functor that partially binds a function to `kwargs`.
+  """Returns a Koda functor that partially binds a function.
 
   This function is intended to work the same as functools.partial in Python.
-  More specifically, for every "k=something" argument that you pass to this
-  function, whenever the resulting functor is called, if the user did not
-  provide "k=something_else" at call time, we will add "k=something".
+  The bound positional arguments are prepended to the arguments provided at call
+  time. For keyword arguments, for every "k=something" argument that you pass
+  to this function, whenever the resulting functor is called, if the user did
+  not provide "k=something_else" at call time, we will add "k=something".
 
-  Note that you can only provide defaults for the arguments passed as keyword
-  arguments this way. Positional arguments must still be provided at call time.
   Moreover, if the user provides a value for a positional-or-keyword argument
-  positionally, and it was previously bound using this method, an exception
+  positionally, and it was previously bound using bind(..., k=v), an exception
   will occur.
 
-  You can pass expressions with their own inputs as values in `kwargs`. Those
-  inputs will become inputs of the resulting functor, will be used to compute
-  those expressions, _and_ they will also be passed to the underying functor.
-  Use kd.functor.call_fn for a more clear separation of those inputs.
+  You can pass expressions with their own inputs as values in `args` and
+  `kwargs`. Those inputs will become inputs of the resulting functor, will be
+  used to compute those expressions, _and_ they will also be passed to the
+  underying functor.
 
   Example:
     f = kd.bind(kd.fn(I.x + I.y), x=0)
     kd.call(f, y=1)  # 1
+    g = kd.bind(kd.fn(S + 7), 5)
+    kd.call(g) # 12
 
   Args:
     fn_def: A Koda functor.
+    *args: Positional arguments to bind. The values may be Koda expressions or
+      DataItems.
     return_type_as: The return type of the functor is expected to be the same as
       the type of this value. This needs to be specified if the functor does not
       return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
       passed here.
-    **kwargs: Partial parameter binding. The values in this map may be Koda
+    **kwargs: Keyword arguments to bind. The values in this map may be Koda
       expressions or DataItems. When they are expressions, they must evaluate to
       a DataSlice/DataItem or a primitive that will be automatically wrapped
       into a DataItem. This function creates auxiliary variables with names
@@ -339,32 +342,53 @@ def bind(
   if not is_fn(fn_def):
     raise ValueError(f'bind() expects a functor, got {fn_def}')
   variables = {'_aux_fn': fn_def}
-  if any(
+  arg_names = [f'_aux_fn_arg_{i}' for i in range(len(args))]
+  has_bound_expr = any(
       isinstance(v, arolla.Expr) or introspection.is_packed_expr(v)
-      for v in kwargs.values()
-  ):
+      for v in args + tuple(kwargs.values())
+  )
+  if has_bound_expr:
     # We create a sub-functor to take care of proper input binding while
     # being able to forward all arguments to the original functor.
-    variables['_aux_fn_compute_variables'] = expr_fn(
-        arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}),
-        **kwargs,
+    variables_to_compute = {}
+    variables_to_compute.update(kwargs)
+    variables_to_compute.update(zip(arg_names, args))
+    var_tuple = arolla.M.core.make_tuple(
+        *[V[name] for name in arg_names],
     )
-    # Note: we bypass the binding policy of functor.call since we already
-    # have the args/kwargs as tuple and namedtuple.
+    var_namedtuple = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})
+    variables['_aux_fn_compute_variables'] = expr_fn(
+        arolla.M.core.make_tuple(var_tuple, var_namedtuple),
+        **variables_to_compute,
+    )
+    arg_tuple_type = arolla.tuple(
+        *[py_boxing.as_qvalue(data_slice.DataSlice)] * len(args)
+    )
+    kwarg_namedtuple_type = arolla.namedtuple(
+        **{k: py_boxing.as_qvalue(data_slice.DataSlice) for k in kwargs}
+    )
     variables['_aux_fn_variables'] = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
         'kd.functor.call',
         V['_aux_fn_compute_variables'],
         args=I.args,
-        return_type_as=arolla.namedtuple(
-            **{k: py_boxing.as_qvalue(data_slice.DataSlice) for k in kwargs}
-        ),
+        return_type_as=arolla.tuple(arg_tuple_type, kwarg_namedtuple_type),
         kwargs=I.kwargs,
         **optools.unified_non_deterministic_kwarg(),
     )
+    computed_var_tuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 0)
+    for i in range(len(args)):
+      variables[arg_names[i]] = arolla.M.core.get_nth(computed_var_tuple, i)
+    computed_var_namedtuple = arolla.M.core.get_nth(V['_aux_fn_variables'], 1)
     for k in kwargs:
-      variables[k] = arolla.M.namedtuple.get_field(V['_aux_fn_variables'], k)
+      variables[k] = arolla.M.namedtuple.get_field(computed_var_namedtuple, k)
   else:
     variables.update(kwargs)
+    variables.update(zip(arg_names, args))
+
+  bound_args = arolla.M.core.make_tuple(*[V[name] for name in arg_names])
+  final_args = arolla.M.core.concat_tuples(bound_args, I.args)
+  bound_kwargs = arolla.M.namedtuple.make(**{k: V[k] for k in kwargs})
+  final_kwargs = arolla.M.namedtuple.union(bound_kwargs, I.kwargs)
 
   return expr_fn(
       # Note: we bypass the binding policy of functor.call since we already
@@ -372,11 +396,9 @@ def bind(
       arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
           'kd.functor.call',
           V['_aux_fn'],
-          args=I.args,
+          args=final_args,
           return_type_as=py_boxing.as_qvalue(return_type_as),
-          kwargs=arolla.M.namedtuple.union(
-              arolla.M.namedtuple.make(**{k: V[k] for k in kwargs}), I.kwargs
-          ),
+          kwargs=final_kwargs,
           **optools.unified_non_deterministic_kwarg(),
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,

@@ -463,10 +463,12 @@ nodes in the graph.
 #### Binding {#binding}
 
 **Binding** is a process of creating a new Koda [Functor](#functor) by binding
-parameters of another Koda Functor using `kdf.bind(kdf_fn, **inputs)`. It is
-similar to Python `functools.partial()`. The bound values are used as defaults
-only, meaning that one can still override them by passing a new value
-explicitly.
+parameters of another Koda Functor using `functor.bind(*args, **kwargs)`. It is
+similar to Python `functools.partial()`. Both positional and keyword arguments
+can be bound. The bound keyword arguments are used as defaults only, meaning
+that one can still override them by passing a new value explicitly, but the
+bound positional arguments are always prepended to the ones passed when calling
+the bound functor.
 
 #### Expr {#expr}
 

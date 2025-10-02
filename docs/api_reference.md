@@ -2175,40 +2175,43 @@ Returns:
   but with an additional `**__extra_inputs__` variadic keyword argument if
   there is no existing variadic keyword argument.</code></pre>
 
-### `kd.functor.bind(fn_def: DataSlice, /, *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.functor.bind}
+### `kd.functor.bind(fn_def: DataSlice, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.functor.bind}
 Aliases:
 
 - [kd.bind](#kd.bind)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `kwargs`.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function.
 
 This function is intended to work the same as functools.partial in Python.
-More specifically, for every &#34;k=something&#34; argument that you pass to this
-function, whenever the resulting functor is called, if the user did not
-provide &#34;k=something_else&#34; at call time, we will add &#34;k=something&#34;.
+The bound positional arguments are prepended to the arguments provided at call
+time. For keyword arguments, for every &#34;k=something&#34; argument that you pass
+to this function, whenever the resulting functor is called, if the user did
+not provide &#34;k=something_else&#34; at call time, we will add &#34;k=something&#34;.
 
-Note that you can only provide defaults for the arguments passed as keyword
-arguments this way. Positional arguments must still be provided at call time.
 Moreover, if the user provides a value for a positional-or-keyword argument
-positionally, and it was previously bound using this method, an exception
+positionally, and it was previously bound using bind(..., k=v), an exception
 will occur.
 
-You can pass expressions with their own inputs as values in `kwargs`. Those
-inputs will become inputs of the resulting functor, will be used to compute
-those expressions, _and_ they will also be passed to the underying functor.
-Use kd.functor.call_fn for a more clear separation of those inputs.
+You can pass expressions with their own inputs as values in `args` and
+`kwargs`. Those inputs will become inputs of the resulting functor, will be
+used to compute those expressions, _and_ they will also be passed to the
+underying functor.
 
 Example:
   f = kd.bind(kd.fn(I.x + I.y), x=0)
   kd.call(f, y=1)  # 1
+  g = kd.bind(kd.fn(S + 7), 5)
+  kd.call(g) # 12
 
 Args:
   fn_def: A Koda functor.
+  *args: Positional arguments to bind. The values may be Koda expressions or
+    DataItems.
   return_type_as: The return type of the functor is expected to be the same as
     the type of this value. This needs to be specified if the functor does not
     return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
     passed here.
-  **kwargs: Partial parameter binding. The values in this map may be Koda
+  **kwargs: Keyword arguments to bind. The values in this map may be Koda
     expressions or DataItems. When they are expressions, they must evaluate to
     a DataSlice/DataItem or a primitive that will be automatically wrapped
     into a DataItem. This function creates auxiliary variables with names
@@ -9132,7 +9135,7 @@ Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
-### `kd.bind(fn_def: DataSlice, /, *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.bind}
+### `kd.bind(fn_def: DataSlice, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.bind}
 
 Alias for [kd.functor.bind](#kd.functor.bind) operator.
 
@@ -13410,37 +13413,40 @@ Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
 Alias for [DataSlice.append](#DataSlice.append) operator.
 
-### `DataItem.bind(self, *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#DataItem.bind}
+### `DataItem.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#DataItem.bind}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `kwargs`.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `args` and `kwargs`.
 
 This function is intended to work the same as functools.partial in Python.
-More specifically, for every &#34;k=something&#34; argument that you pass to this
-function, whenever the resulting functor is called, if the user did not
-provide &#34;k=something_else&#34; at call time, we will add &#34;k=something&#34;.
+The bound positional arguments are prepended to the arguments provided at call
+time. For keyword arguments, for every &#34;k=something&#34; argument that you pass
+to this function, whenever the resulting functor is called, if the user did
+not provide &#34;k=something_else&#34; at call time, we will add &#34;k=something&#34;.
 
-Note that you can only provide defaults for the arguments passed as keyword
-arguments this way. Positional arguments must still be provided at call time.
 Moreover, if the user provides a value for a positional-or-keyword argument
-positionally, and it was previously bound using this method, an exception
+positionally, and it was previously bound using bind(..., k=v), an exception
 will occur.
 
-You can pass expressions with their own inputs as values in `kwargs`. Those
-inputs will become inputs of the resulting functor, will be used to compute
-those expressions, _and_ they will also be passed to the underying functor.
-Use kdf.call_fn for a more clear separation of those inputs.
+You can pass expressions with their own inputs as values in `args` and
+`kwargs`. Those inputs will become inputs of the resulting functor, will be
+used to compute those expressions, _and_ they will also be passed to the
+underying functor.
 
 Example:
   f = kd.fn(I.x + I.y).bind(x=0)
   kd.call(f, y=1)  # 1
+  g = kd.fn(lambda x, y: x + y).bind(5)
+  kd.call(g, y=6) # 11
 
 Args:
   self: A Koda functor.
+  *args: Positional arguments to bind. The values may be Koda expressions or
+    DataItems.
   return_type_as: The return type of the functor is expected to be the same as
     the type of this value. This needs to be specified if the functor does not
     return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
     kd.types.JaggedShape can also be passed here.
-  **kwargs: Partial parameter binding. The values in this map may be Koda
+  **kwargs: Keyword arguments to bind. The values in this map may be Koda
     expressions or DataItems. When they are expressions, they must evaluate to
     a DataSlice/DataItem or a primitive that will be automatically wrapped
     into a DataItem. This function creates auxiliary variables with names

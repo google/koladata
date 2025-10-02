@@ -3499,23 +3499,28 @@ g(f=f, x=1)
 fn1 = kd.fn(I.a + I.b)
 
 # Bind inputs with default values
-fn2 = kd.functor.bind(fn1, a=1)
+fn2 = fn1.bind(a=1)
 
 fn2(a=3, b=2)  # 5
 fn2(b=2)  # 3
 
-# Exprs and format strings can also be bound to
-# arguments.
-fn3 = kd.functor.bind(fn1, a=I.b + 1)
+# We can also bind positionally.
+fn_add = kd.fn(lambda x, y: x + y)
+fn_add_5 = fn_add.bind(5)  # 5 is bound to x
+fn_add_5(6)  # 11
+fn_add_5(y=6) # 11
+
+# Exprs can also be bound to arguments.
+fn3 = fn1.bind(a=I.b + 1)
 fn3(b=2)  # 5
 
 # Binding DataItem params also works.
-fn4 = kd.functor.bind(fn1, a=kd.item(1))
+fn4 = fn1.bind(a=kd.item(1))
 
 # Raise because binding a DataSlice is not supported
-fn5 = kd.functor.bind(fn1, a=kd.slice([1, 2]))
+fn5 = fn1.bind(a=kd.slice([1, 2]))
 # We have to use kd.list instead
-fn5 = kd.functor.bind(fn1, a=kd.list([1, 2]))
+fn5 = fn1.bind(a=kd.list([1, 2]))
 ```
 
 </section>

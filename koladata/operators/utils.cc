@@ -42,6 +42,20 @@
 
 namespace koladata::ops {
 
+absl::Status VerifyTuple(arolla::QTypePtr qtype) {
+  if (!IsTupleQType(qtype)) {
+    return absl::InvalidArgumentError(
+        "requires the variadic args argument to be Tuple");
+  }
+  for (const auto& value_slot : qtype->type_fields()) {
+    if (value_slot.GetType() != arolla::GetQType<DataSlice>()) {
+      return absl::InvalidArgumentError(
+          "requires all values of tuple argument to be DataSlices");
+    }
+  }
+  return absl::OkStatus();
+}
+
 absl::Status VerifyNamedTuple(arolla::QTypePtr qtype) {
   if (!IsNamedTupleQType(qtype)) {
     return absl::InvalidArgumentError(
@@ -78,12 +92,12 @@ std::vector<absl::string_view> GetFieldNames(
       field_names.begin(), field_names.end());
 }
 
-std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot named_tuple_slot,
+std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot composite_slot,
                                           arolla::FramePtr frame) {
   std::vector<DataSlice> values;
-  values.reserve(named_tuple_slot.SubSlotCount());
-  for (size_t index = 0; index < named_tuple_slot.SubSlotCount(); ++index) {
-    auto field_slot = named_tuple_slot.SubSlot(index);
+  values.reserve(composite_slot.SubSlotCount());
+  for (size_t index = 0; index < composite_slot.SubSlotCount(); ++index) {
+    auto field_slot = composite_slot.SubSlot(index);
     auto data_slice_slot = field_slot.UnsafeToSlot<DataSlice>();
     values.push_back(frame.Get(data_slice_slot));
   }

@@ -131,6 +131,9 @@ absl::Status CheckType(const DataSlice& slice) {
   return slice.VisitImpl([](const auto& imp) { return CheckType<T>(imp); });
 }
 
+// Verifies that a qtype is tuple and has only DataSlice values.
+absl::Status VerifyTuple(arolla::QTypePtr qtype);
+
 // Verifies that a qtype is named tuple and has only DataSlice values.
 absl::Status VerifyNamedTuple(arolla::QTypePtr qtype);
 
@@ -145,11 +148,10 @@ bool IsDataSliceOrUnspecified(arolla::QTypePtr type);
 std::vector<absl::string_view> GetFieldNames(
     arolla::TypedSlot named_tuple_slot);
 
-// Returns the values of an already validated named tuple slot which has all
-// DataSlice values.
-std::vector<DataSlice> GetValueDataSlices(
-    arolla::TypedSlot named_tuple_slot,
-    arolla::FramePtr frame);
+// Returns the values of an already validated tuple or named tuple slot which
+// has all DataSlice values.
+std::vector<DataSlice> GetValueDataSlices(arolla::TypedSlot composite_slot,
+                                          arolla::FramePtr frame);
 
 // Returns the value of a bool argument that is expected to be a DataItem.
 absl::StatusOr<bool> GetBoolArgument(const DataSlice& slice,

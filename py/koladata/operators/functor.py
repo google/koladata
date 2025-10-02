@@ -1099,20 +1099,20 @@ def for_(
     'kd.functor.bind',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn_def),
+        qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     deterministic=False,
 )
-def bind(fn_def, /, *, return_type_as=data_slice.DataSlice, **kwargs):
-  """Returns a Koda functor that partially binds a function to `kwargs`.
+def bind(fn_def, /, *args, return_type_as=data_slice.DataSlice, **kwargs):
+  """Returns a Koda functor that partially binds a function to `args` and `kwargs`.
 
   This function is intended to work the same as functools.partial in Python.
-  More specifically, for every "k=something" argument that you pass to this
-  function, whenever the resulting functor is called, if the user did not
-  provide "k=something_else" at call time, we will add "k=something".
+  The bound positional arguments are prepended to the arguments provided at call
+  time. For keyword arguments, for every "k=something" argument that you pass
+  to this function, whenever the resulting functor is called, if the user did
+  not provide "k=something_else" at call time, we will add "k=something".
 
-  Note that you can only provide defaults for the arguments passed as keyword
-  arguments this way. Positional arguments must still be provided at call time.
   Moreover, if the user provides a value for a positional-or-keyword argument
   positionally, and it was previously bound using this method, an exception
   will occur.
@@ -1120,9 +1120,14 @@ def bind(fn_def, /, *, return_type_as=data_slice.DataSlice, **kwargs):
   Example:
     f = kd.bind(kd.fn(I.x + I.y), x=0)
     kd.call(f, y=1)  # 1
+    fn_pos = kd.fn(lambda x, y: x + y)
+    g = kd.bind(fn_pos, 5)
+    kd.call(g, 7) # 12
 
   Args:
     fn_def: A Koda functor.
+    *args: Positional arguments to bind. The values in this list may be
+      DataItems.
     return_type_as: The return type of the functor is expected to be the same as
       the type of this value. This needs to be specified if the functor does not
       return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
@@ -1135,7 +1140,7 @@ def bind(fn_def, /, *, return_type_as=data_slice.DataSlice, **kwargs):
   Returns:
     A new Koda functor with some parameters bound.
   """
-  del fn_def, return_type_as, kwargs
+  del fn_def, args, return_type_as, kwargs
   raise NotImplementedError('implemented in the backend')
 
 

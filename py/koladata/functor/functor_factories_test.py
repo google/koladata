@@ -758,6 +758,53 @@ class FunctorFactoriesTest(absltest.TestCase):
     ):
       functor_factories.bind(ds(1), y=2)
 
+  def test_bind_args_kwargs(self):
+    sig = signature_utils.signature([
+        signature_utils.parameter(
+            'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+        ),
+        signature_utils.parameter(
+            'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+        ),
+    ])
+    fn = functor_factories.expr_fn(
+        I.x + I.y,
+        signature=sig,
+    )
+    f = functor_factories.bind(fn, 1, 2)
+    testing.assert_equal(kd.call(f), ds(3))
+    f = functor_factories.bind(fn, 1)
+    testing.assert_equal(kd.call(f, 2), ds(3))
+    f = functor_factories.bind(fn)
+    testing.assert_equal(kd.call(f, 1, 2), ds(3))
+
+    f = functor_factories.bind(fn, 1, y=2)
+    testing.assert_equal(kd.call(f), ds(3))
+
+    f = functor_factories.bind(fn)
+    testing.assert_equal(kd.call(f, x=1, y=2), ds(3))
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex('parameter .y. specified twice'),
+    ):
+      kd.call(functor_factories.bind(fn, 1), 2, y=2)
+
+    f = functor_factories.bind(
+        functor_factories.allow_arbitrary_unused_inputs(fn), 1, I.z
+    )
+    testing.assert_equal(kd.call(f, z=2), ds(3))
+
+    f = functor_factories.bind(
+        functor_factories.allow_arbitrary_unused_inputs(fn), V.z * 2, z=3
+    )
+    testing.assert_equal(kd.call(f, 1), ds(7))
+
+    f = functor_factories.bind(
+        functor_factories.py_fn(lambda x, y, **kwargs: x + y), 1, y=I.z
+    )
+    testing.assert_equal(kd.call(f, z=2), ds(3))
+
   def test_fn_expr(self):
     testing.assert_equal(
         kd.call(functor_factories.fn(I.x + I.y), x=ds([1, 2]), y=ds([3, 4])),

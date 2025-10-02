@@ -3019,6 +3019,12 @@ fn.y  # the value itself stored in the functor
 fn1 = fn.bind(y=10)  # can bind to a new value
 fn1(x=3)  # 13
 
+# We can also bind positionally.
+fn_add = kd.fn(lambda x, y: x + y)
+fn_add_5 = fn_add.bind(5)  # 5 is bound to x
+fn_add_5(6)  # 11
+fn_add_5(y=6) # 11
+
 # kd.fn can also take functors as input, which is convenient
 # to convert python functions or keep functors.
 py_fn = lambda x, y: x + y
