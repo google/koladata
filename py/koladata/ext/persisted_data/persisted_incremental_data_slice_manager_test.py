@@ -2950,8 +2950,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # There is a new valid DataSlicePath for the new tokens attribute.
     kd.testing.assert_equivalent(
         root.query[:].tokens,
-        kd.slice([None, None], schema=token_schema),
-        schemas_equality=False,
+        kd.slice([None, None], schema=kd.list_schema(token_schema)),
     )
     # The stored query schema is also updated.
     kd.testing.assert_equivalent(
@@ -3373,6 +3372,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     persisted_data_dir = self.create_tempdir().full_path
     manager = PersistedIncrementalDataSliceManager(persisted_data_dir)
+    root = manager.get_data_slice()
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
@@ -3380,16 +3380,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     kd.testing.assert_equivalent(
         get_loaded_root_dataslice(manager),
-        kd.new(query=query_data),
-        schemas_equality=False,
+        root.with_attrs(query=query_data),
     )
 
     manager.clear_cache()
 
     # The data is not loaded anymore.
-    kd.testing.assert_equivalent(
-        get_loaded_root_dataslice(manager), kd.new(), schemas_equality=False
-    )
+    kd.testing.assert_equivalent(get_loaded_root_dataslice(manager), root)
     # The schema is still loaded.
     kd.testing.assert_equivalent(
         manager.get_schema(),
@@ -3401,13 +3398,11 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         manager.get_data_slice(
             populate_including_descendants={parse_dsp('.query')}
         ),
-        kd.new(query=query_data),
-        schemas_equality=False,
+        root.with_attrs(query=query_data),
     )
     kd.testing.assert_equivalent(
         get_loaded_root_dataslice(manager),
-        kd.new(query=query_data),
-        schemas_equality=False,
+        root.with_attrs(query=query_data),
     )
 
     manager.clear_cache()
@@ -3923,6 +3918,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   def test_branch_with_revision_history_index(self):
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    trunk_manager_root = trunk_manager.get_data_slice()
 
     query_schema = kd.named_schema('query')
     query_data = kd.list([
@@ -3940,8 +3936,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         trunk_manager.get_data_slice(
             populate_including_descendants={parse_dsp('')}
         ),
-        kd.new(query=query_data),
-        schemas_equality=False,
+        trunk_manager_root.with_attrs(query=query_data),
     )
     trunk_manager_schema_with_query_data = trunk_manager.get_schema()
 
@@ -3981,8 +3976,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         branch_manager.get_data_slice(
             populate_including_descendants={parse_dsp('')}
         ),
-        kd.new(query=query_data),
-        schemas_equality=False,
+        trunk_manager_root.with_attrs(query=query_data),
     )
     # The branch does not have docs:
     self.assertFalse(branch_manager.exists(parse_dsp('.query[:].doc[:]')))
