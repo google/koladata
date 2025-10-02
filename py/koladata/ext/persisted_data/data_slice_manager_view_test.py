@@ -573,6 +573,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.__all__,
           # Note no get_parent() or get_grandparent() or get_list_items() here:
           [
+              'find_descendants',
               'get_ancestor',
               'get_attr',
               'get_children',
@@ -581,6 +582,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_path_from_root',
               'get_root',
               'get_schema',
+              'grep_descendants',
               'is_view_valid',
               'query',
               'some_list',
@@ -592,6 +594,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.some_list.__all__,
           # Note no get_grandparent() here:
           [
+              'find_descendants',
               'get_ancestor',
               'get_children',
               'get_data_slice',
@@ -601,6 +604,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_path_from_root',
               'get_root',
               'get_schema',
+              'grep_descendants',
               'is_view_valid',
           ],
       )
@@ -608,6 +612,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.__all__,
           [
+              'find_descendants',
               'get_ancestor',
               'get_children',
               'get_data_slice',
@@ -618,6 +623,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_path_from_root',
               'get_root',
               'get_schema',
+              'grep_descendants',
               'is_view_valid',
           ],
       )
@@ -846,6 +852,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     self.assertEqual(
         root.__all__,
         [
+            'find_descendants',
             'get_ancestor',
             'get_attr',
             'get_children',
@@ -854,6 +861,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
             'get_path_from_root',
             'get_root',
             'get_schema',
+            'grep_descendants',
             'is_view_valid',
             'update',
         ],
@@ -894,6 +902,155 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     ):
       _ = root.query[0:2:1]
+
+  def test_find_and_grep_descendants(self):
+    # Set up a plain Koda DataSlice with query and doc data.
+    query_schema = kd.named_schema('query')
+    new_query = query_schema.new
+    doc_schema = kd.named_schema('doc')
+    new_doc = doc_schema.new
+    query_ds = kd.slice([
+        new_query(
+            id=1,
+            text='How high is the Eiffel tower',
+            doc=kd.list([
+                new_doc(
+                    id=10, title='Attractions of Paris', content='foo' * 10000
+                )
+            ]),
+        ),
+        new_query(
+            id=2,
+            text='How high is the empire state building',
+            doc=kd.list([
+                new_doc(
+                    id=11,
+                    title='Attractions of New York',
+                    content='bar' * 10000,
+                ),
+                new_doc(
+                    id=12,
+                    title="The world's tallest buildings",
+                    content='baz' * 10000,
+                ),
+            ]),
+        ),
+    ])
+
+    # Set up a DataSliceManager with the data from above.
+    manager = pidsm.PersistedIncrementalDataSliceManager(
+        self.create_tempdir().full_path
+    )
+    root = DataSliceManagerView(manager)
+    root.query = query_ds.implode(ndim=-1)
+
+    with self.subTest('grep'):
+      self.assertEqual(
+          list(root.grep_descendants(r'id')),
+          [root.query[:].id, root.query[:].doc[:].id],
+      )
+      self.assertEqual(
+          list(root.grep_descendants(r'text')),
+          [root.query[:].text],
+      )
+      self.assertEqual(
+          list(root.grep_descendants(r't')),
+          [
+              root.query[:].text,
+              root.query[:].doc[:].content,
+              root.query[:].doc[:].title,
+          ],
+      )
+      self.assertEqual(
+          list(root.grep_descendants(r't', max_delta_depth=3)),
+          [root.query[:].text],
+      )
+      self.assertEqual(
+          list(root.query[:].grep_descendants(r't', max_delta_depth=3)),
+          [
+              root.query[:].text,
+              root.query[:].doc[:].content,
+              root.query[:].doc[:].title,
+          ],
+      )
+      self.assertEqual(
+          list(root.query[:].doc[:].grep_descendants(r't')),
+          [root.query[:].doc[:].content, root.query[:].doc[:].title],
+      )
+      self.assertEqual(
+          list(root.grep_descendants(r'\.t')),
+          [root.query[:].text, root.query[:].doc[:].title],
+      )
+      self.assertEqual(
+          list(root.grep_descendants('doc.*title')),
+          [root.query[:].doc[:].title],
+      )
+      self.assertEqual(
+          list(root.grep_descendants('query.*t')),
+          [
+              root.query[:].text,
+              root.query[:].doc[:].content,
+              root.query[:].doc[:].title,
+          ],
+      )
+      no_explode = r'[^\[]*'  # match anything except [ zero or more times
+      self.assertEqual(
+          # After exploding the query list, find all views that contain a 't'
+          # character somewhere in the subsequent path part, but do not yield
+          # views that explode more lists.
+          list(
+              root.grep_descendants(
+                  re.escape('query[:].') + f'{no_explode}t{no_explode}$'
+              )
+          ),
+          [root.query[:].text],
+      )
+      self.assertEqual(
+          list(root.grep_descendants(re.escape('doc[:].title'))),
+          [root.query[:].doc[:].title],
+      )
+      self.assertEqual(
+          # Find all views that end with [:]
+          list(root.grep_descendants(re.escape('[:]') + '$')),
+          [root.query[:], root.query[:].doc[:]],
+      )
+
+    with self.subTest('find'):
+      self.assertEqual(
+          list(root.find_descendants(lambda v: v.get_schema() == kd.INT32)),
+          [root.query[:].id, root.query[:].doc[:].id],
+      )
+      self.assertEqual(
+          list(root.find_descendants(lambda v: v.get_schema() == kd.STRING)),
+          [
+              root.query[:].text,
+              root.query[:].doc[:].content,
+              root.query[:].doc[:].title,
+          ],
+      )
+      self.assertEqual(
+          list(
+              root.query[:].doc.find_descendants(
+                  lambda v: v.get_schema() == kd.STRING
+              )
+          ),
+          [
+              root.query[:].doc[:].content,
+              root.query[:].doc[:].title,
+          ],
+      )
+      self.assertEqual(
+          list(
+              root.find_descendants(
+                  lambda v: v.get_schema() == kd.STRING, max_delta_depth=3
+              )
+          ),
+          [root.query[:].text],
+      )
+      self.assertEqual(
+          list(root.find_descendants(lambda v: v.get_schema() == doc_schema)),
+          [root.query[:].doc[:]],
+      )
 
 
 if __name__ == '__main__':

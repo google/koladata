@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Callable, Generator, Iterator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
+
+import re2
 
 
 class DataSliceManagerView:
@@ -286,18 +288,7 @@ class DataSliceManagerView:
       views of its attributes in sorted order, i.e. the order agrees with that
       of kd.dir(self.get_schema()).
     """
-    self._check_path_from_root_is_valid()
-    schema_helper = schema_helper_lib.SchemaHelper(self.get_schema())
-    return [
-        DataSliceManagerView(
-            self._data_slice_manager,
-            self._path_from_root.concat(child),
-        )
-        for child in schema_helper.generate_available_data_slice_paths(
-            max_depth=1
-        )
-        if child.actions
-    ]
+    return list(self.find_descendants(lambda v: True, max_delta_depth=1))
 
   def __iter__(self) -> Iterator[DataSliceManagerView]:
     """Iterates over the children of the view path.
@@ -309,6 +300,77 @@ class DataSliceManagerView:
       self.get_children().
     """
     yield from self.get_children()
+
+  def find_descendants(
+      self,
+      view_predicate: Callable[[DataSliceManagerView], bool],
+      *,
+      max_delta_depth: int = -1,
+  ) -> Generator[DataSliceManagerView, None, None]:
+    """Generates all descendants of this view that satisfy the predicate.
+
+    Views with recursive schemas may have an infinite number of descendants. To
+    limit the search, one can specify max_delta_depth. Alternatively, the caller
+    can decide when to abandon the generation (e.g. after a certain number of
+    views has been generated).
+
+    Args:
+      view_predicate: A predicate that takes a DataSliceManagerView and returns
+        True iff the view should be included in the result.
+      max_delta_depth: The maximum depth of the descendants to consider. It is a
+        delta relative to the depth of the current view. For example, if the
+        current view is at depth 3 from the root and max_delta_depth is 2, then
+        only descendants with depth 4 or 5 from the root will be considered. Use
+        -1 to consider all descendants.
+
+    Yields:
+      The descendant views that satisfy the predicate.
+    """
+    self._check_path_from_root_is_valid()
+    schema_helper = schema_helper_lib.SchemaHelper(self.get_schema())
+    for descendant_path in schema_helper.generate_available_data_slice_paths(
+        max_depth=max_delta_depth
+    ):
+      if not descendant_path.actions:
+        continue
+      view = DataSliceManagerView(
+          self._data_slice_manager,
+          self._path_from_root.concat(descendant_path),
+      )
+      if view_predicate(view):
+        yield view
+
+  def grep_descendants(
+      self,
+      path_from_root_regex: str,
+      *,
+      max_delta_depth: int = -1,
+  ) -> Generator[DataSliceManagerView, None, None]:
+    """Generates all descendants of this view whose paths match the given regex.
+
+    Views with recursive schemas may have an infinite number of descendants. To
+    limit the search, one can specify max_delta_depth. Alternatively, the caller
+    can decide when to abandon the generation (e.g. after a certain number of
+    views has been generated).
+
+    Args:
+      path_from_root_regex: A regex in RE2 syntax that must match
+        descendant_view.path_from_root().to_string() for the descendant_view to
+        be included in the result.
+      max_delta_depth: The maximum depth of the descendants to consider. It is a
+        delta relative to the depth of the current view. For example, if the
+        current view is at depth 3 from the root and max_delta_depth is 2, then
+        only descendants with depth 4 or 5 from the root will be considered. Use
+        -1 to consider all descendants.
+
+    Yields:
+      The descendant views whose paths match the given regex.
+    """
+    regex = re2.compile(path_from_root_regex)
+    yield from self.find_descendants(
+        lambda view: regex.search(view.get_path_from_root().to_string()),
+        max_delta_depth=max_delta_depth,
+    )
 
   # Specific methods for navigation.
 
@@ -473,7 +535,9 @@ class DataSliceManagerView:
 
     schema = self.get_schema()
     if schema.is_struct_schema():
-      attributes.append('get_children')
+      attributes.extend(
+          ['get_children', 'find_descendants', 'grep_descendants']
+      )
     if schema.is_entity_schema():
       attributes.append('update')
       attr_names = kd.dir(schema)

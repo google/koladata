@@ -332,6 +332,7 @@ py_library(
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",
+        "@com_googlesource_code_re2//python:re2",
     ],
 )
 
