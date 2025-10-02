@@ -462,6 +462,9 @@ class DataSlicePath:
   def __str__(self) -> str:
     return self.to_string()
 
+  def __repr__(self) -> str:
+    return f"DataSlicePath('{self.to_string()}')"
+
   def evaluate(self, data_slice: kd.types.DataSlice) -> kd.types.DataSlice:
     """Evaluates this path on `data_slice`.
 

@@ -11289,7 +11289,7 @@ way to track the other distinctions in the type system.</code></pre>
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Interface for data slice managers.</code></pre>
 
-### `kd_ext.persisted_data.DataSliceManagerView(manager: data_slice_manager_interface.DataSliceManagerInterface, path_from_root: data_slice_path_lib.DataSlicePath = DataSlicePath(actions=()))` {#kd_ext.persisted_data.DataSliceManagerView}
+### `kd_ext.persisted_data.DataSliceManagerView(manager: data_slice_manager_interface.DataSliceManagerInterface, path_from_root: data_slice_path_lib.DataSlicePath = DataSlicePath(''))` {#kd_ext.persisted_data.DataSliceManagerView}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A view of a DataSliceManager from a particular DataSlicePath.
 

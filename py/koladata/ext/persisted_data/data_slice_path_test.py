@@ -633,6 +633,43 @@ class DataSlicePathTest(absltest.TestCase):
       )
       self.assertEqual(e.get_schema().get_itemid(), entity_schema.get_itemid())
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(DataSlicePath.from_actions([])),
+        "DataSlicePath('')",
+    )
+    self.assertEqual(
+        repr(DataSlicePath.from_actions([GetAttr('foo')])),
+        "DataSlicePath('.foo')",
+    )
+    self.assertEqual(
+        repr(
+            DataSlicePath.from_actions([
+                GetAttr('foo'),
+                ListExplode(),
+                GetAttr('bar'),
+                DictGetKeys(),
+                GetAttr('baz'),
+            ])
+        ),
+        "DataSlicePath('.foo[:].bar.get_keys().baz')",
+    )
+    for data_slice_path_string in [
+        '.foo',
+        '.foo.bar',
+        '.foo[:][:].bar.get_values().get_keys().zoo',
+        '.foo[:]',
+        '.foo[:][:]',
+        '.get_attr("")',
+        '.get_attr("Zm9vLmJhciQjJCAoKQ==")',
+        '[:].get_keys().get_attr("Zm9vLmJhciQjJCAoKQ==").get_values().zoo',
+    ]:
+      dsp = DataSlicePath.parse_from_string(data_slice_path_string)
+      self.assertEqual(
+          repr(dsp),
+          f"DataSlicePath('{data_slice_path_string}')",
+      )
+
 
 if __name__ == '__main__':
   absltest.main()
