@@ -77,6 +77,9 @@ py_library(
 py_library(
     name = "determinism",
     srcs = ["determinism.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
