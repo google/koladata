@@ -31,6 +31,7 @@ cc_library(
     srcs = ["executor.cc"],
     hdrs = ["executor.h"],
     deps = [
+        ":context_guard",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log:check",
@@ -45,7 +46,9 @@ cc_test(
     name = "executor_test",
     srcs = ["executor_test.cc"],
     deps = [
+        ":context_guard",
         ":executor",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/qtype",
@@ -58,7 +61,9 @@ cc_test(
     name = "executors_benchmarks",
     srcs = ["executors_benchmarks.cc"],
     deps = [
-        ":eager_executor",
+        ":context_guard",
+        ":executor",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest",
     ],
@@ -139,9 +144,11 @@ cc_library(
     srcs = ["eager_executor.cc"],
     hdrs = ["eager_executor.h"],
     deps = [
+        ":context_guard",
         ":executor",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
     ],
 )
 
@@ -1034,5 +1041,19 @@ cc_proto_library(
     name = "execution_config_cc_proto",
     deps = [
         ":execution_config_proto",
+    ],
+)
+
+cc_library(
+    name = "context_guard",
+    hdrs = ["context_guard.h"],
+)
+
+cc_test(
+    name = "context_guard_test",
+    srcs = ["context_guard_test.cc"],
+    deps = [
+        ":context_guard",
+        "@com_google_googletest//:gtest_main",
     ],
 )

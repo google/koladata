@@ -21,10 +21,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
+#include "koladata/functor/parallel/context_guard.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -32,8 +34,31 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 
+class TestScopeGuard {
+ public:
+  TestScopeGuard(std::function<void()> on_construct_fn,
+                 std::function<void()> on_destruct_fn)
+      : on_construct_fn_(std::move(on_construct_fn)),
+        on_destruct_fn_(std::move(on_destruct_fn)) {
+    on_construct_fn_();
+  }
+
+  ~TestScopeGuard() noexcept { on_destruct_fn_(); }
+
+ private:
+  std::function<void()> on_construct_fn_;
+  std::function<void()> on_destruct_fn_;
+};
+
 class TestExecutor : public Executor {
  public:
+  TestExecutor() noexcept = default;
+
+  explicit TestExecutor(
+      absl::AnyInvocable<void(ContextGuard&) const>
+          cross_task_scope_guard_creator) noexcept
+      : Executor(std::move(cross_task_scope_guard_creator)) {}
+
   void DoSchedule(TaskFn task_fn) noexcept final { std::move(task_fn)(); }
 
   std::string Repr() const noexcept final { return "test_executor"; }
@@ -99,6 +124,41 @@ TEST(ExecutorTest, CurrentExecutorScopeGuard) {
   }
   EXPECT_THAT(CurrentExecutor(), StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), nullptr);
+}
+
+TEST(ExecutorTest, CrossTaskContextGuard) {
+  testing::MockFunction<void()> mock_construct;
+  testing::MockFunction<void()> mock_destruct;
+  ExecutorPtr executor = std::make_shared<TestExecutor>(
+      [&mock_construct, &mock_destruct](ContextGuard& context_guard) {
+        context_guard.init<TestScopeGuard>(mock_construct.AsStdFunction(),
+                                           mock_destruct.AsStdFunction());
+      });
+  testing::MockFunction<void()> mock_task;
+  {
+    testing::InSequence seq;
+    // First task.
+    EXPECT_CALL(mock_construct, Call());
+    EXPECT_CALL(mock_task, Call());
+    EXPECT_CALL(mock_destruct, Call());
+
+    // Second task.
+    EXPECT_CALL(mock_construct, Call());
+    EXPECT_CALL(mock_task, Call());
+    EXPECT_CALL(mock_destruct, Call());
+  }
+  executor->Schedule(mock_task.AsStdFunction());
+  executor->Schedule(mock_task.AsStdFunction());
+}
+
+TEST(ExecutorTest, CrossTaskContextGuard_CurrentExecutorScopeGuard) {
+  ExecutorPtr executor =
+      std::make_shared<TestExecutor>([&](ContextGuard& context_guard) {
+        context_guard.init<TestScopeGuard>(
+            [&] { EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor)); },
+            [&] { EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor)); });
+      });
+  executor->Schedule([] {});
 }
 
 TEST(ExecutorTest, TaskCopying) {

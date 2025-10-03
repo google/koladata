@@ -26,6 +26,7 @@
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/functor/parallel/context_guard.h"
 
 namespace koladata::functor::parallel {
 
@@ -43,6 +44,11 @@ class Executor : public std::enable_shared_from_this<Executor> {
 
   // Default constructor.
   Executor() noexcept = default;
+
+  // Constructor with a custom scope guard creator.
+  explicit Executor(absl::AnyInvocable<void(ContextGuard&) const>
+                        context_guard_initializer) noexcept
+      : context_guard_initializer_(std::move(context_guard_initializer)) {}
 
   // Disable copy and move semantics.
   Executor(const Executor&) = delete;
@@ -79,6 +85,10 @@ class Executor : public std::enable_shared_from_this<Executor> {
 
  private:
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
+
+  // A creator for a scope guard that should be constructed for each scheduled
+  // task.
+  absl::AnyInvocable<void(ContextGuard&) const> context_guard_initializer_;
 };
 
 using ExecutorPtr = std::shared_ptr<Executor>;
@@ -160,7 +170,15 @@ auto Executor::Schedule(Task&& task) noexcept
     auto& data = CurrentExecutorScopeGuard::thread_local_data_;
     const auto previous_data = data;
     data = {.current_executor = executor.get(), .is_executor_task = true};
-    std::move(task)();
+    {
+      ContextGuard context_guard;
+      if (executor->context_guard_initializer_) {
+        executor->context_guard_initializer_(context_guard);
+      }
+      std::move(task)();
+      // ContextGuard is destroyed before the previous CurrentExecutorScope is
+      // restored.
+    }
     data = previous_data;
   });
 }
