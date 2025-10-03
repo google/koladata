@@ -330,6 +330,24 @@ class DeterminizerTest(parameterized.TestCase):
         det_fn(57, 38), fn(57, 38), schemas_equality=True
     )
 
+  def test_strip_source_locations(self):
+    determinizer = determinism.Determinizer(
+        seed='test', strip_source_locations=True
+    )
+    fn = kd.fn(lambda x: x + 1)
+
+    kd.testing.assert_equal(
+        kd.expr.unpack_expr(fn.returns).op,
+        arolla.abc.lookup_operator('kd.annotation.source_location'),
+    )
+
+    det_fn = determinizer.make_deterministic(fn)
+
+    kd.testing.assert_equal(
+        kd.expr.unpack_expr(det_fn.returns).op,
+        arolla.abc.lookup_operator('kd.math.add'),
+    )
+
   def test_non_scalar_slice(self):
     determinizer = determinism.Determinizer(seed='test')
     ds = kd.slice([1, 2, 3])

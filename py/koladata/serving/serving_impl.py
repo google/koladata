@@ -44,7 +44,9 @@ def trace_py_fn(
     fn = kd.fn(fn)
 
     if experimental_deterministic_mode:
-      fn = determinism.Determinizer(seed=function_path).make_deterministic(fn)
+      fn = determinism.Determinizer(
+          seed=function_path, strip_source_locations=True
+      ).make_deterministic(fn)
   return fn
 
 

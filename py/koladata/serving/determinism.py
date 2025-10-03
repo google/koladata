@@ -22,6 +22,10 @@ _NON_DETERMINISTIC_TOKEN_OP = arolla.abc.lookup_operator(
     'koda_internal.non_deterministic'
 )
 
+_SOURCE_LOCATION_OP = arolla.abc.lookup_operator(
+    'kd.annotation.source_location'
+)
+
 
 class Determinizer:
   """Makes traced functors deterministic.
@@ -31,12 +35,13 @@ class Determinizer:
   interoperability between them.
   """
 
-  def __init__(self, seed: str):
+  def __init__(self, seed: str, strip_source_locations: bool = False):
     self._seed = seed
     self._frozen_non_deterministic_tokens = dict()
     self._frozen_ids = dict()
     self._schemas_being_validated = set()
     self._already_made_deterministic = dict()
+    self._strip_source_locations = strip_source_locations
 
   def make_deterministic(self, ds: kd.types.DataItem) -> kd.types.DataItem:
     """Makes a DataItem (e.g. a functor) deterministic."""
@@ -130,6 +135,8 @@ class Determinizer:
             node.node_deps[0],
             self._freeze_non_deterministic_token(node.node_deps[1].qvalue),
         )
+      if self._strip_source_locations and node.op == _SOURCE_LOCATION_OP:
+        return node.node_deps[0]
       if node.is_literal and isinstance(node.qvalue, kd.types.DataSlice):
         return arolla.literal(self.make_deterministic(node.qvalue))
       return node
