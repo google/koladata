@@ -150,3 +150,11 @@ def make_null(qtype):
 def is_null(ext):
   """Returns present iff `ext` is null."""
   return has_attr(ext, '_is_null_marker')
+
+
+@optools.add_to_registry(view=view.BaseKodaView)
+@optools.as_lambda_operator('kd.extension_types.get_attr_qtype')
+def get_attr_qtype(ext, attr):
+  """Returns the qtype of the `attr`, or NOTHING if the `attr` is missing."""
+  attr = arolla_bridge.to_arolla_text(attr)
+  return M.objects.get_object_attr_qtype(unwrap(ext), attr)
