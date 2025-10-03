@@ -19,7 +19,7 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_test")
 
 package(default_visibility = [
-    "//py/koladata/benchmarks:__subpackages__",
+    "//koladata:internal",
 ])
 
 licenses(["notice"])
