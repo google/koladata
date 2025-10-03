@@ -181,7 +181,7 @@ class MultitypeDenseSource : public DenseSource {
       if (types_buffer_.id_to_typeidx[offset] == TypesBuffer::kRemoved) {
         bldr.InsertIfNotSet(i, std::nullopt);
       }
-      // TODO: Consider to combine this loop with processing of
+      // NOTE: Consider to combine this loop with processing of
       // the first ValueBufferVariant in the next loop to improve performance.
     }
     int idx = 0;
