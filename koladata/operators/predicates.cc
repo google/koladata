@@ -142,7 +142,7 @@ absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x) {
   }
   // Derive from the data for OBJECT and SCHEMA schemas. Note that primitive
   // schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered as
-  // primitives.
+  // primitives. NONEs cannot have values, so they will never be present.
   if (schema.is_object_schema() || schema.is_schema_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasPrimitiveImpl(impl));
@@ -219,7 +219,8 @@ absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
     return AsMask(true);
   }
   // For non-primitive schemas which cannot contain primitives, return missing.
-  if (!schema.is_object_schema() && !schema.is_schema_schema()) {
+  if (!schema.is_object_schema() && !schema.is_schema_schema() &&
+      schema != schema::kNone) {
     return AsMask(false);
   }
   // Derive from the data for OBJECT and SCHEMA schemas. Note that primitive

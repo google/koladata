@@ -199,7 +199,7 @@ def is_primitive(x):  # pylint: disable=unused-argument
 
   `x` is a primitive DataSlice if it meets one of the following conditions:
     1) it has a primitive schema
-    2) it has OBJECT/SCHEMA schema and only has primitives
+    2) it has OBJECT/SCHEMA/NONE schema and only has primitives
 
   Also see `kd.has_primitive` for a pointwise version. But note that
   `kd.all(kd.has_primitive(x))` is not always equivalent to

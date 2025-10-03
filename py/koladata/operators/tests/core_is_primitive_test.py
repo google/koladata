@@ -46,9 +46,11 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       # Dtypes
       (ds([schema_constants.STRING, None, schema_constants.SCHEMA]),),
       # Missing
+      (ds(None),),
       (ds(None, schema_constants.INT32),),
       (ds(None, schema_constants.OBJECT),),
       (ds(None, schema_constants.SCHEMA),),
+      (ds([None, None]),),
       (ds([None, None], schema_constants.INT32),),
       (ds([None, None], schema_constants.OBJECT),),
       (ds([None, None], schema_constants.SCHEMA),),
@@ -73,8 +75,6 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (ds([bag().obj(a=ds(1), b=ds(2)), 42, 'abc']),),
       (ds([schema_constants.INT32, bag().new_schema()]),),
       # Missing
-      (ds(None),),
-      (ds([None, None]),),
       (bag().new(a=1, b=2) & None,),
   )
   def test_is_not_primitive(self, param):
