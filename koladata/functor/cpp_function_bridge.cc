@@ -16,6 +16,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <source_location>  // NOLINT(build/c++20): needed for OSS logging.
 #include <string>
 #include <utility>
@@ -32,10 +33,12 @@
 #include "arolla/expr/operators/std_function_operator.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
@@ -49,10 +52,9 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
     std::function<
         absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
         fn,
-    absl::string_view name, absl::string_view signature_spec,
+    absl::string_view name,
+    const arolla::expr::ExprOperatorSignature& signature,
     arolla::QTypePtr output_type, std::source_location loc) {
-  ASSIGN_OR_RETURN(auto signature,
-                   arolla::expr::ExprOperatorSignature::Make(signature_spec));
   auto get_output_type =
       [output_type](absl::Span<const arolla::QType* const> input_qtypes) {
         return output_type;
@@ -68,17 +70,22 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
   args.reserve(signature.parameters.size());
   koda_params.reserve(signature.parameters.size());
   for (const auto& p : signature.parameters) {
-    // Note: here we don't check default values because `Make(signature_spec)`
-    // never sets any.
     if (p.kind != arolla::expr::ExprOperatorSignature::Parameter::Kind::
                       kPositionalOrKeyword) {
-      return absl::FailedPreconditionError(
+      return absl::InvalidArgumentError(
           "only positionalOrKeyword arguments supported");
     }
     args.push_back(input_container.CreateInput(p.name));
     Signature::Parameter koda_param;
     koda_param.name = p.name;
     koda_param.kind = Signature::Parameter::Kind::kPositionalOrKeyword;
+    if (p.default_value.has_value()) {
+      if (p.default_value->GetType() != arolla::GetQType<DataSlice>()) {
+        return absl::InvalidArgumentError(
+            "only DataItem default argument values are supported");
+      }
+      koda_param.default_value = p.default_value->UnsafeAs<DataSlice>();
+    }
     koda_params.push_back(std::move(koda_param));
   }
   ASSIGN_OR_RETURN(auto op_expr,
@@ -94,6 +101,18 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
       {functor::kModuleAttrName, functor::kQualnameAttrName},
       {DataSlice::CreateFromScalar(arolla::Text(std::move(module))),
        DataSlice::CreateFromScalar(arolla::Text(name))});
+}
+
+absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name, absl::string_view signature_spec,
+    arolla::QTypePtr output_type, std::source_location loc) {
+  ASSIGN_OR_RETURN(auto signature,
+                   arolla::expr::ExprOperatorSignature::Make(signature_spec));
+  return CreateFunctorFromStdFunction(std::move(fn), name, signature,
+                                      output_type, loc);
 }
 
 }  // namespace koladata::functor

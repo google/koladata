@@ -159,6 +159,8 @@ cc_test(
         ":cpp_function_bridge",
         "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata:object_factories",
+        "//koladata:test_utils",
         "//koladata/expr:expr_eval",
         "//koladata/functor/parallel:future",
         "//koladata/functor/parallel:future_qtype",

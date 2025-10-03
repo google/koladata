@@ -17,10 +17,12 @@
 
 #include <functional>
 #include <source_location>  // NOLINT(build/c++20): needed for OSS logging.
+#include <utility>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/operators/std_function_operator.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -33,7 +35,21 @@
 
 namespace koladata::functor {
 
-// Creates a functor from std::function, op name, and arolla signature spec.
+// Creates a functor with the given C++ implementation.
+// Types of the inputs are not restricted, the output type has to be specified
+// explicitly.
+absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name,
+    const arolla::expr::ExprOperatorSignature& signature,
+    arolla::QTypePtr output_type,
+    std::source_location loc = std::source_location::current());
+
+// Creates a functor with the given C++ implementation.
+// Types of the inputs are not restricted, the output type has to be specified
+// explicitly.
 absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
     std::function<
         absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
@@ -42,7 +58,8 @@ absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
     arolla::QTypePtr output_type,
     std::source_location loc = std::source_location::current());
 
-// Same as above, but with automatic TypedValue wrapping/unwrapping.
+// Creates a functor with the given C++ implementation.
+// Types for the inputs and outputs are deduced from the implementation.
 template <typename Fn>
 absl::StatusOr<DataSlice> CreateFunctorFromFunction(
     Fn&& fn, absl::string_view name, absl::string_view signature_spec,
@@ -52,6 +69,20 @@ absl::StatusOr<DataSlice> CreateFunctorFromFunction(
   return CreateFunctorFromStdFunction(
       arolla::expr_operators::WrapAsEvalFn(std::forward<Fn>(fn)), name,
       signature_spec, arolla::GetQType<ResT>(), loc);
+}
+
+// Creates a functor with the given C++ implementation.
+// Types for the inputs and outputs are deduced from the implementation.
+template <typename Fn>
+absl::StatusOr<DataSlice> CreateFunctorFromFunction(
+    Fn&& fn, absl::string_view name,
+    const arolla::expr::ExprOperatorSignature& signature,
+    std::source_location loc = std::source_location::current()) {
+  using ResT = arolla::strip_statusor_t<
+      typename arolla::meta::function_traits<Fn>::return_type>;
+  return CreateFunctorFromStdFunction(
+      arolla::expr_operators::WrapAsEvalFn(std::forward<Fn>(fn)), name,
+      signature, arolla::GetQType<ResT>(), loc);
 }
 
 }  // namespace koladata::functor

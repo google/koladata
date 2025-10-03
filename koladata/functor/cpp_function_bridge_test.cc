@@ -23,6 +23,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
+#include "arolla/expr/expr_operator_signature.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -40,6 +41,8 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/object_factories.h"
+#include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -52,6 +55,7 @@ using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
+using ::testing::Property;
 
 TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
   ASSERT_OK_AND_ASSIGN(
@@ -74,13 +78,52 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
       db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
   ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
   auto val = DataSlice::CreateFromScalar(42);
-  ASSERT_OK_AND_ASSIGN(arolla::TypedValue res_tv,
-                       CallFunctorWithCompilationCache(
-                           functor,
-                           {arolla::TypedValue::FromValue(obj).AsRef(),
-                            arolla::TypedValue::FromValue(val).AsRef(),
-                            arolla::TypedValue::FromValue(db).AsRef()},
-                           {"obj", "val", "db"}));
+  ASSERT_OK_AND_ASSIGN(
+      arolla::TypedValue res_tv,
+      CallFunctorWithCompilationCache(
+          functor,
+          {arolla::TypedRef::FromValue(obj), arolla::TypedRef::FromValue(val),
+           arolla::TypedRef::FromValue(db)},
+          {"obj", "val", "db"}));
+  ASSERT_OK_AND_ASSIGN(DataBagPtr res_db, res_tv.As<DataBagPtr>());
+  EXPECT_EQ(db, res_db);
+  ASSERT_OK_AND_ASSIGN(DataSlice res_a, obj.WithBag(db).GetAttr("a"));
+  ASSERT_TRUE(res_a.is_item());
+  EXPECT_EQ(res_a.item(), internal::DataItem(42));
+}
+
+TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunctionWithSignatureObject) {
+  ASSERT_OK_AND_ASSIGN(
+      auto signature,
+      arolla::expr::ExprOperatorSignature::Make("obj, val, db"));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice functor,
+      CreateFunctorFromStdFunction(
+          [](absl::Span<const arolla::TypedRef> args)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(DataSlice obj, args[0].As<DataSlice>());
+            ASSIGN_OR_RETURN(DataSlice val, args[1].As<DataSlice>());
+            ASSIGN_OR_RETURN(DataBagPtr db, args[2].As<DataBagPtr>());
+            RETURN_IF_ERROR(obj.WithBag(db).SetAttr("a", val));
+            return arolla::TypedValue::FromValue(db);
+          },
+          "my_functor_with_sig", std::move(signature),
+          arolla::GetQType<DataBagPtr>()));
+  auto db = DataBag::EmptyMutable();
+  internal::DataItem obj_item(internal::AllocateSingleObject());
+  internal::DataItem a_schema(schema::kInt32);
+  ASSERT_OK_AND_ASSIGN(
+      internal::DataItem obj_schema,
+      db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
+  ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
+  auto val = DataSlice::CreateFromScalar(42);
+  ASSERT_OK_AND_ASSIGN(
+      arolla::TypedValue res_tv,
+      CallFunctorWithCompilationCache(
+          functor,
+          {arolla::TypedRef::FromValue(obj), arolla::TypedRef::FromValue(val),
+           arolla::TypedRef::FromValue(db)},
+          {"obj", "val", "db"}));
   ASSERT_OK_AND_ASSIGN(DataBagPtr res_db, res_tv.As<DataBagPtr>());
   EXPECT_EQ(db, res_db);
   ASSERT_OK_AND_ASSIGN(DataSlice res_a, obj.WithBag(db).GetAttr("a"));
@@ -107,17 +150,162 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromFunction) {
       db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
   ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
   auto val = DataSlice::CreateFromScalar(42);
-  ASSERT_OK_AND_ASSIGN(arolla::TypedValue res_tv,
-                       CallFunctorWithCompilationCache(
-                           functor,
-                           {arolla::TypedValue::FromValue(obj).AsRef(),
-                            arolla::TypedValue::FromValue(val).AsRef(),
-                            arolla::TypedValue::FromValue(db).AsRef()},
-                           {"obj", "val", "db"}));
+  ASSERT_OK_AND_ASSIGN(
+      arolla::TypedValue res_tv,
+      CallFunctorWithCompilationCache(
+          functor,
+          {arolla::TypedRef::FromValue(obj), arolla::TypedRef::FromValue(val),
+           arolla::TypedRef::FromValue(db)},
+          {"obj", "val", "db"}));
   ASSERT_OK_AND_ASSIGN(DataSlice res, res_tv.As<DataSlice>());
   ASSERT_OK_AND_ASSIGN(DataSlice res_a, res.GetAttr("a"));
   ASSERT_TRUE(res_a.is_item());
   EXPECT_EQ(res_a.item(), internal::DataItem(42));
+}
+
+TEST(CppFunctionBridgeTest, CreateFunctorFromFunctionWithSignatureObject) {
+  ASSERT_OK_AND_ASSIGN(
+      auto signature,
+      arolla::expr::ExprOperatorSignature::Make("obj, val, db"));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice functor,
+      CreateFunctorFromFunction(
+          [](const DataSlice& obj, const DataSlice& val,
+             const DataBagPtr& db) -> absl::StatusOr<DataSlice> {
+            auto res_obj = obj.WithBag(db);
+            RETURN_IF_ERROR(res_obj.SetAttr("a", val));
+            return res_obj;
+          },
+          "my_functor_with_sig", std::move(signature)));
+  auto db = DataBag::EmptyMutable();
+  internal::DataItem obj_item(internal::AllocateSingleObject());
+  internal::DataItem a_schema(schema::kInt32);
+  ASSERT_OK_AND_ASSIGN(
+      internal::DataItem obj_schema,
+      db->GetMutableImpl()->CreateExplicitSchemaFromFields({"a"}, {a_schema}));
+  ASSERT_OK_AND_ASSIGN(auto obj, DataSlice::Create(obj_item, obj_schema));
+  auto val = DataSlice::CreateFromScalar(42);
+  ASSERT_OK_AND_ASSIGN(
+      arolla::TypedValue res_tv,
+      CallFunctorWithCompilationCache(
+          functor,
+          {arolla::TypedRef::FromValue(obj), arolla::TypedRef::FromValue(val),
+           arolla::TypedRef::FromValue(db)},
+          {"obj", "val", "db"}));
+  ASSERT_OK_AND_ASSIGN(DataSlice res, res_tv.As<DataSlice>());
+  ASSERT_OK_AND_ASSIGN(DataSlice res_a, res.GetAttr("a"));
+  ASSERT_TRUE(res_a.is_item());
+  EXPECT_EQ(res_a.item(), internal::DataItem(42));
+}
+
+TEST(CppFunctionBridgeTest, DefaultValues) {
+  ASSERT_OK_AND_ASSIGN(
+      auto signature,
+      arolla::expr::ExprOperatorSignature::Make(
+          "x, y=",
+          {arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(1))}));
+  ASSERT_OK_AND_ASSIGN(DataSlice functor,
+                       CreateFunctorFromFunction(
+                           [](const DataSlice& x,
+                              const DataSlice& y) -> absl::StatusOr<DataSlice> {
+                             return DataSlice::CreateFromScalar(
+                                 x.item().value<int>() + y.item().value<int>());
+                           },
+                           "my_add", std::move(signature)));
+  EXPECT_THAT(
+      CallFunctorWithCompilationCache(
+          functor,
+          {arolla::TypedRef::FromValue(DataSlice::CreateFromScalar(10))},
+          {"x"}),
+      IsOkAndHolds(QValueWith<DataSlice>(
+          IsEquivalentTo(DataSlice::CreateFromScalar(11)))));
+  EXPECT_THAT(CallFunctorWithCompilationCache(
+                  functor,
+                  {arolla::TypedRef::FromValue(DataSlice::CreateFromScalar(10)),
+                   arolla::TypedRef::FromValue(DataSlice::CreateFromScalar(5))},
+                  {"x", "y"}),
+              IsOkAndHolds(QValueWith<DataSlice>(
+                  IsEquivalentTo(DataSlice::CreateFromScalar(15)))));
+}
+
+TEST(CppFunctionBridgeTest, DefaultValuesWithBag) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      EntityCreator::FromAttrs(db, {"a"}, {DataSlice::CreateFromScalar(57)}));
+  ASSERT_OK_AND_ASSIGN(auto signature,
+                       arolla::expr::ExprOperatorSignature::Make(
+                           "x=", {arolla::TypedValue::FromValue(ds)}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice functor,
+      CreateFunctorFromFunction(
+          [](const DataSlice& x) -> absl::StatusOr<DataSlice> { return x; },
+          "identity_with_default", std::move(signature)));
+
+  {
+    auto arg_db = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        auto arg_ds,
+        EntityCreator::FromAttrs(db, {"b"}, {DataSlice::CreateFromScalar(57)}));
+    // No change in the bag when the default value is not used.
+    EXPECT_THAT(
+        CallFunctorWithCompilationCache(
+            functor, {arolla::TypedRef::FromValue(arg_ds)}, {"x"}),
+        IsOkAndHolds(QValueWith<DataSlice>(Property(&DataSlice::GetBag, db))));
+  }
+  // But when the default value is used, the result is coming from the functor's
+  // data bag.
+  EXPECT_THAT(CallFunctorWithCompilationCache(functor, {}, {}),
+              IsOkAndHolds(QValueWith<DataSlice>(
+                  Property(&DataSlice::GetBag, functor.GetBag()))));
+}
+
+TEST(CppFunctionBridgeTest, UnsupportedSignatures) {
+  {
+    ASSERT_OK_AND_ASSIGN(
+        auto signature,
+        arolla::expr::ExprOperatorSignature::Make(
+            "x, y=", {arolla::TypedValue::FromValue(
+                         test::DataSlice<float>({57.0f, 58.0f, 59.0f}))}));
+    EXPECT_THAT(CreateFunctorFromFunction(
+                    [](const DataSlice& x,
+                       const DataSlice& y) -> absl::StatusOr<DataSlice> {
+                      return DataSlice::CreateFromScalar(x.item().value<int>() +
+                                                         y.item().value<int>());
+                    },
+                    "my_add", std::move(signature)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "default value for parameter [y] must be a data item, "
+                         "but has rank 1"));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto signature,
+                         arolla::expr::ExprOperatorSignature::Make(
+                             "x, y=", {arolla::TypedValue::FromValue(57)}));
+    EXPECT_THAT(
+        CreateFunctorFromFunction(
+            [](const DataSlice& x,
+               const DataSlice& y) -> absl::StatusOr<DataSlice> {
+              return DataSlice::CreateFromScalar(x.item().value<int>() +
+                                                 y.item().value<int>());
+            },
+            "my_add", std::move(signature)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "only DataItem default argument values are supported"));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto signature,
+                         arolla::expr::ExprOperatorSignature::Make("x, *y"));
+    EXPECT_THAT(CreateFunctorFromFunction(
+                    [](const DataSlice& x,
+                       const DataSlice& y) -> absl::StatusOr<DataSlice> {
+                      return DataSlice::CreateFromScalar(x.item().value<int>() +
+                                                         y.item().value<int>());
+                    },
+                    "my_add", std::move(signature)),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "only positionalOrKeyword arguments supported"));
+  }
 }
 
 TEST(CppFunctionBridgeTest, FunctorNotSerializable) {
