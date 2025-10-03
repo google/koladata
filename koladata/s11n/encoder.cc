@@ -338,7 +338,6 @@ absl::Status EncodeLists(const internal::DataBagContent::ListsContent& lists,
     KodaV1Proto::ListProto* list_proto = db_proto.add_lists();
     EncodeObjectId(lists.alloc_id.ObjectByOffset(i),
                    list_proto->mutable_list_id());
-    // TODO(b/328742873) Find a way to do it without copying data.
     internal::SliceBuilder bldr(splits[i + 1] - splits[i]);
     for (int64_t j = 0; j < splits[i + 1] - splits[i]; ++j) {
       bldr.InsertIfNotSetAndUpdateAllocIds(j, lists.values[j + splits[i]]);
