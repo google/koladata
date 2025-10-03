@@ -225,15 +225,15 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting key_schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, key_schema=42)
+      fns.dict_shaped(shape, key_schema=42)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting value_schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, value_schema=42)
+      fns.dict_shaped(shape, value_schema=42)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.dict_shaped(shape, schema=42)
+      fns.dict_shaped(shape, schema=42)  # pytype: disable=wrong-arg-types
 
   def test_itemid(self):
     itemid = expr_eval.eval(
@@ -266,7 +266,7 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      fns.dict_shaped(fns.mutable_bag())
+      fns.dict_shaped(fns.mutable_bag())  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',

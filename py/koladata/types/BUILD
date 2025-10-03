@@ -118,9 +118,23 @@ cc_library(
     ],
 )
 
+py_library(
+    name = "type_defs",
+    srcs = ["type_defs.py"],
+    pyi_deps = [
+        "@com_google_arolla//py/arolla",
+    ],
+    pyi_srcs = ["type_defs.pyi"],
+    deps = ["//py:python_path"],
+)
+
 koladata_py_extension(
     name = "data_slice_py_ext",
     srcs = ["data_slice_module.cc"],
+    pytype_deps = [
+        ":type_defs",
+    ],
+    pytype_srcs = ["data_slice_py_ext.pyi"],
     deps = [
         ":data_slice_cc_lib",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
@@ -460,6 +474,10 @@ cc_library(
 koladata_py_extension(
     name = "data_bag_py_ext",
     srcs = ["data_bag_module.cc"],
+    pytype_deps = [
+        ":type_defs",
+    ],
+    pytype_srcs = ["data_bag_py_ext.pyi"],
     deps = [
         ":data_bag_cc_lib",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep

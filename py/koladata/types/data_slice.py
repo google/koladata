@@ -596,182 +596,182 @@ def get_sizes(self) -> DataSlice:
 @add_method(DataSlice, '__add__')
 def _add(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.add', self, other)
 
 
 @add_method(DataSlice, '__radd__')
 def _radd(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.add', other, self)
 
 
 @add_method(DataSlice, '__sub__')
 def _sub(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.subtract', self, other)
 
 
 @add_method(DataSlice, '__rsub__')
 def _rsub(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.subtract', other, self)
 
 
 @add_method(DataSlice, '__mul__')
 def _mul(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.multiply', self, other)
 
 
 @add_method(DataSlice, '__rmul__')
 def _rmul(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.multiply', other, self)
 
 
 @add_method(DataSlice, '__truediv__')
-def _truediv(self, other):
+def _truediv(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.divide', self, other)
 
 
 @add_method(DataSlice, '__rtruediv__')
-def _rtruediv(self, other):
+def _rtruediv(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.divide', other, self)
 
 
 @add_method(DataSlice, '__floordiv__')
-def _floordiv(self, other):
+def _floordiv(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.floordiv', self, other)
 
 
 @add_method(DataSlice, '__rfloordiv__')
-def _rfloordiv(self, other):
+def _rfloordiv(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.floordiv', other, self)
 
 
 @add_method(DataSlice, '__mod__')
-def _mod(self, other):
+def _mod(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.mod', self, other)
 
 
 @add_method(DataSlice, '__rmod__')
-def _rmod(self, other):
+def _rmod(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.mod', other, self)
 
 
 @add_method(DataSlice, '__pow__')
-def _pow(self, other):
+def _pow(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.pow', self, other)
 
 
 @add_method(DataSlice, '__rpow__')
-def _rpow(self, other):
+def _rpow(self, other) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.math.pow', other, self)
 
 
 @add_method(DataSlice, '__and__')
 def _and(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.apply_mask', self, other)
 
 
 @add_method(DataSlice, '__rand__')
 def _rand(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.apply_mask', other, self)
 
 
 @add_method(DataSlice, '__eq__')
 def _eq(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.equal', self, other)
 
 
 @add_method(DataSlice, '__ne__')
 def _ne(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.not_equal', self, other)
 
 
 @add_method(DataSlice, '__gt__')
 def _gt(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.greater', self, other)
 
 
 @add_method(DataSlice, '__ge__')
 def _ge(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.greater_equal', self, other)
 
 
 @add_method(DataSlice, '__lt__')
 def _lt(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.less', self, other)
 
 
 @add_method(DataSlice, '__le__')
 def _le(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.less_equal', self, other)
 
 
 @add_method(DataSlice, '__or__')
 def _or(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.coalesce', self, other)
 
 
 @add_method(DataSlice, '__ror__')
 def _ror(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.coalesce', other, self)
 
 
 @add_method(DataSlice, '__xor__')
 def _xor(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.xor', self, other)
 
 
 @add_method(DataSlice, '__rxor__')
 def _rxor(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   return _eval_op('kd.xor', other, self)
 
 
@@ -784,7 +784,7 @@ def _invert(self) -> DataSlice:
 @add_method(DataSlice, '__rrshift__')
 def _lshift(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   # This produces a nicer error message than kd.updated since it does not have
   # *varargs.
   return _eval_op('koda_internal.view.lshift', self, other)
@@ -794,7 +794,7 @@ def _lshift(self, other: Any) -> DataSlice:
 @add_method(DataSlice, '__rlshift__')
 def _rshift(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
-    return NotImplemented
+    return NotImplemented  # pytype: disable=bad-return-type
   # This produces a nicer error message than kd.enriched since it does not have
   # *varargs.
   return _eval_op('koda_internal.view.rshift', self, other)

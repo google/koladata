@@ -43,7 +43,7 @@ def _hash(self) -> int:
 @data_slice.add_method(DataItem, '__call__')  # pylint: disable=protected-access
 def _call(
     self, *args: Any, return_type_as: Any = data_slice.DataSlice, **kwargs: Any
-) -> data_slice.DataSlice:
+) -> data_slice.DataSlice | arolla.Expr:
   """Dispatches between eager and expr kd.call based on the arguments."""
   if any(isinstance(arg, arolla.Expr) for arg in args) or any(
       isinstance(arg, arolla.Expr) for arg in kwargs.values()

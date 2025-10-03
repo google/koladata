@@ -92,7 +92,7 @@ class DataBagTest(parameterized.TestCase):
     testing.assert_equal(x.get_bag(), db)
 
     with self.assertRaisesRegex(TypeError, 'expected DataSlice, got list'):
-      _ = db[[1, 2, 3]]
+      _ = db[[1, 2, 3]]  # pytype: disable=unsupported-operands
 
   @parameterized.named_parameters(
       (
@@ -435,13 +435,13 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
           TypeError,
           "'str' object cannot be interpreted as an integer",
       ):
-        _ = repr(db.contents_repr(triple_limit='one thousand'))
+        _ = repr(db.contents_repr(triple_limit='one thousand'))  # pytype: disable=wrong-arg-types
       with self.subTest('positional-argument'):
         with self.assertRaisesRegex(
             TypeError,
             r'_contents_repr\(\) takes 1 positional argument but 2 were given',
         ):
-          _ = repr(db.contents_repr(1000))
+          _ = repr(db.contents_repr(1000))  # pytype: disable=wrong-arg-count
       with self.subTest('negative-limit'):
         with self.assertRaisesRegex(
             ValueError,
@@ -635,7 +635,7 @@ $""",
       _ = db.uu(
           a=ds([3.14], schema_constants.FLOAT64),
           b=ds(['abc'], schema_constants.STRING),
-          seed=b'seed',
+          seed=b'seed',  # pytype: disable=wrong-arg-types
       )
 
     # schema arg
@@ -732,7 +732,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = db.uuobj(
           a=ds([3.14], schema_constants.FLOAT64),
           b=ds(['abc'], schema_constants.STRING),
-          seed=b'seed',
+          seed=b'seed',  # pytype: disable=wrong-arg-types
       )
 
     # no args
@@ -777,7 +777,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = db.uu_schema(
           a=schema_constants.INT32,
           b=schema_constants.STRING,
-          seed=b'seed',
+          seed=b'seed',  # pytype: disable=wrong-arg-types
       )
 
     # no args
@@ -803,7 +803,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         'argument `0`, i.e. the positional-only `schema name` must be a utf8'
         ' string, got bytes',
     ):
-      _ = db.named_schema(b'name')
+      _ = db.named_schema(b'name')  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError,
@@ -834,7 +834,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         TypeError,
         'accepts 1 positional-only argument but 0 were given',
     ):
-      _ = db.named_schema(name='SomeName')
+      _ = db.named_schema(name='SomeName')  # pytype: disable=missing-parameter
 
   def test_named_schema_no_args_whatsoever_does_not_crash(self):
     db = bag()
@@ -842,7 +842,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         TypeError,
         'accepts 1 positional-only argument but 0 were given',
     ):
-      _ = db.named_schema()
+      _ = db.named_schema()  # pytype:disable=missing-parameter
 
   def test_named_schema_nested_attrs(self):
     db = bag()
@@ -979,25 +979,25 @@ Assigned schema for 'a': ENTITY(c=STRING)"""),
     with self.assertRaisesWithLiteralMatch(
         TypeError, "got an unexpected keyword 'seed'"
     ):
-      _ = db.list_schema(seed='')
+      _ = db.list_schema(seed='')  # pytype: disable=wrong-keyword-args,missing-parameter
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._list_schema: `item_schema`',
     ):
-      _ = db.list_schema()
+      _ = db.list_schema()  # pytype: disable=missing-parameter
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'accepts 0 to 1 positional arguments but 2 were given',
     ):
-      _ = db.list_schema(1, 2)
+      _ = db.list_schema(1, 2)  # pytype: disable=wrong-arg-count
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting item_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.list_schema(item_schema=None)
+      _ = db.list_schema(item_schema=None)  # pytype: disable=wrong-arg-types
 
   def test_list_schema_errors(self):
     db = bag()
@@ -1050,37 +1050,37 @@ Assigned schema for list items: STRING""",
     with self.assertRaisesWithLiteralMatch(
         TypeError, "got an unexpected keyword 'seed'"
     ):
-      _ = db.dict_schema(seed='')
+      _ = db.dict_schema(seed='')  # pytype: disable=wrong-keyword-args
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._dict_schema: `key_schema`',
     ):
-      _ = db.dict_schema()
+      _ = db.dict_schema()  # pytype: disable=missing-parameter
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'missing required argument to DataBag._dict_schema: `value_schema`',
     ):
-      _ = db.dict_schema(schema_constants.INT32)
+      _ = db.dict_schema(schema_constants.INT32)  # pytype: disable=missing-parameter
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'accepts 0 to 2 positional arguments but 3 were given',
     ):
-      _ = db.dict_schema(1, 2, 3)
+      _ = db.dict_schema(1, 2, 3)  # pytype: disable=wrong-arg-count
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting key_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.dict_schema(key_schema=None, value_schema=None)
+      _ = db.dict_schema(key_schema=None, value_schema=None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting value_schema to be a DataSlice, got NoneType',
     ):
-      _ = db.dict_schema(key_schema=schema_constants.INT32, value_schema=None)
+      _ = db.dict_schema(key_schema=schema_constants.INT32, value_schema=None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError,
@@ -1174,15 +1174,15 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.new_shaped()
+      db.new_shaped()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      db.new_shaped(4)
+      db.new_shaped(4)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      db.new_shaped(db)
+      db.new_shaped(db)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',
@@ -1238,11 +1238,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.new_like()
+      db.new_like()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db.new_like(4)
+      db.new_like(4)  # pytype: disable=wrong-arg-types
 
   def test_new_like_str_as_schema_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
@@ -1285,11 +1285,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.obj_shaped()
+      db.obj_shaped()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got int'
     ):
-      db.obj_shaped(1)
+      db.obj_shaped(1)  # pytype: disable=wrong-arg-types
 
   def test_obj_like(self):
     db = bag()
@@ -1311,11 +1311,11 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, r'accepts 1 positional-only argument but 0 were given'
     ):
-      db.obj_like()
+      db.obj_like()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db.obj_like(4)
+      db.obj_like(4)  # pytype: disable=wrong-arg-types
 
   def test_obj_merging(self):
     db = bag()
@@ -1386,16 +1386,18 @@ Assigned schema for keys: INT32""",
     db = bag()
     with self.assertRaisesRegex(
         TypeError,
-        r'`items_or_keys` must be a DataSlice or DataItem \(or convertible '
-        r'to DataItem\) if `values` is provided, but got dict',
+        re.escape(
+            '`items_or_keys` must be a DataSlice or DataItem (or convertible '
+            'to DataItem) if `values` is provided, but got dict'
+        ),
     ):
-      db.dict({'a': 42}, 12)
+      db.dict({'a': 42}, 12)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         '`items_or_keys` must be a Python dict if `values` is not provided,'
         ' but got str',
     ):
-      db.dict('a')
+      db.dict('a')  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         ValueError,
         r"""cannot find a common schema
@@ -1488,9 +1490,9 @@ Assigned schema for keys: INT32""",
     ):
       db.list(data_item.DataItem.from_vals('a'))
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._list accepts exactly 4 arguments, got 3'
+        TypeError, re.escape('_list() takes from 1 to 2 positional arguments')
     ):
-      db._list(ds([]), ds([]), ds([]))
+      db.list(ds([]), ds([]), ds([]))  # pytype: disable=wrong-arg-count
 
   @parameterized.parameters(
       ([], 1),
@@ -1539,17 +1541,18 @@ Assigned schema for keys: INT32""",
   def test_list_like_impl(self):
     db = bag()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._list_like accepts exactly 5 arguments, got 3'
+        TypeError,
+        re.escape('_list_like() takes from 2 to 3 positional arguments')
     ):
-      db._list_like(ds([]), ds([]), ds([]))
+      db.list_like(ds([]), ds([]), ds([]))  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got int'
     ):
-      db._list_like(56, 57, 58, 59, 60)
+      db.list_like(56, 57)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting shape_and_mask_from to be a DataSlice, got Int'
     ):
-      db._list_like(arolla.int32(56), 57, 58, 59, 60)
+      db.list_like(arolla.int32(56), 57)  # pytype: disable=wrong-arg-types
 
   def test_implode_impl(self):
     # NOTE: more tests for implode in
@@ -1557,19 +1560,20 @@ Assigned schema for keys: INT32""",
 
     db = bag()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._implode accepts exactly 3 arguments, got 4'
+        TypeError,
+        re.escape('_implode() takes from 2 to 4 positional arguments')
     ):
-      db._implode(ds([]), 1, 2, 3)
+      db.implode(ds([]), 1, 2, 3)  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
         TypeError, 'expecting x to be a DataSlice, got int'
     ):
-      db._implode(1, 2, 3)
+      db.implode(1, 2, 3)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      db._implode(ds([]), ds([]), ds([]))
+      db.implode(ds([]), ds([]), ds([]))
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      db._implode(ds([]), 1, 42)
+      db.implode(ds([]), 1, 42)  # pytype: disable=wrong-arg-types
 
   def test_concat_lists_impl(self):
     # NOTE: more tests for concat_lists in
@@ -1579,7 +1583,7 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, re.escape('expecting *lists to be a DataSlice, got NoneType')
     ):
-      db.concat_lists(ds(0), None)
+      db.concat_lists(ds(0), None)  # pytype: disable=wrong-arg-types
 
   def test_exactly_equal_impl_raises(self):
     with self.assertRaisesRegex(
@@ -1595,7 +1599,7 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(
         TypeError, 'expecting b to be a DataBag, got int'
     ):
-      data_bag.exactly_equal(bag(), 42)
+      data_bag.exactly_equal(bag(), 42)  # pytype: disable=wrong-arg-types
 
   def test_exactly_equal_impl(self):
     db1 = bag()
@@ -1835,28 +1839,28 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     db2 = bag()
     x2 = x1.with_bag(db2)
     x2.set_attr('a', 3)
-    db1.merge_inplace(db2, overwrite=0)
+    db1.merge_inplace(db2, overwrite=0)  # pytype: disable=wrong-arg-types
     self.assertEqual(x1.a, ds(1))
-    db1.merge_inplace(db2, overwrite=1)
+    db1.merge_inplace(db2, overwrite=1)  # pytype: disable=wrong-arg-types
     self.assertEqual(x1.a, ds(3))
     with self.assertRaisesRegex(TypeError, '__bool__ disabled'):
-      db1.merge_inplace(db2, overwrite=arolla.L.x)
+      db1.merge_inplace(db2, overwrite=arolla.L.x)  # pytype: disable=wrong-arg-types
 
   def test_merge_inplace_not_databags(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)
     with self.assertRaisesRegex(TypeError, 'must be an iterable'):
-      db1.merge_inplace(57)
+      db1.merge_inplace(57)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got int',
     ):
-      db1.merge_inplace([57])
+      db1.merge_inplace([57])  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got None',
     ):
-      db1.merge_inplace([None])
+      db1.merge_inplace([None])  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting each DataBag to be merged to be a DataBag, got None',
@@ -1867,15 +1871,15 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'expecting each DataBag to be merged to be a DataBag, got '
         'koladata.types.data_item.DataItem',
     ):
-      db1.merge_inplace([x1])
+      db1.merge_inplace([x1])  # pytype: disable=wrong-arg-types
 
   def test_adopt_args_errors(self):
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt()
+      bag().adopt()  # pytype:disable=missing-parameter
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt(ds(1), ds(2))
+      bag().adopt(ds(1), ds(2))  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
-      bag().adopt(bag())
+      bag().adopt(bag())  # pytype: disable=wrong-arg-types
 
   def test_adopt_immutable(self):
     db1 = bag()
@@ -1905,11 +1909,11 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
 
   def test_adopt_stub_args_errors(self):
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt_stub()
+      bag().adopt_stub()  # pytype: disable=missing-parameter
     with self.assertRaises(TypeError):  # Python runtime error.
-      bag().adopt_stub(ds(1), ds(2))
+      bag().adopt_stub(ds(1), ds(2))  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
-      bag().adopt_stub(bag())
+      bag().adopt_stub(bag())  # pytype: disable=wrong-arg-types
 
   def test_adopt_stub_immutable(self):
     db1 = bag()
@@ -2088,7 +2092,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     with self.assertRaisesRegex(
         TypeError, re.escape("got an unexpected keyword 'foo'")
     ):
-      _ = db1.fork(foo=True)
+      _ = db1.fork(foo=True)  # pytype: disable=wrong-keyword-args
 
   def test_freeze(self):
     db1 = bag().new(x=1).get_bag()
@@ -2120,49 +2124,49 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'DataBag._from_proto accepts exactly 4 arguments, got 3',
     ):
       db = bag()
-      _ = db._from_proto((), [], None)
+      _ = db._from_proto((), [], None)  # pytype: disable=missing-parameter
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._from_proto expects messages to be a list, got tuple',
     ):
       db = bag()
-      _ = db._from_proto((), [], None, None)
+      _ = db._from_proto((), [], None, None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('message cast from python to C++ failed, got type tuple'),
     ):
       db = data_bag.DataBag.empty_mutable()
-      _ = db._from_proto([()], [], None, None)
+      _ = db._from_proto([()], [], None, None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._from_proto expects extensions to be a list, got tuple',
     ):
       db = bag()
-      _ = db._from_proto([], (), None, None)
+      _ = db._from_proto([], (), None, None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError,
         'expected extension to be str, got bytes',
     ):
       db = bag()
-      _ = db._from_proto([], [b'x.y.z'], None, None)
+      _ = db._from_proto([], [b'x.y.z'], None, None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting itemid to be a DataSlice, got str',
     ):
       db = bag()
-      _ = db._from_proto([], [], 'foo', None)
+      _ = db._from_proto([], [], 'foo', None)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         TypeError,
         'expecting schema to be a DataSlice, got str',
     ):
       db = bag()
-      _ = db._from_proto([], [], None, 'foo')
+      _ = db._from_proto([], [], None, 'foo')  # pytype: disable=wrong-arg-types
 
   def test_schema_from_proto_minimal(self):
     # NOTE: more tests for schema_from_proto in
@@ -2178,20 +2182,20 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         'DataBag._schema_from_proto accepts exactly 2 arguments, got 1',
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA())
+      _ = db._schema_from_proto(test_pb2.MessageA())  # pytype: disable=missing-parameter
 
     with self.assertRaisesRegex(
         ValueError,
         'DataBag._schema_from_proto expects extensions to be a list, got tuple',
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA(), ())
+      _ = db._schema_from_proto(test_pb2.MessageA(), ())  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         ValueError, 'expected extension to be str, got bytes'
     ):
       db = bag()
-      _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])
+      _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])  # pytype: disable=wrong-arg-types
 
   def test_signatures(self):
     # Tests that all methods have an inspectable signature. This is not added

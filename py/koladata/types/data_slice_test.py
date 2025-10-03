@@ -732,7 +732,7 @@ class DataSliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting db to be a DataBag, got list'
     ):
-      x.with_bag([1, 2, 3])
+      x.with_bag([1, 2, 3])  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         TypeError, 'expecting db to be a DataBag, got DenseArray'
@@ -1068,14 +1068,14 @@ class DataSliceTest(parameterized.TestCase):
             " 'intersection'"
         ),
     ):
-      x.get_attr_names()
+      x.get_attr_names()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError,
         re.escape(
             'get_attr_names() expected bool for `intersection`, got: str'
         ),
     ):
-      x.get_attr_names(intersection='foo')
+      x.get_attr_names(intersection='foo')  # pytype: disable=wrong-arg-types
 
   def test_internal_as_py(self):
     x = ds([[1, 2], [3], [4, 5]])
@@ -1099,7 +1099,7 @@ class DataSliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'to_proto accepts exactly 1 arguments, got 0'
     ):
-      _ = ds([])._to_proto()  # pylint: disable=protected-access
+      _ = ds([])._to_proto()  # pylint: disable=protected-access  # pytype: disable=missing-parameter
 
     with self.assertRaisesRegex(
         TypeError,
@@ -1302,15 +1302,15 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           TypeError, 'expecting attr_name to be a DataSlice'
       ):
-        x.set_attr(b'invalid_attr', 1)
+        x.set_attr(b'invalid_attr', 1)  # pytype: disable=wrong-arg-types
       with self.assertRaises(ValueError):
         x.set_attr('invalid__val', ValueError)
       with self.assertRaisesRegex(TypeError, 'expected bool'):
-        x.set_attr('invalid__overwrite_schema_type', 1, overwrite_schema=42)
+        x.set_attr('invalid__overwrite_schema_type', 1, overwrite_schema=42)  # pytype: disable=wrong-arg-types
       with self.assertRaisesRegex(
           TypeError, 'accepts 2 to 3 positional arguments'
       ):
-        x.set_attr('invalid__overwrite_schema_type', 1, None, 42)
+        x.set_attr('invalid__overwrite_schema_type', 1, None, 42)  # pytype: disable=wrong-arg-count
 
   def test_get_attr_ds_attr_name(self):
     db = bag()
@@ -1325,12 +1325,12 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           TypeError, 'expecting attr_name to be a DataSlice'
       ):
-        x.get_attr(db)
+        x.get_attr(db)  # pytype: disable=wrong-arg-types
     with self.subTest('py_list_attr_name'):
       with self.assertRaisesRegex(
           TypeError, 'expecting attr_name to be a DataSlice'
       ):
-        x.get_attr(['a', 'b'])
+        x.get_attr(['a', 'b'])  # pytype: disable=wrong-arg-types
 
   def test_set_attr_ds_attr_name(self):
     db = bag()
@@ -1560,8 +1560,10 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
-            r'objects must have ObjectId\(s\) as __schema__ attribute, got'
-            r' INT32'
+            re.escape(
+                r'objects must have ObjectId(s) as __schema__ attribute, got'
+                r' INT32'
+            )
         ),
     ):
       del obj.a
@@ -1703,7 +1705,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     ):
       x.b = [4, 5, 6]
     with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(2\)'
+        ValueError, re.escape('got DataSlice with shape JaggedShape(2)')
     ):
       x.b = [1, 2, ds([3, 4])]
     with self.assertRaisesRegex(
@@ -1721,12 +1723,12 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
       x.b = {'a': Obj()}
 
     with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
+        ValueError, re.escape('got DataSlice with shape JaggedShape(3)')
     ):
       x.b = {'a': ds([1, 2, 3])}
 
     with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
+        ValueError, re.escape('got DataSlice with shape JaggedShape(3)')
     ):
       x.b = {'a': {42: ds([1, 2, 3])}}
 
@@ -1764,7 +1766,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     with self.assertRaisesRegex(
         TypeError, 'expected bool for overwrite_schema, got int'
     ):
-      o.set_attrs(overwrite_schema=42)
+      o.set_attrs(overwrite_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_del_attr(self):
     db = bag()
@@ -1964,7 +1966,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     ):
       ds(1).reshape_as(ds([1, 2]))
     with self.assertRaisesRegex(TypeError, '`shape_from` must be a DataSlice'):
-      ds(1).reshape_as([])
+      ds(1).reshape_as([])  # pytype: disable=wrong-arg-types
 
   @parameterized.parameters(
       (ds(1), ds([1])),
@@ -2179,7 +2181,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         TypeError, 'expecting schema to be a DataSlice, '
                    'got koladata.types.data_bag.DataBag'
     ):
-      x.with_schema(db)
+      x.with_schema(db)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(ValueError, "schema's schema must be SCHEMA"):
       x.with_schema(x)
@@ -2209,7 +2211,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         TypeError, 'expecting schema to be a DataSlice, got '
                    'koladata.types.data_bag.DataBag'
     ):
-      x.set_schema(db)
+      x.set_schema(db)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(ValueError, "schema's schema must be SCHEMA"):
       x.set_schema(x)
@@ -2391,9 +2393,9 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     db = bag()
     non_dicts = db.new_shaped(jagged_shape.create_shape([3]), x=1)
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
-      non_dicts[set()] = 'b'
+      non_dicts[set()] = 'b'  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
-      _ = non_dicts[set()]
+      _ = non_dicts[set()]  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
     with self.assertRaisesRegex(
@@ -3148,27 +3150,27 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      _ = lst[1, 2]
+      _ = lst[1, 2]  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      _ = lst[[1, 2]]
+      _ = lst[[1, 2]]  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      lst[1, 2] = 42
+      lst[1, 2] = 42  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      lst[[1, 2]] = 42
+      lst[[1, 2]] = 42  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      del lst[1, 2]
+      del lst[1, 2]  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      del lst[[1, 2]]
+      del lst[[1, 2]]  # pytype: disable=unsupported-operands
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -3186,27 +3188,27 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      _ = dct['a', 'b']
+      _ = dct['a', 'b']  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      _ = dct[['a', 'b']]
+      _ = dct[['a', 'b']]  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      dct['a', 'b'] = 42
+      dct['a', 'b'] = 42  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      dct[['a', 'b']] = 42
+      dct[['a', 'b']] = 42  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      del dct['a', 'b']
+      del dct['a', 'b']  # pytype: disable=unsupported-operands
     with self.assertRaisesRegex(
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
-      del dct[['a', 'b']]
+      del dct[['a', 'b']]  # pytype: disable=unsupported-operands
 
   def test_magic_methods(self):
     x = ds([1, 2, 3])
@@ -4243,15 +4245,15 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     )
 
     with self.assertRaisesRegex(TypeError, 'depth must be an integer'):
-      d._repr_with_params(depth={})  # pylint: disable=protected-access
+      d._repr_with_params(depth={})  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError, 'item_limit must be an integer'):
-      d._repr_with_params(item_limit='abc')  # pylint: disable=protected-access
+      d._repr_with_params(item_limit='abc')  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError,
                                 'unbounded_type_max_len must be an integer'):
-      d._repr_with_params(unbounded_type_max_len={})  # pylint: disable=protected-access
+      d._repr_with_params(unbounded_type_max_len={})  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError,
                                 'format_html must be a boolean'):
-      d._repr_with_params(format_html=20)  # pylint: disable=protected-access
+      d._repr_with_params(format_html=20)  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
 
   def test_data_slice_docstrings(self):
     def has_docstring(method):

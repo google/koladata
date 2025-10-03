@@ -30,7 +30,7 @@ class SchemaItem(data_item.DataItem):
   def get_nofollowed_schema(self) -> data_item.DataItem:
     return _eval_op('kd.get_nofollowed_schema', self)
 
-  def new(self, **attrs) -> data_slice.DataSlice:
+  def new(self, **attrs) -> data_slice.DataSlice | arolla.Expr:
     """Returns a new Entity with this Schema."""
     if not self.has_bag():
       raise ValueError(

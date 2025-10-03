@@ -3633,7 +3633,7 @@ Args:
 Returns:
   A MASK DataItem.</code></pre>
 
-### `kd.lists.like(shape_and_mask_from: DataSlice, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.like}
+### `kd.lists.like(shape_and_mask_from: DataSlice, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.like}
 Aliases:
 
 - [kd.list_like](#kd.list_like)
@@ -3722,7 +3722,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `kd.lists.shaped(shape: JaggedShape, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.shaped}
+### `kd.lists.shaped(shape: JaggedShape, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.shaped}
 Aliases:
 
 - [kd.list_shaped](#kd.list_shaped)
@@ -3744,7 +3744,7 @@ Args:
 Returns:
   A DataSlice with the lists.</code></pre>
 
-### `kd.lists.shaped_as(shape_from: DataSlice, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.shaped_as}
+### `kd.lists.shaped_as(shape_from: DataSlice, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.lists.shaped_as}
 Aliases:
 
 - [kd.list_shaped_as](#kd.list_shaped_as)
@@ -10004,7 +10004,7 @@ Returns:
 
 Alias for [kd.lists.list_append_update](#kd.lists.list_append_update) operator.
 
-### `kd.list_like(shape_and_mask_from: DataSlice, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_like}
+### `kd.list_like(shape_and_mask_from: DataSlice, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_like}
 
 Alias for [kd.lists.like](#kd.lists.like) operator.
 
@@ -10012,11 +10012,11 @@ Alias for [kd.lists.like](#kd.lists.like) operator.
 
 Alias for [kd.schema.list_schema](#kd.schema.list_schema) operator.
 
-### `kd.list_shaped(shape: JaggedShape, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_shaped}
+### `kd.list_shaped(shape: JaggedShape, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_shaped}
 
 Alias for [kd.lists.shaped](#kd.lists.shaped) operator.
 
-### `kd.list_shaped_as(shape_from: DataSlice, /, items: list[Any] | DataSlice | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_shaped_as}
+### `kd.list_shaped_as(shape_from: DataSlice, /, items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list_shaped_as}
 
 Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
@@ -10024,7 +10024,7 @@ Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
 Alias for [kd.lists.size](#kd.lists.size) operator.
 
-### `kd.loads(x: bytes) -> DataSlice | DataBag` {#kd.loads}
+### `kd.loads(x: bytes) -> Any` {#kd.loads}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag.</code></pre>
 
@@ -13316,7 +13316,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of schema triples in the DataBag.</code></pre>
 
-### `DataBag.uu(seed, *, schema=None, overwrite_schema=False, **kwargs)` {#DataBag.uu}
+### `DataBag.uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)` {#DataBag.uu}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -13347,11 +13347,11 @@ Returns:
   data_slice.DataSlice
     </code></pre>
 
-### `DataBag.uu_schema(seed, **attrs)` {#DataBag.uu_schema}
+### `DataBag.uu_schema(seed='', **attrs)` {#DataBag.uu_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new uuschema from given types of attrs.</code></pre>
 
-### `DataBag.uuobj(seed, **kwargs)` {#DataBag.uuobj}
+### `DataBag.uuobj(seed='', **kwargs)` {#DataBag.uuobj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates object(s) whose ids are uuid(s) with the provided attributes.
 

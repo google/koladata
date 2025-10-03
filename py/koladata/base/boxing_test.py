@@ -228,15 +228,15 @@ class BoxingTest(parameterized.TestCase):
 
   def test_invalid_schema_argument_usage(self):
     with self.assertRaisesRegex(TypeError, "got an unexpected keyword 'c'"):
-      ds(None, c=12)
+      ds(None, c=12)  # pytype: disable=wrong-keyword-args
 
     with self.assertRaisesRegex(TypeError, "got an unexpected keyword 'c'"):
-      ds(None, c=12, schema=INT64)
+      ds(None, c=12, schema=INT64)  # pytype: disable=wrong-keyword-args
 
     with self.assertRaisesRegex(
         TypeError, r'got multiple values for argument \'schema\''
     ):
-      ds([1, 2, 3], INT64, schema=INT32)
+      ds([1, 2, 3], INT64, schema=INT32)  # pytype: disable=duplicate-keyword-argument
 
   def test_roundtrip_for_schema(self):
     inputs = [INT32, STRING, OBJECT]
@@ -496,7 +496,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments'
     ):
-      ds(1, 2, 3)
+      ds(1, 2, 3)  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got .*QType'
     ):

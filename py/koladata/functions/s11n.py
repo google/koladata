@@ -80,7 +80,7 @@ def dumps(
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 
-def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
+def loads(x: bytes) -> arolla.AnyQValue:
   """Deserializes a DataSlice or a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
   if not _isinstance_of_supported_type(result):

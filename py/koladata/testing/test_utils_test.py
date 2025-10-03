@@ -276,7 +276,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_allclose_error(self):
     with self.assertRaisesRegex(TypeError, 'expected DataSlice'):
-      test_utils.assert_allclose(4, 6)
+      test_utils.assert_allclose(4, 6)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):
       test_utils.assert_allclose(
           ds([[2.71], [2.71]]),
@@ -421,7 +421,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_unordered_equal_error(self):
     with self.assertRaisesRegex(TypeError, 'expected DataSlice'):  # pylint: disable=g-error-prone-assert-raises
-      test_utils.assert_unordered_equal(4, 6)
+      test_utils.assert_unordered_equal(4, 6)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(AssertionError, 'have different shapes'):  # pylint: disable=g-error-prone-assert-raises
       test_utils.assert_unordered_equal(ds(1), ds([1]))
     with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises

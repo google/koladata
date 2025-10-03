@@ -103,7 +103,8 @@ class ListItemTest(parameterized.TestCase):
   def test_iter(self):
     db = bag()
     l = db.list([1, "2", 1.1])
-    self.assertTrue(inspect.isgenerator(iter(l)))
+    it = iter(l)
+    self.assertTrue(inspect.isgenerator(it))
     self.assertEqual([i.internal_as_py() for i in l], l[:].internal_as_py())
 
   def test_contains(self):

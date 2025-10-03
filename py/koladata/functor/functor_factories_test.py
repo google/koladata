@@ -132,7 +132,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting signature to be a DataSlice, got int'
     ):
-      _ = functor_factories.expr_fn(
+      _ = functor_factories.expr_fn(  # pytype: disable=wrong-arg-types
           returns=I.x,
           signature=57,
       )

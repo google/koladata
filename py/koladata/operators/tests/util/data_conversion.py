@@ -53,7 +53,7 @@ def _get_jagged_shape_from_edge(
       assert False, 'unreachable'
 
 
-def koda_from_arolla(qvalue: arolla.QValue) -> data_slice.DataSlice:
+def koda_from_arolla(qvalue: arolla.QValue) -> arolla.AnyQValue:
   """Converts arolla data to Koda."""
   qtype = qvalue.qtype
   if qtype in _PASSTHROUGH_QTYPES:

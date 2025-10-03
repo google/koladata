@@ -237,11 +237,11 @@ class ListShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting item_schema to be a DataSlice, got int'
     ):
-      fns.list_shaped(shape, item_schema=42)
+      fns.list_shaped(shape, item_schema=42)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.list_shaped(shape, schema=42)
+      fns.list_shaped(shape, schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(

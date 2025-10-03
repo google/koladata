@@ -293,7 +293,7 @@ def _type_mismatch_error_message(
 
 def _verify_constraint_eager(
     constraint: TypeConstraint,
-    actual_schema: schema_item.SchemaItem,
+    actual_schema: schema_item.SchemaItem | data_slice.DataSlice,
     arg_key: Optional[str],
     path: str = '',
 ):
@@ -425,12 +425,12 @@ def _with_lazy_attrribute_verification(
 
 
 def _with_lazy_constraint_verification(
-    result: arolla.Expr,
+    result: arolla.Expr | data_slice.DataSlice,
     constraint: TypeConstraint,
-    actual_schema: arolla.Expr,
+    actual_schema: arolla.Expr | data_slice.DataSlice,
     arg_key: Optional[str],
     path: str = '',
-) -> arolla.Expr:
+) -> arolla.Expr | data_slice.DataSlice:
   """Processes a type constraint verification in tracing mode.
 
   Args:

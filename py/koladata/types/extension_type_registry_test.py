@@ -95,7 +95,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         'there is no registered extension type corresponding to the QType'
         ' INT32',
     ):
-      extension_type_registry.wrap(ds([1, 2, 3]), arolla.INT32)
+      extension_type_registry.wrap(ds([1, 2, 3]), arolla.INT32)  # pytype: disable=wrong-arg-types
 
   def test_wrap_not_registered(self):
     obj = objects.Object(x=ds(1), y=ds(2))

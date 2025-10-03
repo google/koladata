@@ -1681,7 +1681,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      fns.from_py(
+      fns.from_py(  # pytype: disable=wrong-arg-types
           [1, 2],
           dict_as_obj=False,
           itemid=42,

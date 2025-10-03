@@ -276,15 +276,15 @@ class DictTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting key_schema to be a DataSlice, got int'
     ):
-      fns.dict(key_schema=42)
+      fns.dict(key_schema=42)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting value_schema to be a DataSlice, got int'
     ):
-      fns.dict(value_schema=42)
+      fns.dict(value_schema=42)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.dict(schema=42)
+      fns.dict(schema=42)  # pytype: disable=wrong-arg-types
 
   def test_dict_schema_error_message(self):
     schema = kde.dict_schema(

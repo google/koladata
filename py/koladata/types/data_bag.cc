@@ -1682,7 +1682,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uu(seed, *, schema=None, overwrite_schema=False, **kwargs)\n"
+     "uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)\n"
      "--\n\n"
      R"""(Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -1714,7 +1714,7 @@ Returns:
     )"""},
     {"uuobj", (PyCFunction)PyDataBag_uu_obj_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uuobj(seed, **kwargs)\n"
+     "uuobj(seed='', **kwargs)\n"
      "--\n\n"
      R"""(Creates object(s) whose ids are uuid(s) with the provided attributes.
 
@@ -1745,7 +1745,7 @@ Returns:
      "Creates new schema object with given types of attrs."},
     {"uu_schema", (PyCFunction)PyDataBag_uu_schema_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uu_schema(seed, **attrs)\n"
+     "uu_schema(seed='', **attrs)\n"
      "--\n\n"
      "Creates new uuschema from given types of attrs."},
     {"named_schema", (PyCFunction)PyDataBag_named_schema_factory,

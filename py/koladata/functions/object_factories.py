@@ -75,7 +75,7 @@ def list_(
 def list_like(
     shape_and_mask_from: data_slice.DataSlice,
     /,
-    items: list[Any] | data_slice.DataSlice | None = None,
+    items: Any | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
@@ -118,7 +118,7 @@ def list_like(
 def list_shaped(
     shape: jagged_shape.JaggedShape,
     /,
-    items: list[Any] | data_slice.DataSlice | None = None,
+    items: Any | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
@@ -160,7 +160,7 @@ def list_shaped(
 def list_shaped_as(
     shape_from: data_slice.DataSlice,
     /,
-    items: list[Any] | data_slice.DataSlice | None = None,
+    items: Any | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,

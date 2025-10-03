@@ -295,7 +295,7 @@ class NewLikeTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      fns.new_like(ds(1), a=1, schema=5)
+      fns.new_like(ds(1), a=1, schema=5)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
