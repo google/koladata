@@ -37,9 +37,9 @@ class TestEagerExecutor final : public Executor {
   std::string Repr() const noexcept final { return "test_eager_executor"; }
 };
 
-template <int LambdaPayloadSize>
+template <int PayloadSize>
 void BM_EagerExecutor_Schedule(benchmark::State& state) {
-  using Payload = std::array<char, LambdaPayloadSize>;
+  using Payload = std::array<char, PayloadSize>;
   auto executor = std::make_shared<TestEagerExecutor>();
   for (auto _ : state) {
     executor->Schedule(
@@ -47,14 +47,21 @@ void BM_EagerExecutor_Schedule(benchmark::State& state) {
   }
 }
 
-void BM_EagerExecutor_Schedule_WithContextGuard(benchmark::State& state) {
-  ExecutorPtr some_executor = std::make_shared<TestEagerExecutor>();
+void BM_EagerExecutor_Schedule_WithSmallContextGuard(benchmark::State& state) {
   auto executor = std::make_shared<TestEagerExecutor>(
-      [some_executor = std::move(some_executor)](ContextGuard& context_guard) {
-        context_guard.init<int>();
+      [](ContextGuard& context_guard) { context_guard.init<int>(); });
+  for (auto _ : state) {
+    executor->Schedule([] {});
+  }
+}
+
+void BM_EagerExecutor_Schedule_WithLargeContextGuard(benchmark::State& state) {
+  auto executor =
+      std::make_shared<TestEagerExecutor>([](ContextGuard& context_guard) {
+        context_guard.init<std::array<char, 96>>();
       });
   for (auto _ : state) {
-    executor->Schedule([]() mutable { benchmark::DoNotOptimize(true); });
+    executor->Schedule([] {});
   }
 }
 
@@ -64,7 +71,8 @@ BENCHMARK(BM_EagerExecutor_Schedule<24>);
 BENCHMARK(BM_EagerExecutor_Schedule<32>);
 BENCHMARK(BM_EagerExecutor_Schedule<40>);
 
-BENCHMARK(BM_EagerExecutor_Schedule_WithContextGuard);
+BENCHMARK(BM_EagerExecutor_Schedule_WithSmallContextGuard);
+BENCHMARK(BM_EagerExecutor_Schedule_WithLargeContextGuard);
 
 }  // namespace
 }  // namespace koladata::functor::parallel

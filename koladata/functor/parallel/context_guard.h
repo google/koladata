@@ -18,40 +18,46 @@
 #include <cstddef>
 #include <memory>
 
+#include "absl/log/check.h"
 
 namespace koladata::functor::parallel {
 
 // Encapsulation of an abstract RAII-based scope guard.
-class ContextGuard {
+class ContextGuard final {
  public:
-  static constexpr size_t kBufferSize = 128;
-  static constexpr size_t kBufferAlign = alignof(std::max_align_t);
+  ContextGuard() = default;
+
+  ~ContextGuard() {
+    if (destructor_fn_ != nullptr) {
+      destructor_fn_(buffer_);
+    }
+  }
 
   template <typename T, typename... Args>
   void init(Args&&... args) {
-    struct ImplT : Impl {
-      T t;
-      explicit ImplT(Args&&... args) : t(std::forward<Args>(args)...) {}
-    };
-    static_assert(sizeof(ImplT) <= kBufferSize,
-                  "not enough space provided in the ContextGuard buffer.");
-    placeholder_.reset(new (&buffer_) ImplT(std::forward<Args>(args)...));
+    DCHECK(destructor_fn_ == nullptr);
+    if constexpr (sizeof(T) <= sizeof(buffer_)) {
+      new (buffer_) T(std::forward<Args>(args)...);
+      destructor_fn_ = [](void* buffer) noexcept {
+        static_cast<T*>(buffer)->~T();
+      };
+    } else {
+      static_assert(sizeof(std::unique_ptr<T>) <= sizeof(buffer_));
+      init<std::unique_ptr<T>>(new T(std::forward<Args>(args)...));
+    }
   }
 
+  ContextGuard(const ContextGuard&) = delete;
+  ContextGuard operator=(const ContextGuard&) = delete;
+
  private:
-  struct Impl {
-    virtual ~Impl() = default;
-  };
+  using DestructorFn = void (*)(void*) noexcept;
+  static constexpr int kBufferSize = 3 * sizeof(void*);
 
-  struct Deleter {
-    void operator()(Impl* p) {
-      p->~Impl();
-    }
-  };
-
-  alignas(kBufferSize) char buffer_[kBufferSize];
-  std::unique_ptr<Impl, Deleter> placeholder_;
+  DestructorFn destructor_fn_ = nullptr;
+  alignas(std::max_align_t) char buffer_[kBufferSize];
 };
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_CONTEXT_GUARD__H_

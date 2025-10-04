@@ -1047,6 +1047,7 @@ cc_proto_library(
 cc_library(
     name = "context_guard",
     hdrs = ["context_guard.h"],
+    deps = ["@com_google_absl//absl/log:check"],
 )
 
 cc_test(

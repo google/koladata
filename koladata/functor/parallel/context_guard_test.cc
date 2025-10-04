@@ -53,10 +53,37 @@ TEST(ContextGuardTest, TestScopeGuard) {
 }
 
 TEST(ContextGuardTest, Uninitialized) {
+  // Test that uninitialized ContextGuards don't cause any problems.
+  ContextGuard context_guard;
+}
+
+TEST(ContextGuardTest, SmallScopeGuard) {
+  static int counter = 0;
+  struct ScopeGuard {
+    ScopeGuard() { ++counter; }
+    ~ScopeGuard() { --counter; }
+  };
   {
-    // Test that uninitialized ContextGuards don't cause any problems.
     ContextGuard context_guard;
+    context_guard.init<ScopeGuard>();
+    EXPECT_EQ(counter, 1);
   }
+  EXPECT_EQ(counter, 0);
+}
+
+TEST(ContextGuardTest, LargeScopeGuard) {
+  static int counter = 0;
+  struct ScopeGuard {
+    ScopeGuard() { ++counter; }
+    ~ScopeGuard() { --counter; }
+    char buffer[1024] = {'h', 'e', 'l', 'l', 'o'};
+  };
+  {
+    ContextGuard context_guard;
+    context_guard.init<ScopeGuard>();
+    EXPECT_EQ(counter, 1);
+  }
+  EXPECT_EQ(counter, 0);
 }
 
 }  // namespace
