@@ -218,7 +218,7 @@ class ExprEval(absltest.TestCase):
 
   def test_self_when_not_specified(self):
     res = expr_eval.eval(I.self)
-    testing.assert_equal(res, expr_eval.UNSPECIFIED_SELF_INPUT)
+    testing.assert_equal(res, expr_eval.UNSPECIFIED_SELF_INPUT.get())
     # We can improve this error message later if needed.
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -255,11 +255,9 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     )
 
   def test_unspecified_default_value_str(self):
-    # We can improve this later if needed, this is the best we could do without
-    # custom repr code.
     self.assertEqual(
         str(expr_eval.UNSPECIFIED_SELF_INPUT),
-        'Entity(self_not_specified=present)',
+        'UNSPECIFIED_SELF_INPUT',
     )
 
   def test_cancellation(self):

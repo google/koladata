@@ -119,55 +119,79 @@ class ListItemTest(parameterized.TestCase):
           "int32",
           [1, 2, 3],
           "List[1, 2, 3]",
-          r"DataItem\(List\[1, 2, 3\], schema: LIST\[INT32\]\)",
+          (
+              r"DataItem\(List\[1, 2, 3\], schema: LIST\[INT32\], bag_id:"
+              r" \$[a-z0-9]+\)"
+          ),
       ),
       (
           "int64",
           [arolla.int64(1), arolla.int64(2), arolla.int64(3)],
           "List[1, 2, 3]",
-          r"DataItem\(List\[1, 2, 3\], schema: LIST\[INT64\]\)",
+          (
+              r"DataItem\(List\[1, 2, 3\], schema: LIST\[INT64\], bag_id:"
+              r" \$[a-z0-9]+\)"
+          ),
       ),
       (
           "float32",
           [0.618, 114.514],
           "List[0.618, 114.514]",
-          r"DataItem\(List\[0.618, 114.514\], schema: LIST\[FLOAT32\]\)",
+          (
+              r"DataItem\(List\[0.618, 114.514\], schema: LIST\[FLOAT32\],"
+              r" bag_id: \$[a-z0-9]+\)"
+          ),
       ),
       (
           "float64",
           [arolla.float64(0.618), arolla.float64(114.514)],
           "List[0.618, 114.514]",
-          (r"DataItem\(List\[0.618, 114.514\], schema:" r" LIST\[FLOAT64\]\)"),
+          (
+              r"DataItem\(List\[0.618, 114.514\], schema:"
+              r" LIST\[FLOAT64\], bag_id: \$[a-z0-9]+\)"
+          ),
       ),
       (
           "boolean",
           [True, False],
           "List[True, False]",
-          r"DataItem\(List\[True, False\], schema: LIST\[BOOLEAN\]\)",
+          (
+              r"DataItem\(List\[True, False\], schema: LIST\[BOOLEAN\], bag_id:"
+              r" \$[a-z0-9]+\)"
+          ),
       ),
       (
           "mask",
           [arolla.unit(), arolla.optional_unit(None)],
           "List[present, missing]",
-          r"DataItem\(List\[present, missing\], schema: LIST\[MASK\]\)",
+          (
+              r"DataItem\(List\[present, missing\], schema: LIST\[MASK\],"
+              r" bag_id: \$[a-z0-9]+\)"
+          ),
       ),
       (
           "text",
           ["a", "b"],
           "List['a', 'b']",
-          r"DataItem\(List\['a', 'b'\], schema: LIST\[STRING\]\)",
+          (
+              r"DataItem\(List\['a', 'b'\], schema: LIST\[STRING\], bag_id:"
+              r" \$[a-z0-9]+\)"
+          ),
       ),
       (
           "bytes",
           [b"a", b"b"],
           "List[b'a', b'b']",
-          r"DataItem\(List\[b'a', b'b'\], schema: LIST\[BYTES\]\)",
+          (
+              r"DataItem\(List\[b'a', b'b'\], schema: LIST\[BYTES\], bag_id:"
+              r" \$[a-z0-9]+\)"
+          ),
       ),
       (
           "empty",
           [],
           "List[]",
-          r"DataItem\(List\[\], schema: LIST\[NONE\]\)",
+          r"DataItem\(List\[\], schema: LIST\[NONE\], bag_id: \$[a-z0-9]+\)",
       ),
       (
           "mixed_data",
@@ -175,7 +199,7 @@ class ListItemTest(parameterized.TestCase):
           "List[1, 'abc', True, float64{1.1}, int64{1}]",
           (
               r"DataItem\(List\[1, 'abc', True, float64\{1.1\}, int64\{1\}\],"
-              r" schema: LIST\[OBJECT\]\)"
+              r" schema: LIST\[OBJECT\], bag_id: \$[a-z0-9]+\)"
           ),
       ),
       (
@@ -184,7 +208,7 @@ class ListItemTest(parameterized.TestCase):
           "List[List[1, 2], List[3, 4, 5]]",
           (
               r"DataItem\(List\[List\[1, 2\], List\[3, 4, 5\]\], schema:"
-              r" LIST\[LIST\[INT32\]\]\)"
+              r" LIST\[LIST\[INT32\]\], bag_id: \$[a-z0-9]+\)"
           ),
       ),
   )
@@ -197,7 +221,11 @@ class ListItemTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     x = db.obj(db.list([1, 2, 3]))
     self.assertEqual(str(x), "List[1, 2, 3]")
-    self.assertRegex(repr(x), r"DataItem\(List\[1, 2, 3\], schema: OBJECT\)")
+    bag_id = "$" + str(db.fingerprint)[-4:]
+    self.assertEqual(
+        repr(x),
+        f"DataItem(List[1, 2, 3], schema: OBJECT, bag_id: {bag_id})",
+    )
 
 
 if __name__ == "__main__":

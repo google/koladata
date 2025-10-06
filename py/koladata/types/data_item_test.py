@@ -262,11 +262,6 @@ class DataItemTest(parameterized.TestCase):
       ),
       ('none', ds(None), 'DataItem(None, schema: NONE)'),
       (
-          'with_bag',
-          ds(12).with_bag(data_bag.DataBag.empty_mutable()),
-          'DataItem(12, schema: INT32)',
-      ),
-      (
           'large_string_truncation',
           ds('a' * 1000),
           f"DataItem('{'a' * 128}'...'{'a' * 128}', schema: STRING)",
@@ -279,6 +274,14 @@ class DataItemTest(parameterized.TestCase):
   )
   def test_repr(self, item, expected_repr):
     self.assertEqual(repr(item), expected_repr)
+
+  def test_repr_with_bag(self):
+    db = data_bag.DataBag.empty()
+    item = ds(12).with_bag(db)
+    bag_id = '$' + str(db.fingerprint)[-4:]
+    self.assertEqual(
+        repr(item), f'DataItem(12, schema: INT32, bag_id: {bag_id})'
+    )
 
   def test_call(self):
     fn = functor_factories.expr_fn(I.x * I.y)

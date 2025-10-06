@@ -650,11 +650,12 @@ class DataSliceTest(parameterized.TestCase):
   def test_repr_entity_and_obj(self):
     db = bag()
     x = db.new(x=ds([1, 2, 3]))
+    bag_id = '$' + str(db.fingerprint)[-4:]
     self.assertEqual(
         repr(x),
         (
             'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
-            ' ENTITY(x=INT32))'
+            f' ENTITY(x=INT32), bag_id: {bag_id})'
         ),
     )
     self.assertEqual(
@@ -667,7 +668,7 @@ class DataSliceTest(parameterized.TestCase):
         repr(y),
         (
             'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
-            ' foo(x=INT32))'
+            f' foo(x=INT32), bag_id: {bag_id})'
         ),
     )
     self.assertEqual(
@@ -678,7 +679,8 @@ class DataSliceTest(parameterized.TestCase):
     z = db.obj(x=ds([1, 2, 3]))
     self.assertEqual(
         repr(z),
-        'DataSlice([Obj(x=1), Obj(x=2), Obj(x=3)], schema: OBJECT)',
+        'DataSlice([Obj(x=1), Obj(x=2), Obj(x=3)], schema: OBJECT, bag_id:'
+        f' {bag_id})',
     )
     self.assertEqual(
         str(z),
@@ -688,15 +690,16 @@ class DataSliceTest(parameterized.TestCase):
   def test_repr_large_entity_and_obj(self):
     db = bag()
     x = db.new(x=ds([[x for x in range(5)] for y in range(4)]))
+    bag_id = '$' + str(db.fingerprint)[-4:]
     self.assertEqual(
         repr(x),
-        'DataSlice(attrs: [x], schema: ENTITY(x=INT32))',
+        f'DataSlice(attrs: [x], schema: ENTITY(x=INT32), bag_id: {bag_id})',
     )
 
     y = db.obj(x=ds([[x for x in range(5)] for y in range(4)]))
     self.assertEqual(
         repr(y),
-        'DataSlice(attrs: [x], schema: OBJECT)',
+        f'DataSlice(attrs: [x], schema: OBJECT, bag_id: {bag_id})',
     )
 
   # Special case for itemid, since it includes a non-deterministic id.
@@ -4297,7 +4300,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               'DataItem(Functor'
               ' DataSliceListSlicingTest.<lambda>[x](returns=I.x), schema:'
-              ' OBJECT)'
+              ' OBJECT'
           ],
       ),
       (
@@ -4306,7 +4309,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
               ),
           ],
       ),
@@ -4335,7 +4338,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
-                  ' *unused_args](returns=I.x), schema: OBJECT)'
+                  ' *unused_args](returns=I.x), schema: OBJECT'
               ),
           ],
       ),
@@ -4345,7 +4348,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
-                  ' **unused_kwargs](returns=I.x), schema: OBJECT)'
+                  ' **unused_kwargs](returns=I.x), schema: OBJECT'
               ),
           ],
       ),
@@ -4379,7 +4382,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, /,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
               ),
           ],
       ),
@@ -4389,7 +4392,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, y,'
-                  ' /](returns=(I.x + I.y)📍), schema: OBJECT)'
+                  ' /](returns=(I.x + I.y)📍), schema: OBJECT'
               ),
           ],
       ),
@@ -4399,7 +4402,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, *,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
               ),
           ],
       ),
@@ -4409,7 +4412,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[*, x,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
               ),
           ],
       ),

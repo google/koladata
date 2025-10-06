@@ -24,7 +24,21 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 
 I = input_container.InputContainer('I')
-UNSPECIFIED_SELF_INPUT = _py_expr_eval_py_ext.unspecified_self_input()
+
+
+class _UnspecifiedSelfInput:
+
+  def __init__(self):
+    self._input = _py_expr_eval_py_ext.unspecified_self_input()
+
+  def get(self):
+    return self._input
+
+  def __repr__(self):
+    return 'UNSPECIFIED_SELF_INPUT'
+
+
+UNSPECIFIED_SELF_INPUT = _UnspecifiedSelfInput()
 
 
 def freeze_data_slice_or_databag(x: Any) -> Any:
@@ -64,6 +78,8 @@ def eval_(
     raise ValueError(
         'I.self must be passed as a positional argument to kd.eval()'
     )
+  if self_input is UNSPECIFIED_SELF_INPUT:
+    self_input = self_input.get()
   data_slice_values['self'] = py_boxing.as_qvalue(self_input)
   return _py_expr_eval_py_ext.eval_expr(
       py_boxing.as_expr(expr), **data_slice_values

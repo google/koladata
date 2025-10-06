@@ -5705,7 +5705,8 @@ TEST(DataSliceTest, Repr) {
   auto db = DataBag::EmptyMutable();
   auto ds = test::DataItem(1, db);
   EXPECT_THAT(arolla::Repr(ds),
-              Eq(absl::StrFormat("DataItem(1, schema: INT32)")));
+              Eq(absl::StrFormat("DataItem(1, schema: INT32, bag_id: %s)",
+                                 GetBagIdRepr(db))));
 }
 
 TEST(DataSliceCastingTest, ToIn64_Entity) {

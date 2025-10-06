@@ -92,10 +92,12 @@ class DictItemTest(parameterized.TestCase):
       value_str = str(value)
       value_str = value_str if value_str != 'a' else "'a'"
       self.assertEqual(str(d), f'Dict{{{key_str}={value_str}}}')
+      bag_id = '$' + str(db.fingerprint)[-4:]
       self.assertEqual(
           repr(d),
           f'DataItem(Dict{{{key_str}={value_str}}}, schema:'
-          f' DICT{{{str(key.get_schema())}, {str(value.get_schema())}}})',
+          f' DICT{{{str(key.get_schema())}, {str(value.get_schema())}}}, '
+          f'bag_id: {bag_id})',
       )
 
   def test_len(self):

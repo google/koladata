@@ -1122,10 +1122,18 @@ class ExtensionTypesTest(parameterized.TestCase):
       )
 
     with self.subTest('lazy'):
-      expected_repr = """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+      expected_repr = (
+          re.escape(
+              """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
   returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL[A]), DataItem('x', schema: STRING), DATA_SLICE),
-), schema: OBJECT)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
-      self.assertEqual(repr(A(I.x, I.y)), expected_repr)
+), schema: OBJECT, bag_id: $"""
+          )
+          + '[a-z0-9]+'
+          + re.escape(
+              """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
+          )
+      )
+      self.assertRegex(repr(A(I.x, I.y)), expected_repr)
 
   def test_default_repr_with_unknown_attr(self):
     @ext_types.extension_type()
@@ -1171,10 +1179,18 @@ class ExtensionTypesTest(parameterized.TestCase):
       self.assertEqual(repr(A(1, 2)), expected_repr)
 
     with self.subTest('lazy'):
-      expected_repr = """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
+      expected_repr = (
+          re.escape(
+              """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
   returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL[A]), DataItem('x', schema: STRING), DATA_SLICE),
-), schema: OBJECT)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
-      self.assertEqual(repr(A(I.x, I.y)), expected_repr)
+), schema: OBJECT, bag_id: $"""
+          )
+          + '[a-z0-9]+'
+          + re.escape(
+              """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
+          )
+      )
+      self.assertRegex(repr(A(I.x, I.y)), expected_repr)
 
   def test_post_init(self):
     @ext_types.extension_type()

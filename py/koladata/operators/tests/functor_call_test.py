@@ -332,10 +332,14 @@ class FunctorCallTest(parameterized.TestCase):
       (
           kde.functor.call(functions.trace_py_fn(lambda x: x + 1), ds(1)),
           (
-              'DataItem(Functor FunctorCallTest.<lambda>[x](returns=(I.x +'
-              ' DataItem(1, schema: INT32))📍), schema: OBJECT)(DataItem(1,'
-              ' schema: INT32))'
+              re.escape(
+                  'DataItem(Functor FunctorCallTest.<lambda>[x](returns=(I.x +'
+                  ' DataItem(1, schema: INT32))📍), schema: OBJECT, bag_id: $'
+              )
+              + '[a-z0-9]+'
+              + re.escape(')(DataItem(1, schema: INT32))')
           ),
+          True,
       ),
       # Test fallbacks to default repr
       (
@@ -366,8 +370,10 @@ class FunctorCallTest(parameterized.TestCase):
           ),
       ),
   )
-  def test_repr(self, expr, expected_repr):
-    self.assertEqual(repr(expr), expected_repr)
+  def test_repr(self, expr, expected_regex, escaped=False):
+    if not escaped:
+      expected_regex = re.escape(expected_regex)
+    self.assertRegex(repr(expr), expected_regex)
 
 
 if __name__ == '__main__':
