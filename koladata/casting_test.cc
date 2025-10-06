@@ -15,7 +15,6 @@
 #include "koladata/casting.h"
 
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <vector>
 
