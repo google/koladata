@@ -195,11 +195,6 @@ def _assert_allowed_no_tag(original_class: type[Any], attr: str):
       )
 
 
-_FORBIDDEN_ATTRS = frozenset({
-    'with_attrs',
-})
-
-
 def _get_signature(original_cls: type[Any]) -> inspect.Signature:
   """Creates a signature for the original_cls init fn."""
   params = {}
@@ -223,13 +218,8 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
   sig = _get_signature(original_class)
   attributes = set(sig.parameters)
-  for attr in attributes:
-    if attr in _FORBIDDEN_ATTRS:
-      raise ValueError(f'forbidden attribute: {attr}')
   non_virtual_methods, virtual_methods = {}, {}
   for attr in dir(original_class):
-    if attr in _FORBIDDEN_ATTRS:
-      raise ValueError(f'forbidden attribute: {attr}')
     if attr in attributes:
       continue
     method = getattr(original_class, attr)
@@ -373,7 +363,9 @@ def _with_attrs_qvalue(
 def _with_attrs(
     ext: Any, attrs: Mapping[str, Any], field_annotations: Mapping[str, Any]
 ) -> arolla.Expr | arolla.AnyQValue:
-  if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
+  if isinstance(ext, arolla.Expr) or any(
+      isinstance(attr, arolla.Expr) for attr in attrs.values()
+  ):
     return _with_attrs_expr(ext, attrs, field_annotations)
   else:
     return _with_attrs_qvalue(ext, attrs, field_annotations)
@@ -415,9 +407,10 @@ def _make_qvalue_class(
   qvalue_class_attrs |= class_meta.non_virtual_methods
   for name, virtual_method in virtual_methods.items():
     qvalue_class_attrs[name] = virtual_method.method
-  qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs(
-      self, attrs, class_meta.field_annotations
-  )
+  if 'with_attrs' not in qvalue_class_attrs:
+    qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs(
+        self, attrs, class_meta.field_annotations
+    )
   if '__repr__' not in qvalue_class_attrs:
     # TODO: Consider registering this to C++ instead, s.t. all
     # extension types get printed nicely, not just QValues in python.
@@ -446,9 +439,12 @@ def _make_expr_view_class(
   expr_view_class_attrs |= expr_view_methods
   for name, virtual_method in virtual_methods.items():
     expr_view_class_attrs[name] = virtual_method.method
-  expr_view_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs_expr(
-      self, attrs, class_meta.field_annotations
-  )
+  if 'with_attrs' not in expr_view_class_attrs:
+    expr_view_class_attrs['with_attrs'] = (
+        lambda self, **attrs: _with_attrs_expr(
+            self, attrs, class_meta.field_annotations
+        )
+    )
   return type(
       f'{class_meta.name}_ExprView', (view.BaseKodaView,), expr_view_class_attrs
   )
@@ -549,8 +545,8 @@ def extension_type(
   - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
     `JaggedShape`, and other extension types. Additionally, any QType can be
     used as an annotation.
-  - The `with_attrs` method is automatically added, allowing for attributes to
-    be dynamically updated.
+  - The `with_attrs` method is automatically added if not already present,
+    allowing for attributes to be dynamically updated.
   - If the class implements the `_extension_post_init(self)` method, it will be
     called as the final step of instantiating the extension through
     `MyExtension(...)`. The method should take `self`, do the necessary post

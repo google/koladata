@@ -1077,29 +1077,32 @@ class ExtensionTypesTest(parameterized.TestCase):
     ):
       ext_types.extension_type()(C)
 
-  def test_forbidden_attrs(self):
+  def test_custom_with_attrs_field(self):
 
+    @ext_types.extension_type()
     class A:
       with_attrs: data_slice.DataSlice
 
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'forbidden attribute: with_attrs',
-    ):
-      ext_types.extension_type()(A)
+    with self.subTest('eager'):
+      testing.assert_equal(A(ds(1)).with_attrs, ds(1))
 
-  def test_forbidden_methods(self):
+    with self.subTest('lazy'):
+      testing.assert_equal(A(I.x).with_attrs.eval(x=ds(1)), ds(1))
 
+  def test_custom_with_attrs_method(self):
+
+    @ext_types.extension_type()
     class A:
+      x: schema_constants.INT32
 
-      def with_attrs(self):
-        pass
+      def with_attrs(self, **kwargs):
+        return kwargs['x'] + self.x
 
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'forbidden attribute: with_attrs',
-    ):
-      ext_types.extension_type()(A)
+    with self.subTest('eager'):
+      testing.assert_equal(A(1).with_attrs(x=2), ds(3))
+
+    with self.subTest('lazy'):
+      testing.assert_equal(A(I.x).with_attrs(x=2).eval(x=1), ds(3))
 
   def test_default_repr(self):
     @ext_types.extension_type()

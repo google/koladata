@@ -2010,8 +2010,8 @@ Note:
 - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
   `JaggedShape`, and other extension types. Additionally, any QType can be
   used as an annotation.
-- The `with_attrs` method is automatically added, allowing for attributes to
-  be dynamically updated.
+- The `with_attrs` method is automatically added if not already present,
+  allowing for attributes to be dynamically updated.
 - If the class implements the `_extension_post_init(self)` method, it will be
   called as the final step of instantiating the extension through
   `MyExtension(...)`. The method should take `self`, do the necessary post
