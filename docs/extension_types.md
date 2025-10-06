@@ -103,9 +103,35 @@ updated_p_value = p_value.with_attrs(x=6.0)
 print(updated_p_value.x) # Output: 6.0
 ```
 
-The `_extension_post_init` method can be used to implement custom initialization
-behavior in case the automatic implicit casting based on annotations is not
-enough. If defined, it will be called as the final step upon initialization:
+The `_extension_arg_boxing` classmethod and `_extension_post_init` method can be
+used to implement custom initialization behavior in case the automatic implicit
+casting based on annotations is not enough.
+
+If the `_extension_arg_boxing` classmethod is defined, it will be called for
+each input argument during initialization:
+
+```python
+@kd.extension_type()
+class PositivePoint:
+  x: kd.FLOAT32
+  y: kd.FLOAT32
+
+  @classmethod
+  def _extension_arg_boxing(self, value, annotation):
+    # `annotation` will be `kd.FLOAT32` for both fields.
+    return kd.cast_to(value + 1, annotation)
+
+point = PositivePoint(1.0, 2.0)
+point.x  # DataItem(2.0)
+point.y  # DataItem(3.0)
+```
+
+The purpose of the `_extension_arg_boxing` is to implement custom boxing
+behavior. As with other methods, it's required to be traceable in order to
+function in a tracing context.
+
+If the `_extension_post_init` method is defined, it will be called as the final
+step upon initialization:
 
 ```python
 @kd.extension_type()
@@ -123,8 +149,10 @@ PositivePoint(-1.0, 2.0)  # Raises with message 'x and y must be positive'.
 ```
 
 The `_extension_post_init` method should take no arguments except for `self` and
-should return (the potentially modified)`self`. As with other methods, it's
-required to be traceable in order to function in a tracing context.
+should return (the potentially modified) `self`. The purpose of this method is
+to implement verifications or modifications on the resulting extension type
+instance. As with other methods, it's required to be traceable in order to
+function in a tracing context.
 
 ## Tracing
 

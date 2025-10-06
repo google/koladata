@@ -2012,6 +2012,11 @@ Note:
   used as an annotation.
 - The `with_attrs` method is automatically added if not already present,
   allowing for attributes to be dynamically updated.
+- If the class implements the `_extension_arg_boxing(self, value, annotation)`
+  classmethod, it will be called on all input arguments (including defaults)
+  passed to `MyExtension(...)`. The classmethod should return an arolla QValue
+  or an Expression. If the class does not implement such a method, a default
+  method will be used.
 - If the class implements the `_extension_post_init(self)` method, it will be
   called as the final step of instantiating the extension through
   `MyExtension(...)`. The method should take `self`, do the necessary post

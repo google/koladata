@@ -1324,6 +1324,47 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     testing.assert_equal(B().a, A())
 
+  def test_custom_boxing(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: schema_constants.INT32 = 2
+
+      @classmethod
+      def _extension_arg_boxing(cls, value, annotation):
+        testing.assert_equal(annotation, schema_constants.INT32)
+        return value + 1
+
+    with self.subTest('eager'):
+      testing.assert_equal(A(1).x, ds(2))
+      testing.assert_equal(A(1).y, ds(3))
+
+    with self.subTest('lazy'):
+      testing.assert_equal(A(I.x).x.eval(x=1), ds(2))
+      testing.assert_equal(A(I.x).y.eval(x=1), ds(3))
+
+  def test_custom_boxing_bad_output(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+      @classmethod
+      def _extension_arg_boxing(cls, value, annotation):
+        del value, annotation
+        return object()
+
+    with self.subTest('eager'):
+      with self.assertRaisesRegex(
+          ValueError, 'object with unsupported type: object'
+      ):
+        _ = A(1)
+
+    with self.subTest('lazy'):
+      with self.assertRaisesRegex(
+          ValueError, 'object with unsupported type: object'
+      ):
+        _ = A(I.x)
+
 
 if __name__ == '__main__':
   absltest.main()

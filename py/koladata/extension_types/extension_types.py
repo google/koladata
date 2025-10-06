@@ -224,7 +224,7 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       continue
     method = getattr(original_class, attr)
     # Avoid builtin types - only add those defined by the user.
-    if not isinstance(method, types.FunctionType):
+    if not isinstance(method, (types.FunctionType, types.MethodType)):
       continue
     if hasattr(method, _VIRTUAL_METHOD_ATTR):
       _assert_allowed_virtual_tag(original_class, attr)
@@ -303,6 +303,13 @@ def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
     return py_boxing.as_qvalue_or_expr(value)
 
 
+def _cast_input(value: Any, annotation: Any) -> arolla.AnyQValue | arolla.Expr:
+  if isinstance(value, arolla.Expr):
+    return _cast_input_expr(value, annotation)
+  else:
+    return _cast_input_qvalue(value, annotation)
+
+
 def _raise_new(cls, *args, **kwargs):
   del args, kwargs
   raise NotImplementedError(
@@ -310,36 +317,6 @@ def _raise_new(cls, *args, **kwargs):
       ' construction from inside of a @virtual method is not supported -'
       ' please use `self.with_attrs` instead'
   )
-
-
-def _make_extension_expr(
-    attrs: Mapping[str, Any],
-    field_annotations: Mapping[str, Any],
-    extension_qtype: arolla.QType,
-    prototype: arolla.Expr | None,
-) -> arolla.Expr:
-  """Creates an extension from the provided attributes."""
-  attrs = {
-      k: _cast_input_expr(v, field_annotations[k]) for k, v in attrs.items()
-  }
-  if prototype is None:
-    prototype = arolla.unspecified()
-  return arolla.abc.aux_bind_op(
-      'kd.extension_types.make', extension_qtype, prototype, **attrs
-  )
-
-
-def _make_extension_qvalue(
-    attrs: Mapping[str, Any],
-    field_annotations: Mapping[str, Any],
-    extension_qtype: arolla.QType,
-    prototype: arolla.Expr | None,
-) -> arolla.Expr:
-  """Creates an extension from the provided attributes."""
-  attrs = {
-      k: _cast_input_qvalue(v, field_annotations[k]) for k, v in attrs.items()
-  }
-  return extension_type_registry.make(extension_qtype, prototype, **attrs)
 
 
 def _with_attrs_expr(
@@ -477,25 +454,26 @@ def _make_dispatch_fn(
   all_methods = set(class_meta.non_virtual_methods) | set(
       class_meta.virtual_methods
   )
+  if '_extension_arg_boxing' in class_meta.non_virtual_methods:
+    boxing_fn = class_meta.non_virtual_methods['_extension_arg_boxing']
+  else:
+    boxing_fn = _cast_input
 
   def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
     bound_args = class_meta.signature.bind(*args, **kwargs)
     bound_args.apply_defaults()
-    field_values = bound_args.arguments
-
-    if arolla.Expr in (type(v) for v in field_values.values()):
-      value = _make_extension_expr(
-          field_values,
-          class_meta.field_annotations,
-          extension_qtype,
-          functors_obj,
+    attrs = {
+        k: boxing_fn(v, class_meta.field_annotations[k])
+        for k, v in bound_args.arguments.items()
+    }
+    if arolla.Expr in (type(v) for v in attrs.values()):
+      prototype = arolla.unspecified() if functors_obj is None else functors_obj
+      value = arolla.abc.aux_bind_op(
+          'kd.extension_types.make', extension_qtype, prototype, **attrs
       )
     else:
-      value = _make_extension_qvalue(
-          field_values,
-          class_meta.field_annotations,
-          extension_qtype,
-          functors_obj,
+      value = extension_type_registry.make(
+          extension_qtype, functors_obj, **attrs
       )
     if '_extension_post_init' in all_methods:
       value = value._extension_post_init()  # pylint: disable=protected-access
@@ -547,6 +525,11 @@ def extension_type(
     used as an annotation.
   - The `with_attrs` method is automatically added if not already present,
     allowing for attributes to be dynamically updated.
+  - If the class implements the `_extension_arg_boxing(self, value, annotation)`
+    classmethod, it will be called on all input arguments (including defaults)
+    passed to `MyExtension(...)`. The classmethod should return an arolla QValue
+    or an Expression. If the class does not implement such a method, a default
+    method will be used.
   - If the class implements the `_extension_post_init(self)` method, it will be
     called as the final step of instantiating the extension through
     `MyExtension(...)`. The method should take `self`, do the necessary post
