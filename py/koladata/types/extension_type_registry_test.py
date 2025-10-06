@@ -314,6 +314,46 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     )
     testing.assert_equal(res, expected)
 
+  def test_extension_isinstance(self):
+    class A:
+      pass
+
+    class B(A):
+      pass
+
+    class C(B):
+      pass
+
+    class D(C):
+      pass
+
+    class E(D):
+      pass
+
+    b_type = M.derived_qtype.get_labeled_qtype(
+        extension_type_registry.BASE_QTYPE, 'B'
+    ).qvalue
+    extension_type_registry.register_extension_type(B, b_type)
+    c_type = M.derived_qtype.get_labeled_qtype(
+        extension_type_registry.BASE_QTYPE, 'C'
+    ).qvalue
+    extension_type_registry.register_extension_type(C, c_type)
+
+    c = arolla.eval(M.derived_qtype.downcast(c_type, objects.Object()))
+
+    self.assertTrue(extension_type_registry.extension_isinstance(c, C))
+    self.assertTrue(extension_type_registry.extension_isinstance(c, B))
+    self.assertTrue(extension_type_registry.extension_isinstance(c, A))
+    self.assertTrue(extension_type_registry.extension_isinstance(c, (A, D)))
+    self.assertTrue(extension_type_registry.extension_isinstance(c, (A | D)))
+
+    self.assertFalse(extension_type_registry.extension_isinstance(C(), C))
+    self.assertFalse(extension_type_registry.extension_isinstance(c, D))
+    self.assertFalse(extension_type_registry.extension_isinstance(c, (D, E)))
+    self.assertFalse(extension_type_registry.extension_isinstance(c_type, C))
+    self.assertFalse(extension_type_registry.extension_isinstance(None, C))
+    self.assertFalse(extension_type_registry.extension_isinstance(D(), C))
+
 
 if __name__ == '__main__':
   absltest.main()

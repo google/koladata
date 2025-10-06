@@ -31,6 +31,7 @@ extension_type = _extension_types.extension_type
 extension_types = _py_types.SimpleNamespace(
     extension_type=_extension_types.extension_type,
     get_extension_qtype=_extension_type_registry.get_extension_qtype,
+    extension_isinstance=_extension_type_registry.extension_isinstance,
     is_koda_extension_type=_extension_type_registry.is_koda_extension_type,
     is_koda_extension=_extension_type_registry.is_koda_extension,
     virtual=_extension_types.virtual,
