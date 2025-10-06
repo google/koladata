@@ -122,6 +122,14 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         ValueError, 'is not a registered extension type'
     ):
       extension_type_registry.get_extension_qtype(_MyTestExtension)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'there is no registered extension type corresponding to the'
+            ' QType LABEL[_MyTestExtension]'
+        ),
+    ):
+      extension_type_registry.get_extension_cls(_EXT_TYPE)
 
     # Successful registration.
     extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
@@ -130,6 +138,9 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     )
     self.assertEqual(
         extension_type_registry.get_extension_qtype(_MyTestExtension), _EXT_TYPE
+    )
+    self.assertEqual(
+        extension_type_registry.get_extension_cls(_EXT_TYPE), _MyTestExtension
     )
 
     # Re-registering the same is fine.
@@ -159,6 +170,10 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         extension_type_registry.get_extension_qtype(_MyTestExtension),
         other_qtype,
     )
+    self.assertEqual(
+        extension_type_registry.get_extension_cls(other_qtype),
+        _MyTestExtension,
+    )
 
     with self.assertRaisesRegex(
         ValueError, 'is already registered with a different class'
@@ -174,6 +189,10 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     self.assertEqual(
         extension_type_registry.get_extension_qtype(_MyOtherTestExtension),
         other_qtype,
+    )
+    self.assertEqual(
+        extension_type_registry.get_extension_cls(other_qtype),
+        _MyOtherTestExtension,
     )
     # It deregisters the old type.
     self.assertFalse(

@@ -64,7 +64,7 @@ def get_extension_qtype(cls: type[Any]) -> arolla.QType:
     raise ValueError(f'{cls} is not a registered extension type') from None
 
 
-def _get_extension_cls(qtype: arolla.QType) -> type[Any]:
+def get_extension_cls(qtype: arolla.QType) -> type[Any]:
   """Returns the extension type class for the given QType."""
   try:
     return _EXTENSION_TYPE_REGISTRY.inverse[qtype]
@@ -109,7 +109,7 @@ def get_dummy_value(cls: Any) -> arolla.AnyQValue:
 
 def wrap(x: objects.Object, qtype: arolla.QType) -> Any:
   """Wraps `x` into an instance of the given extension type."""
-  _ = _get_extension_cls(qtype)  # Check that it's registered
+  _ = get_extension_cls(qtype)  # Check that it's registered
   wrap_op = arolla.abc.lookup_operator('kd.extension_types.wrap')
   return arolla.eval(wrap_op(arolla.L.x, qtype), x=x)
 

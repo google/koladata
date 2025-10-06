@@ -2088,6 +2088,10 @@ Args:
 Returns:
   A new class that serves as a factory for the extension type.</code></pre>
 
+### `kd.extension_types.get_annotations(cls: type[Any]) -> dict[str, Any]` {#kd.extension_types.get_annotations}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the annotations for the provided extension type class.</code></pre>
+
 ### `kd.extension_types.get_attr(ext: QValue, attr: str | QValue, qtype: QType)` {#kd.extension_types.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attribute of `ext` with name `attr` and type `qtype`.</code></pre>
@@ -2095,6 +2099,10 @@ Returns:
 ### `kd.extension_types.get_attr_qtype(ext, attr)` {#kd.extension_types.get_attr_qtype}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the qtype of the `attr`, or NOTHING if the `attr` is missing.</code></pre>
+
+### `kd.extension_types.get_extension_cls(qtype: QType) -> type[Any]` {#kd.extension_types.get_extension_cls}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the extension type class for the given QType.</code></pre>
 
 ### `kd.extension_types.get_extension_qtype(cls: type[Any]) -> QType` {#kd.extension_types.get_extension_qtype}
 

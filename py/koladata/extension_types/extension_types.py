@@ -369,6 +369,17 @@ def _get_default_repr_fn(
   return __repr__
 
 
+def get_annotations(cls: type[Any]) -> dict[str, Any]:
+  """Returns the annotations for the provided extension type class."""
+  # Check that it's registered
+  _ = extension_type_registry.get_extension_qtype(cls)
+  cls_meta = _get_class_meta(cls)
+  return {
+      attr: cls_meta.field_annotations[attr]
+      for attr in cls_meta.original_attributes
+  }
+
+
 def _make_qvalue_class(
     class_meta: _ClassMeta, virtual_methods: Mapping[str, _VirtualMethod]
 ) -> type[arolla.AnyQValue]:

@@ -1365,6 +1365,42 @@ class ExtensionTypesTest(parameterized.TestCase):
       ):
         _ = A(I.x)
 
+  def test_get_annotations(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+      y: data_slice.DataSlice = ds(2)
+
+      def bar(self, x):
+        return x + self.y
+
+    @ext_types.extension_type()
+    class B(A):
+      z: schema_constants.FLOAT32 = 3.0
+
+      @ext_types.virtual()
+      def foo(self, x):
+        return x + self.z
+
+    self.assertEqual(
+        ext_types.get_annotations(A),
+        {'x': schema_constants.INT32, 'y': data_slice.DataSlice},
+    )
+    # The functor impl of `foo` is not included.
+    self.assertEqual(
+        ext_types.get_annotations(B),
+        {
+            'x': schema_constants.INT32,
+            'y': data_slice.DataSlice,
+            'z': schema_constants.FLOAT32,
+        },
+    )
+
+    with self.assertRaisesRegex(
+        ValueError, 'object.*is not a registered extension type'
+    ):
+      _ = ext_types.get_annotations(object)
+
 
 if __name__ == '__main__':
   absltest.main()
