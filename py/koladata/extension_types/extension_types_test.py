@@ -1289,6 +1289,38 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(ValueError, 'x must be positive'):
         _ = B(I.x).eval(x=0)
 
+  def test_overwriting_child(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32 = 1
+
+    @ext_types.extension_type()
+    class B(A):
+      x: schema_constants.INT32 = 2
+
+    testing.assert_equal(B().x, ds(2))
+
+  def test_non_default_follows_default(self):
+    class A:
+      x: schema_constants.INT32 = 1
+      y: schema_constants.INT32
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'non-default argument follows default argument'
+    ):
+      ext_types.extension_type()(A)
+
+  def test_extension_type_default(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32 = 1
+
+    @ext_types.extension_type()
+    class B:
+      a: A = A()  # pytype: disable=invalid-annotation
+
+    testing.assert_equal(B().a, A())
+
 
 if __name__ == '__main__':
   absltest.main()

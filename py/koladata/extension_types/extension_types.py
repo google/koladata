@@ -200,22 +200,39 @@ _FORBIDDEN_ATTRS = frozenset({
 })
 
 
+def _get_signature(original_cls: type[Any]) -> inspect.Signature:
+  """Creates a signature for the original_cls init fn."""
+  params = {}
+  # Reversed to maintain the original field order and to allow children to
+  # overwite parents.
+  for cls in reversed(original_cls.__mro__):
+    cls_annotations = inspect.get_annotations(cls, eval_str=True)
+    for name, annotation in cls_annotations.items():
+      default = getattr(cls, name, inspect.Parameter.empty)
+      param = inspect.Parameter(
+          name,
+          inspect.Parameter.POSITIONAL_OR_KEYWORD,
+          default=default,
+          annotation=annotation,
+      )
+      params[name] = param  # Allow children to overwrite parents.
+  return inspect.Signature(list(params.values()))
+
+
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
-  # Keep `__init__` and disable the rest.
-  data_class = dataclasses.dataclass(repr=False, eq=False)(original_class)
-  fields = {}
-  for f in dataclasses.fields(data_class):
-    if f.name in _FORBIDDEN_ATTRS:
-      raise ValueError(f'forbidden attribute: {f.name}')
-    fields[f.name] = f
-  non_virtual_methods, virtual_methods = {}, {}
-  for attr in dir(data_class):
+  sig = _get_signature(original_class)
+  attributes = set(sig.parameters)
+  for attr in attributes:
     if attr in _FORBIDDEN_ATTRS:
       raise ValueError(f'forbidden attribute: {attr}')
-    if attr in fields:
+  non_virtual_methods, virtual_methods = {}, {}
+  for attr in dir(original_class):
+    if attr in _FORBIDDEN_ATTRS:
+      raise ValueError(f'forbidden attribute: {attr}')
+    if attr in attributes:
       continue
-    method = getattr(data_class, attr)
+    method = getattr(original_class, attr)
     # Avoid builtin types - only add those defined by the user.
     if not isinstance(method, types.FunctionType):
       continue
@@ -229,7 +246,6 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       _assert_allowed_no_tag(original_class, attr)
       non_virtual_methods[attr] = method
 
-  sig = inspect.signature(data_class, eval_str=True)
   field_annotations = {}
   field_qtypes = {}
   for param in sig.parameters.values():
@@ -264,7 +280,7 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       virtual_methods=virtual_methods,
       field_annotations=field_annotations,
       field_qtypes=field_qtypes,
-      original_attributes=list(fields.keys()),
+      original_attributes=list(sig.parameters),
   )
 
 
