@@ -474,6 +474,15 @@ class DataSliceTest(parameterized.TestCase):
 \], schema: OBJECT, shape: JaggedShape\(4, 5\), bag_id: \$[0-9a-f]{4}\)''',
     )
 
+  def test_debug_repr_with_large_expr_quote(self):
+    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))
+    self.assertEqual(
+        expr_slice._debug_repr(),
+        'DataItem('
+        + ' + '.join(['I.x' for _ in range(4001)])
+        + ', schema: EXPR)',
+    )
+
   def test_debug_repr_with_bag(self):
     db = bag()
     x = ds([1, 2]).with_bag(db)
