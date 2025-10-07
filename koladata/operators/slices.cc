@@ -1072,22 +1072,11 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& show_schema,
                                   const DataSlice& show_item_id) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
-  if (depth_int < 0) {
-    return absl::InvalidArgumentError("depth parameter must be non-negative");
-  }
   ASSIGN_OR_RETURN(int64_t item_limit_int,
                    GetIntegerArgument(item_limit, "item_limit"));
-  if (item_limit_int < 0) {
-    return absl::InvalidArgumentError(
-        "item_limit parameter must be non-negative");
-  }
   ASSIGN_OR_RETURN(
       int64_t item_limit_per_dimension_in,
       GetIntegerArgument(item_limit_per_dimension, "item_limit_per_dimension"));
-  if (item_limit_per_dimension_in < 0) {
-    return absl::InvalidArgumentError(
-        "item_limit_per_dimension parameter must be non-negative");
-  }
   ASSIGN_OR_RETURN(bool format_html_bool,
                    GetBoolArgument(format_html, "format_html"));
   ASSIGN_OR_RETURN(
@@ -1108,13 +1097,13 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                    GetBoolArgument(show_schema, "show_item_id"));
   auto repr = DataSliceRepr(
       x, ReprOption{
-             .depth = depth_int,
-             .item_limit = size_t(item_limit_int),
-             .item_limit_per_dimension = size_t(item_limit_per_dimension_in),
+             .depth = static_cast<size_t>(depth_int),
+             .item_limit = static_cast<size_t>(item_limit_int),
+             .item_limit_per_dimension =
+                 static_cast<size_t>(item_limit_per_dimension_in),
              .format_html = format_html_bool,
-             .unbounded_type_max_len =
-                 static_cast<int32_t>(max_str_len_int),
-             .max_expr_quote_len = static_cast<int32_t>(max_expr_quote_len_int),
+             .unbounded_type_max_len = static_cast<size_t>(max_str_len_int),
+             .max_expr_quote_len = static_cast<size_t>(max_expr_quote_len_int),
              .show_attributes = show_attributes_bool,
              .show_databag_id = show_databag_id_bool,
              .show_shape = show_shape_bool,

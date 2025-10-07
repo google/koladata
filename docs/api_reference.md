@@ -6806,26 +6806,27 @@ Aliases:
 
 Args:
   x: DataSlice to represent.
-  depth: Maximum depth when printing nested DataSlices.
+  depth: Maximum depth when printing nested DataSlices. -1 means no limit.
   item_limit: When it is a DataSlice, it means the maximum number of items to
     show across all dimensions. When it is a DataItem, it means the maximum
     number of entity/object attributes, list items, or dict key/value pairs to
-    show. Must be non-negative, or an error will be raised.
+    show. -1 means no limit.
   item_limit_per_dimension: The maximum number of items to show per dimension
     in a DataSlice. It is only enforced when the size of DataSlice is larger
-    than `item_limit`. Must be non-negative, or an error will be raised.
+    than `item_limit`. -1 means no limit.
   format_html: When true, attributes and object ids are wrapped in HTML tags
     to make it possible to style with CSS and interpret interactions with JS.
-  max_str_len: Maximum length of repr string to show for text and
-    bytes if non negative.
-  max_expr_quote_len: Maximum length of repr string to show for expr quotes
-    if non negative.
+  max_str_len: Maximum length of repr string to show for text and bytes. -1
+    means no limit.
+  max_expr_quote_len: Maximum length of repr string to show for expr quotes.
+    -1 means no limit.
   show_attributes: When true, show the attributes of the entity/object in non
     DataItem DataSlice.
   show_databag_id: When true, the repr will show the databag id.
   show_shape: When true, the repr will show the shape.
   show_schema: When true, the repr will show the schema.
   show_item_id: When true, the repr will show the itemids for objects.
+
 Returns:
   A string representation of the DataSlice `x`.</code></pre>
 

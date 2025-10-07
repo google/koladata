@@ -82,9 +82,19 @@ class SlicesGetReprTest(parameterized.TestCase):
     res = eval_op('kd.slices.get_repr', db.obj(a=db.obj(a=1), b='foo'), depth=1)
     self.assertRegex(res.to_py(), r"^Obj\(a=\$.{22}, b='foo'\)$")
 
+  def test_depth_inf(self):
+    res = eval_op(
+        'kd.slices.get_repr', db.obj(a=db.obj(a=1), b='foo'), depth=-1
+    )
+    self.assertRegex(res.to_py(), r"^Obj\(a=Obj\(a=1\), b='foo'\)$")
+
   def test_item_limit(self):
     res = eval_op('kd.slices.get_repr', ds([1, 2]), item_limit=1)
     testing.assert_equal(res, ds('[1, ...]'))
+
+  def test_item_limit_inf(self):
+    res = eval_op('kd.slices.get_repr', ds([1, 2]), item_limit=-1)
+    testing.assert_equal(res, ds('[1, 2]'))
 
   def test_item_limit_per_dimension(self):
     res = eval_op(
@@ -94,6 +104,15 @@ class SlicesGetReprTest(parameterized.TestCase):
         item_limit_per_dimension=2,
     )
     testing.assert_equal(res, ds('[[1, 2, ...], [4, ...]]'))
+
+  def test_item_limit_per_dimension_inf(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds([[1, 2, 3], [4, 5, 6]]),
+        item_limit=3,
+        item_limit_per_dimension=-1,
+    )
+    testing.assert_equal(res, ds('[[1, 2, 3], [...]]'))
 
   def test_format_html(self):
     res = eval_op('kd.slices.get_repr', ds(['foo', 'bar']), format_html=True)
@@ -112,6 +131,14 @@ class SlicesGetReprTest(parameterized.TestCase):
         max_str_len=1,
     )
     testing.assert_equal(res, ds("['f'...'o', 'b'...'r']"))
+
+  def test_max_str_len_inf(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds(['foo', 'bar']),
+        max_str_len=-1,
+    )
+    testing.assert_equal(res, ds("['foo', 'bar']"))
 
   def test_show_attributes(self):
     res = eval_op(
@@ -206,6 +233,14 @@ class SlicesGetReprTest(parameterized.TestCase):
         max_expr_quote_len=5,
     )
     testing.assert_equal(res, ds('I.x +... ExprQuote max length reached ...'))
+
+  def test_expr_quote_max_len_inf(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds(arolla.quote(kde.math.add(I.x, I.y))),
+        max_expr_quote_len=-1,
+    )
+    testing.assert_equal(res, ds('I.x + I.y'))
 
   @parameterized.named_parameters(
       # Dict order is not deterministic.

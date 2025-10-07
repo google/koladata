@@ -445,9 +445,9 @@ struct DataItemReprOption {
   // length does not include additional fixed strings such as quotes around
   // the value. If -1, the entire repr will be shown. Strings longer than
   // this will be truncated to this length and an ellipsis is appended.
-  int32_t unbounded_type_max_len = -1;
+  size_t unbounded_type_max_len = -1;
   // Maximum length of an ExprQuote repr string to show.
-  int32_t max_expr_quote_len = 10'000;
+  size_t max_expr_quote_len = 10'000;
 };
 
 // Returns the string representation for the DataItem. It supports different

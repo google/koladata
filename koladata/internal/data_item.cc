@@ -162,12 +162,12 @@ struct TruncatedString {
   }
 };
 
-TruncatedString TruncateMiddle(absl::string_view str, int32_t max_len) {
-  if (max_len < 0 || str.length() <= max_len ||
-      max_len == std::numeric_limits<int32_t>::max()) {
+TruncatedString TruncateMiddle(absl::string_view str, size_t max_len) {
+  if (str.length() <= max_len ||
+      max_len == std::numeric_limits<size_t>::max()) {
     return {.prefix = str};
   }
-  int32_t half_len = (max_len + 1) / 2;
+  size_t half_len = (max_len + 1) / 2;
   size_t prefix_limit = 0;
   U8_FWD_N(str.data(), prefix_limit, str.length(), half_len);
   size_t suffix_limit = str.length();
@@ -182,10 +182,10 @@ TruncatedString TruncateMiddle(absl::string_view str, int32_t max_len) {
 }
 
 std::string TruncatedExprQuote(const arolla::expr::ExprQuote& expr_quote,
-                               int32_t max_len) {
+                               size_t max_len) {
   std::string expr_quote_str = ExprQuoteDebugString(expr_quote);
-  if (max_len < 0 || expr_quote_str.size() <= max_len ||
-      max_len == std::numeric_limits<int32_t>::max()) {
+  if (expr_quote_str.size() <= max_len ||
+      max_len == std::numeric_limits<size_t>::max()) {
     return expr_quote_str;
   }
   expr_quote_str.resize(max_len);

@@ -367,7 +367,6 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
                                            option, wrapping));
       }
       total_item_limit -= result.size();
-      DCHECK_GE(total_item_limit, 0);
       return result;
     }
 

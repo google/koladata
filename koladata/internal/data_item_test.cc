@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_item.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -656,7 +657,7 @@ TEST(DataItemTest, TestRepr) {
                          {.unbounded_type_max_len = 3}),
             "b'ab'...'ij'");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("abcdefghij")),
-                         {.unbounded_type_max_len = -1}),
+                         {.unbounded_type_max_len = static_cast<size_t>(-1)}),
             "b'abcdefghij'");
 }
 

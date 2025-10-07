@@ -779,11 +779,12 @@ PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
   }
 
   return PyDataSlice_str_with_options(
-      self, ReprOption{.depth = depth,
+      self, ReprOption{.depth = static_cast<size_t>(depth),
                        .item_limit = static_cast<size_t>(item_limit),
                        .strip_quotes = false,
                        .format_html = format_html,
-                       .unbounded_type_max_len = unbounded_type_max_len});
+                       .unbounded_type_max_len =
+                           static_cast<size_t>(unbounded_type_max_len)});
 }
 
 PyObject* absl_nullable PyDataSlice_get_keys(PyObject* self, PyObject*) {

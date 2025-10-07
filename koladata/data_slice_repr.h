@@ -30,7 +30,7 @@ namespace koladata {
 // LINT.IfChange
 struct ReprOption {
   // The maximum depth when printing nested DataItem.
-  int64_t depth = 5;
+  size_t depth = 5;
   // When it is a DataSlice, it means the maximum number of items to show across
   // all dimensions. When it is a DataItem, it means the maximum number of
   // entity/object attributes, list items, or dict key/value pairs to show.
@@ -44,9 +44,9 @@ struct ReprOption {
   // possible to style with CSS and interpret interactions with JS.
   bool format_html = false;
   // Maximum length of repr string to show for text and bytes if non negative.
-  int32_t unbounded_type_max_len = -1;
+  size_t unbounded_type_max_len = -1;
   // Maximum length of an ExprQuote repr string to show.
-  int32_t max_expr_quote_len = 10'000;
+  size_t max_expr_quote_len = 10'000;
   // When true, show the attributes of the entity/object in non DataItem
   // DataSlice.
   bool show_attributes = false;
