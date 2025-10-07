@@ -214,11 +214,12 @@ def _format_item_html(
           and not truncate_unbounded_types):
       unbounded_type_max_len = -1
 
-  detail_pane_str = item._repr_with_params(  # pylint: disable=protected-access
+  detail_pane_str = str(kdi.get_repr(
+      item,
       format_html=True,
       item_limit=options.item_limit,
       depth=2,
-      unbounded_type_max_len=unbounded_type_max_len)
+      max_str_len=unbounded_type_max_len))
 
   # Unescape whitespace for easier viewing in the detail pane.
   if dtype == kd.STRING:
@@ -301,9 +302,14 @@ def _create_data_slice_table_data(
   options = options or DataSliceVisOptions()
   # Message containing metadata about the DataSlice, which is generated before
   # we slice the DataSlice to the desired range.
-  schema_html = ds.get_schema()._repr_with_params(  # pylint: disable=protected-access
-      format_html=True, depth=4,
-      unbounded_type_max_len=options.unbounded_type_max_len)
+  schema_html = str(
+      kdi.get_repr(
+          ds.get_schema(),
+          format_html=True,
+          depth=4,
+          max_str_len=options.unbounded_type_max_len,
+      )
+  )
   message = (
       f'size: {ds.get_size()}, ndims: {ds.get_ndim()}, '
       f'schema: <span {AccessType.GET_SCHEMA.value}="">{schema_html}</span>')

@@ -4223,50 +4223,6 @@ class DataSliceListSlicingTest(parameterized.TestCase):
         ds([[2], [1, 2], [2, 2, 1]], schema=schema_constants.INT64)
     )
 
-  def test_repr_with_params(self):
-    d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
-    html_str = d._repr_with_params(format_html=True, depth=1)  # pylint: disable=protected-access
-    self.assertIn('schema-attr="a"', html_str)
-    self.assertNotIn('schema-attr="b"', html_str)
-
-    html_str = d._repr_with_params(format_html=True, depth=2)  # pylint: disable=protected-access
-    self.assertIn('schema-attr="a"', html_str)
-    self.assertIn('schema-attr="b"', html_str)
-    self.assertNotIn('schema-attr="c"', html_str)
-
-    self.assertLess(
-        len(ds('a'*1000)._repr_with_params(unbounded_type_max_len=492, depth=2)),  # pylint: disable=protected-access
-        500)  # Extra characters are necessary for quotes and ellipsis
-
-    d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
-    self.assertRegex(
-        d._repr_with_params(depth=1), r'Obj\(a=\$[0-9a-zA-Z]{22}\)'  # pylint: disable=protected-access
-    )
-    self.assertRegex(
-        d._repr_with_params(depth=2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
-    )
-
-    # Check item_limit behavior
-    self.assertEqual(
-        fns.list([1, 2, 3, 4, 5])._repr_with_params(item_limit=2),  # pylint: disable=protected-access
-        'List[1, 2, ...]',
-    )
-    self.assertNotIn(
-        fns.list(list(range(100)))._repr_with_params(item_limit=-1),  # pylint: disable=protected-access
-        '...',
-    )
-
-    with self.assertRaisesRegex(TypeError, 'depth must be an integer'):
-      d._repr_with_params(depth={})  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
-    with self.assertRaisesRegex(TypeError, 'item_limit must be an integer'):
-      d._repr_with_params(item_limit='abc')  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
-    with self.assertRaisesRegex(TypeError,
-                                'unbounded_type_max_len must be an integer'):
-      d._repr_with_params(unbounded_type_max_len={})  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
-    with self.assertRaisesRegex(TypeError,
-                                'format_html must be a boolean'):
-      d._repr_with_params(format_html=20)  # pylint: disable=protected-access  # pytype: disable=wrong-arg-types
-
   def test_data_slice_docstrings(self):
     def has_docstring(method):
       return (hasattr(method, 'getdoc') and method.getdoc()) or method.__doc__

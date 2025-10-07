@@ -723,70 +723,6 @@ PyObject* PyDataSlice_str(PyObject* self) {
       self, ReprOption{.strip_quotes = true, .show_attributes = true});
 }
 
-PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
-                                       Py_ssize_t nargs, PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  static const absl::NoDestructor parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/
-      {"depth", "item_limit", "unbounded_type_max_len", "format_html"}));
-
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
-  }
-
-  Py_ssize_t depth = 1;
-  PyObject* py_depth = args.kw_only_args["depth"];
-  if (py_depth != nullptr) {
-    if (!PyLong_Check(py_depth)) {
-      PyErr_SetString(PyExc_TypeError, "depth must be an integer");
-      return nullptr;
-    }
-    depth = PyLong_AsSsize_t(py_depth);
-  }
-
-  Py_ssize_t item_limit = 20;
-  PyObject* py_item_limit = args.kw_only_args["item_limit"];
-  if (py_item_limit != nullptr) {
-    if (!PyLong_Check(py_item_limit)) {
-      PyErr_SetString(PyExc_TypeError, "item_limit must be an integer");
-      return nullptr;
-    }
-    item_limit = PyLong_AsSsize_t(py_item_limit);
-  }
-
-  int32_t unbounded_type_max_len = -1;
-  PyObject* py_unbounded_type_max_len =
-      args.kw_only_args["unbounded_type_max_len"];
-  if (py_unbounded_type_max_len != nullptr) {
-    if (!PyLong_Check(py_unbounded_type_max_len)) {
-      PyErr_SetString(PyExc_TypeError,
-                      "unbounded_type_max_len must be an integer");
-      return nullptr;
-    }
-    unbounded_type_max_len = PyLong_AsLong(py_unbounded_type_max_len);
-  }
-
-  bool format_html = false;
-  PyObject* py_format_html = args.kw_only_args["format_html"];
-  if (py_format_html != nullptr) {
-    if (!PyBool_Check(py_format_html)) {
-      PyErr_SetString(PyExc_TypeError, "format_html must be a boolean");
-      return nullptr;
-    }
-    format_html = PyObject_IsTrue(py_format_html);
-  }
-
-  return PyDataSlice_str_with_options(
-      self, ReprOption{.depth = static_cast<size_t>(depth),
-                       .item_limit = static_cast<size_t>(item_limit),
-                       .strip_quotes = false,
-                       .format_html = format_html,
-                       .unbounded_type_max_len =
-                           static_cast<size_t>(unbounded_type_max_len)});
-}
-
 PyObject* absl_nullable PyDataSlice_get_keys(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
@@ -1319,13 +1255,6 @@ Returns:
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded "
      "DataSlice.\nMust be used with kd.fstr or kde.fstr."},
-    {"_repr_with_params", (PyCFunction)PyDataSlice_repr_with_params,
-     METH_FASTCALL | METH_KEYWORDS,
-     "_repr_with_params("
-     "*, depth=1, item_limit=20, unbounded_type_max_len=-1, "
-     "format_html=False)\n"
-     "--\n\n"
-     "Used to generate str representation for interactive repr in Colab."},
     {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
      "_debug_repr()\n"
      "--\n\n"
