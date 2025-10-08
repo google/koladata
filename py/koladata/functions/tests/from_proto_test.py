@@ -42,8 +42,8 @@ class FromProtoTest(absltest.TestCase):
   def test_invalid_input_primitive(self):
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        "messages must be Message or list of Message, got type <class 'int'>"
-        ' with value 1',
+        'messages must be Message or nested list of Message, got type <class'
+        " 'int'> with value 1",
     ):
       fns.from_proto(1)  # pytype: disable=wrong-arg-types
 
@@ -54,8 +54,8 @@ class FromProtoTest(absltest.TestCase):
   def test_invalid_input_list_primitive(self):
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        'messages must be Message or list of Message, got list containing type'
-        " <class 'int'> at index 0 with value 1",
+        'messages must be Message or nested list of Message, got list'
+        " containing type <class 'int'> at index 0 with value 1",
     ):
       fns.from_proto([1])  # pytype: disable=wrong-arg-types
 
@@ -72,13 +72,16 @@ class FromProtoTest(absltest.TestCase):
 
   def test_invalid_input_mismatched_itemid_ndim(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'itemid must be a DataItem if messages is a single message'
+        ValueError,
+        'itemid must match the shape of messages, got JaggedShape(1) !='
+        ' JaggedShape()',
     ):
       fns.from_proto(test_pb2.MessageA(), itemid=ds([None]))
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        'itemid must be a 1-D DataSlice if messages is a list of messages',
+        'itemid must match the shape of messages, got JaggedShape() !='
+        ' JaggedShape(0)',
     ):
       fns.from_proto([], itemid=ds(None))
 
@@ -205,6 +208,29 @@ class FromProtoTest(absltest.TestCase):
         x.message_b_list[:].text.no_bag(), ds([['a', 'b', 'c'], [None, 'd']])
     )
     self.assertFalse(x.get_bag().is_mutable())
+
+  def test_nested_list_input(self):
+    m1 = test_pb2.MessageA(some_text='1')
+    m2 = test_pb2.MessageA(some_text='2')
+    m3 = test_pb2.MessageA(some_text='3')
+
+    x = fns.from_proto([[m1, None, m2], [], [m3]])
+    self.assertEqual(x.get_ndim(), 2)
+    self.assertEqual(
+        x.get_shape(), ds([[None, None, None], [], [None]]).get_shape()
+    )
+
+  def test_nested_list_input_not_uniform_depth(self):
+    m1 = test_pb2.MessageA(some_text='1')
+    m2 = test_pb2.MessageA(some_text='2')
+    m3 = test_pb2.MessageA(some_text='3')
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'input has to be a valid nested list. non-lists and lists cannot be'
+        ' mixed in a level',
+    ):
+      fns.from_proto([[m1, m2], m3])
 
   def test_extensions(self):
     m = test_pb2.MessageA(

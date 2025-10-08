@@ -15,7 +15,7 @@
 """Koda functions for converting to and from protocol buffers."""
 
 from collections.abc import Iterator
-from typing import Any, Type
+from typing import Type, TypeAlias, TypeVar
 
 from google.protobuf import message
 from koladata.types import data_bag
@@ -24,15 +24,42 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 
 
+_T = TypeVar('_T')
+
+# Note: these are for nested lists/sequences of uniform depth (intentionally).
+# They can also be replaced with PEP 695 `type X[T] = ...` syntax once support
+# is more widely available in type checkers.
+_NestedNoneList: TypeAlias = list['_NestedNoneList'] | None
+_NestedMessageList: TypeAlias = (
+    message.Message | list['_NestedMessageList'] | None
+)
+
+
+def _to_nested_list_of_none(x: _NestedMessageList) -> _NestedNoneList:
+  """Gets the "shape" of a nested list as a nested list with None leaves."""
+  if not isinstance(x, list):
+    return None
+  return [_to_nested_list_of_none(item) for item in x]
+
+
+def _flatten(x: _NestedMessageList) -> Iterator[message.Message | None]:
+  """Iterates over the leaves of a nested list."""
+  if isinstance(x, list):
+    for item in x:
+      yield from _flatten(item)
+  else:
+    yield x
+
+
 # Note: could use `tree.unflatten_as`, but it's not worth adding an additional
 # third-party dependency just for this.
-def _unflatten(shape: list[Any] | None, it: Iterator[Any]) -> list[Any]:
+def _unflatten(shape: _NestedNoneList, it: Iterator[_T]) -> list[_T]:
   """Unflattens an iterator into a shape given by a nested list with None leaves."""
   return [_unflatten(x, it) for x in shape] if shape is not None else next(it)
 
 
 def from_proto(
-    messages: message.Message | None | list[message.Message | None],
+    messages: _NestedMessageList,
     /,
     *,
     extensions: list[str] | None = None,
@@ -82,8 +109,8 @@ def from_proto(
   list of proto Messages, the result is an 1D DataSlice.
 
   Args:
-    messages: Message or list of Message of the same type. Any of the messages
-      may be None, which will produce missing items in the result.
+    messages: Message or nested list of Message of the same type. Any of the
+      messages may be None, which will produce missing items in the result.
     extensions: List of proto extension paths.
     itemid: The ItemId(s) to use for the root object(s). If not specified, will
       allocate new id(s). If specified, will also infer the ItemIds for all
@@ -99,36 +126,36 @@ def from_proto(
   Returns:
     A DataSlice representing the proto data.
   """
-  if isinstance(messages, (list, tuple)):
-    messages = list(messages)
-    for i, m in enumerate(messages):
-      if m is not None and not isinstance(m, message.Message):
+  messages_shape = data_slice.DataSlice.from_vals(
+      _to_nested_list_of_none(messages)
+  ).get_shape()
+  messages_list = list(_flatten(messages))
+
+  for i, m in enumerate(messages_list):
+    if m is not None and not isinstance(m, message.Message):
+      if messages_shape.rank() == 0:
         raise ValueError(
-            'messages must be Message or list of Message, got list containing'
-            f' type {type(m)} at index {i} with value {m}'
+            'messages must be Message or nested list of Message, got'
+            f' type {type(m)} with value {m}'
         )
-    result_is_item = False
-  elif messages is None or isinstance(messages, message.Message):
-    messages = [messages]
-    result_is_item = True
-  else:
-    raise ValueError(
-        'messages must be Message or list of Message, got'
-        f' type {type(messages)} with value {messages}'
-    )
+      elif messages_shape.rank() == 1:
+        raise ValueError(
+            'messages must be Message or nested list of Message, got list '
+            f'containing type {type(m)} at index {i} with value {m}'
+        )
+      else:
+        raise ValueError(
+            'messages must be Message or nested list of Message, got nested'
+            f' list containing type {type(m)} at leaf index {i} with value {m}'
+        )
 
   if itemid is not None:
-    if result_is_item:
-      if itemid.get_ndim() != 0:
-        raise ValueError(
-            'itemid must be a DataItem if messages is a single message'
-        )
-      itemid = itemid.flatten(0, 0)  # itemid -> slice([itemid])
-    else:
-      if itemid.get_ndim() != 1:
-        raise ValueError(
-            'itemid must be a 1-D DataSlice if messages is a list of messages'
-        )
+    if itemid.get_shape() != messages_shape:
+      raise ValueError(
+          'itemid must match the shape of messages, got'
+          f' {itemid.get_shape()} != {messages_shape}'
+      )
+    itemid = itemid.flatten()
 
   if schema is not None and schema.has_bag():
     # Avoid schema adoption.
@@ -143,11 +170,10 @@ def from_proto(
   else:
     bag = data_bag.DataBag.empty_mutable()
   result = bag._from_proto(  # pylint: disable=protected-access
-      messages, extensions, itemid, schema
+      messages_list, extensions, itemid, schema
   )
 
-  if result_is_item:
-    result = result.S[0]
+  result = result.reshape(messages_shape)
   return result.freeze_bag()
 
 
@@ -192,7 +218,7 @@ def schema_from_proto(
 
 def to_proto(
     x: data_slice.DataSlice, /, message_class: Type[message.Message]
-) -> list[message.Message | None] | message.Message | None:
+) -> _NestedMessageList:
   """Converts a DataSlice or DataItem to one or more proto messages.
 
   If `x` is a DataItem, this returns a single proto message object. Otherwise,

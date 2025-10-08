@@ -9642,7 +9642,7 @@ Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
 Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
-### `kd.from_proto(messages: Message | None | list[Message | None], /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None) -> DataSlice` {#kd.from_proto}
+### `kd.from_proto(messages: Message | list[_NestedMessageList] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None) -> DataSlice` {#kd.from_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice representing proto data.
 
@@ -9687,8 +9687,8 @@ If `messages` is a single proto Message, the result is a DataItem. If it is a
 list of proto Messages, the result is an 1D DataSlice.
 
 Args:
-  messages: Message or list of Message of the same type. Any of the messages
-    may be None, which will produce missing items in the result.
+  messages: Message or nested list of Message of the same type. Any of the
+    messages may be None, which will produce missing items in the result.
   extensions: List of proto extension paths.
   itemid: The ItemId(s) to use for the root object(s). If not specified, will
     allocate new id(s). If specified, will also infer the ItemIds for all
@@ -10560,7 +10560,7 @@ Alias for [kd.schema.to_none](#kd.schema.to_none) operator.
 
 Alias for [kd.schema.to_object](#kd.schema.to_object) operator.
 
-### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> list[Message | None] | Message | None` {#kd.to_proto}
+### `kd.to_proto(x: DataSlice, /, message_class: type[Message]) -> Message | list[_NestedMessageList] | None` {#kd.to_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to one or more proto messages.
 
