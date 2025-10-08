@@ -20,6 +20,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import iterable_qvalue
+from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
@@ -78,6 +79,13 @@ class IterableQValueTest(absltest.TestCase):
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     res = iterable_qvalue.Iterable(value_type_as=data_bag.DataBag)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
+
+  def test_dummy_qvalue(self):
+    # Means that it can be used for e.g. functor annotations.
+    testing.assert_equal(
+        py_boxing.get_dummy_qvalue(iterable_qvalue.Iterable),
+        iterable_qvalue.Iterable(),
+    )
 
 
 if __name__ == '__main__':

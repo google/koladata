@@ -25,6 +25,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -213,6 +214,15 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     res = extension_type_registry.get_dummy_value(MyExtensionType)
     testing.assert_equal(
         res,
+        extension_type_registry.wrap(
+            objects.Object(),
+            extension_type_registry.get_extension_qtype(MyExtensionType),
+        ),
+    )
+    # Also integrated with py_boxing, allowing it to be used for e.g. functor
+    # annotations
+    testing.assert_equal(
+        py_boxing.get_dummy_qvalue(MyExtensionType),
         extension_type_registry.wrap(
             objects.Object(),
             extension_type_registry.get_extension_qtype(MyExtensionType),

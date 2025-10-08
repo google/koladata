@@ -19,6 +19,7 @@ from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from arolla.objects import objects
 import bidict
+from koladata.types import py_boxing
 
 
 M = arolla.M | derived_qtype.M
@@ -54,6 +55,8 @@ def register_extension_type(
         f'{qtype} is already registered with a different class: {reg_cls}'
     )
   _EXTENSION_TYPE_REGISTRY[cls] = qtype
+  # Allow extension types to be used as type annotations in functors.
+  py_boxing.register_dummy_qvalue_handler(cls, get_dummy_value)
 
 
 def get_extension_qtype(cls: type[Any]) -> arolla.QType:

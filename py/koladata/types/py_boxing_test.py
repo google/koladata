@@ -19,14 +19,12 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.extension_types import extension_types
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
-from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import py_boxing
@@ -55,12 +53,14 @@ def op_with_list_boxing(x, y, z):
   return (x, y, z)
 
 
-@extension_types.extension_type()
-class DummyExtension:
-  pass
-
-
 class PyBoxingTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    qvalue_handler_registry = py_boxing._DUMMY_QVALUE_HANDLER_REGISTRY.copy()
+    def cleanup():
+      py_boxing._DUMMY_QVALUE_HANDLER_REGISTRY = qvalue_handler_registry
+    self.addCleanup(cleanup)
 
   @parameterized.parameters(
       (1, ds(1)),
@@ -95,7 +95,6 @@ class PyBoxingTest(parameterized.TestCase):
       (data_item.DataItem, ds(None)),
       (schema_item.SchemaItem, ds(None)),
       (jagged_shape.JaggedShape, jagged_shape.create_shape()),
-      (DummyExtension, extension_type_registry.get_dummy_value(DummyExtension)),
       ((), arolla.tuple()),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
@@ -199,7 +198,6 @@ class PyBoxingTest(parameterized.TestCase):
       (data_item.DataItem, ds(None)),
       (schema_item.SchemaItem, ds(None)),
       (jagged_shape.JaggedShape, jagged_shape.create_shape()),
-      (DummyExtension, extension_type_registry.get_dummy_value(DummyExtension)),
       # Unsupported.
       (1, None),
       (type(arolla.int32(1)), None),
@@ -212,6 +210,41 @@ class PyBoxingTest(parameterized.TestCase):
     # DataBag is created anew every time.
     qvalue = py_boxing.get_dummy_qvalue(data_bag.DataBag)
     self.assertIsInstance(qvalue, data_bag.DataBag)
+
+  def test_register_dummy_qvalue_handler(self):
+    class A:
+      pass
+
+    self.assertIsNone(py_boxing.get_dummy_qvalue(A))
+
+    def a_handler(cls):
+      self.assertEqual(cls, A)
+      return ds(None)
+
+    py_boxing.register_dummy_qvalue_handler(A, a_handler)
+    testing.assert_equal(py_boxing.get_dummy_qvalue(A), ds(None))
+
+    class B(A):
+      pass
+
+    # Does not support subclasses.
+    self.assertIsNone(py_boxing.get_dummy_qvalue(B))
+
+  def test_register_dummy_qvalue_handler_bad_output(self):
+    class A:
+      pass
+
+    py_boxing.register_dummy_qvalue_handler(A, lambda cls: A())
+    with self.assertRaisesRegex(TypeError, 'expected a QValue'):
+      py_boxing.get_dummy_qvalue(A)
+
+  def test_register_dummy_qvalue_handler_high_precedence(self):
+    py_boxing.register_dummy_qvalue_handler(
+        data_slice.DataSlice, lambda cls: arolla.tuple()
+    )
+    testing.assert_equal(
+        py_boxing.get_dummy_qvalue(data_slice.DataSlice), arolla.tuple()
+    )
 
   def test_as_qvalue_raises_on_unsupported_type(self):
     with self.assertRaisesRegex(ValueError, re.escape('unsupported type')):

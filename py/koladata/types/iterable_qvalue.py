@@ -70,3 +70,4 @@ class Iterable(arolla.QValue):
 arolla.abc.register_qvalue_specialization(
     '::koladata::iterables::IterableQType', Iterable
 )
+py_boxing.register_dummy_qvalue_handler(Iterable, lambda cls: Iterable())

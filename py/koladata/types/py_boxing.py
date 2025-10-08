@@ -26,9 +26,9 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
-from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
+from koladata.types import schema_item
 
 
 literal = literal_operator.literal
@@ -79,7 +79,7 @@ def new_non_deterministic_token() -> arolla.Expr:
 
 
 def _no_py_function_boxing_registered(
-    fn: py_types.FunctionType | functools.partial,
+    fn: py_types.FunctionType | functools.partial,  # pylint: disable=g-bare-generic
 ) -> arolla.QValue:
   del fn  # Unused.
   raise ValueError(
@@ -91,30 +91,63 @@ def _no_py_function_boxing_registered(
 
 
 _py_function_boxing_fn: Callable[
-    [py_types.FunctionType | functools.partial], arolla.QValue
+    [py_types.FunctionType | functools.partial], arolla.QValue  # pylint: disable=g-bare-generic
 ] = _no_py_function_boxing_registered
 
 
 def register_py_function_boxing_fn(
-    fn: Callable[[py_types.FunctionType | functools.partial], arolla.QValue],
+    fn: Callable[[py_types.FunctionType | functools.partial], arolla.QValue],  # pylint: disable=g-bare-generic
 ):
   """Registers an implementation for Python function boxing."""
   global _py_function_boxing_fn
   _py_function_boxing_fn = fn
 
 
+_DUMMY_QVALUE_HANDLER_REGISTRY = {}
+
+
+def register_dummy_qvalue_handler(
+    cls: type[Any], handler: Callable[[type[Any]], arolla.AnyQValue]
+) -> None:
+  """Registers `handler` as a dummy value producer for `cls` type annotations.
+
+  Does _not_ support dispatching of subclasses. `cls` must match exactly with
+  the annotation.
+
+  Args:
+    cls: the type to handle.
+    handler: a callback taking `cls` and producing a dummy QValue.
+  """
+  _DUMMY_QVALUE_HANDLER_REGISTRY[cls] = handler
+
+
+# Default handlers.
+register_dummy_qvalue_handler(
+    data_slice.DataSlice, lambda cls: data_item.DataItem.from_vals(None)
+)
+register_dummy_qvalue_handler(
+    data_item.DataItem, lambda cls: data_item.DataItem.from_vals(None)
+)
+register_dummy_qvalue_handler(
+    schema_item.SchemaItem, lambda cls: data_item.DataItem.from_vals(None)
+)
+register_dummy_qvalue_handler(
+    data_bag.DataBag, lambda cls: data_bag.DataBag.empty()
+)
+register_dummy_qvalue_handler(
+    jagged_shape.JaggedShape, lambda cls: jagged_shape.create_shape()
+)
+
+
 def get_dummy_qvalue(cls: Any) -> arolla.AnyQValue | None:
   """Returns a dummy qvalue for the provided `cls` or None if unsupported."""
   if not isinstance(cls, type):
     return None
-  elif issubclass(cls, data_slice.DataSlice):
-    return data_item.DataItem.from_vals(None)
-  elif cls is data_bag.DataBag:
-    return data_bag.DataBag.empty()
-  elif cls is jagged_shape.JaggedShape:
-    return jagged_shape.create_shape()
-  elif extension_type_registry.is_koda_extension_type(cls):
-    return extension_type_registry.get_dummy_value(cls)
+  elif handler := _DUMMY_QVALUE_HANDLER_REGISTRY.get(cls):
+    res = handler(cls)
+    if not isinstance(res, arolla.QValue):
+      raise TypeError(f'expected a QValue, got {type(res)}')
+    return res
   else:
     return None
 
