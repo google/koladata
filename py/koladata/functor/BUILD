@@ -174,9 +174,6 @@ py_test(
 py_library(
     name = "tracing_decorator",
     srcs = ["tracing_decorator.py"],
-    visibility = [
-        "//koladata:internal",
-    ],
     deps = [
         ":functor_factories",
         "//py:python_path",
@@ -251,6 +248,7 @@ py_test(
         ":functor_factories",
         ":tracing_decorator",
         "//py:python_path",
+        "//py/koladata/extension_types",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

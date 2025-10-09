@@ -14,7 +14,6 @@
 
 """A decorator to customize the tracing behavior for a particular function."""
 
-import abc
 import functools
 import inspect
 import types as py_types
@@ -29,118 +28,15 @@ from koladata.types import py_boxing
 from koladata.util import kd_functools
 
 
-# TODO: Remove support once all TypeTracingConfig usages have been
-# migrated to extension types.
-#
-# The design is loosely inspired by TensorFlow TraceType.
-class _TypeTracingConfig(abc.ABC):
-  """Describes handling a given user Python type as input/output when tracing."""
-
-  @abc.abstractmethod
-  def return_type_as(self, annotation: type[Any]) -> Any:
-    """Returns a value with the Koda type that should be used for 'annotation'.
-
-    Args:
-      annotation: The type annotation on the argument/return value.
-
-    Returns:
-      A Koda value or a value that can be automatically boxed into a Koda value
-      with the Koda type that should be used for 'annotation'.
-    """
-    raise NotImplementedError()
-
-  @abc.abstractmethod
-  def to_kd(self, annotation: type[Any], value: Any) -> Any:
-    """Converts a value annotated with 'annotation' to a Koda value or expr.
-
-    This method will be invoked both in tracing mode and in eager mode (to
-    reduce the probability of failure in tracing mode), so it
-    needs to support both. Usually this means that the user type should be
-    a composite type that can hold either Koda values or exprs inside.
-
-    Args:
-      annotation: The type annotation on the parameter/return value that we need
-        to convert.
-      value: The value of type 'annotation' to convert. Can either be a value of
-        the user type created inside the function being traced, or a value
-        returned from from_kd().
-
-    Returns:
-      A Koda value, a value that can be automatically boxed into a Koda value,
-      or expr that represents the given value. After boxing, should have the
-      same type as self.return_type_as(annotation). If the values of this type
-      are going to be used as default values in the signature, it should
-      be a DataItem or auto-boxable to DataItem.
-    """
-    raise NotImplementedError()
-
-  @abc.abstractmethod
-  def from_kd(self, annotation: type[Any], value: Any) -> Any:
-    """Converts a Koda value or expr to a value of this type.
-
-    This method will be invoked both in tracing mode and in eager mode (to
-    reduce the probability of failure in tracing mode), so it
-    needs to support both. Usually this means that the user type should be
-    a composite type that can hold either Koda values or exprs inside.
-
-    Args:
-      annotation: The type annotation on the parameter/return value that we need
-        to convert.
-      value: The Koda value to convert, with the same type as
-        self.return_type_as(annotation). Will always be a value returned from a
-        previous call to to_kd().
-
-    Returns:
-      The value of type 'annotation' that represents the given Koda value or
-      expression.
-    """
-    raise NotImplementedError()
-
-
-class _DefaultTypeTracingConfig(_TypeTracingConfig):
-  """Default type tracing config."""
-
-  def return_type_as(self, annotation: type[Any]) -> Any:
-    """Returns a value with the Arolla type that should be used for 'annotation'."""
-    if (value := py_boxing.get_dummy_qvalue(annotation)) is not None:
-      return value
-    else:
-      # This will be incorrect if 'annotation' is anything except a DataSlice,
-      # in which case we currently expect the user to specify return_type_as
-      # explicitly.
-      return data_slice.DataSlice.from_vals(None)
-
-  def to_kd(self, annotation: type[Any], value: Any) -> Any:
-    """Returns value as is."""
+def _return_type_as(annotation: type[Any]) -> arolla.AnyQValue:
+  """Returns a value with the Arolla type that should be used for 'annotation'."""
+  if (value := py_boxing.get_dummy_qvalue(annotation)) is not None:
     return value
-
-  def from_kd(self, annotation: type[Any], value: Any) -> Any:
-    """Returns value as is."""
-    return value
-
-
-_TYPE_TRACING_CONFIG_METHOD_NAME = '_koladata_type_tracing_config_'
-
-
-def _get_type_tracing_config(annotation: type[Any]) -> _TypeTracingConfig:
-  """Returns the type tracing config for the given class."""
-  try:
-    config = getattr(annotation, _TYPE_TRACING_CONFIG_METHOD_NAME)
-  except AttributeError:
-    config = _DefaultTypeTracingConfig
-  return config()
-
-
-def _to_kd(annotation: type[Any], value: Any) -> Any:
-  """Converts a value annotated with 'annotation' to a Koda value or expr."""
-  return py_boxing.as_qvalue_or_expr(
-      _get_type_tracing_config(annotation).to_kd(annotation, value)
-  )
-
-
-def _from_kd(annotation: type[Any], value: Any) -> Any:
-  """Converts a Koda value or expr to a value of type annotated with 'annotation'."""
-  return _get_type_tracing_config(annotation).from_kd(annotation, value)
+  else:
+    # This will be incorrect if 'annotation' is anything except a DataSlice,
+    # in which case we currently expect the user to specify return_type_as
+    # explicitly.
+    return data_slice.DataSlice.from_vals(None)
 
 
 def _inspect_signature(fn: py_types.FunctionType) -> inspect.Signature:
@@ -157,32 +53,16 @@ def _wrap_with_from_and_to_kd(
   """Adds conversion of the arguments from Koda and the return value to Koda."""
   sig = _inspect_signature(fn)
   wrapper_params = []
-  # This is a performance optimization to avoid iterating over all parameters in
-  # the common case of no custom tracing config.
-  params_with_custom_config = []
   for param in sig.parameters.values():
-    if hasattr(param.annotation, _TYPE_TRACING_CONFIG_METHOD_NAME):
-      params_with_custom_config.append(param)
     if param.default is not inspect.Parameter.empty:
-      param = param.replace(default=_to_kd(param.annotation, param.default))
+      param = param.replace(default=py_boxing.as_qvalue_or_expr(param.default))
     wrapper_params.append(param)
   wrapper_sig = sig.replace(parameters=wrapper_params)
 
   @functools.wraps(fn)
   def wrapper(*args: Any, **kwargs: Any) -> Any:
     __tracebackhide__ = True  # pylint: disable=invalid-name, unused-variable
-    if params_with_custom_config:
-      bound = wrapper_sig.bind(*args, **kwargs)
-      bound.apply_defaults()
-      for param in params_with_custom_config:
-        bound.arguments[param.name] = _from_kd(
-            param.annotation,
-            bound.arguments[param.name],
-        )
-      res = fn(*bound.args, **bound.kwargs)
-    else:
-      res = fn(*args, **kwargs)
-    return _to_kd(sig.return_annotation, res)
+    return py_boxing.as_qvalue_or_expr(fn(*args, **kwargs))
 
   wrapper.__signature__ = wrapper_sig
 
@@ -282,9 +162,7 @@ class TraceAsFnDecorator:
     kd_fn = _wrap_with_from_and_to_kd(fn)
     return_type_as = self._return_type_as
     if return_type_as is None:
-      return_type_as = _get_type_tracing_config(
-          sig.return_annotation
-      ).return_type_as(sig.return_annotation)
+      return_type_as = _return_type_as(sig.return_annotation)
     return_type_as = py_boxing.as_qvalue(return_type_as)
     to_call = self._functor_factory(kd_fn, return_type_as=return_type_as)
     # It is important to create this expr once per function, so that its
@@ -309,8 +187,8 @@ class TraceAsFnDecorator:
       # to change them if necessary.
       for param in sig.parameters.values():
         if param.name in bound.arguments:
-          bound.arguments[param.name] = _to_kd(
-              param.annotation, bound.arguments[param.name]
+          bound.arguments[param.name] = py_boxing.as_qvalue_or_expr(
+              bound.arguments[param.name]
           )
 
       if tracing_mode.is_tracing_enabled():
@@ -335,7 +213,6 @@ class TraceAsFnDecorator:
               f' `{res.qtype}` instead. Consider adding or updating'
               ' return_type_as= argument to @kd.trace_as_fn().'
           )
-      res = _from_kd(sig.return_annotation, res)
       return res
 
     return wrapper

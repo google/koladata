@@ -15,6 +15,7 @@
 from __future__ import annotations  # MUST BE IMPORTED.
 
 from absl.testing import absltest
+from koladata.extension_types import extension_types
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
@@ -25,24 +26,9 @@ from koladata.types import data_slice
 ds = data_slice.DataSlice.from_vals
 
 
-class SimpleTracingConfig(tracing_decorator._TypeTracingConfig):
-
-  def return_type_as(self, annotation):
-    return data_slice.DataSlice
-
-  def to_kd(self, annotation, value):
-    return value.x
-
-  def from_kd(self, annotation, value):
-    return annotation(x=value)
-
-
+@extension_types.extension_type()
 class SimpleClass:
-
-  _koladata_type_tracing_config_ = SimpleTracingConfig
-
-  def __init__(self, x):
-    self.x = x
+  x: data_slice.DataSlice
 
   def get_x(self):
     return self.x
@@ -77,11 +63,9 @@ class TracingDecoratorWithFutureAnnotationsTest(absltest.TestCase):
     ):
       _ = tracing_decorator.TraceAsFnDecorator()(fn)
 
+    @extension_types.extension_type()
     class ForwardDeclarationClass:
-      _koladata_type_tracing_config_ = SimpleTracingConfig
-
-      def __init__(self, x):
-        self.x = x
+      x: data_slice.DataSlice
 
     # pytype: enable=name-error
 

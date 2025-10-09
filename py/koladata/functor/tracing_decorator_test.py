@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dataclasses
 import re
-from typing import Any, ClassVar, Protocol, Self
+from typing import Protocol
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -41,85 +40,6 @@ V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
 kd_eager = eager_op_utils.operators_container('kd')
 kd_lazy = kde_operators.kde
-
-
-class TuplePairTracingConfig(tracing_decorator._TypeTracingConfig):
-  """A type tracing config for Pair using tuples."""
-
-  def return_type_as(self, annotation: type['PairWithTupleTracing']) -> Any:
-    # This is never called in tracing mode, but using user_facing_kd here
-    # to emulate what will happen in real user code.
-    # This is auto-boxed to a Koda tuple.
-    return data_slice.DataSlice, data_slice.DataSlice
-
-  def to_kd(
-      self,
-      annotation: type['PairWithTupleTracing'],
-      value: 'PairWithTupleTracing',
-  ) -> Any:
-    # This is auto-boxed to a Koda tuple.
-    return value.x, value.y
-
-  def from_kd(
-      self, annotation: type['PairWithTupleTracing'], value: Any
-  ) -> 'PairWithTupleTracing':
-    return annotation(x=value[0], y=value[1])
-
-
-# We demonstrate two main ways to define custom tracing behavior for composite
-# types: using tuples and using entities.
-# The benefit of using tuples is avoiding any additional conversions.
-# The benefit of using entities is that those can be stored in a DataBag,
-# for example as default values for a functor.
-@dataclasses.dataclass(frozen=True)
-class PairWithTupleTracing:
-  x: data_slice.DataSlice | user_facing_kd.types.Expr
-  y: data_slice.DataSlice | user_facing_kd.types.Expr
-
-  def __add__(self, other: Any) -> Self:
-    return PairWithTupleTracing(x=self.x + other, y=self.y + other)
-
-  _koladata_type_tracing_config_: ClassVar[type[TuplePairTracingConfig]] = (
-      TuplePairTracingConfig
-  )
-
-
-class EntityPairTracingConfig(tracing_decorator._TypeTracingConfig):
-  """A type tracing config for Pair using entities."""
-
-  def return_type_as(self, annotation: type['PairWithEntityTracing']) -> Any:
-    return data_slice.DataSlice
-
-  def to_kd(
-      self,
-      annotation: type['PairWithEntityTracing'],
-      value: 'PairWithEntityTracing',
-  ) -> Any:
-    return user_facing_kd.new(
-        x=user_facing_kd.implode(value.x, ndim=value.x.get_ndim()),
-        x_ndim=value.x.get_ndim(),
-        y=user_facing_kd.implode(value.y, ndim=value.y.get_ndim()),
-        y_ndim=value.y.get_ndim(),
-        schema='_testing_pair',
-    )
-
-  def from_kd(
-      self, annotation: type['PairWithEntityTracing'], value: Any
-  ) -> 'PairWithEntityTracing':
-    return annotation(
-        x=user_facing_kd.explode(value.x, ndim=value.x_ndim),
-        y=user_facing_kd.explode(value.y, ndim=value.y_ndim),
-    )
-
-
-@dataclasses.dataclass(frozen=True)
-class PairWithEntityTracing:
-  x: data_slice.DataSlice | user_facing_kd.types.Expr
-  y: data_slice.DataSlice | user_facing_kd.types.Expr
-
-  _koladata_type_tracing_config_: ClassVar[type[EntityPairTracingConfig]] = (
-      EntityPairTracingConfig
-  )
 
 
 @extension_types.extension_type()
@@ -343,42 +263,6 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(f(ds([1, 2])), ds([2, 3]))
     testing.assert_equal(fn(ds([1, 2])), ds([7, 8]))
 
-  def test_custom_tracing_config_tuple_tracing(self):
-
-    @tracing_decorator.TraceAsFnDecorator()
-    def swap(a: PairWithTupleTracing) -> PairWithTupleTracing:
-      return PairWithTupleTracing(x=a.y, y=a.x)
-
-    def f(o):
-      p = PairWithTupleTracing(x=o.x, y=o.y[:])
-      p = swap(p) + 3
-      return user_facing_kd.obj(x=user_facing_kd.implode(p.x), y=p.y)
-
-    res = f(fns.obj(x=ds([1, 2, 3]), y=fns.implode(ds([[4, 5], [], [6]]))))
-    testing.assert_equal(res.x[:].no_bag(), ds([[7, 8], [], [9]]))
-    testing.assert_equal(res.y.no_bag(), ds([4, 5, 6]))
-
-    fn = functor_factories.trace_py_fn(f)
-    res = fn(fns.obj(x=ds([1, 2, 3]), y=fns.implode(ds([[4, 5], [], [6]]))))
-    testing.assert_equal(res.x[:].no_bag(), ds([[7, 8], [], [9]]))
-    testing.assert_equal(res.y.no_bag(), ds([4, 5, 6]))
-
-  def test_custom_tracing_config_entity_tracing(self):
-
-    @tracing_decorator.TraceAsFnDecorator()
-    def swap(a: PairWithEntityTracing) -> PairWithEntityTracing:
-      return PairWithEntityTracing(x=a.y, y=a.x)
-
-    def f(o):
-      p = PairWithEntityTracing(x=o.x, y=o.y[:])
-      p = swap(p)
-      return user_facing_kd.obj(x=user_facing_kd.implode(p.x), y=p.y)
-
-    fn = functor_factories.trace_py_fn(f)
-    res = fn(fns.obj(x=ds([1, 2, 3]), y=fns.implode(ds([[4, 5], [], [6]]))))
-    testing.assert_equal(res.x[:].no_bag(), ds([[4, 5], [], [6]]))
-    testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
-
   @parameterized.parameters(True, False)
   def test_koda_extension_type_tracing(self, py_fn):
     functor_factory = (
@@ -410,84 +294,6 @@ class TracingDecoratorTest(parameterized.TestCase):
     res = fn(p, return_type_as=p)
     testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
-
-  def test_custom_tracing_config_with_py_fn(self):
-
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
-    def swap(a: PairWithTupleTracing) -> PairWithTupleTracing:
-      return PairWithTupleTracing(x=a.y, y=a.x)
-
-    def f(o):
-      p = PairWithTupleTracing(x=o.x, y=o.y)
-      p = swap(p)
-      return user_facing_kd.obj(x=p.x, y=p.y)
-
-    fn = functor_factories.trace_py_fn(f)
-    res = fn(fns.obj(x=ds(1), y=ds(2)))
-    testing.assert_equal(res.x.no_bag(), ds(2))
-    testing.assert_equal(res.y.no_bag(), ds(1))
-
-  def test_custom_tracing_config_default_values(self):
-
-    @tracing_decorator.TraceAsFnDecorator()
-    def pair_add(
-        a: PairWithEntityTracing,
-        b: PairWithEntityTracing = PairWithEntityTracing(x=ds(5), y=ds(7)),
-    ) -> PairWithEntityTracing:
-      return PairWithEntityTracing(x=a.x + b.x, y=a.y + b.y)
-
-    def f(o):
-      p = PairWithEntityTracing(x=o.x, y=o.y)
-      p = pair_add(p)
-      p = pair_add(p, p)
-      return user_facing_kd.obj(x=p.x, y=p.y)
-
-    res = f(fns.obj(x=ds(1), y=ds(2)))
-    testing.assert_equal(res.x.no_bag(), ds((1 + 5) * 2))
-    testing.assert_equal(res.y.no_bag(), ds((2 + 7) * 2))
-
-    fn = functor_factories.trace_py_fn(f)
-    res = fn(fns.obj(x=ds(1), y=ds(2)))
-    testing.assert_equal(res.x.no_bag(), ds((1 + 5) * 2))
-    testing.assert_equal(res.y.no_bag(), ds((2 + 7) * 2))
-
-    testing.assert_equal(
-        functor_factories.get_signature(fn.pair_add)
-        .parameters[1]
-        .name.no_bag(),
-        ds('b'),
-    )
-
-    # Check that the default values from the Koda signature are respected.
-    fn = fn.updated(
-        kd_eager.attrs(
-            functor_factories.get_signature(fn.pair_add).parameters[1],
-            default_value=EntityPairTracingConfig().to_kd(
-                PairWithEntityTracing, PairWithEntityTracing(x=ds(3), y=ds(4))
-            ),
-        ),
-    )
-    res = fn(fns.obj(x=ds(1), y=ds(2)))
-    testing.assert_equal(res.x.no_bag(), ds((1 + 3) * 2))
-    testing.assert_equal(res.y.no_bag(), ds((2 + 4) * 2))
-
-  def test_custom_tracing_config_default_values_does_not_work_with_tuples(self):
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'only DataItems can be used as default values',
-    ):
-
-      @tracing_decorator.TraceAsFnDecorator()
-      def pair_add(
-          a: PairWithTupleTracing,
-          b: PairWithTupleTracing = PairWithTupleTracing(x=ds(5), y=ds(7)),
-      ) -> PairWithTupleTracing:
-        return PairWithTupleTracing(x=a.x + b.x, y=a.y + b.y)
-
-      del pair_add  # Unused.
 
   def test_can_pass_unwrapped_lambdas(self):
 
