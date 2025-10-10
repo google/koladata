@@ -148,6 +148,7 @@ def _make_virtual_method(
 @dataclasses.dataclass(frozen=True)
 class _ClassMeta:
   name: str
+  fully_qualified_name: str
   signature: inspect.Signature
   non_virtual_methods: Mapping[str, Callable[..., Any]]
   virtual_methods: Mapping[str, Callable[..., Any]]
@@ -265,6 +266,9 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
 
   return _ClassMeta(
       name=original_class.__name__,
+      fully_qualified_name=(
+          original_class.__module__ + '.' + original_class.__qualname__
+      ),
       signature=sig,
       non_virtual_methods=non_virtual_methods,
       virtual_methods=virtual_methods,
@@ -624,7 +628,7 @@ def extension_type(
 
     # QType definitions.
     extension_qtype = M.derived_qtype.get_labeled_qtype(
-        extension_type_registry.BASE_QTYPE, class_meta.name
+        extension_type_registry.BASE_QTYPE, class_meta.fully_qualified_name
     ).qvalue
     extension_type_registry.register_extension_type(
         original_class, extension_qtype, unsafe_override=unsafe_override

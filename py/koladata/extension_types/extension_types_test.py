@@ -44,11 +44,11 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    extension_type_registry.BASE_QTYPE, '_MyTestExtension'
+    extension_type_registry.BASE_QTYPE, '__main__._MyTestExtension'
 ).qvalue
 
 _DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    extension_type_registry.BASE_QTYPE, '_MyDummyExtension'
+    extension_type_registry.BASE_QTYPE, '__main__._MyDummyExtension'
 ).qvalue
 
 
@@ -272,19 +272,45 @@ class ExtensionTypesTest(parameterized.TestCase):
       testing.assert_equal(ext.y.eval(y=2), ds(2))
 
   def test_extension_type_decorator_unsafe_override(self):
-    class Cls1:
-      pass
 
-    class Cls2:
-      pass
+    def make_cls():
+      class Cls:
+        pass
 
-    Cls2.__name__ = 'Cls1'
-    ext_types.extension_type()(Cls1)
+      return Cls
+
+    ext_types.extension_type()(make_cls())
     with self.assertRaisesRegex(
         ValueError, 'is already registered with a different class'
     ):
-      ext_types.extension_type()(Cls2)
-    ext_types.extension_type(unsafe_override=True)(Cls2)
+      ext_types.extension_type()(make_cls())
+    ext_types.extension_type(unsafe_override=True)(make_cls())
+
+  def test_registered_with_fully_qualified_name(self):
+    class A:
+      class B:
+        pass
+
+    class C:
+      class B:
+        pass
+
+    ext_types.extension_type()(A.B)
+    ext_types.extension_type()(C.B)
+    testing.assert_equal(
+        extension_type_registry.get_extension_qtype(A.B),
+        M.derived_qtype.get_labeled_qtype(
+            extension_type_registry.BASE_QTYPE,
+            '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.A.B',
+        ).qvalue,
+    )
+    testing.assert_equal(
+        extension_type_registry.get_extension_qtype(C.B),
+        M.derived_qtype.get_labeled_qtype(
+            extension_type_registry.BASE_QTYPE,
+            '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.C.B',
+        ).qvalue,
+    )
 
   def test_lazy_methods(self):
     @ext_types.extension_type()
@@ -1127,8 +1153,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('lazy'):
       expected_repr = (
           re.escape(
-              """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL[A]), DataItem('x', schema: STRING), DATA_SLICE),
+              """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A']), DataItem('x', schema: STRING), DATA_SLICE),
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'
@@ -1153,8 +1179,8 @@ class ExtensionTypesTest(parameterized.TestCase):
       a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
       expr = M.core.identity(a)
       expected_repr = (
-          'M.core.identity(LABEL[A]{Object{attributes={x=DataItem(1, schema:'
-          ' INT32)}}})'
+          "M.core.identity(LABEL['__main__.ExtensionTypesTest.test_default_repr_with_unknown_attr.<locals>.A']{Object{attributes={x=DataItem(1,"
+          ' schema: INT32)}}})'
       )
       self.assertEqual(repr(expr), expected_repr)
 
@@ -1184,8 +1210,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('lazy'):
       expected_repr = (
           re.escape(
-              """kd.extension_types.make(LABEL[A], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL[A]), DataItem('x', schema: STRING), DATA_SLICE),
+              """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A']), DataItem('x', schema: STRING), DATA_SLICE),
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'

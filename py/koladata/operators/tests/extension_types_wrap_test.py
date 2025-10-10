@@ -51,7 +51,8 @@ class ExtensionTypesWrapTest(parameterized.TestCase):
 
   def test_wrap_not_an_object(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape("expected one of [OBJECT], got obj: LABEL[A]")
+        ValueError,
+        re.escape("expected one of [OBJECT], got obj: LABEL[__main__.A]"),
     ):
       kde.extension_types.wrap(A(1), A_qtype)
 
