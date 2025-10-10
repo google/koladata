@@ -878,6 +878,10 @@ cc_library(
     name = "dtype",
     srcs = ["dtype.cc"],
     hdrs = ["dtype.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":missing_value",
         ":stable_fingerprint",

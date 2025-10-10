@@ -42,7 +42,8 @@ package_group(
 
 package_group(
     name = "experimental_users",
-    packages = ["//javatests/com/google/quality/arolla/koladata/..."],
+    packages = [
+    ],
 )
 
 cc_test(
@@ -78,6 +79,10 @@ cc_library(
     hdrs = [
         "data_bag.h",
         "data_bag_repr.h",
+    ],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
     ],
     deps = [
         "//koladata/internal:data_bag",
@@ -580,6 +585,10 @@ cc_library(
     name = "object_factories",
     srcs = ["object_factories.cc"],
     hdrs = ["object_factories.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":alloc_utils",
         ":data_bag",

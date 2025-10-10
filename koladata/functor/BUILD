@@ -132,6 +132,10 @@ cc_library(
     name = "cpp_function_bridge",
     srcs = ["cpp_function_bridge.cc"],
     hdrs = ["cpp_function_bridge.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":functor",
         ":signature_utils",
@@ -191,6 +195,10 @@ cc_library(
     name = "call",
     srcs = ["call.cc"],
     hdrs = ["call.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":auto_variables",
         ":signature_utils",

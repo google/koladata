@@ -27,6 +27,10 @@ cc_library(
     name = "from_proto",
     srcs = ["from_proto.cc"],
     hdrs = ["from_proto.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":proto_schema_utils",
         "//koladata:data_bag",
@@ -87,6 +91,10 @@ cc_library(
     name = "to_proto",
     srcs = ["to_proto.cc"],
     hdrs = ["to_proto.h"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         "//koladata:data_slice",
         "//koladata/internal:data_item",
