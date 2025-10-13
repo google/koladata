@@ -1339,9 +1339,9 @@ TEST(DataBagTest, CreateObjectsSetObjects) {
     auto ds_a = DataSliceImpl::AllocateEmptyObjects(size);
     auto ds_b = DataSliceImpl::AllocateEmptyObjects(size);
     auto ds_b_new = DataSliceImpl::AllocateEmptyObjects(size);
-    ASSERT_OK_AND_ASSIGN(auto ds, db->CreateObjectsFromFields(
-                                      {std::string("a"), std::string("b")},
-                                      {std::cref(ds_a), std::cref(ds_b)}));
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         db->CreateObjectsFromFields(
+                             {"a", "b"}, {std::cref(ds_a), std::cref(ds_b)}));
     ASSERT_OK(db->SetAttr(ds, "b", ds_b_new));
 
     AllocationId alloc(ds.values<ObjectId>()[0].value);
@@ -1400,7 +1400,7 @@ TEST(DataBagTest, CreatePrimitiveSetPrimitive) {
   auto ds_b_new =
       DataSliceImpl::Create(arolla::CreateConstDenseArray<int32_t>(kSize, 37));
   ASSERT_OK_AND_ASSIGN(
-      auto ds, db->CreateObjectsFromFields({std::string("a"), std::string("b")},
+      auto ds, db->CreateObjectsFromFields({"a", "b"},
                                            {std::cref(ds_a), std::cref(ds_b)}));
   ASSERT_OK(db->SetAttr(ds, "b", ds_b_new));
 
@@ -1437,7 +1437,7 @@ TEST(DataBagTest, TextAttribute) {
   auto ds_b_new = DataSliceImpl::Create(
       arolla::CreateConstDenseArray<arolla::Text>(kSize, "ccc"));
   ASSERT_OK_AND_ASSIGN(
-      auto ds, db->CreateObjectsFromFields({std::string("a"), std::string("b")},
+      auto ds, db->CreateObjectsFromFields({"a", "b"},
                                            {std::cref(ds_a), std::cref(ds_b)}));
   ASSERT_OK(db->SetAttr(ds, "b", ds_b_new));
 
