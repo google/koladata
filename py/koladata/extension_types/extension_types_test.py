@@ -1427,6 +1427,82 @@ class ExtensionTypesTest(parameterized.TestCase):
     ):
       _ = ext_types.get_annotations(object)
 
+  def test_extension_isinstance(self):
+    class A:
+      pass
+
+    @ext_types.extension_type()
+    class B(A):
+      pass
+
+    @ext_types.extension_type()
+    class C(B):
+      pass
+
+    class D(C):
+      def __new__(cls):
+        return A.__new__(cls)
+
+    class E(D):
+      pass
+
+    c = C()
+
+    self.assertIsInstance(c, C)
+    self.assertIsInstance(c, B)
+    self.assertIsInstance(c, A)
+    self.assertIsInstance(c, (A, D))
+    self.assertIsInstance(c, (A | D))
+    self.assertIsInstance(D(), C)
+
+    self.assertNotIsInstance(c, D)
+    self.assertNotIsInstance(c, (D, E))
+    self.assertNotIsInstance(extension_type_registry.get_extension_qtype(C), C)
+    self.assertNotIsInstance(None, C)
+
+  def test_extension_issubclass(self):
+    class A:
+      pass
+
+    @ext_types.extension_type()
+    class B(A):
+      pass
+
+    @ext_types.extension_type()
+    class C(B):
+      pass
+
+    class D(C):
+      def __new__(cls):
+        return cls
+
+    class E(D):
+      pass
+
+    self.assertTrue(issubclass(C, C))
+    self.assertTrue(issubclass(C, B))
+    self.assertTrue(issubclass(C, A))
+    self.assertTrue(issubclass(C, (A, D)))
+    self.assertTrue(issubclass(C, (A | D)))
+    self.assertTrue(issubclass(D, C))
+
+    self.assertTrue(issubclass(type(C()), C))
+    self.assertTrue(issubclass(type(C()), B))
+    self.assertTrue(issubclass(type(C()), A))
+    self.assertTrue(issubclass(type(C()), (A, D)))
+    self.assertTrue(issubclass(type(C()), (A | D)))
+
+    self.assertFalse(issubclass(C, D))
+    self.assertFalse(issubclass(C, (D, E)))
+
+  def test_qvalue_new(self):
+    @ext_types.extension_type()
+    class A:
+      x: schema_constants.INT32
+
+    a = A(1)
+    testing.assert_equal(a, type(a)(1))
+
 
 if __name__ == '__main__':
   absltest.main()

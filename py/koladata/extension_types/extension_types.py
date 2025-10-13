@@ -155,6 +155,7 @@ class _ClassMeta:
   field_annotations: Mapping[str, Any]
   field_qtypes: Mapping[str, arolla.QType]
   original_attributes: Sequence[str]
+  original_class: type[Any]
 
 
 def _safe_issubclass(subcls: Any, cls: type[Any]) -> bool:
@@ -275,6 +276,7 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
       field_annotations=field_annotations,
       field_qtypes=field_qtypes,
       original_attributes=list(sig.parameters),
+      original_class=original_class,
   )
 
 
@@ -409,7 +411,14 @@ def _make_qvalue_class(
     qvalue_class_attrs['__repr__'] = _get_default_repr_fn(
         class_meta.name, class_meta.original_attributes
     )
-  return type(f'{class_meta.name}_QValue', (arolla.QValue,), qvalue_class_attrs)
+  return type(
+      f'{class_meta.name}_QValue',
+      # We inherit from `original_class` mainly to support
+      # `isinstance(my_extension, MyExtensionType)`. All user-defined attributes
+      # and methods are handled by `qvalue_class_attrs`.
+      (arolla.QValue, class_meta.original_class),
+      qvalue_class_attrs,
+  )
 
 
 def _make_expr_view_class(
