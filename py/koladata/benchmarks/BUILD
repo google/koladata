@@ -43,15 +43,11 @@ py_test(
     ],
     deps = [
         "//py:python_path",
-        "//py/koladata/functions",
         "//py/koladata:kd",
+        "//py/koladata/functions",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata/functions/tests:test_py_pb2",
-        # Enables python functions in profile.
-        # Enables --cpu_profile.
-        # Enables --peakheap_profile.
-        # Memory usage counters.
     ],
 )
 
@@ -68,10 +64,6 @@ py_test(
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata/functions/tests:test_py_pb2",
-        # Enables python functions in profile.
-        # Enables --cpu_profile.
-        # Enables --peakheap_profile.
-        # Memory usage counters.
     ],
 )
 

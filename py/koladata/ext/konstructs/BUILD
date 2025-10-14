@@ -14,6 +14,7 @@
 
 # A lightweight library with Koda syntax for working with Python objects.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = [
@@ -59,5 +60,19 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "benchmarks",
+    srcs = ["benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd_ext",
+        requirement("google-benchmark"),
     ],
 )

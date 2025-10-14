@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A Lens is a view on a particular path inside an object."""
+"""Konstucts Lens API."""
 
 from __future__ import annotations
 
@@ -24,7 +24,10 @@ from koladata import kd
 
 
 class Lens:
-  """A jagged array of objects."""
+  """A Lens is a view on a particular path inside an object.
+
+  See the docstring for lens() method for more details.
+  """
 
   __slots__ = ['_flat_items', '_shape']
 

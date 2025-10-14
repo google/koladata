@@ -24,6 +24,9 @@ class KonstructsTest(absltest.TestCase):
         konstructs.lens([1, 2])[:].map(lambda x: x + 1).get(), [2, 3]
     )
 
+  def test_types(self):
+    self.assertIsInstance(konstructs.lens(1), konstructs.types.Lens)
+
 
 if __name__ == '__main__':
   absltest.main()

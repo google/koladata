@@ -183,9 +183,5 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         requirement("google-benchmark"),
-        # Enables python functions in profile.
-        # Enables --cpu_profile.
-        # Enables --peakheap_profile.
-        # Memory usage counters.
     ],
 )

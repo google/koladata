@@ -17,6 +17,11 @@
 This API is highly experimental and is subject to change without notice.
 """
 
+import types as _py_types
 from koladata.ext.konstructs import lens as _lens
 
 lens = _lens.lens
+
+types = _py_types.SimpleNamespace(
+    Lens=_lens.Lens,
+)
