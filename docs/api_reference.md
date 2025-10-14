@@ -47,6 +47,7 @@ Category  | Subcategory | Description
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas &lt;-&gt; Koda interoperability.
  | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
+ | [konstructs](#kd_ext.konstructs) | Experimental Konstructs API.
 [DataSlice](#DataSlice) | | `DataSlice` class
 [DataBag](#DataBag) | | `DataBag` class
 [DataItem](#DataItem) | | `DataItem` class
@@ -11529,6 +11530,54 @@ Aliases:
 - [kd_g3_ext.vis.visualize_slice](#kd_g3_ext.vis.visualize_slice)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Visualizes a DataSlice as a html widget.</code></pre>
+
+</section>
+
+### kd_ext.konstructs {#kd_ext.konstructs}
+
+Experimental Konstructs API.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd_ext.konstructs.lens(obj: Any) -> Lens` {#kd_ext.konstructs.lens}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a view on an object that can be used for vectorized access.
+
+A lens represents traversing a particular path in a tree represented
+by the object, with the leaves of that path being the items in the lens,
+and the structure of that path being the shape of the lens.
+
+For example, consider the following set of objects:
+
+x = Obj(d=3)
+y = Obj(d=4)
+z = [x, y]
+w = Obj(b=1, c=z)
+
+Object w can be represented as the following tree:
+
+w --b--&gt; 1
+  --c--&gt; z --item0--&gt; x --d--&gt; 3
+           --item1--&gt; y --d--&gt; 4
+
+Now lens(w) corresponds to just the root of this tree. lens(w).c corresponds
+to traversing edge labeled with c to z. lens(w).c[:] corresponds to traversing
+the edges labeled with item0 and item1 to x and y respectively. lens(w).c[:].d
+corresponds to traversing the edges labeled with d to 3 and 4.
+
+Example:
+  lens([1, 2])[:].map(lambda x: x + 1).get()
+  # [2, 3]
+  lens([[1, 2], [3]])[:].map(lambda x: len(x)).get()
+  # [2, 1]
+
+Args:
+  obj: An arbitrary object to create a lens for.
+
+Returns:
+  A scalar lens view on the object.</code></pre>
 
 </section>
 </section>

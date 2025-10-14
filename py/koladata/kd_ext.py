@@ -27,6 +27,7 @@ from koladata.ext import pdkd as _pdkd
 from koladata.ext import py_cloudpickle as _py_cloudpickle
 from koladata.ext import vis as _vis
 from koladata.ext.contrib import functions as _contrib_functions
+from koladata.ext.konstructs import konstructs as _konstructs
 from koladata.ext.operators import kde_operators as _kde_operators
 from koladata.ext.persisted_data import persisted_data as _persisted_data
 from koladata.operators import eager_op_utils as _eager_op_utils
@@ -94,6 +95,7 @@ _load_functions('nested_data', _nested_data)
 _load_functions('persisted_data', _persisted_data)
 _load_functions('vis', _vis)
 _load_functions('contrib', _contrib_functions)
+_load_functions('konstructs', _konstructs)
 
 
 lazy = _eager_only(_kde_operators.kde_ext)
