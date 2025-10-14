@@ -48,7 +48,6 @@ namespace {
 
 using internal::DataSliceImpl;
 
-
 DataSlice::JaggedShape::Edge GetEdge(int64_t parent_size, int64_t children) {
   std::vector<arolla::OptionalValue<int64_t>> split_points;
   split_points.reserve(parent_size + 1);
@@ -74,9 +73,8 @@ absl::Status CreateAttributeDataBag(DataBagPtr bag, int64_t size,
   DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(size);
 
   // Batch creates the entities in the DataBag.
-  ASSIGN_OR_RETURN(
-      auto _,
-      EntityCreator::Shaped(bag, std::move(shape), attr_name_views, values));
+  ASSIGN_OR_RETURN(auto _, EntityCreator::Shaped(bag, std::move(shape),
+                                                 attr_name_views, values));
   return absl::OkStatus();
 }
 
@@ -102,15 +100,16 @@ absl::Status CreateSmallAllocDataBag(DataBagPtr bag, int64_t size,
 
 absl::Status Create1DListDataBag(DataBagPtr bag, int64_t size, int64_t dim) {
   DataSlice::JaggedShape shape = DataSlice::JaggedShape::FlatFromSize(dim);
-  ASSIGN_OR_RETURN(DataSlice values, DataSlice::CreateWithSchemaFromData(
-      internal::DataSliceImpl::Create(
-          arolla::CreateConstDenseArray<int64_t>(dim, 12)),
-      std::move(shape)));
+  ASSIGN_OR_RETURN(
+      DataSlice values,
+      DataSlice::CreatePrimitive(
+          arolla::CreateConstDenseArray<int64_t>(dim, 12), std::move(shape)));
 
   for (int i = 0; i < size; ++i) {
     // Creates one list at a time.
     ASSIGN_OR_RETURN(auto _, CreateListsFromLastDimension(
-        bag, values, /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
+                                 bag, values, /*schema=*/std::nullopt,
+                                 test::Schema(schema::kInt64)));
   }
   return absl::OkStatus();
 }
@@ -121,21 +120,21 @@ absl::Status Create2DListDataBag(DataBagPtr bag, int64_t first_dim,
   DataSlice::JaggedShape::Edge edge_2 = GetEdge(first_dim, second_dim);
   DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
       {std::move(edge_1), std::move(edge_2)});
-  ASSIGN_OR_RETURN(DataSlice values, DataSlice::CreateWithSchemaFromData(
-      internal::DataSliceImpl::Create(
-          arolla::CreateConstDenseArray<int64_t>(first_dim * second_dim, 12)),
-      std::move(shape)));
+  ASSIGN_OR_RETURN(DataSlice values, DataSlice::CreatePrimitive(
+                                         arolla::CreateConstDenseArray<int64_t>(
+                                             first_dim * second_dim, 12),
+                                         std::move(shape)));
 
   ASSIGN_OR_RETURN(DataSlice list, CreateListsFromLastDimension(
-      bag, values, /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
+                                       bag, values, /*schema=*/std::nullopt,
+                                       test::Schema(schema::kInt64)));
   return absl::OkStatus();
 }
 
 void BM_IsEquivalentToSameImpl(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto ds = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(values),
+  auto ds = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
   for (auto _ : state) {
     benchmark::DoNotOptimize(ds);
@@ -148,9 +147,8 @@ BENCHMARK(BM_IsEquivalentToSameImpl)->Range(10, 100000);
 
 void BM_IsEquivalentToCopy(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto ds = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(values),
+  auto ds = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
   auto ds2 = ds;
   for (auto _ : state) {
@@ -165,12 +163,11 @@ BENCHMARK(BM_IsEquivalentToCopy)->Range(10, 100000);
 
 void BM_IsEquivalentToSameJaggedShape(benchmark::State& state) {
   int64_t size = state.range(0);
-  auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto shape = DataSlice::JaggedShape::FlatFromSize(size);
-  auto ds_a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(values), shape);
-  auto ds_b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(values), shape);
+  auto ds_a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)), shape);
+  auto ds_b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)), shape);
   for (auto _ : state) {
     benchmark::DoNotOptimize(ds_a);
     benchmark::DoNotOptimize(ds_b);
@@ -226,8 +223,8 @@ void BM_SetGetAttrItem(benchmark::State& state) {
 template <typename ObjectFactory>
 void BM_SetGetAttrOneDimSingle(benchmark::State& state) {
   auto db = DataBag::EmptyMutable();
-  auto o = *ObjectFactory::Shaped(
-      db, DataSlice::JaggedShape::FlatFromSize(1), {}, {});
+  auto o = *ObjectFactory::Shaped(db, DataSlice::JaggedShape::FlatFromSize(1),
+                                  {}, {});
 
   internal::SliceBuilder bldr_val(1);
   bldr_val.InsertIfNotSet(0, internal::DataItem(12));
@@ -410,18 +407,14 @@ BENCHMARK(BM_GetFromList)
 void BM_SetMultipleAttrs(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::EmptyMutable();
-  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(a_values),
+  auto a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
-  auto b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(b_values),
+  auto b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<float>(size, 3.14)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto c_values = arolla::CreateFullDenseArray(
-      std::vector<int64_t>(size, 1l << 43));
-  auto c = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(c_values),
+  auto c = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int64_t>(size, 1l << 43)),
       DataSlice::JaggedShape::FlatFromSize(size));
 
   auto entity = *EntityCreator::Shaped(db, a.GetShape(), {}, {});
@@ -443,18 +436,14 @@ BENCHMARK(BM_SetMultipleAttrs)->Arg(1)->Arg(10)->Arg(10000);
 void BM_CreateEntity(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::EmptyMutable();
-  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(a_values),
+  auto a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
-  auto b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(b_values),
+  auto b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<float>(size, 3.14)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto c_values = arolla::CreateFullDenseArray(
-      std::vector<int64_t>(size, 1l << 43));
-  auto c = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(c_values),
+  auto c = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int64_t>(size, 1l << 43)),
       DataSlice::JaggedShape::FlatFromSize(size));
 
   std::vector<absl::string_view> attr_names{"a", "b", "c"};
@@ -475,18 +464,14 @@ BENCHMARK(BM_CreateEntity)->Arg(1)->Arg(10)->Arg(10000);
 void BM_CreateUuEntity(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::EmptyMutable();
-  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(a_values),
+  auto a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
-  auto b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(b_values),
+  auto b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<float>(size, 3.14)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto c_values = arolla::CreateFullDenseArray(
-      std::vector<int64_t>(size, 1l << 43));
-  auto c = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(c_values),
+  auto c = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int64_t>(size, 1l << 43)),
       DataSlice::JaggedShape::FlatFromSize(size));
 
   auto schema_db = DataBag::EmptyMutable();
@@ -513,18 +498,14 @@ BENCHMARK(BM_CreateUuEntity)->Arg(1)->Arg(10)->Arg(10000);
 void BM_CreateEntityWithSchema(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::EmptyMutable();
-  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(a_values),
+  auto a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
-  auto b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(b_values),
+  auto b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<float>(size, 3.14)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto c_values = arolla::CreateFullDenseArray(
-      std::vector<int64_t>(size, 1l << 43));
-  auto c = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(c_values),
+  auto c = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int64_t>(size, 1l << 43)),
       DataSlice::JaggedShape::FlatFromSize(size));
 
   auto schema_db = DataBag::EmptyMutable();
@@ -552,18 +533,14 @@ BENCHMARK(BM_CreateEntityWithSchema)->Arg(1)->Arg(10)->Arg(10000);
 void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
   int64_t size = state.range(0);
   auto db = DataBag::EmptyMutable();
-  auto a_values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
-  auto a = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(a_values),
+  auto a = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int>(size, 12)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto b_values = arolla::CreateFullDenseArray(std::vector<float>(size, 3.14));
-  auto b = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(b_values),
+  auto b = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<float>(size, 3.14)),
       DataSlice::JaggedShape::FlatFromSize(size));
-  auto c_values = arolla::CreateFullDenseArray(
-      std::vector<int64_t>(size, 1l << 43));
-  auto c = *DataSlice::CreateWithSchemaFromData(
-      DataSliceImpl::Create(c_values),
+  auto c = *DataSlice::CreatePrimitive(
+      arolla::CreateFullDenseArray(std::vector<int64_t>(size, 1l << 43)),
       DataSlice::JaggedShape::FlatFromSize(size));
 
   auto schema_db = DataBag::EmptyMutable();
@@ -587,7 +564,6 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
 }
 
 BENCHMARK(BM_CreateEntityWithSchemaAndCasting)->Arg(1)->Arg(10)->Arg(10000);
-
 
 void BM_ToInt32_Int32Data_ObjectSchema(benchmark::State& state) {
   int64_t size = state.range(0);

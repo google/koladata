@@ -187,35 +187,31 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(
 
 absl::StatusOr<DataSlice> DataSliceFromArollaValue(
     arolla::TypedRef arolla_value, DataSlice::JaggedShape shape,
-    const internal::DataItem& schema) {
+    internal::DataItem schema) {
+  if (!schema.has_value()) {
+    auto arolla_value_type = arolla_value.GetType();
+    if (arolla_value_type->value_qtype() != nullptr) {
+      arolla_value_type = arolla_value_type->value_qtype();
+    }
+    ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(arolla_value_type));
+    schema = internal::DataItem(dtype);
+  }
+
   if (arolla::IsDenseArrayQType(arolla_value.GetType())) {
     ASSIGN_OR_RETURN(auto ds_impl,
                      internal::DataSliceImpl::Create(arolla_value));
-    if (schema.has_value()) {
-      return DataSlice::Create(std::move(ds_impl), std::move(shape), schema);
-    } else {
-      return DataSlice::CreateWithSchemaFromData(std::move(ds_impl),
-                                                 std::move(shape));
-    }
+    return DataSlice::Create(std::move(ds_impl), std::move(shape),
+                             std::move(schema));
   } else {
     if (shape.rank() != 0) {
       return absl::FailedPreconditionError(absl::StrFormat(
           "output with type %s is incompatible with rank(shape)=%d",
           arolla_value.GetType()->name(), shape.rank()));
     }
-    auto arolla_value_type = arolla_value.GetType();
-    if (arolla::IsOptionalQType(arolla_value_type)) {
-      arolla_value_type = arolla::DecayOptionalQType(arolla_value_type);
-    }
+
     ASSIGN_OR_RETURN(auto data_item_value,
                      internal::DataItem::Create(arolla_value));
-    if (schema.has_value()) {
-      return DataSlice::Create(std::move(data_item_value), schema);
-    } else {
-      ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(arolla_value_type));
-      return DataSlice::Create(std::move(data_item_value),
-                               internal::DataItem(dtype));
-    }
+    return DataSlice::Create(std::move(data_item_value), std::move(schema));
   }
 }
 

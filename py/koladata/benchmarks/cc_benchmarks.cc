@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <optional>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -62,11 +63,11 @@ void BM_Add(benchmark::State& state) {
   }
 
   auto db = DataBag::Empty();
-  auto ds = DataSlice::CreateWithSchemaFromData(
-                internal::DataSliceImpl::Create(
-                    arolla::CreateFullDenseArray<int>(values)),
-                DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                .value();
+  auto ds = DataSlice::CreatePrimitive(
+                arolla::CreateFullDenseArray<int>(values),
+                DataSlice::JaggedShape::FlatFromSize(slice_size))
+                .value()
+                .WithBag(db);
 
   auto expr = Leaf("x");
   for (size_t i = 0; i < num_operators; ++i) {
@@ -112,10 +113,8 @@ void BM_AggSum(benchmark::State& state) {
   auto shape = *DataSlice::JaggedShape::FromEdges(
       {*DataSlice::JaggedShape::Edge::FromUniformGroups(1, nrows),
        *DataSlice::JaggedShape::Edge::FromUniformGroups(nrows, ncols)});
-  auto x_ds = *DataSlice::CreateWithSchemaFromData(
-      internal::DataSliceImpl::Create(
-          arolla::CreateConstDenseArray<int>(nrows * ncols, 1)),
-      shape);
+  auto x_ds = *DataSlice::CreatePrimitive(
+      arolla::CreateConstDenseArray<int>(nrows * ncols, 1), std::move(shape));
   auto ndim_ds = *DataSlice::Create(internal::DataItem(ndim),
                                     internal::DataItem(schema::kInt32));
   auto expr = *CallOp("kd.agg_sum", {Leaf("x"), Leaf("ndim")});
@@ -161,16 +160,16 @@ void BM_Equal_Int32_Int64(benchmark::State& state) {
   }
 
   auto db = DataBag::Empty();
-  auto int32_ds = DataSlice::CreateWithSchemaFromData(
-                      internal::DataSliceImpl::Create(
-                          arolla::CreateFullDenseArray<int>(int32_values)),
-                      DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                      .value();
-  auto int64_ds = DataSlice::CreateWithSchemaFromData(
-                      internal::DataSliceImpl::Create(
-                          arolla::CreateFullDenseArray<int64_t>(int64_values)),
-                      DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                      .value();
+  auto int32_ds = DataSlice::CreatePrimitive(
+                      arolla::CreateFullDenseArray<int>(int32_values),
+                      DataSlice::JaggedShape::FlatFromSize(slice_size))
+                      .value()
+                      .WithBag(db);
+  auto int64_ds = DataSlice::CreatePrimitive(
+                      arolla::CreateFullDenseArray<int64_t>(int64_values),
+                      DataSlice::JaggedShape::FlatFromSize(slice_size))
+                      .value()
+                      .WithBag(db);
 
   auto expr = CallOp("kd.equal", {Leaf("x"), Leaf("y")}).value();
 
@@ -269,11 +268,11 @@ void BM_AddViaFunctor(benchmark::State& state) {
   }
 
   auto db = DataBag::EmptyMutable();
-  auto ds = DataSlice::CreateWithSchemaFromData(
-                internal::DataSliceImpl::Create(
-                    arolla::CreateFullDenseArray<int>(values)),
-                DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                .value();
+  auto ds = DataSlice::CreatePrimitive(
+                arolla::CreateFullDenseArray<int>(values),
+                DataSlice::JaggedShape::FlatFromSize(slice_size))
+                .value()
+                .WithBag(db);
 
   auto input = CallOp("koda_internal.input", {Literal(arolla::Text("I")),
                                               Literal(arolla::Text("self"))})

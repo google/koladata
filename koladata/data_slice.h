@@ -33,6 +33,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/refcount_ptr.h"
@@ -105,12 +106,6 @@ class DataSlice {
       const internal::DataItem& item, internal::DataItem schema,
       DataBagPtr db = nullptr, Wholeness wholeness = Wholeness::kNotWhole);
 
-  // Creates a DataSlice with schema built from data's dtype. Supported only for
-  // primitive DTypes.
-  static absl::StatusOr<DataSlice> CreateWithSchemaFromData(
-      internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db = nullptr,
-      Wholeness wholeness = Wholeness::kNotWhole);
-
   // Creates a DataSlice with shape JaggedShape::FlatFromSize(impl.size()).
   static absl::StatusOr<DataSlice> CreateWithFlatShape(
       internal::DataSliceImpl impl, internal::DataItem schema,
@@ -137,10 +132,27 @@ class DataSlice {
       internal::DataItem schema, DataBagPtr db = nullptr,
       Wholeness wholeness = Wholeness::kNotWhole);
 
+  // Creates a scalar DataSlice with primitive schema derived from data.
+  // TODO: b/449162453 - Use CreatePrimitive instead.
   template <typename T>
   static DataSlice CreateFromScalar(T v) {
+    return CreatePrimitive(std::move(v));
+  }
+
+  // Creates a DataSlice with primitive schema derived from data.
+  template <typename T>
+  static DataSlice CreatePrimitive(T v) {
     return DataSlice(internal::DataItem(std::move(v)), JaggedShape::Empty(),
                      internal::DataItem(schema::GetDType<T>()));
+  }
+
+  // Creates a DataSlice with primitive schema derived from data.
+  template <typename T>
+  static absl::StatusOr<DataSlice> CreatePrimitive(arolla::DenseArray<T> vals,
+                                                   JaggedShape shape) {
+    return DataSlice::Create(
+        internal::DataSliceImpl::Create<T>(std::move(vals)), std::move(shape),
+        internal::DataItem(schema::GetDType<T>()));
   }
 
   static DataSlice UnsafeCreate(internal::DataItem item,

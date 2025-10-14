@@ -80,6 +80,8 @@ using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Eq;
 using ::testing::HasSubstr;
+using ::testing::IsFalse;
+using ::testing::IsTrue;
 using ::testing::MatchesRegex;
 using ::testing::NotNull;
 using ::testing::Property;
@@ -269,63 +271,6 @@ TEST(DataSliceTest, Create_DataItem) {
   }
 }
 
-TEST(DataSliceTest, CreateWithSchemaFromData) {
-  auto db = DataBag::EmptyMutable();
-  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  {
-    auto ds_impl = DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2, 3}));
-    ASSERT_OK_AND_ASSIGN(
-        auto ds, DataSlice::CreateWithSchemaFromData(ds_impl, shape, db));
-    EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
-    EXPECT_EQ(ds.GetBag(), db);
-    EXPECT_EQ(ds.GetSchemaImpl(), internal::DataItem(schema::kInt32));
-  }
-  {
-    auto ds_impl = DataSliceImpl::Create(CreateDenseArray<DType>(
-        {schema::kInt32, std::nullopt, schema::kObject}));
-    ASSERT_OK_AND_ASSIGN(
-        auto ds, DataSlice::CreateWithSchemaFromData(ds_impl, shape, db));
-
-    EXPECT_EQ(ds.GetSchemaImpl(), schema::kSchema);
-  }
-  {
-    auto ds_impl = DataSliceImpl::Create(
-        CreateDenseArray<int>({1, std::nullopt, std::nullopt}),
-        CreateDenseArray<float>({std::nullopt, std::nullopt, 3.14}));
-    EXPECT_THAT(DataSlice::CreateWithSchemaFromData(ds_impl, shape, db),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("creating a DataSlice without passing schema"
-                                   " is supported only for primitive types "
-                                   "where all items are the same")));
-  }
-  {
-    auto ds_impl = DataSliceImpl::AllocateEmptyObjects(3);
-    EXPECT_THAT(DataSlice::CreateWithSchemaFromData(ds_impl, shape, db),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("creating a DataSlice without passing schema"
-                                   " is supported only for primitive types "
-                                   "where all items are the same")));
-  }
-}
-
-TEST(DataSliceUtils, CreateWithSchemaFromDataError) {
-  EXPECT_THAT(DataSlice::CreateWithSchemaFromData(
-                  internal::DataSliceImpl::Create(CreateDenseArray<int>({})),
-                  DataSlice::JaggedShape::Empty())
-                  .status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("for primitive types")));
-
-  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto values =
-      CreateDenseArray<int>({std::nullopt, std::nullopt, std::nullopt});
-  EXPECT_THAT(DataSlice::CreateWithSchemaFromData(
-                  internal::DataSliceImpl::Create(values), shape)
-                  .status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("for primitive types")));
-}
-
 TEST(DataSliceTest, CreateWithFlatShape) {
   {
     auto slice = *DataSlice::CreateWithFlatShape(
@@ -345,26 +290,64 @@ TEST(DataSliceTest, CreateWithFlatShape) {
   }
 }
 
-TEST(DataSliceTest, CreateFromScalar) {
+TEST(DataSliceTest, CreatePrimitive_FromScalar) {
   {
-    auto ds = DataSlice::CreateFromScalar(1);
+    auto ds = DataSlice::CreatePrimitive(1);
     ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem(1)));
     EXPECT_THAT(ds.GetSchema().item(),
                 IsEquivalentTo(DataItem(schema::kInt32)));
   }
   {
-    auto ds = DataSlice::CreateFromScalar(arolla::Text("abc"));
+    auto ds = DataSlice::CreatePrimitive(arolla::Text("abc"));
     ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem(arolla::Text("abc"))));
     EXPECT_THAT(ds.GetSchema().item(),
                 IsEquivalentTo(DataItem(schema::kString)));
   }
   {
-    auto ds = DataSlice::CreateFromScalar(internal::MissingValue{});
+    auto ds = DataSlice::CreatePrimitive(internal::MissingValue{});
     ASSERT_TRUE(ds.is_item());
     EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem()));
     EXPECT_THAT(ds.GetSchema().item(), IsEquivalentTo(DataItem(schema::kNone)));
+  }
+}
+
+TEST(DataSliceTest, CreatePrimitive_FromDenseArray) {
+  {
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1}),
+                                            DataSlice::JaggedShape::Empty()));
+    ASSERT_THAT(ds.is_item(), IsTrue());
+    EXPECT_THAT(ds.item(), Eq(internal::DataItem(1)));
+    EXPECT_THAT(ds.GetSchema().item(),
+                IsEquivalentTo(DataItem(schema::kInt32)));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(
+                                      CreateFullDenseArray<int>({1, 2}),
+                                      DataSlice::JaggedShape::FlatFromSize(2)));
+    ASSERT_THAT(ds.is_item(), IsFalse());
+    EXPECT_THAT(ds.slice(),
+                ElementsAre(internal::DataItem(1), internal::DataItem(2)));
+    EXPECT_THAT(ds.GetSchema().item(),
+                IsEquivalentTo(DataItem(schema::kInt32)));
+  }
+  {
+    EXPECT_THAT(
+        DataSlice::CreatePrimitive(CreateFullDenseArray<int>({}),
+                                   DataSlice::JaggedShape::Empty()),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("shape size must be compatible with number of "
+                           "items: shape_size=1 != items_size=0")));
+  }
+  {
+    EXPECT_THAT(
+        DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1, 2}),
+                                   DataSlice::JaggedShape::Empty()),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("shape size must be compatible with number of "
+                           "items: shape_size=1 != items_size=2")));
   }
 }
 

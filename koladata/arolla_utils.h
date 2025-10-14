@@ -73,7 +73,7 @@ absl::StatusOr<DataSlice> DataSliceFromPrimitivesArray(arolla::TypedRef values);
 // _must_ be compatible with the provided `arolla_value`.
 absl::StatusOr<DataSlice> DataSliceFromArollaValue(
     arolla::TypedRef arolla_value, DataSlice::JaggedShape shape,
-    const internal::DataItem& schema = internal::DataItem());
+    internal::DataItem schema = internal::DataItem());
 
 // Returns a DenseArray of primitives from DataSlice, if possible. Otherwise,
 // raises appropriate error. This method is supported only if all primitives in

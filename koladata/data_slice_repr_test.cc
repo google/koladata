@@ -905,10 +905,9 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
-  ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                       DataSlice::CreateWithSchemaFromData(
-                           internal::DataSliceImpl::Create(std::move(ds_array)),
-                           std::move(ds_shape)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      DataSlice::CreatePrimitive(std::move(ds_array), std::move(ds_shape)));
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds(R"([
   [0, 1, 2, 3, 4, ...],
@@ -935,10 +934,9 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ApplyLimit) {
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
-  ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                       DataSlice::CreateWithSchemaFromData(
-                           internal::DataSliceImpl::Create(std::move(ds_array)),
-                           std::move(ds_shape)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      DataSlice::CreatePrimitive(std::move(ds_array), std::move(ds_shape)));
 
   EXPECT_THAT(DataSliceToStr(ds),
               IsOkAndHolds("[[0, 1, 2, 3], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4, "
@@ -963,10 +961,9 @@ TEST(DataSliceReprTest,
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
-  ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                       DataSlice::CreateWithSchemaFromData(
-                           internal::DataSliceImpl::Create(std::move(ds_array)),
-                           std::move(ds_shape)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      DataSlice::CreatePrimitive(std::move(ds_array), std::move(ds_shape)));
 
   EXPECT_THAT(
       DataSliceToStr(ds),
@@ -1289,10 +1286,9 @@ TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
-  ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                       DataSlice::CreateWithSchemaFromData(
-                           internal::DataSliceImpl::Create(std::move(ds_array)),
-                           std::move(ds_shape)));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice ds,
+      DataSlice::CreatePrimitive(std::move(ds_array), std::move(ds_shape)));
   ASSERT_OK_AND_ASSIGN(DataSlice list, CreateNestedList(bag, ds));
   EXPECT_THAT(DataSliceToStr(list, {.item_limit = 5}), IsOkAndHolds(R"(List[
   List[0, 1, 2, 3, 4, ...],

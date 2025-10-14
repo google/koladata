@@ -45,9 +45,7 @@ TEST(ShapeUtilsTest, GetCommonShape) {
     // 1 input.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(auto ds,
-                         DataSlice::CreateWithSchemaFromData(
-                             internal::DataSliceImpl::Create(values), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values, shape_1));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds}));
     EXPECT_THAT(shape_1, IsEquivalentTo(common_shape));
   }
@@ -55,13 +53,11 @@ TEST(ShapeUtilsTest, GetCommonShape) {
     // Same shape.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_1));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
     EXPECT_THAT(shape_1, IsEquivalentTo(common_shape));
   }
@@ -70,13 +66,11 @@ TEST(ShapeUtilsTest, GetCommonShape) {
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_2));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_2));
     ASSERT_OK_AND_ASSIGN(auto common_shape, GetCommonShape({ds_1, ds_2}));
     EXPECT_THAT(shape_2, IsEquivalentTo(common_shape));
   }
@@ -85,13 +79,11 @@ TEST(ShapeUtilsTest, GetCommonShape) {
     auto shape_1 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 5}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_2));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_2));
     absl::Status status = GetCommonShape({ds_1, ds_2}).status();
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                  HasSubstr("shapes are not compatible")));
@@ -117,9 +109,7 @@ TEST(ShapeUtilsTest, Align) {
     // 1 input.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(auto ds,
-                         DataSlice::CreateWithSchemaFromData(
-                             internal::DataSliceImpl::Create(values), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values, shape_1));
     ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align(std::vector{ds}));
     EXPECT_EQ(aligned_slices.size(), 1);
     EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds));
@@ -128,13 +118,11 @@ TEST(ShapeUtilsTest, Align) {
     // Same shape.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_1));
     ASSERT_OK_AND_ASSIGN(auto aligned_slices, Align(std::vector{ds_1, ds_2}));
     EXPECT_EQ(aligned_slices.size(), 2);
     EXPECT_THAT(aligned_slices[0], IsEquivalentTo(ds_1));
@@ -145,13 +133,11 @@ TEST(ShapeUtilsTest, Align) {
     auto shape_1 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 5}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_2));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_2));
     EXPECT_THAT(Align(std::vector{ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
@@ -161,13 +147,11 @@ TEST(ShapeUtilsTest, Align) {
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
     auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_1, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_1), shape_1));
+    ASSERT_OK_AND_ASSIGN(auto ds_1,
+                         DataSlice::CreatePrimitive(values_1, shape_1));
     auto values_2 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
-    ASSERT_OK_AND_ASSIGN(
-        auto ds_2, DataSlice::CreateWithSchemaFromData(
-                       internal::DataSliceImpl::Create(values_2), shape_2));
+    ASSERT_OK_AND_ASSIGN(auto ds_2,
+                         DataSlice::CreatePrimitive(values_2, shape_2));
 
     ASSERT_OK_AND_ASSIGN(auto aligned, Align(std::vector{ds_1, ds_2}));
     EXPECT_THAT(aligned[0].GetShape(), IsEquivalentTo(shape_2));
@@ -182,9 +166,8 @@ TEST(ShapeUtilsTest, Align) {
 TEST(ShapeUtilsTest, AlignNonScalars) {
   {
     // 1 input - non-scalar.
-    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreateWithSchemaFromData(
-                                      internal::DataSliceImpl::Create(
-                                          CreateFullDenseArray<int>({1, 2, 3})),
+    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(
+                                      CreateFullDenseArray<int>({1, 2, 3}),
                                       DataSlice::JaggedShape::FlatFromSize(3)));
     ASSERT_OK_AND_ASSIGN((auto [aligned_slices, aligned_shape]),
                          AlignNonScalars({ds}));
@@ -195,10 +178,8 @@ TEST(ShapeUtilsTest, AlignNonScalars) {
   {
     // 1 input - scalar.
     ASSERT_OK_AND_ASSIGN(
-        auto ds,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1})),
-            DataSlice::JaggedShape::Empty()));
+        auto ds, DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1}),
+                                            DataSlice::JaggedShape::Empty()));
     ASSERT_OK_AND_ASSIGN((auto [aligned_slices, aligned_shape]),
                          AlignNonScalars({ds}));
     EXPECT_EQ(aligned_slices.size(), 1);
@@ -207,21 +188,17 @@ TEST(ShapeUtilsTest, AlignNonScalars) {
   }
   {
     // Mix of scalars and non-scalars.
+    ASSERT_OK_AND_ASSIGN(auto ds_rank_0, DataSlice::CreatePrimitive(
+                                             CreateFullDenseArray<int>({1}),
+                                             DataSlice::JaggedShape::Empty()));
     ASSERT_OK_AND_ASSIGN(
-        auto ds_rank_0,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1})),
-            DataSlice::JaggedShape::Empty()));
-    ASSERT_OK_AND_ASSIGN(auto ds_rank_1,
-                         DataSlice::CreateWithSchemaFromData(
-                             internal::DataSliceImpl::Create(
-                                 CreateFullDenseArray<int>({1, 2, 3})),
-                             DataSlice::JaggedShape::FlatFromSize(3)));
+        auto ds_rank_1,
+        DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1, 2, 3}),
+                                   DataSlice::JaggedShape::FlatFromSize(3)));
     ASSERT_OK_AND_ASSIGN(
         auto ds_rank_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(
-                CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6})),
+        DataSlice::CreatePrimitive(
+            CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6}),
             DataSlice::JaggedShape::FromEdges(
                 {
                     DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3)
@@ -247,16 +224,14 @@ TEST(ShapeUtilsTest, AlignNonScalars) {
   }
   {
     // Non-compatible shapes.
-    ASSERT_OK_AND_ASSIGN(auto ds_1,
-                         DataSlice::CreateWithSchemaFromData(
-                             internal::DataSliceImpl::Create(
-                                 CreateFullDenseArray<int>({1, 2, 3})),
-                             DataSlice::JaggedShape::FlatFromSize(3)));
+    ASSERT_OK_AND_ASSIGN(
+        auto ds_1,
+        DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1, 2, 3}),
+                                   DataSlice::JaggedShape::FlatFromSize(3)));
     ASSERT_OK_AND_ASSIGN(
         auto ds_2,
-        DataSlice::CreateWithSchemaFromData(
-            internal::DataSliceImpl::Create(CreateFullDenseArray<int>({1, 2})),
-            DataSlice::JaggedShape::FlatFromSize(2)));
+        DataSlice::CreatePrimitive(CreateFullDenseArray<int>({1, 2}),
+                                   DataSlice::JaggedShape::FlatFromSize(2)));
     EXPECT_THAT(AlignNonScalars({ds_1, ds_2}),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));

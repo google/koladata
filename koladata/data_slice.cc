@@ -1093,24 +1093,6 @@ absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                    wholeness == Wholeness::kWhole);
 }
 
-absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
-    internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db,
-    Wholeness wholeness) {
-  if (impl.is_empty_and_unknown() || impl.is_mixed_dtype() ||
-      impl.dtype() == arolla::GetQType<internal::ObjectId>()) {
-    return absl::InvalidArgumentError(
-        "creating a DataSlice without passing schema is supported only for "
-        "primitive types where all items are the same");
-  }
-  internal::DataItem schema(schema::kSchema);
-  if (impl.dtype() != arolla::GetQType<schema::DType>()) {
-    ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(impl.dtype()));
-    schema = internal::DataItem(dtype);
-  }
-  return Create(std::move(impl), std::move(shape), std::move(schema),
-                std::move(db), wholeness);
-}
-
 absl::StatusOr<DataSlice> DataSlice::CreateWithFlatShape(
     internal::DataSliceImpl impl, internal::DataItem schema, DataBagPtr db,
     Wholeness wholeness) {

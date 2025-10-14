@@ -72,10 +72,7 @@ TEST(DataSliceUtils, ToArollaArray) {
   std::vector<arolla::TypedValue> typed_value_holder;
   auto values_1 = CreateDenseArray<int>({1, std::nullopt, 3});
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_1), shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values_1, shape));
 
   ASSERT_OK_AND_ASSIGN(auto arolla_val, DataSliceToArollaValue(ds));
   EXPECT_THAT(arolla_val.UnsafeAs<DenseArray<int>>(),
@@ -93,10 +90,7 @@ TEST(DataSliceUtils, ToArollaArray) {
 
   auto values_2 = CreateDenseArray<Text>(
       {Text("abc"), std::nullopt, Text("xyz")});
-  ASSERT_OK_AND_ASSIGN(
-      ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_2), shape));
+  ASSERT_OK_AND_ASSIGN(ds, DataSlice::CreatePrimitive(values_2, shape));
 
   ASSERT_OK_AND_ASSIGN(arolla_val, DataSliceToArollaValue(ds));
   EXPECT_THAT(arolla_val.UnsafeAs<DenseArray<Text>>(),
@@ -205,19 +199,13 @@ TEST(DataSliceUtils, ToArollaValueMixedSlice) {
 TEST(DataSliceUtils, ToArollaValueScalar) {
   auto values_1 = CreateDenseArray<int>({1});
   auto shape = DataSlice::JaggedShape::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_1), shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values_1, shape));
 
   ASSERT_OK_AND_ASSIGN(auto arolla_val, DataSliceToArollaValue(ds));
   EXPECT_EQ(arolla_val.UnsafeAs<int>(), 1);
 
   auto values_2 = CreateDenseArray<Text>({Text("abc")});
-  ASSERT_OK_AND_ASSIGN(
-      ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_2), shape));
+  ASSERT_OK_AND_ASSIGN(ds, DataSlice::CreatePrimitive(values_2, shape));
 
   ASSERT_OK_AND_ASSIGN(arolla_val, DataSliceToArollaValue(ds));
   EXPECT_EQ(arolla_val.UnsafeAs<Text>(), Text("abc"));
@@ -256,9 +244,7 @@ TEST(DataSliceUtils, ToArollaValueScalar) {
 TEST(DataSliceUtils, ToArollaOwnedRef) {
   auto values_1 = CreateDenseArray<int>({1});
   auto shape = DataSlice::JaggedShape::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       DataSlice::CreateWithSchemaFromData(
-                           internal::DataSliceImpl::Create(values_1), shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values_1, shape));
   {
     // Without fallback - making it owned.
     std::vector<arolla::TypedValue> typed_value_holder;
@@ -352,10 +338,9 @@ TEST(DataSliceUtils, FromArollaValue) {
     auto values = CreateFullDenseArray<int>({1, 2, 3});
     auto typed_value = arolla::TypedValue::FromValue(values);
     DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {2, 1}});
-    ASSERT_OK_AND_ASSIGN(auto ds,
-                         DataSliceFromArollaValue(typed_value.AsRef(), shape));
-    EXPECT_THAT(ds, IsEquivalentTo(test::DataSlice<int>({1, 2, 3}, shape,
-                                                        schema::kInt32)));
+    EXPECT_THAT(DataSliceFromArollaValue(typed_value.AsRef(), shape),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<int>({1, 2, 3}, shape, schema::kInt32))));
   }
   {
     // DenseArray: Explicitly set schema.

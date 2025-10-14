@@ -166,10 +166,7 @@ TEST(DataSliceOp, SingleDataSliceArg_DataSlice) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto schema = internal::DataItem(schema::kFloat32);
   auto values = arolla::CreateDenseArray<float>({2.71, std::nullopt, 2.71});
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values), shape));
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreatePrimitive(values, shape));
   // StatusOr<DataSlice> output of op.
   ASSERT_OK_AND_ASSIGN(
       auto res, DataSliceOp<TestOp1>()(ds, shape, schema, nullptr, 2, 1.));
@@ -255,10 +252,7 @@ TEST(DataSliceOp, TwoDataSliceArgs_DataSlice) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto schema = internal::DataItem(schema::kInt32);
   auto values_1 = arolla::CreateDenseArray<int>({2, 12, 7});
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_1,
-      DataSlice::CreateWithSchemaFromData(
-          internal::DataSliceImpl::Create(values_1), shape));
+  ASSERT_OK_AND_ASSIGN(auto ds_1, DataSlice::CreatePrimitive(values_1, shape));
   ASSERT_OK_AND_ASSIGN(auto ds_2,
                        DataSlice::Create(internal::DataItem(42), schema));
 
