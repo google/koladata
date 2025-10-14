@@ -1971,10 +1971,6 @@ Example:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Up-, down-, and side-casts `value` to `qtype`.</code></pre>
 
-### `kd.extension_types.extension_isinstance(x: Any, clss: Any) -> bool` {#kd.extension_types.extension_isinstance}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True iff `x` is an extension type and a subclass of `clss`.</code></pre>
-
 ### `kd.extension_types.extension_type(unsafe_override=False) -> Callable[[type[Any]], type[Any]]` {#kd.extension_types.extension_type}
 Aliases:
 

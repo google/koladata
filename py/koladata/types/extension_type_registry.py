@@ -90,16 +90,6 @@ def is_koda_extension(x: Any) -> bool:
   return x.qtype in _EXTENSION_TYPE_REGISTRY.inverse
 
 
-def extension_isinstance(x: Any, clss: Any) -> bool:
-  """Returns True iff `x` is an extension type and a subclass of `clss`."""
-  if not isinstance(x, arolla.QValue):
-    return False
-  cls = _EXTENSION_TYPE_REGISTRY.inverse.get(x.qtype)
-  if cls is None:
-    return False
-  return issubclass(cls, clss)
-
-
 def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   """Returns a dummy value for the given extension type class."""
   extension_qtype = get_extension_qtype(cls)
