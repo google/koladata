@@ -453,7 +453,7 @@ TEST(DataSliceTest, IsWhole) {
   }
 }
 
-TEST(DataSliceTest, WithWholeness) {
+TEST(DataSliceTest, Wholeness) {
   {
     SCOPED_TRACE("Override flag");
     auto db = DataBag::EmptyMutable();
@@ -461,9 +461,9 @@ TEST(DataSliceTest, WithWholeness) {
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);
     EXPECT_FALSE(ds.IsWhole());
-    ds = *ds.WithWholeness(DataSlice::Wholeness::kWhole);
+    ds = ds.WithBag(db, DataSlice::Wholeness::kWhole);
     EXPECT_TRUE(ds.IsWhole());
-    ds = *ds.WithWholeness(DataSlice::Wholeness::kNotWhole);
+    ds = ds.WithBag(db, DataSlice::Wholeness::kNotWhole);
     EXPECT_FALSE(ds.IsWhole());
   }
   {
@@ -476,7 +476,7 @@ TEST(DataSliceTest, WithWholeness) {
                                    DataSlice::Wholeness::kNotWhole));
     EXPECT_FALSE(ds.IsWhole());
     // DataBag is mutable, so the IsWhole is still false.
-    ASSERT_OK_AND_ASSIGN(ds, ds.WithWholeness(DataSlice::Wholeness::kWhole));
+    ds = ds.WithBag(db, DataSlice::Wholeness::kWhole);
     EXPECT_FALSE(ds.IsWhole());
   }
 }

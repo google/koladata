@@ -253,9 +253,6 @@ class DataSlice {
   // of the API above.
   absl::StatusOr<DataSlice> WithSchema(internal::DataItem schema_item) const;
 
-  // Returns a new DataSlice with the updated `wholeness`.
-  absl::StatusOr<DataSlice> WithWholeness(Wholeness wholeness) const;
-
   // Returns a new DataSlice with the provided `schema`.
   // It only changes the schemas of `x` and does not change the items in `x`. To
   // change the items in `x`, use `kd.cast_to` instead.
@@ -295,8 +292,10 @@ class DataSlice {
   bool IsWhole() const;
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
-  DataSlice WithBag(DataBagPtr db) const {
-    return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(), db);
+  DataSlice WithBag(DataBagPtr db,
+                    Wholeness wholeness = Wholeness::kNotWhole) const {
+    return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(), db,
+                     wholeness == Wholeness::kWhole);
   }
 
   // Returns a new DataSlice with forked DataBag. Mutations are allowed after

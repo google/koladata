@@ -83,11 +83,8 @@ PyObject* absl_nullable WrapPyDataSlice(DataSlice&& ds) {
 PyObject* absl_nullable WrapPyDataSliceAsWholeWithFrozenDataBag(
     DataSlice&& ds) {
   auto db = ds.GetBag();
-  ASSIGN_OR_RETURN(ds,
-                   std::move(ds)
-                       .WithBag(db == nullptr ? nullptr : db->Freeze())
-                       .WithWholeness(DataSlice::Wholeness::kWhole),
-                   arolla::python::SetPyErrFromStatus(_));
+  ds = std::move(ds).WithBag(db == nullptr ? nullptr : db->Freeze(),
+                             DataSlice::Wholeness::kWhole);
   return WrapPyDataSlice(std::move(ds));
 }
 
