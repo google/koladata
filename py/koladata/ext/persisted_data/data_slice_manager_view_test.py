@@ -52,15 +52,15 @@ class DataSliceManagerViewTest(absltest.TestCase):
     expected_query_schema = kd.named_schema(
         'query', query_id=kd.INT32, text=kd.STRING
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         queries.get_schema(), expected_query_schema
     )
 
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         queries.text.get_data_slice(),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         queries.get_data_slice(with_descendants=True),
         kd.slice([
             expected_query_schema.new(query_id=0, text='How tall is Obama'),
@@ -70,7 +70,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ]),
     )
     restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         queries.query_id.get_data_slice(with_ancestors=True),
         kd.new(
             query=kd.list([
@@ -78,6 +78,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
                 restricted_query_schema.new(query_id=1),
             ])
         ),
+        schemas_equality=False,
     )
 
     queries.doc = (
@@ -99,7 +100,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         docs.title.get_schema(),
         kd.STRING,
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         docs.title.get_data_slice(),
         kd.slice([['Barack Obama', 'Michelle Obama'], ['Tower of London']]),
     )
@@ -318,7 +319,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
       tokens = root.query[:].token
 
-      kd.testing.assert_deep_equivalent(
+      kd.testing.assert_equivalent(
           tokens.get_schema(),
           kd.dict_schema(kd.STRING, token_info_schema),
       )
@@ -338,7 +339,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               {'How', 'high', 'is', 'the', 'Eiffel', 'tower'},
           ],
       )
-      kd.testing.assert_deep_equivalent(
+      kd.testing.assert_equivalent(
           tokens.get_dict_values().get_schema(),
           token_info_schema,
       )
@@ -741,7 +742,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     filtered_manager = branch_and_filter(manager)
     root = DataSliceManagerView(manager)
     filtered_root = DataSliceManagerView(filtered_manager)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.get_data_slice(with_descendants=True),
         kd.new(
             query=kd.list([
@@ -768,9 +769,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
                 ),
             ]),
         ),
+        schemas_equality=False,
     )
     # The filtering recipe above results in one query with one doc:
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         filtered_root.get_data_slice(with_descendants=True),
         kd.new(
             query=kd.list([
@@ -785,6 +787,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
                 ),
             ]),
         ),
+        schemas_equality=False,
     )
 
     manager_revision_descriptions = [

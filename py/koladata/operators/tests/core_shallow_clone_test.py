@@ -123,10 +123,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
         schema=o_fb.get_schema().no_bag(),
         itemid=result.get_itemid(),
     )
-    testing.assert_deep_equivalent(
+    testing.assert_equivalent(
         result.enriched(schema_fb),
         expected.enriched(schema_fb),
-        schemas_equality=True,
         ids_equality=True,
     )
 
@@ -183,10 +182,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
         schema=o_fb.get_schema().no_bag(),
         itemid=result.get_itemid(),
     )
-    testing.assert_deep_equivalent(
+    testing.assert_equivalent(
         result.enriched(schema_fb),
         expected.enriched(schema_fb),
-        schemas_equality=True,
         ids_equality=True,
     )
 

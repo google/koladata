@@ -3358,9 +3358,13 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       o = fns.new(x=1, y=2)
       db = kde.attrs(o, x=3, z=4).eval()
       testing.assert_equal((o << db).no_bag(), o.no_bag())
-      testing.assert_deep_equivalent(o << db, fns.new(x=3, y=2, z=4))
+      testing.assert_equivalent(
+          o << db, fns.new(x=3, y=2, z=4), schemas_equality=False
+      )
       testing.assert_equal((db << o).no_bag(), o.no_bag())
-      testing.assert_deep_equivalent(db << o, fns.new(x=1, y=2, z=4))
+      testing.assert_equivalent(
+          db << o, fns.new(x=1, y=2, z=4), schemas_equality=False
+      )
       with self.assertRaisesRegex(
           ValueError,
           'at least one argument must be a DATA_BAG, this operation is not'
@@ -3371,9 +3375,13 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       o = fns.new(x=1, y=2)
       db = kde.attrs(o, x=3, z=4).eval()
       testing.assert_equal((o >> db).no_bag(), o.no_bag())
-      testing.assert_deep_equivalent(o >> db, fns.new(x=1, y=2, z=4))
+      testing.assert_equivalent(
+          o >> db, fns.new(x=1, y=2, z=4), schemas_equality=False
+      )
       testing.assert_equal((db >> o).no_bag(), o.no_bag())
-      testing.assert_deep_equivalent(db >> o, fns.new(x=3, y=2, z=4))
+      testing.assert_equivalent(
+          db >> o, fns.new(x=3, y=2, z=4), schemas_equality=False
+      )
       with self.assertRaisesRegex(
           ValueError,
           'at least one argument must be a DATA_BAG, this operation is not'

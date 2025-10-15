@@ -60,7 +60,7 @@ class DeterminizerTest(parameterized.TestCase):
         determinizer.make_deterministic(l1).get_itemid().no_bag(),
         det_l1.get_itemid().no_bag(),
     )
-    kd.testing.assert_deep_equivalent(det_l1, l1, schemas_equality=True)
+    kd.testing.assert_equivalent(det_l1, l1)
 
     l2 = kd.list([1, 2, 3])
     det_l2 = determinizer.make_deterministic(l2)
@@ -76,7 +76,7 @@ class DeterminizerTest(parameterized.TestCase):
     kd.testing.assert_equal(
         det_l.get_itemid().no_bag(), l.get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_l, l, schemas_equality=True)
+    kd.testing.assert_equivalent(det_l, l)
 
   def test_list_with_entity(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -88,7 +88,7 @@ class DeterminizerTest(parameterized.TestCase):
     self.assertNotEqual(
         det_l[0].get_itemid().no_bag(), det_l[1].get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_l, l, schemas_equality=True)
+    kd.testing.assert_equivalent(det_l, l)
 
   def test_dict(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -100,7 +100,7 @@ class DeterminizerTest(parameterized.TestCase):
         determinizer.make_deterministic(d1).get_itemid().no_bag(),
         det_d1.get_itemid().no_bag(),
     )
-    kd.testing.assert_deep_equivalent(det_d1, d1, schemas_equality=True)
+    kd.testing.assert_equivalent(det_d1, d1)
 
     d2 = kd.dict({1: 2, 3: 4})
     det_d2 = determinizer.make_deterministic(d2)
@@ -116,7 +116,7 @@ class DeterminizerTest(parameterized.TestCase):
     kd.testing.assert_equal(
         det_d.get_itemid().no_bag(), d.get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_d, d, schemas_equality=True)
+    kd.testing.assert_equivalent(det_d, d)
 
   def test_dict_with_entity(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -127,7 +127,7 @@ class DeterminizerTest(parameterized.TestCase):
     det_d = determinizer.make_deterministic(d)
     self.assertTrue(kd.ids.is_uuid(det_d.get_itemid()))
     self.assertNotEqual(d.get_itemid().no_bag(), det_d.get_itemid().no_bag())
-    kd.testing.assert_deep_equivalent(det_d, d, schemas_equality=True)
+    kd.testing.assert_equivalent(det_d, d)
 
     det_e1 = det_d['e1']
     self.assertTrue(kd.ids.is_uuid(det_e1.get_itemid()))
@@ -142,7 +142,7 @@ class DeterminizerTest(parameterized.TestCase):
     kd.testing.assert_equal(
         det_e.get_itemid().no_bag(), e.get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_e, e)
+    kd.testing.assert_equivalent(det_e, e)
 
   def test_entity(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -151,7 +151,7 @@ class DeterminizerTest(parameterized.TestCase):
     det_e = determinizer.make_deterministic(e)
     self.assertTrue(kd.ids.is_uuid(det_e.get_itemid()))
     self.assertNotEqual(det_e.get_itemid().no_bag(), e.get_itemid().no_bag())
-    kd.testing.assert_deep_equivalent(det_e, e)
+    kd.testing.assert_equivalent(det_e, e)
 
     e2 = kd.new(a=1, schema=uu_schema)
     det_e2 = determinizer.make_deterministic(e2)
@@ -167,7 +167,7 @@ class DeterminizerTest(parameterized.TestCase):
     kd.testing.assert_equal(
         det_o.get_itemid().no_bag(), o.get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_o, o)
+    kd.testing.assert_equivalent(det_o, o)
 
   def test_object(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -175,7 +175,7 @@ class DeterminizerTest(parameterized.TestCase):
     det_o = determinizer.make_deterministic(o)
     self.assertTrue(kd.ids.is_uuid(det_o.get_itemid()))
     self.assertNotEqual(det_o.get_itemid().no_bag(), o.get_itemid().no_bag())
-    kd.testing.assert_deep_equivalent(det_o, o)
+    kd.testing.assert_equivalent(det_o, o)
 
     o2 = kd.obj(a=1)
     det_o2 = determinizer.make_deterministic(o2)
@@ -218,7 +218,7 @@ class DeterminizerTest(parameterized.TestCase):
     self.assertNotEqual(
         e.l[0].get_itemid().no_bag(), det_e.l[0].get_itemid().no_bag()
     )
-    kd.testing.assert_deep_equivalent(det_e, e, schemas_equality=True)
+    kd.testing.assert_equivalent(det_e, e)
 
   def test_functor(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -262,14 +262,11 @@ class DeterminizerTest(parameterized.TestCase):
     self.assertLen(det_fn_tokens, 2)
     self.assertNotEqual(set(det_fn_tokens), set(fn_tokens))
 
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         det_fn(57, 38),
         schema.new(x=1, y=19, literal=schema.new(x=1, y=2)),
-        schemas_equality=True,
     )
-    kd.testing.assert_deep_equivalent(
-        det_fn(57, 38), fn(57, 38), schemas_equality=True
-    )
+    kd.testing.assert_equivalent(det_fn(57, 38), fn(57, 38))
 
   def test_functor_parallel_transform(self):
     determinizer = determinism.Determinizer(seed='test')
@@ -321,14 +318,11 @@ class DeterminizerTest(parameterized.TestCase):
         self.assertEqual(len(det_fn_tokens), len(fn_tokens))
         self.assertNotEqual(set(det_fn_tokens), set(fn_tokens))
 
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         det_fn(57, 38),
         schema.new(x=1, y=19, literal=schema.new(x=1, y=2)),
-        schemas_equality=True,
     )
-    kd.testing.assert_deep_equivalent(
-        det_fn(57, 38), fn(57, 38), schemas_equality=True
-    )
+    kd.testing.assert_equivalent(det_fn(57, 38), fn(57, 38))
 
   def test_strip_source_locations(self):
     determinizer = determinism.Determinizer(

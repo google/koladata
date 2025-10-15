@@ -50,7 +50,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_depth_3(self):
     db = bag()
@@ -80,7 +80,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_depth_5(self):
     db = bag()
@@ -118,7 +118,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_unbalanced(self):
     db = bag()
@@ -154,7 +154,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_zero_depth(self):
     db = bag()
@@ -172,7 +172,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_objec(self):
     db = bag()
@@ -194,7 +194,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.obj(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_list(self):
     db = bag()
@@ -218,7 +218,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
             c=ds(['foo', 'bar', 'baz']),
         )
     )
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_dict(self):
     db = bag()
@@ -241,7 +241,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     expected_ds['self'] = expected_self
     expected_ds['b'] = b_slice
     expected_ds['c'] = ds(['foo', 'bar', 'baz'])
-    testing.assert_deep_equivalent(result, expected_ds)
+    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_view(self):
     self.assertTrue(

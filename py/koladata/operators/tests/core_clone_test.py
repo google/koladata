@@ -51,9 +51,7 @@ class CoreCloneTest(parameterized.TestCase):
         c=ds(['foo', 'bar', 'baz']),
         itemid=result.get_itemid(),
     )
-    testing.assert_deep_equivalent(
-        result, expected, schemas_equality=True, ids_equality=True
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -70,9 +68,7 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().implode(a_slice, itemid=result.get_itemid())
-    testing.assert_deep_equivalent(
-        result, expected, schemas_equality=True, ids_equality=True
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -90,9 +86,7 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
     expected = bag().dict(keys, values, itemid=result.get_itemid())
-    testing.assert_deep_equivalent(
-        result, expected, schemas_equality=True, ids_equality=True
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -113,9 +107,7 @@ class CoreCloneTest(parameterized.TestCase):
         itemid=result.get_itemid(),
         schema=o.get_schema(),
     )
-    testing.assert_deep_equivalent(
-        result, expected, schemas_equality=True, ids_equality=True
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
 
   @parameterized.product(
       pass_schema=[True, False],
@@ -136,9 +128,7 @@ class CoreCloneTest(parameterized.TestCase):
     expected = bag().new(
         a=a_slice, itemid=result.get_itemid(), schema=o.get_schema()
     )
-    testing.assert_deep_equivalent(
-        result, expected, schemas_equality=True, ids_equality=True
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
     testing.assert_equivalent(result.get_bag(), expected.get_bag())
 
   @parameterized.product(
@@ -181,12 +171,7 @@ class CoreCloneTest(parameterized.TestCase):
         schema=o.get_schema(),
         itemid=result.get_itemid(),
     )
-    testing.assert_deep_equivalent(
-        result,
-        expected,
-        schemas_equality=True,
-        ids_equality=True,
-    )
+    testing.assert_equivalent(result, expected, ids_equality=True)
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))

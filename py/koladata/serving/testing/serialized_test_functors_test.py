@@ -75,9 +75,10 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
         non_deterministic_functor_1.no_bag(),
         non_deterministic_functor_2.no_bag(),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         non_deterministic_functor_1,
         non_deterministic_functor_2,
+        schemas_equality=False,
     )
 
     non_deterministic_functor_3 = self.load_functor(
@@ -91,17 +92,17 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
         literal=test_functors.XYSchema.new(x=57, y=7),
     )
 
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         non_deterministic_functor_1(1, 2),
         expected_result,
         schemas_equality=True,
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         non_deterministic_functor_2(1, 2),
         expected_result,
         schemas_equality=True,
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         non_deterministic_functor_3(1, 2),
         expected_result,
         schemas_equality=True,

@@ -41,36 +41,45 @@ class KodaInternalViewRshiftTest(parameterized.TestCase):
   def test_slice_and_bag(self):
     o = kde.new(x=1, y=2)
     b = kde.attrs(o, x=3, z=4)
-    testing.assert_deep_equivalent(
-        core.rshift(o, b).eval(), kde.new(x=1, y=2, z=4).eval()
+    testing.assert_equivalent(
+        core.rshift(o, b).eval(),
+        kde.new(x=1, y=2, z=4).eval(),
+        schemas_equality=False,
     )
-    testing.assert_deep_equivalent(
-        core.rshift(b, o).eval(), kde.new(x=3, y=2, z=4).eval()
+    testing.assert_equivalent(
+        core.rshift(b, o).eval(),
+        kde.new(x=3, y=2, z=4).eval(),
+        schemas_equality=False,
     )
 
   def test_two_bags(self):
     o = kde.new()
     b1 = kde.attrs(o, x=1, y=2)
     b2 = kde.attrs(o, x=3, z=4)
-    testing.assert_deep_equivalent(
-        o.with_bag(core.rshift(b1, b2)).eval(), kde.new(x=1, y=2, z=4).eval()
+    testing.assert_equivalent(
+        o.with_bag(core.rshift(b1, b2)).eval(),
+        kde.new(x=1, y=2, z=4).eval(),
+        schemas_equality=False,
     )
 
   def test_null_bag(self):
     o = kde.new()
     b1 = kde.attrs(o, x=1, y=2)
     null_bag = kde.item(None).get_bag()
-    testing.assert_deep_equivalent(
+    testing.assert_equivalent(
         o.with_bag(core.rshift(b1, null_bag)).eval(),
         kde.new(x=1, y=2).eval(),
+        schemas_equality=False,
     )
-    testing.assert_deep_equivalent(
+    testing.assert_equivalent(
         o.with_bag(core.rshift(null_bag, b1)).eval(),
         kde.new(x=1, y=2).eval(),
+        schemas_equality=False,
     )
-    testing.assert_deep_equivalent(
+    testing.assert_equivalent(
         o.with_bag(core.rshift(null_bag, null_bag)).eval(),
         kde.new().eval(),
+        schemas_equality=False,
     )
 
   def test_error_for_two_slices(self):

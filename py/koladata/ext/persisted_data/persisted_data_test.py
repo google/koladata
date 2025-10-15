@@ -83,15 +83,16 @@ class PersistedDataTest(absltest.TestCase):
         persisted_data.DataSlicePath.from_actions([]),
         persisted_data.DataSlicePath.parse_from_string(''),
     )
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         manager.get_data_slice(
             populate={persisted_data.DataSlicePath.from_actions([])}
         ),
         kd.new(),
+        schemas_equality=False,
     )
     root = persisted_data.DataSliceManagerView(manager)
     root.x = kd.item(1)
-    kd.testing.assert_deep_equivalent(
+    kd.testing.assert_equivalent(
         root.x.get_data_slice(),
         kd.item(1),
     )

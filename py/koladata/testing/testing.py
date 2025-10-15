@@ -16,7 +16,6 @@
 
 from koladata.operators.tests.util import qtypes as _test_qtypes
 from koladata.testing import test_utils as _test_utils
-from koladata.testing import traversing_test_utils as _traversing_test_utils
 
 assert_equal = _test_utils.assert_equal
 assert_not_equal = _test_utils.assert_not_equal
@@ -32,6 +31,5 @@ assert_traced_exprs_equal = _test_utils.assert_traced_exprs_equal
 assert_traced_non_deterministic_exprs_equal = (
     _test_utils.assert_traced_non_deterministic_exprs_equal
 )
-assert_deep_equivalent = _traversing_test_utils.assert_deep_equivalent
 
 DETECT_SIGNATURES_QTYPES = _test_qtypes.DETECT_SIGNATURES_QTYPES
