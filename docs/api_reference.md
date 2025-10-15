@@ -1967,7 +1967,7 @@ Example:
   a_null.x  # ERROR
   a_null.is_null()  # kd.present</code></pre>
 
-### `kd.extension_types.dynamic_cast(value: QValue, qtype: QType) -> Any` {#kd.extension_types.dynamic_cast}
+### `kd.extension_types.dynamic_cast(value: Any, qtype: QType) -> Any` {#kd.extension_types.dynamic_cast}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Up-, down-, and side-casts `value` to `qtype`.</code></pre>
 
@@ -2089,7 +2089,7 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the annotations for the provided extension type class.</code></pre>
 
-### `kd.extension_types.get_attr(ext: QValue, attr: str | QValue, qtype: QType)` {#kd.extension_types.get_attr}
+### `kd.extension_types.get_attr(ext: Any, attr: str | QValue, qtype: QType) -> Any` {#kd.extension_types.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attribute of `ext` with name `attr` and type `qtype`.</code></pre>
 
@@ -2150,7 +2150,7 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `ext` containing the given `attrs`.</code></pre>
 
-### `kd.extension_types.wrap(x: Object, qtype: QType) -> Any` {#kd.extension_types.wrap}
+### `kd.extension_types.wrap(x: Any, qtype: QType) -> Any` {#kd.extension_types.wrap}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
 

@@ -88,7 +88,7 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     extension_type_registry.register_extension_type(_MyTestExtension, _EXT_TYPE)
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('expected one of [OBJECT], got obj: INT32'),
+        re.escape('expected one of [OBJECT], got obj: DATA_SLICE'),
     ):
       extension_type_registry.wrap(123, _EXT_TYPE)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
@@ -263,6 +263,12 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
     testing.assert_equal(extension_type_registry.dynamic_cast(a, b_type), b)
     testing.assert_equal(extension_type_registry.dynamic_cast(b, a_type), a)
 
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected an extension type qtype, got ext: DATA_SLICE',
+    ):
+      extension_type_registry.dynamic_cast(123, a_type)
+
   def test_get_attr(self):
     # NOTE: This is more thoroughly tested in extension_types_test.py and
     # operators/tests/extension_types_get_attr_test.py.
@@ -295,6 +301,12 @@ class ExtensionTypeRegistryTest(parameterized.TestCase):
         ' actual type DATA_SLICE',
     ):
       _ = extension_type_registry.get_attr(a, 'x', qtypes.DATA_BAG)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected an extension type qtype, got ext: DATA_SLICE',
+    ):
+      _ = extension_type_registry.get_attr(123, 'x', qtypes.DATA_SLICE)
 
   def test_make(self):
     # NOTE: This is more thoroughly tested in extension_types_test.py and

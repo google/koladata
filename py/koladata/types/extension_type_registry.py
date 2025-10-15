@@ -100,24 +100,27 @@ def get_dummy_value(cls: Any) -> arolla.AnyQValue:
 # requiring literal inputs).
 
 
-def wrap(x: objects.Object, qtype: arolla.QType) -> Any:
+def wrap(x: Any, qtype: arolla.QType) -> arolla.AnyQValue:
   """Wraps `x` into an instance of the given extension type."""
   _ = get_extension_cls(qtype)  # Check that it's registered
   wrap_op = arolla.abc.lookup_operator('kd.extension_types.wrap')
+  x = py_boxing.as_qvalue(x)
   return arolla.eval(wrap_op(arolla.L.x, qtype), x=x)
 
 
-def dynamic_cast(value: arolla.QValue, qtype: arolla.QType) -> arolla.AnyQValue:
+def dynamic_cast(value: Any, qtype: arolla.QType) -> arolla.AnyQValue:
   """Up-, down-, and side-casts `value` to `qtype`."""
   dc = arolla.abc.lookup_operator('kd.extension_types.dynamic_cast')
-  return arolla.eval(dc(arolla.L.x, qtype), x=value)
+  value = py_boxing.as_qvalue(value)
+  return arolla.eval(dc(arolla.L.value, qtype), value=value)
 
 
 def get_attr(
-    ext: arolla.QValue, attr: str | arolla.QValue, qtype: arolla.QType
-):
+    ext: Any, attr: str | arolla.QValue, qtype: arolla.QType
+) -> arolla.AnyQValue:
   """Returns the attribute of `ext` with name `attr` and type `qtype`."""
   ga = arolla.abc.lookup_operator('kd.extension_types.get_attr')
+  ext = py_boxing.as_qvalue(ext)
   return arolla.eval(ga(arolla.L.ext, attr, qtype), ext=ext)
 
 
