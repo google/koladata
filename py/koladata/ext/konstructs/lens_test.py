@@ -43,6 +43,9 @@ class LensTest(absltest.TestCase):
     x = Obj(a=5, _b=6)
     self.assertEqual(lens_lib.lens(x).get_attr('a').get(), 5)
     self.assertEqual(lens_lib.lens(x).get_attr('_b').get(), 6)
+    self.assertIsNone(lens_lib.lens(None).get_attr('a').get())
+    x_mix = [Obj(a=1), None, Obj(a=3)]
+    self.assertEqual(lens_lib.lens(x_mix)[:].get_attr('a').get(), [1, None, 3])
 
   def test_slice_attr(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
@@ -53,6 +56,10 @@ class LensTest(absltest.TestCase):
     self.assertEqual(lens_lib.lens(x).a.explode().b.get(), [1, 2])
     rank1_shape = kd.shapes.new(2)
     self.assertEqual(lens_lib.lens(x).a.explode().get_shape(), rank1_shape)
+    x_mix = [[1], None, [2, 3]]
+    self.assertEqual(lens_lib.lens(x_mix)[:][:].get(), [[1], [], [2, 3]])
+    rank2_shape = kd.shapes.new(3, [1, 0, 2])
+    self.assertEqual(lens_lib.lens(x_mix)[:][:].get_shape(), rank2_shape)
 
   def test_map(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])

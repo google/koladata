@@ -58,6 +58,9 @@ class Lens:
   def get_attr(self, attr_name: str) -> Lens:
     """Returns a new lens with the given attribute of each item.
 
+    If one of the items is None, the corresponding value will be None as well,
+    instead of raising an error that getattr() would raise.
+
     Example:
       x = types.SimpleNamespace(_b=6)
       lens(x).get_attr('_b').get()
@@ -66,9 +69,9 @@ class Lens:
     Args:
       attr_name: The name of the attribute to get.
     """
-    # TODO: In this and similar places, skip over Nones, to support
-    # sparse workflows similar to Koda.
-    new_flat_items = [getattr(x, attr_name) for x in self._flat_items]
+    new_flat_items = [
+        None if x is None else getattr(x, attr_name) for x in self._flat_items
+    ]
     return Lens(new_flat_items, self._shape, is_internal_call=True)
 
   def __getattr__(self, attr_name: str) -> Lens:
@@ -103,6 +106,9 @@ class Lens:
     It is user's responsibility to ensure that all items are iterable and
     have `len`.
 
+    If one of the items is None, it will be treated as an empty iterable,
+    instead of raising an error that len() would raise.
+
     Example:
       x = types.SimpleNamespace(a=[1, 2])
       lens(x).a.explode().map(lambda i: i + 1).get()
@@ -112,7 +118,7 @@ class Lens:
       A new lens with one more dimension.
     """
     new_edge = arolla.types.DenseArrayEdge.from_sizes(
-        [len(x) for x in self._flat_items]
+        [0 if x is None else len(x) for x in self._flat_items]
     )
     arolla_shape = arolla.abc.invoke_op(
         'koda_internal.to_arolla_jagged_shape', (self._shape,)
@@ -125,7 +131,11 @@ class Lens:
     )
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
-    new_flat_items = list(itertools.chain.from_iterable(self._flat_items))
+    new_flat_items = list(
+        itertools.chain.from_iterable(
+            x for x in self._flat_items if x is not None
+        )
+    )
     return Lens(new_flat_items, new_shape, is_internal_call=True)
 
   def __getitem__(self, key: Any) -> Lens:
