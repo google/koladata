@@ -81,6 +81,22 @@ def from_dataframe(
   return res
 
 
+def from_series(series: pd.Series) -> kd.types.DataSlice:
+  """Creates a DataSlice from the given pandas Series.
+
+  The Series is first converted to a DataFrame with a single column named
+  'self_', and then `from_dataframe` is used to convert it to a DataSlice.
+
+  Args:
+    series: pandas Series to convert.
+
+  Returns:
+    DataSlice representing the content of the Series.
+  """
+  res_df = pd.DataFrame({'self_': series})
+  return from_dataframe(res_df).self_
+
+
 _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 _PD_FROM_KD = {
     kd.INT32: pd.Int32Dtype(),

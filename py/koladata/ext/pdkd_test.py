@@ -73,13 +73,49 @@ class PdkdTest(parameterized.TestCase):
     ds = pdkd.from_dataframe(df)
     kd.testing.assert_equal(ds.x.no_bag(), expected_ds)
 
+  @parameterized.parameters(
+      (pd.Series([1, 2, 3]), kd.int64([1, 2, 3])),
+      (
+          pd.Series([1, pd.NA, 3], dtype=pd.Int32Dtype()),
+          kd.int32([1, None, 3]),
+      ),
+      (
+          pd.Series([1.0, pd.NA, 3.0], dtype=pd.Float32Dtype()),
+          kd.float32([1.0, None, 3.0]),
+      ),
+      (
+          pd.Series([1.0, float('nan'), 3.0]),
+          kd.float64([1.0, None, 3.0]),
+      ),
+      (
+          pd.Series(['a', pd.NA, 'c'], dtype=pd.StringDtype()),
+          kd.str(['a', None, 'c']),
+      ),
+      (
+          pd.Series([1.0, 2, pd.NA], dtype='object'),
+          kd.slice([1.0, 2, None], kd.OBJECT),
+      ),
+  )
+  def test_from_series_primitives(self, series, expected_ds):
+    ds = pdkd.from_series(series)
+    kd.testing.assert_equal(ds.no_bag(), expected_ds)
+
+  def test_from_series_multi_index(self):
+    index = pd.MultiIndex.from_arrays([[0, 0, 1, 3, 3], [0, 1, 0, 0, 1]])
+    series = pd.Series([1, 2, 3, 4, 5], index=index)
+    ds = pdkd.from_series(series)
+    kd.testing.assert_equal(
+        ds.no_bag(),
+        kd.int64([[1, 2], [3], [], [4, 5]]),
+    )
+
   def test_from_dataframe_multidimensional_int_df(self):
     index = pd.MultiIndex.from_arrays([[0, 0, 1, 3, 3], [0, 1, 0, 0, 1]])
-    df = pd.DataFrame({'x': [1, 2, 3, 4, 5]}, index=index)
+    df = pd.DataFrame({'x': [1, 2, 3, None, 5]}, index=index)
     ds = pdkd.from_dataframe(df)
     kd.testing.assert_equal(
         ds.x.no_bag(),
-        kd.int64([[1, 2], [3], [], [4, 5]]),
+        kd.float64([[1, 2], [3], [], [None, 5]]),
     )
 
   def test_from_dataframe_non_primitive_df(self):

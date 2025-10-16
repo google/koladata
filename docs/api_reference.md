@@ -11045,6 +11045,19 @@ Args:
 Returns:
   DataSlice of items with attributes from DataFrame columns.</code></pre>
 
+### `kd_ext.pdkd.from_series(series: Series) -> DataSlice` {#kd_ext.pdkd.from_series}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice from the given pandas Series.
+
+The Series is first converted to a DataFrame with a single column named
+&#39;self_&#39;, and then `from_dataframe` is used to convert it to a DataSlice.
+
+Args:
+  series: pandas Series to convert.
+
+Returns:
+  DataSlice representing the content of the Series.</code></pre>
+
 ### `kd_ext.pdkd.to_dataframe(ds: DataSlice, cols: list[str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
