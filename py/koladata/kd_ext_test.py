@@ -91,9 +91,8 @@ class KdExtTest(absltest.TestCase):
 
   def test_konstructs(self):
     # More comprehensive tests are in ext/konstructs/.
-    self.assertEqual(
-        kd_ext.konstructs.lens([1, 2])[:].map(lambda x: x + 1).get(), [2, 3]
-    )
+    ks = kd_ext.konstructs
+    self.assertEqual(ks.map(lambda x: x + 1, ks.lens([1, 2])[:]).get(), [2, 3])
 
 
 if __name__ == '__main__':

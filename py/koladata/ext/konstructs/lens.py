@@ -153,25 +153,6 @@ class Lens:
         'Only everything slice [:] is supported in Lens.__getitem__ yet.'
     )
 
-  def map(self, f: Callable[[Any], Any]) -> Lens:
-    """Applies a function to each item in the lens.
-
-    Example:
-      x = types.SimpleNamespace(
-          a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
-      )
-      lens(x).a[:].b.map(lambda i: i + 1).get()
-      # [2, 3]
-
-    Args:
-      f: The function to apply.
-
-    Returns:
-      A new lens with the function applied to each item.
-    """
-    new_flat_items = [f(x) for x in self._flat_items]
-    return Lens(new_flat_items, self._shape, is_internal_call=True)
-
   def implode(self, ndim: int = 1) -> Lens:
     """Reduces lens dimension by grouping items into lists.
 
@@ -280,6 +261,64 @@ class Lens:
     )
     return Lens(self._flat_items, new_shape, is_internal_call=True)
 
+  def expand_to_shape(self, shape: kd.types.JaggedShape) -> Lens:
+    """Expands the lens to the given shape.
+
+    The shape of this lens must be a prefix of the given shape.
+
+    Args:
+      shape: The shape to expand to.
+
+    Returns:
+      A new lens with the given shape, with the items of this lens repeated
+      as necessary.
+    """
+    arolla_self_shape = arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self._shape,)
+    )
+    arolla_shape = arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (shape,)
+    )
+    if not arolla.abc.invoke_op(
+        'jagged.is_broadcastable_to', (arolla_self_shape, arolla_shape)
+    ):
+      raise ValueError(
+          'Lenses do not have a common shape. Shapes: '
+          f'{self._shape} and {shape}.'
+      )
+    # TODO: Move some of this logic to JaggedShape.
+    our_rank = self._shape.rank()
+    new_rank = shape.rank()
+    if our_rank == new_rank:
+      return self
+    flat_shape = arolla.abc.invoke_op(
+        'jagged.flatten',
+        (arolla_shape, arolla.int64(our_rank), arolla.unspecified()),
+    )
+    expand_edge = flat_shape[our_rank]
+    sizes = arolla.abc.invoke_op('edge.sizes', (expand_edge,)).py_value()
+    new_flat_items = list(
+        itertools.chain.from_iterable(
+            map(itertools.repeat, self._flat_items, sizes)
+        )
+    )
+    return Lens(new_flat_items, shape, is_internal_call=True)
+
+  def expand_to(self, other: Lens) -> Lens:
+    """Expands the lens to the shape of other lens."""
+    return self.expand_to_shape(other.get_shape())
+
+  def internal_get_flat_items(self) -> list[Any]:
+    """Returns the flat items of the lens.
+
+    This returns a pointer to an internal mutable list, so the caller needs
+    to make sure it does not modify it, hence the internal_ prefix.
+
+    We cannot change the storage to use tuple instead of list, as it seems to be
+    significantly slower to create tuples than lists in operations.
+    """
+    return self._flat_items
+
   def get_shape(self) -> kd.types.JaggedShape:
     """Returns the shape of the lens."""
     return self._shape
@@ -326,3 +365,58 @@ def lens(obj: Any) -> Lens:
     A scalar lens view on the object.
   """
   return Lens([obj], _SCALAR_SHAPE, is_internal_call=True)
+
+
+# This method is in lens.py since we expect to use it from implementations
+# of methods of Lens class.
+def align(first: Lens, *others: Lens) -> tuple[Lens, ...]:
+  """Aligns the lenses to a common shape."""
+  if not others:
+    return (first,)
+  # TODO: Move some of this logic to JaggedShape.
+  shape = max((first, *others), key=lambda l: l.get_shape().rank()).get_shape()
+  return (
+      first.expand_to_shape(shape),
+      *(l.expand_to_shape(shape) for l in others),
+  )
+
+
+# This method is in lens.py since we expect to use it from implementations
+# of methods of Lens class.
+def map_(f: Callable[..., Any], *args: Lens, **kwargs: Lens) -> Lens:
+  """Applies a function to corresponding items in the args/kwargs lens.
+
+  Arguments will be broadcasted to a common shape. There must be at least one
+  argument or keyword argument.
+
+  Example:
+    x = types.SimpleNamespace(
+        a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+    )
+    ks.map(lambda i: i + 1, ks.lens(x).a[:].b).get()
+    # [2, 3]
+    ks.map(lambda x: x + y, ks.lens(x).a[:].b, ks.lens(1)).get()
+    # [2, 3]
+
+  Args:
+    f: The function to apply.
+    *args: The positional arguments to pass to the function. They must all be
+      lenses.
+    **kwargs: The keyword arguments to pass to the function. They must all be
+      lenses.
+
+  Returns:
+    A new lens with the function applied to the corresponding items.
+  """
+  aligned_args = align(*args, *kwargs.values())
+  kwnames = tuple(kwargs)
+  vcall = arolla.abc.vectorcall
+  new_flat_items = map(
+      vcall,
+      itertools.repeat(f),
+      *(arg.internal_get_flat_items() for arg in aligned_args),
+      itertools.repeat(kwnames),
+  )
+  return Lens(
+      list(new_flat_items), aligned_args[0].get_shape(), is_internal_call=True
+  )

@@ -56,9 +56,80 @@ class LensTest(absltest.TestCase):
 
   def test_map(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
-    self.assertEqual(lens_lib.lens(x).a[:].b.map(lambda x: x + 1).get(), [2, 3])
-    self.assertEqual(lens_lib.lens([[1, 2], [3]])[:].map(len).get(), [2, 1])
-    self.assertEqual(lens_lib.lens([[1, 2], [3]]).map(len).get(), 2)
+    self.assertEqual(
+        lens_lib.map_(lambda x: x + 1, lens_lib.lens(x).a[:].b).get(), [2, 3]
+    )
+    self.assertEqual(
+        lens_lib.map_(len, lens_lib.lens([[1, 2], [3]])[:]).get(), [2, 1]
+    )
+    self.assertEqual(lens_lib.map_(len, lens_lib.lens([[1, 2], [3]])).get(), 2)
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y,
+            lens_lib.lens([1, 2])[:],
+            lens_lib.lens([3, 4])[:],
+        ).get(),
+        [4, 6],
+    )
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y,
+            lens_lib.lens([1, 2])[:],
+            y=lens_lib.lens([3, 4])[:],
+        ).get(),
+        [4, 6],
+    )
+
+  def test_map_broadcasting(self):
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y, lens_lib.lens([1, 2])[:], lens_lib.lens(10)
+        ).get(),
+        [11, 12],
+    )
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y, lens_lib.lens(10), lens_lib.lens([1, 2])[:]
+        ).get(),
+        [11, 12],
+    )
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y,
+            lens_lib.lens([1, 2])[:],
+            y=lens_lib.lens(10),
+        ).get(),
+        [11, 12],
+    )
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y, z: x + y + z,
+            lens_lib.lens([1, 2])[:],
+            lens_lib.lens([10, 20])[:],
+            lens_lib.lens(100),
+        ).get(),
+        [111, 122],
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(1, 2) and'
+            ' JaggedShape(2, 1)'
+        ),
+    ):
+      _ = lens_lib.map_(
+          lambda x, y: x + y,
+          lens_lib.lens([[1], [2]])[:][:],
+          lens_lib.lens([[10, 20]])[:][:],
+      ).get()
+    self.assertEqual(
+        lens_lib.map_(
+            lambda x, y: x + y,
+            lens_lib.lens([[1, 2], [3, 4]])[:][:],
+            lens_lib.lens([10, 20])[:],
+        ).get(),
+        [[11, 12], [23, 24]],
+    )
 
   def test_nested_slice(self):
     x = Obj(
@@ -136,6 +207,135 @@ class LensTest(absltest.TestCase):
         'Cannot implode by 4 dimensions, the shape has only 3 dimensions.',
     ):
       _ = lens_3d.implode(ndim=4)
+
+  def test_align(self):
+    with self.assertRaisesRegex(
+        TypeError, re.escape('align() missing 1 required positional argument')
+    ):
+      lens_lib.align()  # pytype: disable=missing-parameter
+
+    l1 = lens_lib.lens(1)
+    (res1,) = lens_lib.align(l1)
+    self.assertEqual(res1.get(), 1)
+
+    l2 = lens_lib.lens([10, 20])[:]
+    res1, res2 = lens_lib.align(l1, l2)
+    self.assertEqual(res1.get(), [1, 1])
+    self.assertEqual(res2.get(), [10, 20])
+
+    res2, res1 = lens_lib.align(l2, l1)
+    self.assertEqual(res1.get(), [1, 1])
+    self.assertEqual(res2.get(), [10, 20])
+
+    l3 = lens_lib.lens([30, 40])[:]
+    res2, res3 = lens_lib.align(l2, l3)
+    self.assertEqual(res2.get(), [10, 20])
+    self.assertEqual(res3.get(), [30, 40])
+
+    l4 = lens_lib.lens([[1, 2], [3]])[:][:]
+    res2, res4 = lens_lib.align(l2, l4)
+    self.assertEqual(res2.get(), [[10, 10], [20]])
+    self.assertEqual(res4.get(), [[1, 2], [3]])
+
+    l5 = lens_lib.lens([1, 2, 3])[:]
+    res1, res5 = lens_lib.align(l1, l5)
+    self.assertEqual(res1.get(), [1, 1, 1])
+    self.assertEqual(res5.get(), [1, 2, 3])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(3) and'
+            ' JaggedShape(2)'
+        ),
+    ):
+      _ = lens_lib.align(l2, l5)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(3)'
+            ' and JaggedShape(2, [2, 1])'
+        ),
+    ):
+      _ = lens_lib.align(l4, l5)
+
+  def test_expand_to_shape(self):
+    l1 = lens_lib.lens(1)
+    l2 = lens_lib.lens([10, 20])[:]
+    l4 = lens_lib.lens([[1, 2], [3]])[:][:]
+    l5 = lens_lib.lens([1, 2, 3])[:]
+
+    self.assertEqual(l1.expand_to_shape(l1.get_shape()).get(), 1)
+    self.assertEqual(l1.expand_to_shape(l2.get_shape()).get(), [1, 1])
+    self.assertEqual(l1.expand_to_shape(l5.get_shape()).get(), [1, 1, 1])
+    self.assertEqual(l2.expand_to_shape(l2.get_shape()).get(), [10, 20])
+    self.assertEqual(l1.expand_to_shape(l4.get_shape()).get(), [[1, 1], [1]])
+    self.assertEqual(l2.expand_to_shape(l4.get_shape()).get(), [[10, 10], [20]])
+    self.assertEqual(l4.expand_to_shape(l4.get_shape()).get(), [[1, 2], [3]])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(2) and'
+            ' JaggedShape(3)'
+        ),
+    ):
+      l2.expand_to_shape(l5.get_shape())
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(2, [2, 1])'
+            ' and JaggedShape(3)'
+        ),
+    ):
+      l4.expand_to_shape(l5.get_shape())
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(3) and'
+            ' JaggedShape(2)'
+        ),
+    ):
+      l5.expand_to_shape(l2.get_shape())
+
+  def test_expand_to(self):
+    l1 = lens_lib.lens(1)
+    l2 = lens_lib.lens([10, 20])[:]
+    l4 = lens_lib.lens([[1, 2], [3]])[:][:]
+    l5 = lens_lib.lens([1, 2, 3])[:]
+
+    self.assertEqual(l1.expand_to(l1).get(), 1)
+    self.assertEqual(l1.expand_to(l2).get(), [1, 1])
+    self.assertEqual(l1.expand_to(l5).get(), [1, 1, 1])
+    self.assertEqual(l2.expand_to(l2).get(), [10, 20])
+    self.assertEqual(l1.expand_to(l4).get(), [[1, 1], [1]])
+    self.assertEqual(l2.expand_to(l4).get(), [[10, 10], [20]])
+    self.assertEqual(l4.expand_to(l4).get(), [[1, 2], [3]])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(2) and'
+            ' JaggedShape(3)'
+        ),
+    ):
+      l2.expand_to(l5)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(2, [2, 1])'
+            ' and JaggedShape(3)'
+        ),
+    ):
+      l4.expand_to(l5)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Lenses do not have a common shape. Shapes: JaggedShape(3) and'
+            ' JaggedShape(2)'
+        ),
+    ):
+      l5.expand_to(l2)
 
 
 if __name__ == '__main__':

@@ -61,7 +61,7 @@ def _example_computation_py_stepwise(os: list[Bar]) -> list[list[int]]:
 def _example_computation_ks(os: list[Bar]) -> list[list[int]]:
   l = ks.lens(os)
   o = l[:].z[:].x
-  return o.map(lambda x: x * x).get()
+  return ks.map(lambda x: x * x, o).get()
 
 
 def _very_small_dataset() -> list[Bar]:

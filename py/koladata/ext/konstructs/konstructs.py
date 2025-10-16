@@ -20,7 +20,9 @@ This API is highly experimental and is subject to change without notice.
 import types as _py_types
 from koladata.ext.konstructs import lens as _lens
 
+align = _lens.align
 lens = _lens.lens
+map = _lens.map_  # pylint: disable=redefined-builtin
 
 types = _py_types.SimpleNamespace(
     Lens=_lens.Lens,

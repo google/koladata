@@ -18,11 +18,21 @@ from koladata.ext.konstructs import konstructs
 
 class KonstructsTest(absltest.TestCase):
 
-  def test_lens(self):
+  def test_map_and_lens(self):
     # More comprehensive tests are in lens_test.py.
     self.assertEqual(
-        konstructs.lens([1, 2])[:].map(lambda x: x + 1).get(), [2, 3]
+        konstructs.map(lambda x: x + 1, konstructs.lens([1, 2])[:]).get(),
+        [2, 3],
     )
+
+  def test_align(self):
+    # More comprehensive tests are in lens_test.py.
+    res1, res2 = konstructs.align(
+        konstructs.lens(1),
+        konstructs.lens([10, 20])[:],
+    )
+    self.assertEqual(res1.get(), [1, 1])
+    self.assertEqual(res2.get(), [10, 20])
 
   def test_types(self):
     self.assertIsInstance(konstructs.lens(1), konstructs.types.Lens)

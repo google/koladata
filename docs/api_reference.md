@@ -11537,6 +11537,10 @@ Experimental Konstructs API.
 
 **Operators**
 
+### `kd_ext.konstructs.align(first: Lens, *others: Lens) -> tuple[Lens, ...]` {#kd_ext.konstructs.align}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the lenses to a common shape.</code></pre>
+
 ### `kd_ext.konstructs.lens(obj: Any) -> Lens` {#kd_ext.konstructs.lens}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a view on an object that can be used for vectorized access.
@@ -11574,6 +11578,32 @@ Args:
 
 Returns:
   A scalar lens view on the object.</code></pre>
+
+### `kd_ext.konstructs.map(f: Callable[..., Any], *args: Lens, **kwargs: Lens) -> Lens` {#kd_ext.konstructs.map}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs lens.
+
+Arguments will be broadcasted to a common shape. There must be at least one
+argument or keyword argument.
+
+Example:
+  x = types.SimpleNamespace(
+      a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+  )
+  ks.map(lambda i: i + 1, ks.lens(x).a[:].b).get()
+  # [2, 3]
+  ks.map(lambda x: x + y, ks.lens(x).a[:].b, ks.lens(1)).get()
+  # [2, 3]
+
+Args:
+  f: The function to apply.
+  *args: The positional arguments to pass to the function. They must all be
+    lenses.
+  **kwargs: The keyword arguments to pass to the function. They must all be
+    lenses.
+
+Returns:
+  A new lens with the function applied to the corresponding items.</code></pre>
 
 </section>
 </section>
