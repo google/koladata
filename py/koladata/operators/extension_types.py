@@ -31,8 +31,6 @@ constraints = arolla.optools.constraints
 _NULL_OBJ = objects.Object(_is_null_marker=arolla.present())
 
 
-# NOTE(b/417369165): Consider implementing in C++ to support validating that
-# `qtype` is a labeled qtype.
 @optools.as_lambda_operator(
     'kd.extension_types._wrap',
     qtype_constraints=[
@@ -50,8 +48,6 @@ def _wrap(obj, qtype):
 @optools.add_to_registry(view=None)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.wrap')
 def wrap(obj, qtype):
-  # TODO: Remove in favor of supporting QType inference directly in
-  # M.derived_qtype.downcast.
   return M.annotation.qtype(_wrap(obj, qtype), qtype)
 
 
