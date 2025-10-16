@@ -52,12 +52,7 @@ class TestScopeGuard {
 
 class TestExecutor : public Executor {
  public:
-  TestExecutor() noexcept = default;
-
-  explicit TestExecutor(
-      absl::AnyInvocable<void(ContextGuard&) const>
-          cross_task_scope_guard_creator) noexcept
-      : Executor(std::move(cross_task_scope_guard_creator)) {}
+  using Executor::Executor;
 
   void DoSchedule(TaskFn task_fn) noexcept final { std::move(task_fn)(); }
 

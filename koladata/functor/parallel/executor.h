@@ -40,14 +40,14 @@ namespace koladata::functor::parallel {
 //
 class Executor : public std::enable_shared_from_this<Executor> {
  public:
+  using ContextGuardInitializer = absl::AnyInvocable<void(ContextGuard&) const>;
   using TaskFn = absl::AnyInvocable<void() &&>;
 
   // Default constructor.
   Executor() noexcept = default;
 
   // Constructor with a custom scope guard creator.
-  explicit Executor(absl::AnyInvocable<void(ContextGuard&) const>
-                        context_guard_initializer) noexcept
+  explicit Executor(ContextGuardInitializer context_guard_initializer) noexcept
       : context_guard_initializer_(std::move(context_guard_initializer)) {}
 
   // Disable copy and move semantics.
@@ -88,7 +88,7 @@ class Executor : public std::enable_shared_from_this<Executor> {
 
   // A creator for a scope guard that should be constructed for each scheduled
   // task.
-  absl::AnyInvocable<void(ContextGuard&) const> context_guard_initializer_;
+  ContextGuardInitializer context_guard_initializer_;
 };
 
 using ExecutorPtr = std::shared_ptr<Executor>;

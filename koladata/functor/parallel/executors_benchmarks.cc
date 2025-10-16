@@ -27,10 +27,7 @@ namespace {
 
 class TestEagerExecutor final : public Executor {
  public:
-  TestEagerExecutor() noexcept = default;
-  explicit TestEagerExecutor(absl::AnyInvocable<void(ContextGuard&) const>
-                                 context_guard_initializer) noexcept
-      : Executor(std::move(context_guard_initializer)) {}
+  using Executor::Executor;
 
   void DoSchedule(TaskFn task_fn) noexcept final { std::move(task_fn)(); }
 
