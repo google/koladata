@@ -11550,9 +11550,19 @@ Experimental Konstructs API.
 
 **Operators**
 
-### `kd_ext.konstructs.align(first: Lens, *others: Lens) -> tuple[Lens, ...]` {#kd_ext.konstructs.align}
+### `kd_ext.konstructs.align(first: Any, *others: Any) -> tuple[Lens, ...]` {#kd_ext.konstructs.align}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the lenses to a common shape.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the lenses to a common shape.
+
+We will also apply auto-boxing if some inputs are not lenses but can be
+automatically boxed into one.
+
+Args:
+  first: The first argument to align.
+  *others: The remaining arguments to align.
+
+Returns:
+  A tuple of aligned lenses, of size len(others) + 1.</code></pre>
 
 ### `kd_ext.konstructs.lens(obj: Any) -> Lens` {#kd_ext.konstructs.lens}
 
@@ -11592,7 +11602,7 @@ Args:
 Returns:
   A scalar lens view on the object.</code></pre>
 
-### `kd_ext.konstructs.map(f: Callable[..., Any], *args: Lens, **kwargs: Lens) -> Lens` {#kd_ext.konstructs.map}
+### `kd_ext.konstructs.map(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens` {#kd_ext.konstructs.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs lens.
 
@@ -11611,9 +11621,9 @@ Example:
 Args:
   f: The function to apply.
   *args: The positional arguments to pass to the function. They must all be
-    lenses.
+    lenses or auto-boxable into lenses.
   **kwargs: The keyword arguments to pass to the function. They must all be
-    lenses.
+    lenses or auto-boxable into lenses.
 
 Returns:
   A new lens with the function applied to the corresponding items.</code></pre>

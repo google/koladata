@@ -89,22 +89,18 @@ class LensTest(absltest.TestCase):
 
   def test_map_broadcasting(self):
     self.assertEqual(
-        lens_lib.map_(
-            lambda x, y: x + y, lens_lib.lens([1, 2])[:], lens_lib.lens(10)
-        ).get(),
+        lens_lib.map_(lambda x, y: x + y, lens_lib.lens([1, 2])[:], 10).get(),
         [11, 12],
     )
     self.assertEqual(
-        lens_lib.map_(
-            lambda x, y: x + y, lens_lib.lens(10), lens_lib.lens([1, 2])[:]
-        ).get(),
+        lens_lib.map_(lambda x, y: x + y, 10, lens_lib.lens([1, 2])[:]).get(),
         [11, 12],
     )
     self.assertEqual(
         lens_lib.map_(
             lambda x, y: x + y,
             lens_lib.lens([1, 2])[:],
-            y=lens_lib.lens(10),
+            y=10,
         ).get(),
         [11, 12],
     )
@@ -113,7 +109,7 @@ class LensTest(absltest.TestCase):
             lambda x, y, z: x + y + z,
             lens_lib.lens([1, 2])[:],
             lens_lib.lens([10, 20])[:],
-            lens_lib.lens(100),
+            100,
         ).get(),
         [111, 122],
     )
@@ -249,6 +245,13 @@ class LensTest(absltest.TestCase):
     self.assertEqual(res1.get(), [1, 1, 1])
     self.assertEqual(res5.get(), [1, 2, 3])
 
+    res1, res2 = lens_lib.align(1, l2)
+    self.assertEqual(res1.get(), [1, 1])
+    self.assertEqual(res2.get(), [10, 20])
+    res2, res1 = lens_lib.align(l2, 1)
+    self.assertEqual(res1.get(), [1, 1])
+    self.assertEqual(res2.get(), [10, 20])
+
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -343,6 +346,25 @@ class LensTest(absltest.TestCase):
         ),
     ):
       l5.expand_to(l2)
+
+  def test_box(self):
+    l1 = lens_lib.lens(1)
+    self.assertIs(lens_lib.box(l1), l1)
+    self.assertEqual(lens_lib.box(1).get(), 1)
+    self.assertEqual(lens_lib.box(1.0).get(), 1.0)
+    self.assertEqual(lens_lib.box('foo').get(), 'foo')
+    self.assertEqual(lens_lib.box(b'foo').get(), b'foo')
+    self.assertEqual(lens_lib.box(True).get(), True)
+    self.assertIsNone(lens_lib.box(None).get())
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "Cannot automatically box [1, 2] of type <class 'list'> to lens."
+            ' Use ks.lens() explicitly if you want to construct a lens from'
+            ' it.'
+        ),
+    ):
+      lens_lib.box([1, 2])
 
 
 if __name__ == '__main__':

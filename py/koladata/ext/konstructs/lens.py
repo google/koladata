@@ -377,12 +377,54 @@ def lens(obj: Any) -> Lens:
   return Lens([obj], _SCALAR_SHAPE, is_internal_call=True)
 
 
+_AUTO_BOX_TYPES = (int, float, str, bytes, bool, type(None))
+
+
+def box(obj: Any) -> Lens:
+  """Wraps the given object into a lens.
+
+  Unlike lens(), this method only works for a predefined set of types,
+  so that we can use it for implicit boxing in various APIs.
+
+  Currently we auto-box Python primitive types only.
+
+  Args:
+    obj: The object to box.
+
+  Returns:
+    A lens view on the object, or raises a ValueError if the object cannot be
+    automatically boxed.
+  """
+  if isinstance(obj, Lens):
+    return obj
+  elif isinstance(obj, _AUTO_BOX_TYPES):
+    return lens(obj)
+  else:
+    raise ValueError(
+        f'Cannot automatically box {obj} of type {type(obj)} to lens. Use'
+        ' ks.lens() explicitly if you want to construct a lens from it.'
+    )
+
+
 # This method is in lens.py since we expect to use it from implementations
 # of methods of Lens class.
-def align(first: Lens, *others: Lens) -> tuple[Lens, ...]:
-  """Aligns the lenses to a common shape."""
+def align(first: Any, *others: Any) -> tuple[Lens, ...]:
+  """Aligns the lenses to a common shape.
+
+  We will also apply auto-boxing if some inputs are not lenses but can be
+  automatically boxed into one.
+
+  Args:
+    first: The first argument to align.
+    *others: The remaining arguments to align.
+
+  Returns:
+    A tuple of aligned lenses, of size len(others) + 1.
+  """
+  first = box(first)
   if not others:
     return (first,)
+  others = tuple(box(o) for o in others)
   # TODO: Move some of this logic to JaggedShape.
   shape = max((first, *others), key=lambda l: l.get_shape().rank()).get_shape()
   return (
@@ -393,7 +435,7 @@ def align(first: Lens, *others: Lens) -> tuple[Lens, ...]:
 
 # This method is in lens.py since we expect to use it from implementations
 # of methods of Lens class.
-def map_(f: Callable[..., Any], *args: Lens, **kwargs: Lens) -> Lens:
+def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens:
   """Applies a function to corresponding items in the args/kwargs lens.
 
   Arguments will be broadcasted to a common shape. There must be at least one
@@ -411,9 +453,9 @@ def map_(f: Callable[..., Any], *args: Lens, **kwargs: Lens) -> Lens:
   Args:
     f: The function to apply.
     *args: The positional arguments to pass to the function. They must all be
-      lenses.
+      lenses or auto-boxable into lenses.
     **kwargs: The keyword arguments to pass to the function. They must all be
-      lenses.
+      lenses or auto-boxable into lenses.
 
   Returns:
     A new lens with the function applied to the corresponding items.
