@@ -24,6 +24,7 @@
 #include <utility>
 #include <variant>
 
+#include "absl/base/macros.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/btree_set.h"
@@ -135,6 +136,7 @@ class DataSlice {
   // Creates a scalar DataSlice with primitive schema derived from data.
   // TODO: b/449162453 - Use CreatePrimitive instead.
   template <typename T>
+  ABSL_DEPRECATE_AND_INLINE()
   static DataSlice CreateFromScalar(T v) {
     return CreatePrimitive(std::move(v));
   }
