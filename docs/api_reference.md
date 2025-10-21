@@ -11408,7 +11408,7 @@ persistence directory are not propagated to this instance. A write operation
 will fail if the state of the persistence directory was modified in the
 meantime by another instance.</code></pre>
 
-### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(persistence_dir: str, *, fs: fs_interface.FileSystemInterface | None = None, description: str = 'Initial state with an empty root DataSlice')` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
+### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(persistence_dir: str, *, fs: fs_interface.FileSystemInterface | None = None, description: str = 'Initial state with an empty root DataSlice', initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface | None = None)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataSlice that is assembled from multiple smaller data slices.
 

@@ -28,10 +28,13 @@ import uuid
 
 from google.protobuf import timestamp
 from koladata import kd
+from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
+from koladata.ext.persisted_data import initial_data_manager_interface
+from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as dbm
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.persisted_data import schema_helper
@@ -164,6 +167,9 @@ class PersistedIncrementalDataSliceManager(
       *,
       fs: fs_interface.FileSystemInterface | None = None,
       description: str = 'Initial state with an empty root DataSlice',
+      initial_data_manager: (
+          initial_data_manager_interface.InitialDataManagerInterface | None
+      ) = None,
   ):
     """Initializes the manager.
 
@@ -177,10 +183,14 @@ class PersistedIncrementalDataSliceManager(
       description: A description of the initial state of the DataSlice. This
         description is stored in the history metadata. Only used if the
         persistence_dir is empty or does not exist.
+      initial_data_manager: The initial data of the DataSlice. Only used if the
+        persistence_dir is empty or does not exist. By default, an empty root
+        obtained by kd.new() is used.
     """
     self._persistence_dir = persistence_dir
     self._fs = fs or fs_util.get_default_file_system_interaction()
     del persistence_dir, fs  # Forces the use of the attributes henceforth.
+    initial_data_dir = os.path.join(self._persistence_dir, 'initial_data')
     data_bags_dir = os.path.join(self._persistence_dir, 'data_bags')
     schema_bags_dir = os.path.join(self._persistence_dir, 'schema_bags')
     schema_node_name_to_data_bags_updates_dir = os.path.join(
@@ -189,12 +199,11 @@ class PersistedIncrementalDataSliceManager(
     if not self._fs.exists(self._persistence_dir):
       self._fs.make_dirs(self._persistence_dir)
     if not self._fs.glob(os.path.join(self._persistence_dir, '*')):  # Empty dir
-      self._root_dataslice = kd.new()
-      fs_util.write_slice_to_file(
-          self._fs,
-          self._root_dataslice,
-          _get_root_dataslice_filepath(self._persistence_dir),
+      self._initial_data_manager = (
+          initial_data_manager
+          or bare_root_initial_data_manager.BareRootInitialDataManager()
       )
+      self._initial_data_manager.serialize(initial_data_dir, fs=self._fs)
       self._data_bag_manager = dbm.PersistedIncrementalDataBagManager(
           data_bags_dir, fs=self._fs
       )
@@ -202,7 +211,7 @@ class PersistedIncrementalDataSliceManager(
           schema_bags_dir, fs=self._fs
       )
       self._schema_helper = schema_helper.SchemaHelper(
-          self._root_dataslice.get_schema()
+          self._initial_data_manager.get_schema()
       )
       self._initial_schema_node_name_to_data_bag_names = kd.dict({
           snn: kd.list([], item_schema=kd.STRING)
@@ -222,6 +231,7 @@ class PersistedIncrementalDataSliceManager(
       )
       self._metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
           version='1.0.0',
+          initial_data_manager_id=self._initial_data_manager.get_id(),
           metadata_update_number=0,
           revision_history=[
               metadata_pb2.RevisionMetadata(
@@ -243,9 +253,13 @@ class PersistedIncrementalDataSliceManager(
       _persist_metadata(self._fs, self._persistence_dir, self._metadata)
     else:
       self._metadata = _read_latest_metadata(self._fs, self._persistence_dir)
-      self._root_dataslice = fs_util.read_slice_from_file(
-          self._fs,
-          _get_root_dataslice_filepath(self._persistence_dir),
+      initial_data_manager_class = (
+          initial_data_manager_registry.get_initial_data_manager_class(
+              self._metadata.initial_data_manager_id
+          )
+      )
+      self._initial_data_manager = initial_data_manager_class.deserialize(
+          initial_data_dir, fs=self._fs
       )
       self._data_bag_manager = dbm.PersistedIncrementalDataBagManager(
           data_bags_dir, fs=self._fs
@@ -257,7 +271,7 @@ class PersistedIncrementalDataSliceManager(
       for revision in self._metadata.revision_history:
         schema_bag_names.update(revision.added_schema_bag_names)
       self._schema_helper = schema_helper.SchemaHelper(
-          self._root_dataslice.get_schema().updated(
+          self._initial_data_manager.get_schema().updated(
               self._schema_bag_manager.get_minimal_bag(schema_bag_names)
           )
       )
@@ -288,7 +302,7 @@ class PersistedIncrementalDataSliceManager(
     schema_bag_names = set()
     for revision in self._metadata.revision_history:
       schema_bag_names.update(revision.added_schema_bag_names)
-    return self._root_dataslice.get_schema().updated(
+    return self._initial_data_manager.get_schema().updated(
         self._schema_bag_manager.get_minimal_bag(schema_bag_names)
     )
 
@@ -398,7 +412,14 @@ class PersistedIncrementalDataSliceManager(
         needed_schema_node_names,
     )
 
-    return self._root_dataslice.updated(data_bag).updated(schema_bag)
+    return (
+        self._initial_data_manager.get_data_slice(
+            needed_schema_node_names
+            & self._initial_data_manager.get_all_schema_node_names()
+        )
+        .updated(data_bag)
+        .updated(schema_bag)
+    )
 
   def get_data_slice_at(
       self,
@@ -984,10 +1005,8 @@ class PersistedIncrementalDataSliceManager(
       if branch_fs.glob(os.path.join(output_dir, '*')):
         raise ValueError(f'the output_dir {output_dir} is not empty')
 
-    fs_util.write_slice_to_file(
-        branch_fs,
-        self._root_dataslice,
-        _get_root_dataslice_filepath(output_dir),
+    self._initial_data_manager.serialize(
+        os.path.join(output_dir, 'initial_data'), fs=branch_fs
     )
     fs_util.write_slice_to_file(
         branch_fs,
@@ -1026,6 +1045,7 @@ class PersistedIncrementalDataSliceManager(
 
     branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
         version='1.0.0',
+        initial_data_manager_id=self._initial_data_manager.get_id(),
         metadata_update_number=0,
         revision_history=[
             metadata_pb2.RevisionMetadata(
@@ -1099,10 +1119,6 @@ class PersistedIncrementalDataSliceManager(
 
   def _get_fresh_bag_name(self) -> str:
     return _get_uuid()
-
-
-def _get_root_dataslice_filepath(persistence_dir: str) -> str:
-  return os.path.join(persistence_dir, 'root.kd')
 
 
 def _get_initial_schema_node_name_to_bag_names_filepath(

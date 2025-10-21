@@ -55,10 +55,13 @@ py_library(
     name = "persisted_incremental_data_slice_manager",
     srcs = ["persisted_incremental_data_slice_manager.py"],
     deps = [
+        ":bare_root_initial_data_manager",
         ":data_slice_manager_interface",
         ":data_slice_path",
         ":fs_interface",
         ":fs_util",
+        ":initial_data_manager_interface",
+        ":initial_data_manager_registry",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":schema_helper",
@@ -73,9 +76,11 @@ py_test(
     name = "persisted_incremental_data_slice_manager_test",
     srcs = ["persisted_incremental_data_slice_manager_test.py"],
     deps = [
+        ":bare_root_initial_data_manager",
         ":data_slice_manager_interface",
         ":data_slice_path",
         ":fs_implementation",
+        ":initial_data_manager_interface",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
         ":persisted_incremental_data_slice_manager_metadata_py_pb2",
@@ -333,6 +338,63 @@ py_library(
         "//py:python_path",
         "//py/koladata:kd",
         "@com_googlesource_code_re2//python:re2",
+    ],
+)
+
+py_library(
+    name = "initial_data_manager_interface",
+    srcs = ["initial_data_manager_interface.py"],
+    deps = [
+        ":fs_interface",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "initial_data_manager_registry",
+    srcs = ["initial_data_manager_registry.py"],
+    deps = [
+        ":initial_data_manager_interface",
+        "//py:python_path",
+    ],
+)
+
+py_test(
+    name = "initial_data_manager_registry_test",
+    srcs = ["initial_data_manager_registry_test.py"],
+    deps = [
+        ":initial_data_manager_interface",
+        ":initial_data_manager_registry",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "bare_root_initial_data_manager",
+    srcs = ["bare_root_initial_data_manager.py"],
+    deps = [
+        ":fs_interface",
+        ":fs_util",
+        ":initial_data_manager_interface",
+        ":initial_data_manager_registry",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "bare_root_initial_data_manager_test",
+    srcs = ["bare_root_initial_data_manager_test.py"],
+    deps = [
+        ":bare_root_initial_data_manager",
+        ":fs_implementation",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

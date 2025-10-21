@@ -22,6 +22,9 @@ message PersistedIncrementalDataSliceManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
 
+  // The type of the initial data manager.
+  string initial_data_manager_id = 4;
+
   // The number of times the metadata was updated. Always set. Starts at 0 and
   // is incremented by 1 with each update.
   // This is used to make sure that updates to the manager are transactional.

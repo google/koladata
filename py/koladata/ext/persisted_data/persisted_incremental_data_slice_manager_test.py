@@ -23,9 +23,11 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from google.protobuf import timestamp
 from koladata import kd
+from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_implementation
+from koladata.ext.persisted_data import initial_data_manager_interface
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
@@ -43,6 +45,12 @@ GetAttr = data_slice_path_lib.GetAttr
 
 schema_node_name = test_only_schema_node_name_helper.schema_node_name
 
+InitialDataManagerInterface = (
+    initial_data_manager_interface.InitialDataManagerInterface
+)
+BareRootInitialDataManager = (
+    bare_root_initial_data_manager.BareRootInitialDataManager
+)
 PersistedIncrementalDataSliceManager = (
     persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
 )
@@ -73,12 +81,23 @@ def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
   if isinstance(manager, SimpleInMemoryDataSliceManager):
     return manager.get_data_slice()
 
+  # There is (and probably will never be) an API to find out what data is
+  # currently loaded in an arbitrary InitialDataManager, which is the reason for
+  # the assertion below:
+  assert isinstance(manager._initial_data_manager, BareRootInitialDataManager)
   schema_bag = manager._schema_helper.get_schema_bag(
       get_loaded_schema_node_names(manager),
   )
-  return manager._root_dataslice.updated(
-      manager._data_bag_manager.get_loaded_bag()
-  ).updated(schema_bag)
+  # We always get the bare root item with BareRootInitialDataManager, which
+  # ignores the schema node names.
+  ignored_schema_node_names = set()
+  return (
+      manager._initial_data_manager.get_data_slice(
+          schema_node_names=ignored_schema_node_names
+      )
+      .updated(manager._data_bag_manager.get_loaded_bag())
+      .updated(schema_bag)
+  )
 
 
 def get_loaded_schema(manager: DataSliceManager) -> kd.types.DataSlice:
@@ -3421,6 +3440,35 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     manager.clear_cache()
 
+    def assert_initial_data_managers_have_equivalent_state(
+        initial_data_manager1: InitialDataManagerInterface,
+        initial_data_manager2: InitialDataManagerInterface,
+    ):
+      self.assertEqual(type(initial_data_manager1), type(initial_data_manager2))
+      for attr_name in initial_data_manager1.__dict__:
+        initial_data_manager1_attr = getattr(initial_data_manager1, attr_name)
+        initial_data_manager2_attr = getattr(initial_data_manager2, attr_name)
+        self.assertEqual(
+            type(initial_data_manager1_attr), type(initial_data_manager2_attr)
+        )
+        if isinstance(initial_data_manager1_attr, kd.types.DataSlice):
+          kd.testing.assert_equivalent(
+              initial_data_manager1_attr,
+              initial_data_manager2_attr,
+              ids_equality=True,
+          )
+          continue
+        if isinstance(
+            initial_data_manager1_attr, schema_helper_lib.SchemaHelper
+        ):
+          kd.testing.assert_equivalent(
+              initial_data_manager1_attr.get_schema(),
+              initial_data_manager2_attr.get_schema(),
+              ids_equality=True,
+          )
+          continue
+        self.assertEqual(initial_data_manager1_attr, initial_data_manager2_attr)
+
     def assert_bag_managers_have_equivalent_state(
         bm1: PersistedIncrementalDataBagManager,
         bm2: PersistedIncrementalDataBagManager,
@@ -3453,6 +3501,11 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         continue
       if isinstance(manager_attr, PersistedIncrementalDataBagManager):
         assert_bag_managers_have_equivalent_state(
+            manager_attr, new_manager_attr
+        )
+        continue
+      if isinstance(manager_attr, InitialDataManagerInterface):
+        assert_initial_data_managers_have_equivalent_state(
             manager_attr, new_manager_attr
         )
         continue
@@ -4367,6 +4420,35 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         branch_manager.get_data_slice_at(parse_dsp('.foo')),
         kd.item(1),
     )
+
+  def test_user_provided_initial_data_manager(self):
+    # If the user wants the to use a particular itemid and schema for the root,
+    # then they can do so by providing an initial data manager.
+
+    for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
+      persistence_dir = self.create_tempdir().full_path
+      manager = PersistedIncrementalDataSliceManager(
+          persistence_dir,
+          initial_data_manager=bare_root_initial_data_manager.BareRootInitialDataManager(
+              root_item
+          ),
+      )
+      kd.testing.assert_equivalent(
+          manager.get_schema(), root_item.get_schema(), ids_equality=True
+      )
+      kd.testing.assert_equivalent(
+          manager.get_data_slice(), root_item, ids_equality=True
+      )
+
+      # New managers initialized from the pre-populated persistence directory
+      # also use the user-provided initial schema and data.
+      new_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+      kd.testing.assert_equivalent(
+          new_manager.get_schema(), root_item.get_schema(), ids_equality=True
+      )
+      kd.testing.assert_equivalent(
+          new_manager.get_data_slice(), root_item, ids_equality=True
+      )
 
 
 if __name__ == '__main__':
