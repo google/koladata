@@ -18,7 +18,7 @@ To profile locally:
 
 blaze run --config=benchmark --copt=-DMAX_PROFILE_STACK_DEPTH_SIZE=1024 \
     //py/koladata/ext/konstructs:benchmarks -- \
-    --benchmark_filter=example_computation_ks/dataset:0 \
+    --benchmark_filter=example_computation_kv/dataset:0 \
     --benchmark_min_time=3s --cpu_profile=/tmp/prof && pprof --flame /tmp/prof
 
 To compare against checked-in state:
@@ -30,7 +30,7 @@ import dataclasses
 import google_benchmark
 from koladata import kd_ext
 
-ks = kd_ext.konstructs
+kv = kd_ext.kv
 
 
 @dataclasses.dataclass
@@ -49,7 +49,7 @@ def _example_computation_py(os: list[Bar]) -> list[list[int]]:
 
 def _example_computation_py_stepwise(os: list[Bar]) -> list[list[int]]:
   # This mirrors the operations we'd likely have to do if we had a Python-only
-  # implementation of Lens.
+  # implementation of View.
   os = list(os)
   zs = [o.z for o in os]
   fs = [list(z) for z in zs]
@@ -58,10 +58,10 @@ def _example_computation_py_stepwise(os: list[Bar]) -> list[list[int]]:
   return res
 
 
-def _example_computation_ks(os: list[Bar]) -> list[list[int]]:
-  l = ks.lens(os)
+def _example_computation_kv(os: list[Bar]) -> list[list[int]]:
+  l = kv.view(os)
   o = l[:].z[:].x
-  return ks.map(lambda x: x * x, o).get()
+  return kv.map(lambda x: x * x, o).get()
 
 
 def _very_small_dataset() -> list[Bar]:
@@ -87,7 +87,7 @@ def example_computation_py(state):
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py(ds) == _example_computation_ks(ds)
+  assert _example_computation_py(ds) == _example_computation_kv(ds)
   while state:
     _ = _example_computation_py(ds)
 
@@ -100,7 +100,7 @@ def example_computation_py_stepwise(state):
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py_stepwise(ds) == _example_computation_ks(ds)
+  assert _example_computation_py_stepwise(ds) == _example_computation_kv(ds)
   while state:
     _ = _example_computation_py_stepwise(ds)
 
@@ -108,14 +108,14 @@ def example_computation_py_stepwise(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['dataset'])
 @google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
-def example_computation_ks(state):
+def example_computation_kv(state):
   """An example simple computation."""
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py(ds) == _example_computation_ks(ds)
+  assert _example_computation_py(ds) == _example_computation_kv(ds)
   while state:
-    _ = _example_computation_ks(ds)
+    _ = _example_computation_kv(ds)
 
 
 if __name__ == '__main__':

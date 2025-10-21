@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Konstucts Lens API."""
+"""Koda View class."""
 
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ from arolla import arolla
 from koladata import kd
 
 
-class Lens:
-  """A Lens is a view on a particular path inside an object.
+class View:
+  """A view on a particular path inside an object.
 
-  See the docstring for lens() method for more details.
+  See the docstring for view() method for more details.
   """
 
   __slots__ = ['_flat_items', '_shape']
@@ -40,7 +40,7 @@ class Lens:
   ):
     if not is_internal_call:
       raise ValueError(
-          'Please do not call the Lens constructor directly, use lens()'
+          'Please do not call the View constructor directly, use view()'
           ' instead.'
       )
     # This class represents a jagged array of objects, in other words a
@@ -55,15 +55,15 @@ class Lens:
     self._flat_items = flat_items
     self._shape = shape
 
-  def get_attr(self, attr_name: str) -> Lens:
-    """Returns a new lens with the given attribute of each item.
+  def get_attr(self, attr_name: str) -> View:
+    """Returns a new view with the given attribute of each item.
 
     If one of the items is None, the corresponding value will be None as well,
     instead of raising an error that getattr() would raise.
 
     Example:
       x = types.SimpleNamespace(_b=6)
-      lens(x).get_attr('_b').get()
+      view(x).get_attr('_b').get()
       # 6
 
     Args:
@@ -72,18 +72,18 @@ class Lens:
     new_flat_items = [
         None if x is None else getattr(x, attr_name) for x in self._flat_items
     ]
-    return Lens(new_flat_items, self._shape, is_internal_call=True)
+    return View(new_flat_items, self._shape, is_internal_call=True)
 
-  def __getattr__(self, attr_name: str) -> Lens:
-    """Returns a new lens with the given attribute of each item.
+  def __getattr__(self, attr_name: str) -> View:
+    """Returns a new view with the given attribute of each item.
 
-    This is a convenience method for `get_attr`. It allows to write `lens.a`
-    instead of `lens.get_attr('a')`. Attributes starting with `_` are not
-    supported to avoid conflicts with private attributes of `Lens` class.
+    This is a convenience method for `get_attr`. It allows to write `view.a`
+    instead of `view.get_attr('a')`. Attributes starting with `_` are not
+    supported to avoid conflicts with private attributes of `View` class.
 
     Example:
       x = types.SimpleNamespace(a=1)
-      lens(x).a.get()
+      view(x).a.get()
       # 1
 
     Args:
@@ -95,11 +95,11 @@ class Lens:
 
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.
-  def explode(self) -> Lens:
+  def explode(self) -> View:
     """Unnests iterable elements by one level, increasing rank by 1.
 
-    If a lens contains iterable elements, `explode` creates a new lens
-    containing elements from those iterables, and increases lens rank by 1.
+    If a view contains iterable elements, `explode` creates a new view
+    containing elements from those iterables, and increases view rank by 1.
     This is useful for "diving" into lists within your data structure.
     Usually used via `[:]`.
 
@@ -111,11 +111,11 @@ class Lens:
 
     Example:
       x = types.SimpleNamespace(a=[1, 2])
-      lens(x).a.explode().map(lambda i: i + 1).get()
+      view(x).a.explode().map(lambda i: i + 1).get()
       # [2, 3]
 
     Returns:
-      A new lens with one more dimension.
+      A new view with one more dimension.
     """
     new_edge = arolla.types.DenseArrayEdge.from_sizes(
         [0 if x is None else len(x) for x in self._flat_items]
@@ -136,16 +136,16 @@ class Lens:
             x for x in self._flat_items if x is not None
         )
     )
-    return Lens(new_flat_items, new_shape, is_internal_call=True)
+    return View(new_flat_items, new_shape, is_internal_call=True)
 
-  def __getitem__(self, key: Any) -> Lens:
-    """Provides `lens[:]` syntax as a shortcut for `lens.explode()`.
+  def __getitem__(self, key: Any) -> View:
+    """Provides `view[:]` syntax as a shortcut for `view.explode()`.
 
     Example:
       x = types.SimpleNamespace(
           a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
       )
-      lens(x).a[:].b.get()
+      view(x).a[:].b.get()
       # [1, 2]
 
     Args:
@@ -153,37 +153,37 @@ class Lens:
         is supported for now.
 
     Returns:
-      The result of `lens.explode()` if `key` is `[:]`, otherwise raises a
+      The result of `view.explode()` if `key` is `[:]`, otherwise raises a
       ValueError.
     """
     if isinstance(key, slice):
       if key.start is None and key.stop is None and key.step is None:
         return self.explode()
     raise ValueError(
-        'Only everything slice [:] is supported in Lens.__getitem__ yet.'
+        'Only everything slice [:] is supported in View.__getitem__ yet.'
     )
 
-  def implode(self, ndim: int = 1) -> Lens:
-    """Reduces lens dimension by grouping items into lists.
+  def implode(self, ndim: int = 1) -> View:
+    """Reduces view dimension by grouping items into lists.
 
     This is an inverse operation to `explode`. It groups items into lists
     according to the shape of topmost `ndim` dimensions. If `ndim` is negative,
     will implode all the way to a scalar.
 
     Example:
-      lens_2d = lens([[1,2],[3]])[:][:]
-      lens_2d.implode()
-      # The same structure as lens([[1,2],[3]])[:], but different list
+      view_2d = view([[1,2],[3]])[:][:]
+      view_2d.implode()
+      # The same structure as view([[1,2],[3]])[:], but different list
       # pointers.
-      lens_2d.implode(ndim=2)
-      lens_2d.implode(ndim=-1)
-      # The same structure as lens([[1,2],[3]]), but different list pointers.
+      view_2d.implode(ndim=2)
+      view_2d.implode(ndim=-1)
+      # The same structure as view([[1,2],[3]]), but different list pointers.
 
     Args:
       ndim: The number of dimensions to implode.
 
     Returns:
-      A new lens with `ndim` less dimensions.
+      A new view with `ndim` less dimensions.
     """
     rank = self._shape.rank()
     if ndim < 0:
@@ -208,9 +208,9 @@ class Lens:
       assert ptr == len(flat_items)
       flat_items = new_flat_items
     new_shape = self._shape[: rank - ndim]
-    return Lens(flat_items, new_shape, is_internal_call=True)
+    return View(flat_items, new_shape, is_internal_call=True)
 
-  # TODO: Once Lens also stores the root and the path from root,
+  # TODO: Once View also stores the root and the path from root,
   # we might want to make this method return a subset of original data
   # structure, instead of just a list of lists, for example:
   #
@@ -226,39 +226,39 @@ class Lens:
   #
   # But it is not clear what should happen to dicts in that world.
   def get(self) -> Any:
-    """Returns an object represented by the lens.
+    """Returns an object represented by the view.
 
-    In case the lens has a non-scalar shape, this method creates new
-    (potentially nested) Python lists to represent the shape of the lens.
+    In case the view has a non-scalar shape, this method creates new
+    (potentially nested) Python lists to represent the shape of the view.
 
     Example:
-      lens('foo').get()
+      view('foo').get()
       # 'foo'
-      lens([[1,2],[3]])[:].get()
+      view([[1,2],[3]])[:].get()
       # [[1,2],[3]], but a different list pointer for the outer list.
-      lens([[1,2],[3]])[:][:].get()
+      view([[1,2],[3]])[:][:].get()
       # [[1,2],[3]], but all different list pointers.
     """
     return self.implode(ndim=-1)._flat_items[0]  # pylint: disable=protected-access
 
-  def flatten(self) -> Lens:
-    """Flattens all dimensions of the lens.
+  def flatten(self) -> View:
+    """Flattens all dimensions of the view.
 
-    The result is always a lens of rank 1 containing all items in order. Note
+    The result is always a view of rank 1 containing all items in order. Note
     that this does not look into the objects stored at the leaf level,
     so even if they are lists themselves, they will not be flattened.
 
     Example:
       x = [[1, 2], [3]]
-      lens(x)[:][:].flatten().get()
+      view(x)[:][:].flatten().get()
       # [1, 2, 3]
-      lens(x)[:].flatten().get()
+      view(x)[:].flatten().get()
       # [[1, 2], [3]]
-      lens(x).flatten().get()
+      view(x).flatten().get()
       # [[[1, 2], [3]]]
 
     Returns:
-      A new lens with rank 1.
+      A new view with rank 1.
     """
     arolla_shape = arolla.abc.invoke_op(
         'koda_internal.to_arolla_jagged_shape', (self._shape,)
@@ -269,18 +269,18 @@ class Lens:
     new_shape = arolla.abc.invoke_op(
         'koda_internal.from_arolla_jagged_shape', (new_arolla_shape,)
     )
-    return Lens(self._flat_items, new_shape, is_internal_call=True)
+    return View(self._flat_items, new_shape, is_internal_call=True)
 
-  def expand_to_shape(self, shape: kd.types.JaggedShape) -> Lens:
-    """Expands the lens to the given shape.
+  def expand_to_shape(self, shape: kd.types.JaggedShape) -> View:
+    """Expands the view to the given shape.
 
-    The shape of this lens must be a prefix of the given shape.
+    The shape of this view must be a prefix of the given shape.
 
     Args:
       shape: The shape to expand to.
 
     Returns:
-      A new lens with the given shape, with the items of this lens repeated
+      A new view with the given shape, with the items of this view repeated
       as necessary.
     """
     arolla_self_shape = arolla.abc.invoke_op(
@@ -293,7 +293,7 @@ class Lens:
         'jagged.is_broadcastable_to', (arolla_self_shape, arolla_shape)
     ):
       raise ValueError(
-          'Lenses do not have a common shape. Shapes: '
+          'Views do not have a common shape. Shapes: '
           f'{self._shape} and {shape}.'
       )
     # TODO: Move some of this logic to JaggedShape.
@@ -312,14 +312,14 @@ class Lens:
             map(itertools.repeat, self._flat_items, sizes)
         )
     )
-    return Lens(new_flat_items, shape, is_internal_call=True)
+    return View(new_flat_items, shape, is_internal_call=True)
 
-  def expand_to(self, other: Lens) -> Lens:
-    """Expands the lens to the shape of other lens."""
+  def expand_to(self, other: View) -> View:
+    """Expands the view to the shape of other view."""
     return self.expand_to_shape(other.get_shape())
 
   def internal_get_flat_items(self) -> list[Any]:
-    """Returns the flat items of the lens.
+    """Returns the flat items of the view.
 
     This returns a pointer to an internal mutable list, so the caller needs
     to make sure it does not modify it, hence the internal_ prefix.
@@ -330,19 +330,19 @@ class Lens:
     return self._flat_items
 
   def get_shape(self) -> kd.types.JaggedShape:
-    """Returns the shape of the lens."""
+    """Returns the shape of the view."""
     return self._shape
 
 
 _SCALAR_SHAPE = kd.shapes.new()
 
 
-def lens(obj: Any) -> Lens:
+def view(obj: Any) -> View:
   """Creates a view on an object that can be used for vectorized access.
 
-  A lens represents traversing a particular path in a tree represented
-  by the object, with the leaves of that path being the items in the lens,
-  and the structure of that path being the shape of the lens.
+  A view represents traversing a particular path in a tree represented
+  by the object, with the leaves of that path being the items in the view,
+  and the structure of that path being the shape of the view.
 
   For example, consider the following set of objects:
 
@@ -357,33 +357,33 @@ def lens(obj: Any) -> Lens:
     --c--> z --item0--> x --d--> 3
              --item1--> y --d--> 4
 
-  Now lens(w) corresponds to just the root of this tree. lens(w).c corresponds
-  to traversing edge labeled with c to z. lens(w).c[:] corresponds to traversing
-  the edges labeled with item0 and item1 to x and y respectively. lens(w).c[:].d
+  Now view(w) corresponds to just the root of this tree. view(w).c corresponds
+  to traversing edge labeled with c to z. view(w).c[:] corresponds to traversing
+  the edges labeled with item0 and item1 to x and y respectively. view(w).c[:].d
   corresponds to traversing the edges labeled with d to 3 and 4.
 
   Example:
-    lens([1, 2])[:].map(lambda x: x + 1).get()
+    view([1, 2])[:].map(lambda x: x + 1).get()
     # [2, 3]
-    lens([[1, 2], [3]])[:].map(lambda x: len(x)).get()
+    view([[1, 2], [3]])[:].map(lambda x: len(x)).get()
     # [2, 1]
 
   Args:
-    obj: An arbitrary object to create a lens for.
+    obj: An arbitrary object to create a view for.
 
   Returns:
-    A scalar lens view on the object.
+    A scalar view on the object.
   """
-  return Lens([obj], _SCALAR_SHAPE, is_internal_call=True)
+  return View([obj], _SCALAR_SHAPE, is_internal_call=True)
 
 
 _AUTO_BOX_TYPES = (int, float, str, bytes, bool, type(None))
 
 
-def box(obj: Any) -> Lens:
-  """Wraps the given object into a lens.
+def box(obj: Any) -> View:
+  """Wraps the given object into a view.
 
-  Unlike lens(), this method only works for a predefined set of types,
+  Unlike view(), this method only works for a predefined set of types,
   so that we can use it for implicit boxing in various APIs.
 
   Currently we auto-box Python primitive types only.
@@ -392,26 +392,26 @@ def box(obj: Any) -> Lens:
     obj: The object to box.
 
   Returns:
-    A lens view on the object, or raises a ValueError if the object cannot be
+    A view on the object, or raises a ValueError if the object cannot be
     automatically boxed.
   """
-  if isinstance(obj, Lens):
+  if isinstance(obj, View):
     return obj
   elif isinstance(obj, _AUTO_BOX_TYPES):
-    return lens(obj)
+    return view(obj)
   else:
     raise ValueError(
-        f'Cannot automatically box {obj} of type {type(obj)} to lens. Use'
-        ' ks.lens() explicitly if you want to construct a lens from it.'
+        f'Cannot automatically box {obj} of type {type(obj)} to a view. Use'
+        ' kv.view() explicitly if you want to construct a view from it.'
     )
 
 
-# This method is in lens.py since we expect to use it from implementations
-# of methods of Lens class.
-def align(first: Any, *others: Any) -> tuple[Lens, ...]:
-  """Aligns the lenses to a common shape.
+# This method is in view.py since we expect to use it from implementations
+# of methods of View class.
+def align(first: Any, *others: Any) -> tuple[View, ...]:
+  """Aligns the views to a common shape.
 
-  We will also apply auto-boxing if some inputs are not lenses but can be
+  We will also apply auto-boxing if some inputs are not views but can be
   automatically boxed into one.
 
   Args:
@@ -419,7 +419,7 @@ def align(first: Any, *others: Any) -> tuple[Lens, ...]:
     *others: The remaining arguments to align.
 
   Returns:
-    A tuple of aligned lenses, of size len(others) + 1.
+    A tuple of aligned views, of size len(others) + 1.
   """
   first = box(first)
   if not others:
@@ -433,10 +433,10 @@ def align(first: Any, *others: Any) -> tuple[Lens, ...]:
   )
 
 
-# This method is in lens.py since we expect to use it from implementations
-# of methods of Lens class.
-def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens:
-  """Applies a function to corresponding items in the args/kwargs lens.
+# This method is in view.py since we expect to use it from implementations
+# of methods of View class.
+def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
+  """Applies a function to corresponding items in the args/kwargs view.
 
   Arguments will be broadcasted to a common shape. There must be at least one
   argument or keyword argument.
@@ -445,20 +445,20 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens:
     x = types.SimpleNamespace(
         a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
     )
-    ks.map(lambda i: i + 1, ks.lens(x).a[:].b).get()
+    kv.map(lambda i: i + 1, kv.view(x).a[:].b).get()
     # [2, 3]
-    ks.map(lambda x: x + y, ks.lens(x).a[:].b, ks.lens(1)).get()
+    kv.map(lambda x: x + y, kv.view(x).a[:].b, kv.view(1)).get()
     # [2, 3]
 
   Args:
     f: The function to apply.
     *args: The positional arguments to pass to the function. They must all be
-      lenses or auto-boxable into lenses.
+      views or auto-boxable into views.
     **kwargs: The keyword arguments to pass to the function. They must all be
-      lenses or auto-boxable into lenses.
+      views or auto-boxable into views.
 
   Returns:
-    A new lens with the function applied to the corresponding items.
+    A new view with the function applied to the corresponding items.
   """
   aligned_args = align(*args, *kwargs.values())
   kwnames = tuple(kwargs)
@@ -469,6 +469,6 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens:
       *(arg.internal_get_flat_items() for arg in aligned_args),
       itertools.repeat(kwnames),
   )
-  return Lens(
+  return View(
       list(new_flat_items), aligned_args[0].get_shape(), is_internal_call=True
   )

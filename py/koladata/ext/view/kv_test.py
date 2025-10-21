@@ -13,29 +13,29 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.ext.konstructs import konstructs
+from koladata.ext.view import kv
 
 
-class KonstructsTest(absltest.TestCase):
+class KodaViewTest(absltest.TestCase):
 
-  def test_map_and_lens(self):
-    # More comprehensive tests are in lens_test.py.
+  def test_map_and_view(self):
+    # More comprehensive tests are in view_test.py.
     self.assertEqual(
-        konstructs.map(lambda x: x + 1, konstructs.lens([1, 2])[:]).get(),
+        kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(),
         [2, 3],
     )
 
   def test_align(self):
-    # More comprehensive tests are in lens_test.py.
-    res1, res2 = konstructs.align(
-        konstructs.lens(1),
-        konstructs.lens([10, 20])[:],
+    # More comprehensive tests are in view_test.py.
+    res1, res2 = kv.align(
+        kv.view(1),
+        kv.view([10, 20])[:],
     )
     self.assertEqual(res1.get(), [1, 1])
     self.assertEqual(res2.get(), [10, 20])
 
   def test_types(self):
-    self.assertIsInstance(konstructs.lens(1), konstructs.types.Lens)
+    self.assertIsInstance(kv.view(1), kv.types.View)
 
 
 if __name__ == '__main__':

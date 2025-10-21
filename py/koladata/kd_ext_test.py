@@ -28,7 +28,7 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('nested_data', modules)
     self.assertIn('persisted_data', modules)
     self.assertIn('contrib', modules)
-    self.assertIn('konstructs', modules)
+    self.assertIn('kv', modules)
 
   def test_functor_factories(self):
     testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
@@ -89,10 +89,10 @@ class KdExtTest(absltest.TestCase):
   def test_function(self):
     self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
 
-  def test_konstructs(self):
-    # More comprehensive tests are in ext/konstructs/.
-    ks = kd_ext.konstructs
-    self.assertEqual(ks.map(lambda x: x + 1, ks.lens([1, 2])[:]).get(), [2, 3])
+  def test_kv(self):
+    # More comprehensive tests are in ext/view/.
+    kv = kd_ext.kv
+    self.assertEqual(kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(), [2, 3])
 
 
 if __name__ == '__main__':

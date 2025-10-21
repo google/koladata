@@ -47,7 +47,7 @@ Category  | Subcategory | Description
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas &lt;-&gt; Koda interoperability.
  | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
- | [konstructs](#kd_ext.konstructs) | Experimental Konstructs API.
+ | [kv](#kd_ext.kv) | Experimental Koda View API.
 [DataSlice](#DataSlice) | | `DataSlice` class
 [DataBag](#DataBag) | | `DataBag` class
 [DataItem](#DataItem) | | `DataItem` class
@@ -11542,19 +11542,19 @@ Aliases:
 
 </section>
 
-### kd_ext.konstructs {#kd_ext.konstructs}
+### kd_ext.kv {#kd_ext.kv}
 
-Experimental Konstructs API.
+Experimental Koda View API.
 
 <section class="zippy closed">
 
 **Operators**
 
-### `kd_ext.konstructs.align(first: Any, *others: Any) -> tuple[Lens, ...]` {#kd_ext.konstructs.align}
+### `kd_ext.kv.align(first: Any, *others: Any) -> tuple[View, ...]` {#kd_ext.kv.align}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the lenses to a common shape.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the views to a common shape.
 
-We will also apply auto-boxing if some inputs are not lenses but can be
+We will also apply auto-boxing if some inputs are not views but can be
 automatically boxed into one.
 
 Args:
@@ -11562,15 +11562,41 @@ Args:
   *others: The remaining arguments to align.
 
 Returns:
-  A tuple of aligned lenses, of size len(others) + 1.</code></pre>
+  A tuple of aligned views, of size len(others) + 1.</code></pre>
 
-### `kd_ext.konstructs.lens(obj: Any) -> Lens` {#kd_ext.konstructs.lens}
+### `kd_ext.kv.map(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View` {#kd_ext.kv.map}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs view.
+
+Arguments will be broadcasted to a common shape. There must be at least one
+argument or keyword argument.
+
+Example:
+  x = types.SimpleNamespace(
+      a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+  )
+  kv.map(lambda i: i + 1, kv.view(x).a[:].b).get()
+  # [2, 3]
+  kv.map(lambda x: x + y, kv.view(x).a[:].b, kv.view(1)).get()
+  # [2, 3]
+
+Args:
+  f: The function to apply.
+  *args: The positional arguments to pass to the function. They must all be
+    views or auto-boxable into views.
+  **kwargs: The keyword arguments to pass to the function. They must all be
+    views or auto-boxable into views.
+
+Returns:
+  A new view with the function applied to the corresponding items.</code></pre>
+
+### `kd_ext.kv.view(obj: Any) -> View` {#kd_ext.kv.view}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a view on an object that can be used for vectorized access.
 
-A lens represents traversing a particular path in a tree represented
-by the object, with the leaves of that path being the items in the lens,
-and the structure of that path being the shape of the lens.
+A view represents traversing a particular path in a tree represented
+by the object, with the leaves of that path being the items in the view,
+and the structure of that path being the shape of the view.
 
 For example, consider the following set of objects:
 
@@ -11585,48 +11611,22 @@ w --b--&gt; 1
   --c--&gt; z --item0--&gt; x --d--&gt; 3
            --item1--&gt; y --d--&gt; 4
 
-Now lens(w) corresponds to just the root of this tree. lens(w).c corresponds
-to traversing edge labeled with c to z. lens(w).c[:] corresponds to traversing
-the edges labeled with item0 and item1 to x and y respectively. lens(w).c[:].d
+Now view(w) corresponds to just the root of this tree. view(w).c corresponds
+to traversing edge labeled with c to z. view(w).c[:] corresponds to traversing
+the edges labeled with item0 and item1 to x and y respectively. view(w).c[:].d
 corresponds to traversing the edges labeled with d to 3 and 4.
 
 Example:
-  lens([1, 2])[:].map(lambda x: x + 1).get()
+  view([1, 2])[:].map(lambda x: x + 1).get()
   # [2, 3]
-  lens([[1, 2], [3]])[:].map(lambda x: len(x)).get()
+  view([[1, 2], [3]])[:].map(lambda x: len(x)).get()
   # [2, 1]
 
 Args:
-  obj: An arbitrary object to create a lens for.
+  obj: An arbitrary object to create a view for.
 
 Returns:
-  A scalar lens view on the object.</code></pre>
-
-### `kd_ext.konstructs.map(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Lens` {#kd_ext.konstructs.map}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs lens.
-
-Arguments will be broadcasted to a common shape. There must be at least one
-argument or keyword argument.
-
-Example:
-  x = types.SimpleNamespace(
-      a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
-  )
-  ks.map(lambda i: i + 1, ks.lens(x).a[:].b).get()
-  # [2, 3]
-  ks.map(lambda x: x + y, ks.lens(x).a[:].b, ks.lens(1)).get()
-  # [2, 3]
-
-Args:
-  f: The function to apply.
-  *args: The positional arguments to pass to the function. They must all be
-    lenses or auto-boxable into lenses.
-  **kwargs: The keyword arguments to pass to the function. They must all be
-    lenses or auto-boxable into lenses.
-
-Returns:
-  A new lens with the function applied to the corresponding items.</code></pre>
+  A scalar view on the object.</code></pre>
 
 </section>
 </section>

@@ -23,46 +23,6 @@ package(default_visibility = [
 
 licenses(["notice"])
 
-py_library(
-    name = "konstructs",
-    srcs = ["konstructs.py"],
-    deps = [
-        ":lens",
-        "//py:python_path",
-    ],
-)
-
-py_test(
-    name = "konstructs_test",
-    srcs = ["konstructs_test.py"],
-    deps = [
-        ":konstructs",
-        "//py:python_path",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_library(
-    name = "lens",
-    srcs = ["lens.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata:kd",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "lens_test",
-    srcs = ["lens_test.py"],
-    deps = [
-        ":lens",
-        "//py:python_path",
-        "//py/koladata:kd",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
 py_test(
     name = "benchmarks",
     srcs = ["benchmarks.py"],
@@ -74,5 +34,45 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd_ext",
         requirement("google-benchmark"),
+    ],
+)
+
+py_test(
+    name = "view_test",
+    srcs = ["view_test.py"],
+    deps = [
+        ":view",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "kv_test",
+    srcs = ["kv_test.py"],
+    deps = [
+        ":kv",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "view",
+    srcs = ["view.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "kv",
+    srcs = ["kv.py"],
+    deps = [
+        ":view",
+        "//py:python_path",
     ],
 )

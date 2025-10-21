@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The public API for Konstructs.
+"""The public API for Koda View.
 
 This API is highly experimental and is subject to change without notice.
 """
 
 import types as _py_types
-from koladata.ext.konstructs import lens as _lens
+from koladata.ext.view import view as _view
 
-align = _lens.align
-lens = _lens.lens
-map = _lens.map_  # pylint: disable=redefined-builtin
+align = _view.align
+view = _view.view
+map = _view.map_  # pylint: disable=redefined-builtin
 
 types = _py_types.SimpleNamespace(
-    Lens=_lens.Lens,
+    View=_view.View,
 )

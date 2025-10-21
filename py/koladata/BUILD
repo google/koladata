@@ -104,9 +104,9 @@ py_library(
         "//py/koladata/ext:py_cloudpickle",
         "//py/koladata/ext:vis",
         "//py/koladata/ext/contrib:functions",
-        "//py/koladata/ext/konstructs",
         "//py/koladata/ext/operators:kde_operators",
         "//py/koladata/ext/persisted_data",
+        "//py/koladata/ext/view:kv",
         "//py/koladata/operators:eager_op_utils",
     ],
 )
