@@ -698,10 +698,12 @@ absl::Status PopulateDescriptor(
       _ << "failed to get attribute names for: " << DataSliceRepr(schema));
   for (const std::string& attr_name : attr_names) {
     if (!IsValidProtoFieldName(attr_name)) {
-      warnings->push_back(
-          absl::StrCat("ignored attribute name ", attr_name,
-                       " encountered in schema ", DataSliceRepr(schema),
-                       " because it is not a valid proto field name"));
+      if (warnings != nullptr) {
+        warnings->push_back(
+            absl::StrCat("ignored attribute name ", attr_name,
+                         " encountered in schema ", DataSliceRepr(schema),
+                         " because it is not a valid proto field name"));
+      }
       continue;
     }
     google::protobuf::FieldDescriptorProto field;

@@ -1188,12 +1188,15 @@ TEST(ProtoDescriptorFromSchemaTest, IgnoredSchemas) {
        test::Schema(schema::kItemId)},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type { name: "RootSchema" }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type { name: "RootSchema" }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(MatchesRegex("unsupported schema type: DataItem\\(ITEMID, "
@@ -1210,12 +1213,15 @@ TEST(ProtoDescriptorFromSchemaTest, IgnoredPrimitiveTypes) {
   auto schema =
       test::EntitySchema({"my_expr"}, {test::Schema(schema::kExpr)}, db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type { name: "RootSchema" }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type { name: "RootSchema" }
+                )pb")));
+  }
   EXPECT_THAT(warnings,
               ElementsAre(MatchesRegex(
                   "ignored type: EXPR and hence not adding proto field "
@@ -1231,12 +1237,15 @@ TEST(ProtoDescriptorFromSchemaTest, ListOfListsIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type { name: "RootSchema" }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type { name: "RootSchema" }
+                )pb")));
+  }
   EXPECT_THAT(warnings,
               ElementsAre(MatchesRegex(
                   "unsupported LIST schema type: "
@@ -1256,12 +1265,15 @@ TEST(ProtoDescriptorFromSchemaTest, ListOfDictsIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type { name: "RootSchema" }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type { name: "RootSchema" }
+                )pb")));
+  }
   EXPECT_THAT(warnings,
               ElementsAre(MatchesRegex(
                   "unsupported LIST schema type: "
@@ -1281,15 +1293,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type {
-                  name: "RootSchema"
-                  nested_type { name: "MyDictEntry" }
-                }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type {
+                    name: "RootSchema"
+                    nested_type { name: "MyDictEntry" }
+                  }
+                )pb")));
+  }
   EXPECT_THAT(warnings,
               ElementsAre(MatchesRegex(
                   "unsupported DICT schema type: "
@@ -1309,15 +1324,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListKeysIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type {
-                  name: "RootSchema"
-                  nested_type { name: "MyDictEntry" }
-                }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type {
+                    name: "RootSchema"
+                    nested_type { name: "MyDictEntry" }
+                  }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(MatchesRegex(
@@ -1337,15 +1355,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListValuesIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type {
-                  name: "RootSchema"
-                  nested_type { name: "MyDictEntry" }
-                }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type {
+                    name: "RootSchema"
+                    nested_type { name: "MyDictEntry" }
+                  }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(MatchesRegex(
@@ -1367,15 +1388,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictKeysIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type {
-                  name: "RootSchema"
-                  nested_type { name: "MyDictEntry" }
-                }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type {
+                    name: "RootSchema"
+                    nested_type { name: "MyDictEntry" }
+                  }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(MatchesRegex(
@@ -1397,15 +1421,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictValuesIgnored) {
            .value()},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type {
-                  name: "RootSchema"
-                  nested_type { name: "MyDictEntry" }
-                }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type {
+                    name: "RootSchema"
+                    nested_type { name: "MyDictEntry" }
+                  }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(MatchesRegex(
@@ -1424,12 +1451,15 @@ TEST(ProtoDescriptorFromSchemaTest,
        test::Schema(schema::kString)},
       db);
   std::vector<std::string> warnings;
-  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
-              IsOkAndHolds(EqualsProto(R"pb(
-                name: ""
-                package: "koladata.ephemeral"
-                message_type { name: "RootSchema" }
-              )pb")));
+  std::vector<std::string>* null_warnings = nullptr;
+  for (auto* warnings_ptr : {&warnings, null_warnings}) {
+    EXPECT_THAT(CallProtoDescriptorFromSchema(schema, warnings_ptr),
+                IsOkAndHolds(EqualsProto(R"pb(
+                  name: ""
+                  package: "koladata.ephemeral"
+                  message_type { name: "RootSchema" }
+                )pb")));
+  }
   EXPECT_THAT(
       warnings,
       ElementsAre(
