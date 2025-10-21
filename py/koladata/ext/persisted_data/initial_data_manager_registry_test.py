@@ -95,6 +95,17 @@ class InitialDataManagerRegistryTest(absltest.TestCase):
             AnotherFakeBareRootInitialDataManager
         )
 
+      initial_data_manager_registry.register_initial_data_manager(
+          AnotherFakeBareRootInitialDataManager, override=True
+      )
+      self.assertLen(registry_dict, 1)
+      self.assertIs(
+          initial_data_manager_registry.get_initial_data_manager_class(
+              'FakeBareRootInitialDataManager'
+          ),
+          AnotherFakeBareRootInitialDataManager,
+      )
+
   def test_lookup_of_non_registered_manager_raises_error(self):
     with self.assertRaisesRegex(
         ValueError,

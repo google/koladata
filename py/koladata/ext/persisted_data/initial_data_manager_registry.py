@@ -26,10 +26,20 @@ def register_initial_data_manager(
     initial_data_manager_class: type[
         initial_data_manager_interface.InitialDataManagerInterface
     ],
+    *,
+    override: bool = False,
 ):
-  """Registers an initial data manager class."""
+  """Registers an initial data manager class.
+
+  Args:
+    initial_data_manager_class: The initial data manager class to register.
+    override: Whether to override an existing registration of
+      initial_data_manager_class.get_id(). By default, it raises an error if
+      another class is already registered with the same id, and it is a noop if
+      the same class is already registered.
+  """
   manager_class_id = initial_data_manager_class.get_id()
-  if manager_class_id not in _INITIAL_DATA_MANAGER_REGISTRY:
+  if override or manager_class_id not in _INITIAL_DATA_MANAGER_REGISTRY:
     _INITIAL_DATA_MANAGER_REGISTRY[manager_class_id] = (
         initial_data_manager_class
     )
