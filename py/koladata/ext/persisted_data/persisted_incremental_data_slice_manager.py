@@ -1080,6 +1080,7 @@ class PersistedIncrementalDataSliceManager(
     get_data_slice(...) will simply load the data again and return the same
     result as before.
     """
+    self._initial_data_manager.clear_cache()
     self._data_bag_manager.clear_cache()
 
   def _get_schema_node_name_to_data_bag_names(self) -> kd.types.DataItem:

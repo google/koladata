@@ -115,6 +115,9 @@ class BareRootInitialDataManager(
       )
     return self._root_item
 
+  def clear_cache(self):
+    pass
+
 
 def _get_root_dataslice_filepath(persistence_dir: str) -> str:
   return os.path.join(persistence_dir, 'root.kd')
