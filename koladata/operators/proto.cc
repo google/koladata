@@ -24,6 +24,7 @@
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
@@ -39,8 +40,12 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/schema_attrs.h"
+#include "koladata/operators/comparison.h"
 #include "koladata/operators/masking.h"
+#include "koladata/operators/shapes.h"
 #include "koladata/proto/from_proto.h"
+#include "koladata/proto/proto_schema_utils.h"
 #include "koladata/proto/to_proto.h"
 #include "koladata/schema_utils.h"
 #include "koladata/uuid_utils.h"
@@ -287,6 +292,72 @@ absl::StatusOr<DataSlice> SchemaFromProtoPath(const DataSlice& proto_path,
                                    std::move(extensions_value)));
   db->UnsafeMakeImmutable();
   return std::move(result);
+}
+
+// kd.proto.get_proto_full_name
+absl::StatusOr<DataSlice> GetProtoFullName(const DataSlice& x) {
+  DataSlice schema;
+  if (x.GetSchemaImpl() == schema::kSchema) {
+    schema = x;
+  } else if (x.GetSchemaImpl() == schema::kObject) {
+    ASSIGN_OR_RETURN(schema, x.GetObjSchema());
+  } else if (x.GetSchemaImpl() == schema::kNone) {
+    // Since NONE casts to all other schemas, it's reasonable for to to behave
+    // like an entity schema with no metadata. Since `x` must already be an
+    // appropriate all-missing slice, we can reuse it as the return value.
+    return x;
+  } else {
+    ASSIGN_OR_RETURN(schema, ExpandToShape(x.GetSchema(), x.GetShape(), 0));
+  }
+
+  ASSIGN_OR_RETURN(auto schema_metadata,
+                   schema.GetAttrOrMissing(schema::kSchemaMetadataAttr));
+  return schema_metadata.GetAttrOrMissing(
+      schema::kProtoSchemaMetadataFullNameAttr);
+}
+
+// kd.proto.get_proto_field_custom_default
+absl::StatusOr<DataSlice> GetProtoFieldCustomDefault(
+    const DataSlice& x, const DataSlice& field_name) {
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("field_name", field_name, schema::kString));
+
+  DataSlice schema;
+  if (x.GetSchemaImpl() == schema::kSchema) {
+    schema = x;
+  } else if (x.GetSchemaImpl() == schema::kObject) {
+    ASSIGN_OR_RETURN(schema, x.GetObjSchema());
+  } else if (x.GetSchemaImpl() == schema::kNone) {
+    // Since NONE casts to all other schemas, it's reasonable for to to behave
+    // like an entity schema with no metadata. Since `x` must already be an
+    // appropriate all-missing slice, we can reuse it as the return value.
+    return x;
+  } else {
+    ASSIGN_OR_RETURN(schema, ExpandToShape(x.GetSchema(), x.GetShape(), 0));
+  }
+
+  ASSIGN_OR_RETURN(auto schema_metadata,
+                   schema.GetAttrOrMissing(schema::kSchemaMetadataAttr));
+  return schema_metadata.GetAttrOrMissing(
+      absl::StrCat(schema::kProtoSchemaMetadataDefaultValueAttrPrefix,
+                   field_name.item().value<arolla::Text>().view()));
+}
+
+// kd.proto.get_proto_attr
+absl::StatusOr<DataSlice> GetProtoAttr(const DataSlice& x,
+                                       const DataSlice& field_name) {
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("field_name", field_name, schema::kString));
+  ASSIGN_OR_RETURN(auto field_custom_default,
+                   GetProtoFieldCustomDefault(x, field_name));
+  ASSIGN_OR_RETURN(auto field_value,
+                   x.GetAttr(field_name.item().value<arolla::Text>().view()));
+  ASSIGN_OR_RETURN(field_value, Coalesce(field_value, field_custom_default));
+  if (field_value.GetSchemaImpl() == schema::kBool) {
+    ASSIGN_OR_RETURN(field_value,
+                     Equal(field_value, DataSlice::CreatePrimitive(true)));
+  }
+  return field_value;
 }
 
 }  // namespace koladata::ops

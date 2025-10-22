@@ -341,3 +341,103 @@ def to_proto_json(
     A DataSlice of STRING with the same shape and sparsity as `x`.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.proto.get_proto_full_name',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def get_proto_full_name(x):  # pylint: disable=unused-argument
+  """Returns the proto full name of a proto message or schema DataSlice `x`.
+
+  The result will have the same shape as `x`, because the schemas in `x` could
+  vary per item.
+
+  When a proto message is converted to a Koda DataSlice using `kd.from_proto` or
+  `kd.schema_from_proto`, its full name is recorded in the schema metadata. This
+  operator allows us to access that metadata more easily.
+
+  The proto full name of non-entity schemas and any entity schemas not
+  converted from protos is None.
+
+  Args:
+    x: DataSlice
+
+  Returns:
+    A STRING DataSlice
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.proto.get_proto_field_custom_default',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.field_name),
+    ],
+)
+def get_proto_field_custom_default(
+    x,  # pylint: disable=unused-argument
+    field_name,  # pylint: disable=unused-argument
+):
+  """Returns the default value on proto message or schema DataSlice `x`.
+
+  The result will have the same shape as `x`, because the schemas in `x` could
+  vary per item.
+
+  When a proto message is converted to a Koda DataSlice using `kd.from_proto` or
+  `kd.schema_from_proto`, any custom default values on message fields are
+  recorded in the schema metadata. This operator allows us to access that
+  metadata more easily.
+
+  If `x` was not converted from a proto message, or no custom field default
+  value was defined for this field, returns None.
+
+  Args:
+    x: DataSlice
+    field_name: DataItem containing STRING
+
+  Returns:
+    A DataSlice
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.get_proto_attr'])
+@optools.as_backend_operator(
+    'kd.proto.get_proto_attr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.field_name),
+    ],
+)
+def get_proto_attr(
+    x,  # pylint: disable=unused-argument
+    field_name,  # pylint: disable=unused-argument
+):
+  """Returns a field value on proto message DataSlice `x`.
+
+  This is nearly the same as `kd.get_attr(x, field_name)`, but has two changes
+  that make working with proto fields easier:
+  1. Missing primitive values are replaced with proto field default values if
+    a custom default value is configured for that field.
+  2. BOOLEAN values are simplified to MASK using `== kd.bool(True)` (after
+    applying default values).
+
+  This generally expects `x` to have a schema derived from a proto (i.e. using
+  `kd.from_proto` or `kd.schema_from_proto`), but it will also work on other
+  Koda objects, treating entities like messages with no custom field defaults.
+  It will not work on primitives.
+
+  Args:
+    x: DataSlice
+    field_name: DataItem containing STRING
+
+  Returns:
+    A DataSlice
+  """
+  raise NotImplementedError('implemented in the backend')

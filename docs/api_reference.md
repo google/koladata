@@ -5013,6 +5013,74 @@ Args:
 Returns:
   A DataSlice representing the proto data.</code></pre>
 
+### `kd.proto.get_proto_attr(x, field_name)` {#kd.proto.get_proto_attr}
+Aliases:
+
+- [kd.get_proto_attr](#kd.get_proto_attr)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a field value on proto message DataSlice `x`.
+
+This is nearly the same as `kd.get_attr(x, field_name)`, but has two changes
+that make working with proto fields easier:
+1. Missing primitive values are replaced with proto field default values if
+  a custom default value is configured for that field.
+2. BOOLEAN values are simplified to MASK using `== kd.bool(True)` (after
+  applying default values).
+
+This generally expects `x` to have a schema derived from a proto (i.e. using
+`kd.from_proto` or `kd.schema_from_proto`), but it will also work on other
+Koda objects, treating entities like messages with no custom field defaults.
+It will not work on primitives.
+
+Args:
+  x: DataSlice
+  field_name: DataItem containing STRING
+
+Returns:
+  A DataSlice</code></pre>
+
+### `kd.proto.get_proto_field_custom_default(x, field_name)` {#kd.proto.get_proto_field_custom_default}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the default value on proto message or schema DataSlice `x`.
+
+The result will have the same shape as `x`, because the schemas in `x` could
+vary per item.
+
+When a proto message is converted to a Koda DataSlice using `kd.from_proto` or
+`kd.schema_from_proto`, any custom default values on message fields are
+recorded in the schema metadata. This operator allows us to access that
+metadata more easily.
+
+If `x` was not converted from a proto message, or no custom field default
+value was defined for this field, returns None.
+
+Args:
+  x: DataSlice
+  field_name: DataItem containing STRING
+
+Returns:
+  A DataSlice</code></pre>
+
+### `kd.proto.get_proto_full_name(x)` {#kd.proto.get_proto_full_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the proto full name of a proto message or schema DataSlice `x`.
+
+The result will have the same shape as `x`, because the schemas in `x` could
+vary per item.
+
+When a proto message is converted to a Koda DataSlice using `kd.from_proto` or
+`kd.schema_from_proto`, its full name is recorded in the schema metadata. This
+operator allows us to access that metadata more easily.
+
+The proto full name of non-entity schemas and any entity schemas not
+converted from protos is None.
+
+Args:
+  x: DataSlice
+
+Returns:
+  A STRING DataSlice</code></pre>
+
 ### `kd.proto.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.proto.schema_from_proto_path}
 Aliases:
 
@@ -9817,6 +9885,10 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 ### `kd.get_primitive_schema(ds)` {#kd.get_primitive_schema}
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
+
+### `kd.get_proto_attr(x, field_name)` {#kd.get_proto_attr}
+
+Alias for [kd.proto.get_proto_attr](#kd.proto.get_proto_attr) operator.
 
 ### `kd.get_repr(x, /, *, depth=25, item_limit=200, item_limit_per_dimension=25, format_html=False, max_str_len=100, max_expr_quote_len=10000, show_attributes=True, show_databag_id=False, show_shape=False, show_schema=False, show_item_id=False)` {#kd.get_repr}
 

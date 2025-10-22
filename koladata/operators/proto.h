@@ -56,6 +56,17 @@ absl::StatusOr<DataSlice> SchemaFromProtoPath(
     const DataSlice& proto_path,
     const DataSlice& extensions = UnspecifiedDataSlice());
 
+// kd.proto.get_proto_full_name
+absl::StatusOr<DataSlice> GetProtoFullName(const DataSlice& x);
+
+// kd.proto.get_proto_field_custom_default
+absl::StatusOr<DataSlice> GetProtoFieldCustomDefault(
+    const DataSlice& x, const DataSlice& field_name);
+
+// kd.proto.get_proto_attr
+absl::StatusOr<DataSlice> GetProtoAttr(const DataSlice& x,
+                                       const DataSlice& field_name);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_PROTO_H_
