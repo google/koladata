@@ -2046,9 +2046,9 @@ DataBagImpl::GetDictKeysOrValues(const DataSliceImpl& dicts,
           }
         }
         if constexpr (kReturnValues) {
-          res_vec = dict.GetValues(fallback_dicts);
+          res_vec = dict.GetSortedByKeyValues(fallback_dicts);
         } else {
-          res_vec = dict.GetKeys(fallback_dicts);
+          res_vec = dict.GetSortedKeys(fallback_dicts);
         }
         split_points.push_back(split_points.back() + res_vec.size());
       });

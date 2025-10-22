@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -366,6 +367,11 @@ absl::StatusOr<ValueProto> EncodeDataBag(arolla::TypedRef value,
   auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
   KodaV1Proto::DataBagProto* db_proto = koda_proto->mutable_data_bag_value();
   db_proto->set_immutable(!db->IsMutable());
+  if (db_proto->immutable()) {
+    absl::uint128 v = db->fingerprint().value;
+    db_proto->set_bag_id_hi(static_cast<uint64_t>(v >> 64));
+    db_proto->set_bag_id_lo(static_cast<uint64_t>(v));
+  }
 
   db_proto->set_fallback_count(db->GetFallbacks().size());
   for (const auto& fb : db->GetFallbacks()) {

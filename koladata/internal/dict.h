@@ -134,9 +134,18 @@ class Dict {
   std::vector<DataItem> GetKeys(
       absl::Span<const Dict* const> fallbacks = {}) const;
 
+  // Similar to `GetKeys`, but sorted using DataItem::Less. Use together with
+  // `GetSortedByKeyValues`.
+  std::vector<DataItem> GetSortedKeys(
+      absl::Span<const Dict* const> fallbacks = {}) const;
+
   // While the order of values is arbitrary, it is the same as GetKeys().
   // All values from fallback dictionaries are merged into the result.
   std::vector<DataItem> GetValues(
+      absl::Span<const Dict* const> fallbacks = {}) const;
+
+  // The values, sorted by the order of keys. Use together with `GetSortedKeys`.
+  std::vector<DataItem> GetSortedByKeyValues(
       absl::Span<const Dict* const> fallbacks = {}) const;
 
   size_t GetSizeNoFallbacks() const {

@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "absl/base/optimization.h"
+#include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -660,40 +661,59 @@ absl::Status DecodeDictProto(const KodaV1Proto::DictProto& dict_proto,
   }
 }
 
-absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
-    const KodaV1Proto::DataBagProto& db_proto,
-    absl::Span<const TypedValue> input_values) {
-  if (db_proto.fallback_count() > 0) {
-    if (db_proto.attrs_size() > 0 || db_proto.lists_size() > 0 ||
-        db_proto.lists_size()) {
-      return absl::InvalidArgumentError(
-          "only empty DataBag can have fallbacks");
+}  // namespace
+
+struct DataBagDecoder {
+  static absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
+      const KodaV1Proto::DataBagProto& db_proto,
+      absl::Span<const TypedValue> input_values) {
+    DataBagPtr db;
+    if (db_proto.fallback_count() > 0) {
+      if (db_proto.attrs_size() > 0 || db_proto.lists_size() > 0 ||
+          db_proto.lists_size()) {
+        return absl::InvalidArgumentError(
+            "only empty DataBag can have fallbacks");
+      }
+      std::vector<DataBagPtr> fallbacks;
+      fallbacks.reserve(db_proto.fallback_count());
+      for (int i = 0; i < db_proto.fallback_count(); ++i) {
+        ASSIGN_OR_RETURN(fallbacks.emplace_back(),
+                        input_values[i].As<DataBagPtr>());
+      }
+      db = DataBag::ImmutableEmptyWithFallbacks(fallbacks);
+    } else {
+      db = DataBag::EmptyMutable();
+      ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());
+      for (const KodaV1Proto::AttrProto& attr_proto : db_proto.attrs()) {
+        RETURN_IF_ERROR(DecodeAttrProto(attr_proto, input_values, impl));
+      }
+      for (const KodaV1Proto::ListProto& list_proto : db_proto.lists()) {
+        RETURN_IF_ERROR(DecodeListProto(list_proto, input_values, impl));
+      }
+      for (const KodaV1Proto::DictProto& dict_proto : db_proto.dicts()) {
+        RETURN_IF_ERROR(DecodeDictProto(dict_proto, input_values, impl));
+      }
+      if (db_proto.immutable()) {
+        db->UnsafeMakeImmutable();
+      }
     }
-    std::vector<DataBagPtr> fallbacks;
-    fallbacks.reserve(db_proto.fallback_count());
-    for (int i = 0; i < db_proto.fallback_count(); ++i) {
-      ASSIGN_OR_RETURN(fallbacks.emplace_back(),
-                       input_values[i].As<DataBagPtr>());
+    // `fingerprint_` is generated with `arolla::RandomFingerprint()` on
+    // DataBag creation to guarantee that different data bags always have
+    // different fingerprints. If the original bag was immutable, then
+    // the deserialized bag is immutable as well and will always contain
+    // the same data, so the stored `fingerprint_` value (stored as `bag_id`)
+    // can be reused.
+    if (db_proto.immutable() && db_proto.has_bag_id_hi() &&
+        db_proto.has_bag_id_lo()) {
+      db->fingerprint_.value =
+          (static_cast<absl::uint128>(db_proto.bag_id_hi()) << 64) |
+          db_proto.bag_id_lo();
     }
-    return TypedValue::FromValue(
-        DataBag::ImmutableEmptyWithFallbacks(fallbacks));
+    return TypedValue::FromValue(std::move(db));
   }
-  DataBagPtr db = DataBag::EmptyMutable();
-  ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());
-  for (const KodaV1Proto::AttrProto& attr_proto : db_proto.attrs()) {
-    RETURN_IF_ERROR(DecodeAttrProto(attr_proto, input_values, impl));
-  }
-  for (const KodaV1Proto::ListProto& list_proto : db_proto.lists()) {
-    RETURN_IF_ERROR(DecodeListProto(list_proto, input_values, impl));
-  }
-  for (const KodaV1Proto::DictProto& dict_proto : db_proto.dicts()) {
-    RETURN_IF_ERROR(DecodeDictProto(dict_proto, input_values, impl));
-  }
-  if (db_proto.immutable()) {
-    db->UnsafeMakeImmutable();
-  }
-  return TypedValue::FromValue(std::move(db));
-}
+};
+
+namespace {
 
 absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
     const ValueProto& value_proto, absl::Span<const TypedValue> input_values,
@@ -726,7 +746,8 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
     case KodaV1Proto::kDataSliceValue:
       return DecodeDataSliceValue(input_values);
     case KodaV1Proto::kDataBagValue:
-      return DecodeDataBagValue(koda_proto.data_bag_value(), input_values);
+      return DataBagDecoder::DecodeDataBagValue(koda_proto.data_bag_value(),
+                                                input_values);
     case KodaV1Proto::kNonDeterministicTokenQtype:
       return TypedValue::FromValue(
           arolla::GetQType<internal::NonDeterministicToken>());

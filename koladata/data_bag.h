@@ -16,7 +16,6 @@
 #define KOLADATA_DATA_BAG_H_
 
 #include <atomic>
-#include <functional>
 #include <memory>
 #include <string>
 #include <typeindex>
@@ -45,6 +44,10 @@ namespace koladata {
 class DataBag;
 
 using DataBagPtr = arolla::RefcountPtr<DataBag>;
+
+namespace s11n {
+struct DataBagDecoder;
+}  // namespace s11n
 
 // This abstraction implements the API of all public DataBag functionality
 // users can access. It is used as the main entry point to business logic
@@ -213,6 +216,8 @@ class DataBag : public arolla::RefcountedBase {
   }
 
  private:
+  friend ::koladata::s11n::DataBagDecoder;
+
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
         is_mutable_(is_mutable),

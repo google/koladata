@@ -152,6 +152,11 @@ message KodaV1Proto {
     repeated DictProto dicts = 3;
     repeated ListProto lists = 4;
     optional bool immutable = 5 [default = false];
+
+    // bag_id is arolla::Fingerprint; it is not interchangeable with ObjectId
+    // despite of the same memory layout; can present only if bag is immutable.
+    optional uint64 bag_id_hi = 6;
+    optional uint64 bag_id_lo = 7;
   }
 
   oneof value {

@@ -18,6 +18,7 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -61,12 +62,27 @@ exports_files(
     ],
 )
 
+koladata_pybind_extension(
+    name = "serving_impl_clib",
+    srcs = ["serving_impl_clib.cc"],
+    deps = [
+        "//koladata/s11n:codec_cc_proto",
+        "@com_google_arolla//arolla/serialization_base:base_cc_proto",
+        "@com_google_arolla//py/arolla/abc:pybind11_utils",
+        "@com_google_riegeli//riegeli/bytes:string_reader",
+        "@com_google_riegeli//riegeli/bytes:string_writer",
+        "@com_google_riegeli//riegeli/records:record_reader",
+        "@com_google_riegeli//riegeli/records:record_writer",
+    ],
+)
+
 py_library(
     name = "serving_impl",
     srcs = ["serving_impl.py"],
     visibility = ["//visibility:public"],
     deps = [
         ":determinism",
+        ":serving_impl_clib",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/type_checking",

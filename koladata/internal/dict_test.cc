@@ -31,6 +31,7 @@ namespace {
 
 using ::testing::Eq;
 using ::testing::Optional;
+using ::testing::ElementsAre;
 using ::testing::UnorderedElementsAre;
 
 MATCHER_P(RefWrap, value, "") { return arg.get() == value; }
@@ -384,6 +385,15 @@ TEST(DictTest, GetKeysOnMissing) {
   EXPECT_THAT(dict.GetValues(), UnorderedElementsAre(DataItem(3)));
   AssertKVsAreAligned(dict);
   EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
+}
+
+TEST(DictTest, GetSortedKeyValues) {
+  Dict dict;
+  dict.Set(int64_t{1}, DataItem(5));
+  dict.Set(int64_t{3}, DataItem(4));
+  dict.Set(int64_t{2}, DataItem(3));
+  EXPECT_THAT(dict.GetSortedKeys(), ElementsAre(1, 2, 3));
+  EXPECT_THAT(dict.GetSortedByKeyValues(), ElementsAre(5, 3, 4));
 }
 
 }  // namespace

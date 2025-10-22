@@ -14,11 +14,15 @@
 //
 #include "koladata/internal/dict.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 
@@ -79,6 +83,13 @@ std::vector<DataItem> Dict::GetKeys(
   return keys;
 };
 
+std::vector<DataItem> Dict::GetSortedKeys(
+    absl::Span<const Dict* const> fallbacks) const {
+  std::vector<DataItem> keys = GetKeys(fallbacks);
+  std::sort(keys.begin(), keys.end(), DataItem::Less{});
+  return keys;
+}
+
 std::vector<DataItem> Dict::GetValues(
     absl::Span<const Dict* const> fallbacks) const {
   auto* dict = FindFirstNonEmpty();
@@ -99,6 +110,23 @@ std::vector<DataItem> Dict::GetValues(
   }
   return values;
 };
+
+std::vector<DataItem> Dict::GetSortedByKeyValues(
+    absl::Span<const Dict* const> fallbacks) const {
+  std::vector<DataItem> keys = GetKeys(fallbacks);
+  std::vector<size_t> indices(keys.size());
+  for (size_t i = 0; i < keys.size(); ++i) indices[i] = i;
+  std::sort(indices.begin(), indices.end(), [&keys](size_t a, size_t b) {
+    return DataItem::Less{}(keys[a], keys[b]);
+  });
+
+  std::vector<DataItem> values = GetValues(fallbacks);
+  DCHECK_EQ(keys.size(), values.size());
+  std::vector<DataItem> sorted_values;
+  sorted_values.reserve(keys.size());
+  for (size_t i : indices) sorted_values.push_back(std::move(values[i]));
+  return sorted_values;
+}
 
 const absl::NoDestructor<DataItem> Dict::empty_item_;
 

@@ -21,6 +21,7 @@ from typing import Any
 from arolla import arolla
 from koladata import kd
 from koladata.serving import determinism
+from koladata.serving import serving_impl_clib
 from koladata.type_checking import type_checking
 
 
@@ -53,7 +54,8 @@ def trace_py_fn(
 def serialize_slices(slices: Mapping[str, kd.types.DataSlice]):
   """Serializes Koda slices into bytes."""
   names = kd.slice(list(slices.keys()))
-  return arolla.s11n.riegeli_dumps_many([names, *slices.values()], [])
+  data = arolla.s11n.riegeli_dumps_many([names, *slices.values()], [])
+  return serving_impl_clib.cleanup_bag_id(data)
 
 
 def serialize_slices_into(
@@ -63,4 +65,4 @@ def serialize_slices_into(
   for path, ds in path_to_slice.items():
     serialized = arolla.s11n.riegeli_dumps_many([ds], [])
     with open(path, 'wb') as f:
-      f.write(serialized)
+      f.write(serving_impl_clib.cleanup_bag_id(serialized))

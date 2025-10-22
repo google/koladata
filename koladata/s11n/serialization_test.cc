@@ -422,6 +422,7 @@ TEST(SerializationTest, ImmutableBag) {
   ASSERT_OK_AND_ASSIGN(DataBagPtr res,
                        decode_result.values[0].As<DataBagPtr>());
   EXPECT_FALSE(res->IsMutable());
+  EXPECT_EQ(db->fingerprint().AsString(), res->fingerprint().AsString());
 }
 
 }  // namespace
