@@ -18,22 +18,23 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 
 
 I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 db = bag()
 OBJ1 = db.obj()
@@ -41,7 +42,7 @@ OBJ2 = db.obj()
 OBJ3 = db.obj(a=math.nan)
 
 
-QTYPE_SIGNATURES = frozenset([
+QTYPE_SIGNATURES = [
     (
         qtypes.DATA_SLICE,
         qtypes.DATA_SLICE,
@@ -50,7 +51,7 @@ QTYPE_SIGNATURES = frozenset([
         qtypes.DATA_SLICE,
     )
     for arg in [qtypes.DATA_SLICE, arolla.UNSPECIFIED]
-])
+]
 
 
 class ListLikeTest(parameterized.TestCase):
@@ -115,12 +116,12 @@ class ListLikeTest(parameterized.TestCase):
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
-    result = expr_eval.eval(kde.lists.implode(x, ndim))
+    result = kd.lists.implode(x, ndim)
     testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
 
     # Check behavior with DataItem ndim.
-    result = expr_eval.eval(kde.lists.implode(x, ds(ndim)))
+    result = kd.lists.implode(x, ds(ndim))
     testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
 
@@ -137,17 +138,13 @@ class ListLikeTest(parameterized.TestCase):
       testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = expr_eval.eval(
-        kde.lists.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
-    )
+    itemid = kd.allocation.new_listid_shaped_as(ds([1, 1]))
+    x = kd.lists.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
-    itemid = expr_eval.eval(kde.allocation.new_listid())
-    x = expr_eval.eval(
-        kde.lists.implode(ds([['a', 'b'], ['c']]), ndim=2, itemid=itemid)
-    )
+    itemid = kd.allocation.new_listid()
+    x = kd.lists.implode(ds([['a', 'b'], ['c']]), ndim=2, itemid=itemid)
     testing.assert_equal(x[:][:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
@@ -159,21 +156,13 @@ class ListLikeTest(parameterized.TestCase):
             " because 'x' only has 1 dimensions"
         ),
     ):
-      expr_eval.eval(kde.lists.implode(ds([1, 2]), 2))
+      kd.lists.implode(ds([1, 2]), 2)
 
   def test_non_determinism(self):
-    items = ds([1, None, 2])
-    res_1 = expr_eval.eval(kde.lists.implode(items))
-    res_2 = expr_eval.eval(kde.lists.implode(items))
-    self.assertNotEqual(
-        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
-    )
-    self.assertNotEqual(res_1.no_bag().fingerprint, res_2.no_bag().fingerprint)
-    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
-
+    items = ds([1, None, 2]).freeze_bag()
     expr = kde.lists.implode(items)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
@@ -184,7 +173,7 @@ class ListLikeTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.lists.implode,
         QTYPE_SIGNATURES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

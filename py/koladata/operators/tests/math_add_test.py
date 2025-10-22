@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.add.
+"""Tests for kde.math.add operator.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.add and M.strings.join operators.
@@ -23,26 +23,25 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE, DATA_SLICE)]
 
 
 class MathAddTest(parameterized.TestCase):
@@ -196,7 +195,7 @@ class MathAddTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.math.add(I.x, I.y), x=x, y=y)
+    result = kd.math.add(x, y)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -211,14 +210,14 @@ Schema for `x`: INT32
 Schema for `y`: STRING"""
         ),
     ):
-      expr_eval.eval(kde.math.add(I.x, I.y), x=x, y=y)
+      kd.math.add(x, y)
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex('shapes are not compatible'),
     ):
-      expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
+      kd.math.add(x, z)
 
     z = ds([['1', '2'], ['3']])
     with self.assertRaisesRegex(
@@ -230,13 +229,13 @@ Schema for `x`: INT32
 Schema for `y`: STRING"""
         ),
     ):
-      expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
+      kd.math.add(x, z)
 
   def test_mixed_types_empty_and_unknown_item(self):
     x = ds(None, schema_constants.OBJECT)
     y = ds(1)
     z = ds('foo')
-    result = expr_eval.eval(kde.math.add(kde.math.add(x, y), z))
+    result = kd.math.add(kd.math.add(x, y), z)
     testing.assert_equal(result, ds(None, schema_constants.OBJECT))
 
   def test_mixed_types_empty_and_unknown_slice(self):
@@ -244,18 +243,12 @@ Schema for `y`: STRING"""
     y = ds([1])
     z = ds(['foo'])
     testing.assert_equal(
-        expr_eval.eval(
-            kde.math.add(kde.math.add(I.x, I.y), I.z), x=x, y=y, z=z
-        ),
-        ds([None], schema_constants.OBJECT),
+        kd.math.add(kd.math.add(x, y), z), ds([None], schema_constants.OBJECT)
     )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.math.add, possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        ),
-        QTYPES,
+    arolla.testing.assert_qtype_signatures(
+        kde.math.add, QTYPES, possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
     )
 
   def test_entity_slice_error(self):
@@ -268,7 +261,7 @@ Schema for `y`: STRING"""
             ' bytes or string values, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.math.add(x, x))
+      kd.math.add(x, x)
 
   def test_repr(self):
     self.assertEqual(repr(kde.math.add(I.x, I.y)), 'I.x + I.y')
@@ -277,8 +270,10 @@ Schema for `y`: STRING"""
     self.assertTrue(view.has_koda_view(kde.math.add(I.x, I.y)))
 
   def test_is_overloadable(self):
-    self.assertIsInstance(arolla.abc.decay_registered_operator(kde.math.add),
-                          arolla.types.GenericOperator)
+    self.assertIsInstance(
+        arolla.abc.decay_registered_operator(kde.math.add),
+        arolla.types.GenericOperator,
+    )
 
 
 if __name__ == '__main__':

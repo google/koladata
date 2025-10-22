@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.agg_sum.
+"""Tests for kde.math.agg_sum operator.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.sum operator.
@@ -23,29 +23,30 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-])
+]
 
 
 class MathAggSumTest(parameterized.TestCase):
@@ -120,19 +121,19 @@ class MathAggSumTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.math.agg_sum(*args))
+    result = kd.math.agg_sum(*args)
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.math.agg_sum(x))
+      kd.math.agg_sum(x)
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde.math.agg_sum(x, ndim=ndim))
+      kd.math.agg_sum(x, ndim=ndim)
 
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
@@ -142,7 +143,7 @@ class MathAggSumTest(parameterized.TestCase):
             'DataSlice with mixed types is not supported'
         ),
     ):
-      expr_eval.eval(kde.math.agg_sum(x))
+      kd.math.agg_sum(x)
 
   def test_entity_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -154,7 +155,7 @@ class MathAggSumTest(parameterized.TestCase):
             ' got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.math.agg_sum(x))
+      kd.math.agg_sum(x)
 
   def test_object_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -166,15 +167,13 @@ class MathAggSumTest(parameterized.TestCase):
             ' got a slice of OBJECT'
         ),
     ):
-      expr_eval.eval(kde.math.agg_sum(x))
+      kd.math.agg_sum(x)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.math.agg_sum,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.math.agg_sum,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

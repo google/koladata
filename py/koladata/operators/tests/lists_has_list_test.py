@@ -14,25 +14,23 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-M = arolla.M
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 present = mask_constants.present
 missing = mask_constants.missing
@@ -67,7 +65,7 @@ class KodaHasListTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.lists.has_list(x)), expected)
+    testing.assert_equal(kd.lists.has_list(x), expected)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.lists.has_list(I.x)))

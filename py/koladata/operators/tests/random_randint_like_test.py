@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -27,12 +27,16 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+missing = ds(arolla.missing())
+
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
-missing = ds(arolla.missing())
 
 
 def generate_qtypes():
@@ -48,13 +52,10 @@ QTYPES = frozenset(generate_qtypes())
 class RandomRandintLikeTest(parameterized.TestCase):
 
   def assert_shape_and_range(self, res, x, low, high):
-    testing.assert_equal(
-        expr_eval.eval(kde.masking.has(res)),
-        expr_eval.eval(kde.masking.has(x)),
-    )
+    testing.assert_equal(kd.masking.has(res), kd.masking.has(x))
     # Test none of the result items is outside the range[low, high).
-    testing.assert_equal(expr_eval.eval(kde.any(res < low)), missing)
-    testing.assert_equal(expr_eval.eval(kde.any(res >= high)), missing)
+    testing.assert_equal(kd.any(res < low), missing)
+    testing.assert_equal(kd.any(res >= high), missing)
 
   @parameterized.parameters(
       (ds(None)),
@@ -71,36 +72,35 @@ class RandomRandintLikeTest(parameterized.TestCase):
     high = 10
 
     with self.subTest('without low and high'):
-      res = expr_eval.eval(kde.random.randint_like(x))
+      res = kd.random.randint_like(x)
       self.assert_shape_and_range(res, x, 0, 2**63 - 1)
 
     with self.subTest('with high'):
       # Set high as positional argument
-      res = expr_eval.eval(kde.random.randint_like(x, high))
+      res = kd.random.randint_like(x, high)
       self.assert_shape_and_range(res, x, 0, high)
 
       # Set high as keyword argument
-      res = expr_eval.eval(kde.random.randint_like(x, high=high))
+      res = kd.random.randint_like(x, high=high)
       self.assert_shape_and_range(res, x, 0, high)
 
     with self.subTest('with low and high'):
-      res = expr_eval.eval(kde.random.randint_like(x, low, high))
+      res = kd.random.randint_like(x, low, high)
       self.assert_shape_and_range(res, x, low, high)
 
   def test_eval_with_seed(self):
     x = ds([[1, None], [3]])
-    res1 = expr_eval.eval(kde.random.randint_like(x, seed=123))
-    res2 = expr_eval.eval(kde.random.randint_like(x, seed=123))
-    res3 = expr_eval.eval(kde.random.randint_like(x, seed=456))
+    res1 = kd.random.randint_like(x, seed=123)
+    res2 = kd.random.randint_like(x, seed=123)
+    res3 = kd.random.randint_like(x, seed=456)
     testing.assert_equal(res1, res2)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_eval_without_seed(self):
     x = ds([[1, None], [3]])
-    expr = kde.random.randint_like(x)
-    res1 = expr_eval.eval(expr)
-    res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.random.randint_like(x))
+    res1 = kd.random.randint_like(x)
+    res2 = kd.random.randint_like(x)
+    res3 = kd.random.randint_like(x)
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
@@ -112,36 +112,36 @@ class RandomRandintLikeTest(parameterized.TestCase):
         re.escape(
             'argument `high` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, 0.5))
+      _ = kd.random.randint_like(x, 0.5)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `low` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, 0.5, 2))
+      _ = kd.random.randint_like(x, 0.5, 2)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `high` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, 5, 10.5))
+      _ = kd.random.randint_like(x, 5, 10.5)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `seed` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, seed=10.5))
+      _ = kd.random.randint_like(x, seed=10.5)
 
   def test_invalid_range(self):
     x = ds([[1, None], [3]])
@@ -149,23 +149,23 @@ class RandomRandintLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('low=10 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, 10, 10))
+      _ = kd.random.randint_like(x, 10, 10)
 
     with self.assertRaisesRegex(
         ValueError, re.escape('low=20 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_like(x, 20, 10))
+      _ = kd.random.randint_like(x, 20, 10)
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.random.randint_like,
-            possible_qtypes=(
-                arolla.UNSPECIFIED, DATA_SLICE, NON_DETERMINISTIC_TOKEN
-            ),
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.random.randint_like,
         QTYPES,
+        possible_qtypes=(
+            arolla.UNSPECIFIED,
+            DATA_SLICE,
+            NON_DETERMINISTIC_TOKEN,
+        ),
     )
 
   def test_view(self):

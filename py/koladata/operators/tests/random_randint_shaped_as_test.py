@@ -17,22 +17,26 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+present = ds(arolla.present())
+
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
-present = ds(arolla.present())
 
 
 def generate_qtypes():
@@ -49,12 +53,12 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
 
   def assert_shape_and_range(self, res, x, low, high):
     testing.assert_equal(
-        expr_eval.eval(kde.shapes.get_shape(res)),
-        expr_eval.eval(kde.shapes.get_shape(x)),
+        kd.shapes.get_shape(res),
+        kd.shapes.get_shape(x),
     )
     # Test all result items are present and within the range[low, high).
-    testing.assert_equal(expr_eval.eval(kde.all(res >= low)), present)
-    testing.assert_equal(expr_eval.eval(kde.all(res < high)), present)
+    testing.assert_equal(kd.all(res >= low), present)
+    testing.assert_equal(kd.all(res < high), present)
 
   @parameterized.parameters(
       (ds(None)),
@@ -71,36 +75,36 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
     high = 10
 
     with self.subTest('without low and high'):
-      res = expr_eval.eval(kde.random.randint_shaped_as(x))
+      res = kd.random.randint_shaped_as(x)
       self.assert_shape_and_range(res, x, 0, 2**63 - 1)
 
     with self.subTest('with high'):
       # Set high as positional argument
-      res = expr_eval.eval(kde.random.randint_shaped_as(x, high))
+      res = kd.random.randint_shaped_as(x, high)
       self.assert_shape_and_range(res, x, 0, high)
 
       # Set high as keyword argument
-      res = expr_eval.eval(kde.random.randint_shaped_as(x, high=high))
+      res = kd.random.randint_shaped_as(x, high=high)
       self.assert_shape_and_range(res, x, 0, high)
 
     with self.subTest('with low and high'):
-      res = expr_eval.eval(kde.random.randint_shaped_as(x, low, high))
+      res = kd.random.randint_shaped_as(x, low, high)
       self.assert_shape_and_range(res, x, low, high)
 
   def test_eval_with_seed(self):
     x = ds([[1, 2], [3]])
-    res1 = expr_eval.eval(kde.random.randint_shaped_as(x, seed=123))
-    res2 = expr_eval.eval(kde.random.randint_shaped_as(x, seed=123))
-    res3 = expr_eval.eval(kde.random.randint_shaped_as(x, seed=456))
+    res1 = kd.random.randint_shaped_as(x, seed=123)
+    res2 = kd.random.randint_shaped_as(x, seed=123)
+    res3 = kd.random.randint_shaped_as(x, seed=456)
     testing.assert_equal(res1, res2)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
   def test_eval_without_seed(self):
     x = ds([[1, 2], [3]])
     expr = kde.random.randint_shaped_as(x)
-    res1 = expr_eval.eval(expr)
-    res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.random.randint_shaped_as(x))
+    res1 = expr.eval()
+    res2 = expr.eval()
+    res3 = kde.random.randint_shaped_as(x).eval()
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
@@ -112,36 +116,36 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
         re.escape(
             'argument `high` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, 0.5))
+      _ = kd.random.randint_shaped_as(x, 0.5)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `low` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, 0.5, 2))
+      _ = kd.random.randint_shaped_as(x, 0.5, 2)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `high` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, 5, 10.5))
+      _ = kd.random.randint_shaped_as(x, 5, 10.5)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'argument `seed` must be an item holding INT64, got an item of '
             'FLOAT32'
-        )
+        ),
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, seed=10.5))
+      _ = kd.random.randint_shaped_as(x, seed=10.5)
 
   def test_invalid_range(self):
     x = ds([[1, 2], [3]])
@@ -149,23 +153,18 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('low=10 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, 10, 10))
+      _ = kd.random.randint_shaped_as(x, 10, 10)
 
     with self.assertRaisesRegex(
         ValueError, re.escape('low=20 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped_as(x, 20, 10))
+      _ = kd.random.randint_shaped_as(x, 20, 10)
 
   def test_qtype_signatures(self):
-    # Limit the allowed qtypes and a random QType to speed up the test.
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.random.randint_like,
-            possible_qtypes=(
-                arolla.UNSPECIFIED, DATA_SLICE, NON_DETERMINISTIC_TOKEN
-            ),
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.random.randint_like,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

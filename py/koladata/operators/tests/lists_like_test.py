@@ -17,35 +17,38 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
-QTYPE_SIGNATURES = list(
+QTYPE_SIGNATURES = [
     (
-        qtypes.DATA_SLICE, *args, qtypes.NON_DETERMINISTIC_TOKEN,
-        qtypes.DATA_SLICE
+        qtypes.DATA_SLICE,
+        *args,
+        qtypes.NON_DETERMINISTIC_TOKEN,
+        qtypes.DATA_SLICE,
     )
     for args in itertools.product(
         [qtypes.DATA_SLICE, arolla.UNSPECIFIED], repeat=4
     )
-)
+]
 
 
 class ListLikeTest(parameterized.TestCase):
@@ -78,29 +81,25 @@ class ListLikeTest(parameterized.TestCase):
       ),
   )
   def test_value(self, args, kwargs):
-    actual = expr_eval.eval(kde.lists.like(*args, **kwargs))
+    actual = kd.lists.like(*args, **kwargs)
     expected = bag().list_like(*args, **kwargs)
     testing.assert_equal(actual[:].no_bag(), expected[:].no_bag())
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = expr_eval.eval(
-        kde.lists.like(
-            ds([1, None]), items=ds([['a', 'b'], ['c']]), itemid=itemid
-        )
+    itemid = kd.allocation.new_listid_shaped_as(ds([1, 1]))
+    x = kd.lists.like(
+        ds([1, None]), items=ds([['a', 'b'], ['c']]), itemid=itemid
     )
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], []]))
-    testing.assert_equal(
-        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
-    )
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kd.has(x))
 
   def test_db_is_immutable(self):
-    lst = expr_eval.eval(kde.lists.like(ds([[1, None], [3]])))
+    lst = kd.lists.like(ds([[1, None], [3]]))
     self.assertFalse(lst.is_mutable())
 
   def test_adopt_values(self):
-    lst = kde.lists.implode(ds([[1, 2], [3]])).eval()
-    lst2 = kde.lists.like(ds([None, 0]), lst).eval()
+    lst = kd.lists.implode(ds([[1, 2], [3]]))
+    lst2 = kd.lists.like(ds([None, 0]), lst)
 
     testing.assert_equal(
         lst2[:][:],
@@ -108,57 +107,45 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = kde.schema.list_schema(
-        kde.uu_schema(a=schema_constants.INT32)
-    ).eval()
-    lst = kde.lists.like(ds([None, 0]), schema=list_schema).eval()
+    list_schema = kd.schema.list_schema(kd.uu_schema(a=schema_constants.INT32))
+    lst = kd.lists.like(ds([None, 0]), schema=list_schema)
 
     testing.assert_equal(
         lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
     )
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid())
+    itemid = kd.allocation.new_listid()
     input_arg = ds(['a'])
 
     with self.subTest('present DataItem and present itemid'):
-      x = expr_eval.eval(kde.lists.like(ds(1), input_arg, itemid=itemid))
+      x = kd.lists.like(ds(1), input_arg, itemid=itemid)
       testing.assert_equal(
-          x,
-          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+          x, itemid.with_schema(x.get_schema()).with_bag(x.get_bag())
       )
 
     with self.subTest('missing DataItem and missing itemid'):
-      x = expr_eval.eval(
-          kde.lists.like(ds(None), input_arg, itemid=(itemid & None))
-      )
+      x = kd.lists.like(ds(None), input_arg, itemid=(itemid & None))
       self.assertTrue(x.is_empty())
 
     with self.subTest('missing DataItem and present itemid'):
-      x = expr_eval.eval(kde.lists.like(ds(None), input_arg, itemid=itemid))
+      x = kd.lists.like(ds(None), input_arg, itemid=itemid)
       self.assertTrue(x.is_empty())
 
     with self.subTest('present DataItem and missing itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 0 present items but 1 are required',
+          ValueError, '`itemid` only has 0 present items but 1 are required'
       ):
-        _ = expr_eval.eval(
-            kde.lists.like(ds(1), input_arg, itemid=(itemid & None))
-        )
+        _ = kd.lists.like(ds(1), input_arg, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_listid())
-    id2 = expr_eval.eval(kde.allocation.new_listid())
-    id3 = expr_eval.eval(kde.allocation.new_listid())
+    id1 = kd.allocation.new_listid()
+    id2 = kd.allocation.new_listid()
+    id3 = kd.allocation.new_listid()
     input_arg = ds([['a'], ['b'], ['c']])
 
     with self.subTest('full DataSlice and full itemid'):
-      x = expr_eval.eval(
-          kde.lists.like(
-              ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id3])
-          )
-      )
+      x = kd.lists.like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x,
           ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
@@ -166,35 +153,19 @@ class ListLikeTest(parameterized.TestCase):
 
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 2 present items but 3 are required',
+          ValueError, '`itemid` only has 2 present items but 3 are required'
       ):
-        _ = expr_eval.eval(
-            kde.lists.like(
-                ds([1, 1, 1]),
-                input_arg,
-                itemid=ds([id1, None, id3]),
-            )
-        )
+        _ = kd.lists.like(ds([1, 1, 1]), input_arg, itemid=ds([id1, None, id3]))
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          ValueError, '`itemid` cannot have duplicate ItemIds'
       ):
-        _ = expr_eval.eval(
-            kde.lists.like(
-                ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id1])
-            )
-        )
+        _ = kd.lists.like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id1]))
 
     with self.subTest('sparse DataSlice and sparse itemid'):
-      x = expr_eval.eval(
-          kde.lists.like(
-              ds([1, None, 1]),
-              input_arg,
-              itemid=ds([id1, None, id3]),
-          )
+      x = kd.lists.like(
+          ds([1, None, 1]), input_arg, itemid=ds([id1, None, id3])
       )
       testing.assert_equal(
           x,
@@ -210,20 +181,12 @@ class ListLikeTest(parameterized.TestCase):
           ValueError,
           '`itemid` and `shape_and_mask_from` must have the same sparsity',
       ):
-        _ = expr_eval.eval(
-            kde.lists.like(
-                ds([1, None, 1]), input_arg, itemid=ds([id1, id2, None])
-            )
+        _ = kd.lists.like(
+            ds([1, None, 1]), input_arg, itemid=ds([id1, id2, None])
         )
 
     with self.subTest('sparse DataSlice and full itemid'):
-      x = expr_eval.eval(
-          kde.lists.like(
-              ds([1, None, 1]),
-              input_arg,
-              itemid=ds([id1, id2, id3]),
-          )
-      )
+      x = kd.lists.like(ds([1, None, 1]), input_arg, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x,
           ds([id1, None, id3])
@@ -233,27 +196,16 @@ class ListLikeTest(parameterized.TestCase):
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          ValueError, '`itemid` cannot have duplicate ItemIds'
       ):
-        _ = expr_eval.eval(
-            kde.lists.like(
-                ds([1, None, 1]),
-                input_arg,
-                itemid=ds([id1, id1, id1]),
-            )
+        _ = kd.lists.like(
+            ds([1, None, 1]), input_arg, itemid=ds([id1, id1, id1])
         )
 
     with self.subTest(
         'sparse DataSlice and full itemid with unused duplicates'
     ):
-      x = expr_eval.eval(
-          kde.lists.like(
-              ds([1, None, 1]),
-              input_arg,
-              itemid=ds([id1, id1, id3]),
-          )
-      )
+      x = kd.lists.like(ds([1, None, 1]), input_arg, itemid=ds([id1, id1, id3]))
       testing.assert_equal(
           x,
           ds([id1, None, id3])
@@ -266,9 +218,7 @@ class ListLikeTest(parameterized.TestCase):
     itemid = fns.implode(ds([[[triple], []], [[]]]))
 
     # Successful.
-    x = expr_eval.eval(
-        kde.lists.like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
-    )
+    x = kd.lists.like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -280,39 +230,34 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'expected DATA_SLICE, got shape_and_mask_from: DATA_BAG',
+        ValueError, 'expected DATA_SLICE, got shape_and_mask_from: DATA_BAG'
     ):
-      expr_eval.eval(kde.lists.like(fns.mutable_bag()))
+      kd.lists.like(fns.mutable_bag())
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
-      expr_eval.eval(
-          kde.lists.like(ds([[1, None], [2]]), items=ds([1, 2, 3]))
-      )
+      kd.lists.like(ds([[1, None], [2]]), items=ds([1, 2, 3]))
 
   def test_schema_arg_error(self):
     mask_and_shape = ds([[1, None], [3]])
-    list_schema = kde.list_schema(item_schema=schema_constants.INT64)
+    list_schema = kd.list_schema(item_schema=schema_constants.INT64)
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):
-      expr_eval.eval(kde.lists.like(
-          mask_and_shape,
-          item_schema=schema_constants.INT64,
-          schema=list_schema,
-      ))
+      kd.lists.like(
+          mask_and_shape, item_schema=schema_constants.INT64, schema=list_schema
+      )
 
   def test_wrong_arg_types(self):
     mask_and_shape = ds([[1, None], [3]])
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.lists.like(mask_and_shape, item_schema=42))
+      kd.lists.like(mask_and_shape, item_schema=42)
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.lists.like(mask_and_shape, schema=42))
+      kd.lists.like(mask_and_shape, schema=42)
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
@@ -322,25 +267,18 @@ class ListLikeTest(parameterized.TestCase):
 Expected schema for list items: BYTES
 Assigned schema for list items: INT32""",
     ):
-      expr_eval.eval(kde.lists.like(
+      kd.lists.like(
           ds([[1, None], [3]]),
           items=ds([[1, 2], [3]]),
           item_schema=schema_constants.BYTES,
-      ))
+      )
 
   def test_non_determinism(self):
-    x = ds([[1, None], [3]])
-    items = ds([[1, 2], [3]])
-    res_1 = expr_eval.eval(kde.lists.like(x, items=items))
-    res_2 = expr_eval.eval(kde.lists.like(x, items=items))
-    self.assertNotEqual(
-        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
-    )
-    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
-
+    x = ds([[1, None], [3]]).freeze_bag()
+    items = ds([[1, 2], [3]]).freeze_bag()
     expr = kde.lists.like(x, items=items)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
@@ -350,7 +288,7 @@ Assigned schema for list items: INT32""",
     arolla.testing.assert_qtype_signatures(
         kde.lists.like,
         QTYPE_SIGNATURES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

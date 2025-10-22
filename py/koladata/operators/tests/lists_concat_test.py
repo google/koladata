@@ -15,21 +15,21 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
-from koladata.expr import input_container
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 
+
+bag = data_bag.DataBag.empty_mutable
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
-bag = data_bag.DataBag.empty_mutable
-I = input_container.InputContainer('I')
 
 
 QTYPES = frozenset([
@@ -64,9 +64,7 @@ class ListsConcatTest(parameterized.TestCase):
 
   def test_mutability(self):
     self.assertFalse(
-        expr_eval.eval(
-            kde.lists.concat(db.list([1, 2]), db.list([3]))
-        ).is_mutable()
+        kd.lists.concat(db.list([1, 2]), db.list([3])).is_mutable()
     )
 
   @parameterized.parameters(
@@ -106,34 +104,25 @@ class ListsConcatTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, lists, expected):
-    testing.assert_equivalent(
-        expr_eval.eval(kde.lists.concat(*lists)), expected
-    )
+    testing.assert_equivalent(kd.lists.concat(*lists), expected)
 
   def test_non_deterministic_token(self):
-    res_1 = expr_eval.eval(kde.lists.concat(db.list([1, 2]), db.list([3])))
-    res_2 = expr_eval.eval(kde.lists.concat(db.list([1, 2]), db.list([3])))
-    self.assertNotEqual(
-        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
-    )
-    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
-
-    expr = kde.lists.concat(db.list([1, 2]), db.list([3]))
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    x = db.list([1, 2]).freeze_bag()
+    y = db.list([3]).freeze_bag()
+    expr = kde.lists.concat(x, y)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.lists.concat,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-            max_arity=3,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.lists.concat,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        max_arity=3,
     )
 
   def test_alias(self):
@@ -149,7 +138,7 @@ class ListsConcatTest(parameterized.TestCase):
  the common schema\(s\) INT32: INT32
  the first conflicting schema #[0-9a-zA-Z]{22}: LIST\[INT32\]""",
     ):
-      expr_eval.eval(kde.lists.concat(a, b))
+      kd.lists.concat(a, b)
 
 
 if __name__ == '__main__':

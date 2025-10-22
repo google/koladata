@@ -17,30 +17,29 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+]
 
 
 class MaskingCoalesceTest(parameterized.TestCase):
@@ -120,7 +119,7 @@ class MaskingCoalesceTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    testing.assert_equal(eval_op('kd.masking.coalesce', x, y), expected)
+    testing.assert_equal(kd.masking.coalesce(x, y), expected)
 
   def test_merging(self):
     mask = ds([arolla.present(), None])
@@ -131,9 +130,9 @@ class MaskingCoalesceTest(parameterized.TestCase):
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
-    x_extracted = expr_eval.eval(kde.extract(x))
+    x_extracted = kd.extract(x)
     testing.assert_equivalent(
-        expr_eval.eval(kde.masking.coalesce(x, y)).a,
+        kd.masking.coalesce(x, y).a,
         ds([1, 'xyz']).with_bag(x_extracted.get_bag()).enriched(y.get_bag()),
     )
 
@@ -143,14 +142,14 @@ class MaskingCoalesceTest(parameterized.TestCase):
     lists = ds([db.list([1, 2]), db.list([3, 4])])
     l1 = (lists & ds([mask_constants.present, None])).with_list_append_update(8)
     l2 = (lists & ds([None, mask_constants.present])).with_list_append_update(9)
-    res = expr_eval.eval(kde.masking.coalesce(l1, l2))
+    res = kd.masking.coalesce(l1, l2)
     testing.assert_equal(res[:].no_bag(), ds([[1, 2, 8], [3, 4, 9]]))
 
   def test_same_bag(self):
     db = data_bag.DataBag.empty_mutable()
     x = db.new()
     y = db.new().with_schema(x.get_schema())
-    testing.assert_equal(eval_op('kd.masking.coalesce', x, y), x)
+    testing.assert_equal(kd.masking.coalesce(x, y), x)
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])
@@ -164,15 +163,13 @@ Schema for `x`: INT32
 Schema for `y`: ENTITY()"""
         ),
     ):
-      expr_eval.eval(kde.masking.coalesce(x, y))
+      kd.masking.coalesce(x, y)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.masking.coalesce,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.masking.coalesce,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_repr(self):

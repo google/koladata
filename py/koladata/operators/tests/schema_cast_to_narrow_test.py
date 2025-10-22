@@ -17,26 +17,25 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer("I")
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container("kd")
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
-DB = data_bag.DataBag.empty_mutable()
-OBJ = DB.obj()
-ENTITY = DB.new()
 
 
 class SchemaCastToNarrowTest(parameterized.TestCase):
@@ -66,7 +65,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, schema, expected):
-    res = expr_eval.eval(kde.schema.cast_to_narrow(x, schema))
+    res = kd.schema.cast_to_narrow(x, schema)
     testing.assert_equal(res, expected)
 
   def test_explicit_entity_schema(self):
@@ -76,7 +75,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     frozen_bag = db.freeze()
     entity = entity.with_bag(frozen_bag)
     obj = obj.with_bag(frozen_bag)
-    res = expr_eval.eval(kde.schema.cast_to_narrow(obj, entity.get_schema()))
+    res = kd.schema.cast_to_narrow(obj, entity.get_schema())
     testing.assert_equal(res, entity)
 
   def test_implicit_entity_schema_error(self):
@@ -85,14 +84,14 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "DataSlice cannot have an implicit schema as its schema"
     ):
-      expr_eval.eval(kde.schema.cast_to_narrow(obj, obj.get_obj_schema()))
+      kd.schema.cast_to_narrow(obj, obj.get_obj_schema())
 
   def test_adoption(self):
     bag1 = data_bag.DataBag.empty_mutable()
     bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().with_bag(bag2)
-    result = expr_eval.eval(kde.schema.cast_to_narrow(entity, schema))
+    result = kd.schema.cast_to_narrow(entity, schema)
     testing.assert_equal(result.x.no_bag(), ds([1]))
     testing.assert_equal(
         result.no_bag(), entity.no_bag().with_schema(schema.no_bag())
@@ -104,36 +103,30 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.schema.cast_to_narrow(ds(1), ds(1)))
+      kd.schema.cast_to_narrow(ds(1), ds(1))
 
   def test_multidim_schema_error(self):
     with self.assertRaisesRegex(
         ValueError, "schema can only be 0-rank schema slice"
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_narrow(
-              ds(1), ds([schema_constants.INT32, schema_constants.INT64])
-          )
+      kd.schema.cast_to_narrow(
+          ds(1), ds([schema_constants.INT32, schema_constants.INT64])
       )
 
   def test_not_implicitly_castable_error(self):
     with self.assertRaisesRegex(
         ValueError, "unsupported narrowing cast to INT32"
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_narrow(
-              ds(1, schema_constants.INT64), schema_constants.INT32
-          )
+      kd.schema.cast_to_narrow(
+          ds(1, schema_constants.INT64), schema_constants.INT32
       )
 
   def test_not_narrowable_error(self):
     with self.assertRaisesRegex(
         ValueError, "unsupported narrowing cast to INT32"
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_narrow(
-              ds(1.0, schema_constants.OBJECT), schema_constants.INT32
-          )
+      kd.schema.cast_to_narrow(
+          ds(1.0, schema_constants.OBJECT), schema_constants.INT32
       )
 
   def test_cast_error(self):
@@ -144,10 +137,8 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
  the common schema(s) INT64
  the first conflicting schema ITEMID"""),
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_narrow(
-              ds(1, schema_constants.INT64), schema_constants.ITEMID
-          )
+      kd.schema.cast_to_narrow(
+          ds(1, schema_constants.INT64), schema_constants.ITEMID
       )
 
   def test_boxing(self):
@@ -161,12 +152,10 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.cast_to_narrow,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((DATA_SLICE, DATA_SLICE, DATA_SLICE),),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.cast_to_narrow,
+        [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

@@ -15,33 +15,33 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import list_item as _  # pylint: disable=unused-import
 from koladata.types import mask_constants
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 present = mask_constants.present
 missing = mask_constants.missing
 
 
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE)]
 
 
 class ListsIsListTest(parameterized.TestCase):
@@ -67,7 +67,7 @@ class ListsIsListTest(parameterized.TestCase):
       (bag().obj(a=1) & None,),
   )
   def test_is_list(self, x):
-    self.assertTrue(expr_eval.eval(kde.lists.is_list(x)))
+    self.assertTrue(kd.lists.is_list(x))
 
   @parameterized.parameters(
       # Primitive
@@ -88,15 +88,13 @@ class ListsIsListTest(parameterized.TestCase):
       (bag().dict({1: 2}) & None,),
   )
   def test_is_not_list(self, x):
-    self.assertFalse(expr_eval.eval(kde.lists.is_list(x)))
+    self.assertFalse(kd.lists.is_list(x))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.lists.is_list,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.lists.is_list,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

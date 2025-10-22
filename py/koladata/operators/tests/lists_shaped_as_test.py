@@ -19,34 +19,37 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
-bag = data_bag.DataBag.empty_mutable
 
-QTYPE_SIGNATURES = list(
+bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+QTYPE_SIGNATURES = [
     (
-        qtypes.DATA_SLICE, *args, qtypes.NON_DETERMINISTIC_TOKEN,
-        qtypes.DATA_SLICE
+        qtypes.DATA_SLICE,
+        *args,
+        qtypes.NON_DETERMINISTIC_TOKEN,
+        qtypes.DATA_SLICE,
     )
     for args in itertools.product(
         [qtypes.DATA_SLICE, arolla.UNSPECIFIED], repeat=4
     )
-)
+]
 
 
 class ListShapedAsTest(parameterized.TestCase):
@@ -56,19 +59,10 @@ class ListShapedAsTest(parameterized.TestCase):
       ([ds([])], dict()),
       ([ds([1])], dict(items=ds([2]))),
       ([ds([[None, 2], [3]])], dict()),
-      (
-          [ds([1, 2])],
-          dict(item_schema=schema_constants.OBJECT),
-      ),
-      (
-          [ds([1, 2])],
-          dict(item_schema=schema_constants.INT64),
-      ),
+      ([ds([1, 2])], dict(item_schema=schema_constants.OBJECT)),
+      ([ds([1, 2])], dict(item_schema=schema_constants.INT64)),
       ([ds([1, 2])], dict(items=ds([[1, 2], [3]]))),
-      (
-          [ds([1, 2])],
-          dict(items=ds([[1, 'foo'], [3]])),
-      ),
+      ([ds([1, 2])], dict(items=ds([[1, 'foo'], [3]]))),
       (
           [ds([1, 2])],
           dict(
@@ -82,37 +76,28 @@ class ListShapedAsTest(parameterized.TestCase):
               schema=bag().list_schema(item_schema=schema_constants.INT64),
           ),
       ),
-      (
-          [ds([1, 2])],
-          dict(itemid=fns.list_shaped_as(ds([1, 2])).get_itemid()),
-      ),
+      ([ds([1, 2])], dict(itemid=fns.list_shaped_as(ds([1, 2])).get_itemid())),
   )
   def test_value(self, args, kwargs):
-    actual = expr_eval.eval(kde.lists.shaped_as(*args, **kwargs))
+    actual = kd.lists.shaped_as(*args, **kwargs)
     expected = fns.list_shaped_as(*args, **kwargs)
     testing.assert_equal(actual[:].no_bag(), expected[:].no_bag())
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
-    x = expr_eval.eval(
-        kde.lists.shaped_as(
-            ds([1, 2]),
-            items=ds([['a', 'b'], ['c']]),
-            itemid=itemid,
-        )
+    itemid = kd.allocation.new_listid_shaped_as(ds([1, 1]))
+    x = kd.lists.shaped_as(
+        ds([1, 2]), items=ds([['a', 'b'], ['c']]), itemid=itemid
     )
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
-    testing.assert_equal(
-        x.no_bag().get_itemid(), itemid & expr_eval.eval(kde.has(x))
-    )
+    testing.assert_equal(x.no_bag().get_itemid(), itemid & kd.has(x))
 
   def test_db_is_immutable(self):
-    lst = expr_eval.eval(kde.lists.shaped_as(ds([1, 2])))
+    lst = kd.lists.shaped_as(ds([1, 2]))
     self.assertFalse(lst.is_mutable())
 
   def test_adopt_values(self):
-    lst = kde.lists.implode(ds([[1, 2], [3]])).eval()
-    lst2 = kde.lists.shaped_as(ds([0, 0]), lst).eval()
+    lst = kd.lists.implode(ds([[1, 2], [3]]))
+    lst2 = kd.lists.shaped_as(ds([0, 0]), lst)
 
     testing.assert_equal(
         lst2[:][:],
@@ -120,10 +105,8 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = kde.schema.list_schema(
-        kde.uu_schema(a=schema_constants.INT32)
-    ).eval()
-    lst = kde.lists.shaped_as(ds([0, 0]), schema=list_schema).eval()
+    list_schema = kd.schema.list_schema(kd.uu_schema(a=schema_constants.INT32))
+    lst = kd.lists.shaped_as(ds([0, 0]), schema=list_schema)
 
     testing.assert_equal(
         lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
@@ -131,39 +114,34 @@ class ListShapedAsTest(parameterized.TestCase):
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'expected DATA_SLICE, got shape_from: DATA_BAG',
+        ValueError, 'expected DATA_SLICE, got shape_from: DATA_BAG'
     ):
-      expr_eval.eval(kde.lists.shaped_as(fns.mutable_bag()))
+      kd.lists.shaped_as(fns.mutable_bag())
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
-      expr_eval.eval(kde.lists.shaped_as(ds([1, 2]), items=ds([1, 2, 3])))
+      kd.lists.shaped_as(ds([1, 2]), items=ds([1, 2, 3]))
 
   def test_schema_arg_error(self):
-    list_schema = kde.list_schema(item_schema=schema_constants.INT64)
+    list_schema = kd.list_schema(item_schema=schema_constants.INT64)
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):
-      expr_eval.eval(
-          kde.lists.shaped_as(
-              ds([[None, 2], [3]]),
-              item_schema=schema_constants.INT64,
-              schema=list_schema,
-          )
+      kd.lists.shaped_as(
+          ds([[None, 2], [3]]),
+          item_schema=schema_constants.INT64,
+          schema=list_schema,
       )
 
   def test_wrong_arg_types(self):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(
-          kde.lists.shaped_as(ds([[None, 2], [3]]), item_schema=42)
-      )
+      kd.lists.shaped_as(ds([[None, 2], [3]]), item_schema=42)
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.lists.shaped_as(ds([[None, 2], [3]]), schema=42))
+      kd.lists.shaped_as(ds([[None, 2], [3]]), schema=42)
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
@@ -173,27 +151,18 @@ class ListShapedAsTest(parameterized.TestCase):
 Expected schema for list items: BYTES
 Assigned schema for list items: INT32""",
     ):
-      expr_eval.eval(
-          kde.lists.shaped_as(
-              ds([1, 2]),
-              items=ds([[1, 2], [3]]),
-              item_schema=schema_constants.BYTES,
-          )
+      kd.lists.shaped_as(
+          ds([1, 2]),
+          items=ds([[1, 2], [3]]),
+          item_schema=schema_constants.BYTES,
       )
 
   def test_non_determinism(self):
-    shape = ds([1, 2])
-    items = ds([[1, 2], [3]])
-    res_1 = expr_eval.eval(kde.lists.shaped_as(shape, items=items))
-    res_2 = expr_eval.eval(kde.lists.shaped_as(shape, items=items))
-    self.assertNotEqual(
-        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
-    )
-    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
-
+    shape = ds([1, 2]).freeze_bag()
+    items = ds([[1, 2], [3]]).freeze_bag()
     expr = kde.lists.shaped_as(shape, items=items)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
@@ -203,7 +172,7 @@ Assigned schema for list items: INT32""",
     arolla.testing.assert_qtype_signatures(
         kde.lists.shaped_as,
         QTYPE_SIGNATURES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

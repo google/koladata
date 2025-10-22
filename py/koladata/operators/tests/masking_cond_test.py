@@ -17,29 +17,30 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+]
 
 
 class LogicalCondTest(parameterized.TestCase):
@@ -82,9 +83,7 @@ class LogicalCondTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, condition, yes, no, expected):
-    testing.assert_equal(
-        expr_eval.eval(kde.masking.cond(condition, yes, no)), expected
-    )
+    testing.assert_equal(kd.masking.cond(condition, yes, no), expected)
 
   @parameterized.parameters(
       (
@@ -163,7 +162,7 @@ class LogicalCondTest(parameterized.TestCase):
       ),
   )
   def test_binary_eval(self, values, mask, expected):
-    result = expr_eval.eval(kde.masking.cond(mask, values))
+    result = kd.masking.cond(mask, values)
     testing.assert_equal(result, expected)
 
   def test_merging(self):
@@ -177,9 +176,9 @@ class LogicalCondTest(parameterized.TestCase):
     )
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
-    x_extracted = expr_eval.eval(kde.extract(x & mask))  # Filter and extract.
+    x_extracted = kd.extract(x & mask)  # Filter and extract.
     testing.assert_equivalent(
-        expr_eval.eval(kde.masking.cond(mask, x, y)).a,
+        kd.masking.cond(mask, x, y).a,
         ds([1, 'xyz']).with_bag(x_extracted.get_bag()).enriched(y.get_bag()),
     )
 
@@ -191,8 +190,7 @@ class LogicalCondTest(parameterized.TestCase):
         I.list.with_list_append_update(8),
         I.list.with_list_append_update(9),
     )
-    res = expr_eval.eval(
-        expr,
+    res = expr.eval(
         mask=ds([mask_constants.present, None]),
         list=ds([db.list([1, 2]), db.list([3, 4])]),
     )
@@ -204,19 +202,19 @@ class LogicalCondTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            r'''kd.masking.coalesce: arguments do not have a common schema.
+            r"""kd.masking.coalesce: arguments do not have a common schema.
 
 Schema for `x`: INT32
-Schema for `y`: ENTITY()'''
+Schema for `y`: ENTITY()"""
         ),
     ):
-      expr_eval.eval(kde.masking.cond(ds(arolla.present()), x, y))
+      kd.masking.cond(ds(arolla.present()), x, y)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
             kde.masking.cond,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )

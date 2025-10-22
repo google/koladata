@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.softmax.
+"""Tests for kde.math.softmax operator.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.softmax operator.
@@ -23,29 +23,30 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+]
 
 VALUE = [[[1.0, 4.0, 2.0], [6.0, 2.0]], [[5.0, 2.0, 1.0]]]
 
@@ -176,20 +177,20 @@ class MathSoftmaxTest(parameterized.TestCase):
   )
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
-    result = expr_eval.eval(kde.math.softmax(*args))
+    result = kd.math.softmax(*args)
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.math.softmax(x))
+      kd.math.softmax(x)
 
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'DataSlice with mixed types is not supported'
     ):
-      expr_eval.eval(kde.math.softmax(x))
+      kd.math.softmax(x)
 
   def test_entity_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -201,7 +202,7 @@ class MathSoftmaxTest(parameterized.TestCase):
             ' got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.math.softmax(x))
+      kd.math.softmax(x)
 
   def test_object_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -211,15 +212,13 @@ class MathSoftmaxTest(parameterized.TestCase):
         'kd.math.softmax: argument `x` must be a slice of numeric values, got'
         ' a slice of OBJECT',
     ):
-      expr_eval.eval(kde.math.softmax(x))
+      kd.math.softmax(x)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.math.softmax,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.math.softmax,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

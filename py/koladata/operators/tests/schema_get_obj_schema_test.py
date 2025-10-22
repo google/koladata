@@ -18,21 +18,23 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-I = input_container.InputContainer("I")
-kde = kde_operators.kde
+I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 db = data_bag.DataBag.empty_mutable()
@@ -54,7 +56,7 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
       ),
       # DataSlice with mixed primitives
       (
-          ds([1, 1.2, None, "a"]),
+          ds([1, 1.2, None, 'a']),
           ds([
               schema_constants.INT32,
               schema_constants.FLOAT32,
@@ -79,93 +81,79 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
           ds([None, None, None, None], schema_constants.SCHEMA),
       ),
       # Object DataItem
-      (obj, obj.get_attr("__schema__")),
+      (obj, obj.get_attr('__schema__')),
       # Object DataSlice
-      (objs, objs.get_attr("__schema__")),
+      (objs, objs.get_attr('__schema__')),
       # DataSlice with mixed primitives, object and DType
       (
           ds([
               1,
               1.2,
               obj,
-              "a",
+              'a',
               schema_constants.INT32.with_schema(schema_constants.OBJECT),
           ]),
           ds([
               schema_constants.INT32,
               schema_constants.FLOAT32,
-              obj.get_attr("__schema__"),
+              obj.get_attr('__schema__'),
               schema_constants.STRING,
               schema_constants.SCHEMA,
           ]),
       ),
   )
   def test_eval(self, x, expected):
-    res = py_expr_eval_py_ext.eval_op(kde.schema.get_obj_schema, x)
+    res = kd.schema.get_obj_schema(x)
     testing.assert_equal(res, expected)
 
   def test_non_object_schema(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "DataSlice must have OBJECT schema",
+        ValueError, 'DataSlice must have OBJECT schema'
     ):
-      kde.schema.get_obj_schema(db.new(x=1)).eval()
+      kd.schema.get_obj_schema(db.new(x=1))
 
     with self.assertRaisesRegex(
-        ValueError,
-        "DataSlice must have OBJECT schema",
+        ValueError, 'DataSlice must have OBJECT schema'
     ):
-      kde.schema.get_obj_schema(db.new(x=ds([1, 2]))).eval()
+      kd.schema.get_obj_schema(db.new(x=ds([1, 2])))
 
   def test_invalid_items(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        "missing __schema__ attribute",
-    ):
-      kde.schema.get_obj_schema(
+    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+      kd.schema.get_obj_schema(
           db.new_schema(x=schema_constants.INT32).with_schema(
               schema_constants.OBJECT
           )
-      ).eval()
+      )
 
-    with self.assertRaisesRegex(
-        ValueError,
-        "missing __schema__ attribute",
-    ):
-      kde.schema.get_obj_schema(
-          db.new(x=1).with_schema(schema_constants.OBJECT)
-      ).eval()
+    with self.assertRaisesRegex(ValueError, 'missing __schema__ attribute'):
+      kd.schema.get_obj_schema(db.new(x=1).with_schema(schema_constants.OBJECT))
 
   def test_no_bag(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "DataSlice with Objects must have a DataBag attached",
+        ValueError, 'DataSlice with Objects must have a DataBag attached'
     ):
-      kde.schema.get_obj_schema(obj.no_bag()).eval()
+      kd.schema.get_obj_schema(obj.no_bag())
 
   def test_boxing(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "expected DATA_SLICE, got x: QTYPE",
+        ValueError, 'expected DATA_SLICE, got x: QTYPE'
     ):
       kde.schema.get_obj_schema(arolla.INT32)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "kd.schema.get_obj_schema: DataSlice must have OBJECT schema for"
-            " get_obj_schema"
+            'kd.schema.get_obj_schema: DataSlice must have OBJECT schema for'
+            ' get_obj_schema'
         ),
     ):
-      kde.schema.get_obj_schema(1).eval()
+      kd.schema.get_obj_schema(1)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.get_obj_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((DATA_SLICE, DATA_SLICE),),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.get_obj_schema,
+        [(DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
@@ -177,5 +165,5 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

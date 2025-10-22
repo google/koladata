@@ -20,21 +20,23 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-I = input_container.InputContainer("I")
+I = input_container.InputContainer('I')
+
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 db = data_bag.DataBag.empty_mutable()
@@ -49,57 +51,50 @@ class SchemaGetKeySchemaTest(parameterized.TestCase):
       (dict_s2, dict_s1),
   )
   def test_eval(self, x, expected):
-    res = py_expr_eval_py_ext.eval_op(kde.schema.get_key_schema, x)
+    res = kd.schema.get_key_schema(x)
     testing.assert_equal(res, expected)
 
   def test_non_dict_schema(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "expected Dict schema for get_key_schema",
+        ValueError, 'expected Dict schema for get_key_schema'
     ):
-      kde.schema.get_key_schema(db.new(x=1)).eval()
+      kd.schema.get_key_schema(db.new(x=1))
 
     with self.assertRaisesRegex(
-        ValueError,
-        "expected Dict schema for get_key_schema",
+        ValueError, 'expected Dict schema for get_key_schema'
     ):
-      kde.schema.get_key_schema(schema_constants.INT32).eval()
+      kd.schema.get_key_schema(schema_constants.INT32)
 
     with self.assertRaisesRegex(
-        ValueError,
-        "expected Dict schema for get_key_schema",
+        ValueError, 'expected Dict schema for get_key_schema'
     ):
-      kde.schema.get_key_schema(db.new_schema(x=schema_constants.INT32)).eval()
+      kd.schema.get_key_schema(db.new_schema(x=schema_constants.INT32))
 
     with self.assertRaisesRegex(
-        ValueError,
-        "expected Dict schema for get_key_schema",
+        ValueError, 'expected Dict schema for get_key_schema'
     ):
-      kde.schema.get_key_schema(ds([1, 2, 3])).eval()
+      kd.schema.get_key_schema(ds([1, 2, 3]))
 
   def test_boxing(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "expected DATA_SLICE, got dict_schema: QTYPE",
+        ValueError, 'expected DATA_SLICE, got dict_schema: QTYPE'
     ):
       kde.schema.get_key_schema(arolla.INT32)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "expected Dict schema for get_key_schema, got DataItem(1, schema:"
-            " INT32)"
+            'expected Dict schema for get_key_schema, got DataItem(1, schema:'
+            ' INT32)'
         ),
     ):
-      kde.schema.get_key_schema(1).eval()
+      kd.schema.get_key_schema(1)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.get_key_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((DATA_SLICE, DATA_SLICE),),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.get_key_schema,
+        [(DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
@@ -111,5 +106,5 @@ class SchemaGetKeySchemaTest(parameterized.TestCase):
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

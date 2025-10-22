@@ -15,30 +15,27 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
-
-
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-])
-
 
 db = data_bag.DataBag.empty_mutable()
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+DATA_SLICE = qtypes.DATA_SLICE
+
+QTYPES = [(DATA_SLICE, DATA_SLICE)]
 
 
 class LogicalHasTest(parameterized.TestCase):
@@ -58,16 +55,14 @@ class LogicalHasTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, values, expected):
-    result = expr_eval.eval(kde.masking.has(values))
+    result = kd.masking.has(values)
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.masking.has,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.masking.has,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_repr(self):

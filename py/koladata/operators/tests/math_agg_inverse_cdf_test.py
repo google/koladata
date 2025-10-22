@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.agg_inverse_cdf.
+"""Tests for kde.math.agg_inverse_cdf operator.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.inverse_cdf operator.
@@ -23,28 +23,29 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+]
 
 
 class MathAggInverseCdfTest(parameterized.TestCase):
@@ -135,7 +136,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, cdf_arg, expected_value):
-    result = expr_eval.eval(kde.math.agg_inverse_cdf(x, cdf_arg))
+    result = kd.math.agg_inverse_cdf(x, cdf_arg)
     self.assertEqual(result.get_shape().rank(), x.get_shape().rank() - 1)
     testing.assert_equal(result, expected_value)
 
@@ -157,30 +158,26 @@ class MathAggInverseCdfTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_ndim(self, x, ndim, expected_value):
-    result = expr_eval.eval(
-        kde.math.agg_inverse_cdf(x, cdf_arg=ds(0.1), ndim=ndim)
-    )
+    result = kd.math.agg_inverse_cdf(x, cdf_arg=ds(0.1), ndim=ndim)
     self.assertEqual(result.get_shape().rank(), x.get_shape().rank() - ndim)
     testing.assert_equal(result, expected_value)
 
   def test_data_item_input_error(self):
     x = ds(1)
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))
+      kd.math.agg_inverse_cdf(x, ds(0.1))
 
   def test_wrong_cdf_arg_error(self):
     x = ds([7, 9, 4, 1, 13, 2], schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]'),
+        ValueError, re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]')
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(float('nan'))))
+      kd.math.agg_inverse_cdf(x, ds(float('nan')))
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]'),
+        ValueError, re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]')
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(float('inf'))))
+      kd.math.agg_inverse_cdf(x, ds(float('inf')))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -189,7 +186,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
             ' DataSlice([0.1, 0.2]'
         ),
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds([0.1, 0.2])))
+      kd.math.agg_inverse_cdf(x, ds([0.1, 0.2]))
 
   def test_no_cdf_arg_error(self):
     x = ds([1, 2, 3])
@@ -197,14 +194,14 @@ class MathAggInverseCdfTest(parameterized.TestCase):
         TypeError,
         re.escape("missing 1 required positional argument: 'cdf_arg'"),
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x))
+      kd.math.agg_inverse_cdf(x)
 
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'DataSlice with mixed types is not supported'
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))
+      kd.math.agg_inverse_cdf(x, ds(0.1))
 
   def test_entity_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -216,7 +213,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
             ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))
+      kd.math.agg_inverse_cdf(x, ds(0.1))
 
   def test_object_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -226,15 +223,13 @@ class MathAggInverseCdfTest(parameterized.TestCase):
         'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
         ' values, got a slice of OBJECT',
     ):
-      expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))
+      kd.math.agg_inverse_cdf(x, ds(0.1))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.math.agg_inverse_cdf,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.math.agg_inverse_cdf,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

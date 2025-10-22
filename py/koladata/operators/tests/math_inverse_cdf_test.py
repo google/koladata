@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.math.inverse_cdf.
+"""Tests for kde.math.inverse_cdf operator.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.inverse_cdf operator.
@@ -23,26 +23,25 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE, DATA_SLICE)]
 
 
 class MathInverseCdfTest(parameterized.TestCase):
@@ -139,7 +138,7 @@ class MathInverseCdfTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, cdf_arg, expected_value):
-    result = expr_eval.eval(kde.math.inverse_cdf(x, cdf_arg))
+    result = kd.math.inverse_cdf(x, cdf_arg)
     testing.assert_equal(result, expected_value)
 
   def test_wrong_cdf_arg_error(self):
@@ -148,13 +147,13 @@ class MathInverseCdfTest(parameterized.TestCase):
         ValueError,
         re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]'),
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds(float('nan'))))
+      kd.math.inverse_cdf(x, ds(float('nan')))
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('invalid cdf_arg, cdf_arg must be in [0, 1]'),
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds(float('inf'))))
+      kd.math.inverse_cdf(x, ds(float('inf')))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -164,7 +163,7 @@ class MathInverseCdfTest(parameterized.TestCase):
             ' shape: JaggedShape(2))'
         ),
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds([0.1, 0.2])))
+      kd.math.inverse_cdf(x, ds([0.1, 0.2]))
 
   def test_no_cdf_arg_error(self):
     x = ds([1, 2, 3])
@@ -172,14 +171,14 @@ class MathInverseCdfTest(parameterized.TestCase):
         TypeError,
         re.escape("missing 1 required positional argument: 'cdf_arg'"),
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x))
+      kd.math.inverse_cdf(x)
 
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'DataSlice with mixed types is not supported'
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))
+      kd.math.inverse_cdf(x, ds(0.1))
 
   def test_entity_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -191,7 +190,7 @@ class MathInverseCdfTest(parameterized.TestCase):
             ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))
+      kd.math.inverse_cdf(x, ds(0.1))
 
   def test_object_slice_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -201,15 +200,13 @@ class MathInverseCdfTest(parameterized.TestCase):
         'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
         ' values, got a slice of OBJECT',
     ):
-      expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))
+      kd.math.inverse_cdf(x, ds(0.1))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.math.inverse_cdf,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.math.inverse_cdf,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

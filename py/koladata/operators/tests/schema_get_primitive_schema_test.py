@@ -15,29 +15,27 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE)]
 
 
 class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
@@ -66,7 +64,7 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
       (ds([None, None, None], schema_constants.INT32), schema_constants.INT32),
   )
   def test_eval(self, x, expected):
-    result = expr_eval.eval(kde.schema.get_primitive_schema(x))
+    result = kd.schema.get_primitive_schema(x)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -77,17 +75,15 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
       (ds([schema_constants.INT32, schema_constants.INT64]),),
   )
   def test_eval_with_missing_schema(self, x):
-    result = expr_eval.eval(kde.schema.get_primitive_schema(x))
+    result = kd.schema.get_primitive_schema(x)
     missing_schema = schema_constants.INT32 & None
     testing.assert_equal(result, missing_schema)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.get_primitive_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.get_primitive_schema,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

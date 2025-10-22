@@ -17,26 +17,25 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
+
+kd = eager_op_utils.operators_container("kd")
 kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 ITEMID = schema_constants.ITEMID
-
 
 db = data_bag.DataBag.empty_mutable()
 LIST0 = db.list()
@@ -92,7 +91,7 @@ class ListsExplodeTest(parameterized.TestCase):
       (db.list([None]), 1, ds([None])),
   )
   def test_eval(self, x, ndim, expected):
-    result = eval_op("kd.lists.explode", x, ndim)
+    result = kd.lists.explode(x, ndim)
     testing.assert_equal(result, expected)
 
     # Check consistency with x[:] operator if applicable.
@@ -107,39 +106,33 @@ class ListsExplodeTest(parameterized.TestCase):
             " number of additional dimension(s) is 1"
         ),
     ):
-      expr_eval.eval(kde.lists.explode(LIST1, 2))
+      kd.lists.explode(LIST1, 2)
 
   def test_expand_fully_itemid_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with ITEMID schema"),
+        ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
     ):
       # DataItem(List[None], schema: ITEMID)
-      expr_eval.eval(kde.lists.explode(db.list([]).with_schema(ITEMID), -1))
+      kd.lists.explode(db.list([]).with_schema(ITEMID), -1)
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with ITEMID schema"),
+        ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
     ):
       # DataItem(List[None], schema: LIST[ITEMID])
-      expr_eval.eval(
-          kde.lists.explode(db.list([di(None).with_schema(ITEMID)]), -1)
-      )
+      kd.lists.explode(db.list([di(None).with_schema(ITEMID)]), -1)
 
   def test_expand_fully_none_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with NONE schema"),
+        ValueError, re.escape("cannot fully explode 'x' with NONE schema")
     ):
       # DataItem(List[None], schema: NONE)
-      expr_eval.eval(kde.lists.explode(db.list([]), -1))
+      kd.lists.explode(db.list([]), -1)
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with NONE schema"),
+        ValueError, re.escape("cannot fully explode 'x' with NONE schema")
     ):
       # DataItem(List[None], schema: LIST[NONE])
-      expr_eval.eval(kde.lists.explode(db.list([di(None)]), -1))
+      kd.lists.explode(db.list([di(None)]), -1)
 
   def test_expand_fully_object_error(self):
     with self.assertRaisesRegex(
@@ -150,7 +143,7 @@ class ListsExplodeTest(parameterized.TestCase):
         ),
     ):
       # DataItem(List[None], schema: LIST[OBJECT])
-      expr_eval.eval(kde.lists.explode(LIST0, -1))
+      kd.lists.explode(LIST0, -1)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -160,22 +153,18 @@ class ListsExplodeTest(parameterized.TestCase):
         ),
     ):
       # DataItem(List[None], schema: LIST[OBJECT])
-      expr_eval.eval(
-          kde.lists.explode(
-              db.list([db.obj() & di(None, schema_constants.MASK)]), -1
-          )
+      kd.lists.explode(
+          db.list([db.obj() & di(None, schema_constants.MASK)]), -1
       )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.lists.explode,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.lists.explode,
         [
             (DATA_SLICE, DATA_SLICE),
             (DATA_SLICE, DATA_SLICE, DATA_SLICE),
         ],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

@@ -14,9 +14,9 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -25,11 +25,12 @@ from koladata.types import data_slice
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-bag = data_bag.DataBag.empty_mutable
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
 
+bag = data_bag.DataBag.empty_mutable
 db = bag()
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 class KodaListAppendUpdateTest(parameterized.TestCase):
@@ -79,7 +80,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, append, expected):
-    update = expr_eval.eval(kde.lists.list_append_update(x, append))
+    update = kd.lists.list_append_update(x, append)
     self.assertFalse(update.is_mutable())
     testing.assert_equivalent(x.updated(update), expected)
 
@@ -89,7 +90,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
     x = db1.list([e1])
     db2 = bag()
     e2 = db2.obj(a=2)
-    update = expr_eval.eval(kde.lists.list_append_update(x, e2))
+    update = kd.lists.list_append_update(x, e2)
     result = x.updated(update)
 
     testing.assert_equal(result[0].a, ds(1).with_bag(result.get_bag()))
@@ -132,17 +133,14 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
       ),
   )
   def test_error(self, x, append, err_regex):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        err_regex,
-    ):
-      _ = expr_eval.eval(kde.lists.list_append_update(x, append))
+    with self.assertRaisesWithLiteralMatch(ValueError, err_regex):
+      _ = kd.lists.list_append_update(x, append)
 
   def test_merge_overwrite(self):
     lst = bag().list([bag().uu(a=1)])
     e = bag().uu(a=1)
     e.set_attr('a', 2)
-    update = expr_eval.eval(kde.lists.list_append_update(lst, e))
+    update = kd.lists.list_append_update(lst, e)
     result = lst.updated(update)
 
     testing.assert_equal(result[0].a, ds(2).with_bag(result.get_bag()))

@@ -17,26 +17,28 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-I = input_container.InputContainer("I")
-kde = kde_operators.kde
+I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 DB = data_bag.DataBag.empty_mutable()
-OBJ = DB.obj()
 ENTITY = DB.new()
+OBJ = DB.obj()
 
 
 class SchemaCastToImplicitTest(parameterized.TestCase):
@@ -46,14 +48,14 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
       (ds([1]), schema_constants.INT64, ds([1], schema_constants.INT64)),
       (ds(None), schema_constants.FLOAT32, ds(None, schema_constants.FLOAT32)),
       (
-          ds([1, "a"], schema_constants.OBJECT),
+          ds([1, 'a'], schema_constants.OBJECT),
           schema_constants.OBJECT,
-          ds([1, "a"], schema_constants.OBJECT),
+          ds([1, 'a'], schema_constants.OBJECT),
       ),
       (ds(1), schema_constants.OBJECT, ds(1, schema_constants.OBJECT)),
   )
   def test_eval(self, x, schema, expected):
-    res = expr_eval.eval(kde.schema.cast_to_implicit(x, schema))
+    res = kd.schema.cast_to_implicit(x, schema)
     testing.assert_equal(res, expected)
 
   def test_adoption(self):
@@ -61,7 +63,7 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
     bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=ds([1]))
     schema = entity.get_schema().with_bag(bag2)
-    result = expr_eval.eval(kde.schema.cast_to_implicit(entity, schema))
+    result = kd.schema.cast_to_implicit(entity, schema)
     testing.assert_equal(result.x.no_bag(), ds([1]))
     testing.assert_equal(
         result.no_bag(), entity.no_bag().with_schema(schema.no_bag())
@@ -71,28 +73,24 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
 
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError, "schema must be SCHEMA, got: INT32"
+        ValueError, 'schema must be SCHEMA, got: INT32'
     ):
-      expr_eval.eval(kde.schema.cast_to_implicit(ds(1), ds(1)))
+      kd.schema.cast_to_implicit(ds(1), ds(1))
 
   def test_multidim_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError, "schema can only be 0-rank schema slice"
+        ValueError, 'schema can only be 0-rank schema slice'
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_implicit(
-              ds(1), ds([schema_constants.INT32, schema_constants.INT64])
-          )
+      kd.schema.cast_to_implicit(
+          ds(1), ds([schema_constants.INT32, schema_constants.INT64])
       )
 
   def test_not_implicitly_castable_error(self):
     with self.assertRaisesRegex(
-        ValueError, "unsupported implicit cast from INT64 to INT32"
+        ValueError, 'unsupported implicit cast from INT64 to INT32'
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_implicit(
-              ds(1, schema_constants.INT64), schema_constants.INT32
-          )
+      kd.schema.cast_to_implicit(
+          ds(1, schema_constants.INT64), schema_constants.INT32
       )
 
   def test_cast_error(self):
@@ -103,10 +101,8 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
  the common schema(s) INT64
  the first conflicting schema ITEMID"""),
     ):
-      expr_eval.eval(
-          kde.schema.cast_to_implicit(
-              ds(1, schema_constants.INT64), schema_constants.ITEMID
-          )
+      kd.schema.cast_to_implicit(
+          ds(1, schema_constants.INT64), schema_constants.ITEMID
       )
 
   def test_boxing(self):
@@ -120,19 +116,15 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
     )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.cast_to_implicit,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        (
-            (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.cast_to_implicit,
+        [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.cast_to_implicit(I.x, I.y)))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()
