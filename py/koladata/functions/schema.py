@@ -109,4 +109,4 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
       return schema_constants.BOOLEAN
     raise TypeError(f'unsupported type in kd.schema_from_py: {tpe}.')
 
-  return schema_from_py_impl(tpe, data_bag.DataBag.empty_mutable())
+  return schema_from_py_impl(tpe, data_bag.DataBag.empty_mutable()).freeze_bag()

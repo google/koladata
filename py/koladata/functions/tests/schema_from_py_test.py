@@ -14,14 +14,16 @@
 
 import dataclasses
 import enum
-from typing import Mapping, Optional, Sequence, Annotated
+from typing import Annotated, Mapping, Optional, Sequence
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import schema_constants
 
 
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
@@ -44,15 +46,14 @@ class SchemaFromPyTest(absltest.TestCase):
 
   def test_schema_from_py_collections(self):
     self.assertEqual(
-        fns.schema_from_py(list[int]),
-        kde.list_schema(schema_constants.INT64).eval()
+        fns.schema_from_py(list[int]), kd.list_schema(schema_constants.INT64)
     )
     self.assertEqual(
         fns.schema_from_py(list[int]).get_item_schema(), schema_constants.INT64
     )
     self.assertEqual(
         fns.schema_from_py(dict[int, str]),
-        kde.dict_schema(schema_constants.INT64, schema_constants.STRING).eval(),
+        kd.dict_schema(schema_constants.INT64, schema_constants.STRING),
     )
     self.assertEqual(
         fns.schema_from_py(dict[int, str]).get_key_schema(),
@@ -64,21 +65,26 @@ class SchemaFromPyTest(absltest.TestCase):
     )
     self.assertEqual(
         fns.schema_from_py(list[list[float]]),
-        kde.list_schema(kde.list_schema(schema_constants.FLOAT32)).eval(),
+        kd.list_schema(kd.list_schema(schema_constants.FLOAT32)),
     )
+    self.assertFalse(fns.schema_from_py(list[list[float]]).is_mutable())
 
   def test_schema_from_py_enums(self):
     class MyIntEnum(enum.IntEnum):
       A = 1
       B = 2
 
-    self.assertEqual(fns.schema_from_py(MyIntEnum), schema_constants.INT64)
+    int_enum_schema = fns.schema_from_py(MyIntEnum)
+    self.assertEqual(int_enum_schema, schema_constants.INT64)
+    self.assertFalse(int_enum_schema.is_mutable())
 
     class MyStrEnum(enum.StrEnum):
       A = 'A'
       B = 'B'
 
-    self.assertEqual(fns.schema_from_py(MyStrEnum), schema_constants.STRING)
+    str_enum_schema = fns.schema_from_py(MyStrEnum)
+    self.assertEqual(str_enum_schema, schema_constants.STRING)
+    self.assertFalse(str_enum_schema.is_mutable())
 
   def test_schema_from_py_dataclasses(self):
 
@@ -87,9 +93,11 @@ class SchemaFromPyTest(absltest.TestCase):
       x: int
       y: str
 
-    self.assertEqual(fns.schema_from_py(MyClass).x, schema_constants.INT64)
-    self.assertEqual(fns.schema_from_py(MyClass).y, schema_constants.STRING)
-    self.assertEqual(fns.schema_from_py(MyClass), fns.schema_from_py(MyClass))
+    my_class_schema = fns.schema_from_py(MyClass)
+    self.assertEqual(my_class_schema.x, schema_constants.INT64)
+    self.assertEqual(my_class_schema.y, schema_constants.STRING)
+    self.assertEqual(my_class_schema, fns.schema_from_py(MyClass))
+    self.assertFalse(my_class_schema.is_mutable())
 
   def test_schema_from_py_a_bit_of_everything(self):
 
@@ -106,30 +114,29 @@ class SchemaFromPyTest(absltest.TestCase):
 
     bar_schema = fns.schema_from_py(Bar)
     int_str_pair_schema = fns.schema_from_py(IntStrPair)
-    self.assertEqual(
-        bar_schema.x, kde.list_schema(schema_constants.INT64).eval()
-    )
+    self.assertEqual(bar_schema.x, kd.list_schema(schema_constants.INT64))
     self.assertEqual(
         bar_schema.y,
-        kde.dict_schema(schema_constants.STRING, schema_constants.INT64).eval(),
+        kd.dict_schema(schema_constants.STRING, schema_constants.INT64),
     )
-    self.assertEqual(bar_schema.z, kde.list_schema(int_str_pair_schema).eval())
+    self.assertEqual(bar_schema.z, kd.list_schema(int_str_pair_schema))
     self.assertEqual(bar_schema.t, schema_constants.STRING)
     self.assertEqual(bar_schema.s, schema_constants.STRING)
     self.assertEqual(
         bar_schema.u,
-        kde.dict_schema(schema_constants.STRING, int_str_pair_schema).eval(),
+        kd.dict_schema(schema_constants.STRING, int_str_pair_schema),
     )
     self.assertEqual(bar_schema.v, schema_constants.INT64)
-    self.assertEqual(
-        bar_schema.w, kde.list_schema(schema_constants.INT64).eval()
-    )
+    self.assertEqual(bar_schema.w, kd.list_schema(schema_constants.INT64))
     self.assertCountEqual(
         fns.dir(bar_schema), ['s', 'u', 'v', 'w', 't', 'x', 'y', 'z']
     )
     self.assertEqual(int_str_pair_schema.x, schema_constants.INT64)
     self.assertEqual(int_str_pair_schema.y, schema_constants.STRING)
     self.assertCountEqual(fns.dir(int_str_pair_schema), ['x', 'y'])
+
+    self.assertFalse(bar_schema.is_mutable())
+    self.assertFalse(int_str_pair_schema.is_mutable())
 
   def test_schema_from_py_uses_qualname(self):
 

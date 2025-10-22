@@ -272,6 +272,7 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
