@@ -15,12 +15,8 @@
 """Koda View class."""
 
 from __future__ import annotations
-
-import itertools
 from typing import Any, Callable
-
 from arolla import arolla
-from koladata import kd
 
 
 class View:
@@ -29,12 +25,12 @@ class View:
   See the docstring for view() method for more details.
   """
 
-  __slots__ = ['_flat_items', '_shape']
+  __slots__ = ['_obj', '_depth']
 
   def __init__(
       self,
-      flat_items: list[Any],
-      shape: kd.types.JaggedShape,
+      obj: Any,
+      depth: int,
       *,
       is_internal_call: bool = False,
   ):
@@ -46,14 +42,16 @@ class View:
     # This class represents a jagged array of objects, in other words a
     # list-of-lists-...-of-lists with a constant level of nesting, for example
     # [[A, B], [], [C]].
-    # It is internally represented as a flat list of items at the lowest level
-    # of nesting, in this example [A, B, C], plus a shape that describes the
-    # nesting, in this example kd.shapes.new(3, [2, 0, 1]).
+    #
+    # It is internally represented as an object with a depth that describes how
+    # deep the nesting goes. The assumption is that for depth > 0, `obj` is a
+    # list.
+    #
     # Note that some of the objects A, B, C may be lists themselves, we do not
     # look into them and just treat them as arbitrary Python objects unless
     # the user explicitly calls explode().
-    self._flat_items = flat_items
-    self._shape = shape
+    self._obj = obj
+    self._depth = depth
 
   def get_attr(self, attr_name: str) -> View:
     """Returns a new view with the given attribute of each item.
@@ -69,10 +67,8 @@ class View:
     Args:
       attr_name: The name of the attribute to get.
     """
-    new_flat_items = [
-        None if x is None else getattr(x, attr_name) for x in self._flat_items
-    ]
-    return View(new_flat_items, self._shape, is_internal_call=True)
+    attrgetter = lambda x: None if x is None else getattr(x, attr_name)
+    return map_(attrgetter, self)
 
   def __getattr__(self, attr_name: str) -> View:
     """Returns a new view with the given attribute of each item.
@@ -117,26 +113,11 @@ class View:
     Returns:
       A new view with one more dimension.
     """
-    new_edge = arolla.types.DenseArrayEdge.from_sizes(
-        [0 if x is None else len(x) for x in self._flat_items]
-    )
-    arolla_shape = arolla.abc.invoke_op(
-        'koda_internal.to_arolla_jagged_shape', (self._shape,)
-    )
-    new_arolla_shape = arolla.abc.invoke_op(
-        'jagged.add_dims', (arolla_shape, new_edge)
-    )
-    new_shape = arolla.abc.invoke_op(
-        'koda_internal.from_arolla_jagged_shape', (new_arolla_shape,)
-    )
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
-    new_flat_items = list(
-        itertools.chain.from_iterable(
-            x for x in self._flat_items if x is not None
-        )
-    )
-    return View(new_flat_items, new_shape, is_internal_call=True)
+    explode_fn = lambda x: [] if x is None else list(x)
+    res = map_(explode_fn, self)
+    return View(res.get(), self._depth + 1, is_internal_call=True)
 
   def __getitem__(self, key: Any) -> View:
     """Provides `view[:]` syntax as a shortcut for `view.explode()`.
@@ -163,6 +144,8 @@ class View:
         'Only everything slice [:] is supported in View.__getitem__ yet.'
     )
 
+  # TODO: Consider copying the lists here, otherwise we may leak
+  # the internal structures to the user.
   def implode(self, ndim: int = 1) -> View:
     """Reduces view dimension by grouping items into lists.
 
@@ -185,30 +168,17 @@ class View:
     Returns:
       A new view with `ndim` less dimensions.
     """
-    rank = self._shape.rank()
+    depth = self._depth
     if ndim < 0:
-      ndim = rank
-    elif ndim > rank:
+      depth = 0
+    elif ndim <= depth:
+      depth -= ndim
+    else:
       raise ValueError(
           f'Cannot implode by {ndim} dimensions, the shape has only'
-          f' {rank} dimensions.'
+          f' {depth} dimensions.'
       )
-    if ndim == 0:
-      return self
-    flat_items = self._flat_items
-    for i in range(rank - 1, rank - ndim - 1, -1):
-      edge = self._shape[i]
-      dim_sizes = arolla.abc.invoke_op('edge.sizes', (edge,))
-      new_flat_items = []
-      ptr = 0
-      for size in dim_sizes.py_value():
-        new_ptr = ptr + size
-        new_flat_items.append(flat_items[ptr:new_ptr])
-        ptr = new_ptr
-      assert ptr == len(flat_items)
-      flat_items = new_flat_items
-    new_shape = self._shape[: rank - ndim]
-    return View(flat_items, new_shape, is_internal_call=True)
+    return View(self._obj, depth, is_internal_call=True)
 
   # TODO: Once View also stores the root and the path from root,
   # we might want to make this method return a subset of original data
@@ -228,9 +198,6 @@ class View:
   def get(self) -> Any:
     """Returns an object represented by the view.
 
-    In case the view has a non-scalar shape, this method creates new
-    (potentially nested) Python lists to represent the shape of the view.
-
     Example:
       view('foo').get()
       # 'foo'
@@ -239,7 +206,7 @@ class View:
       view([[1,2],[3]])[:][:].get()
       # [[1,2],[3]], but all different list pointers.
     """
-    return self.implode(ndim=-1)._flat_items[0]  # pylint: disable=protected-access
+    return self._obj
 
   def flatten(self) -> View:
     """Flattens all dimensions of the view.
@@ -260,81 +227,39 @@ class View:
     Returns:
       A new view with rank 1.
     """
-    arolla_shape = arolla.abc.invoke_op(
-        'koda_internal.to_arolla_jagged_shape', (self._shape,)
-    )
-    new_arolla_shape = arolla.abc.invoke_op(
-        'jagged.flatten', (arolla_shape, arolla.int64(0), arolla.unspecified())
-    )
-    new_shape = arolla.abc.invoke_op(
-        'koda_internal.from_arolla_jagged_shape', (new_arolla_shape,)
-    )
-    return View(self._flat_items, new_shape, is_internal_call=True)
+    res = []
+    map_(res.append, self)
+    return View(res, 1, is_internal_call=True)
 
-  def expand_to_shape(self, shape: kd.types.JaggedShape) -> View:
-    """Expands the view to the given shape.
-
-    The shape of this view must be a prefix of the given shape.
-
-    Args:
-      shape: The shape to expand to.
-
-    Returns:
-      A new view with the given shape, with the items of this view repeated
-      as necessary.
-    """
-    arolla_self_shape = arolla.abc.invoke_op(
-        'koda_internal.to_arolla_jagged_shape', (self._shape,)
-    )
-    arolla_shape = arolla.abc.invoke_op(
-        'koda_internal.to_arolla_jagged_shape', (shape,)
-    )
-    if not arolla.abc.invoke_op(
-        'jagged.is_broadcastable_to', (arolla_self_shape, arolla_shape)
-    ):
-      raise ValueError(
-          'Views do not have a common shape. Shapes: '
-          f'{self._shape} and {shape}.'
-      )
-    # TODO: Move some of this logic to JaggedShape.
-    our_rank = self._shape.rank()
-    new_rank = shape.rank()
-    if our_rank == new_rank:
-      return self
-    flat_shape = arolla.abc.invoke_op(
-        'jagged.flatten',
-        (arolla_shape, arolla.int64(our_rank), arolla.unspecified()),
-    )
-    expand_edge = flat_shape[our_rank]
-    sizes = arolla.abc.invoke_op('edge.sizes', (expand_edge,)).py_value()
-    new_flat_items = list(
-        itertools.chain.from_iterable(
-            map(itertools.repeat, self._flat_items, sizes)
-        )
-    )
-    return View(new_flat_items, shape, is_internal_call=True)
-
+  # TODO: Simplify once `map_` doesn't call `align`.
   def expand_to(self, other: View) -> View:
     """Expands the view to the shape of other view."""
-    return self.expand_to_shape(other.get_shape())
+    if self is other:
+      return self
+    self_depth = self._depth
+    other_depth = other.get_depth()
+    if self_depth == other_depth:
+      # Validate that they are the same
+      _ = _map_structures(lambda x, y: x, self_depth, self._obj, other.get())
+      return self
+    elif self_depth < other_depth:
+      # Repeat necessary values.
+      depth_diff = other_depth - self_depth
 
-  def internal_get_flat_items(self) -> list[Any]:
-    """Returns the flat items of the view.
+      def repeat_value(self_v, other_v):
+        return _map_structures(lambda _: self_v, depth_diff, other_v)
 
-    This returns a pointer to an internal mutable list, so the caller needs
-    to make sure it does not modify it, hence the internal_ prefix.
+      obj = _map_structures(repeat_value, self_depth, self._obj, other.get())
+      return View(obj, other_depth, is_internal_call=True)
+    else:
+      raise ValueError(
+          f'a View with depth {self_depth} cannot be broadcasted to a view with'
+          f' depth {other_depth}'
+      )
 
-    We cannot change the storage to use tuple instead of list, as it seems to be
-    significantly slower to create tuples than lists in operations.
-    """
-    return self._flat_items
-
-  def get_shape(self) -> kd.types.JaggedShape:
-    """Returns the shape of the view."""
-    return self._shape
-
-
-_SCALAR_SHAPE = kd.shapes.new()
+  def get_depth(self) -> int:
+    """Returns the depth of the view."""
+    return self._depth
 
 
 def view(obj: Any) -> View:
@@ -374,7 +299,7 @@ def view(obj: Any) -> View:
   Returns:
     A scalar view on the object.
   """
-  return View([obj], _SCALAR_SHAPE, is_internal_call=True)
+  return View(obj, 0, is_internal_call=True)
 
 
 _AUTO_BOX_TYPES = (int, float, str, bytes, bool, type(None))
@@ -425,12 +350,31 @@ def align(first: Any, *others: Any) -> tuple[View, ...]:
   if not others:
     return (first,)
   others = tuple(box(o) for o in others)
-  # TODO: Move some of this logic to JaggedShape.
-  shape = max((first, *others), key=lambda l: l.get_shape().rank()).get_shape()
+  ref_view = max((first, *others), key=lambda l: l.get_depth())
   return (
-      first.expand_to_shape(shape),
-      *(l.expand_to_shape(shape) for l in others),
+      first.expand_to(ref_view),
+      *(l.expand_to(ref_view) for l in others),
   )
+
+
+# TODO: Implement in C++, and do not require the structures to be
+# aligned.
+# TODO: Add map1 and map2 as faster versions of map_ that avoids
+# generic args and kwargs handling. Use these whenever possible in internal
+# code.
+def _map_structures(fn, depth, *structures, kwnames=()):
+  """Low-level implementation of map_."""
+  vcall = arolla.abc.vectorcall
+
+  def impl(depth, *values):
+    if depth <= 0:
+      return vcall(fn, *values, kwnames)
+    if depth == 1:
+      return [vcall(fn, *vs, kwnames) for vs in zip(*values, strict=True)]
+    else:
+      return [impl(depth - 1, *vs) for vs in zip(*values, strict=True)]
+
+  return impl(depth, *structures)
 
 
 # This method is in view.py since we expect to use it from implementations
@@ -461,14 +405,8 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
     A new view with the function applied to the corresponding items.
   """
   aligned_args = align(*args, *kwargs.values())
-  kwnames = tuple(kwargs)
-  vcall = arolla.abc.vectorcall
-  new_flat_items = map(
-      vcall,
-      itertools.repeat(f),
-      *(arg.internal_get_flat_items() for arg in aligned_args),
-      itertools.repeat(kwnames),
+  depth = aligned_args[0].get_depth()
+  obj = _map_structures(
+      f, depth, *(v.get() for v in aligned_args), kwnames=tuple(kwargs)
   )
-  return View(
-      list(new_flat_items), aligned_args[0].get_shape(), is_internal_call=True
-  )
+  return View(obj, depth, is_internal_call=True)

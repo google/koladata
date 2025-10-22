@@ -16,7 +16,6 @@ import re
 import types
 
 from absl.testing import absltest
-from koladata import kd
 from koladata.ext.view import view as view_lib
 
 
@@ -54,12 +53,10 @@ class ViewTest(absltest.TestCase):
   def test_explode(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
     self.assertEqual(view_lib.view(x).a.explode().b.get(), [1, 2])
-    rank1_shape = kd.shapes.new(2)
-    self.assertEqual(view_lib.view(x).a.explode().get_shape(), rank1_shape)
+    self.assertEqual(view_lib.view(x).a.explode().get_depth(), 1)
     x_mix = [[1], None, [2, 3]]
     self.assertEqual(view_lib.view(x_mix)[:][:].get(), [[1], [], [2, 3]])
-    rank2_shape = kd.shapes.new(3, [1, 0, 2])
-    self.assertEqual(view_lib.view(x_mix)[:][:].get_shape(), rank2_shape)
+    self.assertEqual(view_lib.view(x_mix)[:][:].get_depth(), 2)
 
   def test_map(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
@@ -115,10 +112,7 @@ class ViewTest(absltest.TestCase):
     )
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(1, 2) and'
-            ' JaggedShape(2, 1)'
-        ),
+        re.escape('argument 2 is shorter than argument 1'),
     ):
       _ = view_lib.map_(
           lambda x, y: x + y,
@@ -175,17 +169,15 @@ class ViewTest(absltest.TestCase):
 
   def test_slice_on_non_iterable_fails(self):
     x = Obj(a=[1, 2])
-    with self.assertRaisesRegex(TypeError, "object of type 'int' has no len()"):
+    with self.assertRaisesRegex(TypeError, "'int' object is not iterable"):
       _ = view_lib.view(x).a[:][:]
 
-  def test_get_shape(self):
+  def test_get_depth(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
-    scalar_shape = kd.shapes.new()
-    rank1_shape = kd.shapes.new(2)
-    self.assertEqual(view_lib.view(x).get_shape(), scalar_shape)
-    self.assertEqual(view_lib.view(x).a.get_shape(), scalar_shape)
-    self.assertEqual(view_lib.view(x).a[:].get_shape(), rank1_shape)
-    self.assertEqual(view_lib.view(x).a[:].b.get_shape(), rank1_shape)
+    self.assertEqual(view_lib.view(x).get_depth(), 0)
+    self.assertEqual(view_lib.view(x).a.get_depth(), 0)
+    self.assertEqual(view_lib.view(x).a[:].get_depth(), 1)
+    self.assertEqual(view_lib.view(x).a[:].b.get_depth(), 1)
 
   def test_flatten(self):
     x = [[1, 2], [3]]
@@ -254,59 +246,13 @@ class ViewTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(3) and'
-            ' JaggedShape(2)'
-        ),
+        re.escape('argument 2 is shorter than argument 1'),
     ):
       _ = view_lib.align(l2, l5)
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(3)'
-            ' and JaggedShape(2, [2, 1])'
-        ),
+        ValueError, re.escape('argument 2 is shorter than argument 1')
     ):
       _ = view_lib.align(l4, l5)
-
-  def test_expand_to_shape(self):
-    l1 = view_lib.view(1)
-    l2 = view_lib.view([10, 20])[:]
-    l4 = view_lib.view([[1, 2], [3]])[:][:]
-    l5 = view_lib.view([1, 2, 3])[:]
-
-    self.assertEqual(l1.expand_to_shape(l1.get_shape()).get(), 1)
-    self.assertEqual(l1.expand_to_shape(l2.get_shape()).get(), [1, 1])
-    self.assertEqual(l1.expand_to_shape(l5.get_shape()).get(), [1, 1, 1])
-    self.assertEqual(l2.expand_to_shape(l2.get_shape()).get(), [10, 20])
-    self.assertEqual(l1.expand_to_shape(l4.get_shape()).get(), [[1, 1], [1]])
-    self.assertEqual(l2.expand_to_shape(l4.get_shape()).get(), [[10, 10], [20]])
-    self.assertEqual(l4.expand_to_shape(l4.get_shape()).get(), [[1, 2], [3]])
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(2) and'
-            ' JaggedShape(3)'
-        ),
-    ):
-      l2.expand_to_shape(l5.get_shape())
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(2, [2, 1])'
-            ' and JaggedShape(3)'
-        ),
-    ):
-      l4.expand_to_shape(l5.get_shape())
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(3) and'
-            ' JaggedShape(2)'
-        ),
-    ):
-      l5.expand_to_shape(l2.get_shape())
 
   def test_expand_to(self):
     l1 = view_lib.view(1)
@@ -324,26 +270,19 @@ class ViewTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(2) and'
-            ' JaggedShape(3)'
-        ),
+        re.escape('argument 2 is longer than argument 1'),
     ):
       l2.expand_to(l5)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(2, [2, 1])'
-            ' and JaggedShape(3)'
+            'a View with depth 2 cannot be broadcasted to a view with depth 1'
         ),
     ):
       l4.expand_to(l5)
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Views do not have a common shape. Shapes: JaggedShape(3) and'
-            ' JaggedShape(2)'
-        ),
+        re.escape('argument 2 is shorter than argument 1'),
     ):
       l5.expand_to(l2)
 

@@ -43,7 +43,6 @@ py_test(
     deps = [
         ":view",
         "//py:python_path",
-        "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -63,7 +62,6 @@ py_library(
     srcs = ["view.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],
 )
