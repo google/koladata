@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.extract."""
+"""Tests for kd.core.extract operator."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,6 +30,8 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -71,9 +73,9 @@ class CoreExtractTest(parameterized.TestCase):
       o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(kde.extract(o_fb, o_fb.get_schema()))
+      result = kd.extract(o_fb, o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.extract(o_fb))
+      result = kd.extract(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
@@ -86,12 +88,12 @@ class CoreExtractTest(parameterized.TestCase):
   def test_fallback_uu(self, noise_positioned_in_front, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list_ids = kd.ids.uuid_for_list(a=ds([1, 2, 3]))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
-        itemid=b_list_ids
+        itemid=b_list_ids,
     )
-    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict_ids = kd.ids.uuid_for_dict(a=ds(1))
     c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
     o = db.new(
         a=a_slice,
@@ -109,9 +111,9 @@ class CoreExtractTest(parameterized.TestCase):
       o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(kde.extract(o_fb, o_fb.get_schema()))
+      result = kd.extract(o_fb, o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.extract(o_fb))
+      result = kd.extract(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
@@ -157,12 +159,11 @@ class CoreExtractTest(parameterized.TestCase):
         b=ds([1, None, 2]),
         c=ds(['foo', 'bar', 'baz']),
         itemid=a_slice.get_itemid(),
-        schema=a_schema.no_bag())
+        schema=a_schema.no_bag(),
+    )
     o_exp = expected_bag.new(
-        a=a_slice_exp,
-        b=b_list,
-        itemid=o.get_itemid(),
-        schema=schema.no_bag())
+        a=a_slice_exp, b=b_list, itemid=o.get_itemid(), schema=schema.no_bag()
+    )
     del o_exp
     fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
@@ -171,7 +172,7 @@ class CoreExtractTest(parameterized.TestCase):
     else:
       o_fb = o.with_bag(noise.enriched(db).get_bag())
 
-    result = expr_eval.eval(kde.extract(o_fb, schema))
+    result = kd.extract(o_fb, schema)
 
     self.assertFalse(result.get_bag().is_mutable())
     self.assertEqual(
@@ -194,14 +195,14 @@ class CoreExtractTest(parameterized.TestCase):
     )
     fb = data_bag.DataBag.empty_mutable()
     o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
-    fb_d = expr_eval.eval(kde.nofollow(fb.new(x=ds([1, 2, None]))))
+    fb_d = kd.nofollow(fb.new(x=ds([1, 2, None])))
     o.a.with_bag(fb).get_attr('__schema__').set_attr(
         'd', fb_d.get_schema().no_bag()
     )
     o.a.with_bag(fb).set_attr('d', fb_d)
     o_fb = o.enriched(fb)
 
-    result = expr_eval.eval(kde.extract(o_fb))
+    result = kd.extract(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     self.assertFalse(data_bag.exactly_equal(result.get_bag(), db))
@@ -220,18 +221,18 @@ class CoreExtractTest(parameterized.TestCase):
     ])
     del list_slice.S[2][:]
     fb_lists = list_slice.with_bag(fb).with_schema(list_slice.get_schema())
-    fb_update = kde.list_append_update(fb_lists, 1)
-    enriched_lists = kde.enriched(list_slice, fb_update)
-    enriched_list_sizes = expr_eval.eval(kde.list_size(enriched_lists))
+    fb_update = kd.list_append_update(fb_lists, 1)
+    enriched_lists = kd.enriched(list_slice, fb_update)
+    enriched_list_sizes = kd.list_size(enriched_lists)
     testing.assert_equal(
         enriched_list_sizes.no_bag(),
         ds([0, 1, 0], schema=schema_constants.INT64).no_bag(),
     )
-    extracted_and_enriched_lists = kde.enriched(
-        kde.extract(list_slice), fb_update
+    extracted_and_enriched_lists = kd.enriched(
+        kd.extract(list_slice), fb_update
     )
-    extracted_and_enriched_list_sizes = expr_eval.eval(
-        kde.list_size(extracted_and_enriched_lists)
+    extracted_and_enriched_list_sizes = kd.list_size(
+        extracted_and_enriched_lists
     )
     testing.assert_equal(
         extracted_and_enriched_list_sizes.no_bag(),
@@ -243,10 +244,9 @@ class CoreExtractTest(parameterized.TestCase):
     o = db.obj(x=1)
     o.set_attr('__schema__', schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError,
-        'unsupported schema found during extract/clone',
+        ValueError, 'unsupported schema found during extract/clone'
     ):
-      expr_eval.eval(kde.extract(o))
+      (kd.extract(o))
 
   def test_mixed_objects_and_schemas(self):
     db = data_bag.DataBag.empty_mutable()
@@ -254,12 +254,11 @@ class CoreExtractTest(parameterized.TestCase):
         schema_constants.OBJECT
     )
     schema.set_attr('__schema__', schema_constants.SCHEMA)
-    o = kde.stack(db.obj(x=1), schema)
+    o = kd.stack(db.obj(x=1), schema)
     with self.assertRaisesRegex(
-        ValueError,
-        'unsupported schema found during extract/clone',
+        ValueError, 'unsupported schema found during extract/clone'
     ):
-      expr_eval.eval(kde.extract(o))
+      (kd.extract(o))
 
   def test_primitives_mismatch(self):
     db = data_bag.DataBag.empty_mutable()
@@ -268,10 +267,10 @@ class CoreExtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         "during extract/clone, while processing the attribute 'x',"
-        " got a slice with primitive type STRING while the"
-        " actual content has type INT32",
+        ' got a slice with primitive type STRING while the'
+        ' actual content has type INT32',
     ):
-      expr_eval.eval(kde.extract(o, schema))
+      (kd.extract(o, schema))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

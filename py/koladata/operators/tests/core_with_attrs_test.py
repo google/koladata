@@ -16,6 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -26,9 +27,12 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -46,14 +50,14 @@ QTYPES = frozenset([
 class CoreWithAttrsTest(absltest.TestCase):
 
   def test_multi_attr_update(self):
-    o = kde.new(x=1, y='q').eval()
+    o = kd.new(x=1, y='q')
     with self.assertRaisesRegex(
         ValueError, "the schema for attribute 'x' is incompatible."
     ):
-      _ = kde.core.with_attrs(o, x='2').eval()
-    o1 = kde.core.with_attrs(
+      _ = kd.core.with_attrs(o, x='2')
+    o1 = kd.core.with_attrs(
         o, x='2', a=1, b='p', c=bag().list([1, 2]), overwrite_schema=True
-    ).eval()
+    )
     self.assertNotEqual(o.get_bag().fingerprint, o1.get_bag().fingerprint)
     testing.assert_equal(o.x.no_bag(), ds(1))
     testing.assert_equal(o1.x.no_bag(), ds('2'))
@@ -63,40 +67,40 @@ class CoreWithAttrsTest(absltest.TestCase):
     testing.assert_equal(o1.c[:].no_bag(), ds([1, 2]))
 
   def test_attr_update_on_objects(self):
-    o = kde.obj(x=3.14).eval()
-    o1 = kde.core.with_attrs(o, x='2').eval()
+    o = kd.obj(x=3.14)
+    o1 = kd.core.with_attrs(o, x='2')
     testing.assert_equal(o1.x.no_bag(), ds('2'))
 
   def test_attr_update_implicit_casting(self):
-    o = kde.new(x=3.14).eval()
-    o1 = kde.core.with_attrs(o, x=42).eval()
+    o = kd.new(x=3.14)
+    o1 = kd.core.with_attrs(o, x=42)
     testing.assert_equal(o1.x.no_bag(), ds(42.0))
 
   def test_error_primitives(self):
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes, got INT32'
     ):
-      _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
+      _ = kd.core.with_attrs(ds(0).with_bag(bag()), x=1)
 
   def test_error_no_databag(self):
-    o = kde.new(x=1).no_bag().eval()
+    o = kd.new(x=1).no_bag()
     with self.assertRaisesRegex(
         ValueError, 'the DataSlice is a reference without a bag',
     ):
-      _ = kde.core.with_attrs(o, x=1).eval()
+      _ = kd.core.with_attrs(o, x=1)
 
   def test_none_works(self):
     x = ds(None).with_bag(bag())
-    x = kde.core.with_attrs(x, x=1).eval()
+    x = kd.core.with_attrs(x, x=1)
     testing.assert_equal(x.no_bag(), ds(None))
 
     # Also works when overwrite_schema=True.
-    x = kde.core.with_attrs(x, overwrite_schema=True, x=1).eval()
+    x = kd.core.with_attrs(x, overwrite_schema=True, x=1)
     testing.assert_equal(x.no_bag(), ds(None))
 
   def test_schema_works(self):
-    o = kde.schema.new_schema()
-    o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()
+    o = kd.schema.new_schema()
+    o = kd.core.with_attrs(o, x=schema_constants.INT32)
     self.assertEqual(o.x.no_bag(), schema_constants.INT32)
 
   def test_qtype_signatures(self):

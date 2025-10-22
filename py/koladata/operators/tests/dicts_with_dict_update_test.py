@@ -15,10 +15,10 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,11 +30,13 @@ from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty_mutable
-DATA_SLICE = qtypes.DATA_SLICE
 
+bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
@@ -54,14 +56,10 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
         ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
-      _ = expr_eval.eval(
-          kde.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-      )
+      _ = kd.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
 
-    x2 = expr_eval.eval(kde.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
-    testing.assert_equivalent(
-        x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
-    )
+    x2 = kd.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10]))
+    testing.assert_equivalent(x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])))
 
   def test_eval_keys_values_object_key_value_schema(self):
     x1 = fns.dict(
@@ -70,12 +68,9 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
         key_schema=schema_constants.OBJECT,
         value_schema=schema_constants.OBJECT,
     )
-    x2 = expr_eval.eval(
-        kde.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-    )
+    x2 = kd.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
     testing.assert_equivalent(
-        x2,
-        fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
+        x2, fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z']))
     )
 
   def test_eval_keys_values_embedded_schema(self):
@@ -85,36 +80,30 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
         ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
-      _ = expr_eval.eval(
-          kde.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-      )
+      _ = kd.with_dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
 
-    x2 = expr_eval.eval(kde.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
+    x2 = kd.with_dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10]))
     testing.assert_equivalent(
-        x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
+        x2,
+        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
         schemas_equality=False,
     )
 
   def test_eval_dicts(self):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))
-    x2 = expr_eval.eval(
-        kde.with_dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
-    )
+    x2 = kd.with_dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
     testing.assert_equivalent(x2, fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])))
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
-      _ = kde.dicts.with_dict_update(
-          ds(0).with_bag(bag()), fns.dict({'x': 1})
-      ).eval()
+      _ = kd.with_dict_update(ds(0).with_bag(bag()), fns.dict({'x': 1}))
 
   def test_error_no_databag(self):
     o = fns.new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError,
-        'cannot update a DataSlice of dicts without a DataBag',
+        ValueError, 'cannot update a DataSlice of dicts without a DataBag'
     ):
-      _ = kde.dicts.with_dict_update(o, fns.dict({'x': 1})).eval()
+      _ = kd.with_dict_update(o, fns.dict({'x': 1}))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

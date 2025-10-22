@@ -17,10 +17,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,11 +29,13 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -46,11 +47,10 @@ class CoreNofollowTest(parameterized.TestCase):
       (kde.schema.get_nofollowed_schema,),
   )
   def test_qtype_signatures(self, op):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            op, possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        ),
-        frozenset([(DATA_SLICE, DATA_SLICE)]),
+    arolla.testing.assert_qtype_signatures(
+        op,
+        [(DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   @parameterized.parameters(
@@ -61,8 +61,8 @@ class CoreNofollowTest(parameterized.TestCase):
   )
   def test_eval(self, x):
     schema = x.get_schema()
-    nofollow_x = eval_op('kd.nofollow', x)
-    nofollow_schema = eval_op('kd.nofollow_schema', (schema))
+    nofollow_x = kd.nofollow(x)
+    nofollow_schema = kd.nofollow_schema(schema)
     # Same data contents.
     testing.assert_equal(
         nofollow_x.with_schema(schema_constants.OBJECT),
@@ -71,47 +71,43 @@ class CoreNofollowTest(parameterized.TestCase):
     # nofollow's schema <=> nofollow_schema.
     testing.assert_equal(nofollow_x.get_schema(), nofollow_schema)
     # get_nofollowed_schema <=> original schema.
-    testing.assert_equal(
-        eval_op('kd.get_nofollowed_schema', nofollow_schema), schema
-    )
-    testing.assert_equal(eval_op('kd.follow', nofollow_x), x)
+    testing.assert_equal(kd.get_nofollowed_schema(nofollow_schema), schema)
+    testing.assert_equal(kd.follow(nofollow_x), x)
 
   def test_primitives_error(self):
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on INT32 slice is not allowed'
     ):
-      expr_eval.eval(kde.nofollow(ds(1)))
+      kd.nofollow(ds(1))
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on STRING slice is not allowed'
     ):
-      expr_eval.eval(kde.nofollow_schema(schema_constants.STRING))
+      kd.nofollow_schema(schema_constants.STRING)
     with self.assertRaisesRegex(
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',
     ):
-      expr_eval.eval(kde.nofollow(ds(1, schema_constants.OBJECT)))
+      kd.nofollow(ds(1, schema_constants.OBJECT))
 
   def test_already_nofollow_error(self):
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on a nofollow slice is not allowed'
     ):
-      expr_eval.eval(kde.nofollow(kde.nofollow(bag().new())))
+      kd.nofollow(kd.nofollow(bag().new()))
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on a nofollow slice is not allowed'
     ):
-      expr_eval.eval(
-          kde.nofollow_schema(kde.nofollow_schema(schema_constants.OBJECT))
-      )
+      kd.nofollow_schema(kd.nofollow_schema(schema_constants.OBJECT))
 
   def test_get_nofollowed_schema_error(self):
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
-      expr_eval.eval(kde.get_nofollowed_schema(schema_constants.OBJECT))
+      kd.get_nofollowed_schema(schema_constants.OBJECT)
 
   def test_follow_error(self):
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
-      expr_eval.eval(kde.follow(ds([1, 2, 3])))
+      kd.follow(ds([1, 2, 3]))
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
-      expr_eval.eval(kde.follow(ds([1, 2, 3], schema_constants.OBJECT)))
+      kd.follow(ds([1, 2, 3], schema_constants.OBJECT))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.nofollow(I.x)))

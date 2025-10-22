@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.ref."""
+"""Tests for kde.core.ref operator."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,8 +30,10 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
@@ -47,28 +49,26 @@ class CoreRefTest(parameterized.TestCase):
       bag().uu_schema(a=schema_constants.INT32),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_bag())
+    testing.assert_equal(kd.core.ref(x), x.no_bag())
 
   def test_primitive_schema_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'casting a DataSlice with schema INT32 to ITEMID is not supported',
     ):
-      expr_eval.eval(kde.core.ref(123))
+      kd.core.ref(123)
 
   def test_primitive_data_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'casting data of type INT32 to ITEMID is not supported',
+        ValueError, 'casting data of type INT32 to ITEMID is not supported'
     ):
-      expr_eval.eval(kde.core.ref(ds(123, schema_constants.OBJECT)))
+      kd.core.ref(ds(123, schema_constants.OBJECT))
 
   def test_dtype_schema_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'casting data of type DTYPE to ITEMID is not supported',
+        ValueError, 'casting data of type DTYPE to ITEMID is not supported'
     ):
-      expr_eval.eval(kde.core.ref(schema_constants.INT32))
+      kd.core.ref(schema_constants.INT32)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

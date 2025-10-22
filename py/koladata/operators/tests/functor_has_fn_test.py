@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -32,15 +32,15 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 def get_functor_schema():
-  return expr_eval.eval(
-      kde.schema.new_schema(
-          __signature__=schema_constants.OBJECT, returns=schema_constants.EXPR
-      )
+  return kd.schema.new_schema(
+      __signature__=schema_constants.OBJECT, returns=schema_constants.EXPR
   )
 
 
@@ -101,7 +101,7 @@ class FunctorIsFnTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    result = expr_eval.eval(kde.functor.has_fn(x))
+    result = kd.functor.has_fn(x)
     testing.assert_equal(result, expected)
 
   def test_non_slice_error(self):
@@ -109,15 +109,13 @@ class FunctorIsFnTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected DATA_SLICE, got x: DATA_BAG')
     ):
-      expr_eval.eval(kde.functor.has_fn(db))
+      kd.functor.has_fn(db)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.functor.has_fn,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((qtypes.DATA_SLICE, qtypes.DATA_SLICE),),
+    arolla.testing.assert_qtype_signatures(
+        kde.functor.has_fn,
+        [(qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_alias(self):

@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -27,8 +27,10 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
@@ -41,7 +43,7 @@ class CoreNoBagTest(parameterized.TestCase):
       ds([1, 2, 3]),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.no_bag(x)), x.with_bag(None))
+    testing.assert_equal(kd.core.no_bag(x), x.with_bag(None))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

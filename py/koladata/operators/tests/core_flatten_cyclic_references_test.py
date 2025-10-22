@@ -14,15 +14,17 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
@@ -35,9 +37,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=1)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -57,9 +57,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=3)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=3)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -87,9 +85,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=5)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=5)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -126,9 +122,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', ds([o.S[0], o.S[2], o.S[1]]))
     o.S[1].set_attr('self', o.S[2])
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=1)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -161,9 +155,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=0)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=0)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -179,9 +171,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.obj(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=1)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -201,9 +191,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.implode(db.new(b=b_slice, c=ds(['foo', 'bar', 'baz'])))
     o[:].set_attr('self', o[:])
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=1)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -227,9 +215,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     o['b'] = b_slice
     o['c'] = ds(['foo', 'bar', 'baz'])
     o['self'] = o
-    result = expr_eval.eval(
-        kde.core.flatten_cyclic_references(o, max_recursion_depth=1)
-    )
+    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 

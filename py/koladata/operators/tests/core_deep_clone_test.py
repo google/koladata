@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -26,9 +26,11 @@ from koladata.types import data_slice
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 class CoreDeepCloneTest(parameterized.TestCase):
@@ -36,7 +38,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_primitives(self):
     db = data_bag.DataBag.empty_mutable()
     x = db.new(y=ds([1.0, float('inf'), float('-inf'), float('nan')]))
-    res = expr_eval.eval(kde.core.deep_clone(x))
+    res = kd.core.deep_clone(x)
     testing.assert_equal(res.y.no_bag(), x.y.no_bag())
 
   @parameterized.product(
@@ -48,9 +50,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))
+      result = kd.deep_clone(o, o.get_schema())
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -72,9 +74,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     a_slice = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o = db.implode(a_slice)
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))
+      result = kd.deep_clone(o, o.get_schema())
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -97,9 +99,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     keys = ds([0, 1, 2])
     o = db.dict(keys, values)
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))
+      result = kd.deep_clone(o, o.get_schema())
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -127,9 +129,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))
+      result = kd.deep_clone(o, o.get_schema())
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -153,9 +155,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     schema = db.named_schema('foo', x=schema_constants.INT32)
     o = db.new(x=ds([1, 2, 3]), schema=schema)
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, schema))
+      result = kd.deep_clone(o, schema)
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
     testing.assert_equal(result.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(result.x.no_bag(), ds([1, 2, 3]))
 
@@ -171,9 +173,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
     merged_bag = o.enriched(fb).get_bag().merge_fallbacks()
     o = o.with_bag(merged_bag)
     if pass_schema:
-      result = expr_eval.eval(kde.deep_clone(o, o.get_schema()))
+      result = kd.deep_clone(o, o.get_schema())
     else:
-      result = expr_eval.eval(kde.deep_clone(o))
+      result = kd.deep_clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.get_bag(), o.get_bag())
@@ -195,8 +197,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
-    res = kde.core.deep_clone(x, z=bag().list([12]), t=bag().obj(b=5))
-    res = expr_eval.eval(res)
+    res = kd.core.deep_clone(x, z=bag().list([12]), t=bag().obj(b=5))
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.y.a.no_bag(), ds(1))
     testing.assert_equal(res.z[:].no_bag(), ds([12]))
@@ -205,8 +206,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_with_schema_and_overrides(self):
     s = bag().new_schema(x=schema_constants.INT32)
     x = bag().obj(x=42, y='abc')
-    res = kde.core.deep_clone(x, schema=s, z=12)
-    res = expr_eval.eval(res)
+    res = kd.core.deep_clone(x, schema=s, z=12)
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
@@ -218,21 +218,15 @@ class CoreDeepCloneTest(parameterized.TestCase):
 
   def test_with_named_schema(self):
     schema = bag().named_schema('foo', x=schema_constants.INT32)
-    s = kde.new(x=ds([1, 2, 3]), schema=schema)
-    res = expr_eval.eval(kde.core.deep_clone(s))
+    s = kd.new(x=ds([1, 2, 3]), schema=schema)
+    res = kd.core.deep_clone(s)
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_non_determinism(self):
-    x = bag().new(y=bag().new(a=1))
-    res_1 = expr_eval.eval(kde.core.deep_clone(x))
-    res_2 = expr_eval.eval(kde.core.deep_clone(x))
-    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
-    self.assertNotEqual(res_1.y.no_bag(), res_2.y.no_bag())
-    testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
-
+    x = bag().new(y=bag().new(a=1)).freeze_bag()
     expr = kde.core.deep_clone(x)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     self.assertNotEqual(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
@@ -240,138 +234,130 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_metadata(self):
     db = bag()
     ds_xy = db.new(x=1, y=2)
-    upd = kde.core.metadata(ds_xy.get_schema(), attrs='xy')
-    db = expr_eval.eval(kde.bags.updated(db, upd))
+    upd = kd.core.metadata(ds_xy.get_schema(), attrs='xy')
+    db = kd.bags.updated(db, upd)
     ds_xy = ds_xy.with_bag(db)
-    a = kde.core.deep_clone(ds_xy)
-    b = kde.core.deep_clone(ds_xy)
-    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    a = kd.core.deep_clone(ds_xy)
+    b = kd.core.deep_clone(ds_xy)
+    _ = kd.uu(a=a, b=b)
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_schema())).no_bag(),
+        kd.core.get_metadata(a.get_schema()).no_bag(),
+        kd.core.get_metadata(b.get_schema()).no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).no_bag(),
+        kd.core.get_metadata(a.get_schema()).no_bag(),
+        kd.core.get_metadata(ds_xy.get_schema()).no_bag(),
     )
 
   def test_metadata_implicit_schema(self):
     db = bag()
     ds_xy = db.obj(x=1, y=2)
-    upd = kde.core.metadata(ds_xy.get_obj_schema(), attrs='xy')
-    db = expr_eval.eval(kde.bags.updated(db, upd))
+    upd = kd.core.metadata(ds_xy.get_obj_schema(), attrs='xy')
+    db = kd.bags.updated(db, upd)
     ds_xy = ds_xy.with_bag(db)
-    a = kde.core.deep_clone(ds_xy)
-    b = kde.core.deep_clone(ds_xy)
-    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    a = kd.core.deep_clone(ds_xy)
+    b = kd.core.deep_clone(ds_xy)
+    _ = kd.uu(a=a, b=b)
     testing.assert_not_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).no_bag(),
+        kd.core.get_metadata(b.get_obj_schema()).no_bag(),
     )
     testing.assert_not_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(
-            kde.core.get_metadata(ds_xy.get_obj_schema())
-        ).no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).no_bag(),
+        kd.core.get_metadata(ds_xy.get_obj_schema()).no_bag(),
     )
-    kde.core.with_metadata(a.get_obj_schema(), attrs='xy')
+    kd.core.with_metadata(a.get_obj_schema(), attrs='xy')
 
   def test_metadata_chains(self):
     db = bag()
     ds_root = db.new(a=db.obj(x=1, y=2), b=db.obj(foo='bar'))
     ds_a = ds_root.a
     for i in range(10):
-      schema = kde.core.with_metadata(
-          ds_a.get_obj_schema(), data=f'a_depth_{i}'
-      )
-      ds_a = kde.core.get_metadata(schema)
-    ds_root = ds_root.with_bag(expr_eval.eval(ds_a).get_bag())
+      schema = kd.core.with_metadata(ds_a.get_obj_schema(), data=f'a_depth_{i}')
+      ds_a = kd.core.get_metadata(schema)
+    ds_root = ds_root.with_bag(ds_a.get_bag())
     ds_b = ds_root.b
     for i in range(5):
-      schema = kde.core.with_metadata(
-          ds_b.get_obj_schema(), data=f'b_depth_{i}'
-      )
-      ds_b = kde.core.get_metadata(schema)
-    ds_root = ds_root.with_bag(expr_eval.eval(ds_b).get_bag())
+      schema = kd.core.with_metadata(ds_b.get_obj_schema(), data=f'b_depth_{i}')
+      ds_b = kd.core.get_metadata(schema)
+    ds_root = ds_root.with_bag(ds_b.get_bag())
 
-    cloned = expr_eval.eval(kde.core.deep_clone(ds_root))
+    cloned = kd.core.deep_clone(ds_root)
     a_cloned = cloned.a
     for i in range(10):
       # with_metadata calculate the right metadata ObjectId, so here we check
       # that the ids in cloned databag are consistent.
-      schema = kde.core.with_metadata(a_cloned.get_obj_schema())
-      a_cloned = expr_eval.eval(kde.core.get_metadata(schema))
+      schema = kd.core.with_metadata(a_cloned.get_obj_schema())
+      a_cloned = kd.core.get_metadata(schema)
       self.assertEqual(a_cloned.data, f'a_depth_{i}')
     b_cloned = cloned.b
     for i in range(5):
-      schema = kde.core.with_metadata(b_cloned.get_obj_schema())
-      b_cloned = expr_eval.eval(kde.core.get_metadata(schema))
+      schema = kd.core.with_metadata(b_cloned.get_obj_schema())
+      b_cloned = kd.core.get_metadata(schema)
       self.assertEqual(b_cloned.data, f'b_depth_{i}')
 
   def test_metadata_entity(self):
     db = bag()
     ds_a = db.new(attrs='xy')
     ds_xy = db.new(x=1, y=2, a=ds_a)
-    upd = kde.core.metadata(ds_xy.get_schema(), a=ds_a)
-    db = expr_eval.eval(kde.bags.updated(db, upd))
+    upd = kd.core.metadata(ds_xy.get_schema(), a=ds_a)
+    db = kd.bags.updated(db, upd)
     ds_xy = ds_xy.with_bag(db)
-    a = expr_eval.eval(kde.core.deep_clone(ds_xy))
-    b = expr_eval.eval(kde.core.deep_clone(ds_xy))
-    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    a = kd.core.deep_clone(ds_xy)
+    b = kd.core.deep_clone(ds_xy)
+    _ = kd.uu(a=a, b=b)
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_schema())).no_bag(),
+        kd.core.get_metadata(a.get_schema()).no_bag(),
+        kd.core.get_metadata(b.get_schema()).no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_schema())).a.no_bag(),
+        kd.core.get_metadata(a.get_schema()).a.no_bag(),
+        kd.core.get_metadata(b.get_schema()).a.no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).no_bag(),
+        kd.core.get_metadata(a.get_schema()).no_bag(),
+        kd.core.get_metadata(ds_xy.get_schema()).no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
-        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).a.no_bag(),
+        kd.core.get_metadata(a.get_schema()).a.no_bag(),
+        kd.core.get_metadata(ds_xy.get_schema()).a.no_bag(),
     )
     testing.assert_not_equal(a.a.no_bag(), b.a.no_bag())
     testing.assert_not_equal(
         a.a.no_bag(),
-        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
+        kd.core.get_metadata(a.get_schema()).a.no_bag(),
     )
 
   def test_metadata_object_explicit_schema(self):
     db = bag()
     ds_a = db.new(attrs='xy')
     ds_xy = db.obj(db.new(x=1, y=2, a=ds_a))
-    upd = kde.core.metadata(ds_xy.get_obj_schema(), a=ds_a)
-    db = expr_eval.eval(kde.bags.updated(db, upd))
+    upd = kd.core.metadata(ds_xy.get_obj_schema(), a=ds_a)
+    db = kd.bags.updated(db, upd)
     ds_xy = ds_xy.with_bag(db)
-    a = expr_eval.eval(kde.core.deep_clone(ds_xy))
-    b = expr_eval.eval(kde.core.deep_clone(ds_xy))
-    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    a = kd.core.deep_clone(ds_xy)
+    b = kd.core.deep_clone(ds_xy)
+    _ = kd.uu(a=a, b=b)
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).no_bag(),
+        kd.core.get_metadata(b.get_obj_schema()).no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).a.no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).a.no_bag(),
+        kd.core.get_metadata(b.get_obj_schema()).a.no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(ds_xy.get_obj_schema())).no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).no_bag(),
+        kd.core.get_metadata(ds_xy.get_obj_schema()).no_bag(),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
-        expr_eval.eval(
-            kde.core.get_metadata(ds_xy.get_obj_schema())
-        ).a.no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).a.no_bag(),
+        kd.core.get_metadata(ds_xy.get_obj_schema()).a.no_bag(),
     )
     testing.assert_not_equal(a.a.no_bag(), b.a.no_bag())
     testing.assert_not_equal(
         a.a.no_bag(),
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
+        kd.core.get_metadata(a.get_obj_schema()).a.no_bag(),
     )
 
   def test_view(self):

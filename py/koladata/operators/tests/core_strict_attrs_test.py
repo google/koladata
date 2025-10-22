@@ -18,6 +18,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,12 +29,14 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 DATA_BAG = qtypes.DATA_BAG
-
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_BAG),
@@ -48,17 +51,17 @@ QTYPES = frozenset([
 class CoreStrictAttrsTest(absltest.TestCase):
 
   def test_multi_attr_overwrite_fails(self):
-    o = kde.new(x=1, y=10).eval()
+    o = kd.new(x=1, y=10)
     with self.assertRaisesRegex(
         ValueError, "the schema for attribute 'x' is incompatible."
     ):
-      _ = kde.core.strict_attrs(o, x='2').eval()
+      _ = kd.core.strict_attrs(o, x='2')
 
-    db2 = kde.core.strict_attrs(
+    db2 = kd.core.strict_attrs(
         o,
         x=3,
         y=9,
-    ).eval()
+    )
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
     testing.assert_equal(o.x.no_bag(), ds(1))
     testing.assert_equal(o.y.no_bag(), ds(10))
@@ -66,58 +69,51 @@ class CoreStrictAttrsTest(absltest.TestCase):
     testing.assert_equal(o.updated(db2).y.no_bag(), ds(9))
 
   def test_error(self):
-    o = kde.new(x=1, y=10).eval()
+    o = kd.new(x=1, y=10)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "kd.core.strict_attrs: attribute 'z' not found"
-            ' in schema: ENTITY(x=INT32, y=INT32)'
+            "attribute 'z' not found in schema: ENTITY(x=INT32, y=INT32)"
         ),
     ):
-      _ = kde.core.strict_attrs(o, z=1).eval()
+      _ = kd.core.strict_attrs(o, z=1)
 
-    o = kde.obj(x=1).eval()
+    o = kd.obj(x=1)
     with self.assertRaisesRegex(
         ValueError,
-        'kd.core.strict_attrs: x must have an Entity'
-        ' schema, actual schema: OBJECT',
+        re.escape('x must have an Entity schema, actual schema: OBJECT'),
     ):
-      _ = kde.core.strict_attrs(o, x=2).eval()
+      _ = kd.core.strict_attrs(o, x=2)
 
   def test_error_primitives(self):
     with self.assertRaisesRegex(
-        ValueError, 'primitives do not have attributes, got INT32'
+        ValueError, re.escape('primitives do not have attributes, got INT32')
     ):
-      _ = kde.core.strict_attrs(ds(0).with_bag(bag()), x=1).eval()
+      _ = kd.core.strict_attrs(ds(0).with_bag(bag()), x=1)
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'got SCHEMA DataItem with primitive INT32'
+        ValueError, re.escape('got SCHEMA DataItem with primitive INT32')
     ):
-      _ = kde.core.strict_attrs(
-          schema_constants.INT32.with_bag(bag()), x=1
-      ).eval()
+      _ = kd.core.strict_attrs(schema_constants.INT32.with_bag(bag()), x=1)
 
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError,
-        'the DataSlice is a reference without a bag',
+        ValueError, re.escape('the DataSlice is a reference without a bag')
     ):
-      _ = kde.core.strict_attrs(o, x=1).eval()
+      _ = kd.core.strict_attrs(o, x=1)
 
   def test_complex_type_conflict_error_message(self):
     o = bag().new(x=bag().new(y=2))
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            """kd.core.strict_attrs: the schema for attribute 'x' is incompatible.
+        re.escape("""the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': ENTITY(y=INT32)
-Assigned schema for 'x': ENTITY(z=INT32)"""
-        ),
+Assigned schema for 'x': ENTITY(z=INT32)"""),
     ):
-      _ = kde.core.strict_attrs(o, x=bag().new(z=3)).eval()
+      _ = kd.core.strict_attrs(o, x=bag().new(z=3))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

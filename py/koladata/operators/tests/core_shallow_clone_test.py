@@ -17,10 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -28,11 +27,12 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 class CoreShallowCloneTest(parameterized.TestCase):
@@ -41,7 +41,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     y = db.obj(x=42)
     x = db.obj(y=y)
-    result = expr_eval.eval(kde.shallow_clone(x))
+    result = kd.shallow_clone(x)
     testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -55,7 +55,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
-    result = expr_eval.eval(kde.shallow_clone(x))
+    result = kd.shallow_clone(x)
     testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -67,7 +67,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
-    result = expr_eval.eval(kde.shallow_clone(x))
+    result = kd.shallow_clone(x)
     testing.assert_equal(result.y.no_bag(), y.no_bag())
 
   @parameterized.product(
@@ -97,11 +97,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
       o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(
-          kde.core.shallow_clone(o_fb, schema=o_fb.get_schema())
-      )
+      result = kd.core.shallow_clone(o_fb, schema=o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.core.shallow_clone(o_fb))
+      result = kd.core.shallow_clone(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(
@@ -136,12 +134,12 @@ class CoreShallowCloneTest(parameterized.TestCase):
   def test_uu(self, noise_positioned_in_front, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list_ids = kd.ids.uuid_for_list(a=ds([1, 2, 3]))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
         itemid=b_list_ids,
     )
-    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict_ids = kd.ids.uuid_for_dict(a=ds(1))
     c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
     o = db.new(
         a=a_slice,
@@ -156,11 +154,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
       o_fb = o.enriched(fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(
-          kde.core.shallow_clone(o_fb, schema=o_fb.get_schema())
-      )
+      result = kd.core.shallow_clone(o_fb, schema=o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.core.shallow_clone(o_fb))
+      result = kd.core.shallow_clone(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(
@@ -190,9 +186,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
 
   def test_eval_nofollow(self):
     db = data_bag.DataBag.empty_mutable()
-    a_slice = expr_eval.eval(kde.nofollow(db.new(x=ds([1, 2, None]))))
+    a_slice = kd.nofollow(db.new(x=ds([1, 2, None])))
 
-    result = expr_eval.eval(kde.shallow_clone(a_slice))
+    result = kd.shallow_clone(a_slice)
 
     self.assertFalse(result.get_bag().is_mutable())
     self.assertFalse(data_bag.exactly_equal(result.get_bag(), db))
@@ -208,12 +204,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
   def test_with_empty_fallback(self):
     o = bag().new(a=ds([None]))
     o = o.enriched(bag())
-    _ = expr_eval.eval(kde.core.shallow_clone(o, schema=o.get_schema()))
+    _ = kd.core.shallow_clone(o, schema=o.get_schema())
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
-    res = kde.core.shallow_clone(x, z=bag().list([12]), t=bag().obj(b=5))
-    res = expr_eval.eval(res)
+    res = kd.core.shallow_clone(x, z=bag().list([12]), t=bag().obj(b=5))
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.y.no_bag(), x.y.no_bag())
     testing.assert_equal(res.z[:].no_bag(), ds([12]))
@@ -222,8 +217,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
   def test_with_schema_and_overrides(self):
     s = bag().new_schema(x=schema_constants.INT32)
     x = bag().obj(x=42, y='abc')
-    res = kde.core.shallow_clone(x, schema=s, z=12)
-    res = expr_eval.eval(res)
+    res = kd.core.shallow_clone(x, schema=s, z=12)
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
@@ -237,9 +231,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
-    ids = expr_eval.eval(kde.shallow_clone(x))
+    ids = kd.shallow_clone(x)
     testing.assert_equal(ids.y.no_bag(), y.no_bag())
-    result = expr_eval.eval(kde.shallow_clone(x, itemid=ids))
+    result = kd.shallow_clone(x, itemid=ids)
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_bag(), ids.no_bag())
     testing.assert_equal(result.y.no_bag(), y.no_bag())
@@ -251,8 +245,8 @@ class CoreShallowCloneTest(parameterized.TestCase):
     xlist = db.obj(db.list([x, x]))
     d = db.obj(db.dict({'b': xlist}))
     a = ds([x, y, xlist, d])
-    ids = expr_eval.eval(kde.shallow_clone(a))
-    result = expr_eval.eval(kde.shallow_clone(a, itemid=ids))
+    ids = kd.shallow_clone(a)
+    result = kd.shallow_clone(a, itemid=ids)
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_bag(), ids.no_bag())
 
@@ -263,7 +257,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'obj and itemid must have the same rank'
     ):
-      _ = expr_eval.eval(kde.shallow_clone(x, itemid=itemid))
+      _ = kd.shallow_clone(x, itemid=itemid)
 
   def test_wrong_itemid_type(self):
     db = data_bag.DataBag.empty_mutable()
@@ -273,18 +267,13 @@ class CoreShallowCloneTest(parameterized.TestCase):
         ValueError,
         'itemid must be of the same type as respective ObjectId from ds',
     ):
-      _ = expr_eval.eval(kde.shallow_clone(x, itemid=itemid))
+      _ = kd.shallow_clone(x, itemid=itemid)
 
   def test_non_determinism(self):
-    x = bag().new(y=bag().new(a=1))
-    res_1 = expr_eval.eval(kde.core.shallow_clone(x))
-    res_2 = expr_eval.eval(kde.core.shallow_clone(x))
-    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
-    testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
-
+    x = bag().new(y=bag().new(a=1)).freeze_bag()
     expr = kde.core.shallow_clone(x)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
 
@@ -294,12 +283,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
         schema_constants.OBJECT
     )
     schema.set_attr('__schema__', schema_constants.SCHEMA)
-    o = kde.stack(db.obj(x=1), schema)
+    o = kd.stack(db.obj(x=1), schema)
     with self.assertRaisesRegex(
-        ValueError,
-        'unsupported schema found during extract/clone',
+        ValueError, 'unsupported schema found during extract/clone'
     ):
-      expr_eval.eval(kde.shallow_clone(o))
+      kd.shallow_clone(o)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.shallow_clone(I.x)))

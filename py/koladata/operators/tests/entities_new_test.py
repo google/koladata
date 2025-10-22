@@ -16,9 +16,9 @@ import re
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,9 +30,12 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
@@ -50,10 +53,10 @@ QTYPES = list(generate_qtypes())
 class EntitiesNewTest(absltest.TestCase):
 
   def test_item(self):
-    x = kde.entities.new(
+    x = kd.entities.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
-    ).eval()
+    )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_allclose(
         x.a, ds(3.14, schema_constants.FLOAT64).with_bag(x.get_bag())
@@ -66,11 +69,11 @@ class EntitiesNewTest(absltest.TestCase):
     )
 
   def test_slice(self):
-    x = kde.entities.new(
+    x = kd.entities.new(
         a=ds([[1, 2], [3]]),
-        b=kde.entities.new(bb=ds([['a', 'b'], ['c']])),
+        b=kd.entities.new(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
-    ).eval()
+    )
     testing.assert_equal(x.a, ds([[1, 2], [3]]).with_bag(x.get_bag()))
     testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_bag(x.get_bag()))
     testing.assert_equal(
@@ -87,11 +90,11 @@ class EntitiesNewTest(absltest.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = kde.entities.new(
+    x = kd.entities.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
-    ).eval()
-    y = kde.entities.new(x=x).eval()
+    )
+    y = kd.entities.new(x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_allclose(
         y.x.a, ds(3.14, schema_constants.FLOAT64).with_bag(y.get_bag())
@@ -102,10 +105,8 @@ class EntitiesNewTest(absltest.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
-    x = kde.entities.new(a=42, itemid=itemid).eval()
+    itemid = kd.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    x = kd.entities.new(a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
@@ -113,7 +114,7 @@ class EntitiesNewTest(absltest.TestCase):
     schema = bag().new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
-    x = kde.entities.new(a=42, b='xyz', schema=schema).eval()
+    x = kd.entities.new(a=42, b='xyz', schema=schema)
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -127,12 +128,12 @@ class EntitiesNewTest(absltest.TestCase):
         b=schema_constants.STRING,
         nested=nested_schema,
     )
-    x = kde.entities.new(
+    x = kd.entities.new(
         a=42,
         b='xyz',
-        nested=kde.entities.new(p=b'0123', schema=nested_schema),
+        nested=kd.entities.new(p=b'0123', schema=nested_schema),
         schema=schema,
-    ).eval()
+    )
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -148,7 +149,7 @@ class EntitiesNewTest(absltest.TestCase):
     fallback_bag = bag()
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
-    x = kde.entities.new(a=42, b='xyz', schema=schema).eval()
+    x = kd.entities.new(a=42, b='xyz', schema=schema)
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -157,7 +158,7 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_schema_arg_implicit_casting(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
-    x = kde.entities.new(a=42, schema=schema).eval()
+    x = kd.entities.new(a=42, schema=schema)
     self.assertEqual(x.get_attr_names(intersection=True), ['a'])
     testing.assert_equal(
         x.a, ds(42, schema_constants.FLOAT32).with_bag(x.get_bag())
@@ -167,15 +168,13 @@ class EntitiesNewTest(absltest.TestCase):
   def test_schema_arg_implicit_casting_failure(self):
     schema = bag().new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError, r'schema for attribute \'a\' is incompatible'
+        ValueError, re.escape("schema for attribute 'a' is incompatible")
     ):
-      kde.entities.new(a='xyz', schema=schema).eval()
+      kd.entities.new(a='xyz', schema=schema)
 
   def test_schema_arg_overwrite_schema(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
-    x = kde.entities.new(
-        a=42, b='xyz', schema=schema, overwrite_schema=True
-    ).eval()
+    x = kd.entities.new(a=42, b='xyz', schema=schema, overwrite_schema=True)
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -184,9 +183,7 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_schema_arg_embed_schema(self):
     schema = bag().new_schema(a=schema_constants.OBJECT)
-    x = kde.entities.new(
-        a=kde.entities.new(p=42, q='xyz'), schema=schema
-    ).eval()
+    x = kd.entities.new(a=kd.entities.new(p=42, q='xyz'), schema=schema)
     self.assertEqual(x.get_attr_names(intersection=True), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
@@ -197,16 +194,16 @@ class EntitiesNewTest(absltest.TestCase):
     )
 
   def test_str_as_schema_arg(self):
-    x = kde.entities.new(schema='name', a=42).eval()
-    expected_schema = kde.named_schema('name').eval()
+    x = kd.entities.new(schema='name', a=42)
+    expected_schema = kd.named_schema('name')
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
     )
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_str_slice_as_schema_arg(self):
-    x = kde.entities.new(schema=ds('name'), a=42).eval()
-    expected_schema = kde.named_schema('name').eval()
+    x = kd.entities.new(schema=ds('name'), a=42)
+    expected_schema = kd.named_schema('name')
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
     )
@@ -214,51 +211,42 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
-        ValueError,
-        "schema's schema must be SCHEMA, got: INT32",
+        ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      kde.entities.new(a=1, schema=ds([1, 2, 3])).eval()
+      kd.entities.new(a=1, schema=ds([1, 2, 3]))
     with self.assertRaisesRegex(
-        ValueError,
-        "schema's schema must be SCHEMA, got: STRING",
+        ValueError, "schema's schema must be SCHEMA, got: STRING"
     ):
-      kde.entities.new(a=1, schema=ds(['name'])).eval()
+      kd.entities.new(a=1, schema=ds(['name']))
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
-      kde.entities.new(
+      kd.entities.new(
           a=1, schema=ds([schema_constants.INT32, schema_constants.STRING])
-      ).eval()
+      )
     with self.assertRaisesRegex(
-        ValueError, 'kd.entities.new: expected Entity schema, got INT32',
+        ValueError, 'kd.entities.new: expected Entity schema, got INT32'
     ):
-      kde.entities.new(a=1, schema=schema_constants.INT32).eval()
+      kd.entities.new(a=1, schema=schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError, 'kd.entities.new: expected Entity schema, got OBJECT',
+        ValueError, 'kd.entities.new: expected Entity schema, got OBJECT'
     ):
-      kde.entities.new(a=1, schema=schema_constants.OBJECT).eval()
+      kd.entities.new(a=1, schema=schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.entities.new: expected Entity schema, got LIST[INT32]')
+        re.escape('kd.entities.new: expected Entity schema, got LIST[INT32]'),
     ):
-      kde.entities.new(
-          a=1, schema=kde.list_schema(schema_constants.INT32)
-      ).eval()
+      kd.entities.new(a=1, schema=kd.list_schema(schema_constants.INT32))
 
   def test_converter_not_supported(self):
     with self.assertRaisesRegex(
         ValueError, 'please use eager only kd.eager.new'
     ):
-      _ = kde.entities.new(ds(42)).eval()
+      _ = kd.entities.new(ds(42))
 
   def test_non_determinism(self):
-    schema = bag().new_schema(a=schema_constants.INT32)
-    res_1 = expr_eval.eval(kde.entities.new(schema=schema, a=I.a), a=42)
-    res_2 = expr_eval.eval(kde.entities.new(schema=schema, a=I.a), a=42)
-    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
-    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
-
+    schema = bag().new_schema(a=schema_constants.INT32).freeze_bag()
     expr = kde.entities.new(schema=schema, a=42)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 

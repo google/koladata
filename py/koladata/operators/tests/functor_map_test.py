@@ -17,12 +17,12 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functions
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -31,8 +31,9 @@ from koladata.types import data_slice
 
 
 I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty_mutable
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 kdf = functions.functor
 
@@ -44,7 +45,7 @@ class MapTest(parameterized.TestCase):
     x = ds([[1, 2], [3, 4], [5, 6]])
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
+        kd.functor.map(fn, x=x, y=y),
         ds([[1 + 7, 2 + 8], [3 + 9, 4 + 10], [5 + 11, 6 + 12]]),
     )
 
@@ -52,7 +53,7 @@ class MapTest(parameterized.TestCase):
     x = ds([[1, 2], [3, 4], [5, 6]])
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
-        expr_eval.eval(kde.functor.map(lambda a, b: a + b, I.x, I.y), x=x, y=y),
+        kd.functor.map(lambda a, b: a + b, x, y),
         ds([[1 + 7, 2 + 8], [3 + 9, 4 + 10], [5 + 11, 6 + 12]]),
     )
 
@@ -60,50 +61,26 @@ class MapTest(parameterized.TestCase):
     fn = kdf.fn(I.x + I.y)
     x = ds(1)
     y = ds(2)
-    testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
-        ds(3),
-    )
+    testing.assert_equal(kd.functor.map(fn, x=x, y=y), ds(3))
 
   def test_include_missing(self):
     fn = kdf.fn((I.x | 0) + (I.y | 0))
     x = ds(None)
     y = ds(2)
+    testing.assert_equal(kd.functor.map(fn, x=x, y=y), ds(None))
+    testing.assert_equal(kd.functor.map(fn, x=y, y=x), ds(None))
     testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
-        ds(None),
+        kd.functor.map(fn, x=x, y=y, include_missing=False), ds(None)
     )
     testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=y, y=x),
-        ds(None),
-    )
-    testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y, include_missing=False),
-            fn=fn,
-            x=x,
-            y=y,
-        ),
-        ds(None),
-    )
-    testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y, include_missing=True),
-            fn=fn,
-            x=x,
-            y=y,
-        ),
-        ds(2),
+        kd.functor.map(fn, x=x, y=y, include_missing=True), ds(2)
     )
 
   def test_item_missing(self):
     fn = ds(None)
     x = ds(1)
     y = ds(2)
-    testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
-        ds(None),
-    )
+    testing.assert_equal(kd.functor.map(fn, x=x, y=y), ds(None))
 
   def test_per_item(self):
     def f(x):
@@ -112,75 +89,42 @@ class MapTest(parameterized.TestCase):
 
     x = ds([[1, 2], [3]])
     fn = kdf.fn(f, use_tracing=False)
-    testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x),
-        ds([[2, 3], [4]]),
-    )
+    testing.assert_equal(kd.functor.map(fn, x=x), ds([[2, 3], [4]]))
 
   def test_or_all_present(self):
     fn1 = kdf.fn(lambda x: x + 1)
     fn2 = kdf.fn(lambda x: x - 1)
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn1 & (I.x >= 3) | I.fn2, x=I.x),
-            fn1=fn1,
-            fn2=fn2,
-            x=x,
-        ),
-        ds([0, 1, 4, 5]),
+        kd.functor.map(fn1 & (x >= 3) | fn2, x=x), ds([0, 1, 4, 5])
     )
 
   def test_or_some_missing(self):
     fn = kdf.fn(lambda x: x + 1)
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn & (I.x >= 3), x=I.x),
-            fn=fn,
-            x=x,
-        ),
-        ds([None, None, 4, 5]),
+        kd.functor.map(fn & (x >= 3), x=x), ds([None, None, 4, 5])
     )
 
   def test_or_with_default(self):
     fn = kdf.fn(lambda x: (x + 1) | 1)
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x & (I.x >= 3), include_missing=True),
-            fn=fn,
-            x=x,
-        ),
+        kd.functor.map(fn, x=x & (x >= 3), include_missing=True),
         ds([1, 1, 4, 5]),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x & (I.x >= 3), include_missing=False),
-            fn=fn,
-            x=x,
-        ),
+        kd.functor.map(fn, x=x & (x >= 3), include_missing=False),
         ds([None, None, 4, 5]),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x & (I.x >= 3)),
-            fn=fn,
-            x=x,
-        ),
-        ds([None, None, 4, 5]),
+        kd.functor.map(fn, x=x & (x >= 3)), ds([None, None, 4, 5])
     )
 
   def test_empty_output(self):
     fn = kdf.fn(lambda x: x + 1)
-    testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=ds([])),
-        ds([]),
-    )
-    testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=ds([None])),
-        ds([None]),
-    )
+    testing.assert_equal(kd.functor.map(fn, x=ds([])), ds([]))
+    testing.assert_equal(kd.functor.map(fn, x=ds([None])), ds([None]))
 
   def test_different_shapes(self):
     fn1 = kdf.fn(lambda x, y: x + y)
@@ -188,27 +132,18 @@ class MapTest(parameterized.TestCase):
     x = ds([[1, None, 3], [4, 5, 6]])
     y = ds(1)
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y), fn=ds([fn1, fn2]), x=x, y=y
-        ),
+        kd.functor.map(ds([fn1, fn2]), x=x, y=y),
         ds([[2, None, 4], [3, 4, 5]]),
     )
 
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y), fn=ds([fn1, None]), x=x, y=y
-        ),
+        kd.functor.map(ds([fn1, None]), x=x, y=y),
         ds([[2, None, 4], [None, None, None]]),
     )
 
     # Even with include_missing=True, the missing functor is not called.
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, include_missing=True, x=I.x, y=I.y),
-            fn=ds([fn1, None]),
-            x=x,
-            y=y,
-        ),
+        kd.functor.map(ds([fn1, None]), include_missing=True, x=x, y=y),
         ds([[2, None, 4], [None, None, None]]),
     )
 
@@ -220,30 +155,34 @@ class MapTest(parameterized.TestCase):
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        r'the functor is expected to be evaluated to a DataItem, but the result'
-        r' has shape: JaggedShape\(2\)',
+        re.escape(
+            'the functor is expected to be evaluated to a DataItem, but the'
+            ' result has shape: JaggedShape(2)'
+        ),
     ):
-      _ = expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x)
+      _ = kd.functor.map(fn, x=x)
 
   def test_return_bag(self):
     def f(unused_x):
-      return bag()
+      return data_bag.DataBag.empty()
 
     x = ds([1, 2, 3])
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        'the functor is expected to be evaluated to a DataItem, but the result'
-        ' has type `DATA_BAG` instead',
+        re.escape(
+            'the functor is expected to be evaluated to a DataItem, but the'
+            ' result has type `DATA_BAG` instead',
+        ),
     ):
-      _ = expr_eval.eval(kde.functor.map(I.fn, unused_x=I.x), fn=fn, x=x)
+      _ = kd.functor.map(fn, unused_x=x)
 
   def test_adoption(self):
     fn = kdf.fn(kde.obj(x=I.x + 1))
     x = ds([1, 2, 3])
     testing.assert_equal(
-        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x).x.no_bag(),
-        ds([2, 3, 4]),
+        kd.functor.map(fn, x=x).x.no_bag(),
+        ds([2, 3, 4])
     )
 
   def test_incompatible_shapes(self):
@@ -257,7 +196,7 @@ class MapTest(parameterized.TestCase):
             'shapes are not compatible: JaggedShape(2) vs JaggedShape(3, 2)'
         ),
     ):
-      _ = expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y)
+      _ = kd.functor.map(fn, x=x, y=y)
 
   def test_common_schema(self):
     fn1 = kdf.fn(lambda x: x.foo)
@@ -265,21 +204,12 @@ class MapTest(parameterized.TestCase):
     fn = ds([fn1, fn2])
     x = fns.new(foo=ds([1, 2]), bar=ds(['3', '4']))
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x),
-            fn=fn,
-            x=x,
-        ),
-        ds([1, '4']).with_bag(x.get_bag()),
+        kd.functor.map(fn, x=x), ds([1, '4']).with_bag(x.get_bag())
     )
 
     y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
-      _ = expr_eval.eval(
-          kde.functor.map(I.fn, x=I.x),
-          fn=fn,
-          x=y,
-      )
+      _ = kd.functor.map(fn, x=y)
 
   def test_cancellable(self):
     expr = kde.functor.map(
@@ -288,11 +218,11 @@ class MapTest(parameterized.TestCase):
     )
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
-      expr_eval.eval(expr, x=x)
+      expr.eval(x=x)
 
   def test_non_functor_input_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
+        ValueError, re.escape('expected a functor DATA_SLICE, got fn: INT32')
     ):
       kde.functor.map(arolla.int32(1))
 

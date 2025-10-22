@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -29,8 +29,11 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, DATA_SLICE),
@@ -52,7 +55,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
       ),
   )
   def test_call_with_functor(self, maybe_fn, arg, expected):
-    result = expr_eval.eval(kde.functor._maybe_call(maybe_fn, arg))
+    result = kd.functor._maybe_call(maybe_fn, arg)
     testing.assert_equal(result, expected)
 
   def test_call_with_error(self):
@@ -65,7 +68,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
             'primitives do not have attributes'
         ),
     ):
-      expr_eval.eval(kde.functor._maybe_call(f, data))
+      kd.functor._maybe_call(f, data)
 
     f = functor_factories.expr_fn(I.self.get_bag())
     entity = data_bag.DataBag.empty_mutable().new()
@@ -76,49 +79,42 @@ class FunctorMaybeCallTest(parameterized.TestCase):
             ' result has type `DATA_BAG` instead'
         ),
     ):
-      expr_eval.eval(kde.functor._maybe_call(f, entity))
+      kd.functor._maybe_call(f, entity)
 
     db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError, re.escape('expected DATA_SLICE, got arg: DATA_BAG')
     ):
-      expr_eval.eval(kde.functor._maybe_call(f, db))
+      kd.functor._maybe_call(f, db)
 
   def test_non_determinism(self):
     fn = functor_factories.fn(kde.new(x=I.self, schema='new'))
     x = ds(42)
 
-    expr = kde.tuples.tuple(
-        kde.functor._maybe_call(fn, x), kde.functor._maybe_call(fn, x)
+    res = kd.tuples.tuple(
+        kd.functor._maybe_call(fn, x), kd.functor._maybe_call(fn, x)
     )
-    res = expr_eval.eval(expr)
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
     testing.assert_equal(res[0].x.no_bag(), res[1].x.no_bag())
 
-    expr = kde.functor._maybe_call(fn, x)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = kd.functor._maybe_call(fn, x)
+    res_2 = kd.functor._maybe_call(fn, x)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.x.no_bag(), res_2.x.no_bag())
 
   def test_cancellable(self):
-    expr = kde.functor._maybe_call(
-        functor_factories.expr_fn(
-            arolla.M.core._identity_with_cancel(I.self, 'cancelled')
-        ),
-        I.x,
+    fn = functor_factories.expr_fn(
+        arolla.M.core._identity_with_cancel(I.self, 'cancelled')
     )
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
-      expr_eval.eval(expr, x=x)
+      kd.functor._maybe_call(fn, x)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.functor._maybe_call,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.functor._maybe_call,
         QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

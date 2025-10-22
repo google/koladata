@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -27,13 +26,14 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
-DATA_BAG = qtypes.DATA_BAG
 
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+DATA_BAG = qtypes.DATA_BAG
+DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_BAG),
@@ -52,7 +52,7 @@ class CoreMetadataTest(absltest.TestCase):
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
-    metadata_update = expr_eval.eval(kde.core.metadata(x, text=ds(['foo', 1])))
+    metadata_update = kd.core.metadata(x, text=ds(['foo', 1]))
     updated_x = x.updated(metadata_update)
 
     values = updated_x.get_attr('__schema_metadata__').get_attr('text')
@@ -63,12 +63,10 @@ class CoreMetadataTest(absltest.TestCase):
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
-    metadata_update = expr_eval.eval(kde.core.metadata(x, text=ds(['foo', 1])))
+    metadata_update = kd.core.metadata(x, text=ds(['foo', 1]))
     x = x.updated(metadata_update)
 
-    metadata_update = expr_eval.eval(
-        kde.core.metadata(x, name=ds(['s1', 's2']))
-    )
+    metadata_update = kd.core.metadata(x, name=ds(['s1', 's2']))
     x = x.updated(metadata_update)
 
     values_text = x.get_attr('__schema_metadata__').get_attr('text')
@@ -76,7 +74,7 @@ class CoreMetadataTest(absltest.TestCase):
     values_name = x.get_attr('__schema_metadata__').get_attr('name')
     testing.assert_equal(values_name, ds(['s1', 's2']).with_bag(x.get_bag()))
 
-    metadata_update = expr_eval.eval(kde.core.metadata(x, text=ds(['bar', 2])))
+    metadata_update = kd.core.metadata(x, text=ds(['bar', 2]))
     x = x.updated(metadata_update)
 
     values_text = x.get_attr('__schema_metadata__').get_attr('text')
@@ -90,10 +88,7 @@ class CoreMetadataTest(absltest.TestCase):
         'failed to create metadata; cannot create for a DataSlice with ITEMID '
         'schema',
     ):
-      expr_eval.eval(
-          kde.core.metadata(ds([None], schema_constants.ITEMID)),
-          text=ds(['foo']),
-      )
+      kd.core.metadata(ds([None], schema_constants.ITEMID), text=ds(['foo']))
     with self.assertRaisesRegex(
         ValueError,
         r'failed to create metadata; cannot create for a DataSlice with'
@@ -101,24 +96,18 @@ class CoreMetadataTest(absltest.TestCase):
     ):
       db = fns.mutable_bag()
       schema = db.new_schema(x=schema_constants.INT32)
-      expr_eval.eval(
-          kde.core.metadata(ds([None], schema)),
-          text=ds(['foo']),
-      )
+      kd.core.metadata(ds([None], schema), text=ds(['foo']))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.core.metadata,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.core.metadata,
         QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.metadata(I.x, a=I.y)),
-        'kd.core.metadata(I.x, a=I.y)',
+        repr(kde.core.metadata(I.x, a=I.y)), 'kd.core.metadata(I.x, a=I.y)'
     )
 
   def test_view(self):

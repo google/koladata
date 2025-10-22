@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -27,8 +26,9 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -44,9 +44,9 @@ class CoreGetMetadataTest(absltest.TestCase):
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
-    updated_x = expr_eval.eval(kde.core.with_metadata(x, text=ds(['foo', 1])))
+    updated_x = kd.core.with_metadata(x, text=ds(['foo', 1]))
 
-    values = expr_eval.eval(kde.core.get_metadata(updated_x))
+    values = kd.core.get_metadata(updated_x)
     testing.assert_equal(values.get_attr('text').no_bag(), ds(['foo', 1]))
 
   def test_error(self):
@@ -54,10 +54,7 @@ class CoreGetMetadataTest(absltest.TestCase):
         ValueError,
         'failed to get metadata; cannot get for a DataSlice with ITEMID schema',
     ):
-      expr_eval.eval(
-          kde.core.get_metadata(ds([None], schema_constants.ITEMID)),
-          text=ds(['foo']),
-      )
+      kd.core.get_metadata(ds([None], schema_constants.ITEMID))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

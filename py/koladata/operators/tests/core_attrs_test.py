@@ -18,6 +18,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,12 +29,14 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 DATA_BAG = qtypes.DATA_BAG
-
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_BAG),
@@ -49,14 +52,14 @@ QTYPES = frozenset([
 class CoreAttrsTest(absltest.TestCase):
 
   def test_multi_attr_overwrite(self):
-    o = kde.new(x=1, y=10).eval()
+    o = kd.new(x=1, y=10)
     with self.assertRaisesRegex(
         ValueError, "the schema for attribute 'x' is incompatible."
     ):
-      _ = kde.core.attrs(o, x='2').eval()
-    db2 = kde.core.attrs(
+      _ = kd.core.attrs(o, x='2')
+    db2 = kd.core.attrs(
         o, x='2', a=1, b='p', c=bag().list([1, 2]), overwrite_schema=True
-    ).eval()
+    )
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
     testing.assert_equal(o.x.no_bag(), ds(1))
@@ -81,7 +84,7 @@ class CoreAttrsTest(absltest.TestCase):
 
   def test_multi_attr_overwrite_object_schema(self):
     o = bag().obj(x=1, y=10)
-    db2 = kde.core.attrs(o, x='2', a=1, b='p', c=bag().list([1, 2])).eval()
+    db2 = kd.core.attrs(o, x='2', a=1, b='p', c=bag().list([1, 2]))
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
     testing.assert_equal(o.x.no_bag(), ds(1))
@@ -105,64 +108,62 @@ class CoreAttrsTest(absltest.TestCase):
     )
 
   def test_entity_as_obj_conflict(self):
-    o = kde.stack(
+    o = kd.stack(
         bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
-    ).eval()
+    )
     with self.assertRaisesRegex(
-        ValueError,
-        "kd.core.attrs: the schema for attribute 'x' is"
-        ' incompatible',
+        ValueError, re.escape("the schema for attribute 'x' is incompatible")
     ):
-      _ = kde.core.attrs(o, x='2').eval()
-    db2 = kde.core.attrs(o, x='2', overwrite_schema=True).eval()
+      _ = kd.core.attrs(o, x='2')
+    db2 = kd.core.attrs(o, x='2', overwrite_schema=True)
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
 
   def test_attr_update_implicit_casting(self):
-    o = kde.new(x=3.14).eval()
-    db = kde.core.attrs(o, x=42).eval()
+    o = kd.new(x=3.14)
+    db = kd.core.attrs(o, x=42)
     testing.assert_equal(o.updated(db).x.no_bag(), ds(42.0))
 
   def test_empty_slice(self):
-    entity = kde.new_like(ds([])).eval()
-    db = kde.core.attrs(entity, x=ds([], schema_constants.OBJECT)).eval()
+    entity = kd.new_like(ds([]))
+    db = kd.core.attrs(entity, x=ds([], schema_constants.OBJECT))
     expected_db = bag()
     expected_db[entity.get_schema()].x = schema_constants.OBJECT
     testing.assert_equivalent(db, expected_db)
 
-    db = kde.core.attrs(kde.obj_like(ds([])), x=ds([])).eval()
+    db = kd.core.attrs(kd.obj_like(ds([])), x=ds([]))
     testing.assert_equivalent(db, bag())
 
   def test_empty_item(self):
-    entity = kde.new_like(ds(None)).eval()
-    db = kde.core.attrs(entity, x=42).eval()
+    entity = kd.new_like(ds(None))
+    db = kd.core.attrs(entity, x=42)
     expected_db = bag()
     expected_db[entity.get_schema()].x = schema_constants.INT32
     testing.assert_equivalent(db, expected_db)
 
-    db = kde.core.attrs(kde.obj_like(ds(None)), x=42).eval()
+    db = kd.core.attrs(kd.obj_like(ds(None)), x=42)
     testing.assert_equivalent(db, bag())
 
   def test_non_bool_overwrite_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
         ValueError,
-        'kd.core.attrs: argument `overwrite_schema` must'
-        ' be an item holding BOOLEAN, got an item of INT32',
+        'argument `overwrite_schema` must be an item holding BOOLEAN, got an'
+        ' item of INT32',
     ):
-      kde.core.attrs(o, x=2, overwrite_schema=1).eval()
+      kd.core.attrs(o, x=2, overwrite_schema=1)
     with self.assertRaisesRegex(
         ValueError,
-        'kd.core.attrs: argument `overwrite_schema` must'
-        ' be an item holding BOOLEAN, got a slice of rank 1 > 0',
+        'argument `overwrite_schema` must be an item holding BOOLEAN, got a'
+        ' slice of rank 1 > 0',
     ):
-      kde.core.attrs(o, x=2, overwrite_schema=ds([True])).eval()
+      kd.core.attrs(o, x=2, overwrite_schema=ds([True]))
 
   def test_complex_type_conflict_error_message(self):
     o = bag().new(x=bag().new(y=2))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            """kd.core.attrs: the schema for attribute 'x' is incompatible.
+            """the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': ENTITY(y=INT32)
 Assigned schema for 'x': ENTITY(z=INT32)
@@ -170,34 +171,32 @@ Assigned schema for 'x': ENTITY(z=INT32)
 To fix this, explicitly override schema of 'x' in the original schema by passing overwrite_schema=True."""
         ),
     ):
-      _ = kde.core.attrs(o, x=bag().new(z=3)).eval()
+      _ = kd.core.attrs(o, x=bag().new(z=3))
 
   def test_error_primitives(self):
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes, got INT32'
     ):
-      _ = kde.core.attrs(ds(0).with_bag(bag()), x=1).eval()
+      _ = kd.core.attrs(ds(0).with_bag(bag()), x=1)
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
         ValueError, 'got SCHEMA DataItem with primitive INT32'
     ):
-      _ = kde.core.attrs(schema_constants.INT32.with_bag(bag()), x=1).eval()
+      _ = kd.core.attrs(schema_constants.INT32.with_bag(bag()), x=1)
 
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError, 'the DataSlice is a reference without a bag',
+        ValueError, 'the DataSlice is a reference without a bag'
     ):
-      _ = kde.core.attrs(o, x=1).eval()
+      _ = kd.core.attrs(o, x=1)
 
   def test_schema_works(self):
     o = bag().new_schema()
-    db = kde.core.attrs(o, x=schema_constants.INT32).eval()
+    db = kd.core.attrs(o, x=schema_constants.INT32)
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
-    db = kde.core.attrs(
-        o, x=schema_constants.INT32, overwrite_schema=True
-    ).eval()
+    db = kd.core.attrs(o, x=schema_constants.INT32, overwrite_schema=True)
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
 
   def test_qtype_signatures(self):

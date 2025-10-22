@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -27,11 +27,13 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty_mutable
-DATA_SLICE = qtypes.DATA_SLICE
 
+bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
+DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([(DATA_SLICE, DATA_SLICE)])
 
@@ -47,7 +49,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
     y.set_attr('b', 2)
     z = x.enriched(db2)
 
-    new_z = expr_eval.eval(kde.core.with_merged_bag(z))
+    new_z = kd.core.with_merged_bag(z)
     self.assertIsNot(new_z.get_bag(), db1)
     self.assertIsNot(new_z.get_bag(), db2)
     self.assertIsNot(new_z.get_bag(), z.get_bag())
@@ -61,7 +63,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
         'kd.core.with_merged_bag: expect the DataSlice to have a DataBag'
         ' attached',
     ):
-      expr_eval.eval(kde.core.with_merged_bag(ds(1)))
+      kd.core.with_merged_bag(ds(1))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
@@ -75,9 +77,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(
-            kde.core.with_merged_bag, kde.with_merged_bag
-        )
+        optools.equiv_to_op(kde.core.with_merged_bag, kde.with_merged_bag)
     )
 
 

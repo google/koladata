@@ -16,6 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -26,6 +27,8 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -47,8 +50,8 @@ class CoreExtractBagTest(absltest.TestCase):
     db = data_bag.DataBag.empty_mutable()
     o1 = db.implode(db.new(c=ds(['foo', 'bar', 'baz'])))
     o2 = db.implode(o1[0:2])
-    bag1 = kde.extract_bag(o1).eval()
-    bag2 = kde.extract_bag(o2).eval()
+    bag1 = kd.extract_bag(o1)
+    bag2 = kd.extract_bag(o2)
     self.assertFalse(bag1.is_mutable())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(
@@ -67,10 +70,10 @@ class CoreExtractBagTest(absltest.TestCase):
   def test_separate_schema(self):
     db = data_bag.DataBag.empty_mutable()
     o1 = db.implode(db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz'])))
-    new_schema = kde.list_schema(
-        kde.named_schema('test', b=schema_constants.INT32)
-    ).eval()
-    bag2 = kde.extract_bag(o1, new_schema).eval()
+    new_schema = kd.list_schema(
+        kd.named_schema('test', b=schema_constants.INT32)
+    )
+    bag2 = kd.extract_bag(o1, new_schema)
     o2 = o1.with_bag(bag2).with_schema(new_schema.no_bag())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(o2[:].b, ds([1, None, 2]).with_bag(bag2))
@@ -80,7 +83,7 @@ class CoreExtractBagTest(absltest.TestCase):
     ):
       _ = o2[:].c
     testing.assert_equal(
-        o2[:].get_schema(), kde.named_schema('test').eval().with_bag(bag2)
+        o2[:].get_schema(), kd.named_schema('test').with_bag(bag2)
     )
 
   def test_qtype_signatures(self):

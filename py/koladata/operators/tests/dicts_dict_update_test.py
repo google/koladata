@@ -15,10 +15,10 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,12 +29,14 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 DATA_BAG = qtypes.DATA_BAG
-
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, DATA_BAG),
@@ -52,18 +54,14 @@ class DictsDictUpdateTest(parameterized.TestCase):
         ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
-      _ = expr_eval.eval(
-          kde.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-      )
+      _ = kd.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
 
-    db2 = expr_eval.eval(kde.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
+    db2 = kd.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10]))
     testing.assert_equivalent(
-        x1.updated(db2),
-        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
+        x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
     testing.assert_equivalent(
-        x1.with_bag(db2),
-        fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
+        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
     )
 
   def test_eval_keys_values_slice_broadcast(self):
@@ -72,7 +70,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
         fns.dict(ds([7, 8]), ds([9, 10])),
     ])
 
-    db2 = expr_eval.eval(kde.dict_update(x1, ds(1), ds(2)))
+    db2 = kd.dict_update(x1, ds(1), ds(2))
     testing.assert_equivalent(
         x1.updated(db2),
         ds([
@@ -94,9 +92,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
         fns.dict(ds([7, 8]), ds([9, 10])),
     ])
 
-    db2 = expr_eval.eval(
-        kde.dict_update(x1, ds([[1, 3, 7], [1, 2]]), ds([[8, 9, 10], [2, 1]]))
-    )
+    db2 = kd.dict_update(x1, ds([[1, 3, 7], [1, 2]]), ds([[8, 9, 10], [2, 1]]))
     testing.assert_equivalent(
         x1.updated(db2),
         ds([
@@ -119,9 +115,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
         key_schema=schema_constants.OBJECT,
         value_schema=schema_constants.OBJECT,
     )
-    db2 = expr_eval.eval(
-        kde.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-    )
+    db2 = kd.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
     testing.assert_equivalent(
         x1.updated(db2),
         fns.dict(ds([1, 2, 3, 'x']), ds([8, 5, 'y', 'z'])),
@@ -138,11 +132,9 @@ class DictsDictUpdateTest(parameterized.TestCase):
         ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
-      _ = expr_eval.eval(
-          kde.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
-      )
+      _ = kd.dict_update(x1, ds([1, 3, 'x']), ds([8, 'y', 'z']))
 
-    db2 = expr_eval.eval(kde.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10])))
+    db2 = kd.dict_update(x1, ds([1, 3, 7]), ds([8, 9, 10]))
     testing.assert_equivalent(
         x1.updated(db2),
         fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
@@ -156,29 +148,21 @@ class DictsDictUpdateTest(parameterized.TestCase):
 
   def test_eval_dicts(self):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))
-    db2 = expr_eval.eval(
-        kde.dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
+    db2 = kd.dict_update(x1, fns.dict(ds([1, 3, 7]), ds([8, 9, 10])))
+    testing.assert_equivalent(
+        x1.updated(db2), fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10]))
     )
     testing.assert_equivalent(
-        x1.updated(db2),
-        fns.dict(ds([1, 2, 3, 7]), ds([8, 5, 9, 10])),
-    )
-    testing.assert_equivalent(
-        x1.with_bag(db2),
-        fns.dict(ds([1, 3, 7]), ds([8, 9, 10])),
+        x1.with_bag(db2), fns.dict(ds([1, 3, 7]), ds([8, 9, 10]))
     )
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
-      _ = kde.dicts.dict_update(
-          ds(0).with_bag(bag()), fns.dict({'x': 1})
-      ).eval()
+      _ = kd.dicts.dict_update(ds(0).with_bag(bag()), fns.dict({'x': 1}))
 
   def test_error_not_dict_embedded_schema(self):
     with self.assertRaisesRegex(ValueError, 'expected a DataSlice of dicts'):
-      _ = expr_eval.eval(
-          kde.dicts.dict_update(bag().obj(x=1), fns.dict({'x': 1}))
-      )
+      _ = kd.dicts.dict_update(bag().obj(x=1), fns.dict({'x': 1}))
 
   def test_error_no_databag(self):
     o = fns.new(x=1).no_bag()
@@ -186,7 +170,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
         ValueError,
         'cannot update a DataSlice of dicts without a DataBag',
     ):
-      _ = kde.dicts.dict_update(o, fns.dict({'x': 1})).eval()
+      _ = kd.dicts.dict_update(o, fns.dict({'x': 1}))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

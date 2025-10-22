@@ -16,9 +16,9 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,13 +31,15 @@ from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
-
 
 QTYPE_SIGNATURES = list(
     (JAGGED_SHAPE, *args, NON_DETERMINISTIC_TOKEN, DATA_SLICE)
@@ -79,35 +81,25 @@ class DictShapedTest(parameterized.TestCase):
       ),
   )
   def test_value(self, shape, kwargs):
-    actual = expr_eval.eval(kde.dicts.shaped(shape, **kwargs))
+    actual = kd.dicts.shaped(shape, **kwargs)
     expected = bag().dict_shaped(shape, **kwargs)
     testing.assert_equivalent(actual, expected)
 
   def test_keys_values(self):
     keys = ds(['a', 'b'])
     values = ds([3, 7])
-    actual = expr_eval.eval(
-        kde.dicts.shaped(
-            jagged_shape.create_shape([2]),
-            keys,
-            values,
-        )
-    )
-    expected = bag().dict_shaped(
-        jagged_shape.create_shape([2]),
-        keys,
-        values,
-    )
+    actual = kd.dicts.shaped(jagged_shape.create_shape([2]), keys, values)
+    expected = bag().dict_shaped(jagged_shape.create_shape([2]), keys, values)
     testing.assert_equivalent(actual, expected)
 
   def test_db_is_immutable(self):
-    d = expr_eval.eval(kde.dicts.shaped(jagged_shape.create_shape()))
+    d = kd.dicts.shaped(jagged_shape.create_shape())
     self.assertFalse(d.is_mutable())
 
   def test_adopt_values(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dct = kde.dicts.new('a', 7).eval()
-    dct2 = kde.dicts.shaped(shape, 'obj', dct).eval()
+    dct = kd.dicts.new('a', 7)
+    dct2 = kd.dicts.shaped(shape, 'obj', dct)
 
     testing.assert_equal(
         dct2['obj']['a'],
@@ -116,10 +108,10 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dict_schema = kde.schema.dict_schema(
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
-    ).eval()
-    dct = kde.dicts.shaped(shape, schema=dict_schema).eval()
+    dict_schema = kd.schema.dict_schema(
+        schema_constants.STRING, kd.uu_schema(a=schema_constants.INT32)
+    )
+    dct = kd.dicts.shaped(shape, schema=dict_schema)
 
     testing.assert_equal(
         dct[ds(None)].a.no_bag(),
@@ -128,46 +120,37 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'expected JAGGED_SHAPE, got shape: DATA_SLICE',
+        ValueError, 'expected JAGGED_SHAPE, got shape: DATA_SLICE'
     ):
-      expr_eval.eval(kde.dicts.shaped(ds(123)))
+      kd.dicts.shaped(ds(123))
 
   def test_only_keys_arg_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a dict requires both keys and values, got only keys',
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(jagged_shape.create_shape([2]), keys=ds(['a', 'b']))
-      )
+      kd.dicts.shaped(jagged_shape.create_shape([2]), keys=ds(['a', 'b']))
 
   def test_only_values_arg_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'creating a dict requires both keys and values, got only values',
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(jagged_shape.create_shape([2]), values=ds([3, 7]))
-      )
+      kd.dicts.shaped(jagged_shape.create_shape([2]), values=ds([3, 7]))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              keys=ds([1, 2, 3]),
-              values=ds([4, 5, 6]),
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          keys=ds([1, 2, 3]),
+          values=ds([4, 5, 6]),
       )
 
   def test_schema_arg_error(self):
     with self.assertRaisesRegex(ValueError, 'expected Dict schema, got INT64'):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              schema=schema_constants.INT64,
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          schema=schema_constants.INT64,
       )
 
   def test_both_schema_and_key_schema_error(self):
@@ -176,14 +159,12 @@ class DictShapedTest(parameterized.TestCase):
         'creating dicts with schema accepts either a dict schema or key/value'
         ' schemas, but not both',
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              key_schema=schema_constants.INT64,
-              schema=kde.dict_schema(
-                  schema_constants.INT64, schema_constants.OBJECT
-              ),
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          key_schema=schema_constants.INT64,
+          schema=kd.dict_schema(
+              schema_constants.INT64, schema_constants.OBJECT
+          ),
       )
 
   def test_both_schema_and_value_schema_error(self):
@@ -192,14 +173,12 @@ class DictShapedTest(parameterized.TestCase):
         'creating dicts with schema accepts either a dict schema or key/value'
         ' schemas, but not both',
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              value_schema=schema_constants.INT64,
-              schema=kde.dict_schema(
-                  schema_constants.INT64, schema_constants.OBJECT
-              ),
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          value_schema=schema_constants.INT64,
+          schema=kd.dict_schema(
+              schema_constants.INT64, schema_constants.OBJECT
+          ),
       )
 
   def test_wrong_arg_types(self):
@@ -207,15 +186,15 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.shaped(shape, key_schema=42))
+      kd.dicts.shaped(shape, key_schema=42)
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.shaped(shape, value_schema=42))
+      kd.dicts.shaped(shape, value_schema=42)
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      expr_eval.eval(kde.dicts.shaped(shape, schema=42))
+      kd.dicts.shaped(shape, schema=42)
 
   def test_key_schema_errors(self):
     with self.assertRaisesRegex(
@@ -225,13 +204,11 @@ class DictShapedTest(parameterized.TestCase):
 Expected schema for keys: INT32
 Assigned schema for keys: STRING""",
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              keys=ds(['a', 'b']),
-              values=ds([3, 7]),
-              key_schema=schema_constants.INT32,
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          keys=ds(['a', 'b']),
+          values=ds([3, 7]),
+          key_schema=schema_constants.INT32,
       )
 
   def test_value_schema_errors(self):
@@ -242,13 +219,11 @@ Assigned schema for keys: STRING""",
 Expected schema for values: STRING
 Assigned schema for values: INT32""",
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              keys=ds(['a', 'b']),
-              values=ds([3, 7]),
-              value_schema=schema_constants.STRING,
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          keys=ds(['a', 'b']),
+          values=ds([3, 7]),
+          value_schema=schema_constants.STRING,
       )
 
   def test_schema_errors(self):
@@ -259,31 +234,22 @@ Assigned schema for values: INT32""",
 Expected schema for keys: INT64
 Assigned schema for keys: STRING""",
     ):
-      expr_eval.eval(
-          kde.dicts.shaped(
-              jagged_shape.create_shape([2], [2, 1]),
-              keys=ds(['a', 'b']),
-              values=ds([3, 7]),
-              schema=kde.dict_schema(
-                  schema_constants.INT64, schema_constants.OBJECT
-              ),
-          )
+      kd.dicts.shaped(
+          jagged_shape.create_shape([2], [2, 1]),
+          keys=ds(['a', 'b']),
+          values=ds([3, 7]),
+          schema=kd.dict_schema(
+              schema_constants.INT64, schema_constants.OBJECT
+          ),
       )
 
   def test_non_determinism(self):
     shape = jagged_shape.create_shape([2], [2, 1])
-    keys = ds([2, 3])
-    values = ds([3, 7])
-    res_1 = expr_eval.eval(kde.dicts.shaped(shape, keys=keys, values=values))
-    res_2 = expr_eval.eval(kde.dicts.shaped(shape, keys=keys, values=values))
-    self.assertNotEqual(
-        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
-    )
-    testing.assert_equivalent(res_1, res_2)
-
+    keys = ds([2, 3]).freeze_bag()
+    values = ds([3, 7]).freeze_bag()
     expr = kde.dicts.shaped(shape, keys=keys, values=values)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )

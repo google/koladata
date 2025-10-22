@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -26,9 +26,11 @@ from koladata.types import data_slice
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 class CoreCloneTest(parameterized.TestCase):
@@ -40,9 +42,9 @@ class CoreCloneTest(parameterized.TestCase):
     b_slice = bag().new(a=ds([1, None, 2]))
     o = bag().obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
+      result = kd.clone(o, schema=o.get_schema())
     else:
-      result = expr_eval.eval(kde.clone(o))
+      result = kd.clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -61,9 +63,9 @@ class CoreCloneTest(parameterized.TestCase):
     a_slice = bag().obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o = bag().implode(a_slice)
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
+      result = kd.clone(o, schema=o.get_schema())
     else:
-      result = expr_eval.eval(kde.clone(o))
+      result = kd.clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -79,9 +81,9 @@ class CoreCloneTest(parameterized.TestCase):
     keys = ds([0, 1, 2])
     o = bag().dict(keys, values)
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
+      result = kd.clone(o, schema=o.get_schema())
     else:
-      result = expr_eval.eval(kde.clone(o))
+      result = kd.clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -95,9 +97,9 @@ class CoreCloneTest(parameterized.TestCase):
     b_slice = bag().new(a=ds([1, None, 2]))
     o = bag().new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
+      result = kd.clone(o, schema=o.get_schema())
     else:
-      result = expr_eval.eval(kde.clone(o))
+      result = kd.clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -118,9 +120,9 @@ class CoreCloneTest(parameterized.TestCase):
     fb = bag().new(a=a_slice.no_bag(), c=ds([1, None, 2]))
     o = o.enriched(fb.get_bag())
     if pass_schema:
-      result = expr_eval.eval(kde.clone(o, schema=o.get_schema()))
+      result = kd.clone(o, schema=o.get_schema())
     else:
-      result = expr_eval.eval(kde.clone(o))
+      result = kd.clone(o)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -138,12 +140,12 @@ class CoreCloneTest(parameterized.TestCase):
   def test_uu(self, noise_positioned_in_front, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     a_slice = db.uuobj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    b_list_ids = expr_eval.eval(kde.ids.uuid_for_list(a=ds([1, 2, 3])))
+    b_list_ids = kd.ids.uuid_for_list(a=ds([1, 2, 3]))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]])),
         itemid=b_list_ids,
     )
-    c_dict_ids = expr_eval.eval(kde.ids.uuid_for_dict(a=ds(1)))
+    c_dict_ids = kd.ids.uuid_for_dict(a=ds(1))
     c_dict = db.dict({'a': 1, 'b': 2}, itemid=c_dict_ids)
     o = db.new(
         a=a_slice,
@@ -158,9 +160,9 @@ class CoreCloneTest(parameterized.TestCase):
       o_fb = o.enriched(fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(kde.core.clone(o_fb, schema=o_fb.get_schema()))
+      result = kd.core.clone(o_fb, schema=o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.core.clone(o_fb))
+      result = kd.core.clone(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_not_equal(result.no_bag(), o.no_bag())
@@ -175,8 +177,7 @@ class CoreCloneTest(parameterized.TestCase):
 
   def test_with_overrides(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
-    res = kde.core.clone(x, z=bag().list([12]), t=bag().obj(b=5))
-    res = expr_eval.eval(res)
+    res = kd.core.clone(x, z=bag().list([12]), t=bag().obj(b=5))
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equivalent(res.y.extract(), x.y.extract())
     testing.assert_equal(res.z[:].no_bag(), ds([12]))
@@ -185,8 +186,7 @@ class CoreCloneTest(parameterized.TestCase):
   def test_with_schema_and_overrides(self):
     s = bag().new_schema(x=schema_constants.INT32)
     x = bag().obj(x=42, y='abc')
-    res = kde.core.clone(x, schema=s, z=12)
-    res = expr_eval.eval(res)
+    res = kd.core.clone(x, schema=s, z=12)
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
@@ -200,9 +200,9 @@ class CoreCloneTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     y = db.new(x=42)
     x = db.new(y=y)
-    ids = expr_eval.eval(kde.clone(x))
+    ids = kd.clone(x)
     testing.assert_equal(ids.y.no_bag(), y.no_bag())
-    result = expr_eval.eval(kde.clone(x, itemid=ids))
+    result = kd.clone(x, itemid=ids)
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_bag(), ids.no_bag())
     testing.assert_equal(result.y.no_bag(), y.no_bag())
@@ -214,8 +214,8 @@ class CoreCloneTest(parameterized.TestCase):
     xlist = db.obj(db.list([x, x]))
     d = db.obj(db.dict({'b': xlist}))
     a = ds([x, y, xlist, d])
-    ids = expr_eval.eval(kde.clone(a))
-    result = expr_eval.eval(kde.clone(a, itemid=ids))
+    ids = kd.clone(a)
+    result = kd.clone(a, itemid=ids)
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.no_bag(), ids.no_bag())
 
@@ -226,7 +226,7 @@ class CoreCloneTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'obj and itemid must have the same rank'
     ):
-      _ = expr_eval.eval(kde.clone(x, itemid=itemid))
+      _ = kd.clone(x, itemid=itemid)
 
   def test_wrong_itemid_type(self):
     db = data_bag.DataBag.empty_mutable()
@@ -236,27 +236,25 @@ class CoreCloneTest(parameterized.TestCase):
         ValueError,
         'itemid must be of the same type as respective ObjectId from ds',
     ):
-      _ = expr_eval.eval(kde.clone(x, itemid=itemid))
+      _ = kd.clone(x, itemid=itemid)
 
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1))
-    res_1 = expr_eval.eval(kde.core.clone(x))
-    res_2 = expr_eval.eval(kde.core.clone(x))
+    res_1 = kd.core.clone(x)
+    res_2 = kd.core.clone(x)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
-    expr = kde.core.clone(x)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = kd.core.clone(x)
+    res_2 = kd.core.clone(x)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
   def test_inner_update_does_not_crash(self):
-    x = kde.entities.new(b=kde.entities.new(c=1)).with_attrs(d=4)
-    x = x.updated(kde.attrs(x.b, c=5))
-    x = x.eval()
+    x = kd.entities.new(b=kd.entities.new(c=1)).with_attrs(d=4)
+    x = x.updated(kd.attrs(x.b, c=5))
     res = x.clone()
     self.assertNotEqual(res.no_bag(), x.no_bag())
     testing.assert_equal(res.b.no_bag(), x.b.no_bag())
@@ -264,47 +262,47 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res.d.no_bag(), ds(4))
 
   def test_metadata_entity(self):
-    schema = kde.schema.new_schema(
+    schema = kd.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
     )
-    schema = kde.with_metadata(schema, attrs='xy')
-    x = kde.new(x=1, y=2, schema=schema)
-    res = kde.clone(x)
-    res_metadata = expr_eval.eval(kde.get_metadata(res.get_schema()))
+    schema = kd.with_metadata(schema, attrs='xy')
+    x = kd.new(x=1, y=2, schema=schema)
+    res = kd.clone(x)
+    res_metadata = kd.get_metadata(res.get_schema())
     testing.assert_equal(res_metadata.attrs.no_bag(), ds('xy'))
 
   def test_metadata_object(self):
-    schema = kde.schema.new_schema(
+    schema = kd.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
     )
-    schema = kde.with_metadata(schema, attrs='xy')
-    x = kde.new(x=1, y=2, schema=schema)
-    res = kde.clone(kde.obj(x))
-    res_metadata = expr_eval.eval(kde.get_metadata(res.get_obj_schema()))
+    schema = kd.with_metadata(schema, attrs='xy')
+    x = kd.new(x=1, y=2, schema=schema)
+    res = kd.clone(kd.obj(x))
+    res_metadata = kd.get_metadata(res.get_obj_schema())
     testing.assert_equal(res_metadata.attrs.no_bag(), ds('xy'))
 
   def test_metadata_object_implicit_schema(self):
-    x = kde.obj(x=1, y=2)
-    upd = kde.metadata(x.get_obj_schema(), attrs='xy')
-    x = kde.enriched(x, upd)
-    res = kde.clone(x)
-    res_metadata = expr_eval.eval(kde.get_metadata(res.get_obj_schema()))
+    x = kd.obj(x=1, y=2)
+    upd = kd.metadata(x.get_obj_schema(), attrs='xy')
+    x = x.enriched(upd)
+    res = kd.clone(x)
+    res_metadata = kd.get_metadata(res.get_obj_schema())
     testing.assert_equal(res_metadata.attrs.no_bag(), ds('xy'))
 
   def test_metadata_clone_schema(self):
-    schema = kde.schema.new_schema(
+    schema = kd.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
     )
-    schema = kde.with_metadata(schema, attrs='xy')
-    x = kde.new(x=1, y=2, schema=schema)
-    res_schema = expr_eval.eval(kde.clone(x.get_schema()))
+    schema = kd.with_metadata(schema, attrs='xy')
+    x = kd.new(x=1, y=2, schema=schema)
+    res_schema = kd.clone(x.get_schema())
     with self.assertRaisesRegex(ValueError, 'failed to get attribute'):
-      _ = expr_eval.eval(kde.get_metadata(res_schema))
+      _ = kd.get_metadata(res_schema)
 
   def test_named_schema(self):
     db = data_bag.DataBag.empty_mutable()
     s = db.named_schema('s', x=schema_constants.INT32, y=schema_constants.INT32)
-    result = expr_eval.eval(kde.clone(s))
+    result = kd.clone(s)
     expected_bag = data_bag.DataBag.empty_mutable()
     result.with_bag(expected_bag).set_attr('x', schema_constants.INT32)
     result.with_bag(expected_bag).set_attr('y', schema_constants.INT32)

@@ -15,21 +15,20 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-M = arolla.M
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
@@ -56,7 +55,7 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (ds([None, None], schema_constants.SCHEMA),),
   )
   def test_is_primitive(self, param):
-    self.assertTrue(expr_eval.eval(kde.core.is_primitive(param)))
+    self.assertTrue(kd.core.is_primitive(param))
 
   @parameterized.parameters(
       # List/Dict/Object/Entity
@@ -78,7 +77,7 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       (bag().new(a=1, b=2) & None,),
   )
   def test_is_not_primitive(self, param):
-    self.assertFalse(expr_eval.eval(kde.core.is_primitive(param)))
+    self.assertFalse(kd.core.is_primitive(param))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.core.is_primitive(I.x)))

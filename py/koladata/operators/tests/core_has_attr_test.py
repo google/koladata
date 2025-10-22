@@ -29,7 +29,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-eager = eager_op_utils.operators_container('kd')
+kd = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -48,8 +48,8 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.entity = eager.new(a=ds([1, None]), b=ds([None, None]))
-    self.object = eager.obj(a=ds([1, None]), b=ds([None, None]))
+    self.entity = kd.new(a=ds([1, None]), b=ds([None, None]))
+    self.object = kd.obj(a=ds([1, None]), b=ds([None, None]))
 
   @parameterized.parameters(
       (kde.core.has_attr(I.x, 'a'), ds([present, missing])),
@@ -70,54 +70,51 @@ class CoreHasAttrTest(parameterized.TestCase):
     testing.assert_equal(expr_eval.eval(expr, x=self.object), expected)
 
   @parameterized.named_parameters(
-      ('single', ds('a')),
-      ('multiple', ds(['a', 'a']))
+      ('single', ds('a')), ('multiple', ds(['a', 'a']))
   )
   def test_obj_respects_schema(self, attrs):
-    obj = eager.obj(a=ds([1, None]))
-    obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
-    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    obj = kd.obj(a=ds([1, None]))
+    obj = obj.with_attr('__schema__', kd.obj().get_obj_schema())
+    res = kd.has_attr(obj, attrs)
     testing.assert_equal(res, ds([missing, missing]))
 
   @parameterized.named_parameters(
-      ('single', ds('a')),
-      ('multiple', ds(['a', 'a']))
+      ('single', ds('a')), ('multiple', ds(['a', 'a']))
   )
   def test_entity_respects_schema(self, attrs):
-    entity = eager.new(a=ds([1, None]))
-    entity = entity.with_schema(eager.new().get_schema())
-    res = expr_eval.eval(kde.has_attr(entity, attrs))
+    entity = kd.new(a=ds([1, None]))
+    entity = entity.with_schema(kd.new().get_schema())
+    res = kd.has_attr(entity, attrs)
     testing.assert_equal(res, ds([missing, missing]))
 
   @parameterized.named_parameters(
-      ('single', ds('a')),
-      ('multiple', ds(['a', 'a']))
+      ('single', ds('a')), ('multiple', ds(['a', 'a']))
   )
   def test_no_common_schema(self, attrs):
     # Works even though `maybe` doesn't have a common schema.
-    obj = ds([eager.obj(a=1), eager.obj(a=eager.new(x=1))])
-    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    obj = ds([kd.obj(a=1), kd.obj(a=kd.new(x=1))])
+    res = kd.has_attr(obj, attrs)
     testing.assert_equal(res, ds([present, present]))
     # Sanity check: `maybe` raises.
     with self.assertRaises(ValueError):
-      expr_eval.eval(kde.maybe(obj, attrs))
+      kd.maybe(obj, attrs)
 
   @parameterized.named_parameters(
       ('single', ds('__schema__')),
-      ('multiple', ds(['__schema__', '__schema__']))
+      ('multiple', ds(['__schema__', '__schema__'])),
   )
   def test_obj_schema_attr(self, attrs):
-    obj = eager.obj(a=ds([1, None]))
-    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    obj = kd.obj(a=ds([1, None]))
+    res = kd.has_attr(obj, attrs)
     testing.assert_equal(res, ds([present, present]))
 
   @parameterized.named_parameters(
       ('single', ds('__schema__')),
-      ('multiple', ds(['__schema__', '__schema__']))
+      ('multiple', ds(['__schema__', '__schema__'])),
   )
   def test_entity_schema_attr(self, attrs):
-    entity = eager.new(a=ds([1, None]))
-    res = expr_eval.eval(kde.has_attr(entity, attrs))
+    entity = kd.new(a=ds([1, None]))
+    res = kd.has_attr(entity, attrs)
     testing.assert_equal(res, ds([missing, missing]))
 
   def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
@@ -132,7 +129,7 @@ class CoreHasAttrTest(parameterized.TestCase):
     mixed_objects = ds([object_1, object_2, object_3]).with_bag(db)
 
     testing.assert_equal(
-        expr_eval.eval(kde.core.has_attr(mixed_objects, 'a')),
+        kd.core.has_attr(mixed_objects, 'a'),
         ds([present, present, present]),
     )
     with self.assertRaisesWithPredicateMatch(
@@ -144,7 +141,7 @@ class CoreHasAttrTest(parameterized.TestCase):
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ) as cm:
-      expr_eval.eval(kde.core.get_attr(object_2, 'b', db.new(foo='baz')))
+      kd.core.get_attr(object_2, 'b', db.new(foo='baz'))
     self.assertRegex(
         str(cm.exception),
         r"failed to get attribute 'b' due to conflict with the schema from the"
@@ -161,7 +158,7 @@ class CoreHasAttrTest(parameterized.TestCase):
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ):
-      expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
+      kd.core.get_attr(mixed_objects, 'a')
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -171,27 +168,27 @@ class CoreHasAttrTest(parameterized.TestCase):
  the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ):
-      expr_eval.eval(kde.core.maybe(mixed_objects, 'a'))
+      kd.core.maybe(mixed_objects, 'a')
 
     # Make sure that it behaves as expected when there is a common schema.
     # "c" is not present in all objects, but it has a common schema.
     testing.assert_equal(
-        expr_eval.eval(kde.core.has_attr(mixed_objects, 'c')),
+        kd.core.has_attr(mixed_objects, 'c'),
         ds([present, missing, present]),
     )
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),
     ):
-      expr_eval.eval(kde.core.get_attr(mixed_objects, 'c'))
+      kd.core.get_attr(mixed_objects, 'c')
     testing.assert_equal(
-        expr_eval.eval(kde.core.maybe(mixed_objects, 'c').no_bag()),
+        kd.core.maybe(mixed_objects, 'c').no_bag(),
         ds([3.14, None, 3.14]),
     )
 
   def test_has_attr_of_schema(self):
-    s = kde.schema.new_schema(x=schema_constants.INT32)
-    testing.assert_equal(expr_eval.eval(kde.core.has_attr(s, 'x')), ds(present))
+    s = kd.schema.new_schema(x=schema_constants.INT32)
+    testing.assert_equal(kd.core.has_attr(s, 'x'), ds(present))
 
   def test_has_attr_of_schema_slice_attr_name(self):
     expr = kde.has_attr(I.x, ds(['a', 'b', 'c', None]))
@@ -206,26 +203,26 @@ class CoreHasAttrTest(parameterized.TestCase):
         'argument `attr_name` must be an item holding STRING, got an item of'
         ' INT32',
     ):
-      expr_eval.eval(kde.core.has_attr(self.entity, 42))
+      kd.core.has_attr(self.entity, 42)
 
   def test_attr_name_slice_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'argument `attr_name` must be a slice of STRING, got a slice of INT32',
     ):
-      expr_eval.eval(kde.core.has_attr(self.entity, ds([1, 2])))
+      kd.core.has_attr(self.entity, ds([1, 2]))
 
     with self.assertRaisesRegex(
         ValueError,
-        "failed to check attribute 'a': primitives do not have attributes"
+        "failed to check attribute 'a': primitives do not have attributes",
     ):
-      expr_eval.eval(kde.core.has_attr(43, 'a'))
+      kd.core.has_attr(43, 'a')
 
   def test_nested_attr(self):
     # NOTE: Regression test for cl/721839583.
     db = data_bag.DataBag.empty_mutable()
     obj = db.obj(x=db.obj(y=1))
-    res = expr_eval.eval(kde.core.has_attr(obj, 'x'))
+    res = kd.core.has_attr(obj, 'x')
     testing.assert_equal(res, ds(present))
 
   def test_qtype_signatures(self):
@@ -248,6 +245,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.core.has_attr, kde.has_attr))
+
 
 if __name__ == '__main__':
   absltest.main()
