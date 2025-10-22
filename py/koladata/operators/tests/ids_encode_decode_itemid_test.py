@@ -12,26 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -40,20 +44,20 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
   @parameterized.parameters(
       (bag().new(a=1),),
       (bag().new(a=ds([1, 2])),),
-      (kde.allocation.new_listid().eval(),),
-      (kde.allocation.new_dictid().eval(),),
-      (kde.allocation.new_listid_like(ds([[1, None], [3]])).eval(),),
-      (kde.allocation.new_dictid_like(ds([[1, None], [3]])).eval(),),
+      (kd.allocation.new_listid(),),
+      (kd.allocation.new_dictid(),),
+      (kd.allocation.new_listid_like(ds([[1, None], [3]])),),
+      (kd.allocation.new_dictid_like(ds([[1, None], [3]])),),
   )
   def test_encode_decode(self, ids):
-    encoded = expr_eval.eval(kde.ids.encode_itemid(ids))
+    encoded = kd.ids.encode_itemid(ids)
     self.assertFalse(encoded.has_bag())
     if isinstance(encoded, data_item.DataItem):
       self.assertRegex(str(encoded), '[0-9a-zA-Z]{22}')
     else:
       for item in encoded.L:
         self.assertRegex(str(item), '[0-9a-zA-Z]{22}')
-    decoded = expr_eval.eval(kde.ids.decode_itemid(encoded))
+    decoded = kd.ids.decode_itemid(encoded)
     self.assertFalse(decoded.has_bag())
     testing.assert_equal(ids.no_bag().get_itemid(), decoded)
 
@@ -61,29 +65,25 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'only ItemIds can be encoded, got INT32'
     ):
-      kde.ids.encode_itemid(ds([1, 2, 3])).eval()
+      kd.ids.encode_itemid(ds([1, 2, 3]))
     with self.assertRaisesRegex(
         ValueError, 'cannot use encode_itemid on primitives'
     ):
-      kde.ids.encode_itemid(
-          ds([1, 2, 3], schema=schema_constants.OBJECT)
-      ).eval()
+      kd.ids.encode_itemid(ds([1, 2, 3], schema=schema_constants.OBJECT))
     with self.assertRaisesRegex(
         ValueError, 'only STRING can be decoded, got INT32'
     ):
-      kde.ids.decode_itemid(ds([1, 2, 3])).eval()
+      kd.ids.decode_itemid(ds([1, 2, 3]))
     with self.assertRaisesRegex(
-        ValueError, r'only STRING can be decoded, got ENTITY\(a=INT32\)'
+        ValueError, re.escape('only STRING can be decoded, got ENTITY(a=INT32)')
     ):
-      kde.ids.decode_itemid(bag().new(a=ds([1, 2, 3]))).eval()
+      kd.ids.decode_itemid(bag().new(a=ds([1, 2, 3])))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.ids.encode_itemid,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        frozenset([(DATA_SLICE, DATA_SLICE)]),
+    arolla.testing.assert_qtype_signatures(
+        kde.ids.encode_itemid,
+        [(DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

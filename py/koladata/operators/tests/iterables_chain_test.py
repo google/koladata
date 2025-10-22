@@ -14,9 +14,9 @@
 
 import re
 from absl.testing import absltest
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -25,16 +25,16 @@ from koladata.types import iterable_qvalue
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
 class IterablesChainTest(absltest.TestCase):
 
   def test_chain(self):
-    res = expr_eval.eval(
-        kde.iterables.chain(kde.iterables.make(1, 2), kde.iterables.make(3))
-    )
+    res = kd.iterables.chain(kd.iterables.make(1, 2), kd.iterables.make(3))
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
@@ -46,9 +46,7 @@ class IterablesChainTest(absltest.TestCase):
   def test_chain_with_bags(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        kde.iterables.chain(kde.iterables.make(db1), kde.iterables.make(db2))
-    )
+    res = kd.iterables.chain(kd.iterables.make(db1), kd.iterables.make(db2))
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
@@ -59,12 +57,10 @@ class IterablesChainTest(absltest.TestCase):
   def test_chain_with_bags_explicit_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        kde.iterables.chain(
-            kde.iterables.make(db1),
-            kde.iterables.make(db2),
-            value_type_as=data_bag.DataBag,
-        )
+    res = kd.iterables.chain(
+        kd.iterables.make(db1),
+        kd.iterables.make(db2),
+        value_type_as=data_bag.DataBag,
     )
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
@@ -80,9 +76,7 @@ class IterablesChainTest(absltest.TestCase):
         'when value_type_as is specified, all iterables must have that value'
         ' type',
     ):
-      _ = expr_eval.eval(
-          kde.iterables.chain(kde.iterables.make(db1), value_type_as=ds(1))
-      )
+      _ = kd.iterables.chain(kd.iterables.make(db1), value_type_as=ds(1))
 
   def test_chain_with_empty_bags_wrong_value_type_as(self):
     with self.assertRaisesRegex(
@@ -90,48 +84,41 @@ class IterablesChainTest(absltest.TestCase):
         'when value_type_as is specified, all iterables must have that value'
         ' type',
     ):
-      _ = expr_eval.eval(
-          kde.iterables.chain(
-              kde.iterables.make(value_type_as=data_bag.DataBag),
-              value_type_as=ds(1),
-          )
+      _ = kd.iterables.chain(
+          kd.iterables.make(value_type_as=data_bag.DataBag),
+          value_type_as=ds(1),
       )
 
   def test_chain_mixed_types(self):
     with self.assertRaisesRegex(ValueError, 'must have the same value type'):
-      _ = expr_eval.eval(
-          kde.iterables.chain(
-              kde.iterables.make(1),
-              kde.iterables.make(data_bag.DataBag.empty_mutable()),
-          )
+      _ = kd.iterables.chain(
+          kd.iterables.make(1),
+          kd.iterables.make(data_bag.DataBag.empty_mutable()),
       )
 
   def test_chain_empty(self):
-    res = expr_eval.eval(kde.iterables.chain())
+    res = kd.iterables.chain()
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEmpty(list(res))
 
   def test_chain_empty_with_value_type_as(self):
-    res = expr_eval.eval(kde.iterables.chain(value_type_as=data_bag.DataBag))
+    res = kd.iterables.chain(value_type_as=data_bag.DataBag)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(list(res))
 
   def test_chain_with_only_empty_iterable(self):
-    res = expr_eval.eval(
-        kde.iterables.chain(kde.iterables.make(value_type_as=data_bag.DataBag))
-    )
+    res = kd.iterables.chain(kd.iterables.make(value_type_as=data_bag.DataBag))
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(list(res))
 
   def test_non_iterable_arg(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('all inputs must be iterables'),
+        ValueError, re.escape('all inputs must be iterables')
     ):
-      _ = expr_eval.eval(kde.iterables.chain(ds(1)))
+      _ = kd.iterables.chain(ds(1))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.iterables.chain()))

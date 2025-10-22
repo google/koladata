@@ -19,6 +19,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib
+from koladata.operators import eager_op_utils
 from koladata.operators import koda_internal_parallel
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -28,15 +29,18 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
+kd_internal_parallel = eager_op_utils.operators_container(
+    'koda_internal.parallel',
+    top_level_arolla_container=arolla.unsafe_operators_container(),
+)
+
 
 class KodaInternalParallelStreamChainTest(absltest.TestCase):
 
   def test_chain(self):
-    res = expr_eval.eval(
-        koda_internal_parallel.stream_chain(
-            koda_internal_parallel.stream_make(1, 2),
-            koda_internal_parallel.stream_make(3),
-        )
+    res = kd_internal_parallel.stream_chain(
+        kd_internal_parallel.stream_make(1, 2),
+        kd_internal_parallel.stream_make(3),
     )
     res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 3)
@@ -48,11 +52,8 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     stream1, stream1_writer = clib.Stream.new(arolla.INT32)
     stream2, stream2_writer = clib.Stream.new(arolla.INT32)
     stream3, stream3_writer = clib.Stream.new(arolla.INT32)
-    chained_stream = expr_eval.eval(
-        koda_internal_parallel.stream_chain(I.stream1, I.stream2, I.stream3),
-        stream1=stream1,
-        stream2=stream2,
-        stream3=stream3,
+    chained_stream = kd_internal_parallel.stream_chain(
+        stream1, stream2, stream3
     )
     stream1_writer.write(arolla.int32(0))
     stream2_writer.write(arolla.int32(2))
@@ -74,11 +75,7 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     stream1_writer.close(AssertionError('test error'))
     stream2_writer.write(arolla.int32(1))
     stream2_writer.close()
-    chained_stream = expr_eval.eval(
-        koda_internal_parallel.stream_chain(I.stream1, I.stream2),
-        stream1=stream1,
-        stream2=stream2,
-    )
+    chained_stream = kd_internal_parallel.stream_chain(stream1, stream2)
     stream_reader = chained_stream.make_reader()
     with self.assertRaisesRegex(AssertionError, 'test error'):
       _ = stream_reader.read_available()
@@ -86,11 +83,9 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
   def test_chain_with_bags(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        koda_internal_parallel.stream_chain(
-            koda_internal_parallel.stream_make(db1),
-            koda_internal_parallel.stream_make(db2),
-        )
+    res = kd_internal_parallel.stream_chain(
+        kd_internal_parallel.stream_make(db1),
+        kd_internal_parallel.stream_make(db2),
     )
     res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 2)
@@ -100,12 +95,10 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
   def test_chain_with_bags_explicit_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        koda_internal_parallel.stream_chain(
-            koda_internal_parallel.stream_make(db1),
-            koda_internal_parallel.stream_make(db2),
-            value_type_as=data_bag.DataBag,
-        )
+    res = kd_internal_parallel.stream_chain(
+        kd_internal_parallel.stream_make(db1),
+        kd_internal_parallel.stream_make(db2),
+        value_type_as=data_bag.DataBag,
     )
     res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 2)
@@ -115,13 +108,10 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
   def test_chain_with_bags_wrong_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
-        ValueError,
-        'input streams must be compatible with value_type_as',
+        ValueError, 'input streams must be compatible with value_type_as'
     ):
-      _ = expr_eval.eval(
-          koda_internal_parallel.stream_chain(
-              koda_internal_parallel.stream_make(db1), value_type_as=ds(1)
-          )
+      _ = kd_internal_parallel.stream_chain(
+          kd_internal_parallel.stream_make(db1), value_type_as=ds(1)
       )
 
   def test_chain_with_empty_bags_wrong_value_type_as(self):
@@ -129,53 +119,40 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
         ValueError,
         'input streams must be compatible with value_type_as',
     ):
-      _ = expr_eval.eval(
-          koda_internal_parallel.stream_chain(
-              koda_internal_parallel.stream_chain(
-                  value_type_as=data_bag.DataBag
-              ),
-              value_type_as=ds(1),
-          )
+      _ = kd_internal_parallel.stream_chain(
+          kd_internal_parallel.stream_chain(value_type_as=data_bag.DataBag),
+          value_type_as=ds(1),
       )
 
   def test_chain_mixed_types(self):
     with self.assertRaisesRegex(ValueError, 'must have the same value type'):
-      _ = expr_eval.eval(
-          koda_internal_parallel.stream_chain(
-              koda_internal_parallel.stream_make(ds(1)),
-              koda_internal_parallel.stream_make(
-                  data_bag.DataBag.empty_mutable()
-              ),
-          )
+      _ = kd_internal_parallel.stream_chain(
+          kd_internal_parallel.stream_make(ds(1)),
+          kd_internal_parallel.stream_make(data_bag.DataBag.empty_mutable()),
       )
 
   def test_chain_empty(self):
-    res = expr_eval.eval(koda_internal_parallel.stream_chain())
+    res = kd_internal_parallel.stream_chain()
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEmpty(res.read_all(timeout=0))
 
   def test_chain_empty_with_value_type_as(self):
-    res = expr_eval.eval(
-        koda_internal_parallel.stream_chain(value_type_as=data_bag.DataBag)
-    )
+    res = kd_internal_parallel.stream_chain(value_type_as=data_bag.DataBag)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(res.read_all(timeout=0))
 
   def test_chain_with_only_empty_stream(self):
-    res = expr_eval.eval(
-        koda_internal_parallel.stream_chain(
-            koda_internal_parallel.stream_chain(value_type_as=data_bag.DataBag)
-        )
+    res = kd_internal_parallel.stream_chain(
+        kd_internal_parallel.stream_chain(value_type_as=data_bag.DataBag)
     )
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(res.read_all(timeout=0))
 
   def test_non_stream_arg(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('all inputs must be streams'),
+        ValueError, re.escape('all inputs must be streams')
     ):
-      _ = expr_eval.eval(koda_internal_parallel.stream_chain(ds(1)))
+      _ = kd_internal_parallel.stream_chain(ds(1))
 
   def test_non_determinism(self):
     res = expr_eval.eval((

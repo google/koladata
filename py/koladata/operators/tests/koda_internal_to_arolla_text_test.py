@@ -15,22 +15,26 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import arolla_bridge
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators import eager_op_utils
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+
+kd_internal = eager_op_utils.operators_container(
+    'koda_internal',
+    top_level_arolla_container=arolla.unsafe_operators_container(),
+)
 
 
 class KodaToArollaTextTest(parameterized.TestCase):
@@ -40,20 +44,17 @@ class KodaToArollaTextTest(parameterized.TestCase):
       (ds('abc', schema_constants.OBJECT), arolla.text('abc')),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(
-        expr_eval.eval(arolla_bridge.to_arolla_text(I.x), x=x), expected
-    )
+    testing.assert_equal(kd_internal.to_arolla_text(x), expected)
 
   def test_non_dataitem_error(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(arolla_bridge.to_arolla_text(ds(['abc'])))
+      kd_internal.to_arolla_text(ds(['abc']))
 
   def test_boxing(self):
     testing.assert_equal(
         arolla_bridge.to_arolla_text('abc'),
         arolla.abc.bind_op(
-            arolla_bridge.to_arolla_text,
-            literal_operator.literal(ds('abc')),
+            arolla_bridge.to_arolla_text, literal_operator.literal(ds('abc'))
         ),
     )
 
@@ -66,43 +67,37 @@ class KodaToArollaTextTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to STRING'
     ):
-      expr_eval.eval(arolla_bridge.to_arolla_text(ds(b'abc')))
+      kd_internal.to_arolla_text(ds(b'abc'))
 
   def test_unsupported_dtype_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to STRING'
     ):
-      expr_eval.eval(
-          arolla_bridge.to_arolla_text(ds(b'abc', schema_constants.OBJECT))
-      )
+      kd_internal.to_arolla_text(ds(b'abc', schema_constants.OBJECT))
 
   def test_missing_value_error(self):
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      expr_eval.eval(
-          arolla_bridge.to_arolla_text(ds(None, schema_constants.STRING))
-      )
+      kd_internal.to_arolla_text(ds(None, schema_constants.STRING))
 
   def test_unsupported_entity(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_text(bag().new(x='abc')))
+      kd_internal.to_arolla_text(bag().new(x='abc'))
 
   def test_unsupported_object(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_text(bag().obj(x='abc')))
+      kd_internal.to_arolla_text(bag().obj(x='abc'))
 
   def test_non_data_slice_error(self):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got x: BYTES'
     ):
-      arolla.eval(arolla_bridge.to_arolla_text(arolla.bytes(b'foobar')))
+      kd_internal.to_arolla_text(arolla.bytes(b'foobar'))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            arolla_bridge.to_arolla_text,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        frozenset([(qtypes.DATA_SLICE, arolla.TEXT)]),
+    arolla.testing.assert_qtype_signatures(
+        arolla_bridge.to_arolla_text,
+        [(qtypes.DATA_SLICE, arolla.TEXT)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

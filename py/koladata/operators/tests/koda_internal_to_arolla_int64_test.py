@@ -15,22 +15,26 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import arolla_bridge
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators import eager_op_utils
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd_internal = eager_op_utils.operators_container(
+    'koda_internal',
+    top_level_arolla_container=arolla.unsafe_operators_container(),
+)
 
 
 class KodaToArollaInt64Test(parameterized.TestCase):
@@ -46,21 +50,18 @@ class KodaToArollaInt64Test(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    testing.assert_equal(
-        expr_eval.eval(arolla_bridge.to_arolla_int64(I.x), x=x), expected
-    )
+    testing.assert_equal(kd_internal.to_arolla_int64(x), expected)
 
   def test_non_dataitem_error(self):
     x = data_slice.DataSlice.from_vals([1])
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(x))
+      kd_internal.to_arolla_int64(x)
 
   def test_boxing(self):
     testing.assert_equal(
         arolla_bridge.to_arolla_int64(1),
         arolla.abc.bind_op(
-            arolla_bridge.to_arolla_int64,
-            literal_operator.literal(ds(1)),
+            arolla_bridge.to_arolla_int64, literal_operator.literal(ds(1))
         ),
     )
 
@@ -74,41 +75,39 @@ class KodaToArollaInt64Test(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(x))
+      arolla_bridge.to_arolla_int64(x)
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit(), schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(x))
+      arolla_bridge.to_arolla_int64(x)
 
   def test_missing_value_error(self):
     x = data_slice.DataSlice.from_vals(arolla.optional_int64(None))
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(x))
+      arolla_bridge.to_arolla_int64(x)
 
   def test_unsupported_entity(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(bag().new(x=1)))
+      kd_internal.to_arolla_int64(bag().new(x=1))
 
   def test_unsupported_object(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_int64(bag().obj(x=1)))
+      kd_internal.to_arolla_int64(bag().obj(x=1))
 
   def test_non_data_slice_error(self):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got x: BYTES'
     ):
-      arolla.eval(arolla_bridge.to_arolla_int64(arolla.bytes(b'foobar')))
+      kd_internal.to_arolla_int64(arolla.bytes(b'foobar'))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            arolla_bridge.to_arolla_int64,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        frozenset([(qtypes.DATA_SLICE, arolla.INT64)]),
+    arolla.testing.assert_qtype_signatures(
+        arolla_bridge.to_arolla_int64,
+        [(qtypes.DATA_SLICE, arolla.INT64)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

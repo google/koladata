@@ -12,25 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for koda_internal.to_arolla_dense_array_unit."""
+"""Tests for koda_internal.to_arolla_dense_array_unit operator."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import arolla_bridge
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators import eager_op_utils
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd_internal = eager_op_utils.operators_container(
+    'koda_internal',
+    top_level_arolla_container=arolla.unsafe_operators_container(),
+)
+
 OBJECT = schema_constants.OBJECT
 MASK = schema_constants.MASK
 
@@ -75,7 +80,7 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
   )
   def test_eval(self, x, expected):
     testing.assert_equal(
-        expr_eval.eval(arolla_bridge.to_arolla_dense_array_unit(I.x), x=x),
+        kd_internal.to_arolla_dense_array_unit(x),
         expected,
     )
 
@@ -84,30 +89,28 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to MASK'
     ):
-      expr_eval.eval(arolla_bridge.to_arolla_dense_array_unit(x))
+      kd_internal.to_arolla_dense_array_unit(x)
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals([1], schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to MASK'
     ):
-      expr_eval.eval(arolla_bridge.to_arolla_dense_array_unit(x))
+      kd_internal.to_arolla_dense_array_unit(x)
 
   def test_unsupported_entity(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_dense_array_unit(bag().new(x=[1])))
+      kd_internal.to_arolla_dense_array_unit(bag().new(x=[1]))
 
   def test_unsupported_object(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
-      expr_eval.eval(arolla_bridge.to_arolla_dense_array_unit(bag().obj(x=[1])))
+      kd_internal.to_arolla_dense_array_unit(bag().obj(x=[1]))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            arolla_bridge.to_arolla_dense_array_unit,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        frozenset([(qtypes.DATA_SLICE, arolla.DENSE_ARRAY_UNIT)]),
+    arolla.testing.assert_qtype_signatures(
+        arolla_bridge.to_arolla_dense_array_unit,
+        [(qtypes.DATA_SLICE, arolla.DENSE_ARRAY_UNIT)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

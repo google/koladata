@@ -13,9 +13,9 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -24,14 +24,16 @@ from koladata.types import iterable_qvalue
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
 class IterablesMakeTest(absltest.TestCase):
 
   def test_make(self):
-    res = expr_eval.eval(kde.iterables.make(1, 2))
+    res = kd.iterables.make(1, 2)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
@@ -42,7 +44,7 @@ class IterablesMakeTest(absltest.TestCase):
   def test_make_with_bags(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(kde.iterables.make(db1, db2))
+    res = kd.iterables.make(db1, db2)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
@@ -53,9 +55,7 @@ class IterablesMakeTest(absltest.TestCase):
   def test_make_with_bags_explicit_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        kde.iterables.make(db1, db2, value_type_as=data_bag.DataBag)
-    )
+    res = kd.iterables.make(db1, db2, value_type_as=data_bag.DataBag)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
@@ -67,22 +67,20 @@ class IterablesMakeTest(absltest.TestCase):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
-      _ = expr_eval.eval(kde.iterables.make(db1, db2, value_type_as=ds(1)))
+      _ = kd.iterables.make(db1, db2, value_type_as=ds(1))
 
   def test_make_mixed_types(self):
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
-      _ = expr_eval.eval(
-          kde.iterables.make(1, data_bag.DataBag.empty_mutable())
-      )
+      _ = kd.iterables.make(1, data_bag.DataBag.empty_mutable())
 
   def test_make_empty(self):
-    res = expr_eval.eval(kde.iterables.make())
+    res = kd.iterables.make()
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEmpty(list(res))
 
   def test_make_empty_with_value_type_as(self):
-    res = expr_eval.eval(kde.iterables.make(value_type_as=data_bag.DataBag))
+    res = kd.iterables.make(value_type_as=data_bag.DataBag)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(list(res))

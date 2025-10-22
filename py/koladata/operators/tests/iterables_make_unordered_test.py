@@ -13,9 +13,9 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -24,14 +24,16 @@ from koladata.types import iterable_qvalue
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
 class IterablesMakeUnorderedTest(absltest.TestCase):
 
   def test_make_unordered(self):
-    res = expr_eval.eval(kde.iterables.make_unordered(1, 2))
+    res = kd.iterables.make_unordered(1, 2)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
@@ -39,11 +41,10 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     self.assertCountEqual([x.to_py() for x in res_list], [1, 2])
 
   def test_make_unordered_does_not_have_fixed_order(self):
-    expr = kde.iterables.make_unordered(1, 2)
     seen = data_bag.DataBag.empty_mutable().dict()
     # This has probability 2**(-99) of failing.
     for _ in range(100):
-      res = expr_eval.eval(expr)
+      res = kd.iterables.make_unordered(1, 2)
       first = list(res)[0]
       seen[first] = (seen[first] | 0) + 1
     self.assertGreater(seen[1], 0)
@@ -51,7 +52,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
 
   def test_make_unordered_with_bags(self):
     db1 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(kde.iterables.make_unordered(db1))
+    res = kd.iterables.make_unordered(db1)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
@@ -60,9 +61,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
 
   def test_make_unordered_with_bags_explicit_value_type_as(self):
     db1 = data_bag.DataBag.empty_mutable()
-    res = expr_eval.eval(
-        kde.iterables.make_unordered(db1, value_type_as=data_bag.DataBag)
-    )
+    res = kd.iterables.make_unordered(db1, value_type_as=data_bag.DataBag)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = list(res)
@@ -71,28 +70,22 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
 
   def test_make_unordered_with_bags_wrong_value_type_as(self):
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
-      _ = expr_eval.eval(
-          kde.iterables.make_unordered(
-              data_bag.DataBag.empty_mutable(), value_type_as=ds(1)
-          )
+      _ = kd.iterables.make_unordered(
+          data_bag.DataBag.empty_mutable(), value_type_as=ds(1)
       )
 
   def test_make_unordered_mixed_types(self):
     with self.assertRaisesRegex(ValueError, 'should be all of the same type'):
-      _ = expr_eval.eval(
-          kde.iterables.make_unordered(1, data_bag.DataBag.empty_mutable())
-      )
+      _ = kd.iterables.make_unordered(1, data_bag.DataBag.empty_mutable())
 
   def test_make_unordered_empty(self):
-    res = expr_eval.eval(kde.iterables.make_unordered())
+    res = kd.iterables.make_unordered()
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEmpty(list(res))
 
   def test_make_unordered_empty_with_value_type_as(self):
-    res = expr_eval.eval(
-        kde.iterables.make_unordered(value_type_as=data_bag.DataBag)
-    )
+    res = kd.iterables.make_unordered(value_type_as=data_bag.DataBag)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEmpty(list(res))

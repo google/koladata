@@ -15,23 +15,23 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
 M = arolla.M
-ds = data_slice.DataSlice.from_vals
+
 bag = data_bag.DataBag.empty_mutable
-DATA_SLICE = qtypes.DATA_SLICE
+ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 
 
@@ -40,10 +40,10 @@ def _named_tuple(**kwargs):
 
 
 def _expr_quote(x):
-  return expr_eval.eval(kde.slices.expr_quote(arolla.quote(x)))
+  return kd.slices.expr_quote(arolla.quote(x))
 
 
-INT32_1_UUID = expr_eval.eval(kde.ids.uuid(x=ds(1)))
+INT32_1_UUID = kd.ids.uuid(x=ds(1))
 
 
 class KodaUuidTest(parameterized.TestCase):
@@ -75,8 +75,8 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.ids.uuid(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.ids.uuid(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.ids.uuid(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.ids.uuid(seed=rhs_seed, **rhs_kwargs)
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -94,25 +94,25 @@ class KodaUuidTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.ids.uuid(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.ids.uuid(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.ids.uuid(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.ids.uuid(seed=rhs_seed, **rhs_kwargs)
     self.assertNotEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.ids.uuid(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.ids.uuid('', a=ds(1), b=ds(2)))
+    lhs = kd.ids.uuid(a=ds(1), b=ds(2))
+    rhs = kd.ids.uuid('', a=ds(1), b=ds(2))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.ids.uuid())
-    rhs = expr_eval.eval(kde.ids.uuid(''))
+    lhs = kd.ids.uuid()
+    rhs = kd.ids.uuid('')
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.ids.uuid(ds('1'), ds('a')))
+      _ = kd.ids.uuid(ds('1'), ds('a'))
 
   @parameterized.parameters(
       (
@@ -142,7 +142,7 @@ class KodaUuidTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.ids.uuid(seed=seed, **kwargs))
+      _ = kd.ids.uuid(seed=seed, **kwargs)
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
@@ -150,10 +150,7 @@ class KodaUuidTest(parameterized.TestCase):
         'expected all arguments to be DATA_SLICE, got kwargs:'
         ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
     ):
-      _ = kde.ids.uuid(
-          a=ds(1),
-          b=arolla.unspecified(),
-      )
+      _ = kd.ids.uuid(a=ds(1), b=arolla.unspecified())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.ids.uuid(seed=I.seed)))
@@ -163,12 +160,10 @@ class KodaUuidTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.ids.uuid(I.seed, a=I.a)),
-        'kd.ids.uuid(I.seed, a=I.a)',
+        repr(kde.ids.uuid(I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'
     )
     self.assertEqual(
-        repr(kde.ids.uuid(seed=I.seed, a=I.a)),
-        'kd.ids.uuid(I.seed, a=I.a)',
+        repr(kde.ids.uuid(seed=I.seed, a=I.a)), 'kd.ids.uuid(I.seed, a=I.a)'
     )
 
 
