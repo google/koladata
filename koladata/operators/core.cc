@@ -733,7 +733,7 @@ absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds) {
 
 absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds) {
   auto result_db = DataBag::EmptyMutable();
-  auto result = CreateMetadata(result_db, ds);
+  auto result = CreateMetadata(result_db, ds, {}, {});
   result_db->UnsafeMakeImmutable();
   return result;
 }

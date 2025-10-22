@@ -230,7 +230,7 @@ absl::StatusOr<DataSlice> CreateBareProtoUuSchema(
 absl::StatusOr<DataSlice> CreateMessageSchemaMetadata(
     const DataBagPtr& db, const DataSlice& schema,
     const Descriptor& message_descriptor) {
-  ASSIGN_OR_RETURN(auto metadata, CreateMetadata(db, schema));
+  ASSIGN_OR_RETURN(auto metadata, CreateMetadata(db, schema, {}, {}));
   RETURN_IF_ERROR(metadata.SetAttr(schema::kProtoSchemaMetadataFullNameAttr,
                                    DataSlice::CreateFromScalar(arolla::Text(
                                        message_descriptor.full_name()))));

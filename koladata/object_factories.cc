@@ -593,11 +593,9 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     for (const auto& val : values) {
       schemas.push_back(std::cref(val.GetSchemaImpl()));
     }
-    if (!schema_item.has_value()) {
-      ASSIGN_OR_RETURN(
-          schema_item,
-          db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schemas));
-    }
+    ASSIGN_OR_RETURN(
+        schema_item,
+        db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schemas));
     ASSIGN_OR_RETURN(
         aligned_values, shape::Align(values),
         KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
@@ -934,8 +932,10 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
   return res;
 }
 
-absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
-                                         const DataSlice& slice) {
+absl::StatusOr<DataSlice> CreateMetadata(
+    const DataBagPtr& db, const DataSlice& slice,
+    absl::Span<const std::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
   if (!slice.GetSchemaImpl().is_schema_schema()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("failed to create metadata; cannot create for a "
@@ -960,7 +960,8 @@ absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
         return DataSlice::Create(std::move(metadata_impl), slice.GetShape(),
                                  internal::DataItem(schema::kItemId), db);
       }));
-  return ObjectCreator::Like(db, slice, {}, {}, std::move(metadata));
+  return ObjectCreator::Like(db, slice, attr_names, values,
+                             std::move(metadata));
 }
 
 absl::StatusOr<DataSlice> CreateSchema(
@@ -968,6 +969,25 @@ absl::StatusOr<DataSlice> CreateSchema(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas) {
   ASSIGN_OR_RETURN(auto result, CreateEntitySchema(db, attr_names, schemas));
+  RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
+  return result;
+}
+
+absl::StatusOr<DataSlice> CreateSchemaWithOrderedAttrs(
+    const DataBagPtr& db, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas) {
+  ASSIGN_OR_RETURN(auto result, CreateEntitySchema(db, attr_names, schemas));
+  ASSIGN_OR_RETURN(
+      auto attr_names_slice,
+      DataSlice::CreatePrimitive(
+          arolla::CreateFullDenseArray<arolla::Text>(attr_names.begin(),
+                                                     attr_names.end()),
+          DataSlice::JaggedShape::FlatFromSize(attr_names.size())));
+  ASSIGN_OR_RETURN(auto attr_names_list,
+                   Implode(db, attr_names_slice, -1, std::nullopt));
+  ASSIGN_OR_RETURN(auto metadata,
+                   CreateMetadata(db, result, {schema::kMetadataAttrsOrderAttr},
+                                  {std::move(attr_names_list)}));
   RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
   return result;
 }

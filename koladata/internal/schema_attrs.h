@@ -36,6 +36,8 @@ inline constexpr absl::string_view kDictValuesSchemaAttr = "__values__";
 inline constexpr absl::string_view kSchemaNameAttr = "__schema_name__";
 // Stores schema metadata.
 inline constexpr absl::string_view kSchemaMetadataAttr = "__schema_metadata__";
+// Stores the order of attributes in the schema.
+inline constexpr absl::string_view kMetadataAttrsOrderAttr = "attrs_order";
 
 // Seeds for UUID generation.
 //

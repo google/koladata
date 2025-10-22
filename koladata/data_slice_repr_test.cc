@@ -728,7 +728,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
                        CreateSchema(bag, {"a", "b"},
                                     {test::Schema(schema::kInt64),
                                      test::Schema(schema::kString)}));
-  ASSERT_OK_AND_ASSIGN(DataSlice metadata, CreateMetadata(bag, schema));
+  ASSERT_OK_AND_ASSIGN(DataSlice metadata, CreateMetadata(bag, schema, {}, {}));
   ASSERT_OK(metadata.SetAttr("foo", test::DataItem(1)));
   EXPECT_THAT(DataSliceToStr(schema),
               IsOkAndHolds(

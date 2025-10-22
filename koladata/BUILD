@@ -890,3 +890,49 @@ cc_library(
         "//koladata/operators",
     ],
 )
+
+cc_library(
+    name = "metadata_utils",
+    srcs = ["metadata_utils.cc"],
+    hdrs = ["metadata_utils.h"],
+    deps = [
+        ":data_slice",
+        ":data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_attrs",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array/qtype",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/util",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "metadata_utils_test",
+    srcs = ["metadata_utils_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":metadata_utils",
+        ":object_factories",
+        ":test_utils",
+        "//koladata/internal:dtype",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

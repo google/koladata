@@ -282,17 +282,29 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
     absl::Span<const DataSlice> schemas);
 
 // Returns a metadata with its ItemId derived from given slice.
-absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
-                                         const DataSlice& slice);
+absl::StatusOr<DataSlice> CreateMetadata(
+    const DataBagPtr& db, const DataSlice& slice,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Returns an allocated schema with attributes `attr_names` set to `schemas` in
 // `db`.
-
+//
 // Adopts `schemas` into `db`.
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas);
+
+// Returns an allocated schema with attributes `attr_names` set to `schemas` in
+// `db`. The order of attribute names (as in `attr_names`) is stored in the
+// schema metadata.
+//
+// Adopts `schemas` into `db`.
+absl::StatusOr<DataSlice> CreateSchemaWithOrderedAttrs(
+    const DataBagPtr& db, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> schemas);
+
 
 // Returns a list schema from a given `item_schema`. Adopts `item_schema` into
 // `db`.

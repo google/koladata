@@ -144,20 +144,75 @@ TEST(NamedSchemaTest, CreateNamedSchema_SchemaName) {
 TEST(CreateMetadataTest, CreateMetadata) {
   auto db = DataBag::EmptyMutable();
 
-  auto attr_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
-    auto schema,
-    CreateEntitySchema(attr_db, {"a"}, {test::Schema(schema::kFloat32)}));
-  ASSERT_OK_AND_ASSIGN(auto metadata, CreateMetadata(db, schema));
+      auto schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(auto metadata, CreateMetadata(db, schema, {}, {}));
 
   ASSERT_OK_AND_ASSIGN(auto assigned_value,
-                       schema.WithBag(db).GetAttr(schema::kSchemaMetadataAttr));
+                       schema.GetAttr(schema::kSchemaMetadataAttr));
   EXPECT_THAT(assigned_value, IsEquivalentTo(metadata));
 
   EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
   ASSERT_OK_AND_ASSIGN(auto metadata_schema,
                        metadata.GetAttr(schema::kSchemaAttr));
   ASSERT_OK(metadata_schema.VerifyIsSchema());
+}
+
+TEST(CreateMetadataTest, CreateMetadata_WithAttrs) {
+  auto db = DataBag::EmptyMutable();
+
+  auto attr_db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(
+                                    attr_db, {"a", "b"},
+                                    {test::DataItem(1), test::DataItem(2)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      CreateEntitySchema(db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateMetadata(db, schema, {"foo", "bar"},
+                                      {test::DataItem(1), ds}));
+
+  ASSERT_OK_AND_ASSIGN(auto assigned_value,
+                       schema.GetAttr(schema::kSchemaMetadataAttr));
+  EXPECT_THAT(assigned_value, IsEquivalentTo(metadata));
+
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(metadata_schema.VerifyIsSchema());
+
+  ASSERT_OK_AND_ASSIGN(auto foo, metadata.GetAttr("foo"));
+  EXPECT_THAT(foo, testing::IsDeepEquivalentTo(test::DataItem(1)));
+  ASSERT_OK_AND_ASSIGN(auto bar, metadata.GetAttr("bar"));
+  EXPECT_THAT(bar, testing::IsDeepEquivalentTo(ds));
+}
+
+TEST(CreateSchemaWithOrderedAttrsTest, CreateSchemaWithOrderedAttrs) {
+  auto db = DataBag::EmptyMutable();
+
+  ASSERT_OK_AND_ASSIGN(auto schema, CreateSchemaWithOrderedAttrs(
+                                        db, {"b", "a"},
+                                        {test::Schema(schema::kFloat32),
+                                         test::Schema(schema::kInt32)}));
+
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       schema.GetAttr(schema::kSchemaMetadataAttr));
+
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(metadata_schema.VerifyIsSchema());
+
+  ASSERT_OK_AND_ASSIGN(auto ordered_attr_names,
+                       metadata.GetAttr(schema::kMetadataAttrsOrderAttr));
+
+  auto list_db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto list_ds,
+      Implode(list_db, test::DataSlice<arolla::Text>({"b", "a"}), -1));
+
+  EXPECT_THAT(ordered_attr_names, testing::IsDeepEquivalentTo(list_ds));
 }
 
 TEST(EntitySchemaTest, Error) {

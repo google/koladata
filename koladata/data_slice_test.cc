@@ -1171,7 +1171,8 @@ TEST(DataSliceTest, SetGetMetadata) {
     auto db = DataBag::EmptyMutable();
     auto schema = test::Schema(internal::AllocateExplicitSchema()).WithBag(db);
     auto value = DataSlice::CreateFromScalar(1);
-    ASSERT_OK_AND_ASSIGN(auto schema_metadata, CreateMetadata(db, schema));
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata,
+                         CreateMetadata(db, schema, {}, {}));
     ASSERT_OK(schema_metadata.SetAttr("foo", value));
     ASSERT_OK_AND_ASSIGN(auto result_metadata,
                          schema.GetAttr(schema::kSchemaMetadataAttr));
@@ -1189,9 +1190,11 @@ TEST(DataSliceTest, SetGetMetadata) {
                           DataItem(schema::kSchema), db));
     auto values_foo = test::DataSlice<int>({1, 2, 3, 4, 5}).WithBag(db);
     auto values_bar = test::DataSlice<int>({6, 7, 8, 9, 0}).WithBag(db);
-    ASSERT_OK_AND_ASSIGN(auto schema_metadata, CreateMetadata(db, schema_ds));
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata,
+                         CreateMetadata(db, schema_ds, {}, {}));
     ASSERT_OK(schema_metadata.SetAttr("foo", values_foo));
-    ASSERT_OK_AND_ASSIGN(auto schema_metadata2, CreateMetadata(db, schema_ds));
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata2,
+                         CreateMetadata(db, schema_ds, {}, {}));
     ASSERT_OK(schema_metadata2.SetAttr("bar", values_bar));
     ASSERT_OK_AND_ASSIGN(auto result_metadata,
       schema_ds.GetAttr(schema::kSchemaMetadataAttr));
@@ -1449,7 +1452,7 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
   ASSERT_OK_AND_ASSIGN(
       auto object, ObjectCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
-  ASSERT_OK(CreateMetadata(db, object_schema));
+  ASSERT_OK(CreateMetadata(db, object_schema, {}, {}));
 
   EXPECT_THAT(object.GetAttrNames(),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
@@ -1466,7 +1469,7 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata_BigAlloc) {
   ASSERT_OK_AND_ASSIGN(auto object,
                        ObjectCreator::FromAttrs(db, {"a", "b"}, {missing, d}));
   ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
-  ASSERT_OK(CreateMetadata(db, object_schema));
+  ASSERT_OK(CreateMetadata(db, object_schema, {}, {}));
   EXPECT_THAT(object.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
   EXPECT_THAT(object.GetAttrNames(/*union_object_attrs=*/true),
               IsOkAndHolds(ElementsAre("a", "b")));
