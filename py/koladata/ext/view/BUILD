@@ -21,6 +21,7 @@ load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
+    "//py/koladata/ext/view:__subpackages__",
 ])
 
 licenses(["notice"])
@@ -81,6 +82,16 @@ py_library(
 py_library(
     name = "kv",
     srcs = ["kv.py"],
+    deps = [
+        ":operators",
+        ":view",
+        "//py:python_path",
+    ],
+)
+
+py_library(
+    name = "operators",
+    srcs = ["operators.py"],
     deps = [
         ":view",
         "//py:python_path",

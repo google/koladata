@@ -363,32 +363,6 @@ def box(obj: Any) -> View:
     )
 
 
-# This method is in view.py since we expect to use it from implementations
-# of methods of View class.
-def align(first: Any, *others: Any) -> tuple[View, ...]:
-  """Aligns the views to a common shape.
-
-  We will also apply auto-boxing if some inputs are not views but can be
-  automatically boxed into one.
-
-  Args:
-    first: The first argument to align.
-    *others: The remaining arguments to align.
-
-  Returns:
-    A tuple of aligned views, of size len(others) + 1.
-  """
-  first = box(first)
-  if not others:
-    return (first,)
-  others = tuple(box(o) for o in others)
-  ref_view = max((first, *others), key=lambda l: l.get_depth())
-  return (
-      first.expand_to(ref_view),
-      *(l.expand_to(ref_view) for l in others),
-  )
-
-
 def _map1(
     f: Callable[..., Any], arg: View, *, include_missing: bool = False
 ) -> View:

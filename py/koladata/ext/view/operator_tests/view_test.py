@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The public API for Koda View.
+from absl.testing import absltest
+from koladata.ext.view import kv
 
-This API is highly experimental and is subject to change without notice.
-"""
 
-import types as _py_types
-from koladata.ext.view import operators as _operators
-from koladata.ext.view import view as _view
+class ViewTest(absltest.TestCase):
 
-align = _operators.align
-view = _view.view
-map = _view.map_  # pylint: disable=redefined-builtin
+  def test_call(self):
+    l = [1, 2]
+    v = kv.view(l)
+    self.assertIs(v.get(), l)
+    self.assertEqual(v[:].get(), (1, 2))
 
-types = _py_types.SimpleNamespace(
-    View=_view.View,
-)
+
+if __name__ == '__main__':
+  absltest.main()
