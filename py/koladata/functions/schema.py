@@ -21,12 +21,12 @@ import typing
 from typing import Any
 
 from koladata.types import data_bag
-from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
 from koladata.types import schema_constants
+from koladata.types import schema_item
 
 
-def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
+def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
   """Creates a Koda entity schema corresponding to the given Python type.
 
   This method supports the following Python types / type annotations
@@ -109,4 +109,7 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
       return schema_constants.BOOLEAN
     raise TypeError(f'unsupported type in kd.schema_from_py: {tpe}.')
 
-  return schema_from_py_impl(tpe, data_bag.DataBag.empty_mutable()).freeze_bag()
+  return typing.cast(
+      schema_item.SchemaItem,
+      schema_from_py_impl(tpe, data_bag.DataBag.empty_mutable()).freeze_bag(),
+  )

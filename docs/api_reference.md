@@ -6000,7 +6000,7 @@ OBJECT. It raises an Error if called on primitive schemas, ITEMID, etc.
 Args:
   schema: Schema DataSlice to wrap.</code></pre>
 
-### `kd.schema.schema_from_py(tpe: type[Any]) -> DataSlice` {#kd.schema.schema_from_py}
+### `kd.schema.schema_from_py(tpe: type[Any]) -> SchemaItem` {#kd.schema.schema_from_py}
 Aliases:
 
 - [kd.schema_from_py](#kd.schema_from_py)
@@ -10414,7 +10414,7 @@ Alias for [kd.random.sample](#kd.random.sample) operator.
 
 Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
-### `kd.schema_from_proto(message_class: type[Message], /, *, extensions: list[str] | None = None) -> DataItem` {#kd.schema_from_proto}
+### `kd.schema_from_proto(message_class: type[Message], /, *, extensions: list[str] | None = None) -> SchemaItem` {#kd.schema_from_proto}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda schema representing a proto message class.
 
@@ -10441,13 +10441,13 @@ Args:
   extensions: List of proto extension paths.
 
 Returns:
-  A DataItem containing the converted schema.</code></pre>
+  A SchemaItem containing the converted schema.</code></pre>
 
 ### `kd.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.schema_from_proto_path}
 
 Alias for [kd.proto.schema_from_proto_path](#kd.proto.schema_from_proto_path) operator.
 
-### `kd.schema_from_py(tpe: type[Any]) -> DataSlice` {#kd.schema_from_py}
+### `kd.schema_from_py(tpe: type[Any]) -> SchemaItem` {#kd.schema_from_py}
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
 

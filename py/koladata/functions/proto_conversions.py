@@ -15,13 +15,13 @@
 """Koda functions for converting to and from protocol buffers."""
 
 from collections.abc import Iterator
-from typing import Type, TypeAlias, TypeVar
+from typing import Type, TypeAlias, TypeVar, cast
 
 from google.protobuf import message
 from koladata.types import data_bag
-from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
+from koladata.types import schema_item
 
 
 _T = TypeVar('_T')
@@ -182,7 +182,7 @@ def schema_from_proto(
     /,
     *,
     extensions: list[str] | None = None,
-) -> data_item.DataItem:
+) -> schema_item.SchemaItem:
   """Returns a Koda schema representing a proto message class.
 
   This is similar to `from_proto(x).get_schema()` when `x` is an instance of
@@ -208,12 +208,12 @@ def schema_from_proto(
     extensions: List of proto extension paths.
 
   Returns:
-    A DataItem containing the converted schema.
+    A SchemaItem containing the converted schema.
   """
   result = data_bag.DataBag.empty_mutable()._schema_from_proto(  # pylint: disable=protected-access
       message_class(), extensions
   )
-  return result.freeze_bag()
+  return cast(schema_item.SchemaItem, result.freeze_bag())
 
 
 def to_proto(
