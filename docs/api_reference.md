@@ -11636,7 +11636,7 @@ Args:
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>
 
-### `kd_ext.kv.map(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View` {#kd_ext.kv.map}
+### `kd_ext.kv.map(f: Callable[..., Any], *args: Any, include_missing: bool = False, **kwargs: Any) -> View` {#kd_ext.kv.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs view.
 
@@ -11656,6 +11656,8 @@ Args:
   f: The function to apply.
   *args: The positional arguments to pass to the function. They must all be
     views or auto-boxable into views.
+  include_missing: Whether to call fn when one of the args is None. If False,
+    the result will be None if any of the args is None.
   **kwargs: The keyword arguments to pass to the function. They must all be
     views or auto-boxable into views.
 

@@ -128,6 +128,51 @@ class ViewTest(absltest.TestCase):
         ((11, 12), (23, 24)),
     )
 
+  def test_map_include_missing(self):
+    self.assertEqual(
+        view_lib.map_(
+            lambda x, y: x + y,
+            view_lib.view([1, 2])[:],
+            view_lib.view([3, None])[:],
+        ).get(),
+        (4, None),
+    )
+    self.assertEqual(
+        view_lib.map_(
+            lambda x, y: x + y,
+            view_lib.view([1, 2])[:],
+            view_lib.view([3, None])[:],
+            include_missing=False,
+        ).get(),
+        (4, None),
+    )
+    self.assertEqual(
+        view_lib.map_(
+            lambda x, y: x + y if y is not None else 57,
+            view_lib.view([1, 2])[:],
+            view_lib.view([3, None])[:],
+            include_missing=True,
+        ).get(),
+        (4, 57),
+    )
+    self.assertEqual(
+        view_lib.map_(
+            lambda x, y: x + y,
+            None,
+            view_lib.view([3, 4])[:],
+        ).get(),
+        (None, None),
+    )
+    self.assertEqual(
+        view_lib.map_(
+            lambda x, y: x + y if x is not None else 57,
+            None,
+            view_lib.view([3, 4])[:],
+            include_missing=True,
+        ).get(),
+        (57, 57),
+    )
+
   def test_nested_slice(self):
     x = Obj(
         a=[
@@ -180,30 +225,37 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(view_lib.view(x).a[:].b.get_depth(), 1)
 
   def test_flatten(self):
-    x = [[1, 2], [3]]
+    x = [[1, None, 2], [3]]
     self.assertEqual(view_lib.view(x).flatten().get(), (x,))
-    self.assertEqual(view_lib.view(x)[:].flatten().get(), ([1, 2], [3]))
-    self.assertEqual(view_lib.view(x)[:][:].flatten().get(), (1, 2, 3))
+    self.assertEqual(view_lib.view(x)[:].flatten().get(), ([1, None, 2], [3]))
+    self.assertEqual(view_lib.view(x)[:][:].flatten().get(), (1, None, 2, 3))
 
   def test_implode(self):
-    x = [[[1, 2], [3]], [[4]]]
+    x = [[[1, 2], [3]], [[4, None]]]
     view_3d = view_lib.view(x)[:][:][:]
-    self.assertEqual(view_3d.implode(ndim=0).flatten().get(), (1, 2, 3, 4))
     self.assertEqual(
-        view_3d.implode(ndim=1).flatten().get(), ((1, 2), (3,), (4,))
-    )
-    self.assertEqual(view_3d.implode().flatten().get(), ((1, 2), (3,), (4,)))
-    self.assertEqual(
-        view_3d.implode(ndim=2).flatten().get(), (((1, 2), (3,)), ((4,),))
+        view_3d.implode(ndim=0).flatten().get(), (1, 2, 3, 4, None)
     )
     self.assertEqual(
-        view_3d.implode(ndim=3).flatten().get(), ((((1, 2), (3,)), ((4,),)),)
+        view_3d.implode(ndim=1).flatten().get(), ((1, 2), (3,), (4, None))
     )
     self.assertEqual(
-        view_3d.implode(ndim=-1).flatten().get(), ((((1, 2), (3,)), ((4,),)),)
+        view_3d.implode().flatten().get(), ((1, 2), (3,), (4, None))
     )
     self.assertEqual(
-        view_3d.implode(ndim=-2).flatten().get(), ((((1, 2), (3,)), ((4,),)),)
+        view_3d.implode(ndim=2).flatten().get(), (((1, 2), (3,)), ((4, None),))
+    )
+    self.assertEqual(
+        view_3d.implode(ndim=3).flatten().get(),
+        ((((1, 2), (3,)), ((4, None),)),),
+    )
+    self.assertEqual(
+        view_3d.implode(ndim=-1).flatten().get(),
+        ((((1, 2), (3,)), ((4, None),)),),
+    )
+    self.assertEqual(
+        view_3d.implode(ndim=-2).flatten().get(),
+        ((((1, 2), (3,)), ((4, None),)),),
     )
     with self.assertRaisesRegex(
         ValueError,

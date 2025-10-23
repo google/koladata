@@ -18,45 +18,64 @@ from absl.testing import absltest
 from koladata.ext.view import clib_py_ext
 
 
+class _NoBoolValue:
+
+  def __bool__(self):
+    raise ValueError('bool() should not be called on _NoBoolValue')
+
+
 class MapStructuresTest(absltest.TestCase):
 
   def test_eval(self):
-    self.assertEqual(clib_py_ext.map_structures(lambda x: x + 1, (0,), (1,)), 2)
-    self.assertEqual(clib_py_ext.map_structures(lambda x: x + 1, [0], [1]), 2)
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x, y: x - y, (0, 0), (1, 2)), -1
+        clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (1,)), 2
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x: x + 1, (1,), ((1, 2),)), (2, 3)
+        clib_py_ext.map_structures(lambda x: x + 1, [0], True, [1]), 2
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(lambda x, y: x - y, (0, 0), True, (1, 2)), -1
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(lambda x: x + 1, (1,), True, ((1, 2),)),
+        (2, 3),
     )
     self.assertEqual(
         clib_py_ext.map_structures(
-            lambda x, y: x - y, (1, 1), ((1, 2), (3, 5))
+            lambda x, y: x - y, (1, 1), True, ((1, 2), (3, 5))
         ),
         (-2, -3),
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x, y: x - y, (0, 1), (1, (3, 5))),
+        clib_py_ext.map_structures(
+            lambda x, y: x - y, (0, 1), True, (1, (3, 5))
+        ),
         (-2, -4),
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x, y: x - y, (1, 0), ((3, 5), 1)),
+        clib_py_ext.map_structures(
+            lambda x, y: x - y, (1, 0), True, ((3, 5), 1)
+        ),
         (2, 4),
     )
     self.assertEqual(
         clib_py_ext.map_structures(
-            lambda x, y, z: x - y + z, (2, 1, 0), (((3, 5), (7,)), (2, 5), 4)
+            lambda x, y, z: x - y + z,
+            (2, 1, 0),
+            True,
+            (((3, 5), (7,)), (2, 5), 4),
         ),
         ((5, 7), (6,)),
     )
     # Kwargs
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x: x + 1, (0,), (1,), ('x',)), 2
+        clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (1,), ('x',)), 2
     )
     self.assertEqual(
         clib_py_ext.map_structures(
             lambda x, y, z: x - y + z,
             (2, 0, 1),
+            True,
             (((3, 5), (7,)), 4, (2, 5)),
             ('z', 'y'),
         ),
@@ -65,45 +84,73 @@ class MapStructuresTest(absltest.TestCase):
     # Many args
     self.assertEqual(
         clib_py_ext.map_structures(
-            lambda *xs: sum(xs), (0,) * 20, tuple(range(20))
+            lambda *xs: sum(xs), (0,) * 20, True, tuple(range(20))
         ),
         sum(range(20)),
     )
 
-  # * Not str kwnames.
+  def test_include_missing(self):
+    my_fn = lambda x, y: x + y if x is not None and y is not None else 57
+    self.assertEqual(
+        clib_py_ext.map_structures(my_fn, (0, 1), False, (1, (2, None, 3))),
+        (3, None, 4),
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(my_fn, (0, 1), '', (1, (2, None, 3))),
+        (3, None, 4),
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(my_fn, (0, 1), True, (1, (2, None, 3))),
+        (3, 57, 4),
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(
+            my_fn, (0, 1), 'anything_python_evals_to_true', (1, (2, None, 3))
+        ),
+        (3, 57, 4),
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(my_fn, (0, 1), False, (None, (2, None, 3))),
+        (None, None, None),
+    )
+    self.assertEqual(
+        clib_py_ext.map_structures(my_fn, (0, 1), True, (None, (2, None, 3))),
+        (57, 57, 57),
+    )
+
   def test_calling_errors(self):
     with self.assertRaisesRegex(
         TypeError,
-        'expected 3 or 4 positional arguments but 1 were given',
+        'expected 4 or 5 positional arguments but 3 were given',
     ):
-      clib_py_ext.map_structures(lambda x: x + 1)
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True)
     with self.assertRaisesRegex(
         TypeError,
-        'expected 3 or 4 positional arguments but 5 were given',
+        'expected 4 or 5 positional arguments but 6 were given',
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, 1, 2, 3, 4)
+      clib_py_ext.map_structures(lambda x: x + 1, 1, 2, 3, 4, 5)
     with self.assertRaisesRegex(
         TypeError, 'expected the first arg to be a callable, got int'
     ):
-      clib_py_ext.map_structures(1, (0,), (1,))
+      clib_py_ext.map_structures(1, (0,), True, (1,))
     with self.assertRaisesRegex(
         TypeError, 'expected the second arg to be a tuple / list, got int'
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, 0, 2)
+      clib_py_ext.map_structures(lambda x: x + 1, 0, True, 2)
     with self.assertRaisesRegex(
         TypeError, 'expected the third arg to be a tuple / list, got int'
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, (0,), 2)
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True, 2)
     with self.assertRaisesRegex(
         TypeError, 'expected the fourth arg to be a tuple, got int'
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, (0,), (2,), 3)
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (2,), 3)
     with self.assertRaisesRegex(
         TypeError,
         'expected the number of kwnames to be at most the number of args, but'
         ' got 2 kwnames and 1 args',
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, (0,), (2,), ('a', 'b'))
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (2,), ('a', 'b'))
     with self.assertRaisesRegex(
         TypeError,
         re.escape(
@@ -111,17 +158,21 @@ class MapStructuresTest(absltest.TestCase):
             ' args, but got len(depths): 1, number of args + kwargs: 2'
         ),
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, (0,), (1, 2))
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (1, 2))
     with self.assertRaisesRegex(TypeError, 'expected at least one arg'):
-      clib_py_ext.map_structures(lambda: 1, (), ())
+      clib_py_ext.map_structures(lambda: 1, (), True, ())
     with self.assertRaisesRegex(
         TypeError, 'expected all depths to be integers, got str'
     ):
-      clib_py_ext.map_structures(lambda x: 1, ('abc',), (1,))
+      clib_py_ext.map_structures(lambda x: 1, ('abc',), True, (1,))
     with self.assertRaisesRegex(
         ValueError, 'expected all depths to be non-negative, got -5'
     ):
-      clib_py_ext.map_structures(lambda x: x + 1, (-5,), (1,))
+      clib_py_ext.map_structures(lambda x: x + 1, (-5,), True, (1,))
+    with self.assertRaisesRegex(
+        ValueError, re.escape('bool() should not be called on _NoBoolValue')
+    ):
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), _NoBoolValue(), 1)
 
   def test_eval_errors(self):
     with self.assertRaisesRegex(ValueError, 'test error'):
@@ -130,24 +181,26 @@ class MapStructuresTest(absltest.TestCase):
         del x
         raise ValueError('test error')
 
-      clib_py_ext.map_structures(fn, (0,), (1,))
+      clib_py_ext.map_structures(fn, (0,), True, (1,))
 
     with self.assertRaisesRegex(
         TypeError, "missing 1 required positional argument: 'y'"
     ):
-      clib_py_ext.map_structures(lambda x, y: x + y, (0,), (1,))
+      clib_py_ext.map_structures(lambda x, y: x + y, (0,), True, (1,))
     with self.assertRaisesRegex(
         TypeError,
         'expected all tuples to be the same length when depth > 0, got 1 and 2',
     ):
-      clib_py_ext.map_structures(lambda x, y: x + y, (1, 1), ((1, 2), (3,)))
+      clib_py_ext.map_structures(
+          lambda x, y: x + y, (1, 1), True, ((1, 2), (3,))
+      )
     with self.assertRaisesRegex(
         TypeError,
         'expected the structure to be a tuple when depth > 0, got int',
     ):
-      clib_py_ext.map_structures(lambda x: x, (1,), (1,))
+      clib_py_ext.map_structures(lambda x: x, (1,), True, (1,))
     with self.assertRaisesRegex(TypeError, 'keywords must be strings'):
-      clib_py_ext.map_structures(lambda x: x + 1, (0,), (1,), (1,))
+      clib_py_ext.map_structures(lambda x: x + 1, (0,), True, (1,), (1,))
 
 
 if __name__ == '__main__':

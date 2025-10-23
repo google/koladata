@@ -70,7 +70,7 @@ class View:
     Args:
       attr_name: The name of the attribute to get.
     """
-    attrgetter = lambda x: None if x is None else getattr(x, attr_name)
+    attrgetter = lambda x: getattr(x, attr_name)
     return _map1(attrgetter, self)
 
   def __getattr__(self, attr_name: str) -> View:
@@ -119,7 +119,7 @@ class View:
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
     explode_fn = lambda x: () if x is None else tuple(x)
-    res = _map1(explode_fn, self)
+    res = _map1(explode_fn, self, include_missing=True)
     return View(res.get(), self._depth + 1, is_internal_call=True)
 
   def __getitem__(self, key: Any) -> View:
@@ -228,7 +228,7 @@ class View:
       A new view with rank 1.
     """
     res = []
-    _map1(res.append, self)
+    _map1(res.append, self, include_missing=True)
     return View(tuple(res), 1, is_internal_call=True)
 
   def expand_to(self, other: View) -> View:
@@ -236,7 +236,7 @@ class View:
     if self is other:
       return self
     if self._depth <= other._depth:  # pylint: disable=protected-access
-      return _map2(lambda x, y: x, self, other)
+      return _map2(lambda x, y: x, self, other, include_missing=True)
     else:
       raise ValueError(
           f'a View with depth {self._depth} cannot be broadcasted to a View'  # pylint: disable=protected-access
@@ -343,28 +343,43 @@ def align(first: Any, *others: Any) -> tuple[View, ...]:
   )
 
 
-def _map1(f: Callable[..., Any], arg: View) -> View:
+def _map1(
+    f: Callable[..., Any], arg: View, *, include_missing: bool = False
+) -> View:
   """Unary specialization of map_. `arg` _must_ be a View."""
   depth = arg._depth  # pylint: disable=protected-access
-  obj = _cc_map_structure(f, (depth,), (arg._obj,))  # pylint: disable=protected-access
+  obj = _cc_map_structure(f, (depth,), include_missing, (arg._obj,))  # pylint: disable=protected-access
   return View(obj, depth, is_internal_call=True)
 
 
-def _map2(f: Callable[..., Any], arg1: View, arg2: Any) -> View:
+def _map2(
+    f: Callable[..., Any],
+    arg1: View,
+    arg2: Any,
+    *,
+    include_missing: bool = False,
+) -> View:
   """Binary specialization of map_. `arg1` _must_ be a View."""
   # pylint: disable=protected-access
   depth1 = arg1._depth
   arg2_is_view = isinstance(arg2, View)
   unboxed_arg2 = arg2._obj if arg2_is_view else arg2
   depth2 = arg2._depth if arg2_is_view else 0
-  obj = _cc_map_structure(f, (depth1, depth2), (arg1._obj, unboxed_arg2))
+  obj = _cc_map_structure(
+      f, (depth1, depth2), include_missing, (arg1._obj, unboxed_arg2)
+  )
   return View(obj, max(depth1, depth2), is_internal_call=True)
   # pylint: enable=protected-access
 
 
 # This method is in view.py since we expect to use it from implementations
 # of methods of View class.
-def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
+def map_(
+    f: Callable[..., Any],
+    *args: Any,
+    include_missing: bool = False,
+    **kwargs: Any,
+) -> View:
   """Applies a function to corresponding items in the args/kwargs view.
 
   Arguments will be broadcasted to a common shape. There must be at least one
@@ -383,6 +398,8 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
     f: The function to apply.
     *args: The positional arguments to pass to the function. They must all be
       views or auto-boxable into views.
+    include_missing: Whether to call fn when one of the args is None. If False,
+      the result will be None if any of the args is None.
     **kwargs: The keyword arguments to pass to the function. They must all be
       views or auto-boxable into views.
 
@@ -403,5 +420,7 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
       append_depth(0)
       append_arg(arg)
 
-  obj = _cc_map_structure(f, depths, unboxed_args, tuple(kwargs))
+  obj = _cc_map_structure(
+      f, depths, include_missing, unboxed_args, tuple(kwargs)
+  )
   return View(obj, max(depths), is_internal_call=True)

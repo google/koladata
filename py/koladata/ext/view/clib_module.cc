@@ -25,8 +25,7 @@ constexpr const char* kThisModuleName = "koladata.ext.view.clib";
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
 PyMODINIT_FUNC PyInit_clib_py_ext(void) {
   static PyMethodDef py_methods[] = {
-      kDefMapStructures,
-      {nullptr} /* sentinel */
+      kDefMapStructures, {nullptr} /* sentinel */
   };
   static PyModuleDef py_module = {
       .m_base = PyModuleDef_HEAD_INIT,

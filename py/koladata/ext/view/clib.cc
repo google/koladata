@@ -30,7 +30,7 @@ namespace {
 // All PyObject* inputs are borrowed.
 arolla::python::PyObjectPtr MapImpl(PyObject* fn,
                                     absl::Span<const int64_t> depths,
-                                    int64_t current_depth,
+                                    int64_t current_depth, bool include_missing,
                                     absl::Span<PyObject*> py_args,
                                     Py_ssize_t nargs, PyObject* py_kwnames) {
   int64_t max_len = -1;
@@ -59,6 +59,13 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
   }
   // All are scalars.
   if (max_len == -1) {
+    if (!include_missing) {
+      for (int64_t i = 0; i < depths.size(); ++i) {
+        if (py_args[i] == Py_None) {
+          return arolla::python::PyObjectPtr::NewRef(Py_None);
+        }
+      }
+    }
     return arolla::python::PyObjectPtr::Own(
         PyObject_Vectorcall(fn, py_args.data(), nargs, py_kwnames));
   }
@@ -80,8 +87,9 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
         new_py_args[j] = PyTuple_GET_ITEM(py_args[j], i);
       }
     }
-    arolla::python::PyObjectPtr res = MapImpl(
-        fn, depths, new_depth, absl::MakeSpan(new_py_args), nargs, py_kwnames);
+    arolla::python::PyObjectPtr res =
+        MapImpl(fn, depths, new_depth, include_missing,
+                absl::MakeSpan(new_py_args), nargs, py_kwnames);
     if (res == nullptr) {
       return nullptr;
     }
@@ -97,13 +105,14 @@ PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
   //   py_args: [
   //    fn: Callable,
   //    depths: tuple[int, ...] | list[int],
+  //    include_missing: bool,
   //    args: tuple[Any, ...] | list[Any],
   //    kwnames: tuple[str, ...] = (),  // Optional - can be missing.
   //  ]
-  if (nargs < 3 || nargs > 4) {
+  if (nargs < 4 || nargs > 5) {
     return PyErr_Format(
         PyExc_TypeError,
-        "expected 3 or 4 positional arguments but %zu were given", nargs);
+        "expected 4 or 5 positional arguments but %zu were given", nargs);
   }
   PyObject* fn = py_args[0];
   if (!PyCallable_Check(fn)) {
@@ -117,17 +126,21 @@ PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
                         "expected the second arg to be a tuple / list, got %s",
                         Py_TYPE(py_args[1])->tp_name);
   }
+  int include_missing = PyObject_IsTrue(py_args[2]);
+  if (include_missing < 0) {
+    return nullptr;
+  }
   absl::Span<PyObject*> fn_args;
-  if (!arolla::python::PyTuple_AsSpan(py_args[2], &fn_args)) {
+  if (!arolla::python::PyTuple_AsSpan(py_args[3], &fn_args)) {
     return PyErr_Format(PyExc_TypeError,
                         "expected the third arg to be a tuple / list, got %s",
-                        Py_TYPE(py_args[2])->tp_name);
+                        Py_TYPE(py_args[3])->tp_name);
   }
   // Parse the kwnames.
   PyObject* kwnames = nullptr;
   Py_ssize_t nposargs = fn_args.size();
-  if (nargs == 4) {
-    kwnames = py_args[3];
+  if (nargs == 5) {
+    kwnames = py_args[4];
     if (!PyTuple_CheckExact(kwnames)) {
       return PyErr_Format(PyExc_TypeError,
                           "expected the fourth arg to be a tuple, got %s",
@@ -172,7 +185,8 @@ PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
                           depths[i]);
     }
   }
-  return MapImpl(fn, depths, /*current_depth=*/0, fn_args, nposargs, kwnames)
+  return MapImpl(fn, depths, /*current_depth=*/0, include_missing, fn_args,
+                 nposargs, kwnames)
       .release();
 }
 
@@ -181,7 +195,7 @@ PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
 const PyMethodDef kDefMapStructures = {
     "map_structures", reinterpret_cast<PyCFunction>(&PyMapStructures),
     METH_FASTCALL,
-    "map_structures(fn, depths, args, kwnames=(), /)\n"
+    "map_structures(fn, depths, include_missing, args, kwnames=(), /)\n"
     "--\n\n"
     "Applies `fn` to each item in the given structures.\n"
     "\n"
@@ -190,6 +204,7 @@ const PyMethodDef kDefMapStructures = {
     "    provided inputs.\n"
     "  depths: a tuple / list of integers specifying to which depth each arg\n"
     "    should be traversed to. Must have the same arity as args.\n"
+    "  include_missing: whether to call fn when one of the args is None.\n"
     "  args: a tuple / list of arguments that will be traversed. Those levels\n"
     "    that should be recursed on are required to be tuples.\n"
     "  kwnames: optional tuple of names of keyword arguments."};
