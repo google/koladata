@@ -173,6 +173,39 @@ class ViewTest(absltest.TestCase):
         (57, 57),
     )
 
+  def test_map_method(self):
+    self.assertEqual(
+        view_lib.view([1, None, 2])[:].map(lambda x: x * 2).get(), (2, None, 4)
+    )
+    self.assertEqual(
+        view_lib.view([1, 2]).map(lambda x: x * 2).get(), [1, 2, 1, 2]
+    )
+    self.assertEqual(
+        view_lib.view([1, None, 2])[:]
+        .map(lambda x: x is None, include_missing=True)
+        .get(),
+        (False, True, False),
+    )
+
+  def test_agg_map(self):
+    self.assertEqual(
+        view_lib.view([[None, 1, 2], []])[:][:].agg_map(len).get(), (3, 0)
+    )
+    self.assertEqual(
+        view_lib.view([[None, 1, 2], []])[:][:]
+        .agg_map(list)
+        .agg_map(list)
+        .get(),
+        [[None, 1, 2], []],
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'Cannot implode by 1 dimensions, the shape has only 0 dimensions.'
+        ),
+    ):
+      _ = view_lib.view(5).agg_map(len)
+
   def test_nested_slice(self):
     x = Obj(
         a=[

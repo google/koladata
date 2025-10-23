@@ -243,6 +243,52 @@ class View:
           f' with depth {other._depth}'  # pylint: disable=protected-access
       )
 
+  def map(
+      self, f: Callable[[Any], Any], *, include_missing: bool = False
+  ) -> View:
+    """Applies a function to every item in the view.
+
+    Example:
+      view([1, None, 2])[:].map(lambda x: x * 2).get()
+      # (2, None, 4)
+      view([1, 2]).map(lambda x: x * 2).get()
+      # [1, 2, 1, 2]
+
+    Args:
+      f: The function to apply.
+      include_missing: Whether to call f when the corresponding item is None. If
+        False, f will not be called and the result will preserve the None.
+
+    Returns:
+      A new view with the function applied to every item.
+    """
+    return _map1(f, self, include_missing=include_missing)
+
+  def agg_map(self, f: Callable[[tuple[Any, ...]], Any]) -> View:
+    """Applies a function to tuples from the last dimension of the view.
+
+    This is a shortcut for .implode().map(). Every invocation of `f` will be
+    passed a tuple of values corresponding to all items within the last (most
+    nested) dimension of the view, including Nones for missing values.
+
+    Example:
+      view([[None, 1, 2], []])[:][:].agg_map(len).get()
+      # (3, 0)
+      view([[None, 1, 2], []])[:][:].agg_map(print).get()
+      # (None, None)
+      # Prints:
+      # (None, 1, 2)
+      # ()
+
+    Args:
+      f: The function to apply.
+
+    Returns:
+      A new view with the function applied to every tuple of items, with one
+      fewer dimension.
+    """
+    return _map1(f, self.implode())
+
   def get_depth(self) -> int:
     """Returns the depth of the view."""
     return self._depth
