@@ -29,7 +29,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_typical_usage(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         persistence_dir,
         description=(
             'Initial state of manager for playing with queries and docs'
@@ -367,7 +367,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
   def test_wrong_and_acceptable_initialization(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path
     )
     with self.assertRaisesRegex(
@@ -416,7 +416,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_views_that_become_invalid_after_update(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+        persistence_dir
+    )
 
     root = DataSliceManagerView(manager)
     root.query = kd.list([
@@ -672,7 +674,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     def create_initial_manager() -> pidsm.PersistedIncrementalDataSliceManager:
       persistence_dir = self.create_tempdir().full_path
-      manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+      manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+          persistence_dir
+      )
       root = DataSliceManagerView(manager)
 
       root.query = (
@@ -819,7 +823,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
   def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path
     )
     root = DataSliceManagerView(manager)
@@ -871,7 +875,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
   def test_getitem_raises_error_for_invalid_argument(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path
     )
     root = DataSliceManagerView(manager)
@@ -941,7 +945,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     ])
 
     # Set up a DataSliceManager with the data from above.
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path
     )
     root = DataSliceManagerView(manager)
@@ -1090,7 +1094,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     ])
 
     # Set up a DataSliceManager with the data from above.
-    manager = pidsm.PersistedIncrementalDataSliceManager(
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path
     )
     root = DataSliceManagerView(manager)

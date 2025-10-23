@@ -75,7 +75,7 @@ class PersistedDataTest(absltest.TestCase):
     self.assertTrue(hasattr(persisted_data, 'DataSliceManagerView'))
 
     persistence_dir = self.create_tempdir().full_path
-    manager = persisted_data.PersistedIncrementalDataSliceManager(
+    manager = persisted_data.PersistedIncrementalDataSliceManager.create_new(
         persistence_dir
     )
     self.assertIsInstance(manager, persisted_data.DataSliceManagerInterface)

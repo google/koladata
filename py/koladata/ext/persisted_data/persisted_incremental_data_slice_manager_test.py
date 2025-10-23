@@ -144,7 +144,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   def new_manager(self, dsm_class: Any) -> DataSliceManager:
     if dsm_class == PersistedIncrementalDataSliceManager:
       persistence_dir = self.create_tempdir().full_path
-      return PersistedIncrementalDataSliceManager(persistence_dir)
+      return PersistedIncrementalDataSliceManager.create_new(persistence_dir)
 
     assert dsm_class == SimpleInMemoryDataSliceManager
     return SimpleInMemoryDataSliceManager()
@@ -153,7 +153,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       new_persistence_dir = os.path.join(self.create_tempdir().full_path, 'new')
       shutil.copytree(manager._persistence_dir, new_persistence_dir)  # pylint: disable=protected-access
-      new_manager = PersistedIncrementalDataSliceManager(new_persistence_dir)
+      new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+          new_persistence_dir
+      )
       return new_manager
 
     assert isinstance(manager, SimpleInMemoryDataSliceManager)
@@ -1722,7 +1724,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
     query_schema = kd.named_schema('query')
     manager.update(
         at_path=parse_dsp(''),
@@ -1748,7 +1750,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     persistence_dir = new_persistence_dir
 
     # Initialize a new manager with the new persistence directory.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir
+    )
     ds = manager.get_data_slice(populate_including_descendants={parse_dsp('')})
     self.assertEqual(
         ds.query[:].doc[:].doc_id.to_py(), [[0, 1, 2, 3], [4, 5, 6]]
@@ -1766,7 +1770,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # These additional updates are also persisted, and can be picked up by new
     # manager instances.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir
+    )
     ds = manager.get_data_slice(populate_including_descendants={parse_dsp('')})
     self.assertEqual(
         ds.query[:].doc[:].doc_id.to_py(), [[0, 1, 2, 3], [4, 5, 6]]
@@ -1780,14 +1786,16 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
     # Starting from an empty persistence directory, the version should be 1.0.0.
     self.assertEqual(manager._metadata.version, '1.0.0')
     manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=kd.item(1))
     # The version should still be 1.0.0 after adding an update.
     self.assertEqual(manager._metadata.version, '1.0.0')
 
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir
+    )
     # The version is 1.0.0 after starting from a populated persistence directory
     self.assertEqual(manager._metadata.version, '1.0.0')
 
@@ -2357,7 +2365,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # This is not a core feature; it is simply nice to have for debugging.
 
     persistence_dir = self.create_tempdir().full_path
-    original_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    original_manager = PersistedIncrementalDataSliceManager.create_new(
+        persistence_dir
+    )
 
     doc_schema = kd.named_schema(
         'doc',
@@ -3264,7 +3274,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
 
     persisted_data_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persisted_data_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(
+        persisted_data_dir
+    )
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
@@ -3398,7 +3410,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     ])
 
     persisted_data_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persisted_data_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(
+        persisted_data_dir
+    )
     root = manager.get_data_slice()
     manager.update(
         at_path=parse_dsp(''),
@@ -3488,7 +3502,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # After clearing the cache, the state of the manager is the same as that of
     # a new manager instance with the same persistence_dir.
-    new_manager = PersistedIncrementalDataSliceManager(
+    new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
         persisted_data_dir, fs=manager._fs
     )
     for attr_name in manager.__dict__:
@@ -3522,7 +3536,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     initial_data_manager_mock = mock.Mock(
         wraps=bare_root_initial_data_manager.BareRootInitialDataManager()
     )
-    manager = PersistedIncrementalDataSliceManager(
+    manager = PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=initial_data_manager_mock,
     )
@@ -3539,7 +3553,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_branch(self):
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
 
     query_schema = kd.named_schema('query')
     trunk_manager.update(
@@ -3621,9 +3635,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             " 'populate' is invalid"
         ),
     ):
-      PersistedIncrementalDataSliceManager(branch_dir).get_data_slice_at(
-          parse_dsp('.query[:].query_text')
-      )
+      PersistedIncrementalDataSliceManager.create_from_dir(
+          branch_dir
+      ).get_data_slice_at(parse_dsp('.query[:].query_text'))
 
     # This update is for the branch only.
     branch_manager.update(
@@ -3646,9 +3660,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # New instances for trunk_dir also don't see the update.
     kd.testing.assert_equivalent(
-        PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
-            parse_dsp('.query[:].query_text')
-        ),
+        PersistedIncrementalDataSliceManager.create_from_dir(
+            trunk_dir
+        ).get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
 
@@ -3691,7 +3705,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_branch_with_various_states_of_output_dir(self):
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
     query_schema = kd.named_schema('query')
     trunk_manager.update(
         at_path=parse_dsp(''),
@@ -3742,7 +3756,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   def test_branch_with_and_without_fs(self, use_new_fs: bool):
     trunk_dir = self.create_tempdir().full_path
     trunk_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir, fs=trunk_fs)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(
+        trunk_dir, fs=trunk_fs
+    )
     query_schema = kd.named_schema('query')
     trunk_manager.update(
         at_path=parse_dsp(''),
@@ -3789,7 +3805,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   )
   def test_revision_history_is_tracked_in_metadata(self, _):
     persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(
+    manager = PersistedIncrementalDataSliceManager.create_new(
         persistence_dir, description='Initial state'
     )
 
@@ -4007,7 +4023,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_branch_with_revision_history_index(self):
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
     trunk_manager_root = trunk_manager.get_data_slice()
 
     query_schema = kd.named_schema('query')
@@ -4128,9 +4144,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             " 'populate' is invalid"
         ),
     ):
-      PersistedIncrementalDataSliceManager(branch_dir).get_data_slice_at(
-          parse_dsp('.query[:].query_text')
-      )
+      PersistedIncrementalDataSliceManager.create_from_dir(
+          branch_dir
+      ).get_data_slice_at(parse_dsp('.query[:].query_text'))
 
     # This update is for the branch only.
     branch_manager.update(
@@ -4153,15 +4169,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # New instances for trunk_dir also don't see the update.
     kd.testing.assert_equivalent(
-        PersistedIncrementalDataSliceManager(trunk_dir).get_data_slice_at(
-            parse_dsp('.query[:].query_text')
-        ),
+        PersistedIncrementalDataSliceManager.create_from_dir(
+            trunk_dir
+        ).get_data_slice_at(parse_dsp('.query[:].query_text')),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
 
   def test_branch_with_invalid_and_valid_revision_history_index(self):
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = PersistedIncrementalDataSliceManager(trunk_dir)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
 
     query_schema = kd.named_schema('query')
     query_data = kd.list([
@@ -4237,7 +4253,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_get_persistence_directory(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
     self.assertEqual(manager.get_persistence_directory(), persistence_dir)
 
     query_schema = kd.named_schema('query')
@@ -4271,7 +4287,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_basic_concurrent_readers_writers(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
@@ -4280,7 +4296,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     manager_schema = manager.get_schema()
 
-    another_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    another_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir
+    )
     another_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
@@ -4356,7 +4374,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
 
     persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(
+    manager = PersistedIncrementalDataSliceManager.create_new(
         persistence_dir, fs=fs_factory()
     )
     manager.update(
@@ -4446,7 +4464,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
       persistence_dir = self.create_tempdir().full_path
-      manager = PersistedIncrementalDataSliceManager(
+      manager = PersistedIncrementalDataSliceManager.create_new(
           persistence_dir,
           initial_data_manager=bare_root_initial_data_manager.BareRootInitialDataManager(
               root_item
@@ -4461,13 +4479,88 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
       # New managers initialized from the pre-populated persistence directory
       # also use the user-provided initial schema and data.
-      new_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+      new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+          persistence_dir
+      )
       kd.testing.assert_equivalent(
           new_manager.get_schema(), root_item.get_schema(), ids_equality=True
       )
       kd.testing.assert_equivalent(
           new_manager.get_data_slice(), root_item, ids_equality=True
       )
+
+  def test_constructor_accepts_only_internal_calls(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'please do not call the PersistedIncrementalDataSliceManager'
+            ' constructor directly; use the class factory methods create_new()'
+            ' or create_from_dir() instead'
+        ),
+    ):
+      unused_args = dict(
+          persistence_dir=None,
+          fs=None,
+          initial_data_manager=None,
+          data_bag_manager=None,
+          schema_bag_manager=None,
+          schema_helper=None,
+          initial_schema_node_name_to_data_bag_names=None,
+          schema_node_name_to_data_bags_updates_manager=None,
+          metadata=None,
+      )
+      PersistedIncrementalDataSliceManager(  # pytype: disable=wrong-arg-types
+          is_internal_call=False,
+          **unused_args,
+      )
+
+  def test_create_new_error_messages(self):
+    my_dir = self.create_tempdir().full_path
+    my_file = os.path.join(my_dir, 'some_file')
+    with open(my_file, 'w') as f:
+      f.write('some content')
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(f'persistence_dir should be a directory. Got: {my_file}'),
+    ):
+      PersistedIncrementalDataSliceManager.create_new(my_file)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(f'persistence_dir should be empty. Got: {my_dir}'),
+    ):
+      PersistedIncrementalDataSliceManager.create_new(my_dir)
+
+  def test_create_from_dir_error_messages(self):
+    my_dir = self.create_tempdir().full_path
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            f'persistence_dir {my_dir} should contain artifacts persisted'
+            ' previously by a PersistedIncrementalDataSliceManager'
+        ),
+    ):
+      PersistedIncrementalDataSliceManager.create_from_dir(my_dir)
+
+    my_file = os.path.join(my_dir, 'some_file')
+    with open(my_file, 'w') as f:
+      f.write('some content')
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            f'persistence_dir {my_file} should contain artifacts persisted'
+            ' previously by a PersistedIncrementalDataSliceManager'
+        ),
+    ):
+      PersistedIncrementalDataSliceManager.create_from_dir(my_file)
+
+  def test_create_new_with_non_existing_directory_creates_the_directory(self):
+    new_dir = os.path.join(self.create_tempdir().full_path, 'non_existing_dir')
+    PersistedIncrementalDataSliceManager.create_new(new_dir)
+    self.assertTrue(os.path.isdir(new_dir))
 
 
 if __name__ == '__main__':
