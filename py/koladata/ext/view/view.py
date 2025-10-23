@@ -20,6 +20,7 @@ from typing import Any, Callable
 from koladata.ext.view import clib_py_ext as view_clib
 
 _cc_map_structure = view_clib.map_structures
+_INTERNAL_CALL = object()
 
 
 class View:
@@ -30,14 +31,13 @@ class View:
 
   __slots__ = ['_obj', '_depth']
 
-  def __init__(
-      self,
-      obj: Any,
-      depth: int,
-      *,
-      is_internal_call: bool = False,
-  ):
-    if not is_internal_call:
+  # TODO: Consider either implementing parts in C++ to improve
+  # initialization performance, or to e.g. inherit from `tuple` (~2x faster
+  # construction). Note that since we override `__getitem__`, we need to
+  # implement a CPython accessor for the attributes since using
+  # `tuple.__getitem__` kills all gains due to the additional indirection.
+  def __init__(self, obj: Any, depth: int, internal_call: object, /):
+    if internal_call is not _INTERNAL_CALL:
       raise ValueError(
           'Please do not call the View constructor directly, use view()'
           ' instead.'
@@ -120,7 +120,7 @@ class View:
     # values there, while we return keys here).
     explode_fn = lambda x: () if x is None else tuple(x)
     res = _map1(explode_fn, self, include_missing=True)
-    return View(res.get(), self._depth + 1, is_internal_call=True)
+    return View(res.get(), self._depth + 1, _INTERNAL_CALL)
 
   def __getitem__(self, key: Any) -> View:
     """Provides `view[:]` syntax as a shortcut for `view.explode()`.
@@ -178,7 +178,7 @@ class View:
           f'Cannot implode by {ndim} dimensions, the shape has only'
           f' {depth} dimensions.'
       )
-    return View(self._obj, depth, is_internal_call=True)
+    return View(self._obj, depth, _INTERNAL_CALL)
 
   # TODO: Once View also stores the root and the path from root,
   # we might want to make this method return a subset of original data
@@ -229,7 +229,7 @@ class View:
     """
     res = []
     _map1(res.append, self, include_missing=True)
-    return View(tuple(res), 1, is_internal_call=True)
+    return View(tuple(res), 1, _INTERNAL_CALL)
 
   def expand_to(self, other: View) -> View:
     """Expands the view to the shape of other view."""
@@ -331,7 +331,7 @@ def view(obj: Any) -> View:
   Returns:
     A scalar view on the object.
   """
-  return View(obj, 0, is_internal_call=True)
+  return View(obj, 0, _INTERNAL_CALL)
 
 
 _AUTO_BOX_TYPES = (int, float, str, bytes, bool, type(None))
@@ -395,7 +395,7 @@ def _map1(
   """Unary specialization of map_. `arg` _must_ be a View."""
   depth = arg._depth  # pylint: disable=protected-access
   obj = _cc_map_structure(f, (depth,), include_missing, (arg._obj,))  # pylint: disable=protected-access
-  return View(obj, depth, is_internal_call=True)
+  return View(obj, depth, _INTERNAL_CALL)
 
 
 def _map2(
@@ -414,7 +414,7 @@ def _map2(
   obj = _cc_map_structure(
       f, (depth1, depth2), include_missing, (arg1._obj, unboxed_arg2)
   )
-  return View(obj, max(depth1, depth2), is_internal_call=True)
+  return View(obj, max(depth1, depth2), _INTERNAL_CALL)
   # pylint: enable=protected-access
 
 
@@ -469,4 +469,4 @@ def map_(
   obj = _cc_map_structure(
       f, depths, include_missing, unboxed_args, tuple(kwargs)
   )
-  return View(obj, max(depths), is_internal_call=True)
+  return View(obj, max(depths), _INTERNAL_CALL)
