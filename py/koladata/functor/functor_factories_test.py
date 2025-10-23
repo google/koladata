@@ -55,7 +55,13 @@ class TestExtension:
 
 
 def test_add_fn(x, y=2, **kwargs):
-  """test_add_fn docstring."""
+  """Returns something.
+
+  Args:
+    x: Input.
+    y: Input.
+    **kwargs: Input.
+  """
   return x + y + kwargs['z']
 
 
@@ -254,12 +260,16 @@ class FunctorFactoriesTest(absltest.TestCase):
 
   def test_trace_py_fn_docstring(self):
     def my_model(x):
-      """My model docstring."""
+      """Returns my model.
+
+      Args:
+        x: Input.
+      """
       return x
 
     testing.assert_equal(
         functor_factories.trace_py_fn(my_model).get_attr('__doc__').no_bag(),
-        ds('My model docstring.'),
+        ds('Returns my model.\n\nArgs:\n  x: Input.'),
     )
 
   def test_trace_py_fn_qualname(self):
@@ -429,12 +439,16 @@ class FunctorFactoriesTest(absltest.TestCase):
 
   def test_py_fn_docstring(self):
     def f(x):
-      """My docstring."""
+      """Returns my model.
+
+      Args:
+        x: Input.
+      """
       return x
 
     testing.assert_equal(
         functor_factories.py_fn(f).get_attr('__doc__').no_bag(),
-        ds('My docstring.'),
+        ds('Returns my model.\n\nArgs:\n  x: Input.'),
     )
 
   def test_py_fn_qualname(self):
@@ -1192,7 +1206,11 @@ class FunctorFactoriesTest(absltest.TestCase):
 
     with self.subTest('doc'):
       testing.assert_equal(
-          fn.get_attr('__doc__').no_bag(), ds('test_add_fn docstring.')
+          fn.get_attr('__doc__').no_bag(),
+          ds(
+              'Returns something.\n\nArgs:\n  x: Input.\n  y: Input.\n '
+              ' **kwargs: Input.'
+          ),
       )
 
     with self.subTest('qualname'):

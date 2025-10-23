@@ -145,7 +145,7 @@ def trace_py_fn(
       auto_variables=auto_variables,
   )
   if f.__doc__ is not None:
-    traced_f = traced_f.with_attr('__doc__', f.__doc__)
+    traced_f = traced_f.with_attr('__doc__', inspect.cleandoc(f.__doc__))
   if qualname := getattr(f, '__qualname__', None):
     traced_f = traced_f.with_attr('__qualname__', qualname)
   if module := getattr(f, '__module__', None):
@@ -205,7 +205,7 @@ def py_fn(
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
   if f.__doc__ is not None:
-    py_functor = py_functor.with_attr('__doc__', f.__doc__)
+    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
   if qualname := getattr(f, '__qualname__', None):
     py_functor = py_functor.with_attr('__qualname__', qualname)
   if module := getattr(f, '__module__', None):
@@ -285,7 +285,7 @@ def register_py_fn(
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
   if f.__doc__ is not None:
-    py_functor = py_functor.with_attr('__doc__', f.__doc__)
+    py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
   py_functor = py_functor.with_attr('__qualname__', qualname)
   py_functor = py_functor.with_attr('__module__', module)
   return bind(py_functor, **defaults) if defaults else py_functor
