@@ -15,30 +15,29 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata import kd
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 db = data_bag.DataBag.empty_mutable()
 obj1 = db.obj(x=1)
 obj2 = db.obj(x=2)
 obj3 = db.obj(x=3)
+
+DATA_SLICE = qtypes.DATA_SLICE
 
 
 class SlicesUniqueTest(parameterized.TestCase):
@@ -79,9 +78,9 @@ class SlicesUniqueTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input_unsort(self, x, expected):
-    result = eval_op('kd.unique', x)
+    result = kd.unique(x)
     testing.assert_equal(result, expected)
-    result = eval_op('kd.unique', x, sort=False)
+    result = kd.unique(x, sort=False)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -120,7 +119,7 @@ class SlicesUniqueTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input_sort(self, x, expected):
-    result = expr_eval.eval(kde.unique(x, sort=True))
+    result = kd.unique(x, sort=True)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -129,10 +128,9 @@ class SlicesUniqueTest(parameterized.TestCase):
   )
   def test_eval_one_input_sort_mixed_dtype(self, x):
     with self.assertRaisesRegex(
-        ValueError,
-        'sort is not supported for mixed dtype',
+        ValueError, 'sort is not supported for mixed dtype'
     ):
-      expr_eval.eval(kde.unique(x, sort=True))
+      kd.unique(x, sort=True)
 
   @parameterized.parameters(
       ds([obj1]),
@@ -140,21 +138,18 @@ class SlicesUniqueTest(parameterized.TestCase):
       ds([arolla.quote(arolla.literal(1))]),
   )
   def test_eval_one_input_sort_unsupported_dtype(self, x):
-    with self.assertRaisesRegex(
-        ValueError,
-        'sort is not supported',
-    ):
-      expr_eval.eval(kde.unique(x, sort=True))
+    with self.assertRaisesRegex(ValueError, 'sort is not supported'):
+      kd.unique(x, sort=True)
 
   @parameterized.parameters(
-      (ds([None] * 3), ds([], kd.NONE)),
+      (ds([None] * 3), ds([], schema_constants.NONE)),
       (ds([]), ds([])),
-      (ds([[None] * 3, [None] * 5]), ds([[], []], kd.NONE)),
+      (ds([[None] * 3, [None] * 5]), ds([[], []], schema_constants.NONE)),
   )
   def test_eval_with_empty_or_unknown_single_arg(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.unique(x)), expected)
-    testing.assert_equal(expr_eval.eval(kde.unique(x, sort=False)), expected)
-    testing.assert_equal(expr_eval.eval(kde.unique(x, sort=True)), expected)
+    testing.assert_equal(kd.unique(x), expected)
+    testing.assert_equal(kd.unique(x, sort=False), expected)
+    testing.assert_equal(kd.unique(x, sort=True), expected)
 
   @parameterized.parameters(
       (1, True),
@@ -163,14 +158,11 @@ class SlicesUniqueTest(parameterized.TestCase):
       (ds(1), False),
   )
   def test_eval_scalar_input(self, inp, sort):
-    testing.assert_equal(expr_eval.eval(kde.unique(inp, sort=sort)), ds(1))
+    testing.assert_equal(kd.unique(inp, sort=sort), ds(1))
 
   def test_eval_wrong_type(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'expected DATA_SLICE',
-    ):
-      expr_eval.eval(kde.unique(arolla.dense_array(['a', 'b'])))
+    with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
+      kd.unique(arolla.dense_array(['a', 'b']))
 
   @parameterized.parameters(
       ds(1),
@@ -183,22 +175,19 @@ class SlicesUniqueTest(parameterized.TestCase):
   )
   def test_eval_wrong_sort(self, sort):
     with self.assertRaisesRegex(
-        ValueError,
-        'argument `sort` must be an item holding BOOLEAN',
+        ValueError, 'argument `sort` must be an item holding BOOLEAN'
     ):
-      expr_eval.eval(kde.unique(ds([1, 2, 3]), sort=sort))
+      kd.unique(ds([1, 2, 3]), sort=sort)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.unique,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-            max_arity=3,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.unique,
         [
             (DATA_SLICE, DATA_SLICE),  # no sort argument
             (DATA_SLICE, DATA_SLICE, DATA_SLICE),
         ],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        max_arity=3,
     )
 
   def test_view(self):

@@ -15,20 +15,21 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
-from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
@@ -80,32 +81,29 @@ class SlicesIsInTest(parameterized.TestCase):
       (ds(42), ds([[1, 42, 3], [42, 5]]), mask_constants.present),
   )
   def test_eval(self, x, y, result):
-    testing.assert_equal(expr_eval.eval(kde.slices.isin(x, y)), result)
+    testing.assert_equal(kd.slices.isin(x, y), result)
 
   def test_x_not_an_item(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'kd.slices.isin: argument `x` must be a DataItem',
+        ValueError, 'kd.slices.isin: argument `x` must be a DataItem'
     ):
-      expr_eval.eval(kde.slices.isin(ds([1, 2, 3]), ds([1, 2, 3])))
+      kd.slices.isin(ds([1, 2, 3]), ds([1, 2, 3]))
 
   def test_x_not_a_ds(self):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got x: DATA_BAG'
     ):
-      kde.slices.isin(bag(), ds([1, 2, 3]))
+      kd.slices.isin(bag(), ds([1, 2, 3]))
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'object with unsupported type: dict'
     ):
-      kde.slices.isin({'a': 42}, ds([1, 2, 3]))
+      kd.slices.isin({'a': 42}, ds([1, 2, 3]))
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.isin,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        frozenset([(qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE)]),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.isin,
+        [(qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

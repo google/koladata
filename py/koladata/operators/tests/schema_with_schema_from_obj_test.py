@@ -12,33 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.with_schema_from_obj_from_obj."""
+"""Tests for kde.schema.with_schema_from_obj_from_obj operator."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
-ds = data_slice.DataSlice.from_vals
-DATA_SLICE = qtypes.DATA_SLICE
+
 db = data_bag.DataBag.empty_mutable()
+ds = data_slice.DataSlice.from_vals
 entity = db.new(x=1)
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 obj = entity.embed_schema()
+
+DATA_SLICE = qtypes.DATA_SLICE
 
 
 class SchemaWithSchemaFromObjTest(parameterized.TestCase):
@@ -61,7 +61,7 @@ class SchemaWithSchemaFromObjTest(parameterized.TestCase):
       (ds([None, None], schema_constants.OBJECT), ds([None, None])),
   )
   def test_eval(self, x, expected):
-    res = eval_op('kd.schema.with_schema_from_obj', x)
+    res = kd.schema.with_schema_from_obj(x)
     testing.assert_equal(res, expected)
 
   def test_implicit_schema_error(self):
@@ -69,33 +69,31 @@ class SchemaWithSchemaFromObjTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'DataSlice cannot have an implicit schema as its schema'
     ):
-      expr_eval.eval(kde.schema.with_schema_from_obj(x))
+      kd.schema.with_schema_from_obj(x)
 
   def test_mixed_entity_schemas_error(self):
     o1 = db.new(x=1).embed_schema()
     o2 = db.new(x=1).embed_schema()
     x = ds([o1, o2, None])
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
-      expr_eval.eval(kde.schema.with_schema_from_obj(x))
+      kd.schema.with_schema_from_obj(x)
 
   def test_mixed_entity_and_primitive_schemas_error(self):
     x = ds([obj, 1, None])
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
-      expr_eval.eval(kde.schema.with_schema_from_obj(x))
+      kd.schema.with_schema_from_obj(x)
 
   def test_non_obj_schema_error(self):
     with self.assertRaisesRegex(
         ValueError, 'DataSlice must have OBJECT schema'
     ):
-      expr_eval.eval(kde.schema.with_schema_from_obj(entity))
+      kd.schema.with_schema_from_obj(entity)
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.schema.with_schema_from_obj,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        ((DATA_SLICE, DATA_SLICE),),
+    arolla.testing.assert_qtype_signatures(
+        kde.schema.with_schema_from_obj,
+        [(DATA_SLICE, DATA_SLICE)],
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

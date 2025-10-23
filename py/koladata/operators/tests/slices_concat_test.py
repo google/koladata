@@ -13,33 +13,35 @@
 # limitations under the License.
 
 import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators import slices
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-M = arolla.M
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 
 # Signature of the underlying operator. Because of the FULL_SIGNATURE binding
 # policy, this is not 1:1 with the Python operator signature, which is actually
 # `concat(arg: DATA_SLICE, *args: DATA_SLICE, ndim: DATA_SLICE)`.
-QTYPES = frozenset([
+QTYPES = [
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
     (
         arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
@@ -61,7 +63,7 @@ QTYPES = frozenset([
         DATA_SLICE,
     ),
     # etc.
-])
+]
 
 
 class SlicesConcatImplTest(parameterized.TestCase):
@@ -142,12 +144,12 @@ class SlicesConcatImplTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, ndim, expected):
-    result = expr_eval.eval(kde.slices.concat(*args, ndim=ndim))
+    result = kd.slices.concat(*args, ndim=ndim)
     testing.assert_equal(result, expected)
 
   def test_default_output(self):
     # NOTE(b/390562645): Tests the default output of kd.concat.
-    result = expr_eval.eval(slices._concat_or_stack(ds(False), ds(1)))
+    result = slices._concat_or_stack(I.x, I.y).eval(x=ds(False), y=ds(1))
     testing.assert_equal(result, ds([]))
 
   @parameterized.parameters(
@@ -214,13 +216,13 @@ class SlicesConcatImplTest(parameterized.TestCase):
   )
   def test_invalid_rank_or_ndim(self, args, ndim, expected_regex):
     with self.assertRaisesRegex(ValueError, re.escape(expected_regex)):
-      expr_eval.eval(kde.slices.concat(*args, ndim=ndim))
+      kd.slices.concat(*args, ndim=ndim)
 
   def test_same_databag(self):
     db = data_bag.DataBag.empty_mutable()
     a = ds([db.obj(x=1)])
     b = ds([db.obj(x=2)])
-    result = expr_eval.eval(kde.slices.concat(a, b))
+    result = kd.slices.concat(a, b)
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
@@ -230,7 +232,7 @@ class SlicesConcatImplTest(parameterized.TestCase):
     db2 = data_bag.DataBag.empty_mutable()
     b = db2.obj(x=2)
     b_slice = ds([b])
-    result = expr_eval.eval(kde.slices.concat(a_slice, b_slice))
+    result = kd.slices.concat(a_slice, b_slice)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
@@ -247,7 +249,7 @@ class SlicesConcatImplTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.slices.concat,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),

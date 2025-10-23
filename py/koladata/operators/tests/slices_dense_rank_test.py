@@ -17,30 +17,33 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 INT64 = schema_constants.INT64
 
 
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-])
+]
 
 
 class SlicesOrdinalRankTest(parameterized.TestCase):
@@ -169,9 +172,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, descending, ndim, expected):
-    result = expr_eval.eval(
-        kde.slices.dense_rank(x, descending=descending, ndim=ndim)
-    )
+    result = kd.slices.dense_rank(x, descending=descending, ndim=ndim)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -184,7 +185,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_descending_ndim_unspecified(self, x, expected):
-    result = expr_eval.eval(kde.slices.dense_rank(x))
+    result = kd.slices.dense_rank(x)
     testing.assert_equal(result, expected)
 
   def test_out_of_bounds_ndim_error(self):
@@ -192,11 +193,11 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected 0 <= ndim <= rank')
     ):
-      expr_eval.eval(kde.slices.dense_rank(x, ndim=-1))
+      kd.slices.dense_rank(x, ndim=-1)
     with self.assertRaisesRegex(
         ValueError, re.escape('expected 0 <= ndim <= rank')
     ):
-      expr_eval.eval(kde.slices.dense_rank(x, ndim=2))
+      kd.slices.dense_rank(x, ndim=2)
 
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
@@ -204,9 +205,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         'kd.slices.dense_rank: argument `descending` must be an item holding'
         ' BOOLEAN, got a slice of rank 1 > 0',
     ):
-      expr_eval.eval(
-          kde.slices.dense_rank(ds([0, 3, 6]), descending=ds([True]))
-      )
+      kd.slices.dense_rank(ds([0, 3, 6]), descending=ds([True]))
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
@@ -214,7 +213,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         'kd.slices.dense_rank: argument `descending` must be an item holding'
         ' BOOLEAN, got missing',
     ):
-      expr_eval.eval(kde.slices.dense_rank(ds([0, 3, 6]), descending=ds(None)))
+      kd.slices.dense_rank(ds([0, 3, 6]), descending=ds(None))
 
   def test_entity_input_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -226,20 +225,13 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
             ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.slices.dense_rank(x))
+      kd.slices.dense_rank(x)
 
   def test_qtype_signatures(self):
-    # Limit the allowed qtypes and a random QType to speed up the test.
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.dense_rank,
-            possible_qtypes=(
-                arolla.UNSPECIFIED,
-                qtypes.DATA_SLICE,
-                arolla.INT64,
-            ),
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.dense_rank,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

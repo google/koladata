@@ -17,32 +17,33 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     # (x, return_type):
     (DATA_SLICE, DATA_SLICE),
     # (x, start, return_type):
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
     # (x, start, end, return_type):
     (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+]
 
 
 class StringsSubstrTest(parameterized.TestCase):
@@ -78,7 +79,7 @@ class StringsSubstrTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_arg(self, x, expected_value):
-    actual_value = expr_eval.eval(kde.strings.substr(x))
+    actual_value = kd.strings.substr(x)
     testing.assert_equal(actual_value, expected_value)
 
   @parameterized.parameters(
@@ -139,7 +140,7 @@ class StringsSubstrTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_args(self, x, start, expected_value):
-    actual_value = expr_eval.eval(kde.strings.substr(x, start))
+    actual_value = kd.strings.substr(x, start)
     testing.assert_equal(actual_value, expected_value)
 
   @parameterized.parameters(
@@ -235,7 +236,7 @@ class StringsSubstrTest(parameterized.TestCase):
       ),
   )
   def test_eval_three_args(self, x, start, end, expected_value):
-    actual_value = expr_eval.eval(kde.strings.substr(x, start, end))
+    actual_value = kd.strings.substr(x, start, end)
     testing.assert_equal(actual_value, expected_value)
 
   def test_eval_three_args_wrong_types(self):
@@ -246,7 +247,7 @@ class StringsSubstrTest(parameterized.TestCase):
             ' values, got a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.strings.substr('meeting', start=1, end='foo'))
+      kd.strings.substr('meeting', start=1, end='foo')
 
   def test_boxing(self):
     testing.assert_equal(
@@ -260,12 +261,10 @@ class StringsSubstrTest(parameterized.TestCase):
     )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.strings.substr,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.strings.substr,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_entity_slice_error(self):
@@ -278,7 +277,7 @@ class StringsSubstrTest(parameterized.TestCase):
             ' or BYTES, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.strings.substr(x))
+      kd.strings.substr(x)
 
   def test_repr(self):
     self.assertEqual(

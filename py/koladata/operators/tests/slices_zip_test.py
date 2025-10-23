@@ -15,25 +15,25 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 
-M = arolla.M
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
     (arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE), DATA_SLICE),
     (
@@ -41,7 +41,7 @@ QTYPES = frozenset([
         DATA_SLICE,
     ),
     # etc.
-])
+]
 
 
 class SlicesZipTest(parameterized.TestCase):
@@ -88,14 +88,14 @@ class SlicesZipTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, expected):
-    result = expr_eval.eval(kde.slices.zip(*args))
+    result = kd.slices.zip(*args)
     testing.assert_equal(result, expected)
 
   def test_same_databag(self):
     db = data_bag.DataBag.empty_mutable()
     a = db.obj(x=1)
     b = db.obj(x=2)
-    result = expr_eval.eval(kde.slices.zip(a, b))
+    result = kd.slices.zip(a, b)
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
@@ -103,7 +103,7 @@ class SlicesZipTest(parameterized.TestCase):
     a = db1.obj(x=1)
     db2 = data_bag.DataBag.empty_mutable()
     b = db2.obj(x=2)
-    result = expr_eval.eval(kde.slices.zip(a, b))
+    result = kd.slices.zip(a, b)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
@@ -115,7 +115,7 @@ class SlicesZipTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.slices.zip,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
@@ -134,6 +134,7 @@ class SlicesZipTest(parameterized.TestCase):
     self.assertEqual(
         repr(kde.slices.zip(I.x, I.y, I.z)), 'kd.slices.zip(I.x, I.y, I.z)'
     )
+
 
 if __name__ == '__main__':
   absltest.main()

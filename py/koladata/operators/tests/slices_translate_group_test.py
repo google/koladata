@@ -17,28 +17,26 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE)]
 
 db = data_bag.DataBag.empty_mutable()
 db_a = data_bag.DataBag.empty_mutable()
@@ -124,9 +122,7 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, keys_to, keys_from, values_from, expected):
-    result = eval_op(
-        'kd.slices.translate_group', keys_to, keys_from, values_from
-    )
+    result = kd.slices.translate_group(keys_to, keys_from, values_from)
     testing.assert_equal(result, expected)
 
   def test_incompatible_shapes(self):
@@ -135,19 +131,12 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
         'kd.slices.translate_group: `keys_from` and `values_from` must have'
         ' the same shape',
     ):
-      expr_eval.eval(
-          kde.slices.translate_group(
-              ds(['a', 'd']), ds(['a', 'b', 'a']), ds([1, 3])
-          )
-      )
+      kd.slices.translate_group(ds(['a', 'd']), ds(['a', 'b', 'a']), ds([1, 3]))
 
     with self.assertRaisesRegex(
-        ValueError,
-        'group_by arguments must be DataSlices with ndim > 0',
+        ValueError, 'group_by arguments must be DataSlices with ndim > 0'
     ):
-      expr_eval.eval(
-          kde.slices.translate_group(ds(['a', 'c', 'd']), ds('a'), ds(1))
-      )
+      kd.slices.translate_group(ds(['a', 'c', 'd']), ds('a'), ds(1))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -157,10 +146,8 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
             ' JaggedShape(2, [2, 1])'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.translate_group(
-              ds([['a', 'c'], ['d']]), ds([['a', 'b']]), ds([[1, 2]])
-          )
+      kd.slices.translate_group(
+          ds([['a', 'c'], ['d']]), ds([['a', 'b']]), ds([[1, 2]])
       )
 
   def test_different_key_schemas(self):
@@ -170,21 +157,17 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
         'kd.slices.translate: keys_to schema must be castable to keys_from'
         ' schema',
     ):
-      expr_eval.eval(
-          kde.slices.translate(
-              ds([entity1, entity3, None, entity4, entity5]).with_schema(s2),
-              ds([entity1, entity3, entity2, entity3, entity1, entity5]),
-              ds([1, 2, 3, 4, 5, 6]),
-          )
+      kd.slices.translate(
+          ds([entity1, entity3, None, entity4, entity5]).with_schema(s2),
+          ds([entity1, entity3, entity2, entity3, entity1, entity5]),
+          ds([1, 2, 3, 4, 5, 6]),
       )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.translate_group,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.translate_group,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

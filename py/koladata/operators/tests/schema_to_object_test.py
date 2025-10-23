@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.schema.to_object.
+"""Tests for kde.schema.to_object operator.
 
 Extensive testing is done in C++.
 """
@@ -22,25 +22,25 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-eval_op = py_expr_eval_py_ext.eval_op
-I = input_container.InputContainer("I")
-kde = kde_operators.kde
+I = input_container.InputContainer('I')
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 OBJ = data_bag.DataBag.empty_mutable().obj()
 
@@ -56,7 +56,7 @@ class SchemaToObjectTest(parameterized.TestCase):
       (ds([OBJ]), ds([OBJ])),
   )
   def test_eval(self, x, expected):
-    res = eval_op("kd.schema.to_object", x)
+    res = kd.schema.to_object(x)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(*itertools.product([True, False], repeat=3))
@@ -69,7 +69,7 @@ class SchemaToObjectTest(parameterized.TestCase):
       e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
-    res = expr_eval.eval(kde.schema.to_object(e1))
+    res = kd.schema.to_object(e1)
     testing.assert_equal(res.get_itemid().no_bag(), e1.get_itemid().no_bag())
     testing.assert_equal(res.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
@@ -92,9 +92,9 @@ class SchemaToObjectTest(parameterized.TestCase):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
             kde.schema.to_object,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        ((DATA_SLICE, DATA_SLICE),),
+        [(DATA_SLICE, DATA_SLICE)],
     )
 
   def test_view(self):
@@ -104,5 +104,5 @@ class SchemaToObjectTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.schema.to_object, kde.to_object))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

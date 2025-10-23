@@ -15,28 +15,29 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata import kd
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
+
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
+
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-QTYPES = frozenset([
+QTYPES = [
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
     (
         arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE),
@@ -58,7 +59,7 @@ QTYPES = frozenset([
         DATA_SLICE,
     ),
     # etc.
-])
+]
 
 
 class SlicesGroupByTest(parameterized.TestCase):
@@ -90,11 +91,11 @@ class SlicesGroupByTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input(self, x, expected):
-    result = expr_eval.eval(kde.group_by(x))
+    result = kd.group_by(x)
     testing.assert_equal(result, expected)
     # passing the same agument many times should be equivalent to passing it
     # once.
-    result_tuple = expr_eval.eval(kde.group_by(x, x, x, x))
+    result_tuple = kd.group_by(x, x, x, x)
     testing.assert_equal(result_tuple, expected)
 
   @parameterized.parameters(
@@ -115,11 +116,11 @@ class SlicesGroupByTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input_sorted(self, x, expected):
-    result = expr_eval.eval(kde.group_by(x, sort=True))
+    result = kd.group_by(x, sort=True)
     testing.assert_equal(result, expected)
     # passing the same agument many times should be equivalent to passing it
     # once.
-    result_tuple = expr_eval.eval(kde.group_by(x, x, x, x, sort=True))
+    result_tuple = kd.group_by(x, x, x, x, sort=True)
     testing.assert_equal(result_tuple, expected)
 
   @parameterized.parameters(
@@ -164,7 +165,7 @@ class SlicesGroupByTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_inputs(self, x, k1, k2, expected):
-    result = expr_eval.eval(kde.group_by(x, k1, k2))
+    result = kd.group_by(x, k1, k2)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -202,22 +203,25 @@ class SlicesGroupByTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_inputs_sorted(self, x, k1, k2, expected):
-    result = expr_eval.eval(kde.group_by(x, k1, k2, sort=True))
+    result = kd.group_by(x, k1, k2, sort=True)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
-      (ds([None] * 3), kd.slice([], kd.NONE).repeat(0)),
-      (ds([]), kd.slice([]).repeat(0)),
-      (ds([[None] * 3, [None] * 5]), kd.slice([[], []], kd.NONE).repeat(0)),
+      (ds([None] * 3), ds([], schema_constants.NONE).repeat(0)),
+      (ds([]), ds([]).repeat(0)),
+      (
+          ds([[None] * 3, [None] * 5]),
+          ds([[], []], schema_constants.NONE).repeat(0),
+      ),
   )
   def test_eval_with_empty_or_unknown_single_arg(self, x, expected):
-    testing.assert_equal(expr_eval.eval(kde.group_by(x)), expected)
+    testing.assert_equal(kd.group_by(x), expected)
 
   @parameterized.parameters(
       (
           ds([1, 2, 1], schema_constants.INT32),
           ds([None] * 3),
-          kd.slice([], schema_constants.INT32).repeat(0),
+          ds([], schema_constants.INT32).repeat(0),
       ),
       (
           ds([[1, 2, 1, 2], [2, 3, 2]], schema_constants.FLOAT64),
@@ -226,7 +230,7 @@ class SlicesGroupByTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_empty_or_unknown_keys(self, x, y, expected):
-    testing.assert_equal(expr_eval.eval(kde.group_by(x, y)), expected)
+    testing.assert_equal(kd.group_by(x, y), expected)
 
   def test_mixed_dtypes(self):
     x = ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3])
@@ -234,7 +238,7 @@ class SlicesGroupByTest(parameterized.TestCase):
         ValueError,
         'sort is not supported for mixed dtype',
     ):
-      expr_eval.eval(kde.group_by(x, sort=True))
+      kd.group_by(x, sort=True)
 
   def test_non_sortable_dtype(self):
     db = bag()
@@ -243,7 +247,7 @@ class SlicesGroupByTest(parameterized.TestCase):
         ValueError,
         'sort is not supported for ITEMID',
     ):
-      expr_eval.eval(kde.group_by(x, sort=True))
+      kd.group_by(x, sort=True)
 
   @parameterized.parameters(1, ds(1))
   def test_eval_scalar_input(self, inp):
@@ -251,45 +255,40 @@ class SlicesGroupByTest(parameterized.TestCase):
         ValueError,
         'group_by arguments must be DataSlices with ndim > 0, got DataItems',
     ):
-      expr_eval.eval(kde.group_by(inp))
+      kd.group_by(inp)
 
   def test_eval_wrong_type(self):
     with self.assertRaisesRegex(
         ValueError,
         'all arguments to be DATA_SLICE',
     ):
-      expr_eval.eval(kde.group_by(ds([1, 2]), arolla.dense_array(['a', 'b'])))
+      kd.group_by(ds([1, 2]), arolla.dense_array(['a', 'b']))
     with self.assertRaisesRegex(
         ValueError,
         'expected DATA_SLICE',
     ):
-      expr_eval.eval(kde.group_by(arolla.dense_array(['a', 'b']), ds([1, 2])))
+      kd.group_by(arolla.dense_array(['a', 'b']), ds([1, 2]))
 
   def test_eval_args_non_aligned(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.group_by_indices: all arguments must have the same shape',
     ):
-      expr_eval.eval(
-          kde.group_by(
-              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-              ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
-          )
+      kd.group_by(
+          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
+          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
+          ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
       )
 
   def test_eval_x_non_aligned_with_args(self):
     with self.assertRaisesRegex(
         ValueError,
-        'kd.group_by: First argument `x` must have the same shape as the'
-        ' other arguments',
+        'First argument `x` must have the same shape as the other arguments',
     ):
-      expr_eval.eval(
-          kde.group_by(
-              ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
-              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-          )
+      kd.group_by(
+          ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
+          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
+          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
       )
 
   def test_qtype_signatures(self):
@@ -302,7 +301,7 @@ class SlicesGroupByTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.slices.concat,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),

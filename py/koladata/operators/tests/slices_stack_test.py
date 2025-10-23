@@ -15,26 +15,26 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators import slices
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 
-M = arolla.M
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-
-QTYPES = frozenset([
+QTYPES = [
     (arolla.make_tuple_qtype(DATA_SLICE), DATA_SLICE),
     (arolla.make_tuple_qtype(DATA_SLICE, DATA_SLICE), DATA_SLICE),
     (
@@ -49,7 +49,7 @@ QTYPES = frozenset([
         DATA_SLICE,
     ),
     # etc.
-])
+]
 
 
 class SlicesStackTest(parameterized.TestCase):
@@ -125,12 +125,12 @@ class SlicesStackTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, ndim, expected):
-    result = expr_eval.eval(kde.slices.stack(*args, ndim=ndim))
+    result = kd.slices.stack(*args, ndim=ndim)
     testing.assert_equal(result, expected)
 
   def test_default_output(self):
     # NOTE(b/390562645): Tests the default output of kd.stack.
-    result = expr_eval.eval(slices._concat_or_stack(ds(True), ds(1)))
+    result = slices._concat_or_stack(I.x, I.y).eval(x=ds(True), y=ds(1))
     testing.assert_equal(result, ds([]))
 
   @parameterized.parameters(
@@ -164,13 +164,13 @@ class SlicesStackTest(parameterized.TestCase):
   )
   def test_invalid_ndim(self, args, ndim, expected_regex):
     with self.assertRaisesRegex(ValueError, expected_regex):
-      expr_eval.eval(kde.slices.stack(*args, ndim=ndim))
+      kd.slices.stack(*args, ndim=ndim)
 
   def test_same_databag(self):
     db = data_bag.DataBag.empty_mutable()
     a = db.obj(x=1)
     b = db.obj(x=2)
-    result = expr_eval.eval(kde.slices.stack(a, b))
+    result = kd.slices.stack(a, b)
     self.assertEqual(result.get_bag().fingerprint, db.fingerprint)
 
   def test_multiple_databag(self):
@@ -178,7 +178,7 @@ class SlicesStackTest(parameterized.TestCase):
     a = db1.obj(x=1)
     db2 = data_bag.DataBag.empty_mutable()
     b = db2.obj(x=2)
-    result = expr_eval.eval(kde.slices.stack(a, b))
+    result = kd.slices.stack(a, b)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
@@ -190,7 +190,7 @@ class SlicesStackTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.slices.stack,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),

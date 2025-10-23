@@ -15,24 +15,26 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
@@ -40,7 +42,7 @@ NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 def generate_qtypes():
   for first_arg in [DATA_SLICE, arolla.UNSPECIFIED]:
     for itemid_arg_type in [DATA_SLICE, arolla.UNSPECIFIED]:
-      for attrs_type in test_qtypes.NAMEDTUPLES_OF_DATA_SLICES:
+      for attrs_type in qtypes.NAMEDTUPLES_OF_DATA_SLICES:
         yield first_arg, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
@@ -50,10 +52,10 @@ QTYPES = list(generate_qtypes())
 class ObjsNewTest(parameterized.TestCase):
 
   def test_item(self):
-    x = kde.objs.new(
+    x = kd.objs.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
-    ).eval()
+    )
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_allclose(
@@ -67,11 +69,11 @@ class ObjsNewTest(parameterized.TestCase):
     )
 
   def test_slice(self):
-    x = kde.objs.new(
+    x = kd.objs.new(
         a=ds([[1, 2], [3]]),
-        b=kde.objs.new(bb=ds([['a', 'b'], ['c']])),
+        b=kd.objs.new(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
-    ).eval()
+    )
     testing.assert_equal(x.a, ds([[1, 2], [3]]).with_bag(x.get_bag()))
     testing.assert_equal(x.b.bb, ds([['a', 'b'], ['c']]).with_bag(x.get_bag()))
     testing.assert_equal(
@@ -89,10 +91,10 @@ class ObjsNewTest(parameterized.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = kde.objs.new(
+    x = kd.objs.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
-    ).eval()
+    )
     y = bag().obj(x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_allclose(
@@ -104,14 +106,14 @@ class ObjsNewTest(parameterized.TestCase):
     testing.assert_equal(y.x.b.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
-    itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
-    x = kde.objs.new(a=42, itemid=itemid).eval()
+    itemid = kd.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    x = kd.objs.new(a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_schema_arg(self):
     with self.assertRaisesRegex(ValueError, 'please use new'):
-      kde.objs.new(a=1, b='a', schema=schema_constants.INT32).eval()
+      kd.objs.new(a=1, b='a', schema=schema_constants.INT32)
 
   @parameterized.parameters(
       (42, ds(42, schema_constants.OBJECT)),
@@ -123,15 +125,15 @@ class ObjsNewTest(parameterized.TestCase):
       ),
   )
   def test_converter_primitives(self, x, expected):
-    testing.assert_equal(kde.objs.new(x).eval().no_bag(), expected)
+    testing.assert_equal(kd.objs.new(x).no_bag(), expected)
 
   def test_converter_list(self):
-    l = kde.objs.new(bag().list([1, 2, 3])).eval()
+    l = kd.objs.new(bag().list([1, 2, 3]))
     testing.assert_equal(l.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
 
   def test_converter_empty_list(self):
-    l = kde.objs.new(bag().list()).eval()
+    l = kd.objs.new(bag().list())
     testing.assert_equal(
         l.get_obj_schema().get_attr('__items__').no_bag(),
         schema_constants.OBJECT,
@@ -139,9 +141,7 @@ class ObjsNewTest(parameterized.TestCase):
     testing.assert_equal(l[:].no_bag(), ds([], schema_constants.OBJECT))
 
   def test_converter_dict(self):
-    d = kde.objs.new(
-        bag().dict({'a': 42, 'b': ds(37, schema_constants.INT64)})
-    ).eval()
+    d = kd.objs.new(bag().dict({'a': 42, 'b': ds(37, schema_constants.INT64)}))
     testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
@@ -150,7 +150,7 @@ class ObjsNewTest(parameterized.TestCase):
     )
 
   def test_converter_empty_dict(self):
-    d = kde.objs.new(bag().dict()).eval()
+    d = kd.objs.new(bag().dict())
     testing.assert_equal(
         d.get_obj_schema().get_attr('__keys__').no_bag(),
         schema_constants.OBJECT,
@@ -165,20 +165,20 @@ class ObjsNewTest(parameterized.TestCase):
   def test_converter_entity(self):
     with self.subTest('item'):
       entity = bag().new(a=42, b='abc')
-      obj = kde.objs.new(entity).eval()
+      obj = kd.objs.new(entity)
       testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
       testing.assert_equal(obj.a, ds(42).with_bag(obj.get_bag()))
       testing.assert_equal(obj.b, ds('abc').with_bag(obj.get_bag()))
     with self.subTest('slice'):
       entity = bag().new(a=ds([1, 2]), b='abc')
-      obj = kde.objs.new(entity).eval()
+      obj = kd.objs.new(entity)
       testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
       testing.assert_equal(obj.a, ds([1, 2]).with_bag(obj.get_bag()))
       testing.assert_equal(obj.b, ds(['abc', 'abc']).with_bag(obj.get_bag()))
 
   def test_converter_object(self):
     obj = bag().obj(a=42, b='abc')
-    new_obj = kde.objs.new(obj).eval()
+    new_obj = kd.objs.new(obj)
     self.assertNotEqual(
         obj.get_bag().fingerprint, new_obj.get_bag().fingerprint
     )
@@ -189,7 +189,7 @@ class ObjsNewTest(parameterized.TestCase):
         ValueError,
         'kd.objs.new: `itemid` is not supported when converting to object',
     ):
-      kde.objs.new(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())
+      kd.objs.new(ds(42), itemid=bag().new())
 
   def test_converter_on_python_objects(self):
     with self.assertRaisesWithLiteralMatch(
@@ -198,14 +198,9 @@ class ObjsNewTest(parameterized.TestCase):
       kde.objs.new({'a': 42}, itemid=I.itemid)
 
   def test_non_determinism(self):
-    res_1 = expr_eval.eval(kde.objs.new(a=I.a), a=42)
-    res_2 = expr_eval.eval(kde.objs.new(a=I.a), a=42)
-    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
-    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
-
     expr = kde.objs.new(a=42)
-    res_1 = expr_eval.eval(expr)
-    res_2 = expr_eval.eval(expr)
+    res_1 = expr.eval()
+    res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
@@ -213,7 +208,7 @@ class ObjsNewTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         kde.objs.new,
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

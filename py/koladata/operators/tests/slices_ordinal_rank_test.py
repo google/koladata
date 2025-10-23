@@ -17,25 +17,28 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
-kde = kde_operators.kde
+
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+
 DATA_SLICE = qtypes.DATA_SLICE
 INT64 = schema_constants.INT64
 
 
-QTYPES = frozenset([
+QTYPES = [
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
@@ -51,7 +54,7 @@ QTYPES = frozenset([
         arolla.UNSPECIFIED,
         DATA_SLICE,
     ),
-])
+]
 
 
 class SlicesOrdinalRankTest(parameterized.TestCase):
@@ -180,9 +183,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
   )
   def test_eval_without_tie_breaker(self, x, descending, ndim, expected):
-    result = expr_eval.eval(
-        kde.slices.ordinal_rank(x, descending=descending, ndim=ndim)
-    )
+    result = kd.slices.ordinal_rank(x, descending=descending, ndim=ndim)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -265,7 +266,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_tie_breaker(self, x, tie_breaker, ndim, expected):
-    result = expr_eval.eval(kde.slices.ordinal_rank(x, tie_breaker, ndim=ndim))
+    result = kd.slices.ordinal_rank(x, tie_breaker, ndim=ndim)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -278,7 +279,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_descending_ndim_unspecified(self, x, expected):
-    result = expr_eval.eval(kde.slices.ordinal_rank(x))
+    result = kd.slices.ordinal_rank(x)
     testing.assert_equal(result, expected)
 
   def test_out_of_bounds_ndim_error(self):
@@ -286,11 +287,11 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected 0 <= ndim <= rank')
     ):
-      expr_eval.eval(kde.slices.ordinal_rank(x, ndim=-1))
+      kd.slices.ordinal_rank(x, ndim=-1)
     with self.assertRaisesRegex(
         ValueError, re.escape('expected 0 <= ndim <= rank')
     ):
-      expr_eval.eval(kde.slices.ordinal_rank(x, ndim=2))
+      kd.slices.ordinal_rank(x, ndim=2)
 
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
@@ -300,9 +301,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
             ' holding BOOLEAN, got a slice of rank 1 > 0'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.ordinal_rank(ds([0, 3, 6]), descending=ds([True]))
-      )
+      kd.slices.ordinal_rank(ds([0, 3, 6]), descending=ds([True]))
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
@@ -312,22 +311,18 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
             ' holding BOOLEAN, got missing'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.ordinal_rank(ds([0, 3, 6]), descending=ds(None))
-      )
+      kd.slices.ordinal_rank(ds([0, 3, 6]), descending=ds(None))
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, re.escape('cannot be expanded to')):
-      expr_eval.eval(kde.slices.ordinal_rank(ds([0, 3, 6]), ds([0, 3, 6, 1])))
+      kd.slices.ordinal_rank(ds([0, 3, 6]), ds([0, 3, 6, 1]))
 
   def test_non_integral_tie_breaker(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.ordinal_rank: tie_breaker must be integers',
     ):
-      expr_eval.eval(
-          kde.slices.ordinal_rank(ds([0, 3, 6]), ds([0.0, 1.0, 2.0]))
-      )
+      kd.slices.ordinal_rank(ds([0, 3, 6]), ds([0.0, 1.0, 2.0]))
 
   def test_entity_input_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -339,7 +334,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
             ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.slices.ordinal_rank(x, ds([0])))
+      kd.slices.ordinal_rank(x, ds([0]))
 
   def test_entity_tie_breaker_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -348,20 +343,13 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         ValueError,
         arolla.testing.any_cause_message_regex('cannot find a common schema'),
     ):
-      expr_eval.eval(kde.slices.ordinal_rank(ds([0]), tie_breaker))
+      kd.slices.ordinal_rank(ds([0]), tie_breaker)
 
   def test_qtype_signatures(self):
-    # Limit the allowed qtypes and a random QType to speed up the test.
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.ordinal_rank,
-            possible_qtypes=(
-                arolla.UNSPECIFIED,
-                qtypes.DATA_SLICE,
-                arolla.INT64,
-            ),
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.ordinal_rank,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

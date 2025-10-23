@@ -17,28 +17,26 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
+
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
+
 DATA_SLICE = qtypes.DATA_SLICE
 
-QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-])
+QTYPES = [(DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE)]
 
 db = data_bag.DataBag.empty_mutable()
 db_a = data_bag.DataBag.empty_mutable()
@@ -131,7 +129,7 @@ class SlicesTranslateTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, keys_to, keys_from, values_from, expected):
-    result = eval_op('kd.slices.translate', keys_to, keys_from, values_from)
+    result = kd.slices.translate(keys_to, keys_from, values_from)
     testing.assert_equal(result, expected)
     testing.assert_equal(result.get_bag(), values_from.get_bag())
 
@@ -140,18 +138,14 @@ class SlicesTranslateTest(parameterized.TestCase):
         ValueError,
         'kd.slices.translate: values_from must be broadcastable to keys_from',
     ):
-      expr_eval.eval(
-          kde.slices.translate(
-              ds(['a', 'c', 'd']), ds(['a', 'b']), ds([1, 2, 3])
-          )
-      )
+      kd.slices.translate(ds(['a', 'c', 'd']), ds(['a', 'b']), ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.translate: keys_from and values_from must have at least one'
         ' dimension',
     ):
-      expr_eval.eval(kde.slices.translate(ds(['a', 'c', 'd']), ds('a'), ds(1)))
+      kd.slices.translate(ds(['a', 'c', 'd']), ds('a'), ds(1))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -161,10 +155,8 @@ class SlicesTranslateTest(parameterized.TestCase):
             ' JaggedShape(2, [2, 1])'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.translate(
-              ds([['a', 'c'], ['d']]), ds([['a', 'b']]), ds([[1, 2]])
-          )
+      kd.slices.translate(
+          ds([['a', 'c'], ['d']]), ds([['a', 'b']]), ds([[1, 2]])
       )
 
   def test_duplicate_keys(self):
@@ -172,33 +164,26 @@ class SlicesTranslateTest(parameterized.TestCase):
         ValueError,
         'keys_from must be unique within each group of the last dimension',
     ):
-      expr_eval.eval(
-          kde.slices.translate(
-              ds(['a', 'c', 'd']), ds(['a', 'b', 'a']), ds([1, 2, 3])
-          )
+      kd.slices.translate(
+          ds(['a', 'c', 'd']), ds(['a', 'b', 'a']), ds([1, 2, 3])
       )
 
   def test_different_key_schemas(self):
     s2 = db.new_schema(x=schema_constants.INT64)
     with self.assertRaisesRegex(
-        ValueError,
-        'keys_to schema must be castable to keys_from schema',
+        ValueError, 'keys_to schema must be castable to keys_from schema'
     ):
-      expr_eval.eval(
-          kde.slices.translate(
-              ds([entity1, entity3, None, entity4]).with_schema(s2),
-              ds([entity1, entity2, entity3]),
-              ds([1, 2, 3]),
-          )
+      kd.slices.translate(
+          ds([entity1, entity3, None, entity4]).with_schema(s2),
+          ds([entity1, entity2, entity3]),
+          ds([1, 2, 3]),
       )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.slices.translate,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        kde.slices.translate,
         QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

@@ -17,21 +17,22 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators.tests.util import qtypes as test_qtypes
+from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import jagged_shape
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
 I = input_container.InputContainer('I')
+
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class SlicesEmptyShapedTest(parameterized.TestCase):
@@ -48,7 +49,7 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
       ),
   )
   def test_mask_schema(self, shape, expected):
-    testing.assert_equal(kde.empty_shaped(shape).eval(), expected)
+    testing.assert_equal(kd.empty_shaped(shape), expected)
 
   @parameterized.parameters(
       (jagged_shape.create_shape(), ds(None, schema_constants.INT64)),
@@ -62,13 +63,13 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
       ),
   )
   def test_primitive_schema(self, shape, expected):
-    res = kde.empty_shaped(shape, schema=schema_constants.INT64).eval()
+    res = kd.empty_shaped(shape, schema=schema_constants.INT64)
     testing.assert_equal(res, expected)
 
-    res = kde.empty_shaped(
+    res = kd.empty_shaped(
         shape,
         schema=schema_constants.INT64.with_bag(bag()),
-    ).eval()
+    )
     testing.assert_equal(res, expected.with_schema(schema_constants.INT64))
 
   @parameterized.parameters(
@@ -83,13 +84,13 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
       ),
   )
   def test_object_schema(self, shape, expected):
-    res = kde.empty_shaped(shape, schema=schema_constants.OBJECT).eval()
+    res = kd.empty_shaped(shape, schema=schema_constants.OBJECT)
     testing.assert_equal(res, expected)
 
-    res = kde.empty_shaped(
+    res = kd.empty_shaped(
         shape,
         schema=schema_constants.OBJECT.with_bag(bag()),
-    ).eval()
+    )
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -98,9 +99,9 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
       (jagged_shape.create_shape([2], [1, 2]),),
   )
   def test_entity_schema(self, shape):
-    schema = kde.schema.new_schema(x=schema_constants.INT64).eval()
+    schema = kd.schema.new_schema(x=schema_constants.INT64)
 
-    res = kde.empty_shaped(shape, schema=schema).eval()
+    res = kd.empty_shaped(shape, schema=schema)
     self.assertTrue(res.has_bag())
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT64)
@@ -108,9 +109,9 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
     self.assertEqual(res.get_present_count(), 0)
 
   def test_list_schema(self):
-    res = kde.empty_shaped(
-        jagged_shape.create_shape([3]), kde.list_schema(schema_constants.INT32)
-    ).eval()
+    res = kd.empty_shaped(
+        jagged_shape.create_shape([3]), kd.list_schema(schema_constants.INT32)
+    )
     testing.assert_equal(
         res.get_schema().get_item_schema().no_bag(), schema_constants.INT32
     )
@@ -119,10 +120,10 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
     )
 
   def test_dict_schema(self):
-    res = kde.empty_shaped(
+    res = kd.empty_shaped(
         jagged_shape.create_shape([3]),
-        kde.dict_schema(schema_constants.INT32, schema_constants.FLOAT32)
-    ).eval()
+        kd.dict_schema(schema_constants.INT32, schema_constants.FLOAT32),
+    )
     testing.assert_equal(
         res.get_schema().get_key_schema().no_bag(), schema_constants.INT32
     )
@@ -141,9 +142,9 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
 
     with self.subTest('None schema'):
       with self.assertRaisesRegex(
-          ValueError, 'schema\'s schema must be SCHEMA, got: NONE',
+          ValueError, "schema's schema must be SCHEMA, got: NONE"
       ):
-        kde.empty_shaped(jagged_shape.create_shape([3]), schema=None).eval()
+        kd.empty_shaped(jagged_shape.create_shape([3]), schema=None)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
@@ -152,7 +153,7 @@ class SlicesEmptyShapedTest(parameterized.TestCase):
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE),
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
         ],
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
