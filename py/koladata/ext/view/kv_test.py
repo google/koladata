@@ -22,7 +22,7 @@ class KodaViewTest(absltest.TestCase):
     # More comprehensive tests are in view_test.py.
     self.assertEqual(
         kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(),
-        [2, 3],
+        (2, 3),
     )
 
   def test_align(self):
@@ -31,8 +31,8 @@ class KodaViewTest(absltest.TestCase):
         kv.view(1),
         kv.view([10, 20])[:],
     )
-    self.assertEqual(res1.get(), [1, 1])
-    self.assertEqual(res2.get(), [10, 20])
+    self.assertEqual(res1.get(), (1, 1))
+    self.assertEqual(res2.get(), (10, 20))
 
   def test_types(self):
     self.assertIsInstance(kv.view(1), kv.types.View)

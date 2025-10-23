@@ -92,7 +92,7 @@ class KdExtTest(absltest.TestCase):
   def test_kv(self):
     # More comprehensive tests are in ext/view/.
     kv = kd_ext.kv
-    self.assertEqual(kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(), [2, 3])
+    self.assertEqual(kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(), (2, 3))
 
 
 if __name__ == '__main__':

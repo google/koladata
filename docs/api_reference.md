@@ -11690,9 +11690,9 @@ corresponds to traversing the edges labeled with d to 3 and 4.
 
 Example:
   view([1, 2])[:].map(lambda x: x + 1).get()
-  # [2, 3]
+  # (2, 3)
   view([[1, 2], [3]])[:].map(lambda x: len(x)).get()
-  # [2, 1]
+  # (2, 1)
 
 Args:
   obj: An arbitrary object to create a view for.

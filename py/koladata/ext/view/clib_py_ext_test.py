@@ -27,27 +27,27 @@ class MapStructuresTest(absltest.TestCase):
         clib_py_ext.map_structures(lambda x, y: x - y, (0, 0), (1, 2)), -1
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x: x + 1, (1,), ([1, 2],)), [2, 3]
+        clib_py_ext.map_structures(lambda x: x + 1, (1,), ((1, 2),)), (2, 3)
     )
     self.assertEqual(
         clib_py_ext.map_structures(
-            lambda x, y: x - y, (1, 1), ([1, 2], [3, 5])
+            lambda x, y: x - y, (1, 1), ((1, 2), (3, 5))
         ),
-        [-2, -3],
+        (-2, -3),
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x, y: x - y, (0, 1), (1, [3, 5])),
-        [-2, -4],
+        clib_py_ext.map_structures(lambda x, y: x - y, (0, 1), (1, (3, 5))),
+        (-2, -4),
     )
     self.assertEqual(
-        clib_py_ext.map_structures(lambda x, y: x - y, (1, 0), ([3, 5], 1)),
-        [2, 4],
+        clib_py_ext.map_structures(lambda x, y: x - y, (1, 0), ((3, 5), 1)),
+        (2, 4),
     )
     self.assertEqual(
         clib_py_ext.map_structures(
-            lambda x, y, z: x - y + z, (2, 1, 0), ([[3, 5], [7]], [2, 5], 4)
+            lambda x, y, z: x - y + z, (2, 1, 0), (((3, 5), (7,)), (2, 5), 4)
         ),
-        [[5, 7], [6]],
+        ((5, 7), (6,)),
     )
     # Kwargs
     self.assertEqual(
@@ -57,10 +57,10 @@ class MapStructuresTest(absltest.TestCase):
         clib_py_ext.map_structures(
             lambda x, y, z: x - y + z,
             (2, 0, 1),
-            ([[3, 5], [7]], 4, [2, 5]),
+            (((3, 5), (7,)), 4, (2, 5)),
             ('z', 'y'),
         ),
-        [[5, 7], [6]],
+        ((5, 7), (6,)),
     )
     # Many args
     self.assertEqual(
@@ -138,12 +138,12 @@ class MapStructuresTest(absltest.TestCase):
       clib_py_ext.map_structures(lambda x, y: x + y, (0,), (1,))
     with self.assertRaisesRegex(
         TypeError,
-        'expected all lists to be the same length when depth > 0, got 1 and 2',
+        'expected all tuples to be the same length when depth > 0, got 1 and 2',
     ):
-      clib_py_ext.map_structures(lambda x, y: x + y, (1, 1), ([1, 2], [3]))
+      clib_py_ext.map_structures(lambda x, y: x + y, (1, 1), ((1, 2), (3,)))
     with self.assertRaisesRegex(
         TypeError,
-        'expected the structure to be a list when depth > 0, got int',
+        'expected the structure to be a tuple when depth > 0, got int',
     ):
       clib_py_ext.map_structures(lambda x: x, (1,), (1,))
     with self.assertRaisesRegex(TypeError, 'keywords must be strings'):

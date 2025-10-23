@@ -48,9 +48,9 @@ class View:
     #
     # It is internally represented as an object with a depth that describes how
     # deep the nesting goes. The assumption is that for depth > 0, `obj` is a
-    # list.
+    # tuple.
     #
-    # Note that some of the objects A, B, C may be lists themselves, we do not
+    # Note that some of the objects A, B, C may be tuples themselves, we do not
     # look into them and just treat them as arbitrary Python objects unless
     # the user explicitly calls explode().
     self._obj = obj
@@ -111,14 +111,14 @@ class View:
     Example:
       x = types.SimpleNamespace(a=[1, 2])
       view(x).a.explode().map(lambda i: i + 1).get()
-      # [2, 3]
+      # (2, 3)
 
     Returns:
       A new view with one more dimension.
     """
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
-    explode_fn = lambda x: [] if x is None else list(x)
+    explode_fn = lambda x: () if x is None else tuple(x)
     res = _map1(explode_fn, self)
     return View(res.get(), self._depth + 1, is_internal_call=True)
 
@@ -147,23 +147,20 @@ class View:
         'Only everything slice [:] is supported in View.__getitem__ yet.'
     )
 
-  # TODO: Consider copying the lists here, otherwise we may leak
-  # the internal structures to the user.
   def implode(self, ndim: int = 1) -> View:
-    """Reduces view dimension by grouping items into lists.
+    """Reduces view dimension by grouping items into tuples.
 
-    This is an inverse operation to `explode`. It groups items into lists
+    This is an inverse operation to `explode`. It groups items into tuples
     according to the shape of topmost `ndim` dimensions. If `ndim` is negative,
     will implode all the way to a scalar.
 
     Example:
       view_2d = view([[1,2],[3]])[:][:]
       view_2d.implode()
-      # The same structure as view([[1,2],[3]])[:], but different list
-      # pointers.
+      # The same structure as view([(1,2),(3,)])[:].
       view_2d.implode(ndim=2)
       view_2d.implode(ndim=-1)
-      # The same structure as view([[1,2],[3]]), but different list pointers.
+      # The same structure as view(((1,2),(3,))).
 
     Args:
       ndim: The number of dimensions to implode.
@@ -185,7 +182,7 @@ class View:
 
   # TODO: Once View also stores the root and the path from root,
   # we might want to make this method return a subset of original data
-  # structure, instead of just a list of lists, for example:
+  # structure, instead of just a tuple of tuples, for example:
   #
   # class Foo:
   #   a: int | None
@@ -205,34 +202,34 @@ class View:
       view('foo').get()
       # 'foo'
       view([[1,2],[3]])[:].get()
-      # [[1,2],[3]], but a different list pointer for the outer list.
+      # ([1,2],[3]).
       view([[1,2],[3]])[:][:].get()
-      # [[1,2],[3]], but all different list pointers.
+      # ((1,2),(3,)).
     """
     return self._obj
 
   def flatten(self) -> View:
     """Flattens all dimensions of the view.
 
-    The result is always a view of rank 1 containing all items in order. Note
+    The result is always a view of depth 1 containing all items in order. Note
     that this does not look into the objects stored at the leaf level,
-    so even if they are lists themselves, they will not be flattened.
+    so even if they are tuples themselves, they will not be flattened.
 
     Example:
       x = [[1, 2], [3]]
       view(x)[:][:].flatten().get()
-      # [1, 2, 3]
+      # (1, 2, 3)
       view(x)[:].flatten().get()
-      # [[1, 2], [3]]
+      # ([1, 2], [3])
       view(x).flatten().get()
-      # [[[1, 2], [3]]]
+      # ([[1, 2], [3]],)
 
     Returns:
       A new view with rank 1.
     """
     res = []
     _map1(res.append, self)
-    return View(res, 1, is_internal_call=True)
+    return View(tuple(res), 1, is_internal_call=True)
 
   def expand_to(self, other: View) -> View:
     """Expands the view to the shape of other view."""
@@ -278,9 +275,9 @@ def view(obj: Any) -> View:
 
   Example:
     view([1, 2])[:].map(lambda x: x + 1).get()
-    # [2, 3]
+    # (2, 3)
     view([[1, 2], [3]])[:].map(lambda x: len(x)).get()
-    # [2, 1]
+    # (2, 1)
 
   Args:
     obj: An arbitrary object to create a view for.

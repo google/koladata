@@ -38,19 +38,20 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
     if (depths[i] <= current_depth) {
       continue;  // Scalar.
     }
-    if (!PyList_CheckExact(py_args[i])) {
-      PyErr_Format(PyExc_TypeError,
-                   "expected the structure to be a list when depth > 0, got %s",
-                   Py_TYPE(py_args[i])->tp_name);
+    if (!PyTuple_CheckExact(py_args[i])) {
+      PyErr_Format(
+          PyExc_TypeError,
+          "expected the structure to be a tuple when depth > 0, got %s",
+          Py_TYPE(py_args[i])->tp_name);
       return nullptr;
     }
-    int64_t len = PyList_GET_SIZE(py_args[i]);
+    int64_t len = PyTuple_GET_SIZE(py_args[i]);
     if (max_len == -1) {
       max_len = len;
     } else if (len != max_len) {
       PyErr_Format(
           PyExc_TypeError,
-          "expected all lists to be the same length when depth > 0, got %d "
+          "expected all tuples to be the same length when depth > 0, got %d "
           "and %d",
           len, max_len);
       return nullptr;
@@ -68,15 +69,15 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
       new_py_args[i] = py_args[i];
     }
   }
-  auto py_result_list = arolla::python::PyObjectPtr::Own(PyList_New(max_len));
-  if (py_result_list == nullptr) {
+  auto py_result_tuple = arolla::python::PyObjectPtr::Own(PyTuple_New(max_len));
+  if (py_result_tuple == nullptr) {
     return nullptr;
   }
   int64_t new_depth = current_depth + 1;
   for (int64_t i = 0; i < max_len; ++i) {
     for (int64_t j = 0; j < depths.size(); ++j) {
       if (depths[j] > current_depth) {
-        new_py_args[j] = PyList_GET_ITEM(py_args[j], i);
+        new_py_args[j] = PyTuple_GET_ITEM(py_args[j], i);
       }
     }
     arolla::python::PyObjectPtr res = MapImpl(
@@ -84,9 +85,9 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
     if (res == nullptr) {
       return nullptr;
     }
-    PyList_SET_ITEM(py_result_list.get(), i, res.release());
+    PyTuple_SET_ITEM(py_result_tuple.get(), i, res.release());
   }
-  return py_result_list;
+  return py_result_tuple;
 }
 
 PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
@@ -190,7 +191,7 @@ const PyMethodDef kDefMapStructures = {
     "  depths: a tuple / list of integers specifying to which depth each arg\n"
     "    should be traversed to. Must have the same arity as args.\n"
     "  args: a tuple / list of arguments that will be traversed. Those levels\n"
-    "    that should be recursed on are required to be lists.\n"
+    "    that should be recursed on are required to be tuples.\n"
     "  kwnames: optional tuple of names of keyword arguments."};
 
 }  // namespace koladata::python

@@ -33,6 +33,13 @@ from koladata import kd_ext
 kv = kd_ext.kv
 
 
+def _to_list(x):
+  if isinstance(x, (list, tuple)):
+    return [_to_list(v) for v in x]
+  else:
+    return x
+
+
 @dataclasses.dataclass
 class Foo:
   x: int
@@ -43,11 +50,18 @@ class Bar:
   z: list[Foo]
 
 
-def _example_computation_py(os: list[Bar]) -> list[list[int]]:
+def _example_computation_py_lists(os: list[Bar]) -> list[list[int]]:
   return [[f.x * f.x for f in o.z] for o in os]
 
 
-def _example_computation_py_stepwise(os: list[Bar]) -> list[list[int]]:
+def _example_computation_py_tuples(
+    os: list[Bar],
+) -> tuple[tuple[int, ...], ...]:
+  # Note: tuple([i for i in j]) is much faster than tuple(i for i in j).
+  return tuple([tuple([f.x * f.x for f in o.z]) for o in os])
+
+
+def _example_computation_py_stepwise_lists(os: list[Bar]) -> list[list[int]]:
   # This mirrors the operations we'd likely have to do if we had a Python-only
   # implementation of View.
   os = list(os)
@@ -55,6 +69,20 @@ def _example_computation_py_stepwise(os: list[Bar]) -> list[list[int]]:
   fs = [list(z) for z in zs]
   xs = [[f.x for f in fl] for fl in fs]
   res = [[x * x for x in xl] for xl in xs]
+  return res
+
+
+def _example_computation_py_stepwise_tuples(
+    os: list[Bar],
+) -> tuple[tuple[int, ...], ...]:
+  # This mirrors the operations we'd likely have to do if we had a Python-only
+  # implementation of View.
+  # Note: tuple([i for i in j]) is much faster than tuple(i for i in j).
+  os = tuple(os)
+  zs = tuple([o.z for o in os])
+  fs = tuple([list(z) for z in zs])
+  xs = tuple([tuple([f.x for f in fl]) for fl in fs])
+  res = tuple([tuple([x * x for x in xl]) for xl in xs])
   return res
 
 
@@ -82,27 +110,61 @@ _DATASET_CHOICES = (_very_small_dataset, _small_dataset, _medium_dataset)
 @google_benchmark.register
 @google_benchmark.option.arg_names(['dataset'])
 @google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
-def example_computation_py(state):
+def example_computation_py_lists(state):
   """An example simple computation."""
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py(ds) == _example_computation_kv(ds)
+  assert _to_list(_example_computation_py_lists(ds)) == _to_list(
+      _example_computation_kv(ds)
+  )
   while state:
-    _ = _example_computation_py(ds)
+    _ = _example_computation_py_lists(ds)
 
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['dataset'])
 @google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
-def example_computation_py_stepwise(state):
+def example_computation_py_tuples(state):
   """An example simple computation."""
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py_stepwise(ds) == _example_computation_kv(ds)
+  assert _to_list(_example_computation_py_tuples(ds)) == _to_list(
+      _example_computation_kv(ds)
+  )
   while state:
-    _ = _example_computation_py_stepwise(ds)
+    _ = _example_computation_py_tuples(ds)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['dataset'])
+@google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
+def example_computation_py_stepwise_lists(state):
+  """An example simple computation."""
+  dataset_fn = _DATASET_CHOICES[state.range(0)]
+  ds = dataset_fn()
+  # Sanity check
+  assert _to_list(_example_computation_py_stepwise_lists(ds)) == _to_list(
+      _example_computation_kv(ds)
+  )
+  while state:
+    _ = _example_computation_py_stepwise_lists(ds)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['dataset'])
+@google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
+def example_computation_py_stepwise_tuples(state):
+  """An example simple computation."""
+  dataset_fn = _DATASET_CHOICES[state.range(0)]
+  ds = dataset_fn()
+  # Sanity check
+  assert _to_list(_example_computation_py_stepwise_tuples(ds)) == _to_list(
+      _example_computation_kv(ds)
+  )
+  while state:
+    _ = _example_computation_py_stepwise_tuples(ds)
 
 
 @google_benchmark.register
@@ -113,7 +175,9 @@ def example_computation_kv(state):
   dataset_fn = _DATASET_CHOICES[state.range(0)]
   ds = dataset_fn()
   # Sanity check
-  assert _example_computation_py(ds) == _example_computation_kv(ds)
+  assert _to_list(_example_computation_py_lists(ds)) == _to_list(
+      _example_computation_kv(ds)
+  )
   while state:
     _ = _example_computation_kv(ds)
 
