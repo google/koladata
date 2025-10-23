@@ -15,9 +15,9 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")
 
-package(default_visibility = [
-    "//koladata:internal",
-])
+default_visibility = ["//koladata:internal"]
+
+package(default_visibility = default_visibility)
 
 licenses(["notice"])
 
@@ -36,6 +36,7 @@ cc_shared_library(
         "//koladata:__subpackages__",
         "//py/koladata:__subpackages__",
     ],
+    visibility = default_visibility + ["//py/koladata/ext/view:__subpackages__"],
     deps = [
         "//koladata:all_qexpr_operators",
         "//koladata:data_slice",

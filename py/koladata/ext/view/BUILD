@@ -15,7 +15,9 @@
 # A lightweight library with Koda syntax for working with Python objects.
 
 load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -57,12 +59,22 @@ py_test(
     ],
 )
 
+py_test(
+    name = "clib_py_ext_test",
+    srcs = ["clib_py_ext_test.py"],
+    deps = [
+        ":clib_py_ext",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_library(
     name = "view",
     srcs = ["view.py"],
     deps = [
+        ":clib_py_ext",
         "//py:python_path",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -72,5 +84,26 @@ py_library(
     deps = [
         ":view",
         "//py:python_path",
+    ],
+)
+
+cc_library(
+    name = "clib_cc_lib",
+    srcs = ["clib.cc"],
+    hdrs = ["clib.h"],
+    deps = [
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
+)
+
+koladata_py_extension(
+    name = "clib_py_ext",
+    srcs = ["clib_module.cc"],
+    deps = [
+        ":clib_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )

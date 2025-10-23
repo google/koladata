@@ -111,8 +111,8 @@ class ViewTest(absltest.TestCase):
         [111, 122],
     )
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('argument 2 is shorter than argument 1'),
+        TypeError,
+        'expected all lists to be the same length when depth > 0, got 1 and 2',
     ):
       _ = view_lib.map_(
           lambda x, y: x + y,
@@ -245,12 +245,13 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(res2.get(), [10, 20])
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('argument 2 is shorter than argument 1'),
+        TypeError,
+        'expected all lists to be the same length when depth > 0, got 2 and 3',
     ):
       _ = view_lib.align(l2, l5)
     with self.assertRaisesRegex(
-        ValueError, re.escape('argument 2 is shorter than argument 1')
+        TypeError,
+        'expected all lists to be the same length when depth > 0, got 2 and 3',
     ):
       _ = view_lib.align(l4, l5)
 
@@ -269,20 +270,20 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(l4.expand_to(l4).get(), [[1, 2], [3]])
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('argument 2 is longer than argument 1'),
+        TypeError,
+        'expected all lists to be the same length when depth > 0, got 3 and 2',
     ):
       l2.expand_to(l5)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'a View with depth 2 cannot be broadcasted to a view with depth 1'
+            'a View with depth 2 cannot be broadcasted to a View with depth 1'
         ),
     ):
       l4.expand_to(l5)
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('argument 2 is shorter than argument 1'),
+        TypeError,
+        'expected all lists to be the same length when depth > 0, got 2 and 3',
     ):
       l5.expand_to(l2)
 

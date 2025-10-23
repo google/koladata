@@ -15,8 +15,11 @@
 """Koda View class."""
 
 from __future__ import annotations
+import itertools
 from typing import Any, Callable
-from arolla import arolla
+from koladata.ext.view import clib_py_ext as view_clib
+
+_cc_map_structure = view_clib.map_structures
 
 
 class View:
@@ -68,7 +71,7 @@ class View:
       attr_name: The name of the attribute to get.
     """
     attrgetter = lambda x: None if x is None else getattr(x, attr_name)
-    return map_(attrgetter, self)
+    return _map1(attrgetter, self)
 
   def __getattr__(self, attr_name: str) -> View:
     """Returns a new view with the given attribute of each item.
@@ -116,7 +119,7 @@ class View:
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
     explode_fn = lambda x: [] if x is None else list(x)
-    res = map_(explode_fn, self)
+    res = _map1(explode_fn, self)
     return View(res.get(), self._depth + 1, is_internal_call=True)
 
   def __getitem__(self, key: Any) -> View:
@@ -228,33 +231,19 @@ class View:
       A new view with rank 1.
     """
     res = []
-    map_(res.append, self)
+    _map1(res.append, self)
     return View(res, 1, is_internal_call=True)
 
-  # TODO: Simplify once `map_` doesn't call `align`.
   def expand_to(self, other: View) -> View:
     """Expands the view to the shape of other view."""
     if self is other:
       return self
-    self_depth = self._depth
-    other_depth = other.get_depth()
-    if self_depth == other_depth:
-      # Validate that they are the same
-      _ = _map_structures(lambda x, y: x, self_depth, self._obj, other.get())
-      return self
-    elif self_depth < other_depth:
-      # Repeat necessary values.
-      depth_diff = other_depth - self_depth
-
-      def repeat_value(self_v, other_v):
-        return _map_structures(lambda _: self_v, depth_diff, other_v)
-
-      obj = _map_structures(repeat_value, self_depth, self._obj, other.get())
-      return View(obj, other_depth, is_internal_call=True)
+    if self._depth <= other._depth:  # pylint: disable=protected-access
+      return _map2(lambda x, y: x, self, other)
     else:
       raise ValueError(
-          f'a View with depth {self_depth} cannot be broadcasted to a view with'
-          f' depth {other_depth}'
+          f'a View with depth {self._depth} cannot be broadcasted to a View'  # pylint: disable=protected-access
+          f' with depth {other._depth}'  # pylint: disable=protected-access
       )
 
   def get_depth(self) -> int:
@@ -357,24 +346,23 @@ def align(first: Any, *others: Any) -> tuple[View, ...]:
   )
 
 
-# TODO: Implement in C++, and do not require the structures to be
-# aligned.
-# TODO: Add map1 and map2 as faster versions of map_ that avoids
-# generic args and kwargs handling. Use these whenever possible in internal
-# code.
-def _map_structures(fn, depth, *structures, kwnames=()):
-  """Low-level implementation of map_."""
-  vcall = arolla.abc.vectorcall
+def _map1(f: Callable[..., Any], arg: View) -> View:
+  """Unary specialization of map_. `arg` _must_ be a View."""
+  depth = arg._depth  # pylint: disable=protected-access
+  obj = _cc_map_structure(f, (depth,), (arg._obj,))  # pylint: disable=protected-access
+  return View(obj, depth, is_internal_call=True)
 
-  def impl(depth, *values):
-    if depth <= 0:
-      return vcall(fn, *values, kwnames)
-    if depth == 1:
-      return [vcall(fn, *vs, kwnames) for vs in zip(*values, strict=True)]
-    else:
-      return [impl(depth - 1, *vs) for vs in zip(*values, strict=True)]
 
-  return impl(depth, *structures)
+def _map2(f: Callable[..., Any], arg1: View, arg2: Any) -> View:
+  """Binary specialization of map_. `arg1` _must_ be a View."""
+  # pylint: disable=protected-access
+  depth1 = arg1._depth
+  arg2_is_view = isinstance(arg2, View)
+  unboxed_arg2 = arg2._obj if arg2_is_view else arg2
+  depth2 = arg2._depth if arg2_is_view else 0
+  obj = _cc_map_structure(f, (depth1, depth2), (arg1._obj, unboxed_arg2))
+  return View(obj, max(depth1, depth2), is_internal_call=True)
+  # pylint: enable=protected-access
 
 
 # This method is in view.py since we expect to use it from implementations
@@ -404,9 +392,19 @@ def map_(f: Callable[..., Any], *args: Any, **kwargs: Any) -> View:
   Returns:
     A new view with the function applied to the corresponding items.
   """
-  aligned_args = align(*args, *kwargs.values())
-  depth = aligned_args[0].get_depth()
-  obj = _map_structures(
-      f, depth, *(v.get() for v in aligned_args), kwnames=tuple(kwargs)
-  )
-  return View(obj, depth, is_internal_call=True)
+  unboxed_args = []
+  depths = []
+  append_arg = unboxed_args.append
+  append_depth = depths.append
+
+  for arg in itertools.chain(args, kwargs.values()):
+    if isinstance(arg, View):
+      append_depth(arg._depth)  # pylint: disable=protected-access
+      append_arg(arg._obj)  # pylint: disable=protected-access
+    else:
+      assert isinstance(arg, _AUTO_BOX_TYPES)
+      append_depth(0)
+      append_arg(arg)
+
+  obj = _cc_map_structure(f, depths, unboxed_args, tuple(kwargs))
+  return View(obj, max(depths), is_internal_call=True)
