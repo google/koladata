@@ -11622,7 +11622,7 @@ Experimental Koda View API.
 
 **Operators**
 
-### `kd_ext.kv.align(first: View | int | float | str | bytes | bool | None, *others: View | int | float | str | bytes | bool | None) -> tuple[View, ...]` {#kd_ext.kv.align}
+### `kd_ext.kv.align(*args: View | int | float | str | bytes | bool | None) -> tuple[View, ...]` {#kd_ext.kv.align}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the views to a common shape.
 
@@ -11630,8 +11630,8 @@ We will also apply auto-boxing if some inputs are not views but can be
 automatically boxed into one.
 
 Args:
-  first: The first argument to align.
-  *others: The remaining arguments to align.
+  *args: The views to align, or values that can be automatically boxed into
+    views.
 
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>

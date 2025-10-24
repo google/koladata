@@ -20,6 +20,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_align_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -51,29 +52,10 @@ QTYPES = frozenset([
 
 class SlicesAlignTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      ((), arolla.tuple()),
-      ((ds(0),), arolla.tuple(ds(0))),
-      (
-          (ds(0), ds(1)),
-          arolla.tuple(ds(0), ds(1)),
-      ),
-      (
-          (
-              ds([[1, 2, 3], [4, 5]]),
-              ds('a'),
-              ds([1, 2]),
-          ),
-          arolla.tuple(
-              ds([[1, 2, 3], [4, 5]]),
-              ds([['a', 'a', 'a'], ['a', 'a']]),
-              ds([[1, 1, 1], [2, 2]]),
-          ),
-      ),
-  )
+  @parameterized.parameters(*slices_align_testdata.TEST_DATA)
   def test_eval(self, args, expected):
     result = expr_eval.eval(kde.slices.align(*args))
-    testing.assert_equal(result, expected)
+    testing.assert_equal(result, arolla.tuple(*expected))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

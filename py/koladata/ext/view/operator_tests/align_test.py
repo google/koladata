@@ -12,65 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
-
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
+from koladata.operators.tests.testdata import slices_align_testdata
 
 
-class AlignTest(absltest.TestCase):
+class AlignTest(parameterized.TestCase):
 
-  def test_call(self):
-    with self.assertRaisesRegex(
-        TypeError, re.escape('align() missing 1 required positional argument')
-    ):
-      kv.align()  # pytype: disable=missing-parameter
+  @parameterized.parameters(*slices_align_testdata.TEST_DATA)
+  def test_call(self, args, expected):
+    args = [test_utils.from_ds(x) for x in args]
+    expected = [test_utils.from_ds(x) for x in expected]
+    res = kv.align(*args)
+    self.assertLen(res, len(expected))
+    for i in range(len(res)):
+      test_utils.assert_equal(res[i], expected[i])
 
-    l1 = kv.view(1)
-    (res1,) = kv.align(l1)
-    self.assertEqual(res1.get(), 1)
-
-    l2 = kv.view([10, 20])[:]
-    res1, res2 = kv.align(l1, l2)
+  def test_boxing(self):
+    l1 = kv.view([10, 20])[:]
+    res1, res2 = kv.align(1, l1)
+    self.assertEqual(res1.get(), (1, 1))
+    self.assertEqual(res2.get(), (10, 20))
+    res2, res1 = kv.align(l1, 1)
     self.assertEqual(res1.get(), (1, 1))
     self.assertEqual(res2.get(), (10, 20))
 
-    res2, res1 = kv.align(l2, l1)
-    self.assertEqual(res1.get(), (1, 1))
-    self.assertEqual(res2.get(), (10, 20))
-
-    l3 = kv.view([30, 40])[:]
-    res2, res3 = kv.align(l2, l3)
-    self.assertEqual(res2.get(), (10, 20))
-    self.assertEqual(res3.get(), (30, 40))
-
-    l4 = kv.view([[1, 2], [3]])[:][:]
-    res2, res4 = kv.align(l2, l4)
-    self.assertEqual(res2.get(), ((10, 10), (20,)))
-    self.assertEqual(res4.get(), ((1, 2), (3,)))
-
-    l5 = kv.view([1, 2, 3])[:]
-    res1, res5 = kv.align(l1, l5)
-    self.assertEqual(res1.get(), (1, 1, 1))
-    self.assertEqual(res5.get(), (1, 2, 3))
-
-    res1, res2 = kv.align(1, l2)
-    self.assertEqual(res1.get(), (1, 1))
-    self.assertEqual(res2.get(), (10, 20))
-    res2, res1 = kv.align(l2, 1)
-    self.assertEqual(res1.get(), (1, 1))
-    self.assertEqual(res2.get(), (10, 20))
-
+  def test_errors(self):
+    l1 = kv.view([10, 20])[:]
+    l2 = kv.view([1, 2, 3])[:]
     with self.assertRaisesRegex(
         TypeError,
         'expected all tuples to be the same length when depth > 0, got 2 and 3',
     ):
-      _ = kv.align(l2, l5)
+      _ = kv.align(l1, l2)
+
+    l3 = kv.view([[1, 2], [3]])[:][:]
     with self.assertRaisesRegex(
         TypeError,
         'expected all tuples to be the same length when depth > 0, got 2 and 3',
     ):
-      _ = kv.align(l4, l5)
+      _ = kv.align(l3, l2)
 
 
 if __name__ == '__main__':

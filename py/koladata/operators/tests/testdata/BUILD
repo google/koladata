@@ -44,3 +44,13 @@ py_library(
         "//py/koladata/types:data_slice",
     ],
 )
+
+py_library(
+    name = "slices_align_testdata",
+    testonly = True,
+    srcs = ["slices_align_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+    ],
+)

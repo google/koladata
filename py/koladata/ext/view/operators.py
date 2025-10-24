@@ -26,30 +26,26 @@ The tests are in operator_tests/ folder.
 from koladata.ext.view import view as view_lib
 
 
-def align(
-    first: view_lib.ViewOrAutoBoxType, *others: view_lib.ViewOrAutoBoxType
-) -> tuple[view_lib.View, ...]:
+def align(*args: view_lib.ViewOrAutoBoxType) -> tuple[view_lib.View, ...]:
   """Aligns the views to a common shape.
 
   We will also apply auto-boxing if some inputs are not views but can be
   automatically boxed into one.
 
   Args:
-    first: The first argument to align.
-    *others: The remaining arguments to align.
+    *args: The views to align, or values that can be automatically boxed into
+      views.
 
   Returns:
     A tuple of aligned views, of size len(others) + 1.
   """
-  first = view_lib.box(first)
-  if not others:
-    return (first,)
-  others = tuple(view_lib.box(o) for o in others)
-  ref_view = max((first, *others), key=lambda l: l.get_depth())
-  return (
-      first.expand_to(ref_view),
-      *(l.expand_to(ref_view) for l in others),
-  )
+  if not args:
+    return ()
+  if len(args) == 1:
+    return (view_lib.box(args[0]),)
+  args = [view_lib.box(o) for o in args]
+  ref_view = max(args, key=lambda v: v.get_depth())
+  return tuple(v.expand_to(ref_view) for v in args)
 
 
 def get_attr(v: view_lib.ViewOrAutoBoxType, attr_name: str) -> view_lib.View:
