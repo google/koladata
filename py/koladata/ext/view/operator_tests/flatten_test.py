@@ -16,19 +16,19 @@ from absl.testing import absltest
 from koladata.ext.view import kv
 
 
-# Most tests are in operator_tests/ folder.
-class KodaViewTest(absltest.TestCase):
+class FlattenTest(absltest.TestCase):
 
-  def test_types(self):
-    self.assertIsInstance(kv.view(1), kv.types.View)
-    self.assertIsInstance(kv.view(1), kv.types.ViewOrAutoBoxType)
-    self.assertNotIsInstance(kv.view(1), kv.types.AutoBoxType)
-    self.assertIsInstance(1, kv.types.ViewOrAutoBoxType)
-    self.assertIsInstance(1, kv.types.AutoBoxType)
-    self.assertIsInstance('foo', kv.types.ViewOrAutoBoxType)
-    self.assertIsInstance('foo', kv.types.AutoBoxType)
-    self.assertNotIsInstance([1, 2], kv.types.ViewOrAutoBoxType)
-    self.assertNotIsInstance([1, 2], kv.types.AutoBoxType)
+  def test_call(self):
+    x = [[1, None, 2], [3]]
+    self.assertEqual(kv.flatten(kv.view(x)).get(), (x,))
+    self.assertEqual(kv.flatten(kv.view(x)[:]).get(), ([1, None, 2], [3]))
+    self.assertEqual(kv.flatten(kv.view(x)[:][:]).get(), (1, None, 2, 3))
+
+  def test_auto_boxing(self):
+    self.assertEqual(kv.flatten(None).get(), (None,))
+    self.assertEqual(kv.flatten('foo').get(), ('foo',))
+    with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
+      _ = kv.flatten([1, 2])  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

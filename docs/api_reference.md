@@ -11622,7 +11622,7 @@ Experimental Koda View API.
 
 **Operators**
 
-### `kd_ext.kv.align(first: Any, *others: Any) -> tuple[View, ...]` {#kd_ext.kv.align}
+### `kd_ext.kv.align(first: View | int | float | str | bytes | bool | None, *others: View | int | float | str | bytes | bool | None) -> tuple[View, ...]` {#kd_ext.kv.align}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the views to a common shape.
 
@@ -11636,7 +11636,118 @@ Args:
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>
 
-### `kd_ext.kv.map(f: Callable[..., Any], *args: Any, include_missing: bool = False, **kwargs: Any) -> View` {#kd_ext.kv.map}
+### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | None, other: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.expand_to}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the view expanded to the shape of other view.
+
+The view must have dimensions that match a prefix of the other view&#39;s
+dimensions. The corresponding items then will be repeated among the additional
+dimensions.
+
+Example:
+  x = kv.view([1, None, 2])[:]
+  y = kv.view([[], [1, None], [3, 4, 5]])[:][:]
+  kv.expand_to(x, y).get()
+  # ((), (None, None), (2, 2, 2))
+
+Args:
+  v: The view to expand.
+  other: The view to expand to.</code></pre>
+
+### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.explode}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unnests iterable elements by one level, increasing rank by 1.
+
+If a view contains iterable elements, `explode` creates a new view
+containing elements from those iterables, and increases view rank by 1.
+This is useful for &#34;diving&#34; into lists within your data structure.
+Usually used via `[:]`.
+
+It is user&#39;s responsibility to ensure that all items are iterable and
+have `len`.
+
+If one of the items is None, it will be treated as an empty iterable,
+instead of raising an error that len() would raise.
+
+Example:
+  x = kv.view(types.SimpleNamespace(a=[1, 2]))
+  kv.explode(x).map(lambda i: i + 1).get()
+  # (2, 3)
+
+Args:
+  v: The view to explode. Can also be a Python primitive, which will be
+    automatically boxed into a view, but most likely raise an exception
+    afterwards, unless it is None.
+
+Returns:
+  A new view with one more dimension.</code></pre>
+
+### `kd_ext.kv.flatten(v: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.flatten}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Flattens all dimensions of the view.
+
+The result is always a view of depth 1 containing all items in order. Note
+that this does not look into the objects stored at the leaf level,
+so even if they are tuples themselves, they will not be flattened.
+
+Example:
+  x = kv.view([[1, 2], [3]])
+  kv.flatten(x[:][:]).get()
+  # (1, 2, 3)
+  kv.flatten(x[:]).get()
+  # ([1, 2], [3])
+  kv.flatten(x).get()
+  # ([[1, 2], [3]],)
+
+Args:
+  v: The view to flatten. Can also be a Python primitive, which will be
+    automatically boxed into a view.
+
+Returns:
+  A new view with rank 1.</code></pre>
+
+### `kd_ext.kv.get_attr(v: View | int | float | str | bytes | bool | None, attr_name: str) -> View` {#kd_ext.kv.get_attr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new view with the given attribute of each item.
+
+If one of the items is None, the corresponding value will be None as well,
+instead of raising an error that Python&#39;s built-in getattr() would raise.
+
+Example:
+  x = kv.view(types.SimpleNamespace(_b=6))
+  kv.get_attr(x, &#39;_b&#39;).get()
+  # 6
+
+Args:
+  v: The view to get the attribute from. Can also be a Python primitive, which
+    will be automatically boxed into a view, but most likely raise an
+    exception afterwards, unless it is None.
+  attr_name: The name of the attribute to get.</code></pre>
+
+### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Reduces view dimension by grouping items into tuples.
+
+This is an inverse operation to `explode`. It groups items into tuples
+according to the shape of topmost `ndim` dimensions. If `ndim` is negative,
+will implode all the way to a scalar.
+
+Example:
+  view_2d = kv.view([[1,2],[3]])[:][:]
+  kv.implode(view_2d)
+  # The same structure as view([(1,2),(3,)])[:].
+  kv.implode(view_2d, ndim=2)
+  kd.implode(view_2d, ndim=-1)
+  # The same structure as view(((1,2),(3,))).
+
+Args:
+  v: The view to implode.
+  ndim: The number of dimensions to implode.
+
+Returns:
+  A new view with `ndim` fewer dimensions.</code></pre>
+
+### `kd_ext.kv.map(f: Callable[..., Any], *args: ViewOrAutoBoxType, include_missing: bool = False, **kwargs: ViewOrAutoBoxType) -> View` {#kd_ext.kv.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs view.
 

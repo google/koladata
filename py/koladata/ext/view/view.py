@@ -23,6 +23,8 @@ _cc_map_structure = view_clib.map_structures
 _INTERNAL_CALL = object()
 
 
+# Most methods of this class are also available as operators in the `kv` module.
+# Please consider adding an operator when adding a new method here.
 class View:
   """A view on a particular path inside an object.
 
@@ -57,19 +59,7 @@ class View:
     self._depth = depth
 
   def get_attr(self, attr_name: str) -> View:
-    """Returns a new view with the given attribute of each item.
-
-    If one of the items is None, the corresponding value will be None as well,
-    instead of raising an error that getattr() would raise.
-
-    Example:
-      x = types.SimpleNamespace(_b=6)
-      view(x).get_attr('_b').get()
-      # 6
-
-    Args:
-      attr_name: The name of the attribute to get.
-    """
+    """Returns a new view with the given attribute of each item."""
     attrgetter = lambda x: getattr(x, attr_name)
     return _map1(attrgetter, self)
 
@@ -95,34 +85,14 @@ class View:
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.
   def explode(self) -> View:
-    """Unnests iterable elements by one level, increasing rank by 1.
-
-    If a view contains iterable elements, `explode` creates a new view
-    containing elements from those iterables, and increases view rank by 1.
-    This is useful for "diving" into lists within your data structure.
-    Usually used via `[:]`.
-
-    It is user's responsibility to ensure that all items are iterable and
-    have `len`.
-
-    If one of the items is None, it will be treated as an empty iterable,
-    instead of raising an error that len() would raise.
-
-    Example:
-      x = types.SimpleNamespace(a=[1, 2])
-      view(x).a.explode().map(lambda i: i + 1).get()
-      # (2, 3)
-
-    Returns:
-      A new view with one more dimension.
-    """
+    """Unnests iterable elements by one level, increasing rank by 1."""
     # TODO: For dicts, this does not align with Koda ([:] returns
     # values there, while we return keys here).
     explode_fn = lambda x: () if x is None else tuple(x)
     res = _map1(explode_fn, self, include_missing=True)
     return View(res.get(), self._depth + 1, _INTERNAL_CALL)
 
-  def __getitem__(self, key: Any) -> View:
+  def __getitem__(self, key: slice) -> View:
     """Provides `view[:]` syntax as a shortcut for `view.explode()`.
 
     Example:
@@ -148,26 +118,7 @@ class View:
     )
 
   def implode(self, ndim: int = 1) -> View:
-    """Reduces view dimension by grouping items into tuples.
-
-    This is an inverse operation to `explode`. It groups items into tuples
-    according to the shape of topmost `ndim` dimensions. If `ndim` is negative,
-    will implode all the way to a scalar.
-
-    Example:
-      view_2d = view([[1,2],[3]])[:][:]
-      view_2d.implode()
-      # The same structure as view([(1,2),(3,)])[:].
-      view_2d.implode(ndim=2)
-      view_2d.implode(ndim=-1)
-      # The same structure as view(((1,2),(3,))).
-
-    Args:
-      ndim: The number of dimensions to implode.
-
-    Returns:
-      A new view with `ndim` less dimensions.
-    """
+    """Reduces view dimension by grouping items into tuples."""
     depth = self._depth
     if ndim < 0:
       depth = 0
@@ -209,32 +160,16 @@ class View:
     return self._obj
 
   def flatten(self) -> View:
-    """Flattens all dimensions of the view.
-
-    The result is always a view of depth 1 containing all items in order. Note
-    that this does not look into the objects stored at the leaf level,
-    so even if they are tuples themselves, they will not be flattened.
-
-    Example:
-      x = [[1, 2], [3]]
-      view(x)[:][:].flatten().get()
-      # (1, 2, 3)
-      view(x)[:].flatten().get()
-      # ([1, 2], [3])
-      view(x).flatten().get()
-      # ([[1, 2], [3]],)
-
-    Returns:
-      A new view with rank 1.
-    """
+    """Flattens all dimensions of the view."""
     res = []
     _map1(res.append, self, include_missing=True)
     return View(tuple(res), 1, _INTERNAL_CALL)
 
-  def expand_to(self, other: View) -> View:
+  def expand_to(self, other: ViewOrAutoBoxType) -> View:
     """Expands the view to the shape of other view."""
     if self is other:
       return self
+    other = box(other)
     if self._depth <= other._depth:  # pylint: disable=protected-access
       return _map2(lambda x, y: x, self, other, include_missing=True)
     else:
@@ -334,10 +269,11 @@ def view(obj: Any) -> View:
   return View(obj, 0, _INTERNAL_CALL)
 
 
-_AUTO_BOX_TYPES = (int, float, str, bytes, bool, type(None))
+AutoBoxType = int | float | str | bytes | bool | None
+ViewOrAutoBoxType = View | AutoBoxType
 
 
-def box(obj: Any) -> View:
+def box(obj: ViewOrAutoBoxType) -> View:
   """Wraps the given object into a view.
 
   Unlike view(), this method only works for a predefined set of types,
@@ -354,7 +290,7 @@ def box(obj: Any) -> View:
   """
   if isinstance(obj, View):
     return obj
-  elif isinstance(obj, _AUTO_BOX_TYPES):
+  elif isinstance(obj, AutoBoxType):
     return view(obj)
   else:
     raise ValueError(
@@ -375,7 +311,7 @@ def _map1(
 def _map2(
     f: Callable[..., Any],
     arg1: View,
-    arg2: Any,
+    arg2: ViewOrAutoBoxType,
     *,
     include_missing: bool = False,
 ) -> View:
@@ -396,9 +332,9 @@ def _map2(
 # of methods of View class.
 def map_(
     f: Callable[..., Any],
-    *args: Any,
+    *args: ViewOrAutoBoxType,
     include_missing: bool = False,
-    **kwargs: Any,
+    **kwargs: ViewOrAutoBoxType,
 ) -> View:
   """Applies a function to corresponding items in the args/kwargs view.
 
@@ -436,7 +372,7 @@ def map_(
       append_depth(arg._depth)  # pylint: disable=protected-access
       append_arg(arg._obj)  # pylint: disable=protected-access
     else:
-      assert isinstance(arg, _AUTO_BOX_TYPES)
+      assert isinstance(arg, AutoBoxType)
       append_depth(0)
       append_arg(arg)
 

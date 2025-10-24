@@ -12,23 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import types
+
 from absl.testing import absltest
 from koladata.ext.view import kv
 
+Obj = types.SimpleNamespace
 
-# Most tests are in operator_tests/ folder.
-class KodaViewTest(absltest.TestCase):
 
-  def test_types(self):
-    self.assertIsInstance(kv.view(1), kv.types.View)
-    self.assertIsInstance(kv.view(1), kv.types.ViewOrAutoBoxType)
-    self.assertNotIsInstance(kv.view(1), kv.types.AutoBoxType)
-    self.assertIsInstance(1, kv.types.ViewOrAutoBoxType)
-    self.assertIsInstance(1, kv.types.AutoBoxType)
-    self.assertIsInstance('foo', kv.types.ViewOrAutoBoxType)
-    self.assertIsInstance('foo', kv.types.AutoBoxType)
-    self.assertNotIsInstance([1, 2], kv.types.ViewOrAutoBoxType)
-    self.assertNotIsInstance([1, 2], kv.types.AutoBoxType)
+class ExplodeTest(absltest.TestCase):
+
+  def test_call(self):
+    x = Obj(a=[Obj(b=1), Obj(b=2)])
+    self.assertEqual(kv.explode(kv.view(x).a).b.get(), (1, 2))
+    self.assertEqual(kv.explode(kv.view(x).a).get_depth(), 1)
+    x_mix = [[1], None, [2, 3]]
+    self.assertEqual(
+        kv.explode(kv.explode(kv.view(x_mix))).get(), ((1,), (), (2, 3))
+    )
+    self.assertEqual(kv.explode(kv.explode(kv.view(x_mix))).get_depth(), 2)
+
+  def test_auto_boxing(self):
+    self.assertEqual(kv.explode(None).get(), ())
+    with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):
+      _ = kv.explode([1, 2])  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

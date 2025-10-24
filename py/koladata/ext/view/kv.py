@@ -24,7 +24,14 @@ from koladata.ext.view import view as _view
 align = _operators.align
 view = _view.view
 map = _view.map_  # pylint: disable=redefined-builtin
+get_attr = _operators.get_attr
+explode = _operators.explode
+implode = _operators.implode
+flatten = _operators.flatten
+expand_to = _operators.expand_to
 
 types = _py_types.SimpleNamespace(
     View=_view.View,
+    AutoBoxType=_view.AutoBoxType,
+    ViewOrAutoBoxType=_view.ViewOrAutoBoxType,
 )
