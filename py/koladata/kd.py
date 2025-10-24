@@ -271,11 +271,15 @@ def _SetUpEager():
   for name in __all__:
     if name != 'eager':
       setattr(eager, name, globals()[name])
-  eager.__all__ = [x for x in __all__ if x != 'eager']
-  eager.__dir__ = lambda: eager.__all__
+  eager_all = [x for x in __all__ if x != 'eager']
+  eager.__all__ = eager_all
+  eager.__dir__ = lambda: eager_all
 
 
 _SetUpEager()
+
+# This is a hack to make Cider auto-complete work.
+from koladata.kd_dynamic import *  # pylint: disable=g-import-not-at-top,g-bad-import-order,wildcard-import
 
 # Set up the tracing mode machinery. This must be the last thing in this file.
 if not _typing.TYPE_CHECKING:

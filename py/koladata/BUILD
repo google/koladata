@@ -36,6 +36,7 @@ py_library(
     srcs = ["kd.py"],
     visibility = ["//visibility:public"],
     deps = [
+        ":kd_dynamic",
         "//py:python_path",
         "//py/koladata/base:init",
         "//py/koladata/expr:expr_eval",
@@ -109,6 +110,12 @@ py_library(
         "//py/koladata/ext/view:kv",
         "//py/koladata/operators:eager_op_utils",
     ],
+)
+
+py_library(
+    name = "kd_dynamic",
+    srcs = ["kd_dynamic.py"],
+    deps = ["//py:python_path"],
 )
 
 py_test(
