@@ -270,6 +270,41 @@ cc_library(
 )
 
 cc_library(
+    name = "check_frozen",
+    srcs = ["check_frozen.cc"],
+    hdrs = ["check_frozen.h"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":data_slice_qtype",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "check_frozen_test",
+    srcs = ["check_frozen_test.cc"],
+    deps = [
+        ":check_frozen",
+        ":data_bag",
+        ":data_slice",
+        ":data_slice_qtype",
+        ":test_utils",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "jagged_shape_qtype",
     srcs = ["jagged_shape_qtype.cc"],
     hdrs = ["jagged_shape_qtype.h"],
