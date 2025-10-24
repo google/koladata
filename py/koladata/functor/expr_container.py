@@ -15,7 +15,7 @@
 """Containers for Exprs."""
 
 import types as py_types
-from typing import Any, Iterator
+from typing import Any
 from koladata.expr import tracing_mode
 from koladata.functions import functions
 from koladata.functor import tracing_decorator
@@ -51,21 +51,10 @@ class NamedContainer:
     fn(x=5)  # Returns 6
   """
 
-  def __init__(self):
-    # Set directly in __dict__ to not call __setattr__
-    self.__dict__['_container'] = {}
-
-  def __iter__(self) -> Iterator[str]:
-    return self._container.__iter__()  # pytype: disable=attribute-error
+  _HAS_DYNAMIC_ATTRIBUTES = True
 
   def __dir__(self):
-    return [k for k in self]
-
-  def __len__(self) -> int:
-    return len(self._container)  # pytype: disable=attribute-error
-
-  def __contains__(self, key: Any) -> bool:
-    return key in self._container  # pytype: disable=attribute-error
+    return self.__dict__.keys()
 
   def __setattr__(self, key: str, value: Any):
     if key.startswith('_') or key.endswith('_'):
@@ -80,16 +69,4 @@ class NamedContainer:
       value = tracing_decorator.TraceAsFnDecorator(name=key)(value)
     elif tracing_mode.is_tracing_enabled():
       value = kde.with_name(value, key)
-    self._container[key] = value  # pytype: disable=attribute-error
-
-  def __getattr__(self, key: str):
-    try:
-      return self._container[key]
-    except KeyError as e:
-      raise AttributeError(key) from e
-
-  def __delattr__(self, key: str):
-    try:
-      del self._container[key]
-    except KeyError as e:
-      raise AttributeError(key) from e
+    self.__dict__[key] = value

@@ -141,20 +141,13 @@ class ExprContainerTest(absltest.TestCase):
     del c.y
     self.assertCountEqual(dir(c), ['x', 'z'])
 
-  def test_len(self):
+  def test_hasattr(self):
     c = expr_container.NamedContainer()
     c.x = 1
     c.y = 2
-    c.z = 3
-    self.assertLen(c, 3)
-
-  def test_contains(self):
-    c = expr_container.NamedContainer()
-    c.x = 1
-    c.y = 2
-    self.assertIn('x', c)
-    self.assertIn('y', c)
-    self.assertNotIn('z', c)
+    self.assertTrue(hasattr(c, 'x'))
+    self.assertTrue(hasattr(c, 'y'))
+    self.assertFalse(hasattr(c, 'z'))
 
   def test_attribute_errors(self):
     c = expr_container.NamedContainer()
@@ -171,6 +164,15 @@ class ExprContainerTest(absltest.TestCase):
       c.a_ = 1
     with self.assertRaisesRegex(AttributeError, '__setattr__'):
       c.__setattr__ = 1
+
+  def test_vars(self):
+    c = expr_container.NamedContainer()
+    c.x = 1
+    c.y = 2
+    vars_dict = vars(c)
+    self.assertSetEqual(set(vars_dict.keys()), {'x', 'y'})
+    self.assertEqual(vars_dict['x'], c.x)
+    self.assertEqual(vars_dict['y'], c.y)
 
 
 if __name__ == '__main__':
