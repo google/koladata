@@ -17,6 +17,7 @@ import types
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
 from koladata.operators.tests.testdata import lists_explode_testdata
 
 Obj = types.SimpleNamespace
@@ -31,13 +32,10 @@ class ExplodeTest(parameterized.TestCase):
       # allows to explode them infinitely:
       # kd.view('abc').explode(ndim=2).get() --> (('a',), ('b',), ('c',))
       return
-    x = kv.view(x.to_py(max_depth=-1)).explode(x.get_ndim())
-    expected = kv.view(expected.to_py(max_depth=-1)).explode(
-        expected.get_ndim()
-    )
+    x = test_utils.from_ds(x)
+    expected = test_utils.from_ds(expected)
     res = kv.explode(x, ndim=ndim)
-    self.assertEqual(res.get(), expected.get())
-    self.assertEqual(res.get_depth(), expected.get_depth())
+    test_utils.assert_equal(res, expected)
 
   def test_errors(self):
     x_mix = [[1], None, [2, 3]]

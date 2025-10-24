@@ -16,6 +16,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd  # pylint: disable=unused-import
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
 from koladata.operators.tests.testdata import lists_implode_testdata
 
 
@@ -29,10 +30,8 @@ class ImplodeTest(parameterized.TestCase):
 
   @parameterized.parameters(*lists_implode_testdata.TEST_CASES)
   def test_call(self, x, ndim, expected):
-    x = kv.view(x.to_py(max_depth=-1)).explode(x.get_ndim())
-    expected = kv.view(expected.to_py(max_depth=-1)).explode(
-        expected.get_ndim()
-    )
+    x = test_utils.from_ds(x)
+    expected = test_utils.from_ds(expected)
     # kv.implode creates tuples, while expected.to_py() creates lists. We want
     # to avoid comparing implode output with implode output, so we convert lists
     # to tuples manually.
@@ -41,8 +40,7 @@ class ImplodeTest(parameterized.TestCase):
     )
 
     res = kv.implode(x, ndim=ndim)
-    self.assertEqual(res.get(), expected.get())
-    self.assertEqual(res.get_depth(), expected.get_depth())
+    test_utils.assert_equal(res, expected)
 
   def test_error(self):
     x = [[[1, 2], [3]], [[4, None]]]

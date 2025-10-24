@@ -70,6 +70,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "test_utils_test",
+    srcs = ["test_utils_test.py"],
+    deps = [
+        ":test_utils",
+        ":view",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_library(
     name = "view",
     srcs = ["view.py"],
@@ -95,6 +107,17 @@ py_library(
     deps = [
         ":view",
         "//py:python_path",
+    ],
+)
+
+py_library(
+    name = "test_utils",
+    testonly = True,
+    srcs = ["test_utils.py"],
+    deps = [
+        ":view",
+        "//py:python_path",
+        "//py/koladata:kd",
     ],
 )
 
