@@ -91,7 +91,7 @@ absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
           db, x, ndim,
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
+  result.UnsafeMakeWholeOnImmutableDb();
   return result;
 }
 
@@ -117,7 +117,7 @@ absl::StatusOr<DataSlice> ListLike(
                                               : std::make_optional(item_schema),
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
+  result.UnsafeMakeWholeOnImmutableDb();
   return result;
 }
 
@@ -154,14 +154,14 @@ absl::StatusOr<DataSlice> ListShaped(
                                               : std::make_optional(item_schema),
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
+  result.UnsafeMakeWholeOnImmutableDb();
   return result;
 }
 
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
   const DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result, ConcatLists(db, std::move(lists)));
-  db->UnsafeMakeImmutable();
+  result.UnsafeMakeWholeOnImmutableDb();
   return result;
 }
 
@@ -187,7 +187,7 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
     return KodaErrorCausedByIncompableSchemaError(std::move(status), x.GetBag(),
                                                   append.GetBag(), x);
   });
-  result_db->UnsafeMakeImmutable();
+  result.UnsafeMakeWholeOnImmutableDb();
   return result;
 }
 

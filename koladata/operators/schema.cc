@@ -71,7 +71,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values));
-          db->UnsafeMakeImmutable();
+          result.UnsafeMakeWholeOnImmutableDb();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -100,7 +100,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
           auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateUuSchema(db, seed, attr_names, values));
-          db->UnsafeMakeImmutable();
+          result.UnsafeMakeWholeOnImmutableDb();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -129,7 +129,7 @@ class NamedSchemaOperator : public arolla::QExprOperator {
           auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateNamedSchema(db, name, attr_names, values));
-          db->UnsafeMakeImmutable();
+          result.UnsafeMakeWholeOnImmutableDb();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -201,7 +201,7 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
                      GetStringArgument(name_or_schema, "name"));
     auto db = koladata::DataBag::EmptyMutable();
     ASSIGN_OR_RETURN(auto res, CreateNamedSchema(db, name, {}, {}));
-    db->UnsafeMakeImmutable();
+    res.UnsafeMakeWholeOnImmutableDb();
     return res;
   } else {
     RETURN_IF_ERROR(name_or_schema.VerifyIsSchema());
@@ -221,7 +221,7 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
     ASSIGN_OR_RETURN(auto res,
                      ::koladata::ToObject(x.WithBag(std::move(result_db))));
     DCHECK(res.GetBag() != nullptr);
-    res.GetBag()->UnsafeMakeImmutable();
+    res.UnsafeMakeWholeOnImmutableDb();
     return res;
   } else {
     ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
@@ -258,7 +258,7 @@ absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema) {
   auto db = koladata::DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(db, item_schema));
-  db->UnsafeMakeImmutable();
+  list_schema.UnsafeMakeWholeOnImmutableDb();
   return list_schema;
 }
 
@@ -267,7 +267,7 @@ absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
   auto db = koladata::DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto dict_schema,
                    CreateDictSchema(db, key_schema, value_schema));
-  db->UnsafeMakeImmutable();
+  dict_schema.UnsafeMakeWholeOnImmutableDb();
   return dict_schema;
 }
 

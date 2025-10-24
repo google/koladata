@@ -1142,7 +1142,9 @@ absl::StatusOr<DataSlice> DataSlice::Create(
 absl::StatusOr<DataSlice> DataSlice::Reshape(
     DataSlice::JaggedShape shape) const {
   return VisitImpl([&](const auto& impl) {
-    return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetBag());
+    return DataSlice::Create(
+        impl, std::move(shape), GetSchemaImpl(), GetBag(),
+        IsWhole() ? Wholeness::kWhole : Wholeness::kNotWhole);
   });
 }
 
