@@ -22,10 +22,10 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import lists_explode_testdata
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
-from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
@@ -36,67 +36,25 @@ kde = kde_operators.kde
 
 DATA_SLICE = qtypes.DATA_SLICE
 ITEMID = schema_constants.ITEMID
-
-db = data_bag.DataBag.empty_mutable()
-LIST0 = db.list()
-LIST1 = db.list([1, 2, 3])
-LIST2 = db.list([[1], [2, 3]])
-LIST3 = db.list([[None], [None, None]])
-LIST4 = db.list([[db.obj(None)], [db.obj(None), db.obj(None)]])
-
-
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
-di = lambda *args: data_item.DataItem.from_vals(*args).with_bag(db)
+ds = data_slice.DataSlice.from_vals
 
 
 class ListsExplodeTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (ds(0), 0, (ds(0))),
-      (ds(0), -1, (ds(0))),
-      (LIST0, 0, LIST0),
-      (LIST1, 0, LIST1),
-      (LIST1, 1, ds([1, 2, 3])),
-      (LIST1, -1, ds([1, 2, 3])),
-      (LIST3, 0, LIST3),
-      (LIST3, 1, ds([LIST3[0], LIST3[1]])),
-      (LIST3, 2, ds([[None], [None, None]])),
-      (ds([LIST1]), 0, ds([LIST1])),
-      (ds([LIST1]), 1, ds([[1, 2, 3]])),
-      (ds([LIST1]), -1, ds([[1, 2, 3]])),
-      (ds([LIST2]), 0, ds([LIST2])),
-      (ds([LIST2]), 1, ds([[LIST2[0], LIST2[1]]])),
-      (ds([LIST2]), 2, ds([[[1], [2, 3]]])),
-      (ds([LIST2]), -1, ds([[[1], [2, 3]]])),
-      # OBJECT DataItem/DataSlice containing lists
-      (db.obj(LIST0), 1, db.obj(ds([]))),
-      (db.obj(ds(LIST1)), 1, ds([1, 2, 3])),
-      (db.obj(ds([LIST1])), 1, ds([[1, 2, 3]])),
-      (db.obj(ds(LIST1)), -1, ds([1, 2, 3])),
-      (db.obj(ds([LIST1])), -1, ds([[1, 2, 3]])),
-      (db.obj(ds(LIST2)), 1, ds([LIST2[0], LIST2[1]])),
-      (db.obj(ds([LIST2])), 1, ds([[LIST2[0], LIST2[1]]])),
-      (db.obj(ds(LIST2)), 2, ds([[1], [2, 3]])),
-      (db.obj(ds([LIST2])), 2, ds([[[1], [2, 3]]])),
-      (db.obj(ds(LIST2)), -1, ds([[1], [2, 3]])),
-      (db.obj(ds([LIST2])), -1, ds([[[1], [2, 3]]])),
-      (db.obj(LIST3), 2, ds([[None], [None, None]])),
-      # LIST[LIST[OBJECT]] DataSlice
-      (LIST4, 0, LIST4),
-      (LIST4, 1, ds([LIST4[0], LIST4[1]])),
-      (LIST4, 2, ds([[LIST4[0][0]], [LIST4[1][0], LIST4[1][1]]])),
-      # NONE
-      (di(None), 0, di(None)),
-      # LIST[NONE]
-      (db.list([None]), 1, ds([None])),
-  )
+  @parameterized.parameters(*lists_explode_testdata.TEST_CASES)
   def test_eval(self, x, ndim, expected):
     result = kd.lists.explode(x, ndim)
-    testing.assert_equal(result, expected)
+    testing.assert_equivalent(result, expected)
+    testing.assert_equal(result.get_bag(), x.get_bag())
+
+    # Also check that the operator can take mutable inputs.
+    db = data_bag.DataBag.empty_mutable()
+    result = kd.lists.explode(db.adopt(x), ndim)
+    testing.assert_equal(result, db.adopt(expected))
 
     # Check consistency with x[:] operator if applicable.
     if ndim == 1:
-      testing.assert_equal(result, x[:])
+      testing.assert_equivalent(result, x[:])
 
   def test_out_of_bounds_ndim_error(self):
     with self.assertRaisesRegex(
@@ -106,33 +64,33 @@ class ListsExplodeTest(parameterized.TestCase):
             " number of additional dimension(s) is 1"
         ),
     ):
-      kd.lists.explode(LIST1, 2)
+      kd.lists.explode(kd.list([1, 2]), 2)
 
   def test_expand_fully_itemid_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
     ):
       # DataItem(List[None], schema: ITEMID)
-      kd.lists.explode(db.list([]).with_schema(ITEMID), -1)
+      kd.lists.explode(kd.list([]).with_schema(ITEMID), -1)
 
     with self.assertRaisesRegex(
         ValueError, re.escape("cannot fully explode 'x' with ITEMID schema")
     ):
       # DataItem(List[None], schema: LIST[ITEMID])
-      kd.lists.explode(db.list([di(None).with_schema(ITEMID)]), -1)
+      kd.lists.explode(kd.list([ds(None).with_schema(ITEMID)]), -1)
 
   def test_expand_fully_none_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape("cannot fully explode 'x' with NONE schema")
     ):
       # DataItem(List[None], schema: NONE)
-      kd.lists.explode(db.list([]), -1)
+      kd.lists.explode(kd.list([]), -1)
 
     with self.assertRaisesRegex(
         ValueError, re.escape("cannot fully explode 'x' with NONE schema")
     ):
       # DataItem(List[None], schema: LIST[NONE])
-      kd.lists.explode(db.list([di(None)]), -1)
+      kd.lists.explode(kd.list([ds(None)]), -1)
 
   def test_expand_fully_object_error(self):
     with self.assertRaisesRegex(
@@ -142,8 +100,8 @@ class ListsExplodeTest(parameterized.TestCase):
             " because the correct number of times to explode is ambiguous"
         ),
     ):
-      # DataItem(List[None], schema: LIST[OBJECT])
-      kd.lists.explode(LIST0, -1)
+      # DataItem(List[], schema: LIST[OBJECT])
+      kd.lists.explode(kd.list(), -1)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -154,7 +112,7 @@ class ListsExplodeTest(parameterized.TestCase):
     ):
       # DataItem(List[None], schema: LIST[OBJECT])
       kd.lists.explode(
-          db.list([db.obj() & di(None, schema_constants.MASK)]), -1
+          kd.list([kd.obj() & ds(None, schema_constants.MASK)]), -1
       )
 
   def test_qtype_signatures(self):

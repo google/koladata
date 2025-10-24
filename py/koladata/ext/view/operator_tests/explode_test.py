@@ -15,36 +15,32 @@
 import types
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata.ext.view import kv
+from koladata.operators.tests.testdata import lists_explode_testdata
 
 Obj = types.SimpleNamespace
 
 
-class ExplodeTest(absltest.TestCase):
+class ExplodeTest(parameterized.TestCase):
 
-  def test_call(self):
-    x = Obj(a=[Obj(b=1), Obj(b=2)])
-    self.assertEqual(kv.explode(kv.view(x).a).b.get(), (1, 2))
-    self.assertEqual(kv.explode(kv.view(x).a).get_depth(), 1)
-    x_mix = [[1], None, [2, 3]]
-    self.assertEqual(
-        kv.explode(kv.explode(kv.view(x_mix))).get(), ((1,), (), (2, 3))
+  @parameterized.parameters(*lists_explode_testdata.TEST_CASES)
+  def test_call(self, x, ndim, expected):
+    if ndim < 0:
+      # We do not support ndim=-1, because for example for strings Python
+      # allows to explode them infinitely:
+      # kd.view('abc').explode(ndim=2).get() --> (('a',), ('b',), ('c',))
+      return
+    x = kv.view(x.to_py(max_depth=-1)).explode(x.get_ndim())
+    expected = kv.view(expected.to_py(max_depth=-1)).explode(
+        expected.get_ndim()
     )
-    self.assertEqual(kv.explode(kv.explode(kv.view(x_mix))).get_depth(), 2)
+    res = kv.explode(x, ndim=ndim)
+    self.assertEqual(res.get(), expected.get())
+    self.assertEqual(res.get_depth(), expected.get_depth())
 
-  def test_ndim(self):
+  def test_errors(self):
     x_mix = [[1], None, [2, 3]]
-    self.assertEqual(
-        kv.explode(kv.view(x_mix), ndim=1).get(),
-        ([1], None, [2, 3]),
-    )
-    self.assertEqual(kv.explode(kv.view(x_mix), ndim=1).get_depth(), 1)
-    self.assertEqual(
-        kv.explode(kv.view(x_mix), ndim=2).get(), ((1,), (), (2, 3))
-    )
-    self.assertEqual(kv.explode(kv.view(x_mix), ndim=2).get_depth(), 2)
-    self.assertEqual(kv.explode(kv.view(x_mix), ndim=0).get(), x_mix)
-    self.assertEqual(kv.explode(kv.view(x_mix), ndim=0).get_depth(), 0)
     with self.assertRaisesRegex(
         ValueError,
         'the number of dimensions to explode must be non-negative, got -1',

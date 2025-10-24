@@ -33,3 +33,14 @@ py_library(
         "//py/koladata/types:data_slice",
     ],
 )
+
+py_library(
+    name = "lists_explode_testdata",
+    testonly = True,
+    srcs = ["lists_explode_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+    ],
+)

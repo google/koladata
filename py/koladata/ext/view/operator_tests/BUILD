@@ -65,7 +65,9 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata/ext/view:kv",
+        "//py/koladata/operators/tests/testdata:lists_explode_testdata",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 
