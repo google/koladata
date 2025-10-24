@@ -72,13 +72,15 @@ def get_attr(v: view_lib.ViewOrAutoBoxType, attr_name: str) -> view_lib.View:
   return view_lib.box(v).get_attr(attr_name)
 
 
-def explode(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
-  """Unnests iterable elements by one level, increasing rank by 1.
+def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
+  """Unnests iterable elements, increasing rank by `ndim`.
 
-  If a view contains iterable elements, `explode` creates a new view
-  containing elements from those iterables, and increases view rank by 1.
+  If a view contains iterable elements, `explode` with `ndim=1` creates a new
+  view containing elements from those iterables, and increases view rank by 1.
   This is useful for "diving" into lists within your data structure.
   Usually used via `[:]`.
+
+  `ndim=2` applies the same transformation twice, and so on.
 
   It is user's responsibility to ensure that all items are iterable and
   have `len`.
@@ -95,11 +97,12 @@ def explode(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
     v: The view to explode. Can also be a Python primitive, which will be
       automatically boxed into a view, but most likely raise an exception
       afterwards, unless it is None.
+    ndim: The number of dimensions to explode. Must be non-negative.
 
   Returns:
-    A new view with one more dimension.
+    A new view with `ndim` more dimensions.
   """
-  return view_lib.box(v).explode()
+  return view_lib.box(v).explode(ndim=ndim)
 
 
 def implode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:

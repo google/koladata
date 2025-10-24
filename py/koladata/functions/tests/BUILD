@@ -171,6 +171,7 @@ py_test(
         "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/testdata:lists_implode_testdata",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

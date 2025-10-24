@@ -23,6 +23,7 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import lists_implode_testdata
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -31,15 +32,9 @@ from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
 
-bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
-
-db = bag()
-OBJ1 = db.obj()
-OBJ2 = db.obj()
-OBJ3 = db.obj(a=math.nan)
 
 
 QTYPE_SIGNATURES = [
@@ -56,67 +51,15 @@ QTYPE_SIGNATURES = [
 
 class ListLikeTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (ds(0), 0, ds(0)),
-      (ds(0), -1, ds(0)),
-      (ds([1, None, 2]), 0, ds([1, None, 2])),
-      (ds([1, None, 2]), 1, db.list([1, None, 2])),
-      (ds([1, None, 2]), -1, db.list([1, None, 2])),
-      (ds([[1, None, 2], [3, 4]]), 0, ds([[1, None, 2], [3, 4]])),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          1,
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-      ),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          2,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          -1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          0,
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          -1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          0,
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          1,
-          ds([db.list([OBJ1, None, OBJ2]), db.list([db.obj(3), db.obj(4)])]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          2,
-          db.list([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          -1,
-          db.list([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-  )
+  @parameterized.parameters(*lists_implode_testdata.TEST_CASES)
   def test_eval(self, x, ndim, expected):
-    # Test behavior with explicit existing DataBag.
     result = kd.lists.implode(x, ndim)
+    testing.assert_equivalent(result, expected)
+    self.assertFalse(result.is_mutable())
+
+    # Check that eager ops work on mutable inputs, too.
+    db = data_bag.DataBag.empty_mutable()
+    result = kd.lists.implode(db.adopt(x), ndim)
     testing.assert_equivalent(result, expected)
     self.assertFalse(result.is_mutable())
 
@@ -126,10 +69,11 @@ class ListLikeTest(parameterized.TestCase):
     self.assertFalse(result.is_mutable())
 
   def test_eval_nan(self):
-    x = ds([OBJ3])
+    o = kd.obj(a=math.nan)
+    x = ds([o])
     ndim = 1
-    expected = db.list([OBJ3])
-    result = db.implode(x, ndim)
+    expected = kd.list([o])
+    result = kd.lists.implode(x, ndim)
     with self.assertRaisesRegex(
         AssertionError,
         r'expected\[0\].a:\nDataItem\(nan, schema: FLOAT32\)\n'

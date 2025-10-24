@@ -11654,14 +11654,16 @@ Args:
   v: The view to expand.
   other: The view to expand to.</code></pre>
 
-### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.explode}
+### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.explode}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Unnests iterable elements by one level, increasing rank by 1.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unnests iterable elements, increasing rank by `ndim`.
 
-If a view contains iterable elements, `explode` creates a new view
-containing elements from those iterables, and increases view rank by 1.
+If a view contains iterable elements, `explode` with `ndim=1` creates a new
+view containing elements from those iterables, and increases view rank by 1.
 This is useful for &#34;diving&#34; into lists within your data structure.
 Usually used via `[:]`.
+
+`ndim=2` applies the same transformation twice, and so on.
 
 It is user&#39;s responsibility to ensure that all items are iterable and
 have `len`.
@@ -11678,9 +11680,10 @@ Args:
   v: The view to explode. Can also be a Python primitive, which will be
     automatically boxed into a view, but most likely raise an exception
     afterwards, unless it is None.
+  ndim: The number of dimensions to explode. Must be non-negative.
 
 Returns:
-  A new view with one more dimension.</code></pre>
+  A new view with `ndim` more dimensions.</code></pre>
 
 ### `kd_ext.kv.flatten(v: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.flatten}
 

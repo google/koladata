@@ -87,13 +87,21 @@ class View:
 
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.
-  def explode(self) -> View:
-    """Unnests iterable elements by one level, increasing rank by 1."""
-    # TODO: For dicts, this does not align with Koda ([:] returns
-    # values there, while we return keys here).
+  def explode(self, ndim: int = 1) -> View:
+    """Unnests iterable elements, increasing rank by `ndim`."""
+    if ndim < 0:
+      raise ValueError(
+          'the number of dimensions to explode must be non-negative, got'
+          f' {ndim}'
+      )
     explode_fn = lambda x: () if x is None else tuple(x)
-    res = _map1(explode_fn, self, include_missing=True)
-    return View(res.get(), self._depth + 1, _INTERNAL_CALL)
+    res = self
+    for _ in range(ndim):
+      # TODO: For dicts, this does not align with Koda ([:] returns
+      # values there, while we return keys here).
+      res = _map1(explode_fn, res, include_missing=True)
+      res = View(res.get(), res.get_depth() + 1, _INTERNAL_CALL)
+    return res
 
   def __getitem__(self, key: slice) -> View:
     """Provides `view[:]` syntax as a shortcut for `view.explode()`.

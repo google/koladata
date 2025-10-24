@@ -32,6 +32,27 @@ class ExplodeTest(absltest.TestCase):
     )
     self.assertEqual(kv.explode(kv.explode(kv.view(x_mix))).get_depth(), 2)
 
+  def test_ndim(self):
+    x_mix = [[1], None, [2, 3]]
+    self.assertEqual(
+        kv.explode(kv.view(x_mix), ndim=1).get(),
+        ([1], None, [2, 3]),
+    )
+    self.assertEqual(kv.explode(kv.view(x_mix), ndim=1).get_depth(), 1)
+    self.assertEqual(
+        kv.explode(kv.view(x_mix), ndim=2).get(), ((1,), (), (2, 3))
+    )
+    self.assertEqual(kv.explode(kv.view(x_mix), ndim=2).get_depth(), 2)
+    self.assertEqual(kv.explode(kv.view(x_mix), ndim=0).get(), x_mix)
+    self.assertEqual(kv.explode(kv.view(x_mix), ndim=0).get_depth(), 0)
+    with self.assertRaisesRegex(
+        ValueError,
+        'the number of dimensions to explode must be non-negative, got -1',
+    ):
+      _ = kv.explode(kv.view(x_mix), ndim=-1)
+    with self.assertRaisesRegex(TypeError, "'int' object is not iterable"):
+      _ = kv.explode(kv.view(x_mix), ndim=3)
+
   def test_auto_boxing(self):
     self.assertEqual(kv.explode(None).get(), ())
     with self.assertRaisesRegex(ValueError, 'Cannot automatically box'):

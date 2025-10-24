@@ -20,17 +20,13 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
+from koladata.operators.tests.testdata import lists_implode_testdata
 from koladata.testing import testing
 from koladata.types import data_slice
 
 
 kde = kde_operators.kde
-db = fns.mutable_bag()
-ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
-
-OBJ1 = db.obj()
-OBJ2 = db.obj()
-OBJ3 = db.obj(a=math.nan)
+ds = data_slice.DataSlice.from_vals
 
 
 class ImplodeTest(parameterized.TestCase):
@@ -38,67 +34,12 @@ class ImplodeTest(parameterized.TestCase):
   def test_mutability(self):
     self.assertFalse(fns.implode(ds([1, None])).is_mutable())
 
-  @parameterized.parameters(
-      (ds(0), 0, ds(0)),
-      (ds(0), -1, ds(0)),
-      (ds([1, None, 2]), 0, ds([1, None, 2])),
-      (ds([1, None, 2]), 1, db.list([1, None, 2])),
-      (ds([1, None, 2]), -1, db.list([1, None, 2])),
-      (ds([[1, None, 2], [3, 4]]), 0, ds([[1, None, 2], [3, 4]])),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          1,
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-      ),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          2,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([[1, None, 2], [3, 4]]),
-          -1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          0,
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([db.list([1, None, 2]), db.list([3, 4])]),
-          -1,
-          db.list([[1, None, 2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          0,
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          1,
-          ds([db.list([OBJ1, None, OBJ2]), db.list([db.obj(3), db.obj(4)])]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          2,
-          db.list([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-      (
-          ds([[OBJ1, None, OBJ2], [3, 4]]),
-          -1,
-          db.list([[OBJ1, None, OBJ2], [3, 4]]),
-      ),
-      (ds([None]), 1, db.list([None])),
-  )
+  @parameterized.parameters(*lists_implode_testdata.TEST_CASES)
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
+    db = fns.mutable_bag()
+    x = db.adopt(x)
+    expected = db.adopt(expected)
     result = db.implode(x, ndim)
     testing.assert_equivalent(result, expected)
     self.assertEqual(result.get_bag().fingerprint, x.get_bag().fingerprint)
@@ -114,9 +55,11 @@ class ImplodeTest(parameterized.TestCase):
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
   def test_eval_nan(self):
-    x = ds([OBJ3])
+    db = fns.mutable_bag()
+    o = db.obj(a=math.nan)
+    x = ds([o])
     ndim = 1
-    expected = db.list([OBJ3])
+    expected = db.list([o])
     result = db.implode(x, ndim)
     with self.assertRaisesRegex(
         AssertionError,

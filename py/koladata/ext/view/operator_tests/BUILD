@@ -84,8 +84,11 @@ py_test(
     srcs = ["implode_test.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata:kd",
         "//py/koladata/ext/view:kv",
+        "//py/koladata/operators/tests/testdata:lists_implode_testdata",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

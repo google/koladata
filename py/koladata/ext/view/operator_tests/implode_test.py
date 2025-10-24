@@ -13,39 +13,40 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
+from koladata import kd  # pylint: disable=unused-import
 from koladata.ext.view import kv
+from koladata.operators.tests.testdata import lists_implode_testdata
 
 
-class ImplodeTest(absltest.TestCase):
+def _nested_list_to_tuple(x, depth):
+  if depth == 0:
+    return x
+  return tuple(_nested_list_to_tuple(y, depth - 1) for y in x)
 
-  def test_call(self):
+
+class ImplodeTest(parameterized.TestCase):
+
+  @parameterized.parameters(*lists_implode_testdata.TEST_CASES)
+  def test_call(self, x, ndim, expected):
+    x = kv.view(x.to_py(max_depth=-1)).explode(x.get_ndim())
+    expected = kv.view(expected.to_py(max_depth=-1)).explode(
+        expected.get_ndim()
+    )
+    # kv.implode creates tuples, while expected.to_py() creates lists. We want
+    # to avoid comparing implode output with implode output, so we convert lists
+    # to tuples manually.
+    expected = expected.map(
+        lambda y: _nested_list_to_tuple(y, ndim if ndim >= 0 else x.get_depth())
+    )
+
+    res = kv.implode(x, ndim=ndim)
+    self.assertEqual(res.get(), expected.get())
+    self.assertEqual(res.get_depth(), expected.get_depth())
+
+  def test_error(self):
     x = [[[1, 2], [3]], [[4, None]]]
     view_3d = kv.view(x)[:][:][:]
-    self.assertEqual(
-        kv.implode(view_3d, ndim=0).flatten().get(), (1, 2, 3, 4, None)
-    )
-    self.assertEqual(
-        kv.implode(view_3d, ndim=1).flatten().get(), ((1, 2), (3,), (4, None))
-    )
-    self.assertEqual(
-        kv.implode(view_3d).flatten().get(), ((1, 2), (3,), (4, None))
-    )
-    self.assertEqual(
-        kv.implode(view_3d, ndim=2).flatten().get(),
-        (((1, 2), (3,)), ((4, None),)),
-    )
-    self.assertEqual(
-        kv.implode(view_3d, ndim=3).flatten().get(),
-        ((((1, 2), (3,)), ((4, None),)),),
-    )
-    self.assertEqual(
-        kv.implode(view_3d, ndim=-1).flatten().get(),
-        ((((1, 2), (3,)), ((4, None),)),),
-    )
-    self.assertEqual(
-        kv.implode(view_3d, ndim=-2).flatten().get(),
-        ((((1, 2), (3,)), ((4, None),)),),
-    )
     with self.assertRaisesRegex(
         ValueError,
         'Cannot implode by 4 dimensions, the shape has only 3 dimensions.',
