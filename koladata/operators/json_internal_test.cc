@@ -29,10 +29,14 @@
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/json.h"
+#include "koladata/test_utils.h"
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
@@ -459,6 +463,35 @@ TEST(JsonInternalTest, JsonObjectToEntity) {
     EXPECT_TRUE(entity.is_entity());
   }
 }
+
+TEST(JsonInternalTest, AttrsOrder) {
+  DataBagPtr bag = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(DataSlice ds, ops::FromJson(
+    test::DataItem("{\"c\": {\"b\": 1}, \"a\": 2}"),
+    test::DataItem(schema::kObject),
+    test::DataItem(schema::kObject),
+    test::EmptyDataSlice(0, schema::kObject),
+    test::DataItem(arolla::Text(schema::kSchemaMetadataAttr)),
+    test::EmptyDataSlice(0, schema::kObject),
+    internal::NonDeterministicToken()));
+  EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Obj(a=2, c=Obj(b=1))"));
+  ASSERT_OK_AND_ASSIGN(DataSlice schema, ds.GetObjSchema());
+  EXPECT_THAT(
+      DataSliceToStr(schema),
+      IsOkAndHolds("IMPLICIT_ENTITY(a=OBJECT, c=OBJECT, "
+                   "__schema_metadata__=Obj(attrs_order=List['c', 'a']))"));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice json,
+      ops::ToJson(ds, test::EmptyDataSlice(0, schema::kObject),
+                  test::DataItem(false, schema::kBool),
+                  test::DataItem(arolla::Text(schema::kSchemaMetadataAttr)),
+                  test::DataItem(std::nullopt, schema::kString),
+                  test::DataItem(false, schema::kBool)));
+  EXPECT_THAT(DataSliceToStr(json),
+              IsOkAndHolds("'{\"c\": {\"b\": 1}, \"a\": 2}'"));
+}
+
+
 
 }  // namespace
 }  // namespace koladata::ops::json_internal

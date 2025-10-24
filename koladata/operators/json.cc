@@ -62,6 +62,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/metadata_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
@@ -286,6 +287,16 @@ absl::StatusOr<internal::DataItem> JsonObjectToEntity(
     return absl::InvalidArgumentError(
         "cannot add json values list attr without adding json keys list attr");
   }
+  bool keys_order_in_metadata =
+      (keys_attr == schema::kSchemaMetadataAttr);
+  if (keys_order_in_metadata) {
+    should_add_keys_attr = false;
+    if (should_add_values_attr) {
+      return absl::InvalidArgumentError(
+          "cannot add json values list attr, when keys order is specified in "
+          "metadata");
+    }
+  }
 
   std::vector<absl::string_view> entity_attr_names;
   std::vector<DataSlice> entity_attr_values;
@@ -347,8 +358,25 @@ absl::StatusOr<internal::DataItem> JsonObjectToEntity(
     ASSIGN_OR_RETURN(auto entity, ObjectCreator::Shaped(
                                       bag, DataSlice::JaggedShape::Empty(),
                                       entity_attr_names, entity_attr_values));
+    if (keys_order_in_metadata) {
+      ASSIGN_OR_RETURN(auto schema, entity.GetObjSchema());
+      ASSIGN_OR_RETURN(
+          auto attr_names_slice,
+          DataSlice::CreatePrimitive(
+              arolla::CreateFullDenseArray<arolla::Text>(
+                  entity_attr_names.begin(), entity_attr_names.end()),
+              DataSlice::JaggedShape::FlatFromSize(entity_attr_names.size())));
+      ASSIGN_OR_RETURN(auto attr_names_list,
+                       Implode(bag, attr_names_slice, -1, std::nullopt));
+      ASSIGN_OR_RETURN(
+          auto metadata,
+          CreateMetadata(bag, schema, {schema::kMetadataAttrsOrderAttr},
+                         {std::move(attr_names_list)}));
+    }
     return entity.item();
   } else {
+    // TODO: validate order of attributes matches one specified in
+    // metadata.
     ASSIGN_OR_RETURN(auto entity, EntityCreator::Shaped(
                                       bag, DataSlice::JaggedShape::Empty(),
                                       entity_attr_names, entity_attr_values,
@@ -1104,10 +1132,24 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     bool include_missing_values) {
   DCHECK(item.is_item());
 
-  ASSIGN_OR_RETURN(auto attr_names, item.GetAttrNames());
-
   std::vector<std::pair<const std::string, SerializableJson>> object_items;
-  if (keys_attr.has_value() && attr_names.contains(*keys_attr)) {
+  std::vector<std::string> attr_names;
+  if (keys_attr == schema::kSchemaMetadataAttr) {
+    if (values_attr.has_value()) {
+      return absl::InvalidArgumentError(
+          "values_attr cannot be specified when keys order is specified in "
+          "metadata");
+    }
+    ASSIGN_OR_RETURN(attr_names, GetOrderedOrLexicographicAttrNames(
+                                     item, /*assert_order_specified=*/false));
+  } else {
+    ASSIGN_OR_RETURN(auto attr_names_struct, item.GetAttrNames());
+    attr_names.insert(attr_names.end(), attr_names_struct.begin(),
+                      attr_names_struct.end());
+  }
+
+  if (keys_attr.has_value() && std::find(attr_names.begin(), attr_names.end(),
+                                         *keys_attr) != attr_names.end()) {
     // Object keys and order are specified by `keys_attr`.
     ASSIGN_OR_RETURN(auto key_list, item.GetAttr(*keys_attr));
     RETURN_IF_ERROR(key_list.GetSchema().VerifyIsListSchema());
@@ -1129,7 +1171,9 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
       const auto& key_list_values =
           key_list_items.slice().values<arolla::Text>().values;
 
-      if (values_attr.has_value() && attr_names.contains(*values_attr)) {
+      if (values_attr.has_value() &&
+          std::find(attr_names.begin(), attr_names.end(), *values_attr) !=
+              attr_names.end()) {
         // Object values are specified by `values_attr` (supports duplicate
         // keys with differing values).
         ASSIGN_OR_RETURN(auto value_list, item.GetAttr(*values_attr));
@@ -1173,8 +1217,7 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
       }
     }
   } else {
-    // Object keys are attr names in lexicographic order, and their values are
-    // the attr values.
+    // Object attr names order is specified by `attr_names`.
     for (const auto& attr_name : attr_names) {
       if (attr_name == values_attr) {
         // If `values_attr` attribute is set without `keys_attr` attribute,
