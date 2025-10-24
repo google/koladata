@@ -170,11 +170,24 @@ class View:
     """
     return self._obj
 
-  def flatten(self) -> View:
-    """Flattens all dimensions of the view."""
-    res = []
-    _map1(res.append, self, include_missing=True)
-    return View(tuple(res), 1, _INTERNAL_CALL)
+  def flatten(self, from_dim: int = 0, to_dim: int | None = None) -> View:
+    """Flattens the specified dimensions of the view."""
+    if from_dim < 0:
+      from_dim += self._depth
+    from_dim = max(0, min(from_dim, self._depth))
+    if to_dim is None:
+      to_dim = self._depth
+    else:
+      if to_dim < 0:
+        to_dim += self._depth
+      to_dim = max(from_dim, min(to_dim, self._depth))
+    if from_dim + 1 == to_dim:
+      return self
+    inner = self.implode(self._depth - from_dim)
+    outer = self.implode(self._depth - to_dim)
+    res = _map1(lambda x: [], inner, include_missing=True)
+    _map2(lambda x, y: x.append(y), res, outer, include_missing=True)
+    return res.explode(self._depth - to_dim + 1)
 
   def expand_to(self, other: ViewOrAutoBoxType) -> View:
     """Expands the view to the shape of other view."""

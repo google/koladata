@@ -16,16 +16,18 @@
 
 load("@rules_python//python:defs.bzl", "py_library")
 
-package(default_visibility = [
-    "//koladata:internal",
-    "//py/koladata/ext/view:__subpackages__",
-])
+package(
+    default_testonly = True,
+    default_visibility = [
+        "//koladata:internal",
+        "//py/koladata/ext/view:__subpackages__",
+    ],
+)
 
 licenses(["notice"])
 
 py_library(
     name = "lists_implode_testdata",
-    testonly = True,
     srcs = ["lists_implode_testdata.py"],
     deps = [
         "//py:python_path",
@@ -36,7 +38,6 @@ py_library(
 
 py_library(
     name = "lists_explode_testdata",
-    testonly = True,
     srcs = ["lists_explode_testdata.py"],
     deps = [
         "//py:python_path",
@@ -47,10 +48,19 @@ py_library(
 
 py_library(
     name = "slices_align_testdata",
-    testonly = True,
     srcs = ["slices_align_testdata.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/types:data_slice",
+    ],
+)
+
+py_library(
+    name = "shapes_flatten_testdata",
+    srcs = ["shapes_flatten_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
     ],
 )

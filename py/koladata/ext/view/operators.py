@@ -126,12 +126,26 @@ def implode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
   return view_lib.box(v).implode(ndim=ndim)
 
 
-def flatten(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
-  """Flattens all dimensions of the view.
+def flatten(
+    v: view_lib.ViewOrAutoBoxType, from_dim: int = 0, to_dim: int | None = None
+) -> view_lib.View:
+  """Flattens the specified dimensions of the view.
 
-  The result is always a view of depth 1 containing all items in order. Note
-  that this does not look into the objects stored at the leaf level,
-  so even if they are tuples themselves, they will not be flattened.
+  Indexing works as in Python:
+  * If `to_dim` is unspecified, `to_dim = get_depth()` is used.
+  * If `to_dim < from_dim`, `to_dim = from_dim` is used.
+  * If `to_dim < 0`, `max(0, to_dim + get_depth())` is used. The same goes for
+    `from_dim`.
+  * If `to_dim > get_depth()`, `get_depth()` is used. The same goes for
+  `from_dim`.
+
+  The above-mentioned adjustments places both `from_dim` and `to_dim` in the
+  range `[0, get_depth()]`. After adjustments, the new View has `get_depth() ==
+  old_rank - (to_dim - from_dim) + 1`. Note that if `from_dim == to_dim`, a
+  "unit" dimension is inserted at `from_dim`.
+
+  Note that this does not look into the objects stored at the leaf level,
+  so even if they are tuples or lists themselves, they will not be flattened.
 
   Example:
     x = kv.view([[1, 2], [3]])
@@ -141,15 +155,26 @@ def flatten(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
     # ([1, 2], [3])
     kv.flatten(x).get()
     # ([[1, 2], [3]],)
+    kv.flatten(x[:][:], 1).get()
+    # ((1, 2), (3,))
+    kv.flatten(x[:][:], -1).get()
+    # ((1, 2), (3,))
+    kv.flatten(x[:][:], 2).get()
+    # (((1,), (2,)), ((3,),))
+    kv.flatten(x[:][:], 1, 1).get()
+    # (((1,), (2,)), ((3,),))
 
   Args:
     v: The view to flatten. Can also be a Python primitive, which will be
       automatically boxed into a view.
+    from_dim: The dimension to start flattening from.
+    to_dim: The dimension to end flattening at, or None to flatten until the
+      last dimension.
 
   Returns:
-    A new view with rank 1.
+    A new view with the specified dimensions flattened.
   """
-  return view_lib.box(v).flatten()
+  return view_lib.box(v).flatten(from_dim, to_dim)
 
 
 def expand_to(

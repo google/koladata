@@ -22,6 +22,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import shapes_flatten_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -46,65 +47,7 @@ QTYPES = frozenset([
 
 class ShapesFlattenTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      # x, expected
-      (ds(1), ds([1])),
-      (ds([[[1, 2], ['a']], [[4, 'b']]]), ds([1, 2, 'a', 4, 'b'])),
-      # x, from_dim, expected
-      (ds(1), ds(0), ds([1])),
-      (ds([[[1, 2], ['a']], [[4, 'b']]]), ds(1), ds([[1, 2, 'a'], [4, 'b']])),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(-1),
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-      ),
-      (ds([[[1, 2], ['a']], [[4, 'b']]]), ds(-2), ds([[1, 2, 'a'], [4, 'b']])),
-      # x, from_dim, to_dim, res
-      (ds(1), ds(0), arolla.unspecified(), ds([1])),
-      (ds(1), ds(0), ds(0), ds([1])),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(1),
-          arolla.unspecified(),
-          ds([[1, 2, 'a'], [4, 'b']]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(0),
-          ds(2),
-          ds([[1, 2], ['a'], [4, 'b']]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(1),
-          ds(1),
-          ds([[[[1, 2], ['a']]], [[[4, 'b']]]]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(2),
-          ds(2),
-          ds([[[[1, 2]], [['a']]], [[[4, 'b']]]]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(1),
-          ds(0),
-          ds([[[[1, 2], ['a']]], [[[4, 'b']]]]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(-2),
-          ds(5),
-          ds([[1, 2, 'a'], [4, 'b']]),
-      ),
-      (
-          ds([[[1, 2], ['a']], [[4, 'b']]]),
-          ds(-5),
-          ds(-1),
-          ds([[1, 2], ['a'], [4, 'b']]),
-      ),
-  )
+  @parameterized.parameters(*shapes_flatten_testdata.TEST_DATA)
   def test_eval(self, *args_and_expected):
     args, expected_value = args_and_expected[:-1], args_and_expected[-1]
     actual_value = expr_eval.eval(kde.shapes.flatten(*args))

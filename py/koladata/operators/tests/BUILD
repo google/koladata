@@ -4420,6 +4420,7 @@ py_test(
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/testdata:shapes_flatten_testdata",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",

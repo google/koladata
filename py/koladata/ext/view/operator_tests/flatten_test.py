@@ -13,16 +13,25 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
+from arolla import arolla
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
+from koladata.operators.tests.testdata import shapes_flatten_testdata
 
 
-class FlattenTest(absltest.TestCase):
+class FlattenTest(parameterized.TestCase):
 
-  def test_call(self):
-    x = [[1, None, 2], [3]]
-    self.assertEqual(kv.flatten(kv.view(x)).get(), (x,))
-    self.assertEqual(kv.flatten(kv.view(x)[:]).get(), ([1, None, 2], [3]))
-    self.assertEqual(kv.flatten(kv.view(x)[:][:]).get(), (1, None, 2, 3))
+  @parameterized.parameters(*shapes_flatten_testdata.TEST_DATA)
+  def test_call(self, *args_and_expected):
+    x = test_utils.from_ds(args_and_expected[0])
+    expected = test_utils.from_ds(args_and_expected[-1])
+    other_args = [
+        None if isinstance(x, arolla.abc.Unspecified) else x.to_py()
+        for x in args_and_expected[1:-1]
+    ]
+    res = kv.flatten(x, *other_args)
+    test_utils.assert_equal(res, expected)
 
   def test_auto_boxing(self):
     self.assertEqual(kv.flatten(None).get(), (None,))
