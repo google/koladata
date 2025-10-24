@@ -2362,4 +2362,10 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   });
 }
 
+void DataSlice::UnsafeMakeWholeOnImmutableDb() const {
+  if (internal_->db != nullptr) {
+    internal_->db->UnsafeMakeImmutable();
+  }
+  internal_->is_whole_if_db_unmodified = true;
+}
 }  // namespace koladata

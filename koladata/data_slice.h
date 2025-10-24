@@ -575,6 +575,12 @@ class DataSlice {
     });
   }
 
+  // Marks DataSlice as "whole" and its DataBag as immutable.
+  //
+  // This should be only done on DataSlices that are created with newly created
+  // DataBag.
+  void UnsafeMakeWholeOnImmutableDb() const;
+
  private:
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
 

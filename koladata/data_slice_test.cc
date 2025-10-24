@@ -354,7 +354,10 @@ TEST(DataSliceTest, CreatePrimitive_FromDenseArray) {
 TEST(DataSliceTest, IsWhole) {
   {
     // No DataBag, trivially whole.
-    EXPECT_TRUE((test::DataSlice<int>({1, 2}).IsWhole()));
+    auto ds = test::DataSlice<int>({1, 2});
+    EXPECT_TRUE(ds.IsWhole());
+    ds.UnsafeMakeWholeOnImmutableDb();
+    EXPECT_TRUE(ds.IsWhole());
   }
 
   {
@@ -364,6 +367,8 @@ TEST(DataSliceTest, IsWhole) {
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);
     EXPECT_FALSE(ds.IsWhole());
+    ds.UnsafeMakeWholeOnImmutableDb();
+    EXPECT_TRUE(ds.IsWhole());
   }
 
   {
@@ -373,6 +378,8 @@ TEST(DataSliceTest, IsWhole) {
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
+    EXPECT_TRUE(ds.IsWhole());
+    ds.UnsafeMakeWholeOnImmutableDb();
     EXPECT_TRUE(ds.IsWhole());
   }
 
@@ -386,6 +393,8 @@ TEST(DataSliceTest, IsWhole) {
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     EXPECT_FALSE(ds.IsWhole());
+    ds.UnsafeMakeWholeOnImmutableDb();
+    EXPECT_TRUE(ds.IsWhole());  // Whole because the DataBag became immutable.
   }
 
   {
