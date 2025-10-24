@@ -58,6 +58,9 @@ class View:
     self._obj = obj
     self._depth = depth
 
+  def __repr__(self) -> str:
+    return f'<View(\n  obj={self._obj!r},\n  depth={self._depth!r},\n)>'
+
   def get_attr(self, attr_name: str) -> View:
     """Returns a new view with the given attribute of each item."""
     attrgetter = lambda x: getattr(x, attr_name)

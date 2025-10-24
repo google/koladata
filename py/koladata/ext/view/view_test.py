@@ -166,6 +166,29 @@ class ViewTest(absltest.TestCase):
     ):
       view_lib.box([1, 2])  # pytype: disable=wrong-arg-types
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(view_lib.view(1)),
+        """<View(
+  obj=1,
+  depth=0,
+)>""",
+    )
+    self.assertEqual(
+        repr(view_lib.view([[1, 2], [3]])),
+        """<View(
+  obj=[[1, 2], [3]],
+  depth=0,
+)>""",
+    )
+    self.assertEqual(
+        repr(view_lib.view([[1, 2], [3]])[:][:]),
+        """<View(
+  obj=((1, 2), (3,)),
+  depth=2,
+)>""",
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
