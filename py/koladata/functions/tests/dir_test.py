@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.functions import attrs
-from koladata.functions import object_factories
+from koladata.functions import functions as fns
 from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
@@ -23,30 +22,30 @@ ds = data_slice.DataSlice.from_vals
 class DirTest(absltest.TestCase):
 
   def test_entity(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.new(a=1, b='abc')
-    self.assertEqual(attrs.dir(x), ['a', 'b'])
-    self.assertEqual(attrs.dir(ds([x])), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(ds([x])), ['a', 'b'])
 
   def test_object(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
-    self.assertEqual(attrs.dir(x), ['a', 'b'])
-    self.assertEqual(attrs.dir(ds([x])), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(ds([x])), ['a', 'b'])
     # Returns the intersection of attributes.
-    self.assertEqual(attrs.dir(ds([x, db.obj(a='def', c=123)])), ['a'])
+    self.assertEqual(fns.dir(ds([x, db.obj(a='def', c=123)])), ['a'])
 
   def test_primitives(self):
-    x = ds([1, 2, 3]).with_bag(object_factories.mutable_bag())
-    self.assertEqual(attrs.dir(x), [])
+    x = ds([1, 2, 3]).with_bag(fns.mutable_bag())
+    self.assertEqual(fns.dir(x), [])
 
   def test_no_bag_error(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.obj(a=1, b='abc')
     with self.assertRaisesRegex(
         ValueError, 'cannot get available attributes without a DataBag'
     ):
-      attrs.dir(x.no_bag())
+      fns.dir(x.no_bag())
 
 
 if __name__ == '__main__':

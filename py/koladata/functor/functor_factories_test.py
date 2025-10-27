@@ -25,9 +25,6 @@ from koladata.expr import introspection
 from koladata.expr import view as _
 from koladata.extension_types import extension_types
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
-from koladata.functions import py_conversions
-from koladata.functions import s11n
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
@@ -587,7 +584,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     res = kd.call(
         functor_factories.py_fn(
-            lambda: object_factories.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+            lambda: fns.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
         ),
         return_type_as=data_bag.DataBag,
     )
@@ -763,7 +760,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         f(return_type_as=example_tuple), arolla.tuple(ds(2), ds(2))
     )
     fn = functor_factories.py_fn(
-        lambda x: object_factories.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
+        lambda x: fns.mutable_bag(), return_type_as=data_bag.DataBag  # pylint: disable=unnecessary-lambda
     )
     f = functor_factories.bind(fn, return_type_as=data_bag.DataBag, x=2)
     res = f(return_type_as=data_bag.DataBag)
@@ -1197,10 +1194,10 @@ class FunctorFactoriesTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'missing serialization codec for.*my_fn'
     ):
-      s11n.dumps(functor_factories.py_fn(my_fn))
+      fns.dumps(functor_factories.py_fn(my_fn))
 
-    loaded_fn = s11n.loads(
-        s11n.dumps(functor_factories.py_fn(py_conversions.py_reference(my_fn)))
+    loaded_fn = fns.loads(
+        fns.dumps(functor_factories.py_fn(fns.py_reference(my_fn)))
     )
     testing.assert_equal(loaded_fn(1), ds(2))
 
@@ -1230,7 +1227,7 @@ class FunctorFactoriesTest(absltest.TestCase):
       testing.assert_equal(kd.call(fn, 1, z=4), ds(7))
 
     with self.subTest('serialization'):
-      loaded_fn = s11n.loads(s11n.dumps(fn))
+      loaded_fn = fns.loads(fns.dumps(fn))
       testing.assert_equal(kd.call(loaded_fn, 1, z=4), ds(7))
 
     with self.subTest('registered'):

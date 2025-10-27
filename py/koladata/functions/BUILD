@@ -28,13 +28,15 @@ py_library(
     deps = [
         ":attrs",
         ":object_factories",
+        ":parallel",
+        ":predicates",
         ":proto_conversions",
         ":py_conversions",
+        ":s11n",
         ":schema",
         ":tuples",
         "//py:python_path",
         "//py/koladata/fstring",
-        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:data_slice_py_ext",
@@ -58,6 +60,7 @@ py_library(
 py_library(
     name = "schema",
     srcs = ["schema.py"],
+    visibility = ["//visibility:private"],
     deps = [
         "//py:python_path",
         "//py/koladata/types:data_bag",
@@ -70,6 +73,7 @@ py_library(
 py_library(
     name = "attrs",
     srcs = ["attrs.py"],
+    visibility = ["//visibility:private"],
     deps = [
         "//py:python_path",
         "//py/koladata/types:data_item",
@@ -81,6 +85,7 @@ py_library(
 py_library(
     name = "object_factories",
     srcs = ["object_factories.py"],
+    visibility = ["//visibility:private"],
     deps = [
         "//py:python_path",
         "//py/koladata/types:data_bag",
@@ -94,6 +99,7 @@ py_library(
 py_library(
     name = "proto_conversions",
     srcs = ["proto_conversions.py"],
+    visibility = ["//visibility:private"],
     deps = [
         "//py:python_path",
         "//py/koladata/types:data_bag",
@@ -107,6 +113,7 @@ py_library(
 py_library(
     name = "py_conversions",
     srcs = ["py_conversions.py"],
+    visibility = ["//visibility:private"],
     deps = [
         "//py:python_path",
         "//py/koladata/base/py_conversions:clib",

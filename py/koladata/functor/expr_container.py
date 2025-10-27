@@ -17,7 +17,7 @@
 import types as py_types
 from typing import Any
 from koladata.expr import tracing_mode
-from koladata.functions import predicates
+from koladata.functions import functions
 from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
 
@@ -63,7 +63,7 @@ class NamedContainer:
           ' that start or end with an underscore are reserved for class'
           ' methods.'
       )
-    if predicates.is_expr(value):
+    if functions.is_expr(value):
       value = value.with_name(key)
     elif isinstance(value, py_types.FunctionType):
       value = tracing_decorator.TraceAsFnDecorator(name=key)(value)

@@ -16,7 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import object_factories
+from koladata.functions import functions as fns
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -48,7 +48,7 @@ QTYPES = frozenset([
 class CoreMetadataTest(absltest.TestCase):
 
   def test_schema(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
@@ -59,7 +59,7 @@ class CoreMetadataTest(absltest.TestCase):
     testing.assert_equal(values, ds(['foo', 1]).with_bag(updated_x.get_bag()))
 
   def test_multiple_calls(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])
@@ -94,7 +94,7 @@ class CoreMetadataTest(absltest.TestCase):
         r'failed to create metadata; cannot create for a DataSlice with'
         r' ENTITY\(x=INT32\) schema',
     ):
-      db = object_factories.mutable_bag()
+      db = fns.mutable_bag()
       schema = db.new_schema(x=schema_constants.INT32)
       kd.core.metadata(ds([None], schema), text=ds(['foo']))
 

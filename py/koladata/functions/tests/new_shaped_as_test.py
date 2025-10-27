@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from koladata.expr import expr_eval
-from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -84,7 +83,7 @@ class NewShapedAsTest(absltest.TestCase):
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     ).eval()
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
-    self.assertEqual(attrs.dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42.0, 42.0]).with_bag(x.get_bag()))
     testing.assert_equal(
         x.get_schema().a.with_bag(None), schema_constants.FLOAT32
@@ -103,7 +102,7 @@ class NewShapedAsTest(absltest.TestCase):
         schema=schema,
         overwrite_schema=True,
     )
-    self.assertEqual(attrs.dir(x), ['a', 'b'])
+    self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(
         x.get_schema().a.with_bag(None), schema_constants.INT32

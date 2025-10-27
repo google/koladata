@@ -22,6 +22,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functor import functions
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -329,9 +330,7 @@ class FunctorCallTest(parameterized.TestCase):
           'I.fn(I.x, I.y, a=I.z, b=I.v, return_type_as=I.w)',
       ),
       (
-          kde.functor.call(
-              functor_factories.trace_py_fn(lambda x: x + 1), ds(1)
-          ),
+          kde.functor.call(functions.trace_py_fn(lambda x: x + 1), ds(1)),
           (
               re.escape(
                   'DataItem(Functor FunctorCallTest.<lambda>[x](returns=(I.x +'

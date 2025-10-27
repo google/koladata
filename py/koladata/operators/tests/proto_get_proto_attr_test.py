@@ -21,7 +21,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
-from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
@@ -47,29 +46,25 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
 
   def test_from_proto_missing_uses_default(self):
     m = test_pb2.MessageA()
-    kd_m = proto_conversions.from_proto(
-        m, schema=proto_conversions.schema_from_proto(type(m))
-    )
+    kd_m = fns.from_proto(m, schema=fns.schema_from_proto(type(m)))
 
     result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
     testing.assert_equal(result.no_bag(), ds('aaa'))
 
   def test_from_proto_present_uses_value(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto(
-        m, schema=proto_conversions.schema_from_proto(type(m))
-    )
+    kd_m = fns.from_proto(m, schema=fns.schema_from_proto(type(m)))
 
     result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
     testing.assert_equal(result.no_bag(), ds('hello'))
 
   def test_from_proto_slice(self):
-    kd_m = proto_conversions.from_proto(
+    kd_m = fns.from_proto(
         [
             test_pb2.MessageA(),
             test_pb2.MessageA(some_text='hello'),
         ],
-        schema=proto_conversions.schema_from_proto(test_pb2.MessageA),
+        schema=fns.schema_from_proto(test_pb2.MessageA),
     )
 
     result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
@@ -77,12 +72,12 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
 
   def test_from_proto_object_slice(self):
     kd_m = fns.obj(
-        proto_conversions.from_proto(
+        fns.from_proto(
             [
                 test_pb2.MessageA(),
                 test_pb2.MessageA(some_text='hello'),
             ],
-            schema=proto_conversions.schema_from_proto(test_pb2.MessageA),
+            schema=fns.schema_from_proto(test_pb2.MessageA),
         )
     )
 
@@ -90,12 +85,12 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
     testing.assert_equal(result.no_bag(), ds(['aaa', 'hello']))
 
   def test_from_proto_non_scalar_field(self):
-    kd_m = proto_conversions.from_proto(
+    kd_m = fns.from_proto(
         [
             test_pb2.MessageA(),
             test_pb2.MessageA(message_b_list=[test_pb2.MessageB(text='x')]),
         ],
-        schema=proto_conversions.schema_from_proto(test_pb2.MessageA),
+        schema=fns.schema_from_proto(test_pb2.MessageA),
     )
 
     result = expr_eval.eval(
@@ -104,14 +99,14 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
     testing.assert_equal(result.no_bag(), ds([[], ['x']]))
 
   def test_from_proto_bool_to_mask(self):
-    schema = proto_conversions.schema_from_proto(test_pb2.MessageC)
+    schema = fns.schema_from_proto(test_pb2.MessageC)
     m_unset = test_pb2.MessageC()
     m_false = test_pb2.MessageC(bool_field=False)
     m_true = test_pb2.MessageC(bool_field=True)
 
-    kd_m_unset = proto_conversions.from_proto(m_unset, schema=schema)
-    kd_m_false = proto_conversions.from_proto(m_false, schema=schema)
-    kd_m_true = proto_conversions.from_proto(m_true, schema=schema)
+    kd_m_unset = fns.from_proto(m_unset, schema=schema)
+    kd_m_false = fns.from_proto(m_false, schema=schema)
+    kd_m_true = fns.from_proto(m_true, schema=schema)
 
     testing.assert_equal(
         expr_eval.eval(kde.proto.get_proto_attr(kd_m_unset, 'bool_field')),
@@ -132,9 +127,9 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
     m_false = test_pb2.MessageC(bool_field=False)
     m_true = test_pb2.MessageC(bool_field=True)
 
-    kd_m_unset = proto_conversions.from_proto(m_unset, schema=schema)
-    kd_m_false = proto_conversions.from_proto(m_false, schema=schema)
-    kd_m_true = proto_conversions.from_proto(m_true, schema=schema)
+    kd_m_unset = fns.from_proto(m_unset, schema=schema)
+    kd_m_false = fns.from_proto(m_false, schema=schema)
+    kd_m_true = fns.from_proto(m_true, schema=schema)
 
     testing.assert_equal(
         expr_eval.eval(kde.proto.get_proto_attr(kd_m_unset, 'bool_field')),
@@ -162,9 +157,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
 
   def test_nonexistent_field(self):
     m = test_pb2.MessageA()
-    kd_m = proto_conversions.from_proto(
-        m, schema=proto_conversions.schema_from_proto(type(m))
-    )
+    kd_m = fns.from_proto(m, schema=fns.schema_from_proto(type(m)))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(

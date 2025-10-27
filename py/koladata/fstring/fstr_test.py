@@ -16,10 +16,8 @@ from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.fstring import fstring
 from koladata.functions import functions as fns
-from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_slice
-
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')

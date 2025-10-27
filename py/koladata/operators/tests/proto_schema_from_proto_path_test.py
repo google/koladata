@@ -20,7 +20,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import proto_conversions
+from koladata.functions import functions as fns
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
@@ -50,8 +50,7 @@ class ProtoSchemaFromProtoPathTest(parameterized.TestCase):
         kde.proto.schema_from_proto_path('koladata.functions.testing.MessageA')
     )
     testing.assert_equal(
-        result.no_bag(),
-        proto_conversions.schema_from_proto(test_pb2.MessageA).no_bag(),
+        result.no_bag(), fns.schema_from_proto(test_pb2.MessageA).no_bag()
     )
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -65,17 +64,14 @@ class ProtoSchemaFromProtoPathTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(
-        result.no_bag(),
-        proto_conversions.schema_from_proto(test_pb2.MessageA).no_bag(),
+        result.no_bag(), fns.schema_from_proto(test_pb2.MessageA).no_bag()
     )
     testing.assert_equal(
         getattr(
             result,
             '(koladata.functions.testing.MessageAExtension.message_a_extension)',
         ).no_bag(),
-        proto_conversions.schema_from_proto(
-            test_pb2.MessageAExtension
-        ).no_bag(),
+        fns.schema_from_proto(test_pb2.MessageAExtension).no_bag(),
     )
 
   def test_proto_path_not_found(self):

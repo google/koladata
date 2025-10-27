@@ -26,22 +26,11 @@ from koladata.expr import introspection as _introspection
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
-from koladata.extension_types import extension_types as _extension_types
 from koladata.extension_types import functions as _extension_type_functions
-from koladata.functions import attrs as _attrs
 from koladata.functions import functions as _functions
-from koladata.functions import object_factories as _object_factories
-from koladata.functions import parallel as _parallel
-from koladata.functions import predicates as _predicates
-from koladata.functions import proto_conversions as _proto_conversions
-from koladata.functions import py_conversions as _py_conversions
-from koladata.functions import s11n as _s11n
-from koladata.functions import schema as _schema
 from koladata.functor import boxing as _
 from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
-from koladata.functor import functor_factories as _functor_factories
-from koladata.functor import tracing_decorator as _tracing_decorator
 from koladata.functor.parallel import clib as _functor_parallel_clib
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
@@ -155,55 +144,11 @@ optools.eager = _py_types.SimpleNamespace()
 optools.eager.EagerOperator = _eager_op_utils.EagerOperator
 
 
-### Public functions.
-
-# go/keep-sorted start
-container = _eager_only(_object_factories.container)
-del_attr = _eager_only(_attrs.del_attr)
-dir = _eager_only(_attrs.dir)  # pylint: disable=redefined-builtin
-dumps = _eager_only(_s11n.dumps)
-embed_schema = _eager_only(_attrs.embed_schema)
-extension_type = _eager_only(_extension_types.extension_type)
-fn = _eager_only(_functor_factories.fn)
-from_proto = _eager_only(_proto_conversions.from_proto)
-from_py = _eager_only(_py_conversions.from_py)
-from_pytree = _eager_only(_py_conversions.from_py)
-is_expr = _eager_only(_predicates.is_expr)
-is_item = _eager_only(_predicates.is_item)
-is_slice = _eager_only(_predicates.is_slice)
-loads = _eager_only(_s11n.loads)
-mutable_bag = _eager_only(_object_factories.mutable_bag)
-py_fn = _eager_only(_functor_factories.py_fn)
-py_reference = _eager_only(_py_conversions.py_reference)
-register_py_fn = _eager_only(_functor_factories.register_py_fn)
-schema_from_proto = _eager_only(_proto_conversions.schema_from_proto)
-schema_from_py = _eager_only(_schema.schema_from_py)
-set_attr = _eager_only(_attrs.set_attr)
-set_attrs = _eager_only(_attrs.set_attrs)
-set_schema = _eager_only(_attrs.set_schema)
-to_py = _eager_only(_py_conversions.to_py)
-to_pylist = _eager_only(_py_conversions.to_pylist)
-to_pytree = _eager_only(_py_conversions.to_pytree)
-trace_as_fn = _eager_only(_tracing_decorator.TraceAsFnDecorator)
-trace_py_fn = _eager_only(_functor_factories.trace_py_fn)
-update_schema = _eager_only(_attrs.update_schema_fn)
-# go/keep-sorted end
-
-parallel = _eager_only(
-    _py_types.SimpleNamespace(
-        call_multithreaded=_parallel.call_multithreaded,
-        yield_multithreaded=_parallel.yield_multithreaded,
-        transform=_parallel.transform,
-    )
-)
-
-
 ### Eager operators / functions from operators.
 def _InitOpsAndContainers():
   kd_ops = _eager_op_utils.operators_container('kd')
   # We cannot use dir() since it is overridden in this module.
   for op_or_container_name in kd_ops.__dir__():
-    assert op_or_container_name not in globals()
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ops, op_or_container_name),
         tracing=_source_location.attaching_source_location(
@@ -213,6 +158,9 @@ def _InitOpsAndContainers():
 
 
 _InitOpsAndContainers()
+
+
+### Public functions.
 
 
 # Impure functions (kd.bag, kd.list, kd.new, kd.set_attr, ...).

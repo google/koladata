@@ -18,7 +18,7 @@ import copy
 
 import google_benchmark
 from koladata import kd
-from koladata.functions import py_conversions
+from koladata.functions import functions as fns
 
 
 I = kd.I
@@ -138,7 +138,7 @@ def universal_converter_no_caching_flat_v2(state):
     schema = kd.list_schema(schema)
   l = list(range(10000))
   while state:
-    _ = py_conversions._from_py_v2(l, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(l, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
@@ -170,7 +170,7 @@ def universal_converter_no_caching_nested_v2(state):
     schema = kd.list_schema(schema)
   nested_l = [[x, x + 1] for x in range(5000)]
   while state:
-    _ = py_conversions._from_py_v2(nested_l, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(nested_l, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
@@ -212,7 +212,7 @@ def universal_converter_no_caching_deep_nesting_v2(state):
       new_lst.append([lst[i], lst[i + 1]])
     lst = new_lst
   while state:
-    _ = py_conversions._from_py_v2(lst, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(lst, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
@@ -230,7 +230,7 @@ def deep_universal_converter_v2(state):
   for _ in range(1000):
     d = {12: d.copy()}
   while state:
-    _ = py_conversions._from_py_v2(d)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(d)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
@@ -248,7 +248,7 @@ def universal_converter_list_v2(state):
   for _ in range(10):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
   while state:
-    _ = py_conversions._from_py_v2(l)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(l)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
@@ -264,7 +264,7 @@ def universal_converter_list_of_obj_primitives_v2(state):
   l = [42] * 10000
   s = kd.list_schema(kd.OBJECT)
   while state:
-    _ = py_conversions._from_py_v2(l, schema=s)  # pylint: disable=protected-access
+    _ = fns._from_py_v2(l, schema=s)  # pylint: disable=protected-access
 
 
 @google_benchmark.register

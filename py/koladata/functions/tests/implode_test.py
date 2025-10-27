@@ -18,7 +18,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.functions import object_factories
+from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators.tests.testdata import lists_implode_testdata
 from koladata.testing import testing
@@ -32,12 +32,12 @@ ds = data_slice.DataSlice.from_vals
 class ImplodeTest(parameterized.TestCase):
 
   def test_mutability(self):
-    self.assertFalse(object_factories.implode(ds([1, None])).is_mutable())
+    self.assertFalse(fns.implode(ds([1, None])).is_mutable())
 
   @parameterized.parameters(*lists_implode_testdata.TEST_CASES)
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.adopt(x)
     expected = db.adopt(expected)
     result = db.implode(x, ndim)
@@ -45,17 +45,17 @@ class ImplodeTest(parameterized.TestCase):
     self.assertEqual(result.get_bag().fingerprint, x.get_bag().fingerprint)
 
     # Test behavior with implicit new DataBag.
-    result = object_factories.implode(x, ndim)
+    result = fns.implode(x, ndim)
     testing.assert_equivalent(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
     # Check behavior with DataItem ndim.
-    result = object_factories.implode(x, ds(ndim))
+    result = fns.implode(x, ds(ndim))
     testing.assert_equivalent(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
 
   def test_eval_nan(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     o = db.obj(a=math.nan)
     x = ds([o])
     ndim = 1
@@ -70,18 +70,16 @@ class ImplodeTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()
-    x = object_factories.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
+    x = fns.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid)
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]).no_bag())
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
-    triple = object_factories.new(non_existent=42)
-    itemid = object_factories.implode(ds([[triple], []]))
+    triple = fns.new(non_existent=42)
+    itemid = fns.implode(ds([[triple], []]))
 
     # Successful.
-    x = object_factories.implode(
-        ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid.get_itemid()
-    )
+    x = fns.implode(ds([['a', 'b'], ['c']]), ndim=1, itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -93,10 +91,10 @@ class ImplodeTest(parameterized.TestCase):
 
   def test_ndim_error(self):
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      object_factories.implode(ds([]), ds(None))
+      fns.implode(ds([]), ds(None))
 
     with self.assertRaisesRegex(TypeError, 'an integer is required'):
-      object_factories.implode(ds([]), ds([1]))
+      fns.implode(ds([]), ds([1]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -105,7 +103,7 @@ class ImplodeTest(parameterized.TestCase):
             " because 'x' only has 1 dimensions"
         ),
     ):
-      object_factories.implode(ds([1, 2]), 2)
+      fns.implode(ds([1, 2]), 2)
 
 
 if __name__ == '__main__':

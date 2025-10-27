@@ -14,8 +14,6 @@
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
-from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.types import data_bag
@@ -31,7 +29,7 @@ kde = kde_operators.kde
 class ToProtoTest(absltest.TestCase):
 
   def test_empty_slice(self):
-    messages = proto_conversions.to_proto(ds([]), test_pb2.MessageC)
+    messages = fns.to_proto(ds([]), test_pb2.MessageC)
     self.assertEmpty(messages)
 
   def test_invalid_input_no_bag(self):
@@ -39,7 +37,7 @@ class ToProtoTest(absltest.TestCase):
         ValueError,
         'cannot get available attributes without a DataBag',
     ):
-      _ = proto_conversions.to_proto(fns.obj().no_bag(), test_pb2.MessageC)
+      _ = fns.to_proto(fns.obj().no_bag(), test_pb2.MessageC)
 
   def test_invalid_input_primitive(self):
     bag = data_bag.DataBag.empty_mutable()
@@ -47,37 +45,31 @@ class ToProtoTest(absltest.TestCase):
         ValueError,
         'proto message should have only entities/objects, found INT32',
     ):
-      _ = proto_conversions.to_proto(ds(1).with_bag(bag), test_pb2.MessageC)
+      _ = fns.to_proto(ds(1).with_bag(bag), test_pb2.MessageC)
 
   def test_single_empty_message(self):
-    message = proto_conversions.to_proto(fns.obj(), test_pb2.MessageC)
+    message = fns.to_proto(fns.obj(), test_pb2.MessageC)
     expected_message = test_pb2.MessageC()
     self.assertEqual(message, expected_message)
 
   def test_single_none_message(self):
     bag = data_bag.DataBag.empty_mutable()
-    message = proto_conversions.to_proto(
-        ds(None).with_bag(bag), test_pb2.MessageC
-    )
+    message = fns.to_proto(ds(None).with_bag(bag), test_pb2.MessageC)
     expected_message = None
     self.assertEqual(message, expected_message)
 
   def test_single_message(self):
-    message = proto_conversions.to_proto(
-        fns.new(int32_field=1), test_pb2.MessageC
-    )
+    message = fns.to_proto(fns.new(int32_field=1), test_pb2.MessageC)
     expected_message = test_pb2.MessageC(int32_field=1)
     self.assertEqual(message, expected_message)
 
   def test_single_message_object(self):
-    message = proto_conversions.to_proto(
-        fns.obj(int32_field=1), test_pb2.MessageC
-    )
+    message = fns.to_proto(fns.obj(int32_field=1), test_pb2.MessageC)
     expected_message = test_pb2.MessageC(int32_field=1)
     self.assertEqual(message, expected_message)
 
   def test_multiple_messages(self):
-    messages = proto_conversions.to_proto(
+    messages = fns.to_proto(
         ds([
             fns.obj(int32_field=1),
             fns.obj(int32_field=2, bytes_field=b'data'),
@@ -95,7 +87,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_nested_multiple_messages(self):
-    messages = proto_conversions.to_proto(
+    messages = fns.to_proto(
         ds([
             [[]],
             [
@@ -137,13 +129,13 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_extension_field(self):
-    x = object_factories.mutable_bag().obj()
+    x = fns.mutable_bag().obj()
     x.set_attr(
         '(koladata.functions.testing.MessageAExtension.message_a_extension)',
         fns.obj(extra=123),
     )
 
-    message = proto_conversions.to_proto(x, test_pb2.MessageA)
+    message = fns.to_proto(x, test_pb2.MessageA)
     expected_message = test_pb2.MessageA()
     expected_message.Extensions[
         test_pb2.MessageAExtension.message_a_extension
@@ -161,7 +153,7 @@ class ToProtoTest(absltest.TestCase):
         fns.new(schema=s, oneof_message_field=fns.new(int32_field=3)),
     ])
 
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
 
     expected_messages = [
         test_pb2.MessageC(oneof_int32_field=1),
@@ -178,7 +170,7 @@ class ToProtoTest(absltest.TestCase):
         'multiple fields set in proto oneof a_oneof, already had'
         ' oneof_bytes_field but attempted to set oneof_int32_field',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
     x = fns.new(oneof_bytes_field=b'1', oneof_message_field=fns.new())
     with self.assertRaisesRegex(
@@ -186,7 +178,7 @@ class ToProtoTest(absltest.TestCase):
         'multiple fields set in proto oneof a_oneof, already had'
         ' oneof_bytes_field but attempted to set oneof_message_field',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
   def test_oneof_object(self):
     x = ds([
@@ -195,7 +187,7 @@ class ToProtoTest(absltest.TestCase):
         fns.obj(oneof_message_field=fns.new(int32_field=3)),
     ])
 
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
 
     expected_messages = [
         test_pb2.MessageC(oneof_int32_field=1),
@@ -218,7 +210,7 @@ class ToProtoTest(absltest.TestCase):
         ])
     )
 
-    message = proto_conversions.to_proto(x, test_pb2.MessageC)
+    message = fns.to_proto(x, test_pb2.MessageC)
 
     expected_message = test_pb2.MessageC(
         repeated_message_field=[
@@ -241,7 +233,7 @@ class ToProtoTest(absltest.TestCase):
         ])
     )
 
-    message = proto_conversions.to_proto(x, test_pb2.MessageC)
+    message = fns.to_proto(x, test_pb2.MessageC)
 
     expected_message = test_pb2.MessageC(
         repeated_message_field=[
@@ -261,7 +253,7 @@ class ToProtoTest(absltest.TestCase):
         'proto repeated field repeated_int32_field cannot represent missing'
         ' values',
     ):
-      _ = proto_conversions.to_proto(
+      _ = fns.to_proto(
           fns.obj(repeated_int32_field=[1, None, 2]), test_pb2.MessageC
       )
 
@@ -290,7 +282,7 @@ class ToProtoTest(absltest.TestCase):
         test_pb2.MessageBExtension.message_b_extension
     ].extra = 5
 
-    x = proto_conversions.from_proto(
+    x = fns.from_proto(
         m,
         extensions=[
             '(koladata.functions.testing.MessageAExtension.message_a_extension)',
@@ -300,11 +292,11 @@ class ToProtoTest(absltest.TestCase):
         ],
     )
 
-    self.assertEqual(proto_conversions.to_proto(x, test_pb2.MessageA), m)
+    self.assertEqual(fns.to_proto(x, test_pb2.MessageA), m)
 
   def test_mask_in_bool_field(self):
     x = fns.obj(bool_field=ds([mask_constants.present, mask_constants.missing]))
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
     expected_messages = [
         test_pb2.MessageC(bool_field=True),
         test_pb2.MessageC(),
@@ -313,7 +305,7 @@ class ToProtoTest(absltest.TestCase):
 
   def test_int32_in_float_field(self):
     x = fns.obj(float_field=ds([1, 2**24, -(2**24)]))
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
     expected_messages = [
         test_pb2.MessageC(float_field=1.0),
         test_pb2.MessageC(float_field=2**24),
@@ -328,7 +320,7 @@ class ToProtoTest(absltest.TestCase):
         'value 16777217 is not in the range of integers that can be exactly'
         ' represented by proto field float_field with value type float',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
     x = fns.obj(float_field=ds(-(2**24) - 1))
     with self.assertRaisesRegex(
@@ -336,11 +328,11 @@ class ToProtoTest(absltest.TestCase):
         'value -16777217 is not in the range of integers that can be exactly'
         ' represented by proto field float_field with value type float',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
   def test_int64_in_float_field(self):
     x = fns.obj(float_field=ds([1, 2**24, -(2**24)], schema_constants.INT64))
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
     expected_messages = [
         test_pb2.MessageC(float_field=1.0),
         test_pb2.MessageC(float_field=2**24),
@@ -355,7 +347,7 @@ class ToProtoTest(absltest.TestCase):
         'value 16777217 is not in the range of integers that can be exactly'
         ' represented by proto field float_field with value type float',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
     x = fns.obj(float_field=ds(-(2**24) - 1, schema_constants.INT64))
     with self.assertRaisesRegex(
@@ -363,11 +355,11 @@ class ToProtoTest(absltest.TestCase):
         'value -16777217 is not in the range of integers that can be exactly'
         ' represented by proto field float_field with value type float',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
   def test_int64_in_double_field(self):
     x = fns.obj(double_field=ds([1, 2**53, -(2**53)], schema_constants.INT64))
-    messages = proto_conversions.to_proto(x, test_pb2.MessageC)
+    messages = fns.to_proto(x, test_pb2.MessageC)
     expected_messages = [
         test_pb2.MessageC(double_field=1.0),
         test_pb2.MessageC(double_field=2**53),
@@ -383,7 +375,7 @@ class ToProtoTest(absltest.TestCase):
         ' exactly represented by proto field double_field with value type'
         ' double',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
     x = fns.obj(double_field=ds(-(2**53) - 1, schema_constants.INT64))
     with self.assertRaisesRegex(
@@ -392,7 +384,7 @@ class ToProtoTest(absltest.TestCase):
         ' exactly represented by proto field double_field with value type'
         ' double',
     ):
-      _ = proto_conversions.to_proto(x, test_pb2.MessageC)
+      _ = fns.to_proto(x, test_pb2.MessageC)
 
 
 if __name__ == '__main__':

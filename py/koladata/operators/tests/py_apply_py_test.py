@@ -20,7 +20,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import object_factories
+from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -150,7 +150,7 @@ class PyApplyPyTest(parameterized.TestCase):
         arolla.tuple(1),
     )
     res = expr_eval.eval(
-        kde.py.apply_py(lambda: object_factories.mutable_bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
+        kde.py.apply_py(lambda: fns.mutable_bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
     )
     self.assertIsInstance(res, data_bag.DataBag)
 

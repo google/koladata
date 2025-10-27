@@ -23,7 +23,6 @@ from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.functions import functions as fns
-from koladata.functions import parallel
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import functor
@@ -49,7 +48,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         returns=iterables.make(I.x, V.foo),
         foo=I.y * I.x,
     )
-    res_iter = parallel.yield_multithreaded(fn, x=2, y=3)
+    res_iter = fns.parallel.yield_multithreaded(fn, x=2, y=3)
     self.assertIsInstance(res_iter, Iterator)
     testing.assert_equal(arolla.tuple(*res_iter), arolla.tuple(ds(2), ds(6)))
 
@@ -64,7 +63,9 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
     testing.assert_equal(
         arolla.tuple(
-            *parallel.yield_multithreaded(fn, iterable_qvalue.Iterable(1, 2))
+            *fns.parallel.yield_multithreaded(
+                fn, iterable_qvalue.Iterable(1, 2)
+            )
         ),
         arolla.tuple(ds(1), ds(2)),
     )
@@ -72,7 +73,9 @@ class YieldMultithreadedTest(absltest.TestCase):
         ValueError, re.escape('unknown keyword arguments: [x]')
     ):
       _ = list(
-          *parallel.yield_multithreaded(fn, x=iterable_qvalue.Iterable(1, 2))
+          *fns.parallel.yield_multithreaded(
+              fn, x=iterable_qvalue.Iterable(1, 2)
+          )
       )
 
   def test_keyword(self):
@@ -86,7 +89,9 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
     testing.assert_equal(
         arolla.tuple(
-            *parallel.yield_multithreaded(fn, x=iterable_qvalue.Iterable(1, 2))
+            *fns.parallel.yield_multithreaded(
+                fn, x=iterable_qvalue.Iterable(1, 2)
+            )
         ),
         arolla.tuple(ds(1), ds(2)),
     )
@@ -94,7 +99,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         ValueError, re.escape('too many positional arguments')
     ):
       _ = list(
-          *parallel.yield_multithreaded(fn, iterable_qvalue.Iterable(1, 2))
+          *fns.parallel.yield_multithreaded(fn, iterable_qvalue.Iterable(1, 2))
       )
 
   def test_default_value(self):
@@ -107,12 +112,14 @@ class YieldMultithreadedTest(absltest.TestCase):
         ]),
     )
     testing.assert_equal(
-        arolla.tuple(*[x.no_bag() for x in parallel.yield_multithreaded(fn)]),
+        arolla.tuple(
+            *[x.no_bag() for x in fns.parallel.yield_multithreaded(fn)]
+        ),
         arolla.tuple(ds(57)),
     )
     testing.assert_equal(
         arolla.tuple(
-            *[x.no_bag() for x in parallel.yield_multithreaded(fn, 43)]
+            *[x.no_bag() for x in fns.parallel.yield_multithreaded(fn, 43)]
         ),
         arolla.tuple(ds(43)),
     )
@@ -128,7 +135,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
     x = fns.new(foo=57)
     testing.assert_equal(
-        arolla.tuple(*parallel.yield_multithreaded(fn, x)),
+        arolla.tuple(*fns.parallel.yield_multithreaded(fn, x)),
         arolla.tuple(x.foo),
     )
     with self.assertRaisesWithPredicateMatch(
@@ -137,13 +144,13 @@ class YieldMultithreadedTest(absltest.TestCase):
             "the attribute 'foo' is missing"
         ),
     ):
-      _ = list(*parallel.yield_multithreaded(fn, fns.new(bar=57)))
+      _ = list(*fns.parallel.yield_multithreaded(fn, fns.new(bar=57)))
 
   def test_non_dataslice_inputs(self):
     fn = functor_factories.expr_fn(iterables.make(tuple_ops.get_nth(I.x, 1)))
     testing.assert_equal(
         arolla.tuple(
-            *parallel.yield_multithreaded(
+            *fns.parallel.yield_multithreaded(
                 fn, x=arolla.tuple(ds(1), ds(2), ds(3))
             )
         ),
@@ -152,7 +159,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_yields_non_dataslice(self):
     fn = functor_factories.expr_fn(iterables.make(I.x))
-    res = parallel.yield_multithreaded(
+    res = fns.parallel.yield_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
         value_type_as=arolla.tuple(5, 7),
@@ -162,7 +169,7 @@ class YieldMultithreadedTest(absltest.TestCase):
   def test_yields_returns_databag(self):
     fn = functor_factories.expr_fn(iterables.make(I.x.get_bag()))
     obj = fns.obj(x=1)
-    res = parallel.yield_multithreaded(
+    res = fns.parallel.yield_multithreaded(
         fn,
         x=obj,
         value_type_as=data_bag.DataBag,
@@ -173,7 +180,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     fn = functor_factories.expr_fn(iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
-            *parallel.yield_multithreaded(
+            *fns.parallel.yield_multithreaded(
                 functor_factories.expr_fn(
                     functor.call(
                         I.func, x=I.u, y=I.v, return_type_as=iterables.make()
@@ -191,7 +198,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     fn = functor_factories.expr_fn(iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
-            *parallel.yield_multithreaded(
+            *fns.parallel.yield_multithreaded(
                 functor_factories.expr_fn(
                     functor.call(
                         I.my_functors.fn,
@@ -270,7 +277,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     def f5(x):
       return user_facing_kd.iterables.chain(f3(x), f4(x))
 
-    res = parallel.yield_multithreaded(
+    res = fns.parallel.yield_multithreaded(
         functor_factories.trace_py_fn(f5), x=ds(1), max_threads=2
     )
     first_barrier.wait(timeout=5.0)
@@ -311,7 +318,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         ),
     ):
       _ = list(
-          *parallel.yield_multithreaded(
+          *fns.parallel.yield_multithreaded(
               functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2
           )
       )
@@ -328,7 +335,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         ),
     ):
       _ = list(
-          *parallel.yield_multithreaded(
+          *fns.parallel.yield_multithreaded(
               fn,
               x=1,
           )
@@ -347,7 +354,7 @@ class YieldMultithreadedTest(absltest.TestCase):
         ),
     ):
       _ = list(
-          *parallel.yield_multithreaded(
+          *fns.parallel.yield_multithreaded(
               fn,
               x=1,
           )
@@ -381,11 +388,13 @@ class YieldMultithreadedTest(absltest.TestCase):
         )
     )
     testing.assert_equal(
-        arolla.tuple(*parallel.yield_multithreaded(fn, n=3, s=0, timeout=5.0)),
+        arolla.tuple(
+            *fns.parallel.yield_multithreaded(fn, n=3, s=0, timeout=5.0)
+        ),
         arolla.tuple(ds(0), ds(1), ds(3)),
     )
 
-    res_iter = parallel.yield_multithreaded(fn, n=50, s=0, timeout=0.5)
+    res_iter = fns.parallel.yield_multithreaded(fn, n=50, s=0, timeout=0.5)
     with self.assertRaises(TimeoutError):
       # Note that we leave enough time for each particular item to finish,
       # to verify that the timeout is global and not per-item.

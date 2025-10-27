@@ -15,14 +15,13 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 
 
 kde = kde_operators.kde
-db = object_factories.mutable_bag()
+db = fns.mutable_bag()
 ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 
 OBJ1 = db.obj()

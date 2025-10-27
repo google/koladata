@@ -21,10 +21,7 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.functions import attrs
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
-from koladata.functions import py_conversions
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -54,10 +51,7 @@ class TestKlassInternals:
   a: int
   b: float
 
-_VERSION_PARAMS = [
-    ('v1', py_conversions.from_py),
-    ('v2', py_conversions._from_py_v2),
-]
+_VERSION_PARAMS = [('v1', fns.from_py), ('v2', fns._from_py_v2)]
 
 
 def _zip_with_version_params(input_objects):
@@ -92,7 +86,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_same_bag(self, from_py_fn):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     o1 = db.obj()
     o2 = db.obj()
 
@@ -121,7 +115,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_does_not_borrow_data_from_input_db(self, from_py_fn):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     e1 = db.new(a=42, schema='S')
     e2 = db.new(a=12, schema='S')
     lst = [e1, e2]
@@ -131,7 +125,7 @@ class FromPyTest(parameterized.TestCase):
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_can_use_frozen_input_bag(self, from_py_fn):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     e = db.new(a=12, schema='S').freeze_bag()
     lst = [e]
     res = from_py_fn(lst)
@@ -245,7 +239,7 @@ class FromPyTest(parameterized.TestCase):
 
   def test_list_schema_mismatch(self):
     with self.assertRaisesRegex(ValueError, 'schema mismatch'):
-      py_conversions._from_py_v2(
+      fns._from_py_v2(
           [[1], 2, 3],
           schema=kde.list_schema(schema_constants.INT32).eval(),
           from_dim=1,
@@ -253,7 +247,7 @@ class FromPyTest(parameterized.TestCase):
 
   def test_dict_schema_mismatch(self):
     with self.assertRaisesRegex(ValueError, 'schema mismatch'):
-      py_conversions._from_py_v2(
+      fns._from_py_v2(
           [{'a': 1}, 2, 3],
           schema=kde.dict_schema(
               schema_constants.INT32, schema_constants.INT32
@@ -343,7 +337,7 @@ class FromPyTest(parameterized.TestCase):
   def test_dict_as_obj_with_dict_schema(self):
     # Python dictionary keys and values can be various Python / Koda objects
     # that are normalized to Koda Items.
-    d = py_conversions._from_py_v2(
+    d = fns._from_py_v2(
         {ds('a'): [1, 2], 'b': [42]},
         schema=kde.dict_schema(
             schema_constants.STRING, kde.list_schema(schema_constants.INT32)
@@ -712,12 +706,12 @@ assigned schema: INT32"""),
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
 
     with self.subTest('list of data items'):
-      db = object_factories.mutable_bag()
+      db = fns.mutable_bag()
       entity_schema = db.named_schema('foo', a=schema_constants.INT32)
       ds1 = db.new(a=2, schema=entity_schema)
       ds2 = db.new(a=3, schema=entity_schema)
       schema = db.list_schema(entity_schema)
-      d = py_conversions.from_py([ds1, ds2], schema=schema)
+      d = fns.from_py([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
@@ -728,7 +722,7 @@ assigned schema: INT32"""),
       schema = kde.list_schema(
           kde.named_schema('foo', a=schema_constants.INT32)
       ).eval()
-      d = py_conversions.from_py([ds1, ds2], schema=schema)
+      d = fns.from_py([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
@@ -738,12 +732,12 @@ assigned schema: INT32"""),
       schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       obj = TestClass(a=3)
-      x = py_conversions.from_py([obj, entity], schema=schema, dict_as_obj=True)
+      x = fns.from_py([obj, entity], schema=schema, dict_as_obj=True)
       self.assertFalse(x.is_dict())
       testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
       testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
 
-      x = py_conversions.from_py([entity, obj], schema=schema, dict_as_obj=True)
+      x = fns.from_py([entity, obj], schema=schema, dict_as_obj=True)
       self.assertFalse(x.is_dict())
       testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
       testing.assert_equal(x[:].a, ds([2, 3]).with_bag(x.get_bag()))
@@ -753,7 +747,7 @@ assigned schema: INT32"""),
       schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       d = {'a': 3}
-      x = py_conversions.from_py([d, entity], schema=schema, dict_as_obj=True)
+      x = fns.from_py([d, entity], schema=schema, dict_as_obj=True)
       self.assertFalse(x.is_dict())
       testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
       testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
@@ -773,14 +767,10 @@ assigned schema: INT32"""),
           ValueError,
           'cannot find a common schema',
       ):
-        _ = py_conversions.from_py(
-            [obj, fns.new(a=2)], schema=schema, dict_as_obj=True
-        )
+        _ = fns.from_py([obj, fns.new(a=2)], schema=schema, dict_as_obj=True)
 
       with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
-        _ = py_conversions.from_py(
-            [fns.new(a=2), d], schema=schema, dict_as_obj=True
-        )
+        _ = fns.from_py([fns.new(a=2), d], schema=schema, dict_as_obj=True)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_dict_as_obj_object(self, from_py_fn):
@@ -789,7 +779,7 @@ assigned schema: INT32"""),
         dict_as_obj=True,
     )
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    self.assertCountEqual(attrs.dir(obj), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -807,7 +797,7 @@ assigned schema: INT32"""),
     )
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     first_obj = obj[:].S[0]
-    self.assertCountEqual(attrs.dir(first_obj), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(first_obj), ['a', 'b', 'c'])
     testing.assert_equal(first_obj.a.no_bag(), ds(42))
     b = first_obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -815,7 +805,7 @@ assigned schema: INT32"""),
     testing.assert_equal(first_obj.c.no_bag(), ds(b'xyz'))
 
     second_obj = obj[:].S[1]
-    self.assertCountEqual(attrs.dir(second_obj), ['b', 'c'])
+    self.assertCountEqual(fns.dir(second_obj), ['b', 'c'])
     b = second_obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(b.x.no_bag(), ds('abc'))
@@ -834,7 +824,7 @@ assigned schema: INT32"""),
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
     testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
@@ -861,7 +851,7 @@ assigned schema: INT32"""),
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     first_entity = entity[:].S[0]
-    self.assertCountEqual(attrs.dir(first_entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(first_entity), ['a', 'b', 'c'])
     testing.assert_equal(first_entity.a.no_bag(), ds(42.0))
     b = first_entity.b
     testing.assert_equal(b.get_schema().no_bag(), entity_schema.b.no_bag())
@@ -869,7 +859,7 @@ assigned schema: INT32"""),
     testing.assert_equal(first_entity.c.no_bag(), ds(b'xyz'))
 
     second_entity = entity[:].S[1]
-    self.assertCountEqual(attrs.dir(second_entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(second_entity), ['a', 'b', 'c'])
     testing.assert_equal(
         second_entity.a.no_bag(), ds(None, schema_constants.FLOAT32)
     )
@@ -891,7 +881,7 @@ assigned schema: INT32"""),
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
     testing.assert_equal(entity.a.no_bag(), ds(42, schema_constants.INT64))
     obj_b = entity.b
     testing.assert_equal(obj_b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -907,7 +897,7 @@ assigned schema: INT32"""),
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['b'])
+    self.assertCountEqual(fns.dir(entity), ['b'])
     testing.assert_equal(
         entity.b.get_schema().no_bag(), schema_constants.OBJECT
     )
@@ -922,7 +912,7 @@ assigned schema: INT32"""),
         schema=schema,
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), [])
+    self.assertCountEqual(fns.dir(entity), [])
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_dict_as_obj_bag_adoption(self, from_py_fn):
@@ -949,7 +939,7 @@ assigned schema: INT32"""),
   def test_dict_as_obj_dict_key_is_data_item(self, from_py_fn):
     # Object.
     obj = from_py_fn({ds('a'): 42}, dict_as_obj=True)
-    self.assertCountEqual(attrs.dir(obj), ['a'])
+    self.assertCountEqual(fns.dir(obj), ['a'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non STRING schema with STRING item.
     entity = from_py_fn(
@@ -957,7 +947,7 @@ assigned schema: INT32"""),
         dict_as_obj=True,
         schema=kde.schema.new_schema(a=schema_constants.INT32).eval(),
     )
-    self.assertCountEqual(attrs.dir(entity), ['a'])
+    self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -995,7 +985,7 @@ assigned schema: ENTITY(x=INT32)'''
   def test_dataclasses(self, from_py_fn):
     obj = from_py_fn(TestKlass(42, NestedKlass('abc'), b'xyz'))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    self.assertCountEqual(attrs.dir(obj), ['a', 'b', 'c', 'x'])
+    self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c', 'x'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
     b = obj.b
     testing.assert_equal(b.get_schema().no_bag(), schema_constants.OBJECT)
@@ -1026,7 +1016,7 @@ assigned schema: ENTITY(x=INT32)'''
         TestClass(42, NestedKlass('abc'), b'xyz', []), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['a', 'b', 'c', 'd'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c', 'd'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
     testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
@@ -1045,7 +1035,7 @@ assigned schema: ENTITY(x=INT32)'''
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['a'])
+    self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -1090,7 +1080,7 @@ assigned schema: ENTITY(x=INT32)'''
     ).eval()
     entity = from_py_fn(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(attrs.dir(entity), ['koda'])
+    self.assertCountEqual(fns.dir(entity), ['koda'])
     koda = entity.koda
     testing.assert_equal(koda.get_schema().no_bag(), schema.koda.no_bag())
     testing.assert_equal(koda.x.no_bag(), ds(1))
@@ -1159,22 +1149,18 @@ assigned schema: ENTITY(x=INT32)'''
 
   def test_item_id(self):
     with self.subTest('list'):
-      l1 = py_conversions.from_py(
-          [1, 2, 3], itemid=kde.uuid_for_list('1').eval()
-      )
-      l2 = py_conversions.from_py(
-          [1, 2, 3], itemid=kde.uuid_for_list('1').eval()
-      )
+      l1 = fns.from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
+      l2 = fns.from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
       testing.assert_equivalent(l1, l2)
       testing.assert_equal(
           l1.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
-      l3 = py_conversions.from_py(
+      l3 = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list('1').eval(),
       )
-      l4 = py_conversions.from_py(
+      l4 = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list('1').eval(),
       )
@@ -1184,11 +1170,11 @@ assigned schema: ENTITY(x=INT32)'''
       )
       self.assertNotEqual(l3[:].S[0].fingerprint, l3[:].S[1].fingerprint)
 
-      l5 = py_conversions.from_py(
+      l5 = fns.from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
-      l6 = py_conversions.from_py(
+      l6 = fns.from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
@@ -1199,21 +1185,17 @@ assigned schema: ENTITY(x=INT32)'''
       self.assertNotEqual(l5[:].S[0].fingerprint, l5[:].S[1].fingerprint)
 
     with self.subTest('dict'):
-      d1 = py_conversions.from_py(
-          {'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval()
-      )
-      d2 = py_conversions.from_py(
-          {'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval()
-      )
+      d1 = fns.from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
+      d2 = fns.from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
       testing.assert_equivalent(d1, d2)
       testing.assert_equal(
           d1.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
       )
 
-      d3 = py_conversions.from_py(
+      d3 = fns.from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
       )
-      d4 = py_conversions.from_py(
+      d4 = fns.from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
       )
       testing.assert_equivalent(d3, d4)
@@ -1224,11 +1206,11 @@ assigned schema: ENTITY(x=INT32)'''
           d3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
-      d5 = py_conversions.from_py(
+      d5 = fns.from_py(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
           itemid=kde.uuid_for_dict('1').eval(),
       )
-      d6 = py_conversions.from_py(
+      d6 = fns.from_py(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
           itemid=kde.uuid_for_dict('1').eval(),
       )
@@ -1244,11 +1226,11 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('obj'):
-      o1 = py_conversions.from_py(
+      o1 = fns.from_py(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
           itemid=kde.uuid('1').eval(),
       )
-      o2 = py_conversions.from_py(
+      o2 = fns.from_py(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
           itemid=kde.uuid('1').eval(),
       )
@@ -1257,22 +1239,22 @@ assigned schema: ENTITY(x=INT32)'''
       testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
     with self.subTest('dict_as_obj'):
-      o1 = py_conversions.from_py(
+      o1 = fns.from_py(
           {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
-      o2 = py_conversions.from_py(
+      o2 = fns.from_py(
           {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
       testing.assert_equivalent(o1, o2)
       self.assertNotEqual(o1.a.fingerprint, o1.b.fingerprint)
       testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
-      o3 = py_conversions.from_py(
+      o3 = fns.from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
           itemid=kde.uuid_for_list('1').eval(),
       )
-      o4 = py_conversions.from_py(
+      o4 = fns.from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
           itemid=kde.uuid_for_list('1').eval(),
@@ -1288,12 +1270,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('nested obj'):
-      o1 = py_conversions.from_py(
+      o1 = fns.from_py(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
           itemid=kde.uuid('1').eval(),
       )
-      o2 = py_conversions.from_py(
+      o2 = fns.from_py(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
           itemid=kde.uuid('1').eval(),
@@ -1308,7 +1290,7 @@ assigned schema: ENTITY(x=INT32)'''
       child_itemid = kde.uuid(
           '__from_py_child__', parent=parent_itemid, attr_name='a'
       ).eval()
-      obj = py_conversions.from_py(
+      obj = fns.from_py(
           {'a': {'b': '1'}},
           schema=kde.uu_schema(
               a=kde.uu_schema(b=schema_constants.STRING)
@@ -1332,7 +1314,7 @@ assigned schema: ENTITY(x=INT32)'''
           parent=child_dict_itemid,
           dict_value_index=ds([0, 1], schema_constants.INT64),
       ).eval()
-      obj = py_conversions.from_py(
+      obj = fns.from_py(
           {'a': {'b': {'1': [1, 2, 3], '2': [4, 5]}}},
           schema=kde.uu_schema(
               a=kde.uu_schema(
@@ -1360,7 +1342,7 @@ assigned schema: ENTITY(x=INT32)'''
       ).eval()
       key1 = NestedKlass('1')
       key2 = NestedKlass('2')
-      obj = py_conversions.from_py(
+      obj = fns.from_py(
           {key1: [1, 2, 3], key2: [4, 5]},
           itemid=parent_itemid,
       )
@@ -1376,7 +1358,7 @@ assigned schema: ENTITY(x=INT32)'''
           parent=parent_itemid,
           list_item_index=ds([0, 1], schema_constants.INT64),
       ).eval()
-      obj = py_conversions.from_py(
+      obj = fns.from_py(
           [[1, 2, 3], [4, 5, 6]],
           itemid=parent_itemid,
           from_dim=0,
@@ -1387,12 +1369,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('list_with_from_dim'):
-      l1 = py_conversions.from_py(
+      l1 = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
-      l2 = py_conversions.from_py(
+      l2 = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
@@ -1403,12 +1385,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('dict_with_from_dim'):
-      d1 = py_conversions.from_py(
+      d1 = fns.from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
-      d2 = py_conversions.from_py(
+      d2 = fns.from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
@@ -1420,25 +1402,23 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('itemid caching'):
       d = {'a': 42}
-      l1 = py_conversions.from_py([d, d], itemid=kde.uuid_for_list('1').eval())
+      l1 = fns.from_py([d, d], itemid=kde.uuid_for_list('1').eval())
       self.assertNotEqual(l1[:].S[0].fingerprint, l1[:].S[1].fingerprint)
 
-      d1 = py_conversions.from_py(
-          {'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval()
-      )
+      d1 = fns.from_py({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())
       self.assertNotEqual(d1['a'].fingerprint, d1['b'].fingerprint)
 
   def test_item_id_errors(self):
     with self.assertRaisesRegex(
         ValueError, '`itemid` expected ITEMID schema, got INT32'
     ):
-      _ = py_conversions.from_py([1, 2], itemid=ds(42))
+      _ = fns.from_py([1, 2], itemid=ds(42))
     with self.assertRaisesRegex(
         ValueError,
         'ItemId for DataSlice size=1 does not match the input list size=2 when'
         ' from_dim=1',
     ):
-      _ = py_conversions.from_py(
+      _ = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1'])).eval(),
           from_dim=1,
@@ -1449,7 +1429,7 @@ assigned schema: ENTITY(x=INT32)'''
         'ItemId for DataSlice must be a DataSlice of non-zero rank if'
         ' from_dim > 0',
     ):
-      _ = py_conversions.from_py(
+      _ = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
           from_dim=1,
@@ -1457,7 +1437,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         ValueError, 'itemid argument to list creation, requires List ItemIds'
     ):
-      _ = py_conversions.from_py(
+      _ = fns.from_py(
           [[1, 2], [3]],
           itemid=kde.uuid_for_dict(a=ds('1')).eval(),
       )
@@ -1465,7 +1445,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         ValueError, 'itemid argument to dict creation, requires Dict ItemIds'
     ):
-      _ = py_conversions.from_py(
+      _ = fns.from_py(
           {'a': 1, 'b': 2},
           itemid=kde.uuid(a=ds('1')).eval(),
       )
@@ -1535,9 +1515,9 @@ assigned schema: ENTITY(x=INT32)'''
 
     # TODO: handle recursion in v2.
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d)
+      fns.from_py(py_d)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, schema=schema)
+      fns.from_py(py_d, schema=schema)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_deep_list_with_repetitions(self, from_py_fn):
@@ -1573,10 +1553,10 @@ assigned schema: ENTITY(x=INT32)'''
     bottom_l.append(level_1_l)
     # TODO: handle recursion in v2.
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_l)
+      fns.from_py(py_l)
     error_msg = (
         'recursive .* cannot be converted'
-        if from_py_fn == py_conversions.from_py
+        if from_py_fn == fns.from_py
         else 'object with unsupported type: list'
     )
     with self.assertRaisesRegex(ValueError, error_msg):
@@ -1589,13 +1569,13 @@ assigned schema: ENTITY(x=INT32)'''
       py_d = {'x': py_d, 'y': py_d}
       schema = kde.uu_schema(x=schema, y=schema).eval()
 
-    obj = py_conversions.from_py(py_d, dict_as_obj=True)
+    obj = fns.from_py(py_d, dict_as_obj=True)
     testing.assert_equal(obj.x.x.abc.no_bag(), ds(42))
     testing.assert_equal(obj.x.y.abc.no_bag(), ds(42))
     testing.assert_equal(obj.y.x.abc.no_bag(), ds(42))
     testing.assert_equal(obj.y.y.abc.no_bag(), ds(42))
 
-    entity = py_conversions.from_py(py_d, dict_as_obj=True, schema=schema)
+    entity = fns.from_py(py_d, dict_as_obj=True, schema=schema)
     testing.assert_equal(entity.x.x.abc.no_bag(), ds(42))
     testing.assert_equal(entity.x.y.abc.no_bag(), ds(42))
     testing.assert_equal(entity.y.x.abc.no_bag(), ds(42))
@@ -1615,9 +1595,9 @@ assigned schema: ENTITY(x=INT32)'''
     schema = kde.uu_schema(top=schema).eval()
     bottom_d['cycle'] = level_1_d
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, dict_as_obj=True)
+      fns.from_py(py_d, dict_as_obj=True)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, dict_as_obj=True, schema=schema)
+      fns.from_py(py_d, dict_as_obj=True, schema=schema)
 
   def test_deep_itemid_recursive_error(self):
     py_l = [1, 2, 3]
@@ -1630,7 +1610,7 @@ assigned schema: ENTITY(x=INT32)'''
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
+      fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_no_recursion_detected(self, from_py_fn):
@@ -1645,7 +1625,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.subTest('object'):
       py_d = {'a': 1, 'b': 2}
       py_d2 = {'a': {'b': py_d}, 'b': {'a': py_d}}
-      _ = py_conversions.from_py(py_d2, dict_as_obj=True)
+      _ = fns.from_py(py_d2, dict_as_obj=True)
 
     with self.subTest('different levels'):
       x = [1]
@@ -1661,6 +1641,16 @@ assigned schema: ENTITY(x=INT32)'''
               kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
+
+  def test_alias(self):
+    obj = fns.from_pytree({'a': 42})
+    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
+    values = obj['a']
+    testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(
+        values, ds(42, schema_constants.OBJECT).with_bag(values.get_bag())
+    )
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_arg_errors_schema(self, from_py_fn):
@@ -1680,18 +1670,18 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         ValueError, r'schema mismatch: expected an object schema here'
     ):
-      py_conversions._from_py_v2([1, 2], schema=schema_constants.SCHEMA)
+      fns._from_py_v2([1, 2], schema=schema_constants.SCHEMA)
 
   def test_arg_errors(self):
     with self.assertRaisesRegex(
         TypeError, 'expecting dict_as_obj to be a bool, got int'
     ):
-      py_conversions.from_py([1, 2], dict_as_obj=42)  # pytype: disable=wrong-arg-types
+      fns.from_py([1, 2], dict_as_obj=42)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      py_conversions.from_py(  # pytype: disable=wrong-arg-types
+      fns.from_py(  # pytype: disable=wrong-arg-types
           [1, 2],
           dict_as_obj=False,
           itemid=42,
@@ -1702,7 +1692,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         TypeError, 'expecting from_dim to be an int, got str'
     ):
-      py_conversions.from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
+      fns.from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

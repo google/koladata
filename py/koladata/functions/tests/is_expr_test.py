@@ -16,7 +16,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.functions import functions as fns
-from koladata.functions import predicates
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -34,7 +33,7 @@ class IsExprTest(parameterized.TestCase):
       (arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2)).unquote(),),
   )
   def test_is_expr(self, param):
-    testing.assert_equal(predicates.is_expr(param), mask_constants.present)
+    testing.assert_equal(fns.is_expr(param), mask_constants.present)
 
   @parameterized.parameters(
       (1,),
@@ -53,7 +52,7 @@ class IsExprTest(parameterized.TestCase):
       (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))),),
   )
   def test_is_not_expr(self, param):
-    testing.assert_equal(predicates.is_expr(param), mask_constants.missing)
+    testing.assert_equal(fns.is_expr(param), mask_constants.missing)
 
 
 if __name__ == '__main__':

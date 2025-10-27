@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.types import data_slice
@@ -27,19 +26,17 @@ class UpdateSchemaTest(absltest.TestCase):
 
   def test_update_schema(self):
     o = fns.new().fork_bag()
-    attrs.update_schema_fn(
-        o, x=schema_constants.INT32, y=schema_constants.FLOAT32
-    )
+    fns.update_schema(o, x=schema_constants.INT32, y=schema_constants.FLOAT32)
     self.assertEqual(o.get_schema().x, schema_constants.INT32)
     self.assertEqual(o.get_schema().y, schema_constants.FLOAT32)
 
-    attrs.update_schema_fn(
+    fns.update_schema(
         o, x=kde.schema.new_schema(z=schema_constants.INT32).eval()
     )
     self.assertEqual(o.get_schema().x.z, schema_constants.INT32)
 
     o = ds([fns.obj(fns.new()), fns.obj()]).fork_bag()
-    attrs.update_schema_fn(
+    fns.update_schema(
         o,
         x=schema_constants.INT32,
         y=ds([schema_constants.FLOAT32, schema_constants.STRING]),

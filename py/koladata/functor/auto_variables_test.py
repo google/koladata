@@ -18,7 +18,6 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import source_location
 from koladata.expr import view as _
-from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
@@ -104,7 +103,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(5))
     # Even though "base" is repeated twice, it should not be extracted as a
     # variable.
-    self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns'])
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns'])
 
   def test_dont_create_too_many_variables(self):
     base = (I.x + 1) * 2
@@ -113,7 +112,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(11))
     # This should create just one auxiliary variable, for "base".
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', '_aux_0', 'foo', 'bar']
+        fns.dir(fn), ['__signature__', 'returns', '_aux_0', 'foo', 'bar']
     )
 
   def test_dont_create_useless_aux_variables_for_literal(self):
@@ -122,7 +121,7 @@ class AutoVariablesTest(absltest.TestCase):
     fn = functor_factories.expr_fn(expr, auto_variables=True)
     testing.assert_equal(fn(), ds(3))
     # This should create just one auxiliary variable, for the literal item.
-    self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns', '_aux_0'])
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', '_aux_0'])
 
   def test_dont_duplicate_computations_across_existing_variables(self):
     eval_count = 0
@@ -153,7 +152,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(), ds([2, 4, 6]))
     # Make sure that only one auxiliary variable for the literal is created.
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
     )
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
@@ -174,7 +173,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(), ds([5, 7, 9]))
     # Make sure that only one auxiliary variable for the literal is created.
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
     )
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
@@ -194,7 +193,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn(), ds([5, 8, 11]))
     self.assertCountEqual(
-        attrs.dir(fn),
+        fns.dir(fn),
         ['__signature__', 'returns', 'foo', 'bar', '_aux_0', '_aux_1'],
     )
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
@@ -218,7 +217,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn(x=2), ds(114))
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', 'foo'], msg=fn
+        fns.dir(fn), ['__signature__', 'returns', 'foo'], msg=fn
     )
     # Source location annotations disappear for literals.
     testing.assert_equal(fn.foo.no_bag(), ds(57))
@@ -228,7 +227,7 @@ class AutoVariablesTest(absltest.TestCase):
     obj = kd.obj(bar=1).no_bag()
     foo = py_boxing.literal(obj)
     fn = functor_factories.expr_fn(foo.bar, auto_variables=True)
-    self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns', '_aux_0'])
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', '_aux_0'])
     testing.assert_equal(fn.get_attr('_aux_0').no_bag(), obj)
 
   def test_two_uses_of_input(self):
@@ -240,7 +239,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn(x=1), ds(2))
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
     )
     testing.assert_equal(introspection.unpack_expr(fn.foo), I.x)
 
@@ -253,7 +252,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn(x=1), ds(114))
     self.assertCountEqual(
-        attrs.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.foo), py_boxing.literal(ds(57))
@@ -276,7 +275,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(17))
     self.assertEqual(eval_count, 2)
     self.assertCountEqual(
-        attrs.dir(fn),
+        fns.dir(fn),
         [
             '__signature__',
             'returns',
@@ -295,12 +294,12 @@ class AutoVariablesTest(absltest.TestCase):
 
     fn = functor_factories.expr_fn(expr, auto_variables=False)
     testing.assert_equal(fn(x=1), ds(11))
-    self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns'])
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns'])
 
     fn0 = _py_functors_py_ext.auto_variables(fn)
     testing.assert_equal(fn0(x=1), ds(11))
     self.assertCountEqual(
-        attrs.dir(fn0), ['__signature__', 'returns', '_aux_0', 'foo']
+        fns.dir(fn0), ['__signature__', 'returns', '_aux_0', 'foo']
     )
     # `base` is extracted because used in both `foo` and `returns`
     testing.assert_equal(
@@ -311,7 +310,7 @@ class AutoVariablesTest(absltest.TestCase):
     fn1 = _py_functors_py_ext.auto_variables(fn0, [base.fingerprint])
     testing.assert_equal(fn1(x=1), ds(11))
     self.assertCountEqual(
-        attrs.dir(fn1), ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo']
+        fns.dir(fn1), ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo']
     )
     testing.assert_equal(
         introspection.unpack_expr(fn1.get_attr('_aux_0')), V._aux_1
@@ -327,7 +326,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn2(x=1), ds(11))
     self.assertCountEqual(
-        attrs.dir(fn2),
+        fns.dir(fn2),
         ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo'],
     )
     testing.assert_equal(
@@ -346,7 +345,7 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(fn3(x=1), ds(11))
     self.assertCountEqual(
-        attrs.dir(fn3),
+        fns.dir(fn3),
         ['__signature__', 'returns', '_aux_0', '_aux_1', '_aux_2', 'foo'],
     )
     testing.assert_equal(introspection.unpack_expr(fn3.get_attr('_aux_0')), I.x)
@@ -387,9 +386,7 @@ class AutoVariablesTest(absltest.TestCase):
     res = _py_functors_py_ext.auto_variables(fn, [literal_expr.fingerprint])
     testing.assert_equal(res(), ds(3))
     # This should create just one auxiliary variable, for the literal item.
-    self.assertCountEqual(
-        attrs.dir(res), ['__signature__', 'returns', '_aux_0']
-    )
+    self.assertCountEqual(fns.dir(res), ['__signature__', 'returns', '_aux_0'])
 
   def test_extract_extra_nodes_literal_with_source_location(self):
     expr = source_location.annotate_with_current_source_location(kde.item(57))
@@ -423,7 +420,7 @@ class AutoVariablesTest(absltest.TestCase):
         introspection.unpack_expr(res.get_attr('_aux_0')), I.x + 1
     )
     self.assertCountEqual(
-        attrs.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
+        fns.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
     )
 
   def test_extract_extra_nodes_input_as_already_existing_variable(self):
@@ -433,7 +430,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(introspection.unpack_expr(res.x), V._aux_0)
     testing.assert_equal(introspection.unpack_expr(res.get_attr('_aux_0')), I.x)
     self.assertCountEqual(
-        attrs.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
+        fns.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
     )
 
 

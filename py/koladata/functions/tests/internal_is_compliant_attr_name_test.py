@@ -13,29 +13,23 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.types import data_slice_py_ext
+from koladata.functions import functions as fns
 
 
 class InternalIsCompliantAttrNameTest(absltest.TestCase):
 
   def test_is_compliant_attr_name(self):
-    self.assertTrue(data_slice_py_ext.internal_is_compliant_attr_name('foo'))
-    self.assertTrue(data_slice_py_ext.internal_is_compliant_attr_name('query'))
-    self.assertTrue(data_slice_py_ext.internal_is_compliant_attr_name('doc'))
+    self.assertTrue(fns.slices.internal_is_compliant_attr_name('foo'))
+    self.assertTrue(fns.slices.internal_is_compliant_attr_name('query'))
+    self.assertTrue(fns.slices.internal_is_compliant_attr_name('doc'))
 
     # Start with underscore.
-    self.assertFalse(data_slice_py_ext.internal_is_compliant_attr_name('_foo'))
-    self.assertFalse(
-        data_slice_py_ext.internal_is_compliant_attr_name('__my_attr')
-    )
+    self.assertFalse(fns.slices.internal_is_compliant_attr_name('_foo'))
+    self.assertFalse(fns.slices.internal_is_compliant_attr_name('__my_attr'))
 
     # Reserved names.
-    self.assertFalse(
-        data_slice_py_ext.internal_is_compliant_attr_name('fingerprint')
-    )
-    self.assertFalse(
-        data_slice_py_ext.internal_is_compliant_attr_name('get_schema')
-    )
+    self.assertFalse(fns.slices.internal_is_compliant_attr_name('fingerprint'))
+    self.assertFalse(fns.slices.internal_is_compliant_attr_name('get_schema'))
 
 
 if __name__ == '__main__':

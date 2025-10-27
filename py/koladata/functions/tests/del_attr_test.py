@@ -15,9 +15,7 @@
 import re
 
 from absl.testing import absltest
-from koladata.functions import attrs
-from koladata.functions import object_factories
-from koladata.operators import kde_operators as _
+from koladata.functions import functions as fns
 from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
@@ -26,27 +24,27 @@ ds = data_slice.DataSlice.from_vals
 class DelAttrTest(absltest.TestCase):
 
   def test_entity(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.new(xyz=3.14)
     self.assertTrue(x.has_attr('xyz'))
-    attrs.del_attr(x, 'xyz')
+    fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_object(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.obj(xyz=3.14)
     self.assertTrue(x.has_attr('xyz'))
-    attrs.del_attr(x, 'xyz')
+    fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_none(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = ds(None).with_bag(db)
-    attrs.del_attr(x, 'xyz')
+    fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 
   def test_fails_on_non_existing_attr(self):
-    db = object_factories.mutable_bag()
+    db = fns.mutable_bag()
     x = db.obj(xyz=3.14)
     with self.assertRaisesRegex(
         ValueError,
@@ -56,7 +54,7 @@ class DelAttrTest(absltest.TestCase):
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('foo')"""
         ),
     ):
-      attrs.del_attr(x, 'foo')
+      fns.del_attr(x, 'foo')
 
 
 if __name__ == '__main__':

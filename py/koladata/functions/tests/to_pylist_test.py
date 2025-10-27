@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
-from koladata.functions import py_conversions
 from koladata.operators import kde_operators
 from koladata.types import data_slice
 
@@ -26,18 +25,18 @@ class ToPyListTest(absltest.TestCase):
 
   def test_0d(self):
     x = ds([])
-    self.assertEmpty(py_conversions.to_pylist(x))
+    self.assertEmpty(fns.to_pylist(x))
 
   def test_1d(self):
     x = ds([1, 2])
-    y = py_conversions.to_pylist(x)
+    y = fns.to_pylist(x)
     self.assertLen(y, 2)
     self.assertEqual(y[0].to_py(), 1)
     self.assertEqual(y[1].to_py(), 2)
 
   def test_2d(self):
     x = ds([[1, 2], [3]])
-    y = py_conversions.to_pylist(x)
+    y = fns.to_pylist(x)
     self.assertLen(y, 2)
     self.assertEqual(y[0].to_py(), [1, 2])
     self.assertEqual(y[1].to_py(), [3])
@@ -47,7 +46,7 @@ class ToPyListTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'DataSlice must have at least one dimension to iterate'):
-      _ = py_conversions.to_pylist(x)
+      _ = fns.to_pylist(x)
 
 if __name__ == '__main__':
   absltest.main()

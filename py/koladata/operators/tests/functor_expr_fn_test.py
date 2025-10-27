@@ -15,7 +15,7 @@
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.functions import attrs
+from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
@@ -125,7 +125,7 @@ class FunctorExprFnTest(absltest.TestCase):
     expected = expected * 2 + expected * expected
     testing.assert_equal(fn(x=3), ds(expected))
     self.assertCountEqual(
-        attrs.dir(fn), ['a', 'b', '_aux_0', '__signature__', 'returns']
+        fns.dir(fn), ['a', 'b', '_aux_0', '__signature__', 'returns']
     )
 
   def test_auto_variables_no_extra_variables(self):
@@ -136,7 +136,7 @@ class FunctorExprFnTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(5))
     # Even though "base" is repeated twice, it should not be extracted as a
     # variable.
-    self.assertCountEqual(attrs.dir(fn), ['__signature__', 'returns'])
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns'])
 
   def test_errors(self):
     expr = arolla.quote(I.x)

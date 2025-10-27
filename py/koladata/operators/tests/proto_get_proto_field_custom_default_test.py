@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import re
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -21,7 +20,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
-from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
@@ -46,7 +44,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_from_proto(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto(m)
+    kd_m = fns.from_proto(m)
 
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
@@ -67,7 +65,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_from_proto_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto([m, m])
+    kd_m = fns.from_proto([m, m])
 
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
@@ -88,7 +86,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_from_proto_object_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = fns.obj(proto_conversions.from_proto([m, m]))
+    kd_m = fns.obj(fns.from_proto([m, m]))
 
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
@@ -109,7 +107,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_from_proto_schema(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto(m)
+    kd_m = fns.from_proto(m)
 
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(kd_m.get_schema(), 'some_text')
@@ -136,7 +134,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_from_proto_schema_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto(m)
+    kd_m = fns.from_proto(m)
 
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(
@@ -176,7 +174,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_nonexistent_field(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto(m)
+    kd_m = fns.from_proto(m)
     result = expr_eval.eval(
         kde.proto.get_proto_field_custom_default(kd_m.get_schema(), 'foo')
     )

@@ -18,7 +18,6 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
 # Register kde ops for e.g. jagged_shape.create_shape().
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -267,7 +266,7 @@ class DictShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'expecting shape to be a JaggedShape, got .*DataBag'
     ):
-      fns.dict_shaped(object_factories.mutable_bag())  # pytype: disable=wrong-arg-types
+      fns.dict_shaped(fns.mutable_bag())  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError,
         'expecting shape to be a JaggedShape, got JaggedArrayShape',

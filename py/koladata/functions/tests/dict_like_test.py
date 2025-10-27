@@ -19,13 +19,11 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
-from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import schema_constants
-
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
@@ -382,7 +380,7 @@ class DictLikeTest(parameterized.TestCase):
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.dict_like(object_factories.mutable_bag(), 'key', 'value')  # pytype: disable=wrong-arg-types
+      fns.dict_like(fns.mutable_bag(), 'key', 'value')  # pytype: disable=wrong-arg-types
 
   def test_missing_values(self):
     with self.assertRaisesRegex(

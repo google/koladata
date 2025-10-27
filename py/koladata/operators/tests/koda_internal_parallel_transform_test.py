@@ -21,7 +21,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
-from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
@@ -811,7 +810,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     self.assertEqual(
-        [x for x in attrs.dir(transformed_fn) if x.startswith('_transformed_')],
+        [x for x in fns.dir(transformed_fn) if x.startswith('_transformed_')],
         ['_transformed_inner_fn'],
     )
     res = expr_eval.eval(
@@ -842,7 +841,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     transformed_names = [
-        x for x in attrs.dir(transformed_fn) if x.startswith('_transformed_')
+        x for x in fns.dir(transformed_fn) if x.startswith('_transformed_')
     ]
     self.assertLen(transformed_names, 1)
 
