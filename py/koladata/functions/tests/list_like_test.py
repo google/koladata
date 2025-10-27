@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata import kd
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -293,7 +294,7 @@ class ListLikeTest(parameterized.TestCase):
         TypeError,
         'expecting shape_and_mask_from to be a DataSlice, got .*DataBag',
     ):
-      fns.list_like(fns.mutable_bag())  # pytype: disable=wrong-arg-types
+      fns.list_like(object_factories.mutable_bag())  # pytype: disable=wrong-arg-types
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):

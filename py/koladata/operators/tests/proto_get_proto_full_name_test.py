@@ -21,6 +21,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
@@ -45,7 +46,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_from_proto(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = fns.from_proto(m)
+    kd_m = proto_conversions.from_proto(m)
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
     testing.assert_equal(
         result.no_bag(), ds('koladata.functions.testing.MessageA')
@@ -53,7 +54,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_from_proto_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = fns.from_proto([m, m])
+    kd_m = proto_conversions.from_proto([m, m])
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
     testing.assert_equal(
         result.no_bag(),
@@ -67,8 +68,8 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
     m1 = test_pb2.MessageA(some_text='hello')
     m2 = test_pb2.MessageB(text='bar')
     kd_m = ds([
-        fns.obj(fns.from_proto(m1)),
-        fns.obj(fns.from_proto(m2)),
+        fns.obj(proto_conversions.from_proto(m1)),
+        fns.obj(proto_conversions.from_proto(m2)),
     ])
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
     testing.assert_equal(
@@ -81,7 +82,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_from_proto_schema(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = fns.from_proto(m)
+    kd_m = proto_conversions.from_proto(m)
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m.get_schema()))
     testing.assert_equal(
         result.no_bag(), ds('koladata.functions.testing.MessageA')
@@ -89,7 +90,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_from_proto_schema_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = fns.from_proto(m)
+    kd_m = proto_conversions.from_proto(m)
     result = expr_eval.eval(
         kde.proto.get_proto_full_name(
             ds([kd_m.get_schema(), kd_m.get_schema()])

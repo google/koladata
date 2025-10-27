@@ -16,7 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -40,7 +40,7 @@ QTYPES = frozenset([(DATA_SLICE, DATA_SLICE)])
 class CoreGetMetadataTest(absltest.TestCase):
 
   def test_schema(self):
-    db = fns.mutable_bag()
+    db = object_factories.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
     x = ds([s1, s2])

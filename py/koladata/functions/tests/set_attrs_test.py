@@ -15,6 +15,7 @@
 import re
 
 from absl.testing import absltest
+from koladata import kd
 from koladata.functions import functions as fns
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -27,7 +28,7 @@ class SetAttrsTest(absltest.TestCase):
 
   def test_entity(self):
     x = fns.new(a=ds(1, schema_constants.INT64), b='a').fork_bag()
-    fns.set_attrs(x, a=2, b='abc')
+    kd.set_attrs(x, a=2, b='abc')
     testing.assert_equal(
         x.a, ds(2, schema_constants.INT64).with_bag(x.get_bag())
     )
@@ -46,24 +47,24 @@ Assigned schema for 'b': BYTES
 To fix this, explicitly override schema of 'b' in the original schema by passing overwrite_schema=True."""
         ),
     ):
-      fns.set_attrs(x, a=2, b=b'abc')
+      kd.set_attrs(x, a=2, b=b'abc')
 
   def test_overwrite_schema_entity(self):
     x = fns.new(a=1, b='a').fork_bag()
-    fns.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
+    kd.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
   def test_object(self):
     x = fns.obj().fork_bag()
-    fns.set_attrs(x, a=2, b='abc')
+    kd.set_attrs(x, a=2, b='abc')
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
   def test_none(self):
-    db = fns.mutable_bag()
+    db = kd.mutable_bag()
     x = ds(None).with_bag(db)
-    fns.set_attrs(x, a=2, b='abc')
+    kd.set_attrs(x, a=2, b='abc')
     testing.assert_equal(x, ds(None).with_bag(db))
     testing.assert_equal(x.a, ds(None).with_bag(db))
     testing.assert_equal(x.b, ds(None).with_bag(db))
@@ -83,13 +84,13 @@ Assigned schema for 'b': BYTES
 To fix this, explicitly override schema of 'b' in the Object schema by passing overwrite_schema=True."""
         ),
     ):
-      fns.set_attrs(x, a=2, b=b'abc')
+      kd.set_attrs(x, a=2, b=b'abc')
 
   def test_overwrite_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()
     x = fns.obj().fork_bag()
     x.set_attr('__schema__', x_schema)
-    fns.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
+    kd.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 

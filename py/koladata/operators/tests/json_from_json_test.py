@@ -21,6 +21,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functions import py_conversions
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -628,7 +629,7 @@ class JsonFromJsonTest(parameterized.TestCase):
     result = expr_eval.eval(kde.json.from_json(x, **kwargs))
     if 'schema' in kwargs:
       self.assertEqual(result.get_schema(), kwargs['schema'])
-    py_result = fns.to_pytree(result, max_depth=-1)
+    py_result = py_conversions.to_pytree(result, max_depth=-1)
     self.assertEqual(py_result, expected_py_result)
 
   def test_eval_dataslice(self):
@@ -813,7 +814,10 @@ class JsonFromJsonTest(parameterized.TestCase):
   )
   def test_koda_roundtrip(self, x):
     x1 = kde.json.from_json(kde.json.to_json(x), kde.get_schema(x)).eval()
-    self.assertEqual(fns.to_py(x, max_depth=-1), fns.to_py(x1, max_depth=-1))
+    self.assertEqual(
+        py_conversions.to_py(x, max_depth=-1),
+        py_conversions.to_py(x1, max_depth=-1),
+    )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

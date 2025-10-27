@@ -44,7 +44,7 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
-        "//py/koladata/functions",
+        "//py/koladata/functions:py_conversions",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata/functions/tests:test_py_pb2",
@@ -134,7 +134,7 @@ py_test(
     ],
     deps = [
         "//py:python_path",
-        "//py/koladata/functions",
+        "//py/koladata/functions:py_conversions",
         "//py/koladata:kd",
         requirement("google-benchmark"),
         # Enables python functions in profile.

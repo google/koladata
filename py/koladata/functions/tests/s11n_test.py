@@ -98,23 +98,23 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
 
   def test_dumps_loads_named_schema(self):
-    bag = kd.mutable_bag()
-    schemas = kd.slice(
+    bag = db()
+    schemas = ds(
         [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
     )
     loaded = s11n.loads(s11n.dumps(schemas))
     testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
 
   def test_dumps_loads_objects(self):
-    bag = kd.mutable_bag()
-    objs = bag.obj(a=kd.slice([1, 2, 3] * 10))
+    bag = db()
+    objs = bag.obj(a=ds([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(objs))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertTrue(loaded.is_mutable())
 
   def test_dumps_preserves_immutability(self):
-    bag = kd.mutable_bag()
-    objs = bag.obj(a=kd.slice([1, 2, 3] * 10))
+    bag = db()
+    objs = bag.obj(a=ds([1, 2, 3] * 10))
     loaded = s11n.loads(s11n.dumps(kd.freeze_bag(objs)))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
     self.assertFalse(loaded.is_mutable())
@@ -145,13 +145,13 @@ class DumpsLoadsTest(parameterized.TestCase):
     )
 
   def test_dumps_extracts(self):
-    bag = kd.mutable_bag()
+    bag = db()
     nested = bag.new(a=bag.new(b=1))
     loaded_a = s11n.loads(s11n.dumps(nested.a))
     testing.assert_equivalent(loaded_a.get_bag(), nested.a.extract().get_bag())
 
   def test_dumps_no_bag(self):
-    bag = kd.mutable_bag()
+    bag = db()
     e = bag.new(x=1).no_bag()
     loaded_e = s11n.loads(s11n.dumps(e))
     testing.assert_equivalent(e, loaded_e)

@@ -15,16 +15,13 @@
 import re
 
 from absl.testing import absltest
-from koladata.expr import input_container
+from koladata import kd
 from koladata.expr import view
-from koladata.functions import functions as fns
-from koladata.operators import kde_operators
 from koladata.testing import testing
-from koladata.types import data_slice
 
-I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
+I = kd.I
+ds = kd.slice
+kde = kd.lazy
 
 
 class StreamsReduceStackTest(absltest.TestCase):
@@ -82,7 +79,7 @@ class StreamsReduceStackTest(absltest.TestCase):
   def test_data_bag_adoption(self):
     [res] = (
         kde.streams.reduce_stack(
-            kde.streams.make(fns.obj(x=1), fns.obj(x=2)), fns.obj(x=3)
+            kde.streams.make(kd.obj(x=1), kd.obj(x=2)), kd.obj(x=3)
         )
         .eval()
         .read_all(timeout=1)

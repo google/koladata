@@ -21,6 +21,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
@@ -72,7 +73,7 @@ class ProtoToProtoBytesTest(parameterized.TestCase):
     m.Extensions[test_pb2.MessageAExtension.message_a_extension].extra = 1
     result = expr_eval.eval(
         kde.proto.to_proto_bytes(
-            fns.from_proto(
+            proto_conversions.from_proto(
                 m,
                 extensions=[
                     '(koladata.functions.testing.MessageAExtension.message_a_extension)'

@@ -16,7 +16,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.functions import functions as fns
+from koladata.functions import attrs
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -56,9 +56,9 @@ class SetSchemaTest(parameterized.TestCase):
       (ds([1, 2], schema_constants.OBJECT), schema_constants.INT32, ds([1, 2])),
   )
   def test_primitives(self, x, schema, expected):
-    testing.assert_equal(fns.set_schema(x, schema), expected)
+    testing.assert_equal(attrs.set_schema(x, schema), expected)
     testing.assert_equal(
-        fns.set_schema(x.with_bag(db), schema), expected.with_bag(db)
+        attrs.set_schema(x.with_bag(db), schema), expected.with_bag(db)
     )
 
   @parameterized.parameters(
@@ -72,11 +72,11 @@ class SetSchemaTest(parameterized.TestCase):
       (ds([obj1, obj2]), s2),
   )
   def test_entities_and_objects(self, x, schema):
-    res = fns.set_schema(x, schema)
+    res = attrs.set_schema(x, schema)
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_set_schema_from_different_bag(self):
-    res = fns.set_schema(entity1, db2.new_schema(x=schema_constants.INT32))
+    res = attrs.set_schema(entity1, db2.new_schema(x=schema_constants.INT32))
     # Check the data of schema is moved to the DataSlice's db.
     testing.assert_equal(res.get_schema().x.no_bag(), schema_constants.INT32)
 
@@ -86,40 +86,40 @@ class SetSchemaTest(parameterized.TestCase):
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      fns.set_schema(ds(1), schema_constants.INT64)
+      attrs.set_schema(ds(1), schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'cannot set an Entity schema on a DataSlice without a DataBag.',
     ):
-      fns.set_schema(ds(1), s1)
+      attrs.set_schema(ds(1), s1)
 
     with self.assertRaisesRegex(
         ValueError,
         'DataSlice with an Entity schema must hold Entities or Objects',
     ):
-      fns.set_schema(ds(1).with_bag(db), s1)
+      attrs.set_schema(ds(1).with_bag(db), s1)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      fns.set_schema(entity1, schema_constants.INT64)
+      attrs.set_schema(entity1, schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT64 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT64',
     ):
-      fns.set_schema(obj1, schema_constants.INT64)
+      attrs.set_schema(obj1, schema_constants.INT64)
 
     with self.assertRaisesRegex(
         ValueError,
         'INT32 schema can only be assigned to a DataSlice that contains only'
         ' primitives of INT32',
     ):
-      fns.set_schema(ds([1, '2']), schema_constants.INT32)
+      attrs.set_schema(ds([1, '2']), schema_constants.INT32)
 
 
 if __name__ == '__main__':

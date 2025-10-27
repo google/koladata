@@ -15,8 +15,9 @@
 import re
 
 from absl.testing import absltest
-from koladata.functions import functions as fns
+from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
+from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import schema_constants
 
@@ -24,15 +25,15 @@ from koladata.types import schema_constants
 class SchemaFromProtoTest(absltest.TestCase):
 
   def test_schema_itemid_consistent_with_from_proto(self):
-    schema = fns.schema_from_proto(test_pb2.MessageA)
+    schema = proto_conversions.schema_from_proto(test_pb2.MessageA)
     self.assertFalse(schema.get_bag().is_mutable())
     testing.assert_equal(
         schema.no_bag(),
-        fns.from_proto(test_pb2.MessageA()).get_schema().no_bag(),
+        proto_conversions.from_proto(test_pb2.MessageA()).get_schema().no_bag(),
     )
 
   def test_fields_no_extensions(self):
-    schema = fns.schema_from_proto(test_pb2.MessageA)
+    schema = proto_conversions.schema_from_proto(test_pb2.MessageA)
     self.assertFalse(schema.get_bag().is_mutable())
     self.assertCountEqual(
         schema.get_attr_names(intersection=True),
@@ -42,15 +43,15 @@ class SchemaFromProtoTest(absltest.TestCase):
     testing.assert_equal(schema.some_float.no_bag(), schema_constants.FLOAT32)
     testing.assert_equal(
         schema.message_b_list.get_item_schema().no_bag(),
-        fns.schema_from_proto(test_pb2.MessageB).no_bag(),
+        proto_conversions.schema_from_proto(test_pb2.MessageB).no_bag(),
     )
     testing.assert_equal(
         schema.message_set_extensions.no_bag(),
-        fns.schema_from_proto(test_pb2.MessageSet).no_bag(),
+        proto_conversions.schema_from_proto(test_pb2.MessageSet).no_bag(),
     )
 
   def test_fields_no_extensions_with_map_and_oneof(self):
-    schema = fns.schema_from_proto(test_pb2.MessageC)
+    schema = proto_conversions.schema_from_proto(test_pb2.MessageC)
     self.assertCountEqual(
         schema.get_attr_names(intersection=True),
         [
@@ -96,7 +97,7 @@ class SchemaFromProtoTest(absltest.TestCase):
     testing.assert_equal(schema.oneof_message_field.no_bag(), schema.no_bag())
 
   def test_extensions(self):
-    schema = fns.schema_from_proto(
+    schema = proto_conversions.schema_from_proto(
         test_pb2.MessageA,
         extensions=[
             '(koladata.functions.testing.MessageAExtension.message_a_extension)',
@@ -156,7 +157,7 @@ class SchemaFromProtoTest(absltest.TestCase):
             ' "koladata.functions.testing.MessageB"'
         ),
     ):
-      _ = fns.schema_from_proto(
+      _ = proto_conversions.schema_from_proto(
           test_pb2.MessageA,
           extensions=[
               '(koladata.functions.testing.MessageBExtension.message_b_extension)'

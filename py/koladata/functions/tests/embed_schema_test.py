@@ -14,7 +14,8 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.functions import functions as fns
+from koladata.functions import attrs
+from koladata.functions import object_factories
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -26,9 +27,9 @@ ds = data_slice.DataSlice.from_vals
 class EmbedSchemaTest(absltest.TestCase):
 
   def test_entity_to_object(self):
-    db = fns.mutable_bag()
+    db = object_factories.mutable_bag()
     x = db.new(a=ds([1, 2]))
-    x_object = fns.embed_schema(x)
+    x_object = attrs.embed_schema(x)
     testing.assert_equal(
         x_object.get_schema(), schema_constants.OBJECT.with_bag(db)
     )
@@ -40,7 +41,8 @@ class EmbedSchemaTest(absltest.TestCase):
 
   def test_primitive(self):
     testing.assert_equal(
-        fns.embed_schema(ds([1, 2, 3])), ds([1, 2, 3], schema_constants.OBJECT)
+        attrs.embed_schema(ds([1, 2, 3])),
+        ds([1, 2, 3], schema_constants.OBJECT),
     )
 
   def test_error(self):
@@ -49,7 +51,7 @@ class EmbedSchemaTest(absltest.TestCase):
         'schema embedding is only supported for a DataSlice with primitive, '
         'entity, list or dict schemas, got ITEMID',
     ):
-      fns.embed_schema(ds([None], schema_constants.ITEMID))
+      attrs.embed_schema(ds([None], schema_constants.ITEMID))
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.functions import functions as fns
+from koladata.functions import predicates
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
@@ -44,7 +45,7 @@ class IsSliceTest(parameterized.TestCase):
       (mask_constants.missing,),
   )
   def test_is_slice(self, param):
-    testing.assert_equal(fns.is_slice(param), mask_constants.present)
+    testing.assert_equal(predicates.is_slice(param), mask_constants.present)
 
   @parameterized.parameters(
       (1,),
@@ -53,7 +54,7 @@ class IsSliceTest(parameterized.TestCase):
       ({1: 2, 2: 3},),
   )
   def test_is_not_slice(self, param):
-    testing.assert_equal(fns.is_slice(param), mask_constants.missing)
+    testing.assert_equal(predicates.is_slice(param), mask_constants.missing)
 
 
 if __name__ == '__main__':
