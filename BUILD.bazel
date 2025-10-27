@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# copybara:strip_begin
-# Copybara moves this file to repository root since we need a BUILD file there.
-# copybara:strip_end
-
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 
 package(default_visibility = ["//visibility:public"])

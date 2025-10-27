@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file is auto-generated. It is used only for Cider auto-completion.
+# This file is auto-generated.
 from dataclasses import dataclass as _dataclass
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import introspection as _introspection

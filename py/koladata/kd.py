@@ -278,7 +278,6 @@ def _SetUpEager():
 
 _SetUpEager()
 
-# This is a hack to make Cider auto-complete work.
 from koladata.kd_dynamic import *  # pylint: disable=g-import-not-at-top,g-bad-import-order,wildcard-import
 
 # Set up the tracing mode machinery. This must be the last thing in this file.
