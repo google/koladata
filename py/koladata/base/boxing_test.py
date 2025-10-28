@@ -19,7 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.base.testing import operator_test_invalid_unicode_op_clib as _
 # Needed for self.assertEqual(item_1, item_2).
-from koladata.operators import comparison as _
+from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item

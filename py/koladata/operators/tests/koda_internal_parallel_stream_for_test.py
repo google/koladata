@@ -26,7 +26,6 @@ from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
@@ -37,6 +36,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 py_fn = user_facing_kd.py_fn
 I = input_container.InputContainer('I')
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 def stream_make(*args, **kwargs):

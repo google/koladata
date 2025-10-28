@@ -1456,6 +1456,7 @@ def stream_reduce_stack(executor, stream, initial_value, ndim=0):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_while_returns',
     qtype_inference_expr=get_stream_qtype(P.initial_returns),
@@ -1495,6 +1496,7 @@ def _stream_while_returns(
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_while_yields',
     qtype_inference_expr=get_stream_qtype(P.initial_yields),
@@ -1936,7 +1938,7 @@ def stream_call(
 
 
 @optools.add_to_registry(aliases=['kd.streams.await_'])
-@optools.as_lambda_operator('koda_internal.parallel.await')
+@optools.as_lambda_operator('koda_internal.parallel.stream_await')
 def stream_await(arg):
   """Indicates to kd.streams.call that the argument should be awaited.
 

@@ -26,15 +26,14 @@ from koladata.functions import functions as fns
 from koladata.functions import parallel
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
-from koladata.operators import functor
-from koladata.operators import iterables
-from koladata.operators import tuple as tuple_ops
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import signature_utils
 
 
+kde = kde_operators.kde
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
@@ -111,7 +110,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
-        returns=tuple_ops.get_nth(I.x, 1),
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -178,7 +177,7 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(fn, fns.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(tuple_ops.get_nth(I.x, 1))
+    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
         parallel.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))),
         ds(2),
@@ -207,7 +206,7 @@ class CallMultithreadedTest(absltest.TestCase):
     fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         parallel.call_multithreaded(
-            functor_factories.expr_fn(functor.call(I.func, x=I.u, y=I.v)),
+            functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),
             func=fn,
             u=2,
             v=3,
@@ -220,7 +219,7 @@ class CallMultithreadedTest(absltest.TestCase):
     testing.assert_equal(
         parallel.call_multithreaded(
             functor_factories.expr_fn(
-                functor.call(I.my_functors.fn, x=I.u, y=I.v)
+                kde.functor.call(I.my_functors.fn, x=I.u, y=I.v)
             ),
             my_functors=fns.new(fn=fn),
             u=2,
@@ -315,7 +314,7 @@ class CallMultithreadedTest(absltest.TestCase):
       )
 
   def test_iterable_return_value(self):
-    fn = functor_factories.expr_fn(iterables.make(I.x))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x))
     # TODO: Make this error mention yield_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
@@ -325,12 +324,12 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(
           fn,
           x=1,
-          return_type_as=iterables.make().eval(),
+          return_type_as=kde.iterables.make().eval(),
       )
 
   def test_structured_return_value(self):
     fn = functor_factories.expr_fn(
-        tuple_ops.tuple_(I.x, tuple_ops.namedtuple_(y=I.y, z=I.z))
+        kde.tuples.tuple(I.x, kde.tuples.namedtuple(y=I.y, z=I.z))
     )
     res = parallel.call_multithreaded(
         fn,

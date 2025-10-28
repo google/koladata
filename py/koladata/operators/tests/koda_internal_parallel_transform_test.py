@@ -28,13 +28,8 @@ from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib as _
 from koladata.operators import bootstrap
 from koladata.operators import eager_op_utils
-from koladata.operators import iterables
-from koladata.operators import koda_internal_iterables
-from koladata.operators import koda_internal_parallel
-from koladata.operators import math
+from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import slices as slice_ops
-from koladata.operators import tuple as tuple_ops
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -59,6 +54,9 @@ I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
+koda_internal_iterables = kde_operators.internal.iterables
 kd = eager_op_utils.operators_container('kd')
 _PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
     koda_internal_parallel.create_execution_context(
@@ -289,7 +287,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.my_decode3',
     )
     def my_decode3(x, y, z):
-      return tuple_ops.tuple_(x, y, z)
+      return kde.tuple(x, y, z)
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
@@ -297,7 +295,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     def my_decode4(executor, x, y, z):
       del executor  # Unused.
-      return tuple_ops.tuple_(
+      return kde.tuple(
           koda_internal_parallel.as_future(arolla.M.strings.static_decode(x)),
           y,
           koda_internal_parallel.as_future(arolla.M.strings.static_decode(z)),
@@ -334,7 +332,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     res = expr_eval.eval(
         transformed_fn(
             koda_internal_parallel.get_eager_executor(),
-            return_type_as=tuple_ops.tuple_(
+            return_type_as=kde.tuple(
                 koda_internal_parallel.as_future(arolla.text('')),
                 koda_internal_parallel.as_future(arolla.bytes(b'')),
                 koda_internal_parallel.as_future(arolla.text('')),
@@ -401,7 +399,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
   def test_tuples_without_replacement(self):
     self._test_eval_on_futures(
         functor_factories.expr_fn(
-            arolla.abc.bind_op(slice_ops.stack, I.args),
+            arolla.abc.bind_op(kde.slices.stack, I.args),
             signature=signature_utils.ARGS_KWARGS_SIGNATURE,
         ),
         replacements=[],
@@ -455,14 +453,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     res = expr_eval.eval(
         transformed_fn(
             koda_internal_parallel.get_eager_executor(),
-            tuple_ops.tuple_(
+            kde.tuple(
                 koda_internal_parallel.as_future(ds(1)),
                 koda_internal_parallel.as_future(ds(2)),
             ),
             koda_internal_parallel.as_future(ds(3)),
-            return_type_as=tuple_ops.tuple_(
+            return_type_as=kde.tuple(
                 koda_internal_parallel.as_future(ds(0)),
-                tuple_ops.tuple_(
+                kde.tuple(
                     koda_internal_parallel.as_future(ds(0)),
                     koda_internal_parallel.as_future(ds(0)),
                 ),
@@ -550,7 +548,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     expr = arolla.M.annotation.export(
-        arolla.M.annotation.export(math.add(1, 2), 'foo'), 'bar'
+        arolla.M.annotation.export(kde.math.add(1, 2), 'foo'), 'bar'
     )
     fn = functor_factories.expr_fn(expr)
     transformed_fn = expr_eval.eval(
@@ -603,7 +601,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     expr = arolla.M.annotation.export(
-        arolla.M.annotation.export(iterables.make(1, 2), 'foo'), 'bar'
+        arolla.M.annotation.export(kde.iterables.make(1, 2), 'foo'), 'bar'
     )
     fn = functor_factories.expr_fn(expr)
     transformed_fn = expr_eval.eval(
@@ -635,7 +633,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.empty_iterable',
     )
     def empty_iterable():
-      return iterables.make()
+      return kde.iterables.make()
 
     context = expr_eval.eval(
         koda_internal_parallel.create_execution_context(

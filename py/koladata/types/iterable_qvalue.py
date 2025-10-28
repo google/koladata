@@ -19,13 +19,17 @@ from __future__ import annotations
 from typing import Any, Iterator
 
 from arolla import arolla
-from koladata.operators import koda_internal_iterables
+from koladata.operators import kde_operators
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
 
-_SEQUENCE_TO_ITERABLE_EXPR = koda_internal_iterables.from_sequence(arolla.L.arg)
-_ITERABLE_TO_SEQUENCE_EXPR = koda_internal_iterables.to_sequence(arolla.L.arg)
+_SEQUENCE_TO_ITERABLE_EXPR = kde_operators.internal.iterables.from_sequence(
+    arolla.L.arg
+)
+_ITERABLE_TO_SEQUENCE_EXPR = kde_operators.internal.iterables.to_sequence(
+    arolla.L.arg
+)
 
 
 class Iterable(arolla.QValue):

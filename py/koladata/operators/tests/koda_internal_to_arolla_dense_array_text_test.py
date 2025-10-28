@@ -19,8 +19,8 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import arolla_bridge
 from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -31,6 +31,7 @@ I = input_container.InputContainer('I')
 
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
+koda_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
     'koda_internal',
     top_level_arolla_container=arolla.unsafe_operators_container(),
@@ -90,14 +91,14 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        arolla_bridge.to_arolla_dense_array_text,
+        koda_internal.to_arolla_dense_array_text,
         [(qtypes.DATA_SLICE, arolla.DENSE_ARRAY_TEXT)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(arolla_bridge.to_arolla_dense_array_text(I.x))
+        view.has_koda_view(koda_internal.to_arolla_dense_array_text(I.x))
     )
 
 

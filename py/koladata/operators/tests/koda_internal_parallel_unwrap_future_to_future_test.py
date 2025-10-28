@@ -17,13 +17,13 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import assertion
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 
 I = input_container.InputContainer('I')
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
@@ -44,7 +44,7 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
   def test_error_in_future(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
+      return kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
 
     @optools.as_lambda_operator('my_outer_op')
     def my_outer_op(executor, x):
@@ -68,7 +68,7 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
       return koda_internal_parallel.as_future(
-          assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
+          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
       )
 
     executor = koda_internal_parallel.get_eager_executor()

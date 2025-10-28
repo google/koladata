@@ -21,8 +21,7 @@ from arolla.operator_tests import pointwise_test_utils
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import arolla_bridge
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -31,6 +30,7 @@ from koladata.types import literal_operator
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal = kde_operators.internal
 
 
 def gen_testcases():
@@ -74,7 +74,7 @@ class KodaToDataSliceTest(parameterized.TestCase):
 
   @parameterized.parameters(*TEST_CASES)
   def test_eval(self, x, expected):
-    res = expr_eval.eval(arolla_bridge.to_data_slice(x))
+    res = expr_eval.eval(koda_internal.to_data_slice(x))
     testing.assert_equal(res, expected)
 
   def test_unsupported_value(self):
@@ -82,26 +82,26 @@ class KodaToDataSliceTest(parameterized.TestCase):
         ValueError,
         r'expected the scalar qtype to be one of \[BOOLEAN,.*\], got x: UINT64',
     ):
-      arolla_bridge.to_data_slice(arolla.types.uint64(1))
+      koda_internal.to_data_slice(arolla.types.uint64(1))
 
   def test_boxing_qvalue(self):
     arolla.testing.assert_expr_equal_by_fingerprint(
-        arolla_bridge.to_data_slice(arolla.int64(1)),
+        koda_internal.to_data_slice(arolla.int64(1)),
         arolla.abc.bind_op(
-            arolla_bridge.to_data_slice,
+            koda_internal.to_data_slice,
             literal_operator.literal(arolla.int64(1)),
         ),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        arolla_bridge.to_data_slice,
+        koda_internal.to_data_slice,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(arolla_bridge.to_data_slice(I.x)))
+    self.assertTrue(view.has_koda_view(koda_internal.to_data_slice(I.x)))
 
 
 if __name__ == '__main__':

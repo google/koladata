@@ -16,8 +16,10 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.serving import determinism
+
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 def _extract_non_deterministic_tokens(

@@ -313,6 +313,7 @@ def collapse(x, ndim=arolla.unspecified()):
   return _collapse(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
+@optools.add_to_registry()  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'kd.slices._concat_or_stack', qtype_inference_expr=qtypes.DATA_SLICE
 )

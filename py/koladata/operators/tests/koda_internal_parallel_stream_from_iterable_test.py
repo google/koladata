@@ -19,7 +19,6 @@ from koladata.expr import view
 from koladata.functor.parallel import clib
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -29,6 +28,7 @@ I = input_container.InputContainer('I')
 
 ds = data_slice.DataSlice.from_vals
 kd = eager_op_utils.operators_container('kd')
+koda_internal_parallel = kde_operators.internal.parallel
 kd_internal_parallel = eager_op_utils.operators_container(
     'koda_internal.parallel',
     top_level_arolla_container=arolla.unsafe_operators_container(),

@@ -55,3 +55,15 @@ kde = arolla.OperatorsContainer(
         # go/keep-sorted end
     ]
 ).kd
+
+internal = arolla.OperatorsContainer(
+    unsafe_extra_namespaces=[
+        # go/keep-sorted start
+        'koda_internal',
+        'koda_internal.functor',
+        'koda_internal.iterables',
+        'koda_internal.parallel',
+        'koda_internal.view',
+        # go/keep-sorted end
+    ]
+).koda_internal

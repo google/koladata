@@ -15,8 +15,10 @@
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import view
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
+
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelMakeExecutorTest(absltest.TestCase):

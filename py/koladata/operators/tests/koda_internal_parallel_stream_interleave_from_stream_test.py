@@ -22,12 +22,12 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as stream_clib
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 
 
 I = input_container.InputContainer('I')
 i32 = arolla.int32
+koda_internal_parallel = kde_operators.internal.parallel
 
 STREAM_OF_INT32 = stream_clib.Stream.new(arolla.INT32)[0].qtype
 

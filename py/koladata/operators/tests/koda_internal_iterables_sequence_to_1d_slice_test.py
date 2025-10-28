@@ -18,13 +18,14 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
-from koladata.operators import koda_internal_iterables
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_iterables = kde_operators.internal.iterables
 
 
 class IterablesInternalSequenceTo1DSliceTest(absltest.TestCase):

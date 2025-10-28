@@ -16,9 +16,10 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_iterables
+from koladata.operators import kde_operators
 from koladata.testing import testing
+
+koda_internal_iterables = kde_operators.internal.iterables
 
 
 class IterablesInternalSequenceInterleaveTest(absltest.TestCase):

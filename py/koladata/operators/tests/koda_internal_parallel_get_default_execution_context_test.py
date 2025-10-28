@@ -29,10 +29,8 @@ from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib
 from koladata.operators import bootstrap
 from koladata.operators import eager_op_utils
-from koladata.operators import iterables
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import tuple as tuple_ops
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -41,7 +39,9 @@ from koladata.types import mask_constants
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
+kde = kde_operators.kde
 kd = eager_op_utils.operators_container('kd')
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 def _parallel_eval(
@@ -384,7 +384,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def f():
-      return iterables.make(
+      return kde.iterables.make(
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
@@ -440,7 +440,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def f():
-      return iterables.make_unordered(
+      return kde.iterables.make_unordered(
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
@@ -472,10 +472,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertIsNone(reader.read_available())
 
   @parameterized.parameters(
-      iterables.make,
-      iterables.make_unordered,
-      iterables.chain,
-      iterables.interleave,
+      kde.iterables.make,
+      kde.iterables.make_unordered,
+      kde.iterables.chain,
+      kde.iterables.interleave,
   )
   def test_iterables_make_empty(self, op):
 
@@ -493,10 +493,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertEqual(res.read_all(timeout=5.0), [])
 
   @parameterized.parameters(
-      iterables.make,
-      iterables.make_unordered,
-      iterables.chain,
-      iterables.interleave,
+      kde.iterables.make,
+      kde.iterables.make_unordered,
+      kde.iterables.chain,
+      kde.iterables.interleave,
   )
   def test_iterables_make_empty_bags(self, op):
 
@@ -515,7 +515,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEqual(res.read_all(timeout=5.0), [])
 
-  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)
   def test_iterables_make_bags(self, op):
 
     def f(x):
@@ -536,11 +536,11 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(db)
     )
 
-  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)
   def test_iterables_make_tuples(self, op):
 
     def f(x, y):
-      return op(tuple_ops.tuple_(x, y))
+      return op(kde.tuple(x, y))
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -550,7 +550,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         x=koda_internal_parallel.as_future(1),
         y=koda_internal_parallel.as_future(2),
         return_type_as=koda_internal_parallel.stream_make(
-            value_type_as=tuple_ops.tuple_(None, None)
+            value_type_as=kde.tuple(None, None)
         ),
     ).eval()
     self.assertEqual(
@@ -597,10 +597,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 4
 
     def f():
-      return iterables.chain(
-          iterables.make(wait_and_return_1(), wait_and_return_2()),
-          iterables.make(wait_and_return_3()),
-          iterables.make(wait_and_return_4()),
+      return kde.iterables.chain(
+          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),
+          kde.iterables.make(wait_and_return_3()),
+          kde.iterables.make(wait_and_return_4()),
       )
 
     transformed_fn = koda_internal_parallel.transform(
@@ -665,10 +665,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 4
 
     def f():
-      return iterables.interleave(
-          iterables.make(wait_and_return_1(), wait_and_return_2()),
-          iterables.make(wait_and_return_3()),
-          iterables.make(wait_and_return_4()),
+      return kde.iterables.interleave(
+          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),
+          kde.iterables.make(wait_and_return_3()),
+          kde.iterables.make(wait_and_return_4()),
       )
 
     transformed_fn = koda_internal_parallel.transform(
@@ -703,11 +703,11 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     self.assertIsNone(reader.read_available())
 
-  @parameterized.parameters(iterables.chain, iterables.interleave)
+  @parameterized.parameters(kde.iterables.chain, kde.iterables.interleave)
   def test_iterables_concat_bags(self, op):
 
     def f(x):
-      return op(iterables.make(x), value_type_as=data_bag.DataBag)
+      return op(kde.iterables.make(x), value_type_as=data_bag.DataBag)
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f

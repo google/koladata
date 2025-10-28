@@ -18,10 +18,8 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import eager_op_utils
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import tuple as tuple_ops
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -29,12 +27,14 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
 
   def test_tuple(self):
-    input_future = koda_internal_parallel.as_future(tuple_ops.tuple_(10, 20.0))
+    input_future = koda_internal_parallel.as_future(kde.tuple(10, 20.0))
     unpacked_future = koda_internal_parallel.async_unpack_tuple(input_future)
     res = expr_eval.eval(unpacked_future)
     self.assertTrue(arolla.is_tuple_qtype(res.qtype))
@@ -53,7 +53,7 @@ class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
 
   def test_namedtuple(self):
     input_future = koda_internal_parallel.as_future(
-        tuple_ops.namedtuple_(foo=10, bar=20.0)
+        kde.namedtuple(foo=10, bar=20.0)
     )
     unpacked_future = koda_internal_parallel.async_unpack_tuple(input_future)
     res = expr_eval.eval(unpacked_future)

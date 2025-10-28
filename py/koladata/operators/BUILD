@@ -23,11 +23,7 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
-default_visibility = [
-    "//koladata:internal",
-]
-
-package(default_visibility = default_visibility)
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
@@ -102,10 +98,15 @@ arolla_cc_operator_package(
 py_library(
     name = "kde_operators",
     srcs = ["kde_operators.py"],
+    visibility = [
+        # TODO: b/454825280 - Use operators via kd.py instead.
+        "//koladata:internal",
+    ],
     deps = [
         ":base_cc_operators_lib",
         ":extra_cc_operators_lib",
         ":koda_internal_parallel",
+        ":optools",
         ":py",
         "//py:python_path",
         "@com_google_arolla//py/arolla",
@@ -134,7 +135,6 @@ arolla_operator_package_snapshot(
         "arolla.derived_qtype.derived_qtype",
         "koladata.types.data_slice",
     ],
-    visibility = ["//visibility:private"],
     deps = [
         ":base_cc_operators_lib",
         "@com_google_arolla//py/arolla/derived_qtype",
@@ -153,7 +153,6 @@ arolla_operator_package_snapshot(
         "koladata.types.data_slice",
         "koladata.operators.base_cc_operators",
     ],
-    visibility = ["//visibility:private"],
     deps = [
         ":base_cc_operators_lib",
         ":extra_cc_operators_lib",
@@ -163,7 +162,6 @@ arolla_operator_package_snapshot(
 py_library(
     name = "base_cc_operators_lib",
     srcs = ["base_cc_operators.py"],
-    visibility = ["//visibility:private"],
     deps = [
         ":allocation",
         ":annotation",
@@ -202,7 +200,6 @@ py_library(
 py_library(
     name = "extra_cc_operators_lib",
     srcs = ["extra_cc_operators.py"],
-    visibility = ["//visibility:private"],
     deps = [
         ":koda_internal_parallel",
         "//py:python_path",
@@ -269,6 +266,7 @@ py_test(
 py_library(
     name = "optools",
     srcs = ["optools.py"],
+    visibility = ["//koladata:internal"],
     deps = [
         ":op_repr",
         ":qtype_utils",
@@ -314,6 +312,9 @@ py_test(
 py_library(
     name = "qtype_utils",
     srcs = ["qtype_utils.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":bootstrap",
         "//koladata/functor/parallel:init_expr_operators",
@@ -330,7 +331,6 @@ py_test(
     srcs = ["qtype_utils_test.py"],
     deps = [
         ":kde_operators",
-        ":koda_internal_parallel",
         ":qtype_utils",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -693,6 +693,9 @@ py_test(
 py_library(
     name = "eager_op_utils",
     srcs = ["eager_op_utils.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":kde_operators",
         "//py:python_path",
@@ -761,6 +764,9 @@ py_library(
 py_library(
     name = "view_overloads",
     srcs = ["view_overloads.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":op_repr",
         ":optools",
@@ -906,6 +912,9 @@ py_library(
 py_library(
     name = "bootstrap",
     srcs = ["bootstrap.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         "//py:python_path",
         "@com_google_arolla//py/arolla",

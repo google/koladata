@@ -21,8 +21,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as stream_clib
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.types import data_slice
 
 
@@ -30,6 +29,7 @@ ds = data_slice.DataSlice.from_vals
 i32 = arolla.int32
 I = input_container.InputContainer('I')
 M = arolla.M
+koda_internal_parallel = kde_operators.internal.parallel
 
 expr_fn = functor_factories.expr_fn
 

@@ -20,7 +20,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib
 from koladata.operators import eager_op_utils
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -28,6 +28,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_parallel = kde_operators.internal.parallel
 
 kd_internal_parallel = eager_op_utils.operators_container(
     'koda_internal.parallel',
@@ -162,7 +163,9 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     self.assertNotEqual(res[0].fingerprint, res[1].fingerprint)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(koda_internal_parallel.stream_chain()))
+    self.assertTrue(
+        view.has_koda_view(koda_internal_parallel.stream_chain())
+    )
 
 
 if __name__ == '__main__':

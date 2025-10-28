@@ -257,7 +257,7 @@ class FunctorCallTest(parameterized.TestCase):
   def test_non_determinism(self):
     fn = functor_factories.fn(kde.new(a=42, schema='new'))
 
-    expr = kde.tuples.tuple(kde.call(fn), kde.call(fn))
+    expr = kde.tuple(kde.call(fn), kde.call(fn))
     res = expr_eval.eval(expr)
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
     testing.assert_equal(res[0].a.no_bag(), res[1].a.no_bag())

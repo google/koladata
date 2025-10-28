@@ -20,7 +20,7 @@ from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.operators import bootstrap
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -28,6 +28,7 @@ from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelTransformManyTest(absltest.TestCase):

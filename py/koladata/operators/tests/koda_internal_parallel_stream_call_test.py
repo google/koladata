@@ -23,8 +23,7 @@ from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as stream_clib
-from koladata.operators import kde_operators as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.types import data_slice
 from koladata.types import qtypes
 
@@ -36,6 +35,8 @@ f32 = arolla.float32
 f64 = arolla.float64
 I = input_container.InputContainer('I')
 M = arolla.M
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 py_fn = functor_factories.py_fn
 

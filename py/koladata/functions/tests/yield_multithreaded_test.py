@@ -26,9 +26,7 @@ from koladata.functions import functions as fns
 from koladata.functions import parallel
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
-from koladata.operators import functor
-from koladata.operators import iterables
-from koladata.operators import tuple as tuple_ops
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -36,6 +34,7 @@ from koladata.types import iterable_qvalue
 from koladata.types import signature_utils
 
 
+kde = kde_operators.kde
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
@@ -46,7 +45,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_yield_simple(self):
     fn = functor_factories.expr_fn(
-        returns=iterables.make(I.x, V.foo),
+        returns=kde.iterables.make(I.x, V.foo),
         foo=I.y * I.x,
     )
     res_iter = parallel.yield_multithreaded(fn, x=2, y=3)
@@ -99,7 +98,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_default_value(self):
     fn = functor_factories.expr_fn(
-        returns=iterables.make(I.x),
+        returns=kde.iterables.make(I.x),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_ONLY, 57
@@ -119,7 +118,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_eval_error(self):
     fn = functor_factories.expr_fn(
-        returns=iterables.make(I.x.foo),
+        returns=kde.iterables.make(I.x.foo),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -140,7 +139,9 @@ class YieldMultithreadedTest(absltest.TestCase):
       _ = list(*parallel.yield_multithreaded(fn, fns.new(bar=57)))
 
   def test_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(iterables.make(tuple_ops.get_nth(I.x, 1)))
+    fn = functor_factories.expr_fn(
+        kde.iterables.make(kde.tuples.get_nth(I.x, 1))
+    )
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
@@ -151,7 +152,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
 
   def test_yields_non_dataslice(self):
-    fn = functor_factories.expr_fn(iterables.make(I.x))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x))
     res = parallel.yield_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
@@ -160,7 +161,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(arolla.tuple(1, 2)))
 
   def test_yields_returns_databag(self):
-    fn = functor_factories.expr_fn(iterables.make(I.x.get_bag()))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x.get_bag()))
     obj = fns.obj(x=1)
     res = parallel.yield_multithreaded(
         fn,
@@ -170,13 +171,16 @@ class YieldMultithreadedTest(absltest.TestCase):
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(obj.get_bag()))
 
   def test_functor_as_input(self):
-    fn = functor_factories.expr_fn(iterables.make(I.x + I.y))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
                 functor_factories.expr_fn(
-                    functor.call(
-                        I.func, x=I.u, y=I.v, return_type_as=iterables.make()
+                    kde.functor.call(
+                        I.func,
+                        x=I.u,
+                        y=I.v,
+                        return_type_as=kde.iterables.make(),
                     )
                 ),
                 func=fn,
@@ -188,16 +192,16 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
 
   def test_computed_functor(self):
-    fn = functor_factories.expr_fn(iterables.make(I.x + I.y))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
                 functor_factories.expr_fn(
-                    functor.call(
+                    kde.functor.call(
                         I.my_functors.fn,
                         x=I.u,
                         y=I.v,
-                        return_type_as=iterables.make(),
+                        return_type_as=kde.iterables.make(),
                     )
                 ),
                 my_functors=fns.new(fn=fn),
@@ -335,7 +339,7 @@ class YieldMultithreadedTest(absltest.TestCase):
       )
 
   def test_structured_return_value(self):
-    fn = functor_factories.expr_fn(tuple_ops.tuple_(iterables.make(I.x)))
+    fn = functor_factories.expr_fn(kde.tuples.tuple(kde.iterables.make(I.x)))
     # TODO: Make this error say that structured return values
     # with a stream inside are not supported yet.
     with self.assertRaisesRegex(
@@ -371,13 +375,13 @@ class YieldMultithreadedTest(absltest.TestCase):
       )
 
     fn = functor_factories.expr_fn(
-        functor.while_(
+        kde.functor.while_(
             lambda i, n, s: i <= n,
             body,
             s=I.s,
             n=I.n,
             i=1,
-            yields=iterables.make(),
+            yields=kde.iterables.make(),
         )
     )
     testing.assert_equal(

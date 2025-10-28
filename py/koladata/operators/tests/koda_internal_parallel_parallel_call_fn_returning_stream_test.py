@@ -17,9 +17,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as _
-from koladata.operators import functor
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -30,6 +28,7 @@ V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kd_lazy = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class ParallelCallFnReturningStreamTest(absltest.TestCase):
@@ -57,7 +56,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
         koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
     )
     call_fn = functor_factories.expr_fn(
-        functor.call_fn_returning_stream_when_parallel(
+        kd_lazy.functor.call_fn_returning_stream_when_parallel(
             I.func,
             x=I.foo,
             y=I.bar,

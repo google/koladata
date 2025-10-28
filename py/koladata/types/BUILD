@@ -598,7 +598,6 @@ py_test(
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/functions/tests:test_py_pb2",
-        "//py/koladata/operators:comparison",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -661,7 +660,7 @@ py_library(
         ":py_boxing",
         ":qtypes",
         "//py:python_path",
-        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/operators:kde_operators",
         "@com_google_arolla//py/arolla",
     ],
 )

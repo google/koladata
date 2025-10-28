@@ -20,8 +20,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor.parallel import clib as _
-from koladata.operators import assertion
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -29,6 +28,8 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
@@ -91,7 +92,7 @@ class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
       return koda_internal_parallel.stream_make(
-          assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
+          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
       )
 
     executor = koda_internal_parallel.get_eager_executor()

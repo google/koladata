@@ -20,9 +20,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as _
-from koladata.operators import koda_internal_iterables
-from koladata.operators import koda_internal_parallel
-from koladata.operators import tuple as tuple_ops
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -30,6 +28,9 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_parallel = kde_operators.internal.parallel
+koda_internal_iterables = kde_operators.internal.iterables
+kde = kde_operators.kde
 
 
 class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
@@ -79,7 +80,7 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.tuple_(
+        kde.tuple(
             koda_internal_parallel.as_future(I.x),
             koda_internal_parallel.as_future(I.y),
         ),
@@ -104,9 +105,9 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.tuple_(
+        kde.tuple(
             koda_internal_parallel.as_future(I.x),
-            tuple_ops.tuple_(koda_internal_parallel.as_future(I.y)),
+            kde.tuple(koda_internal_parallel.as_future(I.y)),
         ),
     )
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.float32(20.0))
@@ -131,7 +132,7 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.namedtuple_(
+        kde.namedtuple(
             foo=koda_internal_parallel.as_future(I.x),
             bar=koda_internal_parallel.as_future(I.y),
         ),

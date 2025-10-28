@@ -25,7 +25,6 @@ from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.types import data_slice
 
 
@@ -39,7 +38,7 @@ M = arolla.M
 
 kde = kde_operators.kde
 py_fn = functor_factories.py_fn
-
+koda_internal_parallel = kde_operators.internal.parallel
 default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
 eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
 

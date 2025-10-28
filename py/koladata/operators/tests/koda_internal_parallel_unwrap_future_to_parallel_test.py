@@ -18,16 +18,17 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as _
-from koladata.operators import koda_internal_iterables
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import tuple as tuple_ops
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
+koda_internal_iterables = kde_operators.internal.iterables
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
@@ -70,7 +71,7 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_tuple_input(self):
     future_to_tuple = koda_internal_parallel.as_future(
-        tuple_ops.tuple_(
+        kde.tuple(
             koda_internal_parallel.as_future(I.x),
             koda_internal_parallel.stream_make(I.y),
         )
@@ -101,8 +102,8 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_nested_tuple_input(self):
     future_to_nested_tuple = koda_internal_parallel.as_future(
-        tuple_ops.tuple_(
-            tuple_ops.tuple_(koda_internal_parallel.as_future(I.x))
+        kde.tuple(
+            kde.tuple(koda_internal_parallel.as_future(I.x))
         )
     )
     expr = koda_internal_parallel.unwrap_future_to_parallel(
@@ -118,7 +119,7 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_namedtuple_input(self):
     future_to_namedtuple = koda_internal_parallel.as_future(
-        tuple_ops.namedtuple_(a=koda_internal_parallel.as_future(I.x))
+        kde.namedtuple(a=koda_internal_parallel.as_future(I.x))
     )
     expr = koda_internal_parallel.unwrap_future_to_parallel(
         future_to_namedtuple

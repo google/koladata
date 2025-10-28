@@ -21,7 +21,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
-from koladata.operators import annotation as _
 from koladata.operators import kde_operators
 from koladata.operators import optools as kd_optools
 from koladata.testing import testing as kd_testing

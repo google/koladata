@@ -19,7 +19,6 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
 from koladata.expr import view
-from koladata.operators import core
 from koladata.operators import kde_operators
 from koladata.operators import view_overloads
 from koladata.testing import signature_test_utils
@@ -31,6 +30,7 @@ from koladata.types import jagged_shape
 
 
 kde = kde_operators.kde
+koda_internal = kde_operators.internal
 C = input_container.InputContainer('C')
 ds = data_slice.DataSlice.from_vals
 
@@ -578,28 +578,56 @@ class KodaViewTest(parameterized.TestCase):
   def test_lshift(self):
     bag = data_bag.DataBag.empty()
     null_bag = data_bag.null_bag()
-    self.assert_exprs_equal(op(C.x) << op(C.y), core.lshift(op(C.x), op(C.y)))
-    self.assert_exprs_equal(1 << op(C.y), core.lshift(1, op(C.y)))
-    self.assert_exprs_equal(ds(1) << op(C.y), core.lshift(1, op(C.y)))
-    self.assert_exprs_equal(bag << op(C.y), core.lshift(bag, op(C.y)))
-    self.assert_exprs_equal(null_bag << op(C.y), core.lshift(null_bag, op(C.y)))
-    self.assert_exprs_equal(op(C.x) << 1, core.lshift(op(C.x), 1))
-    self.assert_exprs_equal(op(C.x) << ds(1), core.lshift(op(C.x), 1))
-    self.assert_exprs_equal(op(C.x) << bag, core.lshift(op(C.x), bag))
-    self.assert_exprs_equal(op(C.x) << null_bag, core.lshift(op(C.x), null_bag))
+    self.assert_exprs_equal(
+        op(C.x) << op(C.y), koda_internal.view.lshift(op(C.x), op(C.y))
+    )
+    self.assert_exprs_equal(1 << op(C.y), koda_internal.view.lshift(1, op(C.y)))
+    self.assert_exprs_equal(
+        ds(1) << op(C.y), koda_internal.view.lshift(1, op(C.y))
+    )
+    self.assert_exprs_equal(
+        bag << op(C.y), koda_internal.view.lshift(bag, op(C.y))
+    )
+    self.assert_exprs_equal(
+        null_bag << op(C.y), koda_internal.view.lshift(null_bag, op(C.y))
+    )
+    self.assert_exprs_equal(op(C.x) << 1, koda_internal.view.lshift(op(C.x), 1))
+    self.assert_exprs_equal(
+        op(C.x) << ds(1), koda_internal.view.lshift(op(C.x), 1)
+    )
+    self.assert_exprs_equal(
+        op(C.x) << bag, koda_internal.view.lshift(op(C.x), bag)
+    )
+    self.assert_exprs_equal(
+        op(C.x) << null_bag, koda_internal.view.lshift(op(C.x), null_bag)
+    )
 
   def test_rshift(self):
     bag = data_bag.DataBag.empty()
     null_bag = data_bag.null_bag()
-    self.assert_exprs_equal(op(C.x) >> op(C.y), core.rshift(op(C.x), op(C.y)))
-    self.assert_exprs_equal(1 >> op(C.y), core.rshift(1, op(C.y)))
-    self.assert_exprs_equal(ds(1) >> op(C.y), core.rshift(1, op(C.y)))
-    self.assert_exprs_equal(bag >> op(C.y), core.rshift(bag, op(C.y)))
-    self.assert_exprs_equal(null_bag >> op(C.y), core.rshift(null_bag, op(C.y)))
-    self.assert_exprs_equal(op(C.x) >> 1, core.rshift(op(C.x), 1))
-    self.assert_exprs_equal(op(C.x) >> ds(1), core.rshift(op(C.x), ds(1)))
-    self.assert_exprs_equal(op(C.x) >> bag, core.rshift(op(C.x), bag))
-    self.assert_exprs_equal(op(C.x) >> null_bag, core.rshift(op(C.x), null_bag))
+    self.assert_exprs_equal(
+        op(C.x) >> op(C.y), koda_internal.view.rshift(op(C.x), op(C.y))
+    )
+    self.assert_exprs_equal(1 >> op(C.y), koda_internal.view.rshift(1, op(C.y)))
+    self.assert_exprs_equal(
+        ds(1) >> op(C.y), koda_internal.view.rshift(1, op(C.y))
+    )
+    self.assert_exprs_equal(
+        bag >> op(C.y), koda_internal.view.rshift(bag, op(C.y))
+    )
+    self.assert_exprs_equal(
+        null_bag >> op(C.y), koda_internal.view.rshift(null_bag, op(C.y))
+    )
+    self.assert_exprs_equal(op(C.x) >> 1, koda_internal.view.rshift(op(C.x), 1))
+    self.assert_exprs_equal(
+        op(C.x) >> ds(1), koda_internal.view.rshift(op(C.x), ds(1))
+    )
+    self.assert_exprs_equal(
+        op(C.x) >> bag, koda_internal.view.rshift(op(C.x), bag)
+    )
+    self.assert_exprs_equal(
+        op(C.x) >> null_bag, koda_internal.view.rshift(op(C.x), null_bag)
+    )
 
   def test_bind(self):
     self.assert_non_deterministic_exprs_equal(

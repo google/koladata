@@ -23,7 +23,6 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 
 from koladata.functions.tests import test_pb2
-from koladata.operators import comparison as _  # pylint: disable=unused-import
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag

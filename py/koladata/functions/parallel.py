@@ -22,11 +22,14 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view as _
 from koladata.functor.parallel import clib
-from koladata.operators import functor
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
+
+
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 def _create_executor(max_threads: int | None) -> clib.Executor:
@@ -83,7 +86,7 @@ def call_multithreaded(
   res_stream = koda_internal_parallel.stream_from_future(
       koda_internal_parallel.future_from_parallel(
           executor,
-          functor.call(
+          kde.functor.call(
               transformed_fn,
               executor,
               *[koda_internal_parallel.as_parallel(arg) for arg in args],
@@ -149,7 +152,7 @@ def yield_multithreaded(
   """
   executor = _create_executor(max_threads)
   transformed_fn = transform(fn, allow_runtime_transforms=True)
-  res_stream = functor.call(
+  res_stream = kde.functor.call(
       transformed_fn,
       executor,
       *[koda_internal_parallel.as_parallel(arg) for arg in args],

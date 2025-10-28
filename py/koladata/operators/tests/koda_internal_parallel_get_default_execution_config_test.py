@@ -25,7 +25,7 @@ from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -35,6 +35,7 @@ from koladata.functor.parallel import execution_config_pb2
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):

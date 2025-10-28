@@ -286,7 +286,7 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata/base/testing:operator_test_invalid_unicode_op_clib",
-        "//py/koladata/operators:comparison",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",

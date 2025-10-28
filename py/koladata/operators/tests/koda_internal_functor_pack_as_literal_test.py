@@ -17,7 +17,7 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view
-from koladata.operators import koda_internal_functor
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -25,6 +25,7 @@ from koladata.types import qtypes
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
+koda_internal_functor = kde_operators.internal.functor
 
 
 class KodaInternalFunctorPackAsLiteralTest(absltest.TestCase):

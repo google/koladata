@@ -18,10 +18,11 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as _
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 
 I = input_container.InputContainer('I')
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelEmptyStreamLikeTest(absltest.TestCase):

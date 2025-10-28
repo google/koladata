@@ -20,7 +20,6 @@ from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_iterables
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -29,6 +28,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kd = eager_op_utils.operators_container('kd')
+koda_internal_iterables = kde_operators.internal.iterables
 
 
 class IterablesReduceUpdatedBagTest(absltest.TestCase):

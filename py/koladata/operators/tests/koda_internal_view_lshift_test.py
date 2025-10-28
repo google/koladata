@@ -17,7 +17,6 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import core
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -27,7 +26,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 DATA_BAG = qtypes.DATA_BAG
-
+koda_internal = kde_operators.internal
 
 QTYPES = frozenset([
     (DATA_SLICE, DATA_BAG, DATA_SLICE),
@@ -42,12 +41,12 @@ class KodaInternalViewLshiftTest(parameterized.TestCase):
     o = kde.new(x=1, y=2)
     b = kde.attrs(o, x=3, z=4)
     testing.assert_equivalent(
-        core.lshift(o, b).eval(),
+        koda_internal.view.lshift(o, b).eval(),
         kde.new(x=3, y=2, z=4).eval(),
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        core.lshift(b, o).eval(),
+        koda_internal.view.lshift(b, o).eval(),
         kde.new(x=1, y=2, z=4).eval(),
         schemas_equality=False,
     )
@@ -57,7 +56,7 @@ class KodaInternalViewLshiftTest(parameterized.TestCase):
     b1 = kde.attrs(o, x=1, y=2)
     b2 = kde.attrs(o, x=3, z=4)
     testing.assert_equivalent(
-        o.with_bag(core.lshift(b1, b2)).eval(),
+        o.with_bag(koda_internal.view.lshift(b1, b2)).eval(),
         kde.new(x=3, y=2, z=4).eval(),
         schemas_equality=False,
     )
@@ -67,17 +66,17 @@ class KodaInternalViewLshiftTest(parameterized.TestCase):
     b1 = kde.attrs(o, x=1, y=2)
     null_bag = kde.item(None).get_bag()
     testing.assert_equivalent(
-        o.with_bag(core.lshift(b1, null_bag)).eval(),
+        o.with_bag(koda_internal.view.lshift(b1, null_bag)).eval(),
         kde.new(x=1, y=2).eval(),
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        o.with_bag(core.lshift(null_bag, b1)).eval(),
+        o.with_bag(koda_internal.view.lshift(null_bag, b1)).eval(),
         kde.new(x=1, y=2).eval(),
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        o.with_bag(core.lshift(null_bag, null_bag)).eval(),
+        o.with_bag(koda_internal.view.lshift(null_bag, null_bag)).eval(),
         kde.new().eval(),
         schemas_equality=False,
     )
@@ -88,21 +87,21 @@ class KodaInternalViewLshiftTest(parameterized.TestCase):
         'at least one argument must be a DATA_BAG, this operation is'
         ' not supported on two DATA_SLICEs',
     ):
-      core.lshift(1, 2)
+      koda_internal.view.lshift(1, 2)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        core.lshift,
+        koda_internal.view.lshift,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(core.lshift(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(koda_internal.view.lshift(I.x, I.y)))
 
   def test_repr(self):
     self.assertEqual(
-        repr(core.lshift(I.x, I.y)),
+        repr(koda_internal.view.lshift(I.x, I.y)),
         'I.x << I.y',
     )
 

@@ -17,7 +17,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import koda_internal_iterables
+from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import iterable_qvalue
@@ -25,6 +25,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_iterables = kde_operators.internal.iterables
 
 
 class IterablesInternalShuffleTest(absltest.TestCase):

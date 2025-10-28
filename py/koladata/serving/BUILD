@@ -110,7 +110,7 @@ py_test(
         ":determinism",
         "//py:python_path",
         "//py/koladata:kd",
-        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:kde_operators",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

@@ -17,14 +17,15 @@ from absl.testing import absltest
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.expr import py_expr_eval_py_ext
-from koladata.operators import kde_operators as _  # pylint: disable=unused-import
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import iterable_qvalue
 from koladata.types import jagged_shape
 from koladata.types import qtypes as _  # pylint: disable=unused-import
+
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaQTypesTest(absltest.TestCase):

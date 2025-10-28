@@ -19,7 +19,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_iterables
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -29,6 +28,7 @@ from koladata.types import iterable_qvalue
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+koda_internal_iterables = kde_operators.internal.iterables
 I = input_container.InputContainer('I')
 
 

@@ -19,14 +19,15 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor.parallel import clib
-from koladata.operators import assertion
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelFutureFromSingleValueStreamTest(absltest.TestCase):
@@ -88,7 +89,7 @@ class KodaInternalParallelFutureFromSingleValueStreamTest(absltest.TestCase):
     stream = koda_internal_parallel.stream_map(
         executor,
         I.x,
-        lambda x: assertion.with_assertion(x, x % 2 != 0, 'Must be odd'),
+        lambda x: kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd'),
     )
     expr = koda_internal_parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(

@@ -16,8 +16,7 @@ import re
 
 from absl.testing import absltest
 from koladata import kd
-from koladata.operators import comparison as _  # pylint: disable=unused-import
-from koladata.operators import core as _  # pylint: disable=unused-import
+from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import schema_constants

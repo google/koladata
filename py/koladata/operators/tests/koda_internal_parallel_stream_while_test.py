@@ -29,7 +29,6 @@ from koladata.functor import boxing as _
 from koladata.functor import functions
 from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
@@ -43,6 +42,7 @@ kde = kde_operators.kde
 kdf = functions.functor
 expr_fn = kdf.expr_fn
 py_fn = user_facing_kd.py_fn
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):

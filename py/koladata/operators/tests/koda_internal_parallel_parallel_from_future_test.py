@@ -18,9 +18,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib as _
-from koladata.operators import iterables
-from koladata.operators import koda_internal_iterables
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -28,6 +26,9 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
+koda_internal_iterables = kde_operators.internal.iterables
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelParallelFromFutureTest(absltest.TestCase):
@@ -153,7 +154,7 @@ class KodaInternalParallelParallelFromFutureTest(absltest.TestCase):
   def test_future_iterable_input(self):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.parallel_from_future(
-        executor, koda_internal_parallel.as_future(iterables.make(I.x, I.y))
+        executor, koda_internal_parallel.as_future(kde.iterables.make(I.x, I.y))
     )
     res = expr_eval.eval(expr, x=arolla.int32(1), y=arolla.int32(2))
     self.assertEqual(

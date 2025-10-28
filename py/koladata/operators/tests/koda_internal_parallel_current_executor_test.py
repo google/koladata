@@ -20,11 +20,11 @@ from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as _
 from koladata.operators import kde_operators
-from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
 
 py_fn = functor_factories.py_fn
 
+koda_internal_parallel = kde_operators.internal.parallel
 eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
 default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
 kde = kde_operators.kde

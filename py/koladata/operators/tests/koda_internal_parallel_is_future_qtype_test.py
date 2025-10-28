@@ -18,11 +18,12 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import bootstrap
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelIsFutureQTypeTest(parameterized.TestCase):

@@ -17,8 +17,8 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import arolla_bridge
 from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -30,7 +30,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-
+koda_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
     'koda_internal',
     top_level_arolla_container=arolla.unsafe_operators_container(),
@@ -52,15 +52,15 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        arolla_bridge.to_arolla_text('abc'),
+        koda_internal.to_arolla_text('abc'),
         arolla.abc.bind_op(
-            arolla_bridge.to_arolla_text, literal_operator.literal(ds('abc'))
+            koda_internal.to_arolla_text, literal_operator.literal(ds('abc'))
         ),
     )
 
   def test_bind_time_evaluation(self):
     # Allows it to be used in operators that require literal inputs.
-    expr = arolla_bridge.to_arolla_text(ds('abc'))
+    expr = koda_internal.to_arolla_text(ds('abc'))
     testing.assert_equal(expr.qvalue, arolla.text('abc'))
 
   def test_unsupported_schema_error(self):
@@ -95,13 +95,13 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        arolla_bridge.to_arolla_text,
+        koda_internal.to_arolla_text,
         [(qtypes.DATA_SLICE, arolla.TEXT)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(arolla_bridge.to_arolla_text(I.x)))
+    self.assertFalse(view.has_koda_view(koda_internal.to_arolla_text(I.x)))
 
 
 if __name__ == '__main__':

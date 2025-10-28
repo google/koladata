@@ -17,13 +17,14 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import bootstrap
-from koladata.operators import koda_internal_parallel
+from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.types import data_slice
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 # We do not have a Python API for fetching the config from the context,
