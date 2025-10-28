@@ -11742,7 +11742,7 @@ Args:
 Returns:
   A new view with the specified dimensions flattened.</code></pre>
 
-### `kd_ext.kv.get_attr(v: View | int | float | str | bytes | bool | None, attr_name: str) -> View` {#kd_ext.kv.get_attr}
+### `kd_ext.kv.get_attr(v: View | int | float | str | bytes | bool | None, attr_name: str, default: Any = NO_DEFAULT) -> View` {#kd_ext.kv.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new view with the given attribute of each item.
 
@@ -11758,7 +11758,9 @@ Args:
   v: The view to get the attribute from. Can also be a Python primitive, which
     will be automatically boxed into a view, but most likely raise an
     exception afterwards, unless it is None.
-  attr_name: The name of the attribute to get.</code></pre>
+  attr_name: The name of the attribute to get.
+  default: When specified, if the attribute value is None or getting the
+    attribute raises AttributeError, this value will be used instead.</code></pre>
 
 ### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
 

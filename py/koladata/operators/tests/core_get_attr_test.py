@@ -22,6 +22,7 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import core_get_attr_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -56,49 +57,12 @@ class CoreGetAttrTest(parameterized.TestCase):
         a=ds([1, 2, 3]), b=ds(['a', None, 'c']), c=ds([10, 20, 30])
     )
 
-  @parameterized.parameters(
-      (kde.get_attr(I.x, 'a'), ds([1, 2, 3])),
-      (kde.get_attr(I.x, 'a', None), ds([1, 2, 3])),
-      (
-          kde.get_attr(I.x, 'd', None),
-          ds([None, None, None], schema_constants.NONE),
-      ),
-      (kde.get_attr(I.x, 'b', '42'), ds(['a', '42', 'c'])),
-      (kde.get_attr(I.x, 'b', 42), ds(['a', 42, 'c'], schema_constants.OBJECT)),
-      (kde.get_attr(I.x, 'b'), ds(['a', None, 'c'])),
-      (
-          # Filter self.x
-          kde.get_attr(
-              kde.apply_mask(
-                  I.x, ds([None, arolla.present(), arolla.present()])
-              ),
-              'b',
-          ),
-          ds([None, None, 'c']),
-      ),
-      (
-          # Filter self.x completely.
-          kde.get_attr(
-              kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b'
-          ),
-          ds([None, None, None], schema_constants.STRING),
-      ),
-      (
-          # Filter self.x completely.
-          kde.get_attr(
-              kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b', 42
-          ),
-          ds([None, 42, None], schema_constants.OBJECT),
-      ),
-  )
-  def test_eval(self, expr, expected):
+  @parameterized.parameters(*core_get_attr_testdata.TEST_CASES)
+  def test_eval(self, *args_and_expected):
+    x, *other_args, expected = args_and_expected
     testing.assert_equal(
-        expr_eval.eval(expr, x=self.entity),
-        expected.with_bag(self.entity.get_bag()),
-    )
-    testing.assert_equal(
-        expr_eval.eval(expr, x=self.object),
-        expected.with_bag(self.object.get_bag()),
+        eager.get_attr(x, *other_args),
+        expected.with_bag(x.get_bag()),
     )
 
   @parameterized.parameters(

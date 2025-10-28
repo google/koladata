@@ -23,10 +23,15 @@ be auto-boxed by the View method that we call.
 The tests are in operator_tests/ folder.
 """
 
+from typing import Any
 from koladata.ext.view import view as view_lib
 
 
-def get_attr(v: view_lib.ViewOrAutoBoxType, attr_name: str) -> view_lib.View:
+def get_attr(
+    v: view_lib.ViewOrAutoBoxType,
+    attr_name: str,
+    default: Any = view_lib.NO_DEFAULT,
+) -> view_lib.View:
   """Returns a new view with the given attribute of each item.
 
   If one of the items is None, the corresponding value will be None as well,
@@ -42,8 +47,10 @@ def get_attr(v: view_lib.ViewOrAutoBoxType, attr_name: str) -> view_lib.View:
       will be automatically boxed into a view, but most likely raise an
       exception afterwards, unless it is None.
     attr_name: The name of the attribute to get.
+    default: When specified, if the attribute value is None or getting the
+      attribute raises AttributeError, this value will be used instead.
   """
-  return view_lib.box(v).get_attr(attr_name)
+  return view_lib.box(v).get_attr(attr_name, default)
 
 
 def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:

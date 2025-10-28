@@ -85,3 +85,16 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "core_get_attr_testdata",
+    srcs = ["core_get_attr_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:schema_constants",
+    ],
+)

@@ -1472,6 +1472,7 @@ py_test(
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/testdata:core_get_attr_testdata",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",

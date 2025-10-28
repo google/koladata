@@ -23,6 +23,16 @@ _cc_map_structure = view_clib.map_structures
 _INTERNAL_CALL = object()
 
 
+# We need a custom repr so that the generated documentation is stable.
+class _NoDefault:
+
+  def __repr__(self) -> str:
+    return 'NO_DEFAULT'
+
+
+NO_DEFAULT = _NoDefault()
+
+
 # Most methods of this class are also available as operators in the `kv` module.
 # Please consider adding an operator when adding a new method here.
 class View:
@@ -61,9 +71,26 @@ class View:
   def __repr__(self) -> str:
     return f'<View(\n  obj={self._obj!r},\n  depth={self._depth!r},\n)>'
 
-  def get_attr(self, attr_name: str) -> View:
+  def get_attr(self, attr_name: str, default: Any = NO_DEFAULT) -> View:
     """Returns a new view with the given attribute of each item."""
-    attrgetter = lambda x: getattr(x, attr_name)
+    if default is NO_DEFAULT:
+      attrgetter = lambda x: getattr(x, attr_name)
+    else:
+      if isinstance(default, View):
+        if default.get_depth():
+          raise ValueError(
+              'Default value for get_attr must be a scalar, got a view with'
+              f' depth {default.get_depth()}'
+          )
+        default = default.get()
+
+      def attrgetter(x):
+        try:
+          res = getattr(x, attr_name)
+          return res if res is not None else default
+        except AttributeError:
+          return default
+
     return _map1(attrgetter, self)
 
   def __getattr__(self, attr_name: str) -> View:
@@ -83,7 +110,8 @@ class View:
     """
     if attr_name.startswith('_'):
       raise AttributeError(attr_name)
-    return self.get_attr(attr_name)
+    attrgetter = lambda x: getattr(x, attr_name)
+    return _map1(attrgetter, self)
 
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.

@@ -15,30 +15,39 @@
 import types
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
+from koladata.operators.tests.testdata import core_get_attr_testdata
 
 Obj = types.SimpleNamespace
 
 
-class GetAttrTest(absltest.TestCase):
+class GetAttrTest(parameterized.TestCase):
 
-  def test_call(self):
-    x = Obj(a=5, _b=6)
-    self.assertEqual(kv.get_attr(kv.view(x), 'a').get(), 5)
-    self.assertEqual(kv.get_attr(kv.view(x), '_b').get(), 6)
-    self.assertIsNone(kv.get_attr(None, 'a').get())
-    x_mix = [Obj(a=1), None, Obj(a=3)]
-    self.assertEqual(kv.get_attr(kv.view(x_mix)[:], 'a').get(), (1, None, 3))
-
-  def test_nested(self):
-    x = Obj(a=[Obj(b=1), Obj(b=2)])
-    self.assertEqual(
-        kv.get_attr(kv.get_attr(kv.view(x), 'a')[:], 'b').get(), (1, 2)
+  @parameterized.parameters(*core_get_attr_testdata.TEST_CASES)
+  def test_call(self, *args_and_expected):
+    x, *other_args, expected = args_and_expected
+    x = test_utils.from_ds(x)
+    expected = test_utils.from_ds(expected)
+    test_utils.assert_equal(
+        kv.get_attr(x, *other_args),
+        expected,
     )
 
-  def test_slice_attr_on_empty_list(self):
-    x = Obj(a=[])
-    self.assertEqual(kv.get_attr(kv.view(x).a[:], 'b').get(), ())
+  def test_unboxes_default(self):
+    x = Obj(a=[Obj(b=1), Obj()])
+    self.assertEqual(
+        kv.get_attr(kv.view(x).a[:], 'b', kv.view(42)).get(), (1, 42)
+    )
+
+  def test_non_scalar_default(self):
+    x = Obj(a=[Obj(b=1), Obj()])
+    with self.assertRaisesRegex(
+        ValueError,
+        'Default value for get_attr must be a scalar, got a view with depth 1',
+    ):
+      _ = kv.get_attr(kv.view(x).a[:], 'b', kv.view([42, 43])[:])
 
   def test_missing_attr_fails(self):
     x = Obj(a=[Obj(b=1), Obj()])
