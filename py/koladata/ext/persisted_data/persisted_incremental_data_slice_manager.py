@@ -107,6 +107,9 @@ class BranchMetadata(RevisionMetadata):
   parent_revision_history_index: int
 
 
+_INTERNAL_CALL = object()
+
+
 class PersistedIncrementalDataSliceManager(
     data_slice_manager_interface.DataSliceManagerInterface
 ):
@@ -259,7 +262,7 @@ class PersistedIncrementalDataSliceManager(
     )
     _persist_metadata(fs, persistence_dir, metadata)
     return cls(
-        is_internal_call=True,
+        internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
         fs=fs,
         initial_data_manager=initial_data_manager,
@@ -337,7 +340,7 @@ class PersistedIncrementalDataSliceManager(
       )
     schema_node_name_to_data_bags_updates_manager.load_bags(update_bags_to_load)
     return cls(
-        is_internal_call=True,
+        internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
         fs=fs,
         initial_data_manager=initial_data_manager,
@@ -352,7 +355,7 @@ class PersistedIncrementalDataSliceManager(
   def __init__(
       self,
       *,
-      is_internal_call: bool,
+      internal_call: object,
       persistence_dir: str,
       fs: fs_interface.FileSystemInterface,
       initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface,
@@ -371,10 +374,10 @@ class PersistedIncrementalDataSliceManager(
     create instances of this class.
 
     Args:
-      is_internal_call: Whether this constructor is called internally. An error
-        is raised if it is called externally. Clients should use the factory
-        methods create_new() or create_from_dir() to create instances of this
-        class.
+      internal_call: A private sentinel object to make sure that this
+        constructor is called only internally. An error is raised if it is
+        called externally. Clients should use the factory methods create_new()
+        or create_from_dir() to create instances of this class.
       persistence_dir: The directory that holds the artifacts of the manager.
       fs: All interactions with the file system will go through this instance.
       initial_data_manager: The initial data of the DataSlice.
@@ -388,7 +391,7 @@ class PersistedIncrementalDataSliceManager(
         the Koda DICT of initial_schema_node_name_to_data_bag_names.
       metadata: The metadata of the manager.
     """
-    if not is_internal_call:
+    if internal_call is not _INTERNAL_CALL:
       raise ValueError(
           'please do not call the PersistedIncrementalDataSliceManager'
           ' constructor directly; use the class factory methods create_new() or'

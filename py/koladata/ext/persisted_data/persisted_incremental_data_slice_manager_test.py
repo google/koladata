@@ -4510,7 +4510,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           metadata=None,
       )
       PersistedIncrementalDataSliceManager(  # pytype: disable=wrong-arg-types
-          is_internal_call=False,
+          internal_call=object(),
           **unused_args,
       )
 

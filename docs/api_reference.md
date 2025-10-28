@@ -11480,7 +11480,7 @@ persistence directory are not propagated to this instance. A write operation
 will fail if the state of the persistence directory was modified in the
 meantime by another instance.</code></pre>
 
-### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(*, is_internal_call: bool, persistence_dir: str, fs: fs_interface.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DataSlice, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
+### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(*, internal_call: object, persistence_dir: str, fs: fs_interface.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DataSlice, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataSlice that is assembled from multiple smaller data slices.
 
