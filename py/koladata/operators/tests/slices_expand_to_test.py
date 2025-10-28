@@ -23,6 +23,7 @@ from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_expand_to_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -45,55 +46,13 @@ QTYPES = frozenset([
 
 class SlicesExpandToTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      # ndim=0
-      (ds(1), ds([1, 2, 3]), 0, ds([1, 1, 1])),
-      (ds([1, 2, 1]), ds([1, 2, 3]), 0, ds([1, 2, 1])),
-      (ds(1), ds([[1, 2], [3]]), 0, ds([[1, 1], [1]])),
-      (ds([1, 2]), ds([[1, 2], [3]]), 0, ds([[1, 1], [2]])),
-      # ndim=unspecified
-      (ds(1), ds([1, 2, 3]), arolla.unspecified(), ds([1, 1, 1])),
-      (ds([1, 2, 1]), ds([1, 2, 3]), arolla.unspecified(), ds([1, 2, 1])),
-      (ds(1), ds([[1, 2], [3]]), arolla.unspecified(), ds([[1, 1], [1]])),
-      (ds([1, 2]), ds([[1, 2], [3]]), arolla.unspecified(), ds([[1, 1], [2]])),
-      # ndim=1
-      (ds([1, 2]), ds([1, 2, 3]), 1, ds([[1, 2], [1, 2], [1, 2]])),
-      (ds([1, 2]), ds([[1, 2], [3]]), 1, ds([[[1, 2], [1, 2]], [[1, 2]]])),
-      # ndim=2
-      (
-          ds([[1], [2, 3]]),
-          ds([1, 2, 3]),
-          2,
-          ds([[[1], [2, 3]], [[1], [2, 3]], [[1], [2, 3]]]),
-      ),
-      # Mixed types
-      (ds([1, "a"]), ds([[1, 2], [3]]), 0, ds([[1, 1], ["a"]])),
-      (
-          ds([1, "a"]),
-          ds([[1, 2], [3]]),
-          1,
-          ds([[[1, "a"], [1, "a"]], [[1, "a"]]]),
-      ),
-      (
-          ds([[1], [2, "a"]]),
-          ds([1, 2, "b"]),
-          2,
-          ds([[[1], [2, "a"]], [[1], [2, "a"]], [[1], [2, "a"]]]),
-      ),
-  )
+  @parameterized.parameters(*slices_expand_to_testdata.TEST_DATA)
   def test_eval(self, x, target, ndim, expected):
     result = eval_op("kd.expand_to", x, target, ndim)
     testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (ds(1), ds([1, 2, 3]), ds([1, 1, 1])),
-      (ds([1, 2, 1]), ds([1, 2, 3]), ds([1, 2, 1])),
-      (ds(1), ds([[1, 2], [3]]), ds([[1, 1], [1]])),
-      (ds([1, 2]), ds([[1, 2], [3]]), ds([[1, 1], [2]])),
-  )
-  def test_eval_no_ndim_arg(self, x, target, expected):
-    result = expr_eval.eval(kde.expand_to(x, target))
-    testing.assert_equal(result, expected)
+    if isinstance(ndim, arolla.abc.Unspecified):
+      result = eval_op("kd.expand_to", x, target)
+      testing.assert_equal(result, expected)
 
   def test_same_bag(self):
     db = data_bag.DataBag.empty_mutable()

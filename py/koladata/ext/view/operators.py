@@ -156,7 +156,9 @@ def flatten(
 
 
 def expand_to(
-    v: view_lib.ViewOrAutoBoxType, other: view_lib.ViewOrAutoBoxType
+    v: view_lib.ViewOrAutoBoxType,
+    other: view_lib.ViewOrAutoBoxType,
+    ndim: int = 0,
 ) -> view_lib.View:
   """Returns the view expanded to the shape of other view.
 
@@ -164,14 +166,24 @@ def expand_to(
   dimensions. The corresponding items then will be repeated among the additional
   dimensions.
 
+  When `ndim` is set, the expansion is performed in 3 steps:
+  1) the last N dimensions of `v` are first imploded into tuples
+  2) the expansion operation is performed on the View of those tuples
+  3) the tuples in the expanded View are exploded
+
   Example:
     x = kv.view([1, None, 2])[:]
     y = kv.view([[], [1, None], [3, 4, 5]])[:][:]
     kv.expand_to(x, y).get()
     # ((), (None, None), (2, 2, 2))
+    kv.expand_to(x, y, ndim=1).get()
+    # ((), ((1, None, 2), (1, None, 2)), ((1, None, 2), (1, None, 2), (1, None,
+    # 2)))
 
   Args:
     v: The view to expand.
     other: The view to expand to.
+    ndim: the number of dimensions to implode before expansion and explode back
+      afterwards.
   """
-  return view_lib.box(v).expand_to(other)
+  return view_lib.box(v).expand_to(other, ndim)

@@ -75,3 +75,13 @@ py_library(
         "//py/koladata/types:schema_constants",
     ],
 )
+
+py_library(
+    name = "slices_expand_to_testdata",
+    srcs = ["slices_expand_to_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
+    ],
+)

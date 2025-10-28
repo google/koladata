@@ -158,9 +158,12 @@ class ViewTest(absltest.TestCase):
     )
 
   def test_expand_to(self):
-    l1 = view_lib.view(1)
-    l2 = view_lib.view([10, 20])[:]
-    self.assertEqual(l1.expand_to(l2).get(), (1, 1))
+    l1 = view_lib.view([1, 2])[:]
+    l2 = view_lib.view([[10, 20], [None]])[:][:]
+    self.assertEqual(l1.expand_to(l2).get(), ((1, 1), (2,)))
+    self.assertEqual(
+        l1.expand_to(l2, ndim=1).get(), (((1, 2), (1, 2)), ((1, 2),))
+    )
 
   def test_box(self):
     l1 = view_lib.view(1)

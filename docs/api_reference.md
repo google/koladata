@@ -11636,7 +11636,7 @@ Args:
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>
 
-### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | None, other: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.expand_to}
+### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | None, other: View | int | float | str | bytes | bool | None, ndim: int = 0) -> View` {#kd_ext.kv.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the view expanded to the shape of other view.
 
@@ -11644,15 +11644,25 @@ The view must have dimensions that match a prefix of the other view&#39;s
 dimensions. The corresponding items then will be repeated among the additional
 dimensions.
 
+When `ndim` is set, the expansion is performed in 3 steps:
+1) the last N dimensions of `v` are first imploded into tuples
+2) the expansion operation is performed on the View of those tuples
+3) the tuples in the expanded View are exploded
+
 Example:
   x = kv.view([1, None, 2])[:]
   y = kv.view([[], [1, None], [3, 4, 5]])[:][:]
   kv.expand_to(x, y).get()
   # ((), (None, None), (2, 2, 2))
+  kv.expand_to(x, y, ndim=1).get()
+  # ((), ((1, None, 2), (1, None, 2)), ((1, None, 2), (1, None, 2), (1, None,
+  # 2)))
 
 Args:
   v: The view to expand.
-  other: The view to expand to.</code></pre>
+  other: The view to expand to.
+  ndim: the number of dimensions to implode before expansion and explode back
+    afterwards.</code></pre>
 
 ### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.explode}
 

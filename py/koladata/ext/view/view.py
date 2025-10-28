@@ -189,18 +189,30 @@ class View:
     _map2(lambda x, y: x.append(y), res, outer, include_missing=True)
     return res.explode(self._depth - to_dim + 1)
 
-  def expand_to(self, other: ViewOrAutoBoxType) -> View:
+  def expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View:
     """Expands the view to the shape of other view."""
-    if self is other:
-      return self
+    if ndim:
+      if ndim < 0:
+        raise ValueError(
+            'the number of dimensions to expand must be non-negative, got'
+            f' {ndim}'
+        )
+      res = self.implode(ndim)
+    else:
+      if self is other:
+        return self
+      res = self
     other = box(other)
-    if self._depth <= other._depth:  # pylint: disable=protected-access
-      return _map2(lambda x, y: x, self, other, include_missing=True)
+    if res._depth <= other._depth:  # pylint: disable=protected-access
+      res = _map2(lambda x, y: x, res, other, include_missing=True)
     else:
       raise ValueError(
-          f'a View with depth {self._depth} cannot be broadcasted to a View'  # pylint: disable=protected-access
+          f'a View with depth {res._depth} cannot be broadcasted to a View'  # pylint: disable=protected-access
           f' with depth {other._depth}'  # pylint: disable=protected-access
       )
+    if ndim:
+      res = res.explode(ndim)
+    return res
 
   def map(
       self,
