@@ -21,7 +21,7 @@ from koladata import kd
 from koladata.expr import tracing
 from koladata.extension_types import extension_types
 from koladata.functions import parallel
-from koladata.functor import functions
+from koladata.functor import tracing_decorator
 from koladata.testing import testing
 from koladata.types import extension_type_registry
 from koladata.types import schema_constants
@@ -277,7 +277,7 @@ class TracingTest(absltest.TestCase):
     class ParallelCallableExtension:
       x: schema_constants.INT32
 
-    @functions.trace_as_fn()
+    @tracing_decorator.TraceAsFnDecorator()
     def fn(e: ParallelCallableExtension):
       return e.x + 2
 

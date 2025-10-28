@@ -16,7 +16,9 @@ import re
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
+from koladata.functions import attrs
 from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_item
@@ -236,7 +238,7 @@ class NewLikeTest(absltest.TestCase):
         a=schema_constants.INT32, b=schema_constants.STRING
     ).eval()
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
-    self.assertEqual(fns.dir(x), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, None]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', None]).with_bag(x.get_bag()))
@@ -245,7 +247,7 @@ class NewLikeTest(absltest.TestCase):
   def test_schema_arg_implicit_casting(self):
     schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_like(ds([1, 1]), a=42, schema=schema)
-    self.assertEqual(fns.dir(x), ['a'])
+    self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -256,7 +258,7 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(
         ds([1, 1]), a=42, b='xyz', schema=schema, overwrite_schema=True
     )
-    self.assertEqual(fns.dir(x), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
@@ -357,9 +359,9 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
         ),
     )
 
-    db1 = fns.mutable_bag()
+    db1 = object_factories.mutable_bag()
     _ = db1.uuobj(x=1)
-    db2 = fns.mutable_bag()
+    db2 = object_factories.mutable_bag()
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesWithPredicateMatch(

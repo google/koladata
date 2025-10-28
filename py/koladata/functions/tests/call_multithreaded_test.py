@@ -23,6 +23,7 @@ from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.functions import functions as fns
+from koladata.functions import parallel
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import functor
@@ -47,11 +48,9 @@ class CallMultithreadedTest(absltest.TestCase):
         returns=I.x + V.foo,
         foo=I.y * I.x,
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, x=2, y=3), ds(8))
+    testing.assert_equal(parallel.call_multithreaded(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
-    testing.assert_equal(
-        fns.parallel.call_multithreaded(fn, x=2, y=3, z=4), ds(8)
-    )
+    testing.assert_equal(parallel.call_multithreaded(fn, x=2, y=3, z=4), ds(8))
 
   def test_call_with_self(self):
     fn = functor_factories.expr_fn(
@@ -59,7 +58,7 @@ class CallMultithreadedTest(absltest.TestCase):
         foo=S.y * S.x,
     )
     testing.assert_equal(
-        fns.parallel.call_multithreaded(fn, fns.new(x=2, y=3)), ds(8)
+        parallel.call_multithreaded(fn, fns.new(x=2, y=3)), ds(8)
     )
 
   def test_call_explicit_signature(self):
@@ -75,12 +74,12 @@ class CallMultithreadedTest(absltest.TestCase):
         ]),
         foo=I.y,
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 1, 2), ds(3))
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 1, y=2), ds(3))
+    testing.assert_equal(parallel.call_multithreaded(fn, 1, 2), ds(3))
+    testing.assert_equal(parallel.call_multithreaded(fn, 1, y=2), ds(3))
 
   def test_call_with_no_expr(self):
     fn = functor_factories.expr_fn(57, signature=signature_utils.signature([]))
-    testing.assert_equal(fns.parallel.call_multithreaded(fn).no_bag(), ds(57))
+    testing.assert_equal(parallel.call_multithreaded(fn).no_bag(), ds(57))
 
   def test_positional_only(self):
     fn = functor_factories.expr_fn(
@@ -91,11 +90,11 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 57), ds(57))
+    testing.assert_equal(parallel.call_multithreaded(fn, 57), ds(57))
     with self.assertRaisesRegex(
         ValueError, re.escape('unknown keyword arguments: [x]')
     ):
-      _ = fns.parallel.call_multithreaded(fn, x=57)
+      _ = parallel.call_multithreaded(fn, x=57)
 
   def test_keyword_only(self):
     fn = functor_factories.expr_fn(
@@ -106,9 +105,9 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, x=57), ds(57))
+    testing.assert_equal(parallel.call_multithreaded(fn, x=57), ds(57))
     with self.assertRaisesRegex(ValueError, 'too many positional arguments'):
-      _ = fns.parallel.call_multithreaded(fn, 57)
+      _ = parallel.call_multithreaded(fn, 57)
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
@@ -119,7 +118,7 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 1, 2, 3), ds(2))
+    testing.assert_equal(parallel.call_multithreaded(fn, 1, 2, 3), ds(2))
 
   def test_var_keyword(self):
     fn = functor_factories.expr_fn(
@@ -130,9 +129,7 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(
-        fns.parallel.call_multithreaded(fn, x=1, y=2, z=3), ds(2)
-    )
+    testing.assert_equal(parallel.call_multithreaded(fn, x=1, y=2, z=3), ds(2))
 
   def test_default_value(self):
     fn = functor_factories.expr_fn(
@@ -143,8 +140,8 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn).no_bag(), ds(57))
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 43), ds(43))
+    testing.assert_equal(parallel.call_multithreaded(fn).no_bag(), ds(57))
+    testing.assert_equal(parallel.call_multithreaded(fn, 43), ds(43))
 
   def test_obj_as_default_value(self):
     fn = functor_factories.expr_fn(
@@ -157,10 +154,8 @@ class CallMultithreadedTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(
-        fns.parallel.call_multithreaded(fn).foo.no_bag(), ds(57)
-    )
-    testing.assert_equal(fns.parallel.call_multithreaded(fn, 43), ds(43))
+    testing.assert_equal(parallel.call_multithreaded(fn).foo.no_bag(), ds(57))
+    testing.assert_equal(parallel.call_multithreaded(fn, 43), ds(43))
 
   def test_call_eval_error(self):
     fn = functor_factories.expr_fn(
@@ -172,7 +167,7 @@ class CallMultithreadedTest(absltest.TestCase):
         ]),
     )
     testing.assert_equal(
-        fns.parallel.call_multithreaded(fn, fns.new(foo=57)).no_bag(), ds(57)
+        parallel.call_multithreaded(fn, fns.new(foo=57)).no_bag(), ds(57)
     )
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -180,20 +175,18 @@ class CallMultithreadedTest(absltest.TestCase):
             "the attribute 'foo' is missing"
         ),
     ):
-      _ = fns.parallel.call_multithreaded(fn, fns.new(bar=57))
+      _ = parallel.call_multithreaded(fn, fns.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
     fn = functor_factories.expr_fn(tuple_ops.get_nth(I.x, 1))
     testing.assert_equal(
-        fns.parallel.call_multithreaded(
-            fn, x=arolla.tuple(ds(1), ds(2), ds(3))
-        ),
+        parallel.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))),
         ds(2),
     )
 
   def test_call_returns_non_dataslice(self):
     fn = functor_factories.expr_fn(I.x)
-    res = fns.parallel.call_multithreaded(
+    res = parallel.call_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
         return_type_as=arolla.tuple(5, 7),
@@ -203,7 +196,7 @@ class CallMultithreadedTest(absltest.TestCase):
   def test_call_returns_databag(self):
     fn = functor_factories.expr_fn(I.x.get_bag())
     obj = fns.obj(x=1)
-    res = fns.parallel.call_multithreaded(
+    res = parallel.call_multithreaded(
         fn,
         x=obj,
         return_type_as=data_bag.DataBag,
@@ -213,7 +206,7 @@ class CallMultithreadedTest(absltest.TestCase):
   def test_call_with_functor_as_input(self):
     fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
-        fns.parallel.call_multithreaded(
+        parallel.call_multithreaded(
             functor_factories.expr_fn(functor.call(I.func, x=I.u, y=I.v)),
             func=fn,
             u=2,
@@ -225,7 +218,7 @@ class CallMultithreadedTest(absltest.TestCase):
   def test_call_with_computed_functor(self):
     fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
-        fns.parallel.call_multithreaded(
+        parallel.call_multithreaded(
             functor_factories.expr_fn(
                 functor.call(I.my_functors.fn, x=I.u, y=I.v)
             ),
@@ -287,7 +280,7 @@ class CallMultithreadedTest(absltest.TestCase):
       return f3(x) + f4(x)
 
     testing.assert_equal(
-        fns.parallel.call_multithreaded(
+        parallel.call_multithreaded(
             functor_factories.trace_py_fn(f5), x=ds(1), max_threads=2
         ),
         ds(4),
@@ -317,7 +310,7 @@ class CallMultithreadedTest(absltest.TestCase):
         ValueError,
         arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
     ):
-      fns.parallel.call_multithreaded(
+      parallel.call_multithreaded(
           functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2
       )
 
@@ -329,7 +322,7 @@ class CallMultithreadedTest(absltest.TestCase):
         'future_from_parallel can only be applied to a parallel non-stream'
         ' type',
     ):
-      _ = fns.parallel.call_multithreaded(
+      _ = parallel.call_multithreaded(
           fn,
           x=1,
           return_type_as=iterables.make().eval(),
@@ -339,7 +332,7 @@ class CallMultithreadedTest(absltest.TestCase):
     fn = functor_factories.expr_fn(
         tuple_ops.tuple_(I.x, tuple_ops.namedtuple_(y=I.y, z=I.z))
     )
-    res = fns.parallel.call_multithreaded(
+    res = parallel.call_multithreaded(
         fn,
         x=1,
         y=2,
@@ -360,7 +353,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
     fn = functor_factories.py_fn(my_fn)
     with self.assertRaises(TimeoutError):
-      _ = fns.parallel.call_multithreaded(fn, x=1, timeout=0.1)
+      _ = parallel.call_multithreaded(fn, x=1, timeout=0.1)
 
 
 if __name__ == '__main__':

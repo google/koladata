@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import qtypes
@@ -23,33 +23,41 @@ class MutableBagTest(absltest.TestCase):
 
   def test_docstring(self):
     self.assertEqual(
-        fns.mutable_bag.__doc__,
+        object_factories.mutable_bag.__doc__,
         'Returns an empty mutable DataBag. Only works in eager mode.',
     )
 
   def test_qtype(self):
-    self.assertEqual(fns.mutable_bag().qtype, qtypes.DATA_BAG)
+    self.assertEqual(object_factories.mutable_bag().qtype, qtypes.DATA_BAG)
 
   def test_create(self):
-    self.assertIsInstance(fns.mutable_bag(), data_bag.DataBag)
-    self.assertTrue(fns.mutable_bag().is_mutable())
+    self.assertIsInstance(object_factories.mutable_bag(), data_bag.DataBag)
+    self.assertTrue(object_factories.mutable_bag().is_mutable())
 
   def test_repr(self):
     self.assertIn(
-        '[1, 2]', repr(fns.mutable_bag().list([1, 2]).get_bag().contents_repr())
+        '[1, 2]',
+        repr(
+            object_factories.mutable_bag()
+            .list([1, 2])
+            .get_bag()
+            .contents_repr()
+        ),
     )
 
   def test_equality(self):
-    db = fns.mutable_bag()
+    db = object_factories.mutable_bag()
     testing.assert_equal(db, db)
-    testing.assert_not_equal(db, fns.mutable_bag())
+    testing.assert_not_equal(db, object_factories.mutable_bag())
     db.new(a=1, b='text')
     testing.assert_equal(db, db)
 
   def test_equivalence(self):
-    testing.assert_equivalent(fns.mutable_bag(), fns.mutable_bag())
-    db1 = fns.mutable_bag()
-    db2 = fns.mutable_bag()
+    testing.assert_equivalent(
+        object_factories.mutable_bag(), object_factories.mutable_bag()
+    )
+    db1 = object_factories.mutable_bag()
+    db2 = object_factories.mutable_bag()
     entity = db1.new(a=1, b='text')
     with self.assertRaises(AssertionError):
       testing.assert_equivalent(db1, db2)

@@ -22,6 +22,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functions import proto_conversions
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import koda_internal_parallel
@@ -41,8 +42,10 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
   def test_format_matches_proto(self):
     config = koda_internal_parallel.get_default_execution_config().eval()
     self.assertEqual(config.qtype, qtypes.DATA_SLICE)
-    config_proto = fns.to_proto(config, execution_config_pb2.ExecutionConfig)
-    reconstructed_config = fns.from_proto(config_proto)
+    config_proto = proto_conversions.to_proto(
+        config, execution_config_pb2.ExecutionConfig
+    )
+    reconstructed_config = proto_conversions.from_proto(config_proto)
     self.assertEqual(
         config.to_py(max_depth=-1), reconstructed_config.to_py(max_depth=-1)
     )

@@ -15,16 +15,14 @@
 import re
 
 from absl.testing import absltest
-from koladata.expr import input_container
+from koladata import kd
 from koladata.expr import view
-from koladata.functions import functions as fns
-from koladata.operators import kde_operators
 from koladata.testing import testing
-from koladata.types import data_slice
 
-I = input_container.InputContainer('I')
-ds = data_slice.DataSlice.from_vals
-kde = kde_operators.kde
+
+I = kd.I
+ds = kd.slice
+kde = kd.lazy
 
 
 class StreamsReduceConcatTest(absltest.TestCase):
@@ -89,8 +87,8 @@ class StreamsReduceConcatTest(absltest.TestCase):
   def test_data_bag_adoption(self):
     [res] = (
         kde.streams.reduce_concat(
-            kde.streams.make(fns.obj(x=ds([1])), fns.obj(x=ds([2]))),
-            fns.obj(x=ds([3])),
+            kde.streams.make(kd.obj(x=ds([1])), kd.obj(x=ds([2]))),
+            kd.obj(x=ds([3])),
         )
         .eval()
         .read_all(timeout=1)

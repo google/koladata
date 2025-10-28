@@ -28,8 +28,8 @@ from koladata.expr import input_container
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
 from koladata.functor import boxing as _
-from koladata.functor import functions as functor_functions
 from koladata.functor import functor_factories
+from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
 from koladata.testing import signature_test_utils
 from koladata.testing import testing
@@ -55,7 +55,7 @@ present = mask_constants.present
 missing = mask_constants.missing
 
 
-@functor_functions.trace_as_fn()
+@tracing_decorator.TraceAsFnDecorator()
 def add_one(x):
   """Adds one to the input."""
   return x + 1

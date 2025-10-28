@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata import kd
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -213,7 +214,7 @@ Assigned schema for list items: INT32""",
 Expected schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
-      db = fns.mutable_bag()
+      db = object_factories.mutable_bag()
       db.list(
           [db.new(x=1)], item_schema=db.new_schema(x=schema_constants.INT32)
       )

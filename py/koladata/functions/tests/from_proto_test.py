@@ -16,6 +16,7 @@ import re
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
+from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -30,12 +31,12 @@ kde = kde_operators.kde
 class FromProtoTest(absltest.TestCase):
 
   def test_zero_messages(self):
-    x = fns.from_proto([])
+    x = proto_conversions.from_proto([])
     testing.assert_equal(x.no_bag(), ds([], schema_constants.OBJECT))
     self.assertFalse(x.get_bag().is_mutable())
 
   def test_single_none(self):
-    x = fns.from_proto(None)
+    x = proto_conversions.from_proto(None)
     testing.assert_equal(x.no_bag(), ds(None, schema_constants.OBJECT))
     self.assertFalse(x.get_bag().is_mutable())
 
@@ -45,10 +46,10 @@ class FromProtoTest(absltest.TestCase):
         'messages must be Message or nested list of Message, got type <class'
         " 'int'> with value 1",
     ):
-      fns.from_proto(1)  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto(1)  # pytype: disable=wrong-arg-types
 
   def test_list_with_none(self):
-    x = fns.from_proto([None])
+    x = proto_conversions.from_proto([None])
     testing.assert_equal(x.no_bag(), ds([None], schema_constants.OBJECT))
 
   def test_invalid_input_list_primitive(self):
@@ -57,7 +58,7 @@ class FromProtoTest(absltest.TestCase):
         'messages must be Message or nested list of Message, got list'
         " containing type <class 'int'> at index 0 with value 1",
     ):
-      fns.from_proto([1])  # pytype: disable=wrong-arg-types
+      proto_conversions.from_proto([1])  # pytype: disable=wrong-arg-types
 
   def test_invalid_different_types(self):
     with self.assertRaisesRegex(
@@ -68,7 +69,7 @@ class FromProtoTest(absltest.TestCase):
             ' koladata.functions.testing.MessageB'
         ),
     ):
-      fns.from_proto([test_pb2.MessageA(), test_pb2.MessageB()])
+      proto_conversions.from_proto([test_pb2.MessageA(), test_pb2.MessageB()])
 
   def test_invalid_input_mismatched_itemid_ndim(self):
     with self.assertRaisesWithLiteralMatch(
@@ -76,22 +77,24 @@ class FromProtoTest(absltest.TestCase):
         'itemid must match the shape of messages, got JaggedShape(1) !='
         ' JaggedShape()',
     ):
-      fns.from_proto(test_pb2.MessageA(), itemid=ds([None]))
+      proto_conversions.from_proto(test_pb2.MessageA(), itemid=ds([None]))
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'itemid must match the shape of messages, got JaggedShape() !='
         ' JaggedShape(0)',
     ):
-      fns.from_proto([], itemid=ds(None))
+      proto_conversions.from_proto([], itemid=ds(None))
 
   def test_single_empty_message(self):
-    x = fns.from_proto(test_pb2.MessageA())
+    x = proto_conversions.from_proto(test_pb2.MessageA())
     self.assertEqual(x.get_ndim(), 0)
     self.assertFalse(x.get_bag().is_mutable())
 
   def test_single_empty_message_object_schema(self):
-    x = fns.from_proto(test_pb2.MessageA(), schema=schema_constants.OBJECT)
+    x = proto_conversions.from_proto(
+        test_pb2.MessageA(), schema=schema_constants.OBJECT
+    )
     self.assertEqual(x.get_ndim(), 0)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
 
@@ -99,16 +102,18 @@ class FromProtoTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape("schema's schema must be SCHEMA, got: INT32")
     ):
-      _ = fns.from_proto(test_pb2.MessageA(), schema=ds(123))
+      _ = proto_conversions.from_proto(test_pb2.MessageA(), schema=ds(123))
     with self.assertRaisesRegex(
         ValueError,
         re.escape("schema's schema must be SCHEMA, got: "),
     ):
-      _ = fns.from_proto(test_pb2.MessageA(), schema=fns.list([1, 2, 3]))
+      _ = proto_conversions.from_proto(
+          test_pb2.MessageA(), schema=fns.list([1, 2, 3])
+      )
 
   def test_single_empty_message_itemid(self):
     x_itemid = fns.uu(seed='').get_itemid()
-    x = fns.from_proto(test_pb2.MessageA(), itemid=x_itemid)
+    x = proto_conversions.from_proto(test_pb2.MessageA(), itemid=x_itemid)
     testing.assert_equal(x.get_itemid().no_bag(), x_itemid.no_bag())
     self.assertFalse(x.get_bag().is_mutable())
 
@@ -122,7 +127,7 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='c'),
         ],
     )
-    x = fns.from_proto(m)
+    x = proto_conversions.from_proto(m)
     self.assertFalse(x.get_bag().is_mutable())
     s = x.get_schema()
     self.assertEqual(x.get_ndim(), 0)
@@ -158,7 +163,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
   def test_single_message_explicit_schema(self):
-    s = fns.schema_from_proto(test_pb2.MessageA)
+    s = proto_conversions.schema_from_proto(test_pb2.MessageA)
     m = test_pb2.MessageA(
         some_text='thing 1',
         some_float=1.0,
@@ -168,7 +173,7 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='c'),
         ],
     )
-    x = fns.from_proto(m, schema=s)
+    x = proto_conversions.from_proto(m, schema=s)
     self.assertFalse(x.get_bag().is_mutable())
     self.assertEqual(x.get_ndim(), 0)
 
@@ -196,7 +201,7 @@ class FromProtoTest(absltest.TestCase):
         ],
     )
 
-    x = fns.from_proto([m1, m2])
+    x = proto_conversions.from_proto([m1, m2])
     s = x.get_schema()
     self.assertEqual(x.get_ndim(), 1)
 
@@ -214,7 +219,7 @@ class FromProtoTest(absltest.TestCase):
     m2 = test_pb2.MessageA(some_text='2')
     m3 = test_pb2.MessageA(some_text='3')
 
-    x = fns.from_proto([[m1, None, m2], [], [m3]])
+    x = proto_conversions.from_proto([[m1, None, m2], [], [m3]])
     self.assertEqual(x.get_ndim(), 2)
     self.assertEqual(
         x.get_shape(), ds([[None, None, None], [], [None]]).get_shape()
@@ -230,7 +235,7 @@ class FromProtoTest(absltest.TestCase):
         'input has to be a valid nested list. non-lists and lists cannot be'
         ' mixed in a level',
     ):
-      fns.from_proto([[m1, m2], m3])
+      proto_conversions.from_proto([[m1, m2], m3])
 
   def test_extensions(self):
     m = test_pb2.MessageA(
@@ -257,7 +262,7 @@ class FromProtoTest(absltest.TestCase):
         test_pb2.MessageBExtension.message_b_extension
     ].extra = 5
 
-    x_noext = fns.from_proto(m)
+    x_noext = proto_conversions.from_proto(m)
     self.assertCountEqual(
         x_noext.get_attr_names(intersection=True),
         [
@@ -268,7 +273,7 @@ class FromProtoTest(absltest.TestCase):
         ],
     )
 
-    x = fns.from_proto(
+    x = proto_conversions.from_proto(
         m,
         extensions=[
             '(koladata.functions.testing.MessageAExtension.message_a_extension)',
@@ -375,7 +380,7 @@ class FromProtoTest(absltest.TestCase):
             ' "koladata.functions.testing.MessageB"'
         ),
     ):
-      _ = fns.from_proto(
+      _ = proto_conversions.from_proto(
           test_pb2.MessageA(),
           extensions=[
               '(koladata.functions.testing.MessageBExtension.message_b_extension)'
@@ -392,7 +397,7 @@ class FromProtoTest(absltest.TestCase):
             ' "koladata.functions.testing.MessageB"'
         ),
     ):
-      _ = fns.from_proto(
+      _ = proto_conversions.from_proto(
           test_pb2.MessageA(),
           schema=kde.schema.new_schema(**{
               '(koladata.functions.testing.MessageBExtension.message_b_extension)': (

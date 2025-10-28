@@ -22,6 +22,7 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functions import object_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -116,7 +117,7 @@ class ListShapedAsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected DATA_SLICE, got shape_from: DATA_BAG'
     ):
-      kd.lists.shaped_as(fns.mutable_bag())
+      kd.lists.shaped_as(object_factories.mutable_bag())
 
   def test_incompatible_shape(self):
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
