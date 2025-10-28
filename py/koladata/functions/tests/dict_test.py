@@ -31,8 +31,6 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Add more tests with merging, etc. Also some from
-# data_bag_test.
 class DictTest(parameterized.TestCase):
 
   def test_mutability(self):
@@ -382,6 +380,23 @@ Assigned schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
 
   def test_alias(self):
     self.assertIs(fns.dict, fns.dicts.new)
+
+  def test_merge_conflict(self):
+    itemid = kde.allocation.new_dictid().eval()
+    dct1 = fns.dict({1: fns.obj(x=1)}, itemid=itemid)
+    dct2 = fns.dict({1: fns.obj(y=2)}, itemid=itemid)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging dicts.
+
+The conflicting dict in the first DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
+The conflicting dict in the second DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
+
+The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}""",
+        ),
+    ):
+      fns.obj(dct1=dct1, dct2=dct2)
 
 
 if __name__ == '__main__':

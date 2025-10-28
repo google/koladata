@@ -29,8 +29,6 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-# TODO: Add more tests with merging, etc. Also some from
-# data_bag_test.
 class ListTest(parameterized.TestCase):
 
   def test_mutability(self):
@@ -231,6 +229,58 @@ Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"
         r"""expected List schema for get_item_schema, got DataItem\(INT32, schema: SCHEMA\)""",
     ):
       _ = fns.list([1, 2, 3], schema=schema_constants.INT32)
+
+  def test_merge_conflict_list_item(self):
+    itemid = kde.allocation.new_listid().eval()
+    lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
+    lst2 = fns.list([fns.obj(x=1), fns.obj(y=3)], itemid=itemid)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging lists.
+
+The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+
+The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}""",
+        ),
+    ):
+      fns.obj(lst1=lst1, lst2=lst2)
+
+  def test_merge_conflict_list_size(self):
+    itemid = kde.allocation.new_listid().eval()
+    lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
+    lst2 = fns.list([fns.obj(x=1)], itemid=itemid)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging lists.
+
+The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}\]
+
+The cause is the list sizes are incompatible: 2 vs 1""",
+        ),
+    ):
+      fns.obj(lst1=lst1, lst2=lst2)
+
+  def test_merge_conflict_show_itemid(self):
+    lst1 = fns.list([1, 2])
+    lst2 = fns.list([1, 2])
+
+    e1 = fns.new(x=lst1)
+    e2 = e1.with_attrs(x=lst2)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22} vs List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22}""",
+        ),
+    ):
+      fns.obj(e1=e1, e2=e2)
 
 
 if __name__ == '__main__':
