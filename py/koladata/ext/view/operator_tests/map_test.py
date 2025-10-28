@@ -14,124 +14,74 @@
 
 import types
 from absl.testing import absltest
+from absl.testing import parameterized
+from koladata import kd
 from koladata.ext.view import kv
+from koladata.ext.view import test_utils
+from koladata.operators.tests.testdata import py_map_py_testdata
 
 
 Obj = types.SimpleNamespace
 
 
-class MapTest(absltest.TestCase):
+class MapTest(parameterized.TestCase):
 
-  def test_map(self):
-    x = Obj(a=[Obj(b=1), Obj(b=2)])
-    self.assertEqual(kv.map(lambda x: x + 1, kv.view(x).a[:].b).get(), (2, 3))
-    self.assertEqual(kv.map(len, kv.view([[1, 2], [3]])[:]).get(), (2, 1))
-    self.assertEqual(kv.map(len, kv.view([[1, 2], [3]])).get(), 2)
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([1, 2])[:],
-            kv.view([3, 4])[:],
-        ).get(),
-        (4, 6),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([1, 2])[:],
-            y=kv.view([3, 4])[:],
-        ).get(),
-        (4, 6),
+  @parameterized.named_parameters(*py_map_py_testdata.TEST_CASES)
+  def test_call(self, fn, args, kwargs, expected):
+    args = [
+        test_utils.from_ds(x) if isinstance(x, kd.types.DataSlice) else x
+        for x in args
+    ]
+    kwargs = {
+        k: test_utils.from_ds(v) if isinstance(v, kd.types.DataSlice) else v
+        for k, v in kwargs.items()
+        if k != 'schema'
+    }
+    expected = test_utils.from_ds(expected)
+    res = kv.map(fn, *args, **kwargs)
+    test_utils.assert_equal(res, expected)
+
+  # We do not share this test case with kd.map_py, since the behavior is
+  # different: kd.map_py passes a DataItem for object arguments, which handles
+  # sparsity, while kv.map passes a raw Python object, which does not.
+  def test_object_argument(self):
+    x = kv.view([
+        [Obj(y=1, z=6), Obj(y=2, z=7)],
+        [Obj(y=3, z=8), Obj(y=None, z=9), Obj(y=5, z=None)],
+    ])[:][:]
+    res = kv.map(lambda x: (x.y or 0) + (x.z or 0), x)
+    test_utils.assert_equal(res, kv.view([[7, 9], [11, 9, 5]])[:][:])
+
+  def test_ndim_has_tuples(self):
+    def f(x):
+      assert isinstance(x, tuple)
+      assert all(isinstance(y, tuple) for y in x)
+      return sum(sum(y) for y in x)
+
+    test_utils.assert_equal(
+        kv.map(f, kv.view([[[1, 2], [3]], [[4, 5]]])[:][:][:], ndim=2),
+        kv.view([6, 9])[:],
     )
 
-  def test_map_broadcasting(self):
-    self.assertEqual(
-        kv.map(lambda x, y: x + y, kv.view([1, 2])[:], 10).get(),
-        (11, 12),
-    )
-    self.assertEqual(
-        kv.map(lambda x, y: x + y, 10, kv.view([1, 2])[:]).get(),
-        (11, 12),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([1, 2])[:],
-            y=10,
-        ).get(),
-        (11, 12),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y, z: x + y + z,
-            kv.view([1, 2])[:],
-            kv.view([10, 20])[:],
-            100,
-        ).get(),
-        (111, 122),
-    )
+  def test_ndim_errors(self):
+    v = kv.view([[[1, 2], [3]], [[4, 5]]])[:][:][:]
+
     with self.assertRaisesRegex(
-        TypeError,
-        'expected all tuples to be the same length when depth > 0, got 1 and 2',
+        ValueError,
+        'invalid argument ndim=4, only values smaller or equal to 3 are'
+        ' supported for the given view',
     ):
-      _ = kv.map(
-          lambda x, y: x + y,
-          kv.view([[1], [2]])[:][:],
-          kv.view([[10, 20]])[:][:],
-      ).get()
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([[1, 2], [3, 4]])[:][:],
-            kv.view([10, 20])[:],
-        ).get(),
-        ((11, 12), (23, 24)),
-    )
+      _ = kv.map(lambda x: x, v, ndim=4)
 
-  def test_map_include_missing(self):
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([1, 2])[:],
-            kv.view([3, None])[:],
-        ).get(),
-        (4, None),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            kv.view([1, 2])[:],
-            kv.view([3, None])[:],
-            include_missing=False,
-        ).get(),
-        (4, None),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y if y is not None else 57,
-            kv.view([1, 2])[:],
-            kv.view([3, None])[:],
-            include_missing=True,
-        ).get(),
-        (4, 57),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y,
-            None,
-            kv.view([3, 4])[:],
-        ).get(),
-        (None, None),
-    )
-    self.assertEqual(
-        kv.map(
-            lambda x, y: x + y if x is not None else 57,
-            None,
-            kv.view([3, 4])[:],
-            include_missing=True,
-        ).get(),
-        (57, 57),
-    )
+    with self.assertRaisesRegex(
+        ValueError, 'invalid argument ndim=-1, must be non-negative'
+    ):
+      _ = kv.map(lambda x: x, v, ndim=-1)
+
+    with self.assertRaisesRegex(
+        ValueError, 'include_missing=False can only be used with ndim=0'
+    ):
+      _ = kv.map(lambda x: x, v, ndim=1, include_missing=False)
 
 
 if __name__ == '__main__':

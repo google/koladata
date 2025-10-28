@@ -47,8 +47,12 @@ py_test(
     srcs = ["map_test.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata:kd",
         "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:py_map_py_testdata",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

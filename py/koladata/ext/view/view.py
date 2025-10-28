@@ -203,50 +203,43 @@ class View:
       )
 
   def map(
-      self, f: Callable[[Any], Any], *, include_missing: bool = False
+      self,
+      f: Callable[[Any], Any],
+      *,
+      ndim: int = 0,
+      include_missing: bool | None = None,
   ) -> View:
     """Applies a function to every item in the view.
+
+    If `ndim=0`, then the function is applied to the items of the view.
+    If `ndim=1`, then the function is applied to tuples of items of the
+    view corresponding to the last dimension. If `ndim=2`, then the function
+    is applied to tuples of tuples, and so on. The depth of the result is
+    therefore decreased by `ndim` compared to the depth of `self`.
 
     Example:
       view([1, None, 2])[:].map(lambda x: x * 2).get()
       # (2, None, 4)
-      view([1, 2]).map(lambda x: x * 2).get()
-      # [1, 2, 1, 2]
+      view([1, None, 2]).map(lambda x: x * 2).get()
+      # [1, None, 2, 1, None, 2]
+      # We have used "*" operator on the list [1, None, 2] and the integer 2.
+      view([1, None, 2])[:].map(lambda x: x * 2, ndim=1).get()
+      # (1, None, 2, 1, None, 2)
+      # Here we have used "*" operator on the tuple (1, None, 2) and the integer
+      # 2.
 
     Args:
       f: The function to apply.
-      include_missing: Whether to call f when the corresponding item is None. If
-        False, f will not be called and the result will preserve the None.
+      ndim: Dimensionality of items to pass to `f`, must be less or equal to the
+        depth of the view.
+      include_missing: Specifies whether `f` applies to all items (`=True`) or
+        only to present items (`=False`, valid only when `ndim=0`); defaults to
+        `False` when `ndim=0`.
 
     Returns:
       A new view with the function applied to every item.
     """
-    return _map1(f, self, include_missing=include_missing)
-
-  def agg_map(self, f: Callable[[tuple[Any, ...]], Any]) -> View:
-    """Applies a function to tuples from the last dimension of the view.
-
-    This is a shortcut for .implode().map(). Every invocation of `f` will be
-    passed a tuple of values corresponding to all items within the last (most
-    nested) dimension of the view, including Nones for missing values.
-
-    Example:
-      view([[None, 1, 2], []])[:][:].agg_map(len).get()
-      # (3, 0)
-      view([[None, 1, 2], []])[:][:].agg_map(print).get()
-      # (None, None)
-      # Prints:
-      # (None, 1, 2)
-      # ()
-
-    Args:
-      f: The function to apply.
-
-    Returns:
-      A new view with the function applied to every tuple of items, with one
-      fewer dimension.
-    """
-    return _map1(f, self.implode())
+    return map_(f, self, ndim=ndim, include_missing=include_missing)
 
   def get_depth(self) -> int:
     """Returns the depth of the view."""
@@ -259,6 +252,10 @@ def view(obj: Any) -> View:
   A view represents traversing a particular path in a tree represented
   by the object, with the leaves of that path being the items in the view,
   and the structure of that path being the shape of the view.
+
+  Note that when we traverse a path, sometimes we branch when there are several
+  uniform edges, such as when using the `view[:]` API. So in formal terms what
+  we call a `path` is actually a subtree of the tree.
 
   For example, consider the following set of objects:
 
@@ -277,6 +274,11 @@ def view(obj: Any) -> View:
   to traversing edge labeled with c to z. view(w).c[:] corresponds to traversing
   the edges labeled with item0 and item1 to x and y respectively. view(w).c[:].d
   corresponds to traversing the edges labeled with d to 3 and 4.
+
+  We call the leaf nodes of this path traversal the items of the view, and
+  the number of branches used to get to them the depth of the view.
+
+  For example, for view(w).c[:].d, its items are 3 and 4, and its depth is 1.
 
   Example:
     view([1, 2])[:].map(lambda x: x + 1).get()
@@ -323,6 +325,29 @@ def box(obj: ViewOrAutoBoxType) -> View:
     )
 
 
+# This method is in view.py since it is used in the map_ method.
+def align(*args: ViewOrAutoBoxType) -> tuple[View, ...]:
+  """Aligns the views to a common shape.
+
+  We will also apply auto-boxing if some inputs are not views but can be
+  automatically boxed into one.
+
+  Args:
+    *args: The views to align, or values that can be automatically boxed into
+      views.
+
+  Returns:
+    A tuple of aligned views, of size len(others) + 1.
+  """
+  if not args:
+    return ()
+  if len(args) == 1:
+    return (box(args[0]),)
+  args = [box(o) for o in args]
+  ref_view = max(args, key=lambda v: v.get_depth())
+  return tuple(v.expand_to(ref_view) for v in args)
+
+
 def _map1(
     f: Callable[..., Any], arg: View, *, include_missing: bool = False
 ) -> View:
@@ -357,7 +382,8 @@ def _map2(
 def map_(
     f: Callable[..., Any],
     *args: ViewOrAutoBoxType,
-    include_missing: bool = False,
+    ndim: int = 0,
+    include_missing: bool | None = None,
     **kwargs: ViewOrAutoBoxType,
 ) -> View:
   """Applies a function to corresponding items in the args/kwargs view.
@@ -365,33 +391,56 @@ def map_(
   Arguments will be broadcasted to a common shape. There must be at least one
   argument or keyword argument.
 
+  The `ndim` argument controls how many dimensions should be passed to `f` in
+  each call. If `ndim = 0` then the items of the corresponding view will be
+  passed, if `ndim = 1` then python tuples of items corresponding
+  to the last dimension will be passed, if `ndim = 2` then tuples of tuples,
+  and so on.
+
   Example:
     x = types.SimpleNamespace(
         a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
     )
     kv.map(lambda i: i + 1, kv.view(x).a[:].b).get()
-    # [2, 3]
+    # (2, 3)
     kv.map(lambda x: x + y, kv.view(x).a[:].b, kv.view(1)).get()
-    # [2, 3]
+    # (2, 3)
+    kv.map(lambda i: i + i, kv.view(x).a[:].b, ndim=1).get()
+    # (1, 2, 1, 2)
 
   Args:
     f: The function to apply.
     *args: The positional arguments to pass to the function. They must all be
       views or auto-boxable into views.
-    include_missing: Whether to call fn when one of the args is None. If False,
-      the result will be None if any of the args is None.
+    ndim: Dimensionality of items to pass to `f`.
+    include_missing: Specifies whether `f` applies to all items (`=True`) or
+      only to items present in all `args` and `kwargs` (`=False`, valid only
+      when `ndim=0`); defaults to `False` when `ndim=0`.
     **kwargs: The keyword arguments to pass to the function. They must all be
       views or auto-boxable into views.
 
   Returns:
     A new view with the function applied to the corresponding items.
   """
+  if include_missing is None:
+    include_missing = bool(ndim)
+
+  all_args = itertools.chain(args, kwargs.values())
+  if ndim:
+    if not include_missing:
+      raise ValueError('include_missing=False can only be used with ndim=0')
+    if ndim < 0:
+      raise ValueError(f'invalid argument {ndim=}, must be non-negative')
+    # When ndim>0, we actually need tuples of the same value for arguments
+    # that are expanded, so we call align explicitly.
+    all_args = align(*all_args)
+
   unboxed_args = []
   depths = []
   append_arg = unboxed_args.append
   append_depth = depths.append
 
-  for arg in itertools.chain(args, kwargs.values()):
+  for arg in all_args:
     if isinstance(arg, View):
       append_depth(arg._depth)  # pylint: disable=protected-access
       append_arg(arg._obj)  # pylint: disable=protected-access
@@ -400,7 +449,19 @@ def map_(
       append_depth(0)
       append_arg(arg)
 
+  res_depth = max(depths)
+  if ndim:
+    assert all(depth == res_depth for depth in depths)
+    if ndim > res_depth:
+      raise ValueError(
+          f'invalid argument {ndim=}, only values smaller or equal to'
+          f' {res_depth} are supported for the given'
+          f' view{"s" if len(depths) > 1 else ""}'
+      )
+    res_depth -= ndim
+    depths = [res_depth] * len(depths)
+
   obj = _cc_map_structure(
       f, depths, include_missing, unboxed_args, tuple(kwargs)
   )
-  return View(obj, max(depths), _INTERNAL_CALL)
+  return View(obj, res_depth, _INTERNAL_CALL)

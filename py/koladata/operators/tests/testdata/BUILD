@@ -64,3 +64,14 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "py_map_py_testdata",
+    srcs = ["py_map_py_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+    ],
+)

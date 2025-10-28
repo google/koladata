@@ -64,22 +64,37 @@ class ViewTest(absltest.TestCase):
 
   def test_agg_map(self):
     self.assertEqual(
-        view_lib.view([[None, 1, 2], []])[:][:].agg_map(len).get(), (3, 0)
+        view_lib.view([[None, 1, 2], []])[:][:].map(len, ndim=1).get(), (3, 0)
     )
     self.assertEqual(
         view_lib.view([[None, 1, 2], []])[:][:]
-        .agg_map(list)
-        .agg_map(list)
+        .map(list, ndim=1)
+        .map(list, ndim=1)
         .get(),
         [[None, 1, 2], []],
     )
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Cannot implode by 1 dimensions, the shape has only 0 dimensions.'
-        ),
+        'invalid argument ndim=1, only values smaller or equal to 0 are'
+        ' supported for the given view',
     ):
-      _ = view_lib.view(5).agg_map(len)
+      _ = view_lib.view(5).map(len, ndim=1)
+    with self.assertRaisesRegex(
+        ValueError, 'invalid argument ndim=-1, must be non-negative'
+    ):
+      _ = view_lib.view(5).map(len, ndim=-1)
+    self.assertEqual(
+        view_lib.view([[None, 1, 2], []])[:][:]
+        .map(len, ndim=1, include_missing=True)
+        .get(),
+        (3, 0),
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'include_missing=False can only be used with ndim=0'
+    ):
+      _ = view_lib.view([[None, 1, 2], []])[:][:].map(
+          len, ndim=1, include_missing=False
+      )
 
   def test_nested_slice(self):
     x = Obj(

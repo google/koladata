@@ -5994,6 +5994,7 @@ py_test(
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/testdata:py_map_py_testdata",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",

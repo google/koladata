@@ -28,6 +28,7 @@ from koladata.functions import functions
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import py_map_py_testdata
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -43,15 +44,16 @@ kde = kde_operators.kde
 
 class PyMapPyTest(parameterized.TestCase):
 
-  def test_map_py_single_arg(self):
-    def add_one(x):
-      return x + 1
-
-    x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    res = kd.py.map_py(add_one, x)
+  @parameterized.named_parameters(*py_map_py_testdata.TEST_CASES)
+  def test_eval(self, fn, args, kwargs, expected):
+    res = kd.py.map_py(fn, *args, **kwargs)
+    testing.assert_equivalent(res, expected)
+    # Currently assert_equivalent ignores schema on empty slices, so we check
+    # schema separately.
     testing.assert_equal(
-        res.no_bag(), ds([[2, 3, None, 5], [None, None], [8, 9, 10]])
+        res.get_schema().no_bag(), expected.get_schema().no_bag()
     )
+    self.assertFalse(res.is_mutable())
 
   def test_map_py_object_argument(self):
     x = functions.obj(y=ds([[1, 2], [3]]), z=ds([[6, 7], [8]]))
@@ -85,36 +87,6 @@ class PyMapPyTest(parameterized.TestCase):
       testing.assert_equal(res.y.no_bag(), ds(2))
       self.assertFalse(res.is_mutable())
 
-  def test_map_py_return_none(self):
-    def return_none(x):
-      del x
-      return None
-
-    val = ds([[1], [None, None], [7, 8, 9]])
-    res = kd.py.map_py(return_none, val)
-    testing.assert_equal(
-        res.no_bag(), ds([[None], [None, None], [None, None, None]])
-    )
-
-  def test_map_py_return_none_on_exception(self):
-    def return_none_on_exception(x, y):
-      try:
-        return x // y
-      except:  # pylint: disable=bare-except
-        return None
-
-    x = ds([[1], [None, 3], [None, 8, 9]])
-    y = ds([[1], [None, 0], [7, None, 3]])
-    expected = ds([[1], [None, None], [None, None, 3]])
-
-    with self.subTest('flat'):
-      res = kd.py.map_py(return_none_on_exception, x=x.flatten(), y=y.flatten())
-      testing.assert_equal(res.no_bag(), expected.flatten())
-
-    with self.subTest('nested'):
-      res = kd.py.map_py(return_none_on_exception, x=x, y=y)
-      testing.assert_equal(res.no_bag(), expected)
-
   def test_map_py_single_thread(self):
     thread_idents = {threading.get_ident()}
 
@@ -136,38 +108,6 @@ class PyMapPyTest(parameterized.TestCase):
     val = ds(list(range(10**3)))
     _ = kd.py.map_py(add_one, val, max_threads=10)
     self.assertGreater(thread_idents, {threading.get_ident()})
-
-  def test_map_py_multi_args(self):
-    def add_all(x, y, z):
-      return x + y + z
-
-    val1 = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    val2 = ds([[0, 1, None, 2], [3, 4], [6, 7, 8]])
-    val3 = ds([[2, None, 4, 5], [6, 7], [None, 9, 10]])
-    res = kd.py.map_py(add_all, val1, val2, val3)
-    testing.assert_equal(
-        res.no_bag(), ds([[3, None, None, 11], [None, None], [None, 24, 27]])
-    )
-
-  def test_map_py_texting_output(self):
-    def as_string(x):
-      return str(x)
-
-    val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    res = kd.py.map_py(as_string, val)
-    testing.assert_equal(
-        res.no_bag(), ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
-    )
-
-  def test_map_py_texting_input(self):
-    def as_string(x):
-      return int(x)
-
-    val = ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
-    res = kd.py.map_py(as_string, val)
-    testing.assert_equal(
-        res.no_bag(), ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    )
 
   def test_map_py_with_qtype(self):
     def add_one(x):
@@ -303,113 +243,6 @@ assigned schema: ENTITY(u=INT64)"""),
     )
     self.assertFalse(res.is_mutable())
 
-  @parameterized.parameters(False, True)
-  def test_map_py_empty_input(self, include_missing):
-    def my_fn(x):
-      return x
-
-    val = ds([[]])
-
-    with self.subTest('no_schema'):
-      res = kd.py.map_py(my_fn, val, include_missing=include_missing)
-      testing.assert_equal(res.no_bag(), ds([[]]))
-      self.assertFalse(res.has_bag())
-
-    with self.subTest('schema=FLOAT32'):
-      res = kd.py.map_py(
-          my_fn,
-          val,
-          schema=schema_constants.FLOAT32,
-          include_missing=include_missing,
-      )
-      testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
-      self.assertFalse(res.has_bag())
-
-    with self.subTest('schema=OBJECT'):
-      res = kd.py.map_py(
-          my_fn,
-          val,
-          schema=schema_constants.OBJECT,
-          include_missing=include_missing,
-      )
-      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-      self.assertFalse(res.get_bag().is_mutable())
-
-  @parameterized.parameters(False, True)
-  def test_map_py_all_missing_input(self, include_missing):
-    def my_fn(x):
-      return x
-
-    val = ds([[None]])
-
-    with self.subTest('no_schema'):
-      res = kd.py.map_py(my_fn, val, include_missing=include_missing)
-      testing.assert_equal(
-          res.no_bag(), ds([[None]], schema=schema_constants.NONE)
-      )
-      self.assertFalse(res.has_bag())
-
-    with self.subTest('schema=FLOAT32'):
-      res = kd.py.map_py(
-          my_fn,
-          val,
-          schema=schema_constants.FLOAT32,
-          include_missing=include_missing,
-      )
-      testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
-      self.assertFalse(res.has_bag())
-
-    with self.subTest('schema=OBJECT'):
-      res = kd.py.map_py(
-          my_fn,
-          val,
-          schema=schema_constants.OBJECT,
-          include_missing=include_missing,
-      )
-      testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
-      self.assertFalse(res.get_bag().is_mutable())
-
-  def test_map_py_scalar_input(self):
-    def add_one(x):
-      return x + 1
-
-    val = ds(5)
-    res = kd.py.map_py(add_one, val)
-    testing.assert_equal(res.no_bag(), ds(6))
-
-  def test_map_py_auto_expand(self):
-    def my_add(x, y):
-      return x + y
-
-    val1 = ds(1)
-    val2 = ds([[0, 1, None, 2], [3, 4], [6, 7, 8]])
-    res = kd.py.map_py(my_add, val1, val2)
-    testing.assert_equal(res.no_bag(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
-
-  def test_map_py_raw_input(self):
-    def my_add(x, y):
-      return x + y
-
-    res = kd.py.map_py(my_add, 1, ds([[0, 1, None, 2], [3, 4], [6, 7, 8]]))
-    testing.assert_equal(res.no_bag(), ds([[1, 2, None, 3], [4, 5], [7, 8, 9]]))
-
-  def test_map_py_dict(self):
-    def as_dict(x):
-      return {'x': x, 'y': x + 1}
-
-    val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    res = kd.py.map_py(as_dict, val)
-    testing.assert_equal(
-        res['x'].no_bag(),
-        ds([[1, 2, None, 4], [None, None], [7, 8, 9]], schema_constants.OBJECT),
-    )
-    testing.assert_equal(
-        res['y'].no_bag(),
-        ds(
-            [[2, 3, None, 5], [None, None], [8, 9, 10]], schema_constants.OBJECT
-        ),
-    )
-
   def test_map_py_invalid_qtype(self):
     def as_set(x):
       return {x}
@@ -438,23 +271,6 @@ assigned schema: ENTITY(u=INT64)"""),
         ),
     ):
       kd.py.map_py(add_x_y, val1, val2)
-
-  def test_map_py_kwargs(self):
-    def my_fn(x, y, z=2, **kwargs):
-      return x + y + z + kwargs.get('w', 5)
-
-    x = ds([[0, 0, 1], [None, 1, 0]])
-    y = ds([[0, None, 1], [-1, 0, 1]])
-    z = ds([[1, 2, 3], [4, 5, 6]])
-    w = ds([[-1, -1, 0], [1, 0, 0]])
-    res = kd.py.map_py(my_fn, x, y=y, z=z, w=w)
-    res2 = kd.py.map_py(my_fn, x, y, z=z, w=w)
-    res3 = kd.py.map_py(my_fn, x, y, z, w=w)
-    res4 = kd.py.map_py(my_fn, x, y, z)
-    testing.assert_equal(res.no_bag(), ds([[0, None, 5], [None, 6, 7]]))
-    testing.assert_equal(res.no_bag(), res2.no_bag())
-    testing.assert_equal(res.no_bag(), res3.no_bag())
-    testing.assert_equal(res4.no_bag(), ds([[6, None, 10], [None, 11, 12]]))
 
   def test_map_py_no_inputs(self):
     with self.assertRaisesWithPredicateMatch(
@@ -488,144 +304,39 @@ assigned schema: ENTITY(u=INT64)"""),
           lambda x: None, ds(list(range(10))), item_completed_callback=1
       )
 
-  def test_map_py_ndim(self):
+  def test_map_py_ndim_errors(self):
     val = ds([[[1, 2, None, 4], [None, None], [7, 8, 9]], [[3, 3, 5]]])
-    with self.subTest('ndim_1'):
 
-      def agg_count(x):
-        return len([i for i in x if i is not None])
+    def agg_count(x):
+      return len([i for i in x if i is not None])
 
-      res = kd.py.map_py(agg_count, val, ndim=1)
-      testing.assert_equal(res.no_bag(), ds([[3, 0, 3], [3]]))
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'ndim should be between 0 and 3, got ndim=-1'
+        ),
+    ):
+      kd.py.map_py(agg_count, val, ndim=-1)
 
-    with self.subTest('ndim_2'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'ndim should be between 0 and 3, got ndim=4'
+        ),
+    ):
+      kd.py.map_py(agg_count, val, ndim=4)
 
-      def agg_count2(x):
-        return sum([agg_count(y) for y in x])
-
-      res = kd.py.map_py(agg_count2, val, ndim=2)
-      testing.assert_equal(res.no_bag(), ds([6, 3]))
-
-    with self.subTest('ndim_max'):
-
-      def agg_count3(x):
-        return sum([agg_count2(y) for y in x])
-
-      res = kd.py.map_py(agg_count3, val, ndim=3)
-      testing.assert_equal(res.no_bag(), ds(9))
-
-    with self.subTest('ndim_invalid'):
-      with self.assertRaisesWithPredicateMatch(
-          ValueError,
-          arolla.testing.any_cause_message_regex(
-              'ndim should be between 0 and 3, got ndim=-1'
-          ),
-      ):
-        kd.py.map_py(agg_count, val, ndim=-1)
-
-      with self.assertRaisesWithPredicateMatch(
-          ValueError,
-          arolla.testing.any_cause_message_regex(
-              'ndim should be between 0 and 3, got ndim=4'
-          ),
-      ):
-        kd.py.map_py(agg_count, val, ndim=4)
-
-      with self.assertRaisesWithPredicateMatch(
-          ValueError,
-          arolla.testing.any_cause_message_regex(
-              'expected a scalar integer, got ndim=None'
-          ),
-      ):
-        kd.py.map_py(agg_count, val, ndim=None)
-
-  def test_map_py_expanded_results(self):
-    val = ds([[1, 2, None], [4, 5]])
-
-    with self.subTest('expand_one_dim'):
-
-      def ranges(x):
-        return list(range(x))
-
-      res = kd.py.map_py(ranges, val)
-      self.assertEqual(res.get_ndim(), 2)
-      self.assertEqual(
-          res.to_py(), [[[0], [0, 1], None], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]]
-      )
-
-    with self.subTest('expand_several_dims'):
-
-      def expnd(x):
-        return [[x, -1]]
-
-      res = kd.py.map_py(expnd, val)
-      self.assertEqual(res.get_ndim(), 2)
-      self.assertEqual(
-          res.to_py(), [[[[1, -1]], [[2, -1]], None], [[[4, -1]], [[5, -1]]]]
-      )
-
-    with self.subTest('agg_and_expand'):
-
-      def agg_and_expand(x):
-        return [sum(y for y in x if y is not None), -1]
-
-      res = kd.py.map_py(agg_and_expand, val, ndim=1)
-      self.assertEqual(res.get_ndim(), 1)
-      self.assertEqual(res.to_py(), [[3, -1], [9, -1]])
-
-    with self.subTest('expand_sparse'):
-
-      def expand_sparse(x):
-        return [x] if x is not None else None
-
-      res = kd.py.map_py(expand_sparse, val)
-      self.assertEqual(res.get_ndim(), 2)
-      self.assertEqual(res.to_py(), [[[1], [2], None], [[4], [5]]])
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'expected a scalar integer, got ndim=None'
+        ),
+    ):
+      kd.py.map_py(agg_count, val, ndim=None)
 
   def test_map_py_mixed_scalars_and_slices(self):
     res = kd.py.map_py(lambda x: x if x % 2 else ds(x), ds([1, 2, 3, 4]))
     testing.assert_equal(res.no_bag(), ds([1, 2, 3, 4]))
-
-  def test_map_py_include_missing_false(self):
-    with self.subTest('rank2'):
-      x = ds([[1, 2], [3], []])
-      y = ds([3.5, None, 4.5])
-      res = kd.py.map_py(lambda x, y: x + y, x, y, include_missing=False)
-      testing.assert_equal(res.no_bag(), ds([[4.5, 5.5], [None], []]))
-    with self.subTest('all_present'):
-      res = kd.py.map_py(
-          lambda x: x or -1, ds([0, 0, 2]), include_missing=False
-      )
-      testing.assert_equal(res.no_bag(), ds([-1, -1, 2]))
-    with self.subTest('return_missing'):
-      res = kd.py.map_py(
-          lambda x: x or None, ds([0, None, 2, None]), include_missing=False
-      )
-      testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
-
-  def test_map_py_include_missing_true(self):
-    with self.subTest('sparse'):
-      x = ds([[1, 2], [3], []])
-      y = ds([3.5, None, 4.5])
-      res = kd.py.map_py(
-          lambda x, y: -1 if x is None or y is None else x + y,
-          x,
-          y,
-          include_missing=True,
-      )
-      testing.assert_equal(res.no_bag(), ds([[4.5, 5.5], [-1], []]))
-      res = kd.py.map_py(
-          lambda x: x or -1, ds([0, None, 2, None]), include_missing=True
-      )
-      testing.assert_equal(res.no_bag(), ds([-1, -1, 2, -1]))
-    with self.subTest('all_present'):
-      res = kd.py.map_py(lambda x: x or -1, ds([0, 0, 2]), include_missing=True)
-      testing.assert_equal(res.no_bag(), ds([-1, -1, 2]))
-    with self.subTest('return_missing'):
-      res = kd.py.map_py(
-          lambda x: x or None, ds([0, None, 2, None]), include_missing=True
-      )
-      testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
 
   def test_map_py_invalid_include_missing(self):
     with self.assertRaisesWithPredicateMatch(

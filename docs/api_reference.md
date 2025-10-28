@@ -11622,7 +11622,7 @@ Experimental Koda View API.
 
 **Operators**
 
-### `kd_ext.kv.align(*args: View | int | float | str | bytes | bool | None) -> tuple[View, ...]` {#kd_ext.kv.align}
+### `kd_ext.kv.align(*args: ViewOrAutoBoxType) -> tuple[View, ...]` {#kd_ext.kv.align}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns the views to a common shape.
 
@@ -11773,28 +11773,38 @@ Args:
 Returns:
   A new view with `ndim` fewer dimensions.</code></pre>
 
-### `kd_ext.kv.map(f: Callable[..., Any], *args: ViewOrAutoBoxType, include_missing: bool = False, **kwargs: ViewOrAutoBoxType) -> View` {#kd_ext.kv.map}
+### `kd_ext.kv.map(f: Callable[..., Any], *args: ViewOrAutoBoxType, ndim: int = 0, include_missing: bool | None = None, **kwargs: ViewOrAutoBoxType) -> View` {#kd_ext.kv.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs view.
 
 Arguments will be broadcasted to a common shape. There must be at least one
 argument or keyword argument.
 
+The `ndim` argument controls how many dimensions should be passed to `f` in
+each call. If `ndim = 0` then the items of the corresponding view will be
+passed, if `ndim = 1` then python tuples of items corresponding
+to the last dimension will be passed, if `ndim = 2` then tuples of tuples,
+and so on.
+
 Example:
   x = types.SimpleNamespace(
       a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
   )
   kv.map(lambda i: i + 1, kv.view(x).a[:].b).get()
-  # [2, 3]
+  # (2, 3)
   kv.map(lambda x: x + y, kv.view(x).a[:].b, kv.view(1)).get()
-  # [2, 3]
+  # (2, 3)
+  kv.map(lambda i: i + i, kv.view(x).a[:].b, ndim=1).get()
+  # (1, 2, 1, 2)
 
 Args:
   f: The function to apply.
   *args: The positional arguments to pass to the function. They must all be
     views or auto-boxable into views.
-  include_missing: Whether to call fn when one of the args is None. If False,
-    the result will be None if any of the args is None.
+  ndim: Dimensionality of items to pass to `f`.
+  include_missing: Specifies whether `f` applies to all items (`=True`) or
+    only to items present in all `args` and `kwargs` (`=False`, valid only
+    when `ndim=0`); defaults to `False` when `ndim=0`.
   **kwargs: The keyword arguments to pass to the function. They must all be
     views or auto-boxable into views.
 
@@ -11808,6 +11818,10 @@ Returns:
 A view represents traversing a particular path in a tree represented
 by the object, with the leaves of that path being the items in the view,
 and the structure of that path being the shape of the view.
+
+Note that when we traverse a path, sometimes we branch when there are several
+uniform edges, such as when using the `view[:]` API. So in formal terms what
+we call a `path` is actually a subtree of the tree.
 
 For example, consider the following set of objects:
 
@@ -11826,6 +11840,11 @@ Now view(w) corresponds to just the root of this tree. view(w).c corresponds
 to traversing edge labeled with c to z. view(w).c[:] corresponds to traversing
 the edges labeled with item0 and item1 to x and y respectively. view(w).c[:].d
 corresponds to traversing the edges labeled with d to 3 and 4.
+
+We call the leaf nodes of this path traversal the items of the view, and
+the number of branches used to get to them the depth of the view.
+
+For example, for view(w).c[:].d, its items are 3 and 4, and its depth is 1.
 
 Example:
   view([1, 2])[:].map(lambda x: x + 1).get()
