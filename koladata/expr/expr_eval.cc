@@ -253,8 +253,6 @@ absl::StatusOr<CompiledExpr> Compile(
         "internal kd.eval error: passed %d leaf values, while %d was needed",
         leaf_values.size(), leaf_keys.size()));
   }
-  // TODO: Instead of creating a fingerprint, we can use a tuple
-  // as key.
   arolla::FingerprintHasher hasher("koladata.expr_eval");
   hasher.Combine(expr->fingerprint());
   for (const auto& value : leaf_values) {
@@ -285,8 +283,6 @@ absl::StatusOr<CompiledExpr> Compile(
 absl::StatusOr<CompiledExpr> CompileOp(
     const arolla::expr::ExprOperatorPtr& op,
     absl::Span<const arolla::TypedRef> arg_values) {
-  // TODO: Instead of creating a fingerprint, we can use a tuple
-  // as key.
   arolla::FingerprintHasher hasher("koladata.expr_eval.op");
   hasher.Combine(op->fingerprint());
   for (const auto& value : arg_values) {
