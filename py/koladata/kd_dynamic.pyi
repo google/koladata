@@ -16,13 +16,8 @@
 from dataclasses import dataclass as _dataclass
 from koladata.extension_types import extension_types as _extension_types_extension_types
 from koladata.extension_types import util as _extension_types_util
-from koladata.functions import attrs as _functions_attrs
 from koladata.functions import object_factories as _functions_object_factories
-from koladata.functions import parallel as _functions_parallel
-from koladata.functions import predicates as _functions_predicates
 from koladata.functions import proto_conversions as _functions_proto_conversions
-from koladata.functions import py_conversions as _functions_py_conversions
-from koladata.functions import s11n as _functions_s11n
 from koladata.functions import schema as _functions_schema
 from koladata.functor import functor_factories as _functor_functor_factories
 from koladata.functor import tracing_decorator as _functor_tracing_decorator
@@ -379,13 +374,6 @@ class objs:
 
 
 @_dataclass
-class parallel:
-  call_multithreaded = _functions_parallel.call_multithreaded
-  transform = _functions_parallel.transform
-  yield_multithreaded = _functions_parallel.yield_multithreaded
-
-
-@_dataclass
 class proto:
   from_proto_bytes = _operators_proto.from_proto_bytes
   from_proto_json = _operators_proto.from_proto_json
@@ -649,14 +637,12 @@ collapse = _operators_slices.collapse
 concat = _operators_slices.concat
 concat_lists = _operators_lists.concat_lists
 cond = _operators_masking.cond
-container = _functions_object_factories.container
 count = _operators_slices.count
 cum_count = _operators_slices.cum_count
 cum_max = _operators_math.cum_max
 decode_itemid = _operators_ids.decode_itemid
 deep_clone = _operators_core.deep_clone
 deep_uuid = _operators_ids.deep_uuid
-del_attr = _functions_attrs.del_attr
 dense_rank = _operators_slices.dense_rank
 dict = _operators_dicts.create
 dict_like = _operators_dicts.like
@@ -665,10 +651,7 @@ dict_shaped = _operators_dicts.shaped
 dict_shaped_as = _operators_dicts.shaped_as
 dict_size = _operators_dicts.size
 dict_update = _operators_dicts.dict_update
-dir = _functions_attrs.dir_
 disjoint_coalesce = _operators_masking.disjoint_coalesce
-dumps = _functions_s11n.dumps
-embed_schema = _functions_attrs.embed_schema
 empty_shaped = _operators_slices.empty_shaped
 empty_shaped_as = _operators_slices.empty_shaped_as
 encode_itemid = _operators_ids.encode_itemid
@@ -679,7 +662,6 @@ expand_to = _operators_slices.expand_to
 expand_to_shape = _operators_jagged_shape.expand_to_shape
 explode = _operators_lists.explode
 expr_quote = _operators_slices.expr_quote
-extension_type = _extension_types_extension_types.extension_type
 extract = _operators_core.extract
 extract_bag = _operators_core.extract_bag
 flat_map_chain = _operators_functor.flat_map_chain
@@ -688,18 +670,14 @@ flatten = _operators_jagged_shape.flatten
 flatten_end = _operators_jagged_shape.flatten_end
 float32 = _operators_slices.float32
 float64 = _operators_slices.float64
-fn = _functor_functor_factories.fn
 follow = _operators_core.follow
 for_ = _operators_functor.for_
 format = _operators_strings.format_
 freeze = _operators_core.freeze
 freeze_bag = _operators_core.freeze_bag
 from_json = _operators_json.from_json
-from_proto = _functions_proto_conversions.from_proto
 from_proto_bytes = _operators_proto.from_proto_bytes
 from_proto_json = _operators_proto.from_proto_json
-from_py = _functions_py_conversions.from_py
-from_pytree = _functions_py_conversions.from_py
 fstr = _operators_strings.fstr
 full_equal = _operators_comparison.full_equal
 get_attr = _operators_core.get_attr
@@ -747,15 +725,12 @@ is_dict = _operators_dicts.is_dict
 is_empty = _operators_slices.is_empty
 is_entity = _operators_core.is_entity
 is_expandable_to = _operators_slices.is_expandable_to
-is_expr = _functions_predicates.is_expr
 is_fn = _operators_functor.is_fn
-is_item = _functions_predicates.is_item
 is_list = _operators_lists.is_list
 is_nan = _operators_math.is_nan
 is_null_bag = _operators_bags.is_null_bag
 is_primitive = _operators_core.is_primitive
 is_shape_compatible = _operators_slices.is_shape_compatible
-is_slice = _functions_predicates.is_slice
 isin = _operators_slices.isin
 item = _operators_slices.item
 less = _operators_comparison.less
@@ -767,7 +742,6 @@ list_schema = _operators_schema.list_schema
 list_shaped = _operators_lists.shaped
 list_shaped_as = _operators_lists.shaped_as
 list_size = _operators_lists.size
-loads = _functions_s11n.loads
 map = _operators_functor.map_
 map_py = _operators_py.map_py
 map_py_on_cond = _operators_py.map_py_on_cond
@@ -783,7 +757,6 @@ maybe = _operators_core.maybe
 metadata = _operators_core.metadata
 min = _operators_math.min
 minimum = _operators_math.minimum
-mutable_bag = _functions_object_factories.mutable_bag
 named_schema = _operators_schema.named_schema
 namedtuple = _operators_tuple.namedtuple_
 new = _operators_entities.new
@@ -815,14 +788,11 @@ present_like = _operators_masking.present_like
 present_shaped = _operators_masking.present_shaped
 present_shaped_as = _operators_masking.present_shaped_as
 pwl_curve = _operators_curves.pwl_curve
-py_fn = _functor_functor_factories.py_fn
-py_reference = _functions_py_conversions.py_reference
 randint_like = _operators_random.randint_like
 randint_shaped = _operators_random.randint_shaped
 randint_shaped_as = _operators_random.randint_shaped_as
 range = _operators_slices._range
 ref = _operators_core.ref
-register_py_fn = _functor_functor_factories.register_py_fn
 reify = _operators_core.reify
 repeat = _operators_slices.repeat
 repeat_present = _operators_slices.repeat_present
@@ -832,17 +802,12 @@ reverse = _operators_slices.reverse
 reverse_select = _operators_slices.inverse_select
 sample = _operators_random.sample
 sample_n = _operators_random.sample_n
-schema_from_proto = _functions_proto_conversions.schema_from_proto
 schema_from_proto_path = _operators_proto.schema_from_proto_path
-schema_from_py = _functions_schema.schema_from_py
 select = _operators_functor.select
 select_items = _operators_functor.select_items
 select_keys = _operators_functor.select_keys
 select_present = _operators_slices.select_present
 select_values = _operators_functor.select_values
-set_attr = _functions_attrs.set_attr
-set_attrs = _functions_attrs.set_attrs
-set_schema = _functions_attrs.set_schema
 shallow_clone = _operators_core.shallow_clone
 shuffle = _operators_random.shuffle
 size = _operators_slices.size
@@ -865,17 +830,11 @@ to_object = _operators_schema.to_object
 to_proto = _functions_proto_conversions.to_proto
 to_proto_bytes = _operators_proto.to_proto_bytes
 to_proto_json = _operators_proto.to_proto_json
-to_py = _functions_py_conversions.to_py
-to_pylist = _functions_py_conversions.to_pylist
-to_pytree = _functions_py_conversions.to_pytree
 to_schema = _operators_schema.to_schema
-trace_as_fn = _functor_tracing_decorator.TraceAsFnDecorator
-trace_py_fn = _functor_functor_factories.trace_py_fn
 translate = _operators_slices.translate
 translate_group = _operators_slices.translate_group
 tuple = _operators_tuple.tuple_
 unique = _operators_slices.unique
-update_schema = _functions_attrs.update_schema_fn
 updated = _operators_core.updated
 updated_bag = _operators_bags.updated
 uu = _operators_entities.uu
