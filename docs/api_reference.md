@@ -11879,6 +11879,27 @@ Args:
 Returns:
   A new view with the function applied to the corresponding items.</code></pre>
 
+### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | None, index: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.take}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a view with the items at the given index in the last dimension.
+
+This is a shortcut for `kv.get_item(kv.implode(v), index)`. This also implies
+the broadcasting behavior, for example `index` must have compatible shape with
+`kv.implode(v)`.
+
+Example:
+  x = kv.view([1, 2, 3])[:]
+  kv.take(x, 1).get()
+  # 2
+  kv.take(x, -1).get()
+  # 3
+  kv.take(x, kv.view([1, 2, 3, 4])[:]).get()
+  # (2, 3, None, None)
+
+Args:
+  v: The view to take the index from. It must have at least one dimension.
+  index: The index in the last dimension of `v` to take the item from.</code></pre>
+
 ### `kd_ext.kv.view(obj: Any) -> View` {#kd_ext.kv.view}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a view on an object that can be used for vectorized access.

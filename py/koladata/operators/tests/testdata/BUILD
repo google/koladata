@@ -110,3 +110,13 @@ py_library(
         "//py/koladata/types:schema_constants",
     ],
 )
+
+py_library(
+    name = "slices_take_testdata",
+    srcs = ["slices_take_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+    ],
+)

@@ -22,11 +22,11 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_take_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -39,73 +39,8 @@ QTYPES = frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)])
 
 class SlicesTakeTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      # 1D DataSlice 'x'
-      (ds([1, 2, 3, 4]), ds(1), ds(2)),
-      (
-          ds([1, 2, 3, 4]),
-          ds(None, schema_constants.INT32),
-          ds(None, schema_constants.INT32),
-      ),
-      (ds([1, 2, 3, 4]), ds([1, 3]), ds([2, 4])),
-      (ds([1, 2, 3, 4]), ds([1, None]), ds([2, None])),
-      (ds([1, 2, 3, 4]), ds([[1], [3]]), ds([[2], [4]])),
-      (ds([1, 2, 3, 4]), ds([[1], [None]]), ds([[2], [None]])),
-      # 2D DataSlice 'x'
-      (ds([[1, 2], [3, 4]]), ds(1), ds([2, 4])),
-      (ds([[1, 2], [3, 4]]), ds([1, 3]), ds([2, None])),
-      (ds([[1, 2], [3, 4]]), ds([[1], [3]]), ds([[2], [None]])),
-      # Negative indices
-      (ds([1, 2, 3, 4]), ds([-1, -2, -3, -4, -5]), ds([4, 3, 2, 1, None])),
-      (
-          ds([1, 2, 3, 4]),
-          ds([[-1, -2], [-3, -4, -5]]),
-          ds([[4, 3], [2, 1, None]]),
-      ),
-      (ds([[1, 2], [3, 4]]), ds(-1), ds([2, 4])),
-      (ds([[1, 2], [3, 4]]), ds([-1, -2]), ds([2, 3])),
-      # Out-of-bound indices
-      (
-          ds([[1, 2, 3], [4, 5]]),
-          ds([3, -3]),
-          ds([None, None], schema_constants.INT32),
-      ),
-      # Mixed dtypes for 'x'
-      (ds([[1, '2'], ['3', 4]]), ds(1), ds(['2', 4])),
-      (
-          ds([[1, '2'], ['3', 4]]),
-          ds([1, 3]),
-          ds(['2', None], schema_constants.OBJECT),
-      ),
-      (
-          ds([[1, '2'], ['3', 4]]),
-          ds([[1], [3]]),
-          ds([['2'], [None]], schema_constants.OBJECT),
-      ),
-      # Different index dtypes
-      (ds([[1, 2], [3, 4]]), ds([1, 0], schema_constants.INT32), ds([2, 3])),
-      (ds([[1, 2], [3, 4]]), ds([1, 0], schema_constants.INT64), ds([2, 3])),
-      (ds([[1, 2], [3, 4]]), ds([1, 0], schema_constants.OBJECT), ds([2, 3])),
-  )
+  @parameterized.parameters(*slices_take_testdata.TEST_CASES)
   def test_eval(self, x, indices, expected):
-    result = expr_eval.eval(kde.take(x, indices))
-    testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (ds([None, None]), ds([0, 1, 0]), ds([None, None, None])),
-      (
-          ds([[None, None], [None, None, None]]),
-          ds([[1, 0], [2]]),
-          ds([[None, None], [None]]),
-      ),
-      (
-          ds([[None, None], [None, None, None]]),
-          ds([[[1, 0], [0]], [[2, 0], [0]]]),
-          ds([[[None, None], [None]], [[None, None], [None]]]),
-      ),
-      (ds([]), ds([], schema_constants.INT32), ds([])),
-  )
-  def test_eval_empty_or_unknown_input(self, x, indices, expected):
     result = expr_eval.eval(kde.take(x, indices))
     testing.assert_equal(result, expected)
 

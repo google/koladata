@@ -162,6 +162,10 @@ class View:
     """Returns an item or items from the given view containing containers."""
     return self.get_item(key_or_index)
 
+  def take(self, index: ViewOrAutoBoxType) -> View:
+    """Returns a view with the given index in the last dimension."""
+    return self.implode()[index]
+
   def implode(self, ndim: int = 1) -> View:
     """Reduces view dimension by grouping items into tuples."""
     depth = self._depth

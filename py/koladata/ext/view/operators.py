@@ -253,3 +253,29 @@ def get_item(
     key_or_index: The key or index or a slice or indices to get.
   """
   return view_lib.box(v).get_item(key_or_index)
+
+
+def take(
+    v: view_lib.ViewOrAutoBoxType,
+    index: view_lib.ViewOrAutoBoxType,
+) -> view_lib.View:
+  """Returns a view with the items at the given index in the last dimension.
+
+  This is a shortcut for `kv.get_item(kv.implode(v), index)`. This also implies
+  the broadcasting behavior, for example `index` must have compatible shape with
+  `kv.implode(v)`.
+
+  Example:
+    x = kv.view([1, 2, 3])[:]
+    kv.take(x, 1).get()
+    # 2
+    kv.take(x, -1).get()
+    # 3
+    kv.take(x, kv.view([1, 2, 3, 4])[:]).get()
+    # (2, 3, None, None)
+
+  Args:
+    v: The view to take the index from. It must have at least one dimension.
+    index: The index in the last dimension of `v` to take the item from.
+  """
+  return view_lib.box(v).take(index)
