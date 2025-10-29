@@ -279,3 +279,78 @@ def take(
     index: The index in the last dimension of `v` to take the item from.
   """
   return view_lib.box(v).take(index)
+
+
+def group_by(
+    v: view_lib.ViewOrAutoBoxType,
+    *keys: view_lib.ViewOrAutoBoxType,
+    sort: bool = False,
+) -> view_lib.View:
+  """Returns `v` with values in last dimension grouped using a new dimension.
+
+  The resulting View has depth increased by 1. The first `v.get_depth() - 1`
+  dimensions are unchanged. The last two dimensions correspond to the groups
+  and the items within the groups. Elements within the same group are ordered by
+  the appearance order in `v`.
+
+  `keys` are used for the grouping keys. If length of `keys` is greater than 1,
+  the key is a tuple. If `keys` is empty, the key is `v`.
+
+  If sort=True groups are ordered by the grouping key, otherwise groups are
+  ordered by the appearance of the first object in the group.
+
+  Example 1:
+    v: kv.view([1, 3, 2, 1, 2, 3, 1, 3])[:]
+    result: kv.view([[1, 1, 1], [3, 3, 3], [2, 2]])[:][:]
+
+  Example 2:
+    v: kv.view([1, 3, 2, 1, 2, 3, 1, 3])[:], sort=True
+    result: kv.view([[1, 1, 1], [2, 2], [3, 3, 3]])[:][:]
+
+  Example 3:
+    v: kv.view([[1, 2, 1, 3, 1, 3], [1, 3, 1]])[:][:]
+    result: kv.view([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]])[:][:][:]
+
+  Example 4:
+    v: kv.view([1, 3, 2, 1, None, 3, 1, None])[:]
+    result: kv.view([[1, 1, 1], [3, 3], [2]])[:][:]
+
+    Missing values are not listed in the result.
+
+  Example 5:
+    v:    kv.view([1, 2, 3, 4, 5, 6, 7, 8])[:],
+    key1: kv.view([7, 4, 0, 9, 4, 0, 7, 0])[:],
+    result: kv.view([[1, 7], [2, 5], [3, 6, 8], [4]])[:][:]
+
+    When *keys is present, `v` is not used for the key.
+
+  Example 6:
+    v:    kv.view([1, 2, 3, 4, None, 6, 7, 8])[:],
+    key1: kv.view([7, 4, 0, 9, 4,    0, 7, None])[:],
+    result: kv.view([[1, 7], [2, None], [3, 6], [4]])[:][:]
+
+    Items with missing key are not listed in the result.
+    Missing `v` values are missing in the result.
+
+  Example 7:
+    v:    kv.view([ 1,   2,   3,   4,   5,   6,   7,   8])[:],
+    key1: kv.view([ 7,   4,   0,   9,   4,   0,   7,   0])[:],
+    key2: kv.view(['A', 'D', 'B', 'A', 'D', 'C', 'A', 'B'])[:],
+    result: kv.view([[1, 7], [2, 5], [3, 8], [4], [6]])[:][:]
+
+    When *keys has two or more values, the key is a tuple.
+    In this example we have the following groups:
+    (7, 'A'), (4, 'D'), (0, 'B'), (9, 'A'), (0, 'C')
+
+  Args:
+    v: the view to group.
+    *keys: the keys to group by. All views must have the same shape
+      as `v`. Scalar views are not supported. If not present, `v` is used as
+      the key.
+    sort: Whether groups in the result should be ordered by the grouping key.
+
+  Returns:
+    A view with items within the last dimension reordered into groups and
+    injected grouped by dimension.
+  """
+  return view_lib.box(v).group_by(*keys, sort=sort)

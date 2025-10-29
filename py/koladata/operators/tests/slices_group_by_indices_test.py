@@ -253,7 +253,7 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     signature = arolla.abc.get_operator_signature(kde.slices.group_by_indices)
     self.assertLen(signature.parameters, 2)
-    self.assertEqual(signature.parameters[0].name, 'args')
+    self.assertEqual(signature.parameters[0].name, 'keys')
     self.assertEqual(signature.parameters[1].name, 'sort')
 
     arolla.testing.assert_qtype_signatures(

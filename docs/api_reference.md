@@ -6895,24 +6895,23 @@ Args:
 Returns:
   A string representation of the DataSlice `x`.</code></pre>
 
-### `kd.slices.group_by(x, *args, sort=False)` {#kd.slices.group_by}
+### `kd.slices.group_by(x, *keys, sort=False)` {#kd.slices.group_by}
 Aliases:
 
 - [kd.group_by](#kd.group_by)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns permutation of `x` with injected grouped_by dimension.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with values in last dimension grouped using a new dimension.
 
-The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
-dimensions are unchanged. The last two dimensions corresponds to the groups
+The resulting DataSlice has `get_ndim() + 1`. The first `get_ndim() - 1`
+dimensions are unchanged. The last two dimensions correspond to the groups
 and the items within the groups. Elements within the same group are ordered by
 the appearance order in `x`.
 
-Values of the result is a permutation of `x`. `args` are used for the grouping
-keys. If length of `args` is greater than 1, the key is a tuple.
-If `args` is empty, the key is `x`.
+`keys` are used for the grouping keys. If length of `keys` is greater than 1,
+the key is a tuple. If `keys` is empty, the key is `x`.
 
-If sort=True groups are ordered by value, otherwise groups are ordered by the
-appearance of the first object in the group.
+If sort=True groups are ordered by the grouping key, otherwise groups are
+ordered by the appearance of the first object in the group.
 
 Example 1:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -6937,46 +6936,46 @@ Example 5:
   y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
   result: kd.slice([[1, 7], [2, 5], [3, 6, 8], [4]])
 
-  When *args is present, `x` is not used for the key.
+  When *keys is present, `x` is not used for the key.
 
 Example 6:
   x: kd.slice([1, 2, 3, 4, None, 6, 7, 8]),
   y: kd.slice([7, 4, 0, 9, 4,    0, 7, None]),
   result: kd.slice([[1, 7], [2, None], [3, 6], [4]])
 
-  Items with missing key is not listed in the result.
+  Items with missing key are not listed in the result.
   Missing `x` values are missing in the result.
 
 Example 7:
-  x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
-  y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
+  x: kd.slice([ 1,   2,   3,   4,   5,   6,   7,   8]),
+  y: kd.slice([ 7,   4,   0,   9,   4,   0,   7,   0]),
   z: kd.slice([&#39;A&#39;, &#39;D&#39;, &#39;B&#39;, &#39;A&#39;, &#39;D&#39;, &#39;C&#39;, &#39;A&#39;, &#39;B&#39;]),
   result: kd.slice([[1, 7], [2, 5], [3, 8], [4], [6]])
 
-  When *args has two or more values, the  key is a tuple.
+  When *keys has two or more values, the  key is a tuple.
   In this example we have the following groups:
   (7, &#39;A&#39;), (4, &#39;D&#39;), (0, &#39;B&#39;), (9, &#39;A&#39;), (0, &#39;C&#39;)
 
 Args:
   x: DataSlice to group.
-  *args: DataSlices keys to group by. All data slices must have the same shape
-    as x. Scalar DataSlices are not supported. If not present, `x` is used as
-    the key.
-  sort: Whether groups should be ordered by value.
+  *keys: DataSlices keys to group by. All data slices must have the same shape
+    as `x`. Scalar DataSlices are not supported. If not present, `x` is used
+    as the key.
+  sort: Whether groups in the result should be ordered by the grouping key.
 
 Returns:
-  DataSlice with the same shape and schema as `x` with injected grouped
-  by dimension.</code></pre>
+  DataSlice with the same schema as `x` with items within the last dimension
+  reordered into groups and injected grouped by dimension.</code></pre>
 
-### `kd.slices.group_by_indices(*args, sort=False)` {#kd.slices.group_by_indices}
+### `kd.slices.group_by_indices(*keys, sort=False)` {#kd.slices.group_by_indices}
 Aliases:
 
 - [kd.group_by_indices](#kd.group_by_indices)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a indices DataSlice with injected grouped_by dimension.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an indices DataSlice that describes the order of `group_by` result.
 
-The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
-dimensions are unchanged. The last two dimensions corresponds to the groups
+The resulting DataSlice has `get_ndim() + 1`. The first `get_ndim() - 1`
+dimensions are unchanged. The last two dimensions correspond to the groups
 and the items within the groups. Indices within the same group are in
 increasing order.
 
@@ -6984,7 +6983,7 @@ Values of the DataSlice are the indices of the items within the parent
 dimension. `kd.take(x, kd.group_by_indices(x))` would group the items in
 `x` by their values.
 
-If sort=True groups are ordered by value, otherwise groups are ordered by the
+If sort=True groups are ordered by key, otherwise groups are ordered by the
 appearance of the first object in the group.
 
 Example 1:
@@ -6998,7 +6997,7 @@ Example 2:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
   result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
 
-  Groups are now ordered by value.
+  Groups are now ordered by key.
 
 Example 3:
   x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
@@ -7023,9 +7022,9 @@ Example 5:
   In this example we have the following groups: (1, 7), (2, 4), (3, 0), (1, 9)
 
 Args:
-  *args: DataSlices keys to group by. All data slices must have the same
+  *keys: DataSlices keys to group by. All data slices must have the same
     shape. Scalar DataSlices are not supported.
-  sort: Whether groups should be ordered by value.
+  sort: Whether groups in the result should be ordered by key.
 
 Returns:
   INT64 DataSlice with indices and injected grouped_by dimension.</code></pre>
@@ -9920,11 +9919,11 @@ Alias for [kd.comparison.greater](#kd.comparison.greater) operator.
 
 Alias for [kd.comparison.greater_equal](#kd.comparison.greater_equal) operator.
 
-### `kd.group_by(x, *args, sort=False)` {#kd.group_by}
+### `kd.group_by(x, *keys, sort=False)` {#kd.group_by}
 
 Alias for [kd.slices.group_by](#kd.slices.group_by) operator.
 
-### `kd.group_by_indices(*args, sort=False)` {#kd.group_by_indices}
+### `kd.group_by_indices(*keys, sort=False)` {#kd.group_by_indices}
 
 Alias for [kd.slices.group_by_indices](#kd.slices.group_by_indices) operator.
 
@@ -11817,6 +11816,75 @@ Example:
 Args:
   v: The view containing the collections to get items from.
   key_or_index: The key or index or a slice or indices to get.</code></pre>
+
+### `kd_ext.kv.group_by(v: View | int | float | str | bytes | bool | None, *keys: View | int | float | str | bytes | bool | None, sort: bool = False) -> View` {#kd_ext.kv.group_by}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `v` with values in last dimension grouped using a new dimension.
+
+The resulting View has depth increased by 1. The first `v.get_depth() - 1`
+dimensions are unchanged. The last two dimensions correspond to the groups
+and the items within the groups. Elements within the same group are ordered by
+the appearance order in `v`.
+
+`keys` are used for the grouping keys. If length of `keys` is greater than 1,
+the key is a tuple. If `keys` is empty, the key is `v`.
+
+If sort=True groups are ordered by the grouping key, otherwise groups are
+ordered by the appearance of the first object in the group.
+
+Example 1:
+  v: kv.view([1, 3, 2, 1, 2, 3, 1, 3])[:]
+  result: kv.view([[1, 1, 1], [3, 3, 3], [2, 2]])[:][:]
+
+Example 2:
+  v: kv.view([1, 3, 2, 1, 2, 3, 1, 3])[:], sort=True
+  result: kv.view([[1, 1, 1], [2, 2], [3, 3, 3]])[:][:]
+
+Example 3:
+  v: kv.view([[1, 2, 1, 3, 1, 3], [1, 3, 1]])[:][:]
+  result: kv.view([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]])[:][:][:]
+
+Example 4:
+  v: kv.view([1, 3, 2, 1, None, 3, 1, None])[:]
+  result: kv.view([[1, 1, 1], [3, 3], [2]])[:][:]
+
+  Missing values are not listed in the result.
+
+Example 5:
+  v:    kv.view([1, 2, 3, 4, 5, 6, 7, 8])[:],
+  key1: kv.view([7, 4, 0, 9, 4, 0, 7, 0])[:],
+  result: kv.view([[1, 7], [2, 5], [3, 6, 8], [4]])[:][:]
+
+  When *keys is present, `v` is not used for the key.
+
+Example 6:
+  v:    kv.view([1, 2, 3, 4, None, 6, 7, 8])[:],
+  key1: kv.view([7, 4, 0, 9, 4,    0, 7, None])[:],
+  result: kv.view([[1, 7], [2, None], [3, 6], [4]])[:][:]
+
+  Items with missing key are not listed in the result.
+  Missing `v` values are missing in the result.
+
+Example 7:
+  v:    kv.view([ 1,   2,   3,   4,   5,   6,   7,   8])[:],
+  key1: kv.view([ 7,   4,   0,   9,   4,   0,   7,   0])[:],
+  key2: kv.view([&#39;A&#39;, &#39;D&#39;, &#39;B&#39;, &#39;A&#39;, &#39;D&#39;, &#39;C&#39;, &#39;A&#39;, &#39;B&#39;])[:],
+  result: kv.view([[1, 7], [2, 5], [3, 8], [4], [6]])[:][:]
+
+  When *keys has two or more values, the key is a tuple.
+  In this example we have the following groups:
+  (7, &#39;A&#39;), (4, &#39;D&#39;), (0, &#39;B&#39;), (9, &#39;A&#39;), (0, &#39;C&#39;)
+
+Args:
+  v: the view to group.
+  *keys: the keys to group by. All views must have the same shape
+    as `v`. Scalar views are not supported. If not present, `v` is used as
+    the key.
+  sort: Whether groups in the result should be ordered by the grouping key.
+
+Returns:
+  A view with items within the last dimension reordered into groups and
+  injected grouped by dimension.</code></pre>
 
 ### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
 

@@ -31,6 +31,7 @@ flatten = _operators.flatten
 expand_to = _operators.expand_to
 get_item = _operators.get_item
 take = _operators.take
+group_by = _operators.group_by
 
 types = _py_types.SimpleNamespace(
     View=_view.View,

@@ -625,7 +625,7 @@ def take(x, indices):  # pylint: disable=unused-argument
     'kd.slices._group_by_indices',
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def _group_by_indices(*args):  # pylint: disable=unused-argument
+def _group_by_indices(*keys):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
@@ -634,18 +634,18 @@ def _group_by_indices(*args):  # pylint: disable=unused-argument
     'kd.slices.group_by_indices',
     qtype_constraints=[
         (
-            M.qtype.get_field_count(P.args) > 0,
+            M.qtype.get_field_count(P.keys) > 0,
             'expected at least one argument',
         ),
-        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_args(P.keys),
         qtype_utils.expect_data_slice(P.sort),
     ],
 )
-def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name, unused-argument
-  """Returns a indices DataSlice with injected grouped_by dimension.
+def group_by_indices(*keys, sort=False):  # pylint: disable=redefined-outer-name, unused-argument
+  """Returns an indices DataSlice that describes the order of `group_by` result.
 
-  The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
-  dimensions are unchanged. The last two dimensions corresponds to the groups
+  The resulting DataSlice has `get_ndim() + 1`. The first `get_ndim() - 1`
+  dimensions are unchanged. The last two dimensions correspond to the groups
   and the items within the groups. Indices within the same group are in
   increasing order.
 
@@ -653,7 +653,7 @@ def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name
   dimension. `kd.take(x, kd.group_by_indices(x))` would group the items in
   `x` by their values.
 
-  If sort=True groups are ordered by value, otherwise groups are ordered by the
+  If sort=True groups are ordered by key, otherwise groups are ordered by the
   appearance of the first object in the group.
 
   Example 1:
@@ -667,7 +667,7 @@ def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name
     x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
     result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
 
-    Groups are now ordered by value.
+    Groups are now ordered by key.
 
   Example 3:
     x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
@@ -692,15 +692,15 @@ def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name
     In this example we have the following groups: (1, 7), (2, 4), (3, 0), (1, 9)
 
   Args:
-    *args: DataSlices keys to group by. All data slices must have the same
+    *keys: DataSlices keys to group by. All data slices must have the same
       shape. Scalar DataSlices are not supported.
-    sort: Whether groups should be ordered by value.
+    sort: Whether groups in the result should be ordered by key.
 
   Returns:
     INT64 DataSlice with indices and injected grouped_by dimension.
   """
-  args = arolla.optools.fix_trace_args(args)
-  return M.core.apply_varargs(_group_by_indices, sort, args)
+  keys = arolla.optools.fix_trace_args(keys)
+  return M.core.apply_varargs(_group_by_indices, sort, keys)
 
 
 @optools.add_to_registry(aliases=['kd.group_by'])
@@ -708,24 +708,23 @@ def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name
     'kd.slices.group_by',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice_args(P.keys),
         qtype_utils.expect_data_slice(P.sort),
     ],
 )
-def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
-  """Returns permutation of `x` with injected grouped_by dimension.
+def group_by(x, *keys, sort=False):  # pylint: disable=redefined-outer-name
+  """Returns `x` with values in last dimension grouped using a new dimension.
 
-  The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
-  dimensions are unchanged. The last two dimensions corresponds to the groups
+  The resulting DataSlice has `get_ndim() + 1`. The first `get_ndim() - 1`
+  dimensions are unchanged. The last two dimensions correspond to the groups
   and the items within the groups. Elements within the same group are ordered by
   the appearance order in `x`.
 
-  Values of the result is a permutation of `x`. `args` are used for the grouping
-  keys. If length of `args` is greater than 1, the key is a tuple.
-  If `args` is empty, the key is `x`.
+  `keys` are used for the grouping keys. If length of `keys` is greater than 1,
+  the key is a tuple. If `keys` is empty, the key is `x`.
 
-  If sort=True groups are ordered by value, otherwise groups are ordered by the
-  appearance of the first object in the group.
+  If sort=True groups are ordered by the grouping key, otherwise groups are
+  ordered by the appearance of the first object in the group.
 
   Example 1:
     x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -750,43 +749,43 @@ def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
     y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
     result: kd.slice([[1, 7], [2, 5], [3, 6, 8], [4]])
 
-    When *args is present, `x` is not used for the key.
+    When *keys is present, `x` is not used for the key.
 
   Example 6:
     x: kd.slice([1, 2, 3, 4, None, 6, 7, 8]),
     y: kd.slice([7, 4, 0, 9, 4,    0, 7, None]),
     result: kd.slice([[1, 7], [2, None], [3, 6], [4]])
 
-    Items with missing key is not listed in the result.
+    Items with missing key are not listed in the result.
     Missing `x` values are missing in the result.
 
   Example 7:
-    x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
-    y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
+    x: kd.slice([ 1,   2,   3,   4,   5,   6,   7,   8]),
+    y: kd.slice([ 7,   4,   0,   9,   4,   0,   7,   0]),
     z: kd.slice(['A', 'D', 'B', 'A', 'D', 'C', 'A', 'B']),
     result: kd.slice([[1, 7], [2, 5], [3, 8], [4], [6]])
 
-    When *args has two or more values, the  key is a tuple.
+    When *keys has two or more values, the  key is a tuple.
     In this example we have the following groups:
     (7, 'A'), (4, 'D'), (0, 'B'), (9, 'A'), (0, 'C')
 
   Args:
     x: DataSlice to group.
-    *args: DataSlices keys to group by. All data slices must have the same shape
-      as x. Scalar DataSlices are not supported. If not present, `x` is used as
-      the key.
-    sort: Whether groups should be ordered by value.
+    *keys: DataSlices keys to group by. All data slices must have the same shape
+      as `x`. Scalar DataSlices are not supported. If not present, `x` is used
+      as the key.
+    sort: Whether groups in the result should be ordered by the grouping key.
 
   Returns:
-    DataSlice with the same shape and schema as `x` with injected grouped
-    by dimension.
+    DataSlice with the same schema as `x` with items within the last dimension
+    reordered into groups and injected grouped by dimension.
   """
-  args = arolla.optools.fix_trace_args(args)
+  keys = arolla.optools.fix_trace_args(keys)
   dispatch_op = arolla.types.DispatchOperator(
-      'x, args, sort',
+      'x, keys, sort',
       x_is_key_case=arolla.types.DispatchCase(
           take(P.x, _group_by_indices(P.sort, P.x)),
-          condition=M.qtype.get_field_count(P.args) == 0,
+          condition=M.qtype.get_field_count(P.keys) == 0,
       ),
       default=take(
           assertion.with_assertion(
@@ -796,16 +795,16 @@ def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
                       jagged_shape_ops.get_shape(P.x)
                   ),
                   arolla_bridge.to_arolla_jagged_shape(
-                      jagged_shape_ops.get_shape(M.core.get_nth(P.args, 0)),
+                      jagged_shape_ops.get_shape(M.core.get_nth(P.keys, 0)),
                   ),
               ),
               'First argument `x` must have the same shape as the other'
               ' arguments',
           ),
-          M.core.apply_varargs(_group_by_indices, P.sort, P.args),
+          M.core.apply_varargs(_group_by_indices, P.sort, P.keys),
       ),
   )
-  return dispatch_op(x, args, sort)
+  return dispatch_op(x, keys, sort)
 
 
 @optools.as_lambda_operator(

@@ -20,11 +20,11 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_group_by_testdata
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -64,173 +64,17 @@ QTYPES = [
 
 class SlicesGroupByTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      # 1D DataSlice 'x'
-      (
-          ds([1, 2, 3, 1, 2, 3, 1, 3]),
-          ds([[1, 1, 1], [2, 2], [3, 3, 3]]),
-      ),
-      (
-          ds([1, 3, 2, 1, 2, 3, 1, 3]),
-          ds([[1, 1, 1], [3, 3, 3], [2, 2]]),
-      ),
-      # Missing values
-      (
-          ds([1, 3, 2, 1, None, 3, 1, None]),
-          ds([[1, 1, 1], [3, 3], [2]]),
-      ),
-      # Mixed dtypes for 'x'
-      (
-          ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3]),
-          ds([['A'] * 3, [3] * 3, [b'B'] * 2]),
-      ),
-      # 2D DataSlice 'x'
-      (
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]]),
-      ),
-  )
-  def test_eval_one_input(self, x, expected):
-    result = kd.group_by(x)
+  @parameterized.parameters(*slices_group_by_testdata.TEST_CASES)
+  def test_eval(self, args, kwargs, expected):
+    result = kd.group_by(*args, **kwargs)
     testing.assert_equal(result, expected)
-    # passing the same agument many times should be equivalent to passing it
-    # once.
-    result_tuple = kd.group_by(x, x, x, x)
+    # passing the same group keys many times should be equivalent to passing
+    # them once.
+    if len(args) == 1:
+      result_tuple = kd.group_by(*args, *args, *args, **kwargs)
+    else:
+      result_tuple = kd.group_by(*args, *args[1:], *args[1:], **kwargs)
     testing.assert_equal(result_tuple, expected)
-
-  @parameterized.parameters(
-      # 1D DataSlice 'x'
-      (
-          ds([1, 3, 2, 1, 2, 3, 1, 3]),
-          ds([[1, 1, 1], [2, 2], [3, 3, 3]]),
-      ),
-      # Missing values
-      (
-          ds([1, 3, 2, 1, None, 3, 1, None]),
-          ds([[1, 1, 1], [2], [3, 3]]),
-      ),
-      # 2D DataSlice 'x'
-      (
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]]),
-      ),
-  )
-  def test_eval_one_input_sorted(self, x, expected):
-    result = kd.group_by(x, sort=True)
-    testing.assert_equal(result, expected)
-    # passing the same agument many times should be equivalent to passing it
-    # once.
-    result_tuple = kd.group_by(x, x, x, x, sort=True)
-    testing.assert_equal(result_tuple, expected)
-
-  @parameterized.parameters(
-      # 1D DataSlice 'x' and 'y'
-      (
-          ds(list(range(1, 9))),
-          ds([1, 2, 3, 1, 2, 3, 1, 3]),
-          ds([9, 4, 0, 9, 4, 0, 9, 0]),
-          ds([[1, 4, 7], [2, 5], [3, 6, 8]]),
-      ),
-      (
-          ds(list(range(1, 9))),
-          ds([1, 2, 3, 1, 2, 3, 1, 3]),
-          ds([7, 4, 0, 9, 4, 0, 7, 0]),
-          ds([[1, 7], [2, 5], [3, 6, 8], [4]]),
-      ),
-      # 2D DataSlice 'x' and 'y'
-      (
-          ds([[1, 2, 3, 4, 5, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-          ds([[[1, 5], [2], [3], [4, 6]], [[7], [8], [9]]]),
-      ),
-      (
-          ds([[1, 2, 3, 4, 5, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[0, 7, 5, 5, 0, 5], [None, None, None]]),
-          ds([[[1, 5], [2], [3], [4, 6]], []]),
-      ),
-      (
-          ds([[1, None, 3, 4, None, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [None, 3, None]]),
-          ds([[0, 7, 5, 5, 0, 5], [1, None, None]]),
-          ds([[[1, None], [None], [3], [4, 6]], []]),
-      ),
-      # 2D Mixed DataSlice 'x' and 'y'
-      (
-          ds([['A', 'B', 3, b'D', 5.0, 6], ['X', b'Y', -3]]),
-          ds([[1, 'q', 1, b'3', 1, b'3'], [1, 3, 1]]),
-          ds([[0, 7, b'5', b'5', 0, b'5'], [0, 0, 2]]),
-          ds([[['A', 5.0], ['B'], [3], [b'D', 6]], [['X'], [b'Y'], [-3]]]),
-      ),
-  )
-  def test_eval_two_inputs(self, x, k1, k2, expected):
-    result = kd.group_by(x, k1, k2)
-    testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      # 1D DataSlice 'x' and 'y'
-      (
-          ds(list(range(1, 9))),
-          ds([1, 2, 3, 1, 2, 3, 1, 3]),
-          ds([9, 4, 0, 9, 4, 0, 9, 0]),
-          ds([[1, 4, 7], [2, 5], [3, 6, 8]]),
-      ),
-      (
-          ds(list(range(1, 9))),
-          ds([1, 2, 3, 1, 2, 3, 1, 3]),
-          ds([7, 4, 0, 9, 4, 0, 7, 0]),
-          ds([[1, 7], [4], [2, 5], [3, 6, 8]]),
-      ),
-      # 2D DataSlice 'x' and 'y'
-      (
-          ds([[1, 2, 3, 4, 5, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
-          ds([[[1, 5], [3], [2], [4, 6]], [[7], [9], [8]]]),
-      ),
-      (
-          ds([[1, 2, 3, 4, 5, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [1, 3, 1]]),
-          ds([[0, 7, 5, 5, 0, 5], [None, None, None]]),
-          ds([[[1, 5], [3], [2], [4, 6]], []]),
-      ),
-      (
-          ds([[1, None, 3, 4, None, 6], [7, 8, 9]]),
-          ds([[1, 2, 1, 3, 1, 3], [None, 3, None]]),
-          ds([[0, 7, 5, 5, 0, 5], [1, None, None]]),
-          ds([[[1, None], [3], [None], [4, 6]], []]),
-      ),
-  )
-  def test_eval_two_inputs_sorted(self, x, k1, k2, expected):
-    result = kd.group_by(x, k1, k2, sort=True)
-    testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (ds([None] * 3), ds([], schema_constants.NONE).repeat(0)),
-      (ds([]), ds([]).repeat(0)),
-      (
-          ds([[None] * 3, [None] * 5]),
-          ds([[], []], schema_constants.NONE).repeat(0),
-      ),
-  )
-  def test_eval_with_empty_or_unknown_single_arg(self, x, expected):
-    testing.assert_equal(kd.group_by(x), expected)
-
-  @parameterized.parameters(
-      (
-          ds([1, 2, 1], schema_constants.INT32),
-          ds([None] * 3),
-          ds([], schema_constants.INT32).repeat(0),
-      ),
-      (
-          ds([[1, 2, 1, 2], [2, 3, 2]], schema_constants.FLOAT64),
-          ds([[None] * 4, [None] * 3]),
-          ds([[], []], schema_constants.FLOAT64).repeat(0),
-      ),
-  )
-  def test_eval_with_empty_or_unknown_keys(self, x, y, expected):
-    testing.assert_equal(kd.group_by(x, y), expected)
 
   def test_mixed_dtypes(self):
     x = ds(['A', 3, b'B', 'A', b'B', 3, 'A', 3])
@@ -295,7 +139,7 @@ class SlicesGroupByTest(parameterized.TestCase):
     signature = arolla.abc.get_operator_signature(kde.slices.group_by)
     self.assertLen(signature.parameters, 3)
     self.assertEqual(signature.parameters[0].name, 'x')
-    self.assertEqual(signature.parameters[1].name, 'args')
+    self.assertEqual(signature.parameters[1].name, 'keys')
     self.assertEqual(signature.parameters[2].name, 'sort')
 
     arolla.testing.assert_qtype_signatures(

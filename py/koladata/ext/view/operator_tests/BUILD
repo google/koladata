@@ -150,3 +150,16 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "group_by_test",
+    srcs = ["group_by_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:slices_group_by_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)

@@ -15,6 +15,7 @@
 """Koda View class."""
 
 from __future__ import annotations
+import functools
 import itertools
 from typing import Any, Callable
 from koladata.ext.view import clib_py_ext as view_clib
@@ -38,6 +39,23 @@ def _get_item_impl(x: Any, key_or_index: Any):
     return x[key_or_index]
   except (IndexError, KeyError):
     return None
+
+
+def _group_by_impl(
+    sort: bool, x: tuple[Any, ...], *args: tuple[Any, ...]
+) -> tuple[tuple[Any, ...], ...]:
+  """Implements group_by for a single item."""
+  grouped = {}
+  for one_x, *one_args in zip(x, *args, strict=True):
+    if not one_args:
+      one_args = (one_x,)
+    if any(arg is None for arg in one_args):
+      continue
+    grouped.setdefault(tuple(one_args), []).append(one_x)
+  if sort:
+    return tuple([tuple(values) for _, values in sorted(grouped.items())])
+  else:
+    return tuple([tuple(values) for values in grouped.values()])
 
 
 # Most methods of this class are also available as operators in the `kv` module.
@@ -290,6 +308,22 @@ class View:
       A new view with the function applied to every item.
     """
     return map_(f, self, ndim=ndim, include_missing=include_missing)
+
+  def group_by(self, *args: ViewOrAutoBoxType, sort: bool = False) -> View:
+    """Groups items by the values of the given args."""
+    if not self._depth:
+      raise ValueError(
+          'the argument being grouped must have at least one dimension'
+      )
+    args = [box(arg) for arg in args]
+    for arg in args:
+      if arg.get_depth() != self._depth:
+        raise ValueError('all arguments must have the same shape')
+    return map_(
+        functools.partial(_group_by_impl, sort),
+        self.implode(),
+        *[arg.implode() for arg in args],
+    ).explode(2)
 
   def get_depth(self) -> int:
     """Returns the depth of the view."""
