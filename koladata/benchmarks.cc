@@ -749,7 +749,7 @@ void BM_CreateFromScalar_Int32(benchmark::State& state) {
   int v = 42;
   for (auto _ : state) {
     benchmark::DoNotOptimize(v);
-    auto res = DataSlice::CreateFromScalar(v);
+    auto res = DataSlice::CreatePrimitive(std::move(v));
     benchmark::DoNotOptimize(res);
   }
 }
@@ -763,7 +763,7 @@ void BM_CreateFromScalar_Text(benchmark::State& state) {
     auto t_copy = t;
     state.ResumeTiming();
     benchmark::DoNotOptimize(t_copy);
-    auto res = DataSlice::CreateFromScalar(std::move(t_copy));
+    auto res = DataSlice::CreatePrimitive(std::move(t_copy));
     benchmark::DoNotOptimize(res);
   }
 }

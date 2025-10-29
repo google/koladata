@@ -1179,7 +1179,7 @@ TEST(DataSliceTest, SetGetMetadata) {
     // item
     auto db = DataBag::EmptyMutable();
     auto schema = test::Schema(internal::AllocateExplicitSchema()).WithBag(db);
-    auto value = DataSlice::CreateFromScalar(1);
+    auto value = DataSlice::CreatePrimitive(1);
     ASSERT_OK_AND_ASSIGN(auto schema_metadata,
                          CreateMetadata(db, schema, {}, {}));
     ASSERT_OK(schema_metadata.SetAttr("foo", value));

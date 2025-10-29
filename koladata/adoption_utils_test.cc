@@ -304,7 +304,7 @@ TEST(AdoptStubTest, Object) {
 TEST(AdoptStubTest, ObjectWithMixedDtype) {
   auto bag1 = DataBag::EmptyMutable();
   auto item1 = *EntityCreator::FromAttrs(bag1, {}, {})->EmbedSchema();
-  auto item2 = *DataSlice::CreateFromScalar(2).WithBag(bag1).EmbedSchema();
+  auto item2 = *DataSlice::CreatePrimitive(2).WithBag(bag1).EmbedSchema();
   auto slice = *DataSlice::CreateWithFlatShape(
       internal::DataSliceImpl::Create({item1.item(), item2.item()}),
       item1.GetSchemaImpl(), bag1);
