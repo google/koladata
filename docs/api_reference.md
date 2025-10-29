@@ -6904,7 +6904,8 @@ Aliases:
 
 The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
 dimensions are unchanged. The last two dimensions corresponds to the groups
-and the items within the groups.
+and the items within the groups. Elements within the same group are ordered by
+the appearance order in `x`.
 
 Values of the result is a permutation of `x`. `args` are used for the grouping
 keys. If length of `args` is greater than 1, the key is a tuple.
@@ -6976,7 +6977,8 @@ Aliases:
 
 The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
 dimensions are unchanged. The last two dimensions corresponds to the groups
-and the items within the groups.
+and the items within the groups. Indices within the same group are in
+increasing order.
 
 Values of the DataSlice are the indices of the items within the parent
 dimension. `kd.take(x, kd.group_by_indices(x))` would group the items in
