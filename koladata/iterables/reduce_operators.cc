@@ -59,7 +59,7 @@ class ReduceConcatOperator : public arolla::QExprOperator {
           const auto& initial_value = frame.Get(initial_value_slot);
           const auto& ndim = frame.Get(ndim_slot);
           const arolla::Sequence& seq = frame.Get(seq_input_slot);
-          DataSlice is_stack = DataSlice::CreateFromScalar(false);
+          DataSlice is_stack = DataSlice::CreatePrimitive(false);
           std::vector<const DataSlice*> args;
           args.reserve(3 + seq.size());
           args.push_back(&is_stack);

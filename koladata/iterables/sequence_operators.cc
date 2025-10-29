@@ -102,8 +102,8 @@ absl::StatusOr<arolla::OperatorPtr> SequenceFrom1DSliceOpFamily::DoGetOperator(
 namespace {
 
 absl::StatusOr<DataSlice> SequenceTo1DSlice(const arolla::Sequence& x) {
-  DataSlice is_stack = DataSlice::CreateFromScalar(true);
-  DataSlice ndim = DataSlice::CreateFromScalar(0);
+  DataSlice is_stack = DataSlice::CreatePrimitive(true);
+  DataSlice ndim = DataSlice::CreatePrimitive(0);
   std::vector<const DataSlice*> stack_args;
   stack_args.reserve(2 + x.size());
   stack_args.push_back(&is_stack);
