@@ -267,7 +267,7 @@ PyObject* absl_nullable PyDataSlice_to_proto(PyObject* self,
                    arolla::python::SetPyErrFromStatus(_));
   ASSIGN_OR_RETURN(auto dense_flat_slice,
                    ops::Select(std::move(flat_slice), mask,
-                               DataSlice::CreateFromScalar(false)),
+                               DataSlice::CreatePrimitive(false)),
                    arolla::python::SetPyErrFromStatus(_));
 
   RETURN_IF_ERROR(ToProto(std::move(dense_flat_slice), message_ptrs))
