@@ -132,30 +132,28 @@ TEST(BinaryOpTest, SimpleScalar) {
                        .value();
 
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                              DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5),
+                              DataSlice::CreatePrimitive(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                              DataSlice::CreateFromScalar(3.0f)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.0f))));
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5),
+                              DataSlice::CreatePrimitive(3.0f)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2.0f))));
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                              DataSlice::CreateFromScalar(3.0)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.0))));
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5),
+                              DataSlice::CreatePrimitive(3.0)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2.0))));
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5L),
-                              DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2L))));
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5L),
+                              DataSlice::CreatePrimitive(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2L))));
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(empty_i32, DataSlice::CreatePrimitive(3)),
+              IsOkAndHolds(testing::IsEquivalentTo(empty_i32)));
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(empty_i32, DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(empty_i32)));
-  EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(empty_i32, DataSlice::CreateFromScalar(3.0f)),
+      BinaryOpEval<TestOpSub>(empty_i32, DataSlice::CreatePrimitive(3.0f)),
       IsOkAndHolds(testing::IsEquivalentTo(empty_f32)));
-  EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5), empty_f32),
-      IsOkAndHolds(testing::IsEquivalentTo(empty_f32)));
+  EXPECT_THAT(BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5), empty_f32),
+              IsOkAndHolds(testing::IsEquivalentTo(empty_f32)));
   EXPECT_THAT(BinaryOpEval<TestOpSub>(empty_i32, empty_i32),
               IsOkAndHolds(testing::IsEquivalentTo(empty_i32)));
 }
@@ -164,68 +162,68 @@ TEST(BinaryOpTest, OverloadsAndConstraints) {
   // TestOpSub works well both with and without `NumericArgs` constraint
   // because there is `requires` in functor definition.
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                            DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5),
+                              DataSlice::CreatePrimitive(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5),
-                               DataSlice::CreateFromScalar(3),
+      (BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5),
+                               DataSlice::CreatePrimitive(3),
                                NumericArgs("x", "y"))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
 
   // TestOpSubNoConstraint doesn't compile without `NumericArgs` because
   // it tries all types including e.g. Text - Text.
   EXPECT_THAT(
-      (BinaryOpEval<TestOpSubNoConstraint>(DataSlice::CreateFromScalar(5),
-                                           DataSlice::CreateFromScalar(3),
+      (BinaryOpEval<TestOpSubNoConstraint>(DataSlice::CreatePrimitive(5),
+                                           DataSlice::CreatePrimitive(3),
                                            NumericArgs("x", "y"))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
 
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(arolla::Text("abc")),
-                            DataSlice::CreateFromScalar(arolla::Text("cdf"))),
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(arolla::Text("abc")),
+                              DataSlice::CreatePrimitive(arolla::Text("cdf"))),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("unsupported type combination: TEXT, TEXT")));
 
   EXPECT_THAT((BinaryOpEval<TestOpSubNoConstraint>(
-                  DataSlice::CreateFromScalar(arolla::Text("abc")),
-                  DataSlice::CreateFromScalar(arolla::Text("cdf")),
+                  DataSlice::CreatePrimitive(arolla::Text("abc")),
+                  DataSlice::CreatePrimitive(arolla::Text("cdf")),
                   NumericArgs("x", "y"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("argument `x` must be a slice of numeric "
                                  "values, got a slice of STRING")));
 
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(
-          DataSlice::CreateFromScalar(5), DataSlice::CreateFromScalar(3))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(8))));
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5),
+                                              DataSlice::CreatePrimitive(3))),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(8))));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreateFromScalar(5.f),
-                                            DataSlice::CreateFromScalar(3.f))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(8.f))));
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5.f),
+                                              DataSlice::CreatePrimitive(3.f))),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(8.f))));
 
   // Explicit overloads (int, float) and (float, int) have higher priority than
   // casting to (float, float).
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(
-          DataSlice::CreateFromScalar(5.f), DataSlice::CreateFromScalar(3))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.f))));
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5.f),
+                                              DataSlice::CreatePrimitive(3))),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2.f))));
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(
-          DataSlice::CreateFromScalar(5), DataSlice::CreateFromScalar(3.f))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2.f))));
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5),
+                                              DataSlice::CreatePrimitive(3.f))),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2.f))));
 
   // There is no (int64, float) overload, so it casts to (float, float)
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(
-          DataSlice::CreateFromScalar(5L), DataSlice::CreateFromScalar(3.f))),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(8.f))));
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5L),
+                                              DataSlice::CreatePrimitive(3.f))),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(8.f))));
 
   // Neither (int64, double) nor (double, double) is defined, so it returns
   // an error.
   EXPECT_THAT(
-      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreateFromScalar(5L),
-                                            DataSlice::CreateFromScalar(3.))),
+      (BinaryOpEval<TestOpNotStandardCasting>(DataSlice::CreatePrimitive(5L),
+                                              DataSlice::CreatePrimitive(3.))),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("unsupported type combination: INT64, FLOAT64")));
 }
@@ -265,10 +263,10 @@ TEST(BinaryOpTest, AllMissing) {
   auto full_2d_f64 = DataSlice::Create(impl_f64_10, shape, f64).value();
 
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5), empty_flat_f64),
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5), empty_flat_f64),
       IsOkAndHolds(testing::IsEquivalentTo(empty_flat_f64)));
   EXPECT_THAT(
-      BinaryOpEval<TestOpSub>(DataSlice::CreateFromScalar(5), empty_2d_i32),
+      BinaryOpEval<TestOpSub>(DataSlice::CreatePrimitive(5), empty_2d_i32),
       IsOkAndHolds(testing::IsEquivalentTo(empty_2d_i32)));
   EXPECT_THAT(BinaryOpEval<TestOpSub>(empty_scalar_i32, empty_2d_i32),
               IsOkAndHolds(testing::IsEquivalentTo(empty_2d_i32)));
@@ -302,7 +300,7 @@ TEST(BinaryOpTest, ScalarAndSlice) {
               {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})),
           shape, i32)
           .value();
-  auto scalar = DataSlice::CreateFromScalar(-10.0);
+  auto scalar = DataSlice::CreatePrimitive(-10.0);
 
   {  // slice - scalar
     auto expected_res =
@@ -430,28 +428,28 @@ TEST(BinaryOpTest, StatusPropagation) {
 
   // scalar / scalar
   EXPECT_THAT(
-      BinaryOpEval<TestOpDiv>(DataSlice::CreateFromScalar(6),
-                              DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
-  EXPECT_THAT(BinaryOpEval<TestOpDiv>(DataSlice::CreateFromScalar(6),
-                                      DataSlice::CreateFromScalar(0)),
+      BinaryOpEval<TestOpDiv>(DataSlice::CreatePrimitive(6),
+                              DataSlice::CreatePrimitive(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
+  EXPECT_THAT(BinaryOpEval<TestOpDiv>(DataSlice::CreatePrimitive(6),
+                                      DataSlice::CreatePrimitive(0)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("division by zero")));
 
   // scalar / slice
   EXPECT_THAT(
-      BinaryOpEval<TestOpDiv>(DataSlice::CreateFromScalar(6), slice1d)->slice(),
+      BinaryOpEval<TestOpDiv>(DataSlice::CreatePrimitive(6), slice1d)->slice(),
       ElementsAre(6, 3));
-  EXPECT_THAT(BinaryOpEval<TestOpDiv>(DataSlice::CreateFromScalar(6),
-                                      slice1d_with_zero),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("division by zero")));
+  EXPECT_THAT(
+      BinaryOpEval<TestOpDiv>(DataSlice::CreatePrimitive(6), slice1d_with_zero),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("division by zero")));
 
   // slice / scalar
   EXPECT_THAT(
-      BinaryOpEval<TestOpDiv>(slice1d, DataSlice::CreateFromScalar(1))->slice(),
+      BinaryOpEval<TestOpDiv>(slice1d, DataSlice::CreatePrimitive(1))->slice(),
       ElementsAre(1, 2));
-  EXPECT_THAT(BinaryOpEval<TestOpDiv>(slice1d, DataSlice::CreateFromScalar(0)),
+  EXPECT_THAT(BinaryOpEval<TestOpDiv>(slice1d, DataSlice::CreatePrimitive(0)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("division by zero")));
 
@@ -504,17 +502,17 @@ TEST(BinaryOpTest, OptionalResult) {
 
   // scalar / scalar
   EXPECT_THAT(
-      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6),
-                                       DataSlice::CreateFromScalar(3)),
-      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreateFromScalar(2))));
-  EXPECT_THAT(BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6),
-                                               DataSlice::CreateFromScalar(0)),
+      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreatePrimitive(6),
+                                       DataSlice::CreatePrimitive(3)),
+      IsOkAndHolds(testing::IsEquivalentTo(DataSlice::CreatePrimitive(2))));
+  EXPECT_THAT(BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreatePrimitive(6),
+                                               DataSlice::CreatePrimitive(0)),
               IsOkAndHolds(testing::IsEquivalentTo(
                   *DataSlice::Create(internal::DataItem(), i32))));
 
   // scalar / slice
   EXPECT_THAT(
-      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreateFromScalar(6), slice1d)
+      BinaryOpEval<TestOpDivOrMissing>(DataSlice::CreatePrimitive(6), slice1d)
           ->slice(),
       ElementsAre(std::nullopt, 6));
 
@@ -570,38 +568,36 @@ TEST(BinaryOpTest, BytesAndText) {
       DataSlice::Create(texts({"x", "y", "z", "v"}), shape2d, stext).value();
 
   // scalar / scalar
-  EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat>(
-          DataSlice::CreateFromScalar(arolla::Text("a")),
-          DataSlice::CreateFromScalar(arolla::Text("b")), Concatable())),
-      IsOkAndHolds(testing::IsEquivalentTo(
-          DataSlice::CreateFromScalar(arolla::Text("ab")))));
-  EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat>(
-          DataSlice::CreateFromScalar(arolla::Bytes("a")),
-          DataSlice::CreateFromScalar(arolla::Bytes("b")), Concatable())),
-      IsOkAndHolds(testing::IsEquivalentTo(
-          DataSlice::CreateFromScalar(arolla::Bytes("ab")))));
-  EXPECT_THAT(
-      (BinaryOpEval<TestOpConcat>(
-          DataSlice::CreateFromScalar(arolla::Bytes("a")),
-          DataSlice::CreateFromScalar(arolla::Text("b")), Concatable())),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("unsupported type combination")));
   EXPECT_THAT((BinaryOpEval<TestOpConcat>(
-                  DataSlice::CreateFromScalar(arolla::Bytes("a")),
-                  DataSlice::CreateFromScalar(0), Concatable())),
+                  DataSlice::CreatePrimitive(arolla::Text("a")),
+                  DataSlice::CreatePrimitive(arolla::Text("b")), Concatable())),
+              IsOkAndHolds(testing::IsEquivalentTo(
+                  DataSlice::CreatePrimitive(arolla::Text("ab")))));
+  EXPECT_THAT(
+      (BinaryOpEval<TestOpConcat>(
+          DataSlice::CreatePrimitive(arolla::Bytes("a")),
+          DataSlice::CreatePrimitive(arolla::Bytes("b")), Concatable())),
+      IsOkAndHolds(testing::IsEquivalentTo(
+          DataSlice::CreatePrimitive(arolla::Bytes("ab")))));
+  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
+                  DataSlice::CreatePrimitive(arolla::Bytes("a")),
+                  DataSlice::CreatePrimitive(arolla::Text("b")), Concatable())),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("unsupported type combination")));
+  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
+                  DataSlice::CreatePrimitive(arolla::Bytes("a")),
+                  DataSlice::CreatePrimitive(0), Concatable())),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("unsupported type combination")));
 
   // scalar / slice
+  EXPECT_THAT(
+      (BinaryOpEval<TestOpConcat>(DataSlice::CreatePrimitive(arolla::Text("A")),
+                                  texts1d, Concatable())
+           ->slice()),
+      ElementsAre(arolla::Text("Aa"), arolla::Text("Ab")));
   EXPECT_THAT((BinaryOpEval<TestOpConcat>(
-                   DataSlice::CreateFromScalar(arolla::Text("A")), texts1d,
-                   Concatable())
-                   ->slice()),
-              ElementsAre(arolla::Text("Aa"), arolla::Text("Ab")));
-  EXPECT_THAT((BinaryOpEval<TestOpConcat>(
-                   DataSlice::CreateFromScalar(arolla::Bytes("A")), bytes1d,
+                   DataSlice::CreatePrimitive(arolla::Bytes("A")), bytes1d,
                    Concatable())
                    ->slice()),
               ElementsAre(arolla::Bytes("Aa"), arolla::Bytes("Ab")));
@@ -628,7 +624,7 @@ TEST(BinaryOpTest, BytesAndText) {
 TEST(BinaryOpTest, NonPrimitiveTypes) {
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
-  auto i32 = DataSlice::CreateFromScalar(0);
+  auto i32 = DataSlice::CreatePrimitive(0);
   EXPECT_THAT(BinaryOpEval<TestOpSub>(entity, i32),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("arguments must have primitive types")));

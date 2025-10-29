@@ -1042,7 +1042,7 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
           "keys_to schema must be castable to keys_from schema", std::move(_)));
 
   ASSIGN_OR_RETURN(auto unique_keys,
-                   Unique(keys_from, DataSlice::CreateFromScalar(false)));
+                   Unique(keys_from, DataSlice::CreatePrimitive(false)));
   if (keys_from.present_count() != unique_keys.present_count()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "keys_from must be unique within each group of the last dimension: "

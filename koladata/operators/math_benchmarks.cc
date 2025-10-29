@@ -74,9 +74,9 @@ DataSlice Create2DSlice(int64_t group_count, int64_t group_size) {
 template <class T1, class T2, bool Arg1IsScalar, bool Arg2IsScalar>
 void BM_Add(benchmark::State& state) {
   arolla::InitArolla();
-  DataSlice a = Arg1IsScalar ? DataSlice::CreateFromScalar(1)
+  DataSlice a = Arg1IsScalar ? DataSlice::CreatePrimitive(1)
                              : CreateFlatSlice<T1>(state.range(0));
-  DataSlice b = Arg2IsScalar ? DataSlice::CreateFromScalar(2)
+  DataSlice b = Arg2IsScalar ? DataSlice::CreatePrimitive(2)
                              : CreateFlatSlice<T2>(state.range(0));
 
   (void)ops::Add(a, b);  // warmup caches
@@ -165,7 +165,7 @@ BENCHMARK(BM_AddFlatTo2DOtherType)
 template <class T, bool Scalar>
 void BM_Abs(benchmark::State& state) {
   arolla::InitArolla();
-  DataSlice x = Scalar ? DataSlice::CreateFromScalar(1)
+  DataSlice x = Scalar ? DataSlice::CreatePrimitive(1)
                        : CreateFlatSlice<T>(state.range(0));
 
   (void)ops::Abs(x);  // warmup caches

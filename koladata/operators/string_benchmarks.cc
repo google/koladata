@@ -42,7 +42,7 @@ void BM_EncodeBase64(benchmark::State& state, bool scalar) {
 
   DataSlice ds;
   if (scalar) {
-    ds = DataSlice::CreateFromScalar(std::move(data));
+    ds = DataSlice::CreatePrimitive(std::move(data));
   } else {
     ds = DataSlice::CreateWithFlatShape(
              internal::DataSliceImpl::Create(
