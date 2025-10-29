@@ -11762,6 +11762,60 @@ Args:
   default: When specified, if the attribute value is None or getting the
     attribute raises AttributeError, this value will be used instead.</code></pre>
 
+### `kd_ext.kv.get_item(v: View | int | float | str | bytes | bool | None, key_or_index: View | int | float | str | bytes | bool | None | slice) -> View` {#kd_ext.kv.get_item}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an item or items from the given view containing containers.
+
+This essentially calls `[x[y] for x, y in zip(v, key_or_index)]`, but
+with some additions:
+- when `key_or_index` is a slice (`v[a:b]` syntax), we add a new
+  dimension to the resulting view that corresponds to iterating over the
+  requested range of indices.
+- when `key_or_index` is a view or auto-boxable into a view, we first align
+  it with `v`. See the examples below for more details.
+- if x[y] raises IndexError or KeyError, we catch it and return None for
+  that item instead.
+
+Example:
+  x = [
+      types.SimpleNamespace(
+        a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+      ),
+      types.SimpleNamespace(
+        a=[types.SimpleNamespace(b=3)]
+      ),
+  ]
+  kv.get_item(kv.get_item(kv.view(x), slice(None)).a, slice(None)).b.get()
+  # ((1, 2), (3,))
+  # Shorter syntax for the same result:
+  kv.view(x)[:].a[:].b.get()
+  # ((1, 2), (3,))
+  kv.view(x)[:].a[:-1].b.get()
+  # ((1,), ())
+  # Get the second element from each list (`key_or_index` is expanded to `v`):
+  kv.view(x)[:].a[2].b.get()
+  # (2, None)
+
+  y = [{&#39;a&#39;: 1, &#39;b&#39;: 2}, {&#39;a&#39;: 3, &#39;c&#39;: 4}]
+  # Get the value for &#39;a&#39; from each dict (`key_or_index` is expanded to `v`):
+  kv.get_item(kv.view(y)[:], &#39;a&#39;).get()
+  # (1, 3)
+  kv.get_item(kv.view(y)[:], &#39;c&#39;).get()
+  # (None, 4)
+  # Get the value for the corresponding key from each dict (`key_or_index` has
+  # same shape as `v`):
+  kv.get_item(kv.view(y)[:], kv.view([&#39;b&#39;, &#39;c&#39;])[:]).get()
+  # (2, 4)
+  # Get the value for multiple keys from each dict (`v` is expanded to
+  # `key_or_index`):
+  kv.get_item(kv.view(y)[:],
+              kv.view([[&#39;b&#39;, &#39;a&#39;], [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]])[:][:]).get()
+  # ((2, 1), (3, None, 4))
+
+Args:
+  v: The view containing the collections to get items from.
+  key_or_index: The key or index or a slice or indices to get.</code></pre>
+
 ### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Reduces view dimension by grouping items into tuples.

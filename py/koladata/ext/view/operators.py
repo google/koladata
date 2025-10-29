@@ -194,3 +194,62 @@ def expand_to(
       afterwards.
   """
   return view_lib.box(v).expand_to(other, ndim)
+
+
+def get_item(
+    v: view_lib.ViewOrAutoBoxType,
+    key_or_index: view_lib.ViewOrAutoBoxType | slice,
+) -> view_lib.View:
+  """Returns an item or items from the given view containing containers.
+
+  This essentially calls `[x[y] for x, y in zip(v, key_or_index)]`, but
+  with some additions:
+  - when `key_or_index` is a slice (`v[a:b]` syntax), we add a new
+    dimension to the resulting view that corresponds to iterating over the
+    requested range of indices.
+  - when `key_or_index` is a view or auto-boxable into a view, we first align
+    it with `v`. See the examples below for more details.
+  - if x[y] raises IndexError or KeyError, we catch it and return None for
+    that item instead.
+
+  Example:
+    x = [
+        types.SimpleNamespace(
+          a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+        ),
+        types.SimpleNamespace(
+          a=[types.SimpleNamespace(b=3)]
+        ),
+    ]
+    kv.get_item(kv.get_item(kv.view(x), slice(None)).a, slice(None)).b.get()
+    # ((1, 2), (3,))
+    # Shorter syntax for the same result:
+    kv.view(x)[:].a[:].b.get()
+    # ((1, 2), (3,))
+    kv.view(x)[:].a[:-1].b.get()
+    # ((1,), ())
+    # Get the second element from each list (`key_or_index` is expanded to `v`):
+    kv.view(x)[:].a[2].b.get()
+    # (2, None)
+
+    y = [{'a': 1, 'b': 2}, {'a': 3, 'c': 4}]
+    # Get the value for 'a' from each dict (`key_or_index` is expanded to `v`):
+    kv.get_item(kv.view(y)[:], 'a').get()
+    # (1, 3)
+    kv.get_item(kv.view(y)[:], 'c').get()
+    # (None, 4)
+    # Get the value for the corresponding key from each dict (`key_or_index` has
+    # same shape as `v`):
+    kv.get_item(kv.view(y)[:], kv.view(['b', 'c'])[:]).get()
+    # (2, 4)
+    # Get the value for multiple keys from each dict (`v` is expanded to
+    # `key_or_index`):
+    kv.get_item(kv.view(y)[:],
+                kv.view([['b', 'a'], ['a', 'b', 'c']])[:][:]).get()
+    # ((2, 1), (3, None, 4))
+
+  Args:
+    v: The view containing the collections to get items from.
+    key_or_index: The key or index or a slice or indices to get.
+  """
+  return view_lib.box(v).get_item(key_or_index)

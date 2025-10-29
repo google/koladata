@@ -124,16 +124,13 @@ class ViewTest(absltest.TestCase):
     with self.assertRaisesRegex(AttributeError, '_a'):
       _ = view_lib.view(x)._a
 
-  def test_getitem_unsupported_slice_fails(self):
+  def test_getitem_non_full_slice(self):
     x = Obj(a=[1, 2, 3])
-    with self.assertRaisesRegex(
-        ValueError, re.escape('Only everything slice [:] is supported')
-    ):
-      _ = view_lib.view(x).a[1:]
+    self.assertEqual(view_lib.view(x).a[1:].get(), (2, 3))
 
   def test_slice_on_non_iterable_fails(self):
     x = Obj(a=[1, 2])
-    with self.assertRaisesRegex(TypeError, "'int' object is not iterable"):
+    with self.assertRaisesRegex(TypeError, "'int' object is not subscriptable"):
       _ = view_lib.view(x).a[:][:]
 
   def test_get_depth(self):
@@ -183,6 +180,27 @@ class ViewTest(absltest.TestCase):
         ),
     ):
       view_lib.box([1, 2])  # pytype: disable=wrong-arg-types
+
+  def test_box_and_unbox_scalar(self):
+    l1 = view_lib.view(1)
+    self.assertEqual(view_lib.box_and_unbox_scalar(l1), 1)
+    self.assertEqual(view_lib.box_and_unbox_scalar(1), 1)
+    self.assertEqual(view_lib.box_and_unbox_scalar(1.0), 1.0)
+    self.assertEqual(view_lib.box_and_unbox_scalar('foo'), 'foo')
+    self.assertEqual(view_lib.box_and_unbox_scalar(b'foo'), b'foo')
+    self.assertEqual(view_lib.box_and_unbox_scalar(True), True)
+    self.assertIsNone(view_lib.box_and_unbox_scalar(None))
+    with self.assertRaisesRegex(ValueError, 'expected a scalar, got depth 1'):
+      view_lib.box_and_unbox_scalar(view_lib.view([1, 2])[:])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "Cannot automatically box [1, 2] of type <class 'list'> to a view."
+            ' Use kv.view() explicitly if you want to construct a view from'
+            ' it.'
+        ),
+    ):
+      view_lib.box_and_unbox_scalar([1, 2])  # pytype: disable=wrong-arg-types
 
   def test_repr(self):
     self.assertEqual(

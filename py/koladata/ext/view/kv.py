@@ -29,6 +29,7 @@ explode = _operators.explode
 implode = _operators.implode
 flatten = _operators.flatten
 expand_to = _operators.expand_to
+get_item = _operators.get_item
 
 types = _py_types.SimpleNamespace(
     View=_view.View,

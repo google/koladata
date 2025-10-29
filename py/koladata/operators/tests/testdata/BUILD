@@ -98,3 +98,15 @@ py_library(
         "//py/koladata/types:schema_constants",
     ],
 )
+
+py_library(
+    name = "core_get_item_testdata",
+    srcs = ["core_get_item_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+    ],
+)

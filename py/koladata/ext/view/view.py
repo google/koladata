@@ -33,6 +33,13 @@ class _NoDefault:
 NO_DEFAULT = _NoDefault()
 
 
+def _get_item_impl(x: Any, key_or_index: Any):
+  try:
+    return x[key_or_index]
+  except (IndexError, KeyError):
+    return None
+
+
 # Most methods of this class are also available as operators in the `kv` module.
 # Please consider adding an operator when adding a new method here.
 class View:
@@ -122,39 +129,38 @@ class View:
           'the number of dimensions to explode must be non-negative, got'
           f' {ndim}'
       )
+    # TODO: For dicts, this does not align with Koda
+    # (.explode() raises, [:] raises in tracing mode and returns values in
+    # eager mode), while we return keys here.
     explode_fn = lambda x: () if x is None else tuple(x)
     res = self
     for _ in range(ndim):
-      # TODO: For dicts, this does not align with Koda ([:] returns
-      # values there, while we return keys here).
       res = _map1(explode_fn, res, include_missing=True)
       res = View(res.get(), res.get_depth() + 1, _INTERNAL_CALL)
     return res
 
-  def __getitem__(self, key: slice) -> View:
-    """Provides `view[:]` syntax as a shortcut for `view.explode()`.
-
-    Example:
-      x = types.SimpleNamespace(
-          a=[types.SimpleNamespace(b=1), types.SimpleNamespace(b=2)]
+  def get_item(self, key_or_index: ViewOrAutoBoxType | slice) -> View:
+    """Returns an item or items from the given view containing containers."""
+    if isinstance(key_or_index, slice):
+      start = box_and_unbox_scalar(key_or_index.start)
+      stop = box_and_unbox_scalar(key_or_index.stop)
+      step = box_and_unbox_scalar(key_or_index.step)
+      if step is not None:
+        # We could easily support this, but then we'd have more discrepancy
+        # with Koda.
+        raise ValueError('slice step is not supported in View.__getitem__')
+      res = _map1(
+          lambda x: () if x is None else tuple(x[start:stop]),
+          self,
+          include_missing=True,
       )
-      view(x).a[:].b.get()
-      # [1, 2]
+      return View(res.get(), res.get_depth() + 1, _INTERNAL_CALL)
+    else:
+      return _map2(_get_item_impl, self, key_or_index)
 
-    Args:
-      key: The key to use for getitem. Only slice() (usually obtained via [:])
-        is supported for now.
-
-    Returns:
-      The result of `view.explode()` if `key` is `[:]`, otherwise raises a
-      ValueError.
-    """
-    if isinstance(key, slice):
-      if key.start is None and key.stop is None and key.step is None:
-        return self.explode()
-    raise ValueError(
-        'Only everything slice [:] is supported in View.__getitem__ yet.'
-    )
+  def __getitem__(self, key_or_index: ViewOrAutoBoxType | slice) -> View:
+    """Returns an item or items from the given view containing containers."""
+    return self.get_item(key_or_index)
 
   def implode(self, ndim: int = 1) -> View:
     """Reduces view dimension by grouping items into tuples."""
@@ -356,13 +362,40 @@ def box(obj: ViewOrAutoBoxType) -> View:
   """
   if isinstance(obj, View):
     return obj
-  elif isinstance(obj, AutoBoxType):
+  if isinstance(obj, AutoBoxType):
     return view(obj)
-  else:
-    raise ValueError(
-        f'Cannot automatically box {obj} of type {type(obj)} to a view. Use'
-        ' kv.view() explicitly if you want to construct a view from it.'
-    )
+  raise ValueError(
+      f'Cannot automatically box {obj} of type {type(obj)} to a view. Use'
+      ' kv.view() explicitly if you want to construct a view from it.'
+  )
+
+
+def box_and_unbox_scalar(obj: ViewOrAutoBoxType) -> Any:
+  """Unboxes the given object if it is a view, and asserts it is a scalar.
+
+  This method is equivalent to:
+  v = box(obj)
+  assert v.get_depth() == 0
+  return v.get()
+
+  But it allows to avoid creating temporary views in the common case.
+
+  Args:
+    obj: The object to box and unbox as scalar.
+
+  Returns:
+    The unboxed object.
+  """
+  if isinstance(obj, View):
+    if obj.get_depth():
+      raise ValueError(f'expected a scalar, got depth {obj.get_depth()}')
+    return obj.get()
+  if isinstance(obj, AutoBoxType):
+    return obj
+  raise ValueError(
+      f'Cannot automatically box {obj} of type {type(obj)} to a view. Use'
+      ' kv.view() explicitly if you want to construct a view from it.'
+  )
 
 
 # This method is in view.py since it is used in the map_ method.
