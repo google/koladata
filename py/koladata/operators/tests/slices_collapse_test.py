@@ -22,11 +22,11 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_collapse_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -43,42 +43,10 @@ QTYPES = frozenset([
 
 class SlicesCollapseTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (ds([None]), ds(None)),
-      (ds([1, None, 'b']), ds(None, schema_constants.OBJECT)),
-      (ds(['a', 'b', 1, 1, None]), ds(None, schema_constants.OBJECT)),
-      (ds([[1, None], [2, 2], [3, 4], [None, None]]), ds([1, 2, None, None])),
-      (ds([[[1], ['a', 'a']], [['b', 2]]]), ds([[1, 'a'], [None]])),
-  )
-  def test_eval_one_arg(self, x, expected):
-    result = expr_eval.eval(kde.slices.collapse(x))
-    testing.assert_equal(result, expected)
-
-  @parameterized.parameters(
-      (
-          ds([[1, None], [2, 2], [3, 4], [None, None]]),
-          arolla.unspecified(),
-          ds([1, 2, None, None]),
-      ),
-      (
-          ds([[1, None], [2, 2], [3, 4], [None, None]]),
-          ds(0),
-          ds([[1, None], [2, 2], [3, 4], [None, None]]),
-      ),
-      (
-          ds([[1, None], [2, 2], [3, 4], [None, None]]),
-          ds(1),
-          ds([1, 2, None, None]),
-      ),
-      (
-          ds([[1, None], [2, 2], [3, 4], [None, None]]),
-          ds(2),
-          ds(None, schema_constants.INT32),
-      ),
-      (ds([[1, None], [1, 1], [1, 1], [None, None]]), ds(2), ds(1)),
-  )
-  def test_eval_two_args(self, x, ndim, expected):
-    result = expr_eval.eval(kde.slices.collapse(x, ndim))
+  @parameterized.parameters(*slices_collapse_testdata.TEST_CASES)
+  def test_eval(self, *args_and_expected):
+    *args, expected = args_and_expected
+    result = expr_eval.eval(kde.slices.collapse(*args))
     testing.assert_equal(result, expected)
 
   def test_data_item_input_error(self):

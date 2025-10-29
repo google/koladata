@@ -344,9 +344,8 @@ def group_by(
 
   Args:
     v: the view to group.
-    *keys: the keys to group by. All views must have the same shape
-      as `v`. Scalar views are not supported. If not present, `v` is used as
-      the key.
+    *keys: the keys to group by. All views must have the same shape as `v`.
+      Scalar views are not supported. If not present, `v` is used as the key.
     sort: Whether groups in the result should be ordered by the grouping key.
 
   Returns:
@@ -354,3 +353,25 @@ def group_by(
     injected grouped by dimension.
   """
   return view_lib.box(v).group_by(*keys, sort=sort)
+
+
+def collapse(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
+  """Collapses equal items along the specified number dimensions of the view.
+
+  Example:
+    x = kv.view([[1, 1, None, 1], [2, 3], []])[:]
+    kv.collapse(x).get()
+    # (1, None, None)
+    kv.collapse(x, ndim=2).get()
+    # None
+
+  Args:
+    v: The view to collapse.
+    ndim: The number of dimensions to collapse.
+
+  Returns:
+    A new view with `ndim` fewer dimensions. The value of each item is equal
+    to the value of its uncollapsed items if they are the same, or None
+    otherwise.
+  """
+  return view_lib.box(v).collapse(ndim)

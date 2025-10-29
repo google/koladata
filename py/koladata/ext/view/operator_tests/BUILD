@@ -163,3 +163,17 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "collapse_test",
+    srcs = ["collapse_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:slices_collapse_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

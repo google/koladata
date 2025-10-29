@@ -58,6 +58,19 @@ def _group_by_impl(
     return tuple([tuple(values) for values in grouped.values()])
 
 
+def _collapse_impl(x: tuple[Any, ...]) -> Any:
+  """Implements collapse for a single item."""
+  res = None
+  for item in x:
+    if item is None:
+      continue
+    if res is None:
+      res = item
+    elif res != item:
+      return None
+  return res
+
+
 # Most methods of this class are also available as operators in the `kv` module.
 # Please consider adding an operator when adding a new method here.
 class View:
@@ -324,6 +337,15 @@ class View:
         self.implode(),
         *[arg.implode() for arg in args],
     ).explode(2)
+
+  def collapse(self, ndim: int = 1) -> View:
+    """Collapses equal items along the specified number dimensions of the view."""
+    if ndim < 0 or ndim > self._depth:
+      raise ValueError(
+          'the number of dimensions to collapse must be in range [0,'
+          f' {self._depth}], got {ndim}'
+      )
+    return self.flatten(self._depth - ndim).map(_collapse_impl, ndim=1)
 
   def get_depth(self) -> int:
     """Returns the depth of the view."""
