@@ -104,7 +104,7 @@ absl::StatusOr<DataSlice> HasNot(arolla::EvaluationContext* ctx,
     return x.item().has_value()
                ? DataSlice::UnsafeCreate(internal::DataItem(),
                                          internal::DataItem(schema::kMask))
-               : DataSlice::CreatePrimitive(std::move(arolla::kUnit));
+               : DataSlice::CreatePrimitive(arolla::kUnit);
   }
   const auto& slice = x.slice();
   if (slice.is_empty_and_unknown()) {

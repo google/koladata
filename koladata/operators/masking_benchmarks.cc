@@ -31,7 +31,7 @@ namespace {
 
 void BM_HasNot_ScalarPresent(benchmark::State& state) {
   arolla::InitArolla();
-  DataSlice ds = DataSlice::CreatePrimitive(std::move(arolla::kUnit));
+  DataSlice ds = DataSlice::CreatePrimitive(arolla::kUnit);
   arolla::EvaluationContext ctx;
   (void)ops::HasNot(&ctx, ds);  // warmup caches
 
