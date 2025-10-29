@@ -6919,7 +6919,7 @@ Example 1:
   result: kd.slice([[1, 1, 1], [3, 3, 3], [2, 2]])
 
 Example 2:
-  x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
+  x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3]), sort=True
   result: kd.slice([[1, 1, 1], [2, 2], [3, 3, 3]])
 
 Example 3:
@@ -6950,12 +6950,12 @@ Example 6:
 Example 7:
   x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
   y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
-  z: kd.slice([A, D, B, A, D, C, A, B]),
-  result: kd.slice([[1, 7], [2, 5], [3], [4], [6]])
+  z: kd.slice([&#39;A&#39;, &#39;D&#39;, &#39;B&#39;, &#39;A&#39;, &#39;D&#39;, &#39;C&#39;, &#39;A&#39;, &#39;B&#39;]),
+  result: kd.slice([[1, 7], [2, 5], [3, 8], [4], [6]])
 
   When *args has two or more values, the  key is a tuple.
   In this example we have the following groups:
-  (7, A), (4, D), (0, B), (9, A), (0, C)
+  (7, &#39;A&#39;), (4, &#39;D&#39;), (0, &#39;B&#39;), (9, &#39;A&#39;), (0, &#39;C&#39;)
 
 Args:
   x: DataSlice to group.
