@@ -22,11 +22,11 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import comparison_not_equal_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -41,48 +41,7 @@ QTYPES = frozenset([
 
 class ComparisonNotEqualTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          ds([1, None, 3, 2]),
-          ds([None, None, 3, 1]),
-          ds([None, None, None, arolla.present()]),
-      ),
-      (
-          ds(['a', 1, None, 1.5]),
-          ds(['b', 1.0, None, 1.5]),
-          ds([arolla.present(), None, None, None]),
-      ),
-      # DataItem
-      (1, 1, ds(None, schema_constants.MASK)),
-      (1, 2, ds(arolla.present())),
-      # Broadcasting
-      (
-          ds(['a', 1, None, 1.5]),
-          1,
-          ds([arolla.present(), None, None, arolla.present()]),
-      ),
-      (
-          None,
-          ds(['a', 1, None, 1.5]),
-          ds([None, None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([['a', 1, 2, 1.5], [0, 1, 2, 3]]),
-          ds(['a', 1]),
-          ds([
-              [None, arolla.present(), arolla.present(), arolla.present()],
-              [arolla.present(), None, arolla.present(), arolla.present()],
-          ]),
-      ),
-      # Scalar input, scalar output.
-      (1, 1, ds(arolla.missing(), schema_constants.MASK)),
-      (1, 2, ds(arolla.present())),
-      (
-          ds(arolla.missing()),
-          ds(arolla.missing()),
-          ds(None, schema_constants.MASK),
-      ),
-  )
+  @parameterized.parameters(*comparison_not_equal_testdata.TEST_CASES)
   def test_eval(self, x, y, expected):
     result = expr_eval.eval(kde.comparison.not_equal(x, y))
     testing.assert_equal(result, expected)

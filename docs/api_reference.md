@@ -11684,6 +11684,20 @@ Returns:
   to the value of its uncollapsed items if they are the same, or None
   otherwise.</code></pre>
 
+### `kd_ext.kv.equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.equal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a == b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are equal and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
+
 ### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | _Present | None, other: View | int | float | str | bytes | bool | _Present | None, ndim: int = 0) -> View` {#kd_ext.kv.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the view expanded to the shape of other view.
@@ -11864,6 +11878,34 @@ Args:
   v: The view containing the collections to get items from.
   key_or_index: The key or index or a slice or indices to get.</code></pre>
 
+### `kd_ext.kv.greater(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.greater}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &gt; b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are greater and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
+
+### `kd_ext.kv.greater_equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.greater_equal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &gt;= b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are greater or equal and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
+
 ### `kd_ext.kv.group_by(v: View | int | float | str | bytes | bool | _Present | None, *keys: View | int | float | str | bytes | bool | _Present | None, sort: bool = False) -> View` {#kd_ext.kv.group_by}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `v` with values in last dimension grouped using a new dimension.
@@ -11955,6 +11997,34 @@ Args:
 Returns:
   A new view with `ndim` fewer dimensions.</code></pre>
 
+### `kd_ext.kv.less(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.less}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &lt; b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are less and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
+
+### `kd_ext.kv.less_equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.less_equal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &lt;= b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are less or equal and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
+
 ### `kd_ext.kv.map(f: Callable[..., Any], *args: ViewOrAutoBoxType, ndim: int = 0, include_missing: bool | None = None, **kwargs: ViewOrAutoBoxType) -> View` {#kd_ext.kv.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to corresponding items in the args/kwargs view.
@@ -11992,6 +12062,20 @@ Args:
 
 Returns:
   A new view with the function applied to the corresponding items.</code></pre>
+
+### `kd_ext.kv.not_equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.not_equal}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a != b`.
+
+Compares the items of `a` and `b` and returns a view with `kv.present` if the
+corresponding items are not equal and `None` otherwise.
+
+Args:
+  a: The view to compare.
+  b: The view to compare with.
+
+Returns:
+  A new view with the comparison result.</code></pre>
 
 ### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | _Present | None, index: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.take}
 

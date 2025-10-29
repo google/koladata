@@ -410,3 +410,111 @@ def coalesce(
     A new view with the values from `a` and `b` combined.
   """
   return view_lib.box(a) | b
+
+
+def equal(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a == b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are equal and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) == b
+
+
+def not_equal(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a != b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are not equal and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) != b
+
+
+def less(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a < b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are less and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) < b
+
+
+def less_equal(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a <= b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are less or equal and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) <= b
+
+
+def greater(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a > b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are greater and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) > b
+
+
+def greater_equal(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a >= b`.
+
+  Compares the items of `a` and `b` and returns a view with `kv.present` if the
+  corresponding items are greater or equal and `None` otherwise.
+
+  Args:
+    a: The view to compare.
+    b: The view to compare with.
+
+  Returns:
+    A new view with the comparison result.
+  """
+  return view_lib.box(a) >= b

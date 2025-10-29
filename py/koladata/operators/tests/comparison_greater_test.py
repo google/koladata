@@ -22,6 +22,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import comparison_greater_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -41,75 +42,7 @@ QTYPES = frozenset([
 
 class ComparisonGreaterTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          ds([1, 3, 2]),
-          ds([1, 2, 3]),
-          ds([None, arolla.present(), None]),
-      ),
-      (
-          ds([1, 3, 2], schema_constants.FLOAT32),
-          ds([1, 2, 3], schema_constants.FLOAT32),
-          ds([None, arolla.present(), None]),
-      ),
-      # Auto-broadcasting
-      (
-          ds([1, 2, 3], schema_constants.FLOAT32),
-          ds(2, schema_constants.FLOAT32),
-          ds([None, None, arolla.present()]),
-      ),
-      # scalar inputs, scalar output.
-      (3, 4, ds(None, schema_constants.MASK)),
-      (4, 3, ds(arolla.present())),
-      # multi-dimensional.
-      (
-          ds([1, 2, 3]),
-          ds([[0, 1, 2], [1, 2, 3], [2, 3, 4]]),
-          ds([[arolla.present(), None, None]] * 3),
-      ),
-      # OBJECT
-      (
-          ds([1, None, 5], schema_constants.OBJECT),
-          ds([4, 1, 0]),
-          ds([None, None, arolla.present()]),
-      ),
-      # Empty and unknown inputs.
-      (
-          ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None]),
-          ds([None, None, None]),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None]),
-          ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None], schema_constants.INT32),
-          ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None], schema_constants.OBJECT),
-          ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None]),
-          ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([None, None, None], schema_constants.OBJECT),
-          ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.MASK),
-      ),
-  )
+  @parameterized.parameters(*comparison_greater_testdata.TEST_CASES)
   def test_eval(self, x, y, expected):
     result = expr_eval.eval(kde.comparison.greater(I.x, I.y), x=x, y=y)
     testing.assert_equal(result, expected)

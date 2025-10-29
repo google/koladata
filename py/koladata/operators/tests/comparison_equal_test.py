@@ -22,9 +22,9 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import comparison_equal_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -34,10 +34,7 @@ I = input_container.InputContainer('I')
 kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
-bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
-
-ENTITY_1 = bag().new()
 
 
 QTYPES = frozenset([
@@ -47,59 +44,7 @@ QTYPES = frozenset([
 
 class ComparisonEqualTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          ds([1, None, 3, 2]),
-          ds([None, None, 3, 1]),
-          ds([None, None, arolla.present(), None]),
-      ),
-      (
-          ds(['a', 'b', 1, None, 1.5]),
-          ds(['a', b'b', 1.0, None, 1.5]),
-          ds(
-              [arolla.present(), None, arolla.present(), None, arolla.present()]
-          ),
-      ),
-      (ds([ENTITY_1]), ds([ENTITY_1]), ds([arolla.present()])),
-      # Broadcasting
-      (
-          ds(['a', 1, None, 1.5, 1.0]),
-          1,
-          ds([None, arolla.present(), None, None, arolla.present()]),
-      ),
-      (
-          None,
-          ds(['a', 1, None, 1.5]),
-          ds([None, None, None, None], schema_constants.MASK),
-      ),
-      (
-          ds([['a', 1, 2, 1.5], [0, 1, 2, 3]]),
-          ds(['a', 1]),
-          ds(
-              [
-                  [arolla.present(), None, None, None],
-                  [None, arolla.present(), None, None],
-              ],
-          ),
-      ),
-      # Scalar input, scalar output.
-      (ds(1), ds(1), ds(arolla.present())),
-      (ds(1), ds(2), ds(arolla.missing())),
-      (ds(1), ds(1, schema_constants.INT64), ds(arolla.present())),
-      (ds(1), ds(1.0), ds(arolla.present())),
-      (ds('a'), ds('a'), ds(arolla.present())),
-      (ds('a'), ds('b'), ds(arolla.missing())),
-      (ds('a'), ds(b'a'), ds(arolla.missing())),
-      (ds('a'), ds('a', schema_constants.OBJECT), ds(arolla.present())),
-      (ds(1), ds(arolla.missing()), ds(arolla.missing())),
-      (ds(arolla.missing()), ds(arolla.missing()), ds(arolla.missing())),
-      (
-          ds(None, schema_constants.INT32),
-          ds(None, schema_constants.INT32),
-          ds(arolla.missing()),
-      ),
-      (ENTITY_1, ENTITY_1, ds(arolla.present())),
-  )
+  @parameterized.parameters(*comparison_equal_testdata.TEST_CASES)
   def test_eval(self, lhs, rhs, expected):
     result = kd.comparison.equal(lhs, rhs)
     testing.assert_equal(result, expected)
@@ -123,9 +68,8 @@ Schema for `x`: ENTITY()
 Schema for `y`: INT32"""
         ),
     ):
-      kd.comparison.equal(ENTITY_1, ds(1))
+      kd.comparison.equal(kd.new(), ds(1))
 
-    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -135,7 +79,7 @@ Schema for `x`: ENTITY(x=INT32)
 Schema for `y`: ENTITY()"""
         ),
     ):
-      kd.comparison.equal(db.new(x=1), db.new())
+      kd.comparison.equal(kd.new(x=1), kd.new())
 
     with self.assertRaisesRegex(
         ValueError,
@@ -146,7 +90,7 @@ Schema for `x`: ENTITY(x=INT32)
 Schema for `y`: OBJECT containing non-primitive values"""
         ),
     ):
-      kd.comparison.equal(db.new(x=1), db.obj())
+      kd.comparison.equal(kd.new(x=1), kd.obj())
 
     with self.assertRaisesRegex(
         ValueError,
@@ -158,7 +102,7 @@ Schema for `y`: ITEMID"""
         ),
     ):
       kd.comparison.equal(
-          db.new(x=1), db.obj().with_schema(schema_constants.ITEMID)
+          kd.new(x=1), kd.obj().with_schema(schema_constants.ITEMID)
       )
 
   def test_repr(self):

@@ -36,6 +36,12 @@ group_by = _operators.group_by
 collapse = _operators.collapse
 apply_mask = _operators.apply_mask
 coalesce = _operators.coalesce
+equal = _operators.equal
+not_equal = _operators.not_equal
+less = _operators.less
+less_equal = _operators.less_equal
+greater = _operators.greater
+greater_equal = _operators.greater_equal
 
 present = _mask_constants.present
 missing = _mask_constants.missing

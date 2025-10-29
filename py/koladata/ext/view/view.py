@@ -380,6 +380,36 @@ class View:
         lambda x, y: y if x is None else x, other, self, include_missing=True
     )
 
+  def __eq__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x == y else None, self, other
+    )
+
+  def __ne__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x != y else None, self, other
+    )
+
+  def __lt__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x < y else None, self, other
+    )
+
+  def __le__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x <= y else None, self, other
+    )
+
+  def __gt__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x > y else None, self, other
+    )
+
+  def __ge__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: mask_constants.present if x >= y else None, self, other
+    )
+
 
 def view(obj: Any) -> View:
   """Creates a view on an object that can be used for vectorized access.

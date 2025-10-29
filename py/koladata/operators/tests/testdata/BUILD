@@ -163,3 +163,70 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "comparison_equal_testdata",
+    srcs = ["comparison_equal_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "comparison_not_equal_testdata",
+    srcs = ["comparison_not_equal_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "comparison_greater_testdata",
+    srcs = ["comparison_greater_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "comparison_greater_equal_testdata",
+    srcs = ["comparison_greater_equal_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "comparison_less_testdata",
+    srcs = ["comparison_less_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "comparison_less_equal_testdata",
+    srcs = ["comparison_less_equal_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
