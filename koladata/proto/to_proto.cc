@@ -345,7 +345,7 @@ absl::Status FillProtoMessageField(
   ASSIGN_OR_RETURN(DataSlice mask, ops::Has(attr_slice));
   ASSIGN_OR_RETURN(
       DataSlice dense_attr_slice,
-      ops::Select(attr_slice, mask, DataSlice::CreateFromScalar(false)));
+      ops::Select(attr_slice, mask, DataSlice::CreatePrimitive(false)));
 
   std::vector<Message* absl_nonnull> dense_child_messages;
   RETURN_IF_ERROR(

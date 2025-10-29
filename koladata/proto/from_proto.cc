@@ -232,7 +232,7 @@ absl::StatusOr<DataSlice> CreateMessageSchemaMetadata(
     const Descriptor& message_descriptor) {
   ASSIGN_OR_RETURN(auto metadata, CreateMetadata(db, schema, {}, {}));
   RETURN_IF_ERROR(metadata.SetAttr(schema::kProtoSchemaMetadataFullNameAttr,
-                                   DataSlice::CreateFromScalar(arolla::Text(
+                                   DataSlice::CreatePrimitive(arolla::Text(
                                        message_descriptor.full_name()))));
   return metadata;
 }
@@ -287,34 +287,31 @@ absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(
   internal::DataItem default_item;
   switch (field_descriptor.cpp_type()) {
     case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
-      return DataSlice::CreateFromScalar(
-          field_descriptor.default_value_int32());
+      return DataSlice::CreatePrimitive(field_descriptor.default_value_int32());
     case google::protobuf::FieldDescriptor::CPPTYPE_ENUM:
-      return DataSlice::CreateFromScalar(static_cast<int32_t>(
+      return DataSlice::CreatePrimitive(static_cast<int32_t>(
           field_descriptor.default_value_enum()->number()));
     case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
-      return DataSlice::CreateFromScalar(
-          field_descriptor.default_value_int64());
+      return DataSlice::CreatePrimitive(field_descriptor.default_value_int64());
     case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
-      return DataSlice::CreateFromScalar(
+      return DataSlice::CreatePrimitive(
           static_cast<int64_t>(field_descriptor.default_value_uint32()));
     case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
-      return DataSlice::CreateFromScalar(
+      return DataSlice::CreatePrimitive(
           static_cast<int64_t>(field_descriptor.default_value_uint64()));
     case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
-      return DataSlice::CreateFromScalar(
+      return DataSlice::CreatePrimitive(
           field_descriptor.default_value_double());
     case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
-      return DataSlice::CreateFromScalar(
-          field_descriptor.default_value_float());
+      return DataSlice::CreatePrimitive(field_descriptor.default_value_float());
     case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
-      return DataSlice::CreateFromScalar(field_descriptor.default_value_bool());
+      return DataSlice::CreatePrimitive(field_descriptor.default_value_bool());
     case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
       if (field_descriptor.type() == google::protobuf::FieldDescriptor::TYPE_BYTES) {
-        return DataSlice::CreateFromScalar(
+        return DataSlice::CreatePrimitive(
             arolla::Bytes(field_descriptor.default_value_string()));
       } else {
-        return DataSlice::CreateFromScalar(
+        return DataSlice::CreatePrimitive(
             arolla::Text(field_descriptor.default_value_string()));
       }
       break;
@@ -592,7 +589,7 @@ absl::Status FromProtoMessageField(
                      ASSIGN_OR_RETURN(
                          auto packed_itemid,
                          ops::Select(*itemid, *vars->mask,
-                                     DataSlice::CreateFromScalar(false)));
+                                     DataSlice::CreatePrimitive(false)));
                      return packed_itemid;
                    }());
 
