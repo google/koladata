@@ -16,6 +16,8 @@ import re
 import types
 
 from absl.testing import absltest
+from koladata.ext.view import mask_constants
+from koladata.ext.view import test_utils
 from koladata.ext.view import view as view_lib
 
 
@@ -171,6 +173,9 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(view_lib.box(b'foo').get(), b'foo')
     self.assertEqual(view_lib.box(True).get(), True)
     self.assertIsNone(view_lib.box(None).get())
+    self.assertIs(
+        view_lib.box(mask_constants.present).get(), mask_constants.present
+    )
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -190,6 +195,10 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(view_lib.box_and_unbox_scalar(b'foo'), b'foo')
     self.assertEqual(view_lib.box_and_unbox_scalar(True), True)
     self.assertIsNone(view_lib.box_and_unbox_scalar(None))
+    self.assertIs(
+        view_lib.box_and_unbox_scalar(mask_constants.present),
+        mask_constants.present,
+    )
     with self.assertRaisesRegex(ValueError, 'expected a scalar, got depth 1'):
       view_lib.box_and_unbox_scalar(view_lib.view([1, 2])[:])
     with self.assertRaisesRegex(
@@ -201,6 +210,18 @@ class ViewTest(absltest.TestCase):
         ),
     ):
       view_lib.box_and_unbox_scalar([1, 2])  # pytype: disable=wrong-arg-types
+
+  def test_and_boxing(self):
+    a = view_lib.view(1)
+    b = view_lib.view(mask_constants.present)
+    test_utils.assert_equal(a & mask_constants.present, a)
+    test_utils.assert_equal(1 & b, a)
+
+  def test_or_boxing(self):
+    a = view_lib.view(None)
+    b = view_lib.view(1)
+    test_utils.assert_equal(a | 1, b)
+    test_utils.assert_equal(None | b, b)
 
   def test_repr(self):
     self.assertEqual(

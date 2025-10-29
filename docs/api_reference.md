@@ -11637,7 +11637,34 @@ Args:
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>
 
-### `kd_ext.kv.collapse(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.collapse}
+### `kd_ext.kv.apply_mask(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.apply_mask}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &amp; b`.
+
+Returns the values from `a` where `b` is present, and None otherwise.
+
+Args:
+  a: The view to apply the mask to.
+  b: The mask to apply. Must only have `kv.present` and `None` values.
+
+Returns:
+  A new view with only the requested values from `a`.</code></pre>
+
+### `kd_ext.kv.coalesce(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.coalesce}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a | b`.
+
+Returns the values from `a` where they are present, or the values from `b`
+otherwise.
+
+Args:
+  a: The view to coalesce.
+  b: The view to coalesce with.
+
+Returns:
+  A new view with the values from `a` and `b` combined.</code></pre>
+
+### `kd_ext.kv.collapse(v: View | int | float | str | bytes | bool | _Present | None, ndim: int = 1) -> View` {#kd_ext.kv.collapse}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Collapses equal items along the specified number dimensions of the view.
 
@@ -11657,7 +11684,7 @@ Returns:
   to the value of its uncollapsed items if they are the same, or None
   otherwise.</code></pre>
 
-### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | None, other: View | int | float | str | bytes | bool | None, ndim: int = 0) -> View` {#kd_ext.kv.expand_to}
+### `kd_ext.kv.expand_to(v: View | int | float | str | bytes | bool | _Present | None, other: View | int | float | str | bytes | bool | _Present | None, ndim: int = 0) -> View` {#kd_ext.kv.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the view expanded to the shape of other view.
 
@@ -11685,7 +11712,7 @@ Args:
   ndim: the number of dimensions to implode before expansion and explode back
     afterwards.</code></pre>
 
-### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.explode}
+### `kd_ext.kv.explode(v: View | int | float | str | bytes | bool | _Present | None, ndim: int = 1) -> View` {#kd_ext.kv.explode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Unnests iterable elements, increasing rank by `ndim`.
 
@@ -11716,7 +11743,7 @@ Args:
 Returns:
   A new view with `ndim` more dimensions.</code></pre>
 
-### `kd_ext.kv.flatten(v: View | int | float | str | bytes | bool | None, from_dim: int = 0, to_dim: int | None = None) -> View` {#kd_ext.kv.flatten}
+### `kd_ext.kv.flatten(v: View | int | float | str | bytes | bool | _Present | None, from_dim: int = 0, to_dim: int | None = None) -> View` {#kd_ext.kv.flatten}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Flattens the specified dimensions of the view.
 
@@ -11763,7 +11790,7 @@ Args:
 Returns:
   A new view with the specified dimensions flattened.</code></pre>
 
-### `kd_ext.kv.get_attr(v: View | int | float | str | bytes | bool | None, attr_name: str, default: Any = NO_DEFAULT) -> View` {#kd_ext.kv.get_attr}
+### `kd_ext.kv.get_attr(v: View | int | float | str | bytes | bool | _Present | None, attr_name: str, default: Any = NO_DEFAULT) -> View` {#kd_ext.kv.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new view with the given attribute of each item.
 
@@ -11783,7 +11810,7 @@ Args:
   default: When specified, if the attribute value is None or getting the
     attribute raises AttributeError, this value will be used instead.</code></pre>
 
-### `kd_ext.kv.get_item(v: View | int | float | str | bytes | bool | None, key_or_index: View | int | float | str | bytes | bool | None | slice) -> View` {#kd_ext.kv.get_item}
+### `kd_ext.kv.get_item(v: View | int | float | str | bytes | bool | _Present | None, key_or_index: View | int | float | str | bytes | bool | _Present | None | slice) -> View` {#kd_ext.kv.get_item}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an item or items from the given view containing containers.
 
@@ -11837,7 +11864,7 @@ Args:
   v: The view containing the collections to get items from.
   key_or_index: The key or index or a slice or indices to get.</code></pre>
 
-### `kd_ext.kv.group_by(v: View | int | float | str | bytes | bool | None, *keys: View | int | float | str | bytes | bool | None, sort: bool = False) -> View` {#kd_ext.kv.group_by}
+### `kd_ext.kv.group_by(v: View | int | float | str | bytes | bool | _Present | None, *keys: View | int | float | str | bytes | bool | _Present | None, sort: bool = False) -> View` {#kd_ext.kv.group_by}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `v` with values in last dimension grouped using a new dimension.
 
@@ -11905,7 +11932,7 @@ Returns:
   A view with items within the last dimension reordered into groups and
   injected grouped by dimension.</code></pre>
 
-### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
+### `kd_ext.kv.implode(v: View | int | float | str | bytes | bool | _Present | None, ndim: int = 1) -> View` {#kd_ext.kv.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Reduces view dimension by grouping items into tuples.
 
@@ -11966,7 +11993,7 @@ Args:
 Returns:
   A new view with the function applied to the corresponding items.</code></pre>
 
-### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | None, index: View | int | float | str | bytes | bool | None) -> View` {#kd_ext.kv.take}
+### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | _Present | None, index: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.take}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a view with the items at the given index in the last dimension.
 

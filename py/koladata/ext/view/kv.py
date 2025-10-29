@@ -18,6 +18,7 @@ This API is highly experimental and is subject to change without notice.
 """
 
 import types as _py_types
+from koladata.ext.view import mask_constants as _mask_constants
 from koladata.ext.view import operators as _operators
 from koladata.ext.view import view as _view
 
@@ -33,6 +34,11 @@ get_item = _operators.get_item
 take = _operators.take
 group_by = _operators.group_by
 collapse = _operators.collapse
+apply_mask = _operators.apply_mask
+coalesce = _operators.coalesce
+
+present = _mask_constants.present
+missing = _mask_constants.missing
 
 types = _py_types.SimpleNamespace(
     View=_view.View,

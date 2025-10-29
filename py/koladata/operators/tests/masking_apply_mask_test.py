@@ -22,11 +22,11 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import masking_apply_mask_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -42,82 +42,7 @@ QTYPES = frozenset([
 
 class LogicalApplyMaskTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          ds([1, None, 2, 3, None]),
-          ds(
-              [arolla.present(), None, arolla.present(), None, arolla.present()]
-          ),
-          ds([1, None, 2, None, None]),
-      ),
-      # Mixed types.
-      (
-          ds(['a', 1, None, 1.5, 'b', 2.5, 2]),
-          ds([
-              None,
-              arolla.present(),
-              arolla.present(),
-              None,
-              arolla.present(),
-              arolla.present(),
-              arolla.present(),
-          ]),
-          ds([None, 1, None, None, 'b', 2.5, 2]),
-      ),
-      # Scalar input, scalar output.
-      (
-          ds(1, schema_constants.INT64),
-          ds(arolla.present()),
-          ds(1, schema_constants.INT64),
-      ),
-      (
-          1,
-          ds(arolla.missing()),
-          ds(arolla.missing(), schema_constants.INT32),
-      ),
-      (
-          ds(None, schema_constants.MASK),
-          ds(arolla.present()),
-          ds(None, schema_constants.MASK),
-      ),
-      (
-          ds(None),
-          ds(arolla.missing()),
-          ds(None),
-      ),
-      # Auto-broadcasting.
-      (
-          ds([1, 2, 3]),
-          ds(arolla.present()),
-          ds([1, 2, 3]),
-      ),
-      (
-          ds([1, 2, 3]),
-          ds(arolla.missing()),
-          ds([None, None, None], schema_constants.INT32),
-      ),
-      (
-          1,
-          ds([arolla.present(), arolla.missing(), arolla.present()]),
-          ds([1, None, 1]),
-      ),
-      # Multi-dimensional.
-      (
-          ds([[1, 2], [4, 5, 6], [7, 8]]),
-          ds([arolla.missing(), arolla.present(), arolla.present()]),
-          ds([[None, None], [4, 5, 6], [7, 8]]),
-      ),
-      # Mixed types.
-      (
-          ds([[1, 2], ['a', 'b', 'c'], [arolla.present()]]),
-          ds([
-              [arolla.present(), arolla.missing()],
-              [arolla.present(), arolla.present(), arolla.missing()],
-              [arolla.missing()],
-          ]),
-          ds([[1, None], ['a', 'b', None], [None]]),
-      ),
-  )
+  @parameterized.parameters(*masking_apply_mask_testdata.TEST_CASES)
   def test_eval(self, values, mask, expected):
     result = expr_eval.eval(kde.masking.apply_mask(values, mask))
     testing.assert_equal(result, expected)

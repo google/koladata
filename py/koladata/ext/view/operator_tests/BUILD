@@ -20,6 +20,20 @@ load("@rules_python//python:defs.bzl", "py_test")
 licenses(["notice"])
 
 py_test(
+    name = "apply_mask_test",
+    srcs = ["apply_mask_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:masking_apply_mask_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "align_test",
     srcs = ["align_test.py"],
     deps = [
@@ -175,5 +189,19 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "coalesce_test",
+    srcs = ["coalesce_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:masking_coalesce_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )

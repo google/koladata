@@ -375,3 +375,38 @@ def collapse(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
     otherwise.
   """
   return view_lib.box(v).collapse(ndim)
+
+
+def apply_mask(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a & b`.
+
+  Returns the values from `a` where `b` is present, and None otherwise.
+
+  Args:
+    a: The view to apply the mask to.
+    b: The mask to apply. Must only have `kv.present` and `None` values.
+
+  Returns:
+    A new view with only the requested values from `a`.
+  """
+  return view_lib.box(a) & b
+
+
+def coalesce(
+    a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """An alias for `a | b`.
+
+  Returns the values from `a` where they are present, or the values from `b`
+  otherwise.
+
+  Args:
+    a: The view to coalesce.
+    b: The view to coalesce with.
+
+  Returns:
+    A new view with the values from `a` and `b` combined.
+  """
+  return view_lib.box(a) | b

@@ -19,6 +19,7 @@ import functools
 import itertools
 from typing import Any, Callable
 from koladata.ext.view import clib_py_ext as view_clib
+from koladata.ext.view import mask_constants
 
 _cc_map_structure = view_clib.map_structures
 _INTERNAL_CALL = object()
@@ -69,6 +70,18 @@ def _collapse_impl(x: tuple[Any, ...]) -> Any:
     elif res != item:
       return None
   return res
+
+
+def _presence_and_impl(x: Any, y: Any) -> Any:
+  """Implements presence_and for a single item."""
+  # This is called only when x and y are not None, so we do not need to handle
+  # the case when y is None.
+  if y is mask_constants.present:
+    return x
+  raise ValueError(
+      'the second argument of & must have only kv.present and None values,'
+      f' got: {y}'
+  )
 
 
 # Most methods of this class are also available as operators in the `kv` module.
@@ -351,6 +364,22 @@ class View:
     """Returns the depth of the view."""
     return self._depth
 
+  def __and__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(_presence_and_impl, self, other)
+
+  def __rand__(self, other: ViewOrAutoBoxType) -> View:
+    return map_(_presence_and_impl, other, self)
+
+  def __or__(self, other: ViewOrAutoBoxType) -> View:
+    return _map2(
+        lambda x, y: y if x is None else x, self, other, include_missing=True
+    )
+
+  def __ror__(self, other: ViewOrAutoBoxType) -> View:
+    return map_(
+        lambda x, y: y if x is None else x, other, self, include_missing=True
+    )
+
 
 def view(obj: Any) -> View:
   """Creates a view on an object that can be used for vectorized access.
@@ -401,7 +430,9 @@ def view(obj: Any) -> View:
   return View(obj, 0, _INTERNAL_CALL)
 
 
-AutoBoxType = int | float | str | bytes | bool | None
+AutoBoxType = (
+    int | float | str | bytes | bool | type(mask_constants.present) | None
+)
 ViewOrAutoBoxType = View | AutoBoxType
 
 

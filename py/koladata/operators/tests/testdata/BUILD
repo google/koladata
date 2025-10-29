@@ -141,3 +141,25 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "masking_apply_mask_testdata",
+    srcs = ["masking_apply_mask_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "masking_coalesce_testdata",
+    srcs = ["masking_coalesce_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)

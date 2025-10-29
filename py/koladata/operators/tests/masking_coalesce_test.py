@@ -22,6 +22,7 @@ from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import masking_coalesce_testdata
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -44,80 +45,7 @@ QTYPES = [
 
 class MaskingCoalesceTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          # x, y, expected
-          ds([1, None, 2, 3, None]),
-          ds([5, 6, 7, None, None]),
-          ds([1, 6, 2, 3, None]),
-      ),
-      # Mixed types.
-      (
-          ds([1, None]),
-          ds([None, 2.0]),
-          ds([1.0, 2.0]),
-      ),
-      (
-          ds([None, 1, None, None, 'b', 2.5, 2]),
-          ds(['a', None, None, 1.5, 'b', 2.5, None]),
-          ds(['a', 1, None, 1.5, 'b', 2.5, 2]),
-      ),
-      (
-          ds([1], schema_constants.OBJECT),
-          ds([2.0], schema_constants.OBJECT),
-          ds([1], schema_constants.OBJECT),
-      ),
-      (
-          ds(['a', None], schema_constants.OBJECT),
-          ds([b'c', b'd'], schema_constants.OBJECT),
-          ds(['a', b'd'], schema_constants.OBJECT),
-      ),
-      (ds(['a']), ds([b'b']), ds(['a'], schema_constants.OBJECT)),
-      # Scalar input, scalar output.
-      (ds(1), ds(2), ds(1)),
-      (ds(1), ds(2.0), ds(1.0)),
-      (ds(None, schema_constants.INT32), ds(1), ds(1)),
-      (ds(1), ds(arolla.present()), ds(1, schema_constants.OBJECT)),
-      (ds(None, schema_constants.MASK), ds(1), ds(1, schema_constants.OBJECT)),
-      (
-          ds(None, schema_constants.MASK),
-          ds(arolla.present()),
-          ds(arolla.present()),
-      ),
-      (
-          ds(None, schema_constants.MASK),
-          ds(None, schema_constants.MASK),
-          ds(None, schema_constants.MASK),
-      ),
-      # Auto-broadcasting.
-      (ds([1, None, None]), ds(2), ds([1, 2, 2])),
-      (
-          ds([1, None, None]),
-          ds(None, schema_constants.INT32),
-          ds([1, None, None]),
-      ),
-      (ds(None, schema_constants.INT32), ds([1, None, 2]), ds([1, None, 2])),
-      # Multi-dimensional.
-      (
-          ds([[None, None], [4, 5, None], [7, 8]]),
-          ds([[1, None], [None, 5, 6], [7, None]]),
-          ds([[1, None], [4, 5, 6], [7, 8]]),
-      ),
-      # Mixed types.
-      (
-          ds([[1, 2], [None, None, None], [arolla.present()]]),
-          ds([[None, None], ['a', 'b', 'c'], [1.5]]),
-          ds(
-              [[1, 2], ['a', 'b', 'c'], [arolla.present()]],
-              schema_constants.OBJECT,
-          ),
-      ),
-      (
-          ds([[1, 2], [None, None, None], [None]], schema_constants.OBJECT),
-          ds([[None, None], ['a', None, 'c'], ['d']]),
-          ds([[1, 2], ['a', None, 'c'], ['d']], schema_constants.OBJECT),
-      ),
-  )
+  @parameterized.parameters(*masking_coalesce_testdata.TEST_CASES)
   def test_eval(self, x, y, expected):
     testing.assert_equal(kd.masking.coalesce(x, y), expected)
 

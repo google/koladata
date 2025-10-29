@@ -44,6 +44,8 @@ py_test(
     name = "view_test",
     srcs = ["view_test.py"],
     deps = [
+        ":mask_constants",
+        ":test_utils",
         ":view",
         "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
@@ -55,6 +57,16 @@ py_test(
     srcs = ["kv_test.py"],
     deps = [
         ":kv",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "mask_constants_test",
+    srcs = ["mask_constants_test.py"],
+    deps = [
+        ":mask_constants",
         "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -87,14 +99,22 @@ py_library(
     srcs = ["view.py"],
     deps = [
         ":clib_py_ext",
+        ":mask_constants",
         "//py:python_path",
     ],
+)
+
+py_library(
+    name = "mask_constants",
+    srcs = ["mask_constants.py"],
+    deps = ["//py:python_path"],
 )
 
 py_library(
     name = "kv",
     srcs = ["kv.py"],
     deps = [
+        ":mask_constants",
         ":operators",
         ":view",
         "//py:python_path",
@@ -115,6 +135,7 @@ py_library(
     testonly = True,
     srcs = ["test_utils.py"],
     deps = [
+        ":mask_constants",
         ":view",
         "//py:python_path",
         "//py/koladata:kd",
