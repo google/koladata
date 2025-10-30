@@ -34,6 +34,7 @@ from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
+from koladata.types import literal_operator
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -1150,6 +1151,13 @@ class ExtensionTypesTest(parameterized.TestCase):
           'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))',
       )
 
+    with self.subTest('lazy_literal'):
+      # NOTE: the functor representing the virtual method is _not_ included.
+      self.assertEqual(
+          repr(literal_operator.literal(A(1, 2))),
+          'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))',
+      )
+
     with self.subTest('lazy'):
       expected_repr = (
           re.escape(
@@ -1179,8 +1187,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
       expr = M.core.identity(a)
       expected_repr = (
-          "M.core.identity(LABEL['__main__.ExtensionTypesTest.test_default_repr_with_unknown_attr.<locals>.A']{Object{attributes={x=DataItem(1,"
-          ' schema: INT32)}}})'
+          'M.core.identity(A(x=DataItem(1, schema: INT32), y=<unknown>))'
       )
       self.assertEqual(repr(expr), expected_repr)
 

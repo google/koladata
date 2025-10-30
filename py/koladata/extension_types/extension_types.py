@@ -354,25 +354,27 @@ def _with_attrs(
     return _with_attrs_qvalue(ext, attrs, field_annotations)
 
 
-def _get_default_repr_fn(
+def _get_default_arolla_repr_fn(
     class_name: str, attrs: Sequence[str]
-) -> Callable[[Any], str]:
+) -> Callable[[Any], arolla.abc.ReprToken]:
   """Returns a QValue repr function used if not overridden by the user."""
   sorted_attrs = sorted(attrs)
 
-  def __repr__(self) -> str:  # pylint: disable=invalid-name
+  def repr_fn(value) -> arolla.abc.ReprToken:
     """Returns a string representation of the extension type."""
 
     def get_attr(attr: str) -> str:
       try:
-        return repr(getattr(self, attr))
+        return repr(getattr(value, attr))
       except ValueError:
         return '<unknown>'
 
+    res = arolla.abc.ReprToken()
     attrs_str = ', '.join(f'{attr}={get_attr(attr)}' for attr in sorted_attrs)
-    return f'{class_name}({attrs_str})'
+    res.text = f'{class_name}({attrs_str})'
+    return res
 
-  return __repr__
+  return repr_fn
 
 
 def get_annotations(cls: type[Any]) -> dict[str, Any]:
@@ -404,12 +406,6 @@ def _make_qvalue_class(
   if 'with_attrs' not in qvalue_class_attrs:
     qvalue_class_attrs['with_attrs'] = lambda self, **attrs: _with_attrs(
         self, attrs, class_meta.field_annotations
-    )
-  if '__repr__' not in qvalue_class_attrs:
-    # TODO: Consider registering this to C++ instead, s.t. all
-    # extension types get printed nicely, not just QValues in python.
-    qvalue_class_attrs['__repr__'] = _get_default_repr_fn(
-        class_meta.name, class_meta.original_attributes
     )
   return type(
       f'{class_meta.name}_QValue',
@@ -652,6 +648,15 @@ def extension_type(
     # QValue construction.
     qvalue_class = _make_qvalue_class(class_meta, virtual_methods)
     arolla.abc.register_qvalue_specialization(extension_qtype, qvalue_class)
+    derived_qtype.register_labeled_qtype_repr_fn(
+        class_meta.fully_qualified_name,
+        _get_default_arolla_repr_fn(
+            class_meta.name, class_meta.original_attributes
+        ),
+        # At this point, we know that the extension type is either not
+        # registered or we should overwrite it.
+        override=True,
+    )
 
     # ExprView construction.
     expr_view_class = _make_expr_view_class(class_meta, virtual_methods)
