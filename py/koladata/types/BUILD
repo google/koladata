@@ -177,6 +177,7 @@ py_test(
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/testing:signature_test_utils",
         "@com_google_absl_py//absl/testing:absltest",

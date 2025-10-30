@@ -27,6 +27,8 @@ from koladata.types import qtypes
 ReprToken = arolla.abc.ReprToken
 OperatorReprFn = Callable[[arolla.Expr, arolla.abc.NodeTokenView], ReprToken]
 
+SRC_PIN = '📍'
+
 
 def default_op_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView

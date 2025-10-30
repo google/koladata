@@ -32,6 +32,8 @@ kd_lazy = kde_operators.kde
 kd_item = data_item.DataItem.from_vals
 eval_op = py_expr_eval_py_ext.eval_op
 
+SRC_PIN = kd_optools.SRC_PIN
+
 
 class AnnotationSourceLocationTest(absltest.TestCase):
 
@@ -140,17 +142,17 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     expr = kd_lazy.annotation.source_location(
         I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
     )
-    self.assertEqual(repr(expr), '(I.x + DataItem(1, schema: INT32))📍')
+    self.assertEqual(repr(expr), f'(I.x + DataItem(1, schema: INT32)){SRC_PIN}')
 
     expr = kd_lazy.annotation.source_location(
         I.x.attr, 'foo', 'test.py', 123, 456, '  x.attr'
     )
-    self.assertEqual(repr(expr), 'I.x.attr📍')
+    self.assertEqual(repr(expr), f'I.x.attr{SRC_PIN}')
 
     expr = kd_lazy.annotation.source_location(
         -I.x, 'foo', 'test.py', 123, 456, '  x.attr'
     )
-    self.assertEqual(repr(expr), '(-I.x)📍')
+    self.assertEqual(repr(expr), f'(-I.x){SRC_PIN}')
 
 
 if __name__ == '__main__':

@@ -30,6 +30,8 @@ from koladata.operators import unified_binding_policy
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
+SRC_PIN = op_repr.SRC_PIN
+
 
 @dataclasses.dataclass(frozen=True)
 class _RegisteredOp:

@@ -31,12 +31,13 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import signature_utils
 
-
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+
+SRC_PIN = optools.SRC_PIN
 
 
 class FunctorCallTest(parameterized.TestCase):
@@ -169,15 +170,11 @@ class FunctorCallTest(parameterized.TestCase):
         ]),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            kde.call(fn, fns.new(foo=57))
-        ).no_bag(),
+        expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_bag(),
         ds(57),
     )
     try:
-      expr_eval.eval(
-          kde.call(fn, fns.new(bar=57))
-      )
+      expr_eval.eval(kde.call(fn, fns.new(bar=57)))
     except ValueError as e:
       ex = e
 
@@ -335,7 +332,8 @@ class FunctorCallTest(parameterized.TestCase):
           (
               re.escape(
                   'DataItem(Functor FunctorCallTest.<lambda>[x](returns=(I.x +'
-                  ' DataItem(1, schema: INT32))📍), schema: OBJECT, bag_id: $'
+                  f' DataItem(1, schema: INT32)){SRC_PIN}), schema: OBJECT,'
+                  ' bag_id: $'
               )
               + '[a-z0-9]+'
               + re.escape(')(DataItem(1, schema: INT32))')

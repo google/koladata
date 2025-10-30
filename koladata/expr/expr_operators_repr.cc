@@ -71,13 +71,14 @@ std::optional<arolla::ReprToken> KodaLiteralOpRepr(
 std::optional<arolla::ReprToken> KodaSourceLocationOpRepr(
     const arolla::expr::ExprNodePtr& node,
     const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>& tokens) {
+  constexpr absl::string_view kSrcPin = "📍";
   const arolla::ReprToken& annotated =
       tokens.at(node->node_deps()[0]->fingerprint());
   std::string str;
   if (annotated.precedence.right >= arolla::ReprToken::kOpSubscription.left) {
-    str = absl::StrCat("(", annotated.str, ")📍");
+    str = absl::StrCat("(", annotated.str, ")", kSrcPin);
   } else {
-    str = absl::StrCat(annotated.str, "📍");
+    str = absl::StrCat(annotated.str, kSrcPin);
   }
   return arolla::ReprToken{std::move(str), arolla::ReprToken::kOpSubscription};
 }

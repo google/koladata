@@ -31,6 +31,7 @@ from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import signature_test_utils
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -53,6 +54,8 @@ INT64 = schema_constants.INT64
 
 present = mask_constants.present
 missing = mask_constants.missing
+
+SRC_PIN = optools.SRC_PIN
 
 
 @tracing_decorator.TraceAsFnDecorator()
@@ -4282,7 +4285,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
+                  f' y](returns=(I.x + I.y){SRC_PIN}), schema: OBJECT'
               ),
           ],
       ),
@@ -4292,7 +4295,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               'DataItem(Functor add_one[x](',
               "__doc__='Adds one to the input.'",
-              'returns=(I.x + DataItem(1, schema: INT32))📍',
+              f'returns=(I.x + DataItem(1, schema: INT32)){SRC_PIN}',
           ],
       ),
       (
@@ -4330,10 +4333,10 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x: add_one(x),  # pylint: disable=unnecessary-lambda
           [
               'DataItem(Functor DataSliceListSlicingTest.<lambda>[x](',
-              '_add_one_result=V.add_one(I.x)📍',
+              f'_add_one_result=V.add_one(I.x){SRC_PIN}',
               'add_one=Functor add_one[x](',
               "__doc__='Adds one to the input.'",
-              'returns=(I.x + DataItem(1, schema: INT32))📍',
+              f'returns=(I.x + DataItem(1, schema: INT32)){SRC_PIN}',
               'returns=V._add_one_result',
           ],
       ),
@@ -4344,7 +4347,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
                   ' f=Functor DataSliceListSlicingTest.<lambda>[x](returns=(I.x'
-                  ' + DataItem(1, schema: INT32))📍)'
+                  f' + DataItem(1, schema: INT32)){SRC_PIN}'
               ),
               'returns=I.f(I.x)'
           ],
@@ -4355,7 +4358,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, /,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
+                  f' y](returns=(I.x + I.y){SRC_PIN}), schema: OBJECT'
               ),
           ],
       ),
@@ -4365,7 +4368,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, y,'
-                  ' /](returns=(I.x + I.y)📍), schema: OBJECT'
+                  f' /](returns=(I.x + I.y){SRC_PIN}), schema: OBJECT'
               ),
           ],
       ),
@@ -4375,7 +4378,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, *,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
+                  f' y](returns=(I.x + I.y){SRC_PIN}), schema: OBJECT'
               ),
           ],
       ),
@@ -4385,7 +4388,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           [
               (
                   'DataItem(Functor DataSliceListSlicingTest.<lambda>[*, x,'
-                  ' y](returns=(I.x + I.y)📍), schema: OBJECT'
+                  f' y](returns=(I.x + I.y){SRC_PIN}), schema: OBJECT'
               ),
           ],
       ),
