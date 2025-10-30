@@ -15,12 +15,9 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_SELECT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_SELECT_H_
 
-#include <utility>
-
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 
 namespace koladata::internal {
@@ -28,22 +25,16 @@ namespace koladata::internal {
 // Selects elements in the first argument if the filter mask is present and
 // filters out missing items.
 struct SelectOp {
-  template <typename T>
   struct Result {
-    T data_slice_impl;
+    DataSliceImpl data_slice_impl;
     arolla::JaggedDenseArrayShape shape;
   };
 
-  absl::StatusOr<Result<DataSliceImpl>> operator()(
+  absl::StatusOr<Result> operator()(
       const DataSliceImpl& ds_impl,
       const arolla::JaggedDenseArrayShape& ds_shape,
       const DataSliceImpl& filter,
       const arolla::JaggedDenseArrayShape& filter_shape);
-
-  absl::StatusOr<Result<DataSliceImpl>> operator()(
-      const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShape& ds_shape, const DataItem& filter,
-      const arolla::JaggedDenseArrayShape& filter_size) const;
 };
 
 }  // namespace koladata::internal

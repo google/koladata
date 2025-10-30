@@ -220,20 +220,7 @@ class SlicesSelectTest(parameterized.TestCase):
           ds([[[]], [[]], [[]]]),
           ds([[None], [None], [None]], schema_constants.MASK),
           False,
-          ds([[], [], []]),
-      ),
-      # Scalar input
-      (
-          ds([[1], [2], [3]]),
-          ds(arolla.unit(), schema_constants.MASK),
-          False,
-          ds([[1], [2], [3]]),
-      ),
-      (
-          ds([[1], [2], [3]]),
-          ds(None, schema_constants.MASK),
-          False,
-          ds(None, schema_constants.INT32),
+          ds([[], [], []]).repeat(0),
       ),
   )
   def test_eval_with_expand_filter(
@@ -350,6 +337,19 @@ class SlicesSelectTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(kde.slices.select(ds(1), ds(arolla.present())))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.slices.select: cannot filter using a DataItem when'
+            ' expand_filter=False because its size is always 1.'
+        ),
+    ):
+      expr_eval.eval(
+          kde.slices.select(
+              ds([1, 2]), ds(arolla.present()), expand_filter=False
+          )
+      )
 
   def test_select_expr_filter(self):
     kd_select = eager_op_utils.EagerOperator(kde.slices.select)

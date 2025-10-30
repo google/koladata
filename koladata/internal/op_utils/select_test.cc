@@ -224,8 +224,9 @@ TEST(SelectTest,
 
   EXPECT_EQ(res_ds.size(), 0);
   EXPECT_TRUE(res_ds.is_empty_and_unknown());
-  EXPECT_EQ(res_shape.rank(), 1);
-  EXPECT_EQ(res_shape.size(), 0);
+  JaggedDenseArrayShape expected_shape =
+      test::ShapeFromSplitPoints({{0, 0}, {0}});
+  EXPECT_TRUE(res_shape.IsEquivalentTo(expected_shape));
 }
 
 TEST(SelectTest,
@@ -243,8 +244,9 @@ TEST(SelectTest,
 
   EXPECT_EQ(res_ds.size(), 0);
   EXPECT_TRUE(res_ds.is_empty_and_unknown());
-  EXPECT_EQ(res_shape.rank(), 2);
-  EXPECT_EQ(res_shape.size(), 0);
+  JaggedDenseArrayShape expected_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}, {0}});
+  EXPECT_TRUE(res_shape.IsEquivalentTo(expected_shape));
 }
 
 TEST(SelectTest, DataSlicePrimitiveValues_AllMissingFilter) {
@@ -448,100 +450,6 @@ TEST(SelectTest, TypeMismatch) {
   EXPECT_THAT(SelectOp()(ds, shape, filter, shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must have all items of MASK dtype")));
-}
-
-TEST(SelectTest, DataSliceAndDataItemObjectId_NonEmptyFilter) {
-  auto obj_id_1 = AllocateSingleObject();
-  auto obj_id_2 = AllocateSingleObject();
-  auto objects = CreateDenseArray<ObjectId>({obj_id_1, obj_id_2});
-  auto ds = DataSliceImpl::Create(objects);
-  JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(2);
-
-  auto mask = DataItem(arolla::Unit());
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_EQ(res_ds.dtype(), arolla::GetQType<ObjectId>());
-  EXPECT_THAT(res_ds.values<ObjectId>(), ElementsAre(obj_id_1, obj_id_2));
-  EXPECT_EQ(res_shape.size(), 2);
-  EXPECT_EQ(res_shape.rank(), 1);
-}
-
-TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyDataSlice_NonEmptyFilter) {
-  // Empty object.
-  auto mask = DataItem(arolla::Unit());
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-
-  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(2);
-
-  JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(2);
-
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_EQ(res.size(), 2);
-  EXPECT_EQ(res.present_count(), 0);
-  EXPECT_EQ(res_shape.size(), 2);
-  EXPECT_EQ(res_shape.rank(), 1);
-}
-
-TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyFilter) {
-  auto obj_id_1 = AllocateSingleObject();
-  auto obj_id_2 = AllocateSingleObject();
-  auto objects = CreateDenseArray<ObjectId>({obj_id_1, obj_id_2});
-  auto ds = DataSliceImpl::Create(objects);
-  JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(2);
-  auto mask = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_EQ(res.size(), 1);
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyDataSlice_EmptyFilter) {
-  // Empty object and mask.
-  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(2);
-  JaggedDenseArrayShape ds_shape = test::ShapeFromSplitPoints({{0, 2}});
-  auto mask = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_EQ(res.size(), 1);
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest, DataSliceAndDataItemObjectId_MixedTypeDataSlice_EmptyFilter) {
-  auto values_int = CreateDenseArray<int>({1, std::nullopt, 12, std::nullopt});
-  auto values_float =
-      CreateDenseArray<float>({std::nullopt, std::nullopt, std::nullopt, 2.71});
-
-  auto ds = DataSliceImpl::Create(values_int, values_float);
-  JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(3);
-  auto mask = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_TRUE(res.is_empty_and_unknown());
-  EXPECT_EQ(res.size(), 1);
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest,
-     DataSliceAndDataItemObjectId_UnknownTypeDataSlice_EmptyFilter) {
-  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
-  JaggedDenseArrayShape ds_shape = JaggedDenseArrayShape::FlatFromSize(3);
-  auto mask = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(ds, ds_shape, mask, shape));
-  EXPECT_TRUE(res.is_empty_and_unknown());
-  EXPECT_EQ(res.size(), 1);
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
 }
 
 }  // namespace

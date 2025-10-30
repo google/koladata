@@ -904,12 +904,6 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
 
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                  const DataSlice& expand_filter) {
-  if (ds.is_item()) {
-    return absl::InvalidArgumentError(
-        "cannot select from DataItem because its size is always 1. "
-        "Consider calling .flatten() beforehand to convert it "
-        "to a 1-dimensional DataSlice");
-  }
   ASSIGN_OR_RETURN(bool expand_filter_bool,
                    GetBoolArgument(expand_filter, "expand_filter"));
   const internal::DataItem& schema = filter.GetSchemaImpl();
@@ -922,18 +916,34 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
   }
   const DataSlice::JaggedShape& fltr_shape =
       expand_filter_bool ? ds.GetShape() : filter.GetShape();
+
+  if (fltr_shape.rank() > ds.GetShape().rank()) {
+    // This check togther with the one below also makes sure ds is not a
+    // DataItem.
+    return internal::OperatorEvalError(
+        "kd.select", "`fltr` cannot have a higher rank than `ds`.");
+  }
+  if (fltr_shape.rank() == 0) {
+    if (ds.is_item()) {
+      return absl::InvalidArgumentError(
+          "cannot select from DataItem because its size is always 1. "
+          "Consider calling .flatten() beforehand to convert it "
+          "to a 1-dimensional DataSlice");
+    } else {
+      return absl::InvalidArgumentError(
+          "cannot filter using a DataItem when expand_filter=False because its "
+          "size is always 1.");
+    }
+  }
   ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape),
                    internal::KodaErrorFromCause(
                        "failed to broadcast `fltr` to `ds`", std::move(_)));
 
-  return fltr.VisitImpl(
-      [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {
-        ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
-                         internal::SelectOp()(ds.slice(), ds.GetShape(),
-                                              filter_impl, fltr.GetShape()));
-        return DataSlice::Create(std::move(result_ds), std::move(result_shape),
-                                 ds.GetSchemaImpl(), ds.GetBag());
-      });
+  ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
+                   internal::SelectOp{}(ds.slice(), ds.GetShape(), fltr.slice(),
+                                        fltr.GetShape()));
+  return DataSlice::Create(std::move(result_ds), std::move(result_shape),
+                           ds.GetSchemaImpl(), ds.GetBag());
 }
 
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,

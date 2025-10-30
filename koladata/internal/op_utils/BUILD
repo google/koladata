@@ -576,7 +576,6 @@ cc_library(
     hdrs = ["select.h"],
     deps = [
         ":error",
-        "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",

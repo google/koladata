@@ -36,7 +36,6 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/unit.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/slice_builder.h"
@@ -89,7 +88,7 @@ absl::StatusOr<DenseArrayEdge> CountPresenceInGroup(
 
 }  // namespace
 
-absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
+absl::StatusOr<SelectOp::Result> SelectOp::operator()(
     const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
     const DataSliceImpl& filter, const JaggedDenseArrayShape& filter_shape) {
   if (filter_shape.rank() < 1) {
@@ -146,9 +145,6 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     ASSIGN_OR_RETURN(presence_mask_array,
                      arolla::DenseArrayExpandOp()(&ctx, presence_mask_array,
                                                   *ds_edge_iterator));
-    if (edge.child_size() == 0) {
-      break;
-    }
     new_edges.push_back(std::move(edge));
   }
 
@@ -170,22 +166,7 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
     return absl::OkStatus();
   }));
 
-  return SelectOp::Result<DataSliceImpl>(
-      {std::move(builder).Build(), std::move(new_shape)});
-}
-
-absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
-    const DataSliceImpl& ds_impl, const JaggedDenseArrayShape& ds_shape,
-    const DataItem& filter, const JaggedDenseArrayShape& filter_size) const {
-  if (!filter.has_value()) {
-    DataSliceImpl empty_slice = DataSliceImpl::CreateEmptyAndUnknownType(1);
-    return SelectOp::Result<DataSliceImpl>(
-        {std::move(empty_slice), JaggedDenseArrayShape::Empty()});
-  }
-  if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
-    return OperatorEvalError(kSelectOpName, kNonMaskError);
-  }
-  return SelectOp::Result<DataSliceImpl>({ds_impl, ds_shape});
+  return SelectOp::Result({std::move(builder).Build(), std::move(new_shape)});
 }
 
 }  // namespace koladata::internal
