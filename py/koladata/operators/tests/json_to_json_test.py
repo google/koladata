@@ -328,7 +328,7 @@ class JsonToJsonTest(parameterized.TestCase):
                   'b',
                   schema=kde.dict_schema(
                       schema_constants.OBJECT, schema_constants.STRING
-                  ),
+                  ).eval(),
               )
           )
       )

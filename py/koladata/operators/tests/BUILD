@@ -1886,6 +1886,7 @@ py_test(
     srcs = ["dicts_new_test.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",

@@ -182,6 +182,12 @@ class ListsListTest(parameterized.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.lists.new, kde.list))
 
+  def test_repr(self):
+    self.assertEqual(
+        repr(kde.lists.new(I.x)),
+        'kd.lists.new(I.x, unspecified, unspecified, unspecified)',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

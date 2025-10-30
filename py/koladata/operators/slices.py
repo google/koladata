@@ -1982,7 +1982,7 @@ def slice_(x, schema=arolla.unspecified()):
   )(x, schema)
 
 
-def _slice_bind_args(x, schema=arolla.unspecified()):
+def slice_bind_args(x, schema=arolla.unspecified()):
   """Binding policy for kd.slices.slice."""
   if isinstance(x, (arolla.Expr, data_slice.DataSlice)):
     return (x, schema)
@@ -2024,13 +2024,13 @@ def _slice_bind_args(x, schema=arolla.unspecified()):
 
 
 arolla.abc.register_adhoc_aux_binding_policy(
-    slice_, _slice_bind_args, make_literal_fn=py_boxing.literal
+    slice_, slice_bind_args, make_literal_fn=py_boxing.literal
 )
 
 
 def _typed_slice_bind_args(x, schema):
   """Binding policy for typed slice operators."""
-  bound_x, _ = _slice_bind_args(x, schema=schema)
+  bound_x, _ = slice_bind_args(x, schema=schema)
   return (bound_x,)
 
 

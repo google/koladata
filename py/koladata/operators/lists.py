@@ -20,6 +20,7 @@ from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
+from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import slices as slices_ops
@@ -282,7 +283,8 @@ def _new(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list'])
+@optools.add_to_registry(aliases=['kd.list'],
+                         repr_fn=op_repr.hide_non_deterministic_repr_fn)
 @arolla.optools.as_lambda_operator(
     'kd.lists.new',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.lists.new]',
@@ -294,7 +296,7 @@ def _new(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
         qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
 )
-def new_(
+def new(
     items,
     item_schema,
     schema,
@@ -348,8 +350,6 @@ def new_(
 def _is_unspecified(x):
   return isinstance(x, arolla.abc.Unspecified)
 
-_NON_DETERMINISTIC_ARG = optools.unified_non_deterministic_arg()
-
 
 def _new_bind_args(
     items=arolla.unspecified(),
@@ -360,7 +360,13 @@ def _new_bind_args(
 ):
   """Binding policy for kd.lists.new."""
   if isinstance(items, arolla.Expr):
-    return (items, item_schema, schema, itemid, _NON_DETERMINISTIC_ARG)
+    return (
+        items,
+        item_schema,
+        schema,
+        itemid,
+        optools.unified_non_deterministic_arg(),
+    )
 
   if isinstance(items, data_slice.DataSlice):
     raise ValueError(
@@ -376,7 +382,10 @@ def _new_bind_args(
   if _is_unspecified(items) and _is_unspecified(schema_to_use):
     return (
         data_slice.DataSlice.from_vals([], schema_constants.OBJECT),
-        schema, item_schema, itemid, _NON_DETERMINISTIC_ARG,
+        schema,
+        item_schema,
+        itemid,
+        optools.unified_non_deterministic_arg(),
     )
 
   if isinstance(schema_to_use, arolla.Expr) or (
@@ -384,12 +393,18 @@ def _new_bind_args(
       and schema_to_use != schema_constants.OBJECT
   ):
     schema_to_use = arolla.unspecified()
-  items, _ = slices_ops._slice_bind_args(items, schema_to_use)  # pylint: disable=protected-access
-  return (items, item_schema, schema, itemid, _NON_DETERMINISTIC_ARG)
+  items, _ = slices_ops.slice_bind_args(items, schema_to_use)
+  return (
+      items,
+      item_schema,
+      schema,
+      itemid,
+      optools.unified_non_deterministic_arg(),
+  )
 
 
 arolla.abc.register_adhoc_aux_binding_policy(
-    new_, _new_bind_args, make_literal_fn=py_boxing.literal
+    new, _new_bind_args, make_literal_fn=py_boxing.literal
 )
 
 

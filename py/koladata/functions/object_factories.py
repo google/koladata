@@ -193,6 +193,7 @@ def list_shaped_as(
   )
 
 
+# TODO: Remove these factories in favor of kd.dicts.new.
 def dict_(
     items_or_keys: Any | None = None, values: Any | None = None,
     *,

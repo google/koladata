@@ -19,10 +19,13 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices as slices_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -41,9 +44,11 @@ def _shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dict'])
-@optools.as_lambda_operator(
+@optools.add_to_registry(aliases=['kd.dict'],
+                         repr_fn=op_repr.hide_non_deterministic_repr_fn)
+@arolla.optools.as_lambda_operator(
     'kd.dicts.new',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kd.dicts.new]',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
         qtype_utils.expect_data_slice_or_unspecified(P.values),
@@ -51,17 +56,18 @@ def _shaped(
         qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
 )
-def create(
-    keys=arolla.unspecified(),
-    values=arolla.unspecified(),
-    *,
-    key_schema=arolla.unspecified(),
-    value_schema=arolla.unspecified(),
-    schema=arolla.unspecified(),
-    itemid=arolla.unspecified(),
-):
+def new(
+    keys,
+    values,
+    key_schema,
+    value_schema,
+    schema,
+    itemid,
+    non_deterministic,
+):  # pylint: disable=g-doc-args
   """Creates a Koda dict.
 
   Acceptable arguments are:
@@ -78,7 +84,7 @@ def create(
   dict('key', 12) -> returns a single dict mapping 'key'->12
 
   Args:
-    keys: a DataSlice with keys.
+    items_or_keys: a DataSlice with items or keys.
     values: a DataSlice with values.
     key_schema: the schema of the dict keys. If not specified, it will be
       deduced from keys or defaulted to OBJECT.
@@ -119,15 +125,96 @@ def create(
 
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
 
-  return _shaped(
-      shape=shape,
-      keys=keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
+  return arolla.abc.bind_op(
+      _shaped,
+      shape,
+      keys,
+      values,
+      key_schema,
+      value_schema,
+      schema,
+      itemid,
+      non_deterministic,
   )
+
+
+def _is_unspecified(x):
+  return isinstance(x, arolla.abc.Unspecified)
+
+
+def _new_bind_args(
+    items_or_keys=arolla.unspecified(),
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    itemid=arolla.unspecified(),
+):
+  """Binding policy for kd.dicts.new."""
+  key_schema = py_boxing.as_qvalue_or_expr(key_schema)
+  value_schema = py_boxing.as_qvalue_or_expr(value_schema)
+  schema = py_boxing.as_qvalue_or_expr(schema)
+  itemid = py_boxing.as_qvalue_or_expr(itemid)
+
+  if isinstance(items_or_keys, arolla.Expr):
+    return (
+        items_or_keys,
+        py_boxing.as_qvalue_or_expr(values),
+        key_schema,
+        value_schema,
+        schema,
+        itemid,
+        optools.unified_non_deterministic_arg(),
+    )
+
+  if isinstance(items_or_keys, dict):
+    keys = tuple(items_or_keys)
+    if not _is_unspecified(values):
+      raise ValueError(
+          'if items_or_keys is a dict, values must be unspecified'
+      )
+    values = tuple(items_or_keys.values())
+  else:
+    keys = items_or_keys
+
+  if not _is_unspecified(schema):
+    if not isinstance(schema, arolla.Expr) and not schema.is_dict_schema():
+      raise ValueError(
+          'schema must be a dict schema, but got %s' % schema
+      )
+
+  key_schema_for_boxing = arolla.unspecified()
+  if not _is_unspecified(key_schema):
+    key_schema_for_boxing = key_schema
+  elif not _is_unspecified(schema):
+    key_schema_for_boxing = schema.get_key_schema()
+
+  value_schema_for_boxing = arolla.unspecified()
+  if not _is_unspecified(value_schema):
+    value_schema_for_boxing = value_schema
+  elif not _is_unspecified(schema):
+    value_schema_for_boxing = schema.get_value_schema()
+
+  if not _is_unspecified(keys):
+    keys, _ = slices_ops.slice_bind_args(keys, key_schema_for_boxing)
+  if not _is_unspecified(values):
+    values, _ = slices_ops.slice_bind_args(values, value_schema_for_boxing)
+
+  return (
+      keys,
+      values,
+      key_schema,
+      value_schema,
+      schema,
+      itemid,
+      optools.unified_non_deterministic_arg(),
+  )
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    new, _new_bind_args, make_literal_fn=py_boxing.literal
+)
 
 
 @optools.add_to_registry(aliases=['kd.dict_shaped'])

@@ -203,6 +203,19 @@ def getattr_repr(
   return res
 
 
+def hide_non_deterministic_repr_fn(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> ReprToken:
+  """Repr for kd.dicts.new."""
+  op = node.op
+  assert op is not None
+  res = ReprToken()
+  # Hide the last argument (non-deterministic token) from the repr.
+  dep_txt = ', '.join(tokens[node].text for node in node.node_deps[:-1])
+  res.text = f'{node.op.display_name}({dep_txt})'
+  return res
+
+
 def _make_prefix_repr_fn(
     symbol: str,
     precedence: ReprToken.Precedence,
