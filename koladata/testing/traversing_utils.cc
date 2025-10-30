@@ -35,6 +35,7 @@
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/deep_diff.h"
 #include "koladata/internal/op_utils/deep_equivalent.h"
@@ -189,13 +190,29 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
                              lhs_impl, lhs.GetSchemaImpl(), lhs_db->GetImpl(),
                              lhs_fallbacks_span, rhs_impl, rhs.GetSchemaImpl(),
                              rhs_db->GetImpl(), rhs_fallbacks_span));
+        ReprOption repr_option(
+            {.show_databag_id = false,
+             .show_item_id = comparison_params.ids_equality});
         ASSIGN_OR_RETURN(auto diff_paths,
                          deep_equivalent_op.GetDiffPaths(
                              result, internal::DataItem(schema::kObject),
                              /*max_count=*/max_count));
-        ReprOption repr_option(
-            {.show_databag_id = false,
-             .show_item_id = comparison_params.ids_equality});
+        if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
+          // if both DataSlices are empty, for the sake of comparison we assume
+          // that each DataSlice have single missing DataItem.
+          if (lhs_impl.size() == 0 && result.size() != 0) {
+            for (auto& diff : diff_paths) {
+              if (diff.path.empty() ||
+                  diff.path[0].type !=
+                      internal::TraverseHelper::TransitionType::kSliceItem ||
+                  diff.path[0].index != 0) {
+                LOG(FATAL) << "diff path has unexpected structure";
+              } else {
+                diff.path[0].index = -1;
+              }
+            }
+          }
+        }
         for (const auto& diff : diff_paths) {
           ASSIGN_OR_RETURN(
               auto diff_item_repr,

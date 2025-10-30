@@ -47,8 +47,19 @@ class EquivalentComparator : public AbstractComparator {
   absl::StatusOr<DataItem> CreateToken(
       const TraverseHelper::Transition& lhs,
       const TraverseHelper::Transition& rhs) override {
+    if (!lhs.item.has_value()) {
+      if (rhs.item.has_value()) {
+        return absl::InvalidArgumentError(
+            "missing and present items should not be considered for deeper "
+            "comparison");
+      }
+      // If lhs and rhs are missing, we create a token that represents
+      // a result of the schemas comparison.
+      return result_.CreateTokenLike(DataItem(AllocateSingleObject()));
+    }
     return result_.CreateTokenLike(lhs.item);
   }
+
   absl::Status LhsRhsMatch(const DataItem& parent,
                            const TraverseHelper::TransitionKey& key,
                            const DataItem& child) override {
@@ -64,11 +75,17 @@ class EquivalentComparator : public AbstractComparator {
         key.type != TraverseHelper::TransitionType::kDictValue) {
       return absl::OkStatus();
     }
+    if (!lhs.item.has_value() && !params_.schemas_equality) {
+      return absl::OkStatus();
+    }
     return result_.LhsOnlyAttribute(token, key, lhs);
   }
   absl::Status RhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& rhs) override {
+    if (!rhs.item.has_value() && !params_.schemas_equality) {
+      return absl::OkStatus();
+    }
     return result_.RhsOnlyAttribute(token, key, rhs);
   }
   absl::Status LhsRhsMismatch(const DataItem& token,

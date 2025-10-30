@@ -114,15 +114,21 @@ class DeepComparator {
           absl::StrFormat("lhs_ds and rhs_ds have different sizes: %d vs %d",
                           lhs_ds.size(), rhs_ds.size()));
     }
-    SliceBuilder result_slice(lhs_ds.size());
-    for (int64_t i = 0; i < lhs_ds.size(); ++i) {
+    // If both DataSlices are empty, for the sake of comparison we assume
+    // that each DataSlice have single missing DataItem.
+    const DataSliceImpl& lhs_ds_upd =
+        lhs_ds.size() == 0 ? DataSliceImpl::Create(1, DataItem()) : lhs_ds;
+    const DataSliceImpl& rhs_ds_upd =
+        rhs_ds.size() == 0 ? DataSliceImpl::Create(1, DataItem()) : rhs_ds;
+    SliceBuilder result_slice(lhs_ds_upd.size());
+    for (int64_t i = 0; i < lhs_ds_upd.size(); ++i) {
       TraverseHelper::Transition lhs_transition(
-          {.item = lhs_ds[i], .schema = lhs_schema});
+          {.item = lhs_ds_upd[i], .schema = lhs_schema});
       TraverseHelper::Transition rhs_transition(
-          {.item = rhs_ds[i], .schema = rhs_schema});
+          {.item = rhs_ds_upd[i], .schema = rhs_schema});
       if (!comparator_->ComparatorT::Equal(lhs_transition, rhs_transition)) {
         ASSIGN_OR_RETURN(
-            auto mismatch_token,
+            DataItem mismatch_token,
             comparator_->ComparatorT::SliceItemMismatch(
                 {.type = TraverseHelper::TransitionType::kSliceItem,
                  .index = i},

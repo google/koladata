@@ -143,6 +143,7 @@ py_test(
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

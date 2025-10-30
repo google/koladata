@@ -17,6 +17,7 @@ from koladata.operators import kde_operators
 from koladata.testing import traversing_test_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
@@ -219,7 +220,113 @@ class TraversingTestUtilsTest(absltest.TestCase):
       ds_b = bag_b.list([1, 2])
       traversing_test_utils.assert_deep_equivalent(ds_a, ds_b, partial=True)
 
-  def test_assert_deep_equivalent_diff_not_schemas_equality_deep(self):
+  def test_assert_deep_equivalent_empty_slices(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataSlice\(\[\], .*\)\n'
+        r'Actual: DataSlice\(\[\], .*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected:\n'
+        r'DataItem\(INT32, schema: SCHEMA\)\n'
+        r'-> actual:\n'
+        r'DataItem\(ENTITY\(x=INT32\), schema: SCHEMA,'
+        r' item_id: Schema:\$[0-9a-zA-Z]{22}\)'
+    ):
+      bag_a = bag()
+      ds_a = bag_a.new(
+          x=ds([], schema=schema_constants.INT32),
+          schema=bag_a.new_schema(x=schema_constants.INT32),
+      )
+      ds_b = ds([], schema=schema_constants.INT32)
+      traversing_test_utils.assert_deep_equivalent(
+          ds_a, ds_b, schemas_equality=True
+      )
+
+  def test_assert_deep_equivalent_empty_slice_vs_missing_item(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataItem\(None, .*\)\n'
+        r'Actual: DataSlice\(\[\], .*\), with difference:\n'
+        r'expected both DataSlices to be of the same shape'):
+      bag_a = bag()
+      ds_a = bag_a.new(
+          x=ds([], schema=schema_constants.INT32),
+          schema=bag_a.new_schema(x=schema_constants.INT32),
+      )
+      ds_b = ds(None, schema=schema_constants.INT32)
+      traversing_test_utils.assert_deep_equivalent(
+          ds_a, ds_b
+      )
+
+  def test_assert_deep_equivalent_missing_slice_item_vs_empty_slice(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataSlice\(\[\], .*\)\n'
+        r'Actual: DataSlice\(\[None\], .*\), with difference:\n'
+        r'expected both DataSlices to be of the same shape'):
+      bag_a = bag()
+      ds_a = bag_a.new(
+          x=ds([], schema=schema_constants.INT32),
+          schema=bag_a.new_schema(x=schema_constants.INT32),
+      )
+      ds_b = ds([None], schema=schema_constants.INT32)
+      traversing_test_utils.assert_deep_equivalent(
+          ds_b, ds_a
+      )
+
+  def test_assert_deep_equivalent_empty_slices_deep(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataSlice\(\[\], .*\)\n'
+        r'Actual: DataSlice\(\[\], .*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected.x:\n'
+        r'DataItem\(FLOAT32, schema: SCHEMA\)\n'
+        r'-> actual.x:\n'
+        r'DataItem\(INT32, schema: SCHEMA\)'
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      ds_a = bag_a.new(
+          x=ds([]),
+          schema=bag_a.named_schema('foo', x=schema_constants.INT32),
+      )
+      ds_b = bag_b.new(
+          x=ds([]),
+          schema=bag_b.named_schema('foo', x=schema_constants.FLOAT32),
+      )
+      traversing_test_utils.assert_deep_equivalent(
+          ds_a, ds_b, schemas_equality=True
+      )
+
+  def test_assert_deep_equivalent_value_slices_deep_empty(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataSlice\(.*\)\n'
+        r'Actual: DataSlice\(.*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected.S\[0\].value.x:\n'
+        r'DataItem\(FLOAT32, schema: SCHEMA\)\n'
+        r'-> actual.S\[0\].value.x:\n'
+        r'DataItem\(INT32, schema: SCHEMA\)'
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      ds_a = bag_a.new(
+          x=ds([None]),
+          schema=bag_a.named_schema('foo', x=schema_constants.INT32),
+      )
+      ds_b = bag_b.new(
+          x=ds([None]),
+          schema=bag_b.named_schema('foo', x=schema_constants.FLOAT32),
+      )
+      root_a = bag_a.new(value=ds_a, schema='bar')
+      root_b = bag_b.new(value=ds_b, schema='bar')
+      traversing_test_utils.assert_deep_equivalent(
+          root_a, root_b, schemas_equality=True
+      )
+
+  def test_assert_deep_equivalent_schemas_diff_deep(self):
     with self.assertRaisesRegex(
         AssertionError,
         r'Expected: is equal to DataItem\(.*\)\n'
@@ -238,7 +345,14 @@ class TraversingTestUtilsTest(absltest.TestCase):
       b = bag_b.new(schema='foo', x=bag_b.new(y=1))
       traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
 
-  def test_assert_deep_equivalent_diff_not_schemas_equality_root_slice(self):
+  def test_assert_deep_equivalent_ignore_one_side_missing_attributes(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.new(x=1, y=None)
+    b = bag_b.new(a=None, x=1, z=None)
+    _ = traversing_test_utils.assert_deep_equivalent(a, b)
+
+  def test_assert_deep_equivalent_schema_diff_with_root_slice(self):
     with self.assertRaisesRegex(
         AssertionError,
         r'Expected: is equal to DataItem\(.*\)\n'
