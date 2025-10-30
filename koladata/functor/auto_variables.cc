@@ -220,7 +220,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
           arolla::expr::CallOp(
               "kd.explode",
               {var, koladata::expr::MakeLiteral(arolla::TypedValue::FromValue(
-                        DataSlice::CreateFromScalar(ndim)))}));
+                        DataSlice::CreatePrimitive(ndim)))}));
     }
     vars.emplace(var_name, std::move(slice));
     // When a node has multiple parents, we cannot replace its aux name
@@ -244,7 +244,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       return node;
     }
     std::string var_name = create_unique_variable(kAuxVariablePrefix);
-    vars[var_name] = DataSlice::CreateFromScalar(ExprQuote{std::move(node)});
+    vars[var_name] = DataSlice::CreatePrimitive(ExprQuote{std::move(node)});
     return var_container.CreateInput(var_name);
   };
 
@@ -302,7 +302,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       if (vars.contains(name)) {
         name = create_unique_variable(name);
       }
-      auto child = node->node_deps()[0];
+      const auto& child = node->node_deps()[0];
       if (aux_variable_fingerprints.contains(child->fingerprint())) {
         // If a literal DataSlice was named, avoid creating a temporary name
         // and use the real name instead. The auxiliary variable might have
@@ -321,9 +321,9 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         vars.emplace(name, std::move(v));
         ASSIGN_OR_RETURN(auto from, var_container.CreateInput(input_names[0]));
         ASSIGN_OR_RETURN(auto to, var_container.CreateInput(name));
-        ASSIGN_OR_RETURN(auto res, arolla::expr::SubstituteByFingerprint(
-                                       std::move(child),
-                                       {{from->fingerprint(), std::move(to)}}));
+        ASSIGN_OR_RETURN(auto res,
+                         arolla::expr::SubstituteByFingerprint(
+                             child, {{from->fingerprint(), std::move(to)}}));
         return create_aux_variable_if_necessary(/*extract_needed=*/true,
                                                 std::move(res));
       }
@@ -337,7 +337,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         vars.emplace(name, std::move(val));
         return var_container.CreateInput(name);
       }
-      vars.emplace(name, DataSlice::CreateFromScalar(ExprQuote{child}));
+      vars.emplace(name, DataSlice::CreatePrimitive(ExprQuote{child}));
       return var_container.CreateInput(name);
     }
     return create_aux_variable_if_necessary(/*extract_needed=*/true,
@@ -481,7 +481,7 @@ absl::StatusOr<DataSlice> AutoVariables(
   }
   for (int64_t i = 0; i < expr_names.size(); ++i) {
     vars[expr_names[i]] =
-        DataSlice::CreateFromScalar(ExprQuote{combined->node_deps()[i]});
+        DataSlice::CreatePrimitive(ExprQuote{combined->node_deps()[i]});
   }
   auto returns = vars.extract(kReturnsAttrName);
   if (returns.empty()) {

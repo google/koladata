@@ -78,8 +78,8 @@ using ::testing::HasSubstr;
 TEST(AsyncEvalTest, Simple) {
   auto executor = GetEagerExecutor();
   ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.add"));
-  auto x = DataSlice::CreateFromScalar(1);
-  auto y = DataSlice::CreateFromScalar(2);
+  auto x = DataSlice::CreatePrimitive(1);
+  auto y = DataSlice::CreatePrimitive(2);
   ASSERT_OK_AND_ASSIGN(
       auto res_future,
       AsyncEvalWithCompilationCache(
@@ -87,7 +87,7 @@ TEST(AsyncEvalTest, Simple) {
           GetQType<DataSlice>()));
   EXPECT_THAT(res_future->GetValueForTesting(),
               IsOkAndHolds(QValueWith<DataSlice>(
-                  IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
+                  IsEquivalentTo(DataSlice::CreatePrimitive(3)))));
 }
 
 TEST(AsyncEvalTest, FutureInputs) {
@@ -95,10 +95,10 @@ TEST(AsyncEvalTest, FutureInputs) {
   ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.add"));
   auto [x_future, x_writer] = MakeFuture(GetQType<DataSlice>());
   std::move(x_writer).SetValue(
-      TypedValue::FromValue(DataSlice::CreateFromScalar(1)));
+      TypedValue::FromValue(DataSlice::CreatePrimitive(1)));
   auto [y_future, y_writer] = MakeFuture(GetQType<DataSlice>());
   std::move(y_writer).SetValue(
-      TypedValue::FromValue(DataSlice::CreateFromScalar(2)));
+      TypedValue::FromValue(DataSlice::CreatePrimitive(2)));
   auto x_future_value = MakeFutureQValue(x_future);
   auto y_future_value = MakeFutureQValue(y_future);
   ASSERT_OK_AND_ASSIGN(
@@ -108,15 +108,15 @@ TEST(AsyncEvalTest, FutureInputs) {
           GetQType<DataSlice>()));
   EXPECT_THAT(res_future->GetValueForTesting(),
               IsOkAndHolds(QValueWith<DataSlice>(
-                  IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
+                  IsEquivalentTo(DataSlice::CreatePrimitive(3)))));
 }
 
 TEST(AsyncEvalTest, Nested) {
   auto executor = GetEagerExecutor();
   ASSERT_OK_AND_ASSIGN(auto op, LookupOperator("kd.add"));
-  auto x = DataSlice::CreateFromScalar(1);
-  auto y = DataSlice::CreateFromScalar(2);
-  auto z = DataSlice::CreateFromScalar(3);
+  auto x = DataSlice::CreatePrimitive(1);
+  auto y = DataSlice::CreatePrimitive(2);
+  auto z = DataSlice::CreatePrimitive(3);
   ASSERT_OK_AND_ASSIGN(
       auto inner_future,
       AsyncEvalWithCompilationCache(
@@ -130,7 +130,7 @@ TEST(AsyncEvalTest, Nested) {
           GetQType<DataSlice>()));
   EXPECT_THAT(outer_future->GetValueForTesting(),
               IsOkAndHolds(QValueWith<DataSlice>(
-                  IsEquivalentTo(DataSlice::CreateFromScalar(6)))));
+                  IsEquivalentTo(DataSlice::CreatePrimitive(6)))));
 }
 
 TEST(AsyncEvalTest, ErrorPropagation) {
@@ -140,9 +140,9 @@ TEST(AsyncEvalTest, ErrorPropagation) {
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(
-          db, {"a"}, {DataSlice::CreateFromScalar(1)}, /*schema=*/std::nullopt,
+          db, {"a"}, {DataSlice::CreatePrimitive(1)}, /*schema=*/std::nullopt,
           /*overwrite_schema=*/false, /*itemid=*/std::nullopt));
-  auto y = DataSlice::CreateFromScalar(Text("b"));
+  auto y = DataSlice::CreatePrimitive(Text("b"));
   ASSERT_OK_AND_ASSIGN(
       auto res_future,
       AsyncEvalWithCompilationCache(
@@ -159,16 +159,16 @@ TEST(AsyncEvalTest, NestedErrorPropagation) {
   ASSERT_OK_AND_ASSIGN(
       auto outer_op,
       MakeLambdaOperator(CallOp(
-          "kd.add", {Placeholder("x"), Literal(DataSlice::CreateFromScalar(2))},
+          "kd.add", {Placeholder("x"), Literal(DataSlice::CreatePrimitive(2))},
           {})));
 
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(
-          db, {"a"}, {DataSlice::CreateFromScalar(1)}, /*schema=*/std::nullopt,
+          db, {"a"}, {DataSlice::CreatePrimitive(1)}, /*schema=*/std::nullopt,
           /*overwrite_schema=*/false, /*itemid=*/std::nullopt));
-  auto y = DataSlice::CreateFromScalar(Text("b"));
+  auto y = DataSlice::CreatePrimitive(Text("b"));
 
   ASSERT_OK_AND_ASSIGN(
       auto inner_future,
@@ -192,10 +192,10 @@ TEST(AsyncEvalTest, TwoErrors) {
   ASSERT_OK_AND_ASSIGN(
       auto x,
       EntityCreator::FromAttrs(
-          db, {"a"}, {DataSlice::CreateFromScalar(1)}, /*schema=*/std::nullopt,
+          db, {"a"}, {DataSlice::CreatePrimitive(1)}, /*schema=*/std::nullopt,
           /*overwrite_schema=*/false, /*itemid=*/std::nullopt));
-  auto y = DataSlice::CreateFromScalar(Text("b"));
-  auto z = DataSlice::CreateFromScalar(Text("c"));
+  auto y = DataSlice::CreatePrimitive(Text("b"));
+  auto z = DataSlice::CreatePrimitive(Text("c"));
 
   ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.get_attr"));
   ASSERT_OK_AND_ASSIGN(auto outer_op, LookupOperator("kd.add"));
@@ -244,7 +244,7 @@ TEST(AsyncEvalTest, Multithreaded) {
           ExprOperatorSignature{{"x"}, {"y"}},
           CallOp("kd.math.mod",
                  {CallOp("kd.add", {Placeholder("x"), Placeholder("y")}, {}),
-                  Literal(DataSlice::CreateFromScalar(kModulo))},
+                  Literal(DataSlice::CreatePrimitive(kModulo))},
                  {})));
   auto x_signature = ExprOperatorSignature{{"x"}};
   auto get_data_slice_output_type =
@@ -256,7 +256,7 @@ TEST(AsyncEvalTest, Multithreaded) {
   std::vector<FuturePtr> sum_futures;
   std::vector<int> expected_values;
   for (int i = 0; i < kWaveSize; ++i) {
-    all_items.push_back(TypedValue::FromValue(DataSlice::CreateFromScalar(i)));
+    all_items.push_back(TypedValue::FromValue(DataSlice::CreatePrimitive(i)));
     expected_values.push_back(i);
   }
   absl::BlockingCounter counter(kNumWaves * kWaveSize);
@@ -310,7 +310,7 @@ TEST(AsyncEvalTest, Multithreaded) {
     EXPECT_THAT(
         sum_futures[i]->GetValueForTesting(),
         IsOkAndHolds(QValueWith<DataSlice>(IsEquivalentTo(
-            DataSlice::CreateFromScalar(expected_values[i + kWaveSize])))));
+            DataSlice::CreatePrimitive(expected_values[i + kWaveSize])))));
   }
 }
 

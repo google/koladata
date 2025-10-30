@@ -133,14 +133,6 @@ class DataSlice {
       internal::DataItem schema, DataBagPtr db = nullptr,
       Wholeness wholeness = Wholeness::kNotWhole);
 
-  // Creates a scalar DataSlice with primitive schema derived from data.
-  // TODO: b/449162453 - Use CreatePrimitive instead.
-  template <typename T>
-  ABSL_DEPRECATE_AND_INLINE()
-  static DataSlice CreateFromScalar(T v) {
-    return CreatePrimitive(std::move(v));
-  }
-
   // Creates a DataSlice with primitive schema derived from data.
   template <typename T>
   static DataSlice CreatePrimitive(T v) {

@@ -48,8 +48,8 @@ class StreamReduceStackOrConcatHooks final : public BasicRoutineHooks {
         input_stream_(std::move(input_stream)),
         rank_(rank),
         first_args_({
-            DataSlice::CreateFromScalar(mode == Mode::kStack),
-            DataSlice::CreateFromScalar(ndim),
+            DataSlice::CreatePrimitive(mode == Mode::kStack),
+            DataSlice::CreatePrimitive(ndim),
             std::move(initial_value),
         }),
         args_({&first_args_[0], &first_args_[1], &first_args_[2]}) {

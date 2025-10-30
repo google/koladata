@@ -65,17 +65,17 @@ TEST(TransformTest, Basic) {
                                              input_container.CreateInput("b")},
                                             {}));
   DataSlice returns =
-      DataSlice::CreateFromScalar(arolla::expr::ExprQuote(returns_expr));
+      DataSlice::CreatePrimitive(arolla::expr::ExprQuote(returns_expr));
   ASSERT_OK_AND_ASSIGN(DataSlice functor,
                        CreateFunctor(returns, missing_object, {}, {}));
   ASSERT_OK_AND_ASSIGN(DataSlice transformed_functor,
                        TransformToParallel(context, functor));
   auto [future_a, writer_a] = MakeFuture(arolla::GetQType<DataSlice>());
   std::move(writer_a).SetValue(
-      arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(1)));
+      arolla::TypedValue::FromValue(DataSlice::CreatePrimitive(1)));
   auto [future_b, writer_b] = MakeFuture(arolla::GetQType<DataSlice>());
   std::move(writer_b).SetValue(
-      arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(2)));
+      arolla::TypedValue::FromValue(DataSlice::CreatePrimitive(2)));
   auto future_a_value = MakeFutureQValue(future_a);
   auto future_b_value = MakeFutureQValue(future_b);
   ASSERT_OK_AND_ASSIGN(auto result,
@@ -87,7 +87,7 @@ TEST(TransformTest, Basic) {
   ASSERT_OK_AND_ASSIGN(FuturePtr result_value, result.As<FuturePtr>());
   EXPECT_THAT(result_value->GetValueForTesting(),
               IsOkAndHolds(QValueWith<DataSlice>(
-                  IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
+                  IsEquivalentTo(DataSlice::CreatePrimitive(3)))));
 }
 
 }  // namespace

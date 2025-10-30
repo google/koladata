@@ -149,7 +149,7 @@ absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
                        var.item().value<arolla::expr::ExprQuote>().expr());
       ASSIGN_OR_RETURN(auto new_expr,
                        arolla::expr::Transform(var_expr, transform));
-      var = DataSlice::CreateFromScalar(
+      var = DataSlice::CreatePrimitive(
           arolla::expr::ExprQuote(std::move(new_expr)));
     }
     if (attr_name == kReturnsAttrName) {
@@ -294,7 +294,7 @@ class InnerTransformManager {
       ASSIGN_OR_RETURN(auto transformed_var,
                        TransformEager(*var_expr->qvalue()));
       auto new_var_expr = arolla::expr::Literal(std::move(transformed_var));
-      auto new_var = DataSlice::CreateFromScalar(
+      auto new_var = DataSlice::CreatePrimitive(
           arolla::expr::ExprQuote{std::move(new_var_expr)});
       new_vars_.emplace_back(result.var_name, std::move(new_var));
       results_.emplace(var_name, result);
@@ -322,7 +322,7 @@ class InnerTransformManager {
     ASSIGN_OR_RETURN(auto transformed_var,
                      TransformLazy(std::move(input_expr)));
     new_vars_.emplace_back(result.var_name,
-                           DataSlice::CreateFromScalar(arolla::expr::ExprQuote{
+                           DataSlice::CreatePrimitive(arolla::expr::ExprQuote{
                                std::move(transformed_var)}));
     results_.emplace(var_name, result);
     return result;
@@ -815,7 +815,7 @@ absl::StatusOr<DataSlice> TransformToParallel(
                                                            executor_input));
       }
     }
-    var = DataSlice::CreateFromScalar(
+    var = DataSlice::CreatePrimitive(
         arolla::expr::ExprQuote(std::move(var_expr)));
     if (attr_name == kReturnsAttrName) {
       returns = std::move(var);
@@ -852,18 +852,18 @@ absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
   ASSIGN_OR_RETURN(DataSlice fns_flat, fns.Flatten(0, std::nullopt));
   ASSIGN_OR_RETURN(DataSlice unique_fns,
                    ops::Unique(std::move(fns_flat),
-                               /*sort=*/DataSlice::CreateFromScalar(false)));
+                               /*sort=*/DataSlice::CreatePrimitive(false)));
   std::vector<DataSlice> unique_transformed_fns_vec;
   unique_transformed_fns_vec.reserve(unique_fns.size());
   for (int64_t i = 0; i < unique_fns.size(); ++i) {
     ASSIGN_OR_RETURN(DataSlice fn,
-                     ops::Take(unique_fns, DataSlice::CreateFromScalar(i)));
+                     ops::Take(unique_fns, DataSlice::CreatePrimitive(i)));
     ASSIGN_OR_RETURN(DataSlice transformed_fn,
                      TransformToParallel(context, std::move(fn)));
     unique_transformed_fns_vec.emplace_back(std::move(transformed_fn));
   }
-  DataSlice is_stack = DataSlice::CreateFromScalar(true);
-  DataSlice ndim = DataSlice::CreateFromScalar(0);
+  DataSlice is_stack = DataSlice::CreatePrimitive(true);
+  DataSlice ndim = DataSlice::CreatePrimitive(0);
   std::vector<const DataSlice*> stack_args;
   stack_args.reserve(2 + unique_transformed_fns_vec.size());
   stack_args.push_back(&is_stack);

@@ -166,7 +166,7 @@ absl::StatusOr<DataSlice> CreateBind(
   ASSIGN_OR_RETURN(
       auto capturing_lambda_expr,
       MakeCapturingLambdaExpr(return_type_as, aux_arg_names, kwargs_names));
-  auto capturing_lambda_slice = DataSlice::CreateFromScalar(
+  auto capturing_lambda_slice = DataSlice::CreatePrimitive(
       arolla::expr::ExprQuote(std::move(capturing_lambda_expr)));
 
   variable_names.push_back("_aux_fn");

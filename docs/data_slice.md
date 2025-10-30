@@ -32,7 +32,7 @@ or `internal::DataSliceImpl`. If (and only if) it is `DataItem`, then
 
 There are several functions to create `DataSlice`:
 
-### `DataSlice::CreateFromScalar(scalar)`
+### `DataSlice::CreatePrimitive(scalar)`
 
 The easiest way to create a scalar `DataSlice`. It will be initialized with
 

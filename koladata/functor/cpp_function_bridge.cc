@@ -91,7 +91,7 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
   ASSIGN_OR_RETURN(auto op_expr,
                    arolla::expr::CallOp(std::move(arolla_op), std::move(args)));
   auto op_slice =
-      DataSlice::CreateFromScalar(arolla::expr::ExprQuote(std::move(op_expr)));
+      DataSlice::CreatePrimitive(arolla::expr::ExprQuote(std::move(op_expr)));
   ASSIGN_OR_RETURN(auto koda_signature, Signature::Create(koda_params));
   ASSIGN_OR_RETURN(auto koda_signature_slice,
                    CppSignatureToKodaSignature(koda_signature));
@@ -99,8 +99,8 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
   return CreateFunctor(
       std::move(op_slice), std::move(koda_signature_slice),
       {functor::kModuleAttrName, functor::kQualnameAttrName},
-      {DataSlice::CreateFromScalar(arolla::Text(std::move(module))),
-       DataSlice::CreateFromScalar(arolla::Text(name))});
+      {DataSlice::CreatePrimitive(arolla::Text(std::move(module))),
+       DataSlice::CreatePrimitive(arolla::Text(name))});
 }
 
 absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(

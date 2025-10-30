@@ -745,7 +745,7 @@ BENCHMARK(BM_DataBagContentsRepr_Lists)
     ->Args({1000, 100})
     ->Args({10000, 100});
 
-void BM_CreateFromScalar_Int32(benchmark::State& state) {
+void BM_CreatePrimitive_Int32(benchmark::State& state) {
   int v = 42;
   for (auto _ : state) {
     benchmark::DoNotOptimize(v);
@@ -754,9 +754,9 @@ void BM_CreateFromScalar_Int32(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_CreateFromScalar_Int32);
+BENCHMARK(BM_CreatePrimitive_Int32);
 
-void BM_CreateFromScalar_Text(benchmark::State& state) {
+void BM_CreatePrimitive_Text(benchmark::State& state) {
   arolla::Text t(std::string(10000, 'a'));
   for (auto _ : state) {
     state.PauseTiming();
@@ -768,7 +768,7 @@ void BM_CreateFromScalar_Text(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_CreateFromScalar_Text);
+BENCHMARK(BM_CreatePrimitive_Text);
 
 }  // namespace
 }  // namespace koladata

@@ -82,11 +82,11 @@ TEST(StreamReduceConcatTest, InvalidNDim) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   std::move(*writer).Close();
   EXPECT_THAT(StreamReduceConcat(GetEagerExecutor(), 0,
-                                 DataSlice::CreateFromScalar(0), stream),
+                                 DataSlice::CreatePrimitive(0), stream),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid ndim=0 for concat"));
   EXPECT_THAT(StreamReduceConcat(GetEagerExecutor(), 1,
-                                 DataSlice::CreateFromScalar(0), stream),
+                                 DataSlice::CreatePrimitive(0), stream),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid ndim=1 for rank=0 concat"));
 }
@@ -178,11 +178,11 @@ TEST(StreamReduceConcatTest, Cancellation) {
 TEST(StreamReduceStackTest, BasicNDim0) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   ASSERT_OK_AND_ASSIGN(stream, StreamReduceStack(GetEagerExecutor(), 0,
-                                                 DataSlice::CreateFromScalar(0),
+                                                 DataSlice::CreatePrimitive(0),
                                                  std::move(stream)));
   EXPECT_EQ(stream->value_qtype(), arolla::GetQType<DataSlice>());
-  writer->Write(arolla::TypedRef::FromValue(DataSlice::CreateFromScalar(1)));
-  writer->Write(arolla::TypedRef::FromValue(DataSlice::CreateFromScalar(2)));
+  writer->Write(arolla::TypedRef::FromValue(DataSlice::CreatePrimitive(1)));
+  writer->Write(arolla::TypedRef::FromValue(DataSlice::CreatePrimitive(2)));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
   EXPECT_THAT(reader->TryRead().item(),
@@ -211,11 +211,11 @@ TEST(StreamReduceStackTest, InvalidNDim) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   std::move(*writer).Close();
   EXPECT_THAT(StreamReduceStack(GetEagerExecutor(), -1,
-                                DataSlice::CreateFromScalar(0), stream),
+                                DataSlice::CreatePrimitive(0), stream),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid ndim=-1 for stack"));
   EXPECT_THAT(StreamReduceStack(GetEagerExecutor(), 1,
-                                DataSlice::CreateFromScalar(0), stream),
+                                DataSlice::CreatePrimitive(0), stream),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid ndim=1 for rank=0 stack"));
 }
@@ -223,7 +223,7 @@ TEST(StreamReduceStackTest, InvalidNDim) {
 TEST(StreamReduceStackTest, IncompatibleRanks) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   ASSERT_OK_AND_ASSIGN(stream, StreamReduceStack(GetEagerExecutor(), 0,
-                                                 DataSlice::CreateFromScalar(0),
+                                                 DataSlice::CreatePrimitive(0),
                                                  std::move(stream)));
   writer->Write(arolla::TypedRef::FromValue(test::DataSlice<int>({})));
   auto reader = stream->MakeReader();
@@ -253,7 +253,7 @@ TEST(StreamReduceStackTest, InvalidInputStream) {
   auto [stream, writer] = MakeStream(arolla::GetQType<float>());
   std::move(*writer).Close();
   EXPECT_THAT(
-      StreamReduceStack(GetEagerExecutor(), 0, DataSlice::CreateFromScalar(0),
+      StreamReduceStack(GetEagerExecutor(), 0, DataSlice::CreatePrimitive(0),
                         stream),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "input stream has value_qtype=FLOAT32, expected DATA_SLICE"));
@@ -263,7 +263,7 @@ TEST(StreamReduceStackTest, InputStreamError) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   std::move(*writer).Close(absl::InvalidArgumentError("Boom!"));
   ASSERT_OK_AND_ASSIGN(stream, StreamReduceStack(GetEagerExecutor(), 0,
-                                                 DataSlice::CreateFromScalar(0),
+                                                 DataSlice::CreatePrimitive(0),
                                                  std::move(stream)));
   auto reader = stream->MakeReader();
   EXPECT_THAT(reader->TryRead().close_status(),
@@ -290,7 +290,7 @@ TEST(StreamReduceStackTest, Cancellation) {
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   ASSERT_OK_AND_ASSIGN(stream, StreamReduceStack(GetEagerExecutor(), 0,
-                                                 DataSlice::CreateFromScalar(0),
+                                                 DataSlice::CreatePrimitive(0),
                                                  std::move(stream)));
   cancellation_scope.cancellation_context()->Cancel(
       absl::CancelledError("Boom!"));

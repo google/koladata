@@ -138,7 +138,7 @@ class PackAsLiteralOperator : public arolla::QExprOperator {
           auto literal = expr::MakeLiteral(
               arolla::TypedValue::FromSlot(input_slot, frame));
           auto quote = arolla::expr::ExprQuote(std::move(literal));
-          frame.Set(output_slot, DataSlice::CreateFromScalar(std::move(quote)));
+          frame.Set(output_slot, DataSlice::CreatePrimitive(std::move(quote)));
           return absl::OkStatus();
         });
   }
