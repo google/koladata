@@ -204,16 +204,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     # Make sure the tuple elements can be evaluated independently, with
     # no barrier to sync.
     first_as_stream = koda_internal_parallel.stream_from_future(
-        # TODO: Invoke get_first_fn directly.
-        functor_factories.trace_py_fn(get_first_fn)(
-            res, return_type_as=future_none
-        )
+        get_first_fn(res)
     ).eval()
     second_as_stream = koda_internal_parallel.stream_from_future(
-        # TODO: Invoke get_second_fn directly.
-        functor_factories.trace_py_fn(get_second_fn)(
-            res, return_type_as=future_none
-        )
+        get_second_fn(res)
     ).eval()
     # unlock get_second_fn while get_first_fn is still waiting.
     e2.set()
