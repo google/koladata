@@ -948,6 +948,12 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
 
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter) {
+  if (ds.is_item()) {
+    return absl::InvalidArgumentError(
+        "cannot select from DataItem because its size is always 1. "
+        "Consider calling .flatten() beforehand to convert it "
+        "to a 1-dimensional DataSlice");
+  }
   const internal::DataItem& schema = filter.GetSchemaImpl();
 
   if (schema != schema::kObject && schema != schema::kMask) {
@@ -957,21 +963,17 @@ absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
   auto ds_shape = ds.GetShape();
   auto filter_shape = filter.GetShape();
   if (ds_shape.rank() != filter_shape.rank()) {
+    // This check also guarantees that filter is not a DataItem.
     return absl::InvalidArgumentError(absl::StrCat(
         "the rank of the ds and fltr DataSlice must be the same. Got "
         "rank(ds): ",
         ds_shape.rank(), ", rank(fltr): ", filter_shape.rank()));
   }
-  return ds.VisitImpl([&](const auto& ds_impl) {
-    return filter.VisitImpl(
-        [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {
-          ASSIGN_OR_RETURN(
-              auto res, internal::InverseSelectOp()(ds_impl, ds_shape,
-                                                    filter_impl, filter_shape));
-          return DataSlice::Create(std::move(res), filter_shape,
-                                   ds.GetSchemaImpl(), ds.GetBag());
-        });
-  });
+  ASSIGN_OR_RETURN(auto res,
+                   internal::InverseSelectOp()(ds.slice(), ds_shape,
+                                               filter.slice(), filter_shape));
+  return DataSlice::Create(std::move(res), std::move(filter_shape),
+                           ds.GetSchemaImpl(), ds.GetBag());
 }
 
 absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(

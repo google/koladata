@@ -100,37 +100,6 @@ struct InverseSelectOp {
 
     return std::move(builder).Build();
   };
-
-  absl::StatusOr<DataSliceImpl> operator()(
-      const DataSliceImpl& ds_impl,
-      const arolla::JaggedDenseArrayShape& ds_shape, const DataItem& filter,
-      const arolla::JaggedDenseArrayShape& filter_size) const {
-    return absl::InternalError("invalid case ensured by the caller");
-  };
-
-  absl::StatusOr<DataItem> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
-      const DataItem& filter,
-      const arolla::JaggedDenseArrayShape& filter_shape) const {
-    if (filter.has_value() && !filter.holds_value<arolla::Unit>()) {
-      return absl::InvalidArgumentError(
-          "fltr argument must have all items of MASK dtype");
-    }
-    if (ds_impl.has_value() != filter.has_value()) {
-      return absl::InvalidArgumentError(
-          "the shape of `ds` and the shape of the present elements in `fltr` "
-          "do not match: because both are DataItems but have different "
-          "presences");
-    }
-    return ds_impl;
-  };
-
-  absl::StatusOr<DataItem> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
-      const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShape& filter_shape) const {
-    return absl::InternalError("invalid case ensured by the caller");
-  }
 };
 
 }  // namespace koladata::internal

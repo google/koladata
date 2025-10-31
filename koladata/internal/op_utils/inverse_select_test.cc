@@ -41,35 +41,6 @@ using ::arolla::kMissing;
 using ::arolla::kPresent;
 using ::arolla::Text;
 
-TEST(InverseSelectTest, NoDimensions) {
-  auto edge = test::ShapeFromSplitPoints({});
-  ASSERT_OK_AND_ASSIGN(
-      auto res, InverseSelectOp()(DataItem(), edge, DataItem(kMissing), edge));
-  ASSERT_FALSE(res.has_value());
-
-  ASSERT_OK_AND_ASSIGN(
-      res, InverseSelectOp()(DataItem(1), edge, DataItem(kPresent), edge));
-  ASSERT_TRUE(res.holds_value<int>());
-  ASSERT_EQ(res.value<int>(), 1);
-}
-
-TEST(InverseSelectTest, NoDimensionsWithError) {
-  auto edge = test::ShapeFromSplitPoints({});
-  EXPECT_THAT(InverseSelectOp()(DataItem(1), edge, DataItem(kMissing), edge),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the shape of `ds` and the shape of the present "
-                       "elements in `fltr` do not match: because both are "
-                       "DataItems but have different presences"));
-  EXPECT_THAT(InverseSelectOp()(DataItem(), edge, DataItem(kPresent), edge),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the shape of `ds` and the shape of the present "
-                       "elements in `fltr` do not match: because both are "
-                       "DataItems but have different presences"));
-  EXPECT_THAT(InverseSelectOp()(DataItem(1), edge, DataItem(1), edge),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "fltr argument must have all items of MASK dtype"));
-}
-
 TEST(InverseSelectTest, OneDimension) {
   auto ds_edge = test::ShapeFromSplitPoints({{0, 2}});
   auto filter = DataSliceImpl::Create(
@@ -239,29 +210,6 @@ TEST(InverseSelectTest, ThreeDimensionsWithError) {
                  "the shape of `ds` and the shape of the present elements in "
                  "`fltr` do not match: JaggedShape(2, [2, 1], [2, 1, 0]) vs "
                  "JaggedShape(2, [1, 2], [2, 1, 0])"));
-  }
-}
-
-TEST(InverseSelectTest, InvalidCase) {
-  {
-    auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, 2}));
-    auto ds_edge = test::ShapeFromSplitPoints({{0, 2}});
-    auto filter = DataItem();
-    auto filter_edge = test::ShapeFromSplitPoints({});
-    EXPECT_THAT(InverseSelectOp()(ds, ds_edge, filter, filter_edge),
-                StatusIs(absl::StatusCode::kInternal,
-                         "invalid case ensured by the caller"));
-  }
-
-  {
-    auto ds = DataItem();
-    auto ds_edge = test::ShapeFromSplitPoints({});
-    auto filter = DataSliceImpl::Create(
-        CreateDenseArray<arolla::Unit>({kPresent, kPresent}));
-    auto filter_edge = test::ShapeFromSplitPoints({{0, 2}});
-    EXPECT_THAT(InverseSelectOp()(ds, ds_edge, filter, filter_edge),
-                StatusIs(absl::StatusCode::kInternal,
-                         "invalid case ensured by the caller"));
   }
 }
 

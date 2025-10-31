@@ -81,11 +81,11 @@ class SlicesInverseSelectTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.slices.inverse_select: the rank of the ds and fltr DataSlice'
-            ' must be the same. Got rank(ds): 0, rank(fltr): 1'
+            ' must be the same. Got rank(ds): 1, rank(fltr): 2'
         ),
     ):
       expr_eval.eval(
-          kde.slices.inverse_select(ds(1), ds([arolla.present(), None]))
+          kde.slices.inverse_select(ds([1, 2]), ds([[arolla.present(), None]]))
       )
 
     with self.assertRaisesRegex(
@@ -101,6 +101,16 @@ class SlicesInverseSelectTest(parameterized.TestCase):
               ds([1, 2]), ds([arolla.present(), None, None])
           )
       )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.slices.inverse_select: cannot select from DataItem because its'
+            ' size is always 1. Consider calling .flatten() beforehand to'
+            ' convert it to a 1-dimensional DataSlice'
+        ),
+    ):
+      expr_eval.eval(kde.slices.inverse_select(ds(1), ds(arolla.present())))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.inverse_select(I.x, I.y)))
