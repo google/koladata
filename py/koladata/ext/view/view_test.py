@@ -46,6 +46,28 @@ class ViewTest(absltest.TestCase):
     x = Obj(_b=6)
     self.assertEqual(view_lib.view(x).get_attr('_b').get(), 6)
 
+  def test_setattr(self):
+    x = [Obj(a=5), Obj(b=7)]
+    v = view_lib.view(x)[:]
+    v.a = 6
+    self.assertEqual(x[0].a, 6)
+    self.assertEqual(x[1].a, 6)
+    self.assertEqual(x[1].b, 7)
+
+  def test_set_attr(self):
+    x = [Obj(_b=6), Obj(a=8)]
+    v = view_lib.view(x)[:]
+    v.set_attr('_b', 7)
+    self.assertEqual(x[0]._b, 7)
+    self.assertEqual(x[1]._b, 7)
+    self.assertEqual(x[1].a, 8)
+
+  def test_setattr_underscore_fails(self):
+    x = Obj(_a=1)
+    v = view_lib.view(x)
+    with self.assertRaisesRegex(AttributeError, '_a'):
+      v._a = 2
+
   def test_explode(self):
     x = Obj(a=[Obj(b=1), Obj(b=2)])
     self.assertEqual(view_lib.view(x).a.explode().b.get(), (1, 2))

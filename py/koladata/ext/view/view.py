@@ -151,6 +151,10 @@ class View:
 
   __slots__ = ['_obj', '_depth']
 
+  _HAS_DYNAMIC_ATTRIBUTES = True
+  _obj: Any
+  _depth: int
+
   # TODO: Consider either implementing parts in C++ to improve
   # initialization performance, or to e.g. inherit from `tuple` (~2x faster
   # construction). Note that since we override `__getitem__`, we need to
@@ -173,8 +177,11 @@ class View:
     # Note that some of the objects A, B, C may be tuples themselves, we do not
     # look into them and just treat them as arbitrary Python objects unless
     # the user explicitly calls explode().
-    self._obj = obj
-    self._depth = depth
+    #
+    # Since we override __setattr__, we use a lower-level API here to quickly
+    # initialize the attributes.
+    _VIEW_OBJ_SETTER(self, obj)
+    _VIEW_DEPTH_SETTER(self, depth)
 
   def __repr__(self) -> str:
     return f'<View(\n  obj={self._obj!r},\n  depth={self._depth!r},\n)>'
@@ -182,7 +189,7 @@ class View:
   def get_attr(self, attr_name: str, default: Any = NO_DEFAULT) -> View:
     """Returns a new view with the given attribute of each item."""
     if default is NO_DEFAULT:
-      attrgetter = lambda x: getattr(x, attr_name)
+      attr_getter = lambda x: getattr(x, attr_name)
     else:
       if isinstance(default, View):
         if default.get_depth():
@@ -192,14 +199,14 @@ class View:
           )
         default = default.get()
 
-      def attrgetter(x):
+      def attr_getter(x):
         try:
           res = getattr(x, attr_name)
           return res if res is not None else default
         except AttributeError:
           return default
 
-    return _map1(attrgetter, self)
+    return _map1(attr_getter, self)
 
   def __getattr__(self, attr_name: str) -> View:
     """Returns a new view with the given attribute of each item.
@@ -218,8 +225,29 @@ class View:
     """
     if attr_name.startswith('_'):
       raise AttributeError(attr_name)
-    attrgetter = lambda x: getattr(x, attr_name)
-    return _map1(attrgetter, self)
+    attr_getter = lambda x: getattr(x, attr_name)
+    return _map1(attr_getter, self)
+
+  def set_attr(self, attr_name: str, value: ViewOrAutoBoxType):
+    """Sets the given attribute of each item."""
+
+    if isinstance(value, View) and value.get_depth() > self._depth:
+      raise ValueError(
+          'The value being set as attribute must have same or lower depth than'
+          ' the object itself. Maybe you forgot to call .implode()?'
+      )
+
+    def attr_setter(x: Any, v: Any):
+      if x is not None:
+        setattr(x, attr_name, v)
+
+    _map2(attr_setter, self, value, include_missing=True)
+
+  def __setattr__(self, attr_name: str, value: ViewOrAutoBoxType):
+    """Sets the given attribute of each item."""
+    if attr_name.startswith('_'):
+      raise AttributeError(attr_name)
+    self.set_attr(attr_name, value)
 
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.
@@ -569,6 +597,9 @@ def view(obj: Any) -> View:
   """
   return View(obj, 0, _INTERNAL_CALL)
 
+
+_VIEW_OBJ_SETTER = View.__dict__['_obj'].__set__  # pytype: disable=attribute-error
+_VIEW_DEPTH_SETTER = View.__dict__['_depth'].__set__  # pytype: disable=attribute-error
 
 AutoBoxType = (
     int | float | str | bytes | bool | type(mask_constants.present) | None

@@ -11749,9 +11749,7 @@ Example:
   # (2, 3)
 
 Args:
-  v: The view to explode. Can also be a Python primitive, which will be
-    automatically boxed into a view, but most likely raise an exception
-    afterwards, unless it is None.
+  v: The view to explode.
   ndim: The number of dimensions to explode. Must be non-negative.
 
 Returns:
@@ -11817,9 +11815,7 @@ Example:
   # 6
 
 Args:
-  v: The view to get the attribute from. Can also be a Python primitive, which
-    will be automatically boxed into a view, but most likely raise an
-    exception afterwards, unless it is None.
+  v: The view to get the attribute from.
   attr_name: The name of the attribute to get.
   default: When specified, if the attribute value is None or getting the
     attribute raises AttributeError, this value will be used instead.</code></pre>
@@ -12141,6 +12137,30 @@ Args:
 
 Returns:
   Filtered view.</code></pre>
+
+### `kd_ext.kv.set_attr(v: View | int | float | str | bytes | bool | _Present | None, attr_name: str, value: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.set_attr}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attribute of each item.
+
+If one of the items in `v` is None, the corresponding value will be ignored.
+If one of the items in `value` is None, the attribute of the corresponding
+item will be set to None.
+
+If the same object has multiple references in `v`, we will process the
+set_attr in order, so the attribute will have the last assigned value.
+
+Example:
+  o = kv.view([types.SimpleNamespace(), types.SimpleNamespace()])[:]
+  kv.set_attr(o, &#39;a&#39;, 1)
+  kv.set_attr(o, &#39;_b&#39;, kv.view([None, 2])[:])
+  o.get()
+  # (namespace(a=1, _b=None), namespace(a=1, _b=2))
+
+Args:
+  v: The view to set the attribute for.
+  attr_name: The name of the attribute to set.
+  value: The value to set the attribute to. Can also be a Python primitive,
+    which will be automatically boxed into a view.</code></pre>
 
 ### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | _Present | None, index: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.take}
 

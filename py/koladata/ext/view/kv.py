@@ -26,6 +26,7 @@ align = _view.align
 view = _view.view
 map = _view.map_  # pylint: disable=redefined-builtin
 get_attr = _operators.get_attr
+set_attr = _operators.set_attr
 explode = _operators.explode
 implode = _operators.implode
 flatten = _operators.flatten

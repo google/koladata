@@ -84,6 +84,16 @@ py_test(
 )
 
 py_test(
+    name = "set_attr_test",
+    srcs = ["set_attr_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "explode_test",
     srcs = ["explode_test.py"],
     deps = [

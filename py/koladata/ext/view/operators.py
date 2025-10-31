@@ -43,14 +43,42 @@ def get_attr(
     # 6
 
   Args:
-    v: The view to get the attribute from. Can also be a Python primitive, which
-      will be automatically boxed into a view, but most likely raise an
-      exception afterwards, unless it is None.
+    v: The view to get the attribute from.
     attr_name: The name of the attribute to get.
     default: When specified, if the attribute value is None or getting the
       attribute raises AttributeError, this value will be used instead.
   """
   return view_lib.box(v).get_attr(attr_name, default)
+
+
+def set_attr(
+    v: view_lib.ViewOrAutoBoxType,
+    attr_name: str,
+    value: view_lib.ViewOrAutoBoxType,
+):
+  """Sets the given attribute of each item.
+
+  If one of the items in `v` is None, the corresponding value will be ignored.
+  If one of the items in `value` is None, the attribute of the corresponding
+  item will be set to None.
+
+  If the same object has multiple references in `v`, we will process the
+  set_attr in order, so the attribute will have the last assigned value.
+
+  Example:
+    o = kv.view([types.SimpleNamespace(), types.SimpleNamespace()])[:]
+    kv.set_attr(o, 'a', 1)
+    kv.set_attr(o, '_b', kv.view([None, 2])[:])
+    o.get()
+    # (namespace(a=1, _b=None), namespace(a=1, _b=2))
+
+  Args:
+    v: The view to set the attribute for.
+    attr_name: The name of the attribute to set.
+    value: The value to set the attribute to. Can also be a Python primitive,
+      which will be automatically boxed into a view.
+  """
+  view_lib.box(v).set_attr(attr_name, value)
 
 
 def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
@@ -75,9 +103,7 @@ def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
     # (2, 3)
 
   Args:
-    v: The view to explode. Can also be a Python primitive, which will be
-      automatically boxed into a view, but most likely raise an exception
-      afterwards, unless it is None.
+    v: The view to explode.
     ndim: The number of dimensions to explode. Must be non-negative.
 
   Returns:
