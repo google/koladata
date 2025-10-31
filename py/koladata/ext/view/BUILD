@@ -148,6 +148,7 @@ cc_library(
     hdrs = ["clib.h"],
     deps = [
         "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep

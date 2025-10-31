@@ -19,6 +19,7 @@
 #include <cstdint>
 
 #include "absl/container/inlined_vector.h"
+#include "absl/functional/function_ref.h"
 #include "absl/types/span.h"
 #include "py/arolla/py_utils/py_utils.h"
 
@@ -28,11 +29,10 @@ namespace {
 // TODO: Implement non-recursive version.
 //
 // All PyObject* inputs are borrowed.
-arolla::python::PyObjectPtr MapImpl(PyObject* fn,
-                                    absl::Span<const int64_t> depths,
-                                    int64_t current_depth, bool include_missing,
-                                    absl::Span<PyObject*> py_args,
-                                    Py_ssize_t nargs, PyObject* py_kwnames) {
+arolla::python::PyObjectPtr MapImpl(
+    absl::FunctionRef<arolla::python::PyObjectPtr(absl::Span<PyObject*>)> fn,
+    absl::Span<const int64_t> depths, int64_t current_depth,
+    bool include_missing, absl::Span<PyObject*> py_args) {
   int64_t max_len = -1;
   for (int64_t i = 0; i < depths.size(); ++i) {
     if (depths[i] <= current_depth) {
@@ -66,8 +66,7 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
         }
       }
     }
-    return arolla::python::PyObjectPtr::Own(
-        PyObject_Vectorcall(fn, py_args.data(), nargs, py_kwnames));
+    return fn(py_args);
   }
   // Set up common values for subsequent calls - i.e. scalars.
   absl::InlinedVector<PyObject*, 4> new_py_args(depths.size(), nullptr);
@@ -87,9 +86,8 @@ arolla::python::PyObjectPtr MapImpl(PyObject* fn,
         new_py_args[j] = PyTuple_GET_ITEM(py_args[j], i);
       }
     }
-    arolla::python::PyObjectPtr res =
-        MapImpl(fn, depths, new_depth, include_missing,
-                absl::MakeSpan(new_py_args), nargs, py_kwnames);
+    arolla::python::PyObjectPtr res = MapImpl(
+        fn, depths, new_depth, include_missing, absl::MakeSpan(new_py_args));
     if (res == nullptr) {
       return nullptr;
     }
@@ -185,8 +183,13 @@ PyObject* PyMapStructures(PyObject* /*self*/, PyObject* const* py_args,
                           depths[i]);
     }
   }
-  return MapImpl(fn, depths, /*current_depth=*/0, include_missing, fn_args,
-                 nposargs, kwnames)
+  auto callback =
+      [&](absl::Span<PyObject*> py_args) -> arolla::python::PyObjectPtr {
+    return arolla::python::PyObjectPtr::Own(
+        PyObject_Vectorcall(fn, py_args.data(), nposargs, kwnames));
+  };
+  return MapImpl(callback, depths, /*current_depth=*/0, include_missing,
+                 fn_args)
       .release();
 }
 
