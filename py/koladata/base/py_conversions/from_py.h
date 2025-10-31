@@ -17,6 +17,9 @@
 
 #include <Python.h>
 
+#include <cstddef>
+#include <optional>
+
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 
@@ -25,7 +28,8 @@ namespace koladata::python {
 // New version of GenericFromPyObject; it will eventually replace the old one.
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
-                                    size_t from_dim, bool dict_as_obj);
+                                    size_t from_dim, bool dict_as_obj,
+                                    const std::optional<DataSlice>& itemid);
 
 }  // namespace koladata::python
 

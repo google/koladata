@@ -66,6 +66,57 @@ def _zip_with_version_params(input_objects):
     yield (f'{case_name}_{version}', (input_obj, from_py_fn))
 
 
+def _get_child_list_item_id(from_py_fn, parent_itemid, **kwargs):
+  if from_py_fn == py_conversions._from_py_v2:
+    child_itemid = kde.uuid(
+        '__from_py_child__',
+        parent=parent_itemid,
+        **kwargs,
+    ).eval()
+    return kde.uuid_for_list(
+        '',
+        base_itemid=child_itemid,
+    ).eval()
+  else:
+    return kde.uuid_for_list(
+        '__from_py_child__',
+        parent=parent_itemid,
+        **kwargs,
+    ).eval()
+
+
+def _get_child_dict_item_id(from_py_fn, parent_itemid, attr_name, **kwargs):
+  if from_py_fn == py_conversions._from_py_v2:
+    child_itemid = kde.uuid(
+        '__from_py_child__',
+        parent=parent_itemid,
+        **kwargs,
+    ).eval()
+    return kde.uuid_for_dict(
+        '',
+        base_itemid=child_itemid,
+    ).eval()
+  else:
+    return kde.uuid_for_dict(
+        '__from_py_child__',
+        parent=parent_itemid,
+        attr_name=attr_name,
+    ).eval()
+
+
+def _get_child_entity_item_id(from_py_fn, parent_itemid, attr_name, **kwargs):
+  if from_py_fn == py_conversions._from_py_v2:
+    return kde.uuid(
+        '__from_py_child__',
+        parent=parent_itemid,
+        **kwargs,
+    ).eval()
+  else:
+    return kde.uuid(
+        '__from_py_child__', parent=parent_itemid, attr_name=attr_name
+    ).eval()
+
+
 class FromPyTest(parameterized.TestCase):
 
   # More detailed tests for conversions to Koda OBJECT are located in
@@ -717,7 +768,7 @@ assigned schema: INT32"""),
       ds1 = db.new(a=2, schema=entity_schema)
       ds2 = db.new(a=3, schema=entity_schema)
       schema = db.list_schema(entity_schema)
-      d = py_conversions.from_py([ds1, ds2], schema=schema)
+      d = from_py_fn([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
@@ -728,7 +779,7 @@ assigned schema: INT32"""),
       schema = kde.list_schema(
           kde.named_schema('foo', a=schema_constants.INT32)
       ).eval()
-      d = py_conversions.from_py([ds1, ds2], schema=schema)
+      d = from_py_fn([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
@@ -738,7 +789,7 @@ assigned schema: INT32"""),
       schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       obj = TestClass(a=3)
-      x = py_conversions.from_py([obj, entity], schema=schema, dict_as_obj=True)
+      x = from_py_fn([obj, entity], schema=schema, dict_as_obj=True)
       self.assertFalse(x.is_dict())
       testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
       testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
@@ -1157,24 +1208,21 @@ assigned schema: ENTITY(x=INT32)'''
       ):
         from_py_fn(TestKlassInternals(42, 3.14))
 
-  def test_item_id(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_item_id(self, from_py_fn):
     with self.subTest('list'):
-      l1 = py_conversions.from_py(
-          [1, 2, 3], itemid=kde.uuid_for_list('1').eval()
-      )
-      l2 = py_conversions.from_py(
-          [1, 2, 3], itemid=kde.uuid_for_list('1').eval()
-      )
+      l1 = from_py_fn([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
+      l2 = from_py_fn([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
       testing.assert_equivalent(l1, l2)
       testing.assert_equal(
           l1.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
-      l3 = py_conversions.from_py(
+      l3 = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list('1').eval(),
       )
-      l4 = py_conversions.from_py(
+      l4 = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list('1').eval(),
       )
@@ -1184,11 +1232,11 @@ assigned schema: ENTITY(x=INT32)'''
       )
       self.assertNotEqual(l3[:].S[0].fingerprint, l3[:].S[1].fingerprint)
 
-      l5 = py_conversions.from_py(
+      l5 = from_py_fn(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
-      l6 = py_conversions.from_py(
+      l6 = from_py_fn(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
@@ -1199,21 +1247,17 @@ assigned schema: ENTITY(x=INT32)'''
       self.assertNotEqual(l5[:].S[0].fingerprint, l5[:].S[1].fingerprint)
 
     with self.subTest('dict'):
-      d1 = py_conversions.from_py(
-          {'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval()
-      )
-      d2 = py_conversions.from_py(
-          {'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval()
-      )
+      d1 = from_py_fn({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
+      d2 = from_py_fn({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
       testing.assert_equivalent(d1, d2)
       testing.assert_equal(
           d1.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
       )
 
-      d3 = py_conversions.from_py(
+      d3 = from_py_fn(
           [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
       )
-      d4 = py_conversions.from_py(
+      d4 = from_py_fn(
           [{'a': 1, 'b': 2}, [1, 2, 3]], itemid=kde.uuid_for_list('1').eval()
       )
       testing.assert_equivalent(d3, d4)
@@ -1224,11 +1268,11 @@ assigned schema: ENTITY(x=INT32)'''
           d3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
-      d5 = py_conversions.from_py(
+      d5 = from_py_fn(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
           itemid=kde.uuid_for_dict('1').eval(),
       )
-      d6 = py_conversions.from_py(
+      d6 = from_py_fn(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
           itemid=kde.uuid_for_dict('1').eval(),
       )
@@ -1244,11 +1288,11 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('obj'):
-      o1 = py_conversions.from_py(
+      o1 = from_py_fn(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
           itemid=kde.uuid('1').eval(),
       )
-      o2 = py_conversions.from_py(
+      o2 = from_py_fn(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
           itemid=kde.uuid('1').eval(),
       )
@@ -1257,22 +1301,22 @@ assigned schema: ENTITY(x=INT32)'''
       testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
     with self.subTest('dict_as_obj'):
-      o1 = py_conversions.from_py(
+      o1 = from_py_fn(
           {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
-      o2 = py_conversions.from_py(
+      o2 = from_py_fn(
           {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
       testing.assert_equivalent(o1, o2)
       self.assertNotEqual(o1.a.fingerprint, o1.b.fingerprint)
       testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
-      o3 = py_conversions.from_py(
+      o3 = from_py_fn(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
           itemid=kde.uuid_for_list('1').eval(),
       )
-      o4 = py_conversions.from_py(
+      o4 = from_py_fn(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
           itemid=kde.uuid_for_list('1').eval(),
@@ -1288,12 +1332,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('nested obj'):
-      o1 = py_conversions.from_py(
+      o1 = from_py_fn(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
           itemid=kde.uuid('1').eval(),
       )
-      o2 = py_conversions.from_py(
+      o2 = from_py_fn(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
           itemid=kde.uuid('1').eval(),
@@ -1305,10 +1349,10 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('attr_name child itemid'):
       parent_itemid = kde.uuid('1').eval()
-      child_itemid = kde.uuid(
-          '__from_py_child__', parent=parent_itemid, attr_name='a'
-      ).eval()
-      obj = py_conversions.from_py(
+      child_itemid = _get_child_entity_item_id(
+          from_py_fn, parent_itemid, 'a', a=ds(0, schema_constants.INT64)
+      )
+      obj = from_py_fn(
           {'a': {'b': '1'}},
           schema=kde.uu_schema(
               a=kde.uu_schema(b=schema_constants.STRING)
@@ -1320,19 +1364,23 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('dict_value_index child itemid'):
       parent_itemid = kde.uuid('1').eval()
-      child_itemid = kde.uuid(
-          '__from_py_child__', parent=parent_itemid, attr_name='a'
-      ).eval()
-      child_dict_itemid = kde.uuid_for_dict(
-          '__from_py_child__', parent=child_itemid, attr_name='b'
-      ).eval()
+      child_itemid = _get_child_entity_item_id(
+          from_py_fn, parent_itemid, 'a', a=ds(0, schema_constants.INT64)
+      )
 
-      child_list_itemid = kde.uuid_for_list(
-          '__from_py_child__',
-          parent=child_dict_itemid,
+      child_dict_itemid = _get_child_dict_item_id(
+          from_py_fn,
+          child_itemid,
+          'b',
+          b=ds(0, schema_constants.INT64),
+      )
+
+      child_list_itemid = _get_child_list_item_id(
+          from_py_fn,
+          child_dict_itemid,
           dict_value_index=ds([0, 1], schema_constants.INT64),
-      ).eval()
-      obj = py_conversions.from_py(
+      )
+      obj = from_py_fn(
           {'a': {'b': {'1': [1, 2, 3], '2': [4, 5]}}},
           schema=kde.uu_schema(
               a=kde.uu_schema(
@@ -1360,7 +1408,7 @@ assigned schema: ENTITY(x=INT32)'''
       ).eval()
       key1 = NestedKlass('1')
       key2 = NestedKlass('2')
-      obj = py_conversions.from_py(
+      obj = from_py_fn(
           {key1: [1, 2, 3], key2: [4, 5]},
           itemid=parent_itemid,
       )
@@ -1371,12 +1419,13 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('list_item_index child itemid'):
       parent_itemid = kde.uuid_for_list('1').eval()
-      child_list_itemid = kde.uuid_for_list(
-          '__from_py_child__',
-          parent=parent_itemid,
+      child_list_itemid = _get_child_list_item_id(
+          from_py_fn,
+          parent_itemid,
           list_item_index=ds([0, 1], schema_constants.INT64),
-      ).eval()
-      obj = py_conversions.from_py(
+      )
+
+      obj = from_py_fn(
           [[1, 2, 3], [4, 5, 6]],
           itemid=parent_itemid,
           from_dim=0,
@@ -1387,12 +1436,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('list_with_from_dim'):
-      l1 = py_conversions.from_py(
+      l1 = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
-      l2 = py_conversions.from_py(
+      l2 = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
@@ -1403,12 +1452,12 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('dict_with_from_dim'):
-      d1 = py_conversions.from_py(
+      d1 = from_py_fn(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
-      d2 = py_conversions.from_py(
+      d2 = from_py_fn(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
           itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
@@ -1420,15 +1469,14 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('itemid caching'):
       d = {'a': 42}
-      l1 = py_conversions.from_py([d, d], itemid=kde.uuid_for_list('1').eval())
+      l1 = from_py_fn([d, d], itemid=kde.uuid_for_list('1').eval())
       self.assertNotEqual(l1[:].S[0].fingerprint, l1[:].S[1].fingerprint)
 
-      d1 = py_conversions.from_py(
-          {'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval()
-      )
+      d1 = from_py_fn({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())
       self.assertNotEqual(d1['a'].fingerprint, d1['b'].fingerprint)
 
-  def test_item_id_errors(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_item_id_errors(self, from_py_fn):
     with self.assertRaisesRegex(
         ValueError, '`itemid` expected ITEMID schema, got INT32'
     ):
@@ -1438,7 +1486,7 @@ assigned schema: ENTITY(x=INT32)'''
         'ItemId for DataSlice size=1 does not match the input list size=2 when'
         ' from_dim=1',
     ):
-      _ = py_conversions.from_py(
+      _ = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds(['1'])).eval(),
           from_dim=1,
@@ -1446,10 +1494,9 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.assertRaisesRegex(
         ValueError,
-        'ItemId for DataSlice must be a DataSlice of non-zero rank if'
-        ' from_dim > 0',
+        'ItemId for DataSlice must be a DataSlice of non-zero rank',
     ):
-      _ = py_conversions.from_py(
+      _ = from_py_fn(
           [[1, 2], [3]],
           itemid=kde.uuid_for_list(a=ds('1')).eval(),
           from_dim=1,

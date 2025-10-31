@@ -71,8 +71,7 @@ def _from_py_v2(
     from_dim: int = 0,
 ) -> data_slice.DataSlice:
   """New version of from_py; it will eventually replace the old one."""
-  del itemid
-  return base_clib._from_py_v2(py_obj, schema, from_dim, dict_as_obj)  # pylint: disable=protected-access
+  return base_clib._from_py_v2(py_obj, schema, from_dim, dict_as_obj, itemid)  # pylint: disable=protected-access
 
 
 def to_pylist(x: data_slice.DataSlice) -> list[Any]:

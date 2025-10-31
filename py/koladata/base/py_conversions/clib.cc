@@ -36,15 +36,20 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(clib, m) {
   m.def("_from_py_v2", [](py::handle py_obj, py::handle schema, size_t from_dim,
-                          bool dict_as_obj) {
+                          bool dict_as_obj, py::handle itemid) {
     arolla::python::PyCancellationScope cancellation_scope;
     std::optional<DataSlice> schema_ds;
     if (!UnwrapDataSliceOptionalArg(schema.ptr(), "schema", schema_ds)) {
       throw pybind11::error_already_set();
     }
 
+    std::optional<DataSlice> itemid_ds;
+    if (!UnwrapDataSliceOptionalArg(itemid.ptr(), "itemid", itemid_ds)) {
+      throw pybind11::error_already_set();
+    }
+
     return arolla::TypedValue::FromValue(arolla::python::pybind11_unstatus_or(
-        FromPy_V2(py_obj.ptr(), schema_ds, from_dim, dict_as_obj)));
+        FromPy_V2(py_obj.ptr(), schema_ds, from_dim, dict_as_obj, itemid_ds)));
   });
 }
 

@@ -17,6 +17,7 @@
 #include <Python.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -27,8 +28,10 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -42,6 +45,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
+#include "koladata/uuid_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "arolla/util/status_macros_backport.h"
@@ -58,6 +62,39 @@ bool IsStructSchema(const std::optional<DataSlice>& schema) {
   return schema && schema->item() != schema::kObject;
 }
 
+constexpr static absl::string_view kChildItemIdSeed = "__from_py_child__";
+constexpr static absl::string_view kChildListItemAttributeName =
+    "list_item_index";
+constexpr static absl::string_view kChildDictKeyAttributeName =
+    "dict_key_index";
+constexpr static absl::string_view kChildDictValueAttributeName =
+    "dict_value_index";
+
+// Create a DataSlice of uuids that represent child objects of the given
+// parent object.
+//
+// The result is a DataSlice with `items_shape`.
+// The result will have `indexed_attribute_name` attribute that contains flat
+// indices of the children in the parent object.
+absl::StatusOr<std::optional<DataSlice>> MakeChildrenItemUuids(
+    const std::optional<DataSlice>& parent_itemid,
+    const DataSlice::JaggedShape& items_shape,
+    std::string_view indexed_attribute_name) {
+  size_t n_elements = items_shape.size();
+  arolla::DenseArrayBuilder<int64_t> flat_index_builder(n_elements);
+  for (int64_t i = 0; i < n_elements; ++i) {
+    flat_index_builder.Add(i, i);
+  }
+  ASSIGN_OR_RETURN(
+      DataSlice index,
+      DataSlice::Create(internal::DataSliceImpl::Create(
+                            std::move(flat_index_builder).Build()),
+                        items_shape, internal::DataItem(schema::kInt64)));
+  return CreateUuidFromFields(kChildItemIdSeed,
+                              {"parent", indexed_attribute_name},
+                              {*parent_itemid, std::move(index)});
+}
+
 // Helper class for converting Python objects to DataSlices.
 class FromPyConverter {
  public:
@@ -66,7 +103,8 @@ class FromPyConverter {
 
   absl::StatusOr<DataSlice> Convert(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
-                                    size_t from_dim) {
+                                    size_t from_dim,
+                                    const std::optional<DataSlice>& itemid) {
     std::vector<PyObject*> py_objects{py_obj};
     DataSlice::JaggedShape cur_shape = DataSlice::JaggedShape::Empty();
 
@@ -75,8 +113,23 @@ class FromPyConverter {
                        FlattenPyList(py_obj, from_dim));
       py_objects = std::move(py_objs);
       cur_shape = std::move(shape);
+
+      if (itemid.has_value()) {
+        if (itemid->is_item()) {
+          return absl::InvalidArgumentError(
+              "ItemId for DataSlice must be a DataSlice of non-zero rank if "
+              "from_dim > 0");
+        }
+        if (itemid->size() != py_objects.size()) {
+          return absl::InvalidArgumentError(
+              absl::StrFormat("ItemId for DataSlice size=%d does not match the "
+                              "input list size=%d when from_dim=%d",
+                              itemid->size(), py_objects.size(), from_dim));
+        }
+      }
     }
-    return ConvertImpl(py_objects, cur_shape, schema);
+    return ConvertImpl(py_objects, cur_shape, schema, itemid,
+                       /*computing_object=*/false, /*is_root=*/true);
   }
 
   // Returns a DataBag used to create additional triples (e.g.
@@ -193,17 +246,36 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> ComputeObjectsSlice(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& object_schema = std::nullopt) {
+      const std::optional<DataSlice>& object_schema,
+      const std::optional<DataSlice>& itemid, bool is_root) {
     DCHECK(!object_schema || object_schema->item() == schema::kObject);
     bool is_struct_schema = IsStructSchema(object_schema);
     const size_t size = py_objects.size();
     internal::SliceBuilder bldr(size);
     schema::CommonSchemaAggregator schema_agg;
+
+    if (itemid.has_value() && itemid->size() < size) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "ItemId size=%d is smaller than the input list size=%d",
+          itemid->size(), size));
+    }
+
     for (size_t i = 0; i < size; ++i) {
+      std::optional<DataSlice> child_itemid_ds_item;
+      if (itemid.has_value()) {
+        DataItem itemid_item =
+            itemid->is_item() ? itemid->item() : itemid->slice()[i];
+        ASSIGN_OR_RETURN(
+            child_itemid_ds_item,
+            DataSlice::Create(itemid_item, DataSlice::JaggedShape::Empty(),
+                              DataItem(schema::kItemId)));
+      }
+
       ASSIGN_OR_RETURN(
           DataSlice ds,
           ConvertImpl({py_objects[i]}, DataSlice::JaggedShape::Empty(),
-                      object_schema, /*computing_object=*/true));
+                      object_schema, child_itemid_ds_item,
+                      /*computing_object=*/true, /*is_root=*/is_root));
       if (!is_struct_schema && ds.GetSchemaImpl().is_struct_schema()) {
         // Converting only non-primitives to OBJECTs, in order to embed schema.
         ASSIGN_OR_RETURN(ds, ObjectCreator::ConvertWithoutAdopt(GetBag(), ds));
@@ -247,11 +319,16 @@ class FromPyConverter {
   // originates from `ComputeObjectsSlice` and that each item is being processed
   // 1-by-1. A "recursive" `ComputeObjectsSlice` should NOT be invoked. It can
   // still happen deeper, when processing lists, dicts, etc.
+  // `is_root` is used to indicate that the current control flow originates from
+  // the root of the recursion and that the `itemid` argument should be used as
+  // is.
 
   absl::StatusOr<DataSlice> ConvertImpl(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& schema, bool computing_object = false) {
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& itemid, bool computing_object = false,
+      bool is_root = false) {
     if (py_objects.empty()) {
       return DataSlice::Create(
           internal::DataSliceImpl::CreateEmptyAndUnknownType(0), cur_shape,
@@ -263,7 +340,8 @@ class FromPyConverter {
       // TODO: At the moment primitives get assigned their true
       // schema, when schema is std::nullopt, but in future in this branch
       // will always be OBJECT.
-      return ComputeObjectsSlice(py_objects, cur_shape, schema);
+      return ComputeObjectsSlice(py_objects, cur_shape, schema, itemid,
+                                 is_root);
     }
 
     if (IsPrimitiveOrQValue(py_objects, schema)) {
@@ -281,18 +359,18 @@ class FromPyConverter {
     }
 
     if (IsListOrTuple(py_objects, schema)) {
-      return ConvertListOrTuple(py_objects, cur_shape, schema);
+      return ConvertListOrTuple(py_objects, cur_shape, schema, itemid, is_root);
     }
     if (IsDictAsObj(py_objects, schema)) {
-      return ConvertDictAsObj(py_objects, cur_shape, schema);
+      return ConvertDictAsObj(py_objects, cur_shape, schema, itemid);
     }
     if (IsDict(py_objects, schema)) {
-      return ConvertDict(py_objects, cur_shape, schema);
+      return ConvertDict(py_objects, cur_shape, schema, itemid, is_root);
     }
 
     if (IsEntity(py_objects, schema)) {
       DCHECK(schema.has_value());
-      return ConvertEntities(py_objects, cur_shape, *schema);
+      return ConvertEntities(py_objects, cur_shape, *schema, itemid);
     }
 
     if (schema.has_value()) {
@@ -304,7 +382,7 @@ class FromPyConverter {
 
     DCHECK_EQ(py_objects.size(), 1);
 
-    return ConvertObject(py_objects[0]);
+    return ConvertObject(py_objects[0], itemid);
   }
 
   // Converts a list of Python objects to a List DataSlice, assuming that
@@ -314,13 +392,15 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> ConvertListOrTuple(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& schema) {
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& itemid, bool is_root = false) {
     std::vector<PyObject*> next_level_py_objs;
     shape::ShapeBuilder shape_builder(cur_shape);
     ASSIGN_OR_RETURN(
         DataSlice item_schema,
         GetSchemaAttrOrObjectSchema(schema, schema::kListItemsSchemaAttr));
     const bool is_struct_schema = IsStructSchema(schema);
+
     for (PyObject* py_obj : py_objects) {
       if (!PyList_Check(py_obj) && !PyTuple_Check(py_obj)) {
         // This can only happen if there is a schema provided; otherwise we
@@ -337,12 +417,29 @@ class FromPyConverter {
     }
     ASSIGN_OR_RETURN(DataSlice::JaggedShape next_level_shape,
                      std::move(shape_builder).Build());
+
+    std::optional<DataSlice> list_itemid;
+    std::optional<DataSlice> child_itemid_ds;
+    if (itemid.has_value()) {
+      DataSlice list_itemid_slice;
+      if (is_root) {
+        list_itemid = *itemid;
+      } else {
+        ASSIGN_OR_RETURN(list_itemid, CreateListUuidFromFields(
+                                          "", {"base_itemid"}, {*itemid}));
+      }
+      ASSIGN_OR_RETURN(child_itemid_ds,
+                       MakeChildrenItemUuids(list_itemid, next_level_shape,
+                                             kChildListItemAttributeName));
+    }
     ASSIGN_OR_RETURN(std::optional<DataSlice> list_items,
                      ConvertImpl(next_level_py_objs, next_level_shape,
-                                 item_schema));
+                                 std::move(item_schema), child_itemid_ds));
     const std::optional<DataSlice>& schema_for_lists =
         is_struct_schema ? schema : std::nullopt;
-    return CreateListShaped(GetBag(), cur_shape, list_items, schema_for_lists);
+
+    return CreateListShaped(GetBag(), cur_shape, list_items, schema_for_lists,
+                            /*item_schema=*/std::nullopt, list_itemid);
   }
 
   // Returns a vector of pairs of (key, value) for each dict in `py_dicts`.
@@ -368,9 +465,8 @@ class FromPyConverter {
       cur_dict_keys_values.resize(dict_size);
       Py_ssize_t pos = 0;
 
-      for (auto it = cur_dict_keys_values.rbegin();
-           it != cur_dict_keys_values.rend(); ++it) {
-        if (!PyDict_Next(py_obj, &pos, &it->first, &it->second)) {
+      for (auto& [key, value] : cur_dict_keys_values) {
+        if (!PyDict_Next(py_obj, &pos, &key, &value)) {
           return absl::InternalError(
               "failed to get the next key and value from the dictionary.");
         }
@@ -388,7 +484,8 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> ConvertDict(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& schema) {
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& itemid, bool is_root = false) {
     std::vector<PyObject*> next_level_py_keys;
     std::vector<PyObject*> next_level_py_values;
     shape::ShapeBuilder shape_builder(cur_shape);
@@ -409,26 +506,45 @@ class FromPyConverter {
     for (const std::vector<std::pair<PyObject*, PyObject*>>&
              cur_dict_keys_values : py_keys_values) {
       shape_builder.Add(cur_dict_keys_values.size());
-      for (const std::pair<PyObject*, PyObject*>& key_value :
-           cur_dict_keys_values) {
-        next_level_py_keys.push_back(key_value.first);
-        next_level_py_values.push_back(key_value.second);
+      for (const auto& [key, value] : cur_dict_keys_values) {
+        next_level_py_keys.push_back(key);
+        next_level_py_values.push_back(value);
       }
     }
     ASSIGN_OR_RETURN(DataSlice::JaggedShape next_level_shape,
                      std::move(shape_builder).Build());
+
+    std::optional<DataSlice> child_keys_itemid;
+    std::optional<DataSlice> child_values_itemid;
+    std::optional<DataSlice> dict_itemid;
+    if (itemid.has_value()) {
+      if (is_root) {
+        dict_itemid = *itemid;
+      } else {
+        ASSIGN_OR_RETURN(dict_itemid, CreateDictUuidFromFields(
+                                          "", {"base_itemid"}, {*itemid}));
+      }
+
+      ASSIGN_OR_RETURN(child_keys_itemid,
+                       MakeChildrenItemUuids(dict_itemid, next_level_shape,
+                                             kChildDictKeyAttributeName));
+      ASSIGN_OR_RETURN(child_values_itemid,
+                       MakeChildrenItemUuids(dict_itemid, next_level_shape,
+                                             kChildDictValueAttributeName));
+    }
     ASSIGN_OR_RETURN(std::optional<DataSlice> keys,
                      ConvertImpl(next_level_py_keys, next_level_shape,
-                                 std::move(key_schema)));
+                                 std::move(key_schema), child_keys_itemid));
     ASSIGN_OR_RETURN(std::optional<DataSlice> values,
                      ConvertImpl(next_level_py_values, next_level_shape,
-                                 std::move(value_schema)));
+                                 std::move(value_schema), child_values_itemid));
 
     const std::optional<DataSlice>& schema_for_dicts =
         is_struct_schema ? schema : std::nullopt;
 
-    return CreateDictShaped(GetBag(), cur_shape, keys, values,
-                            schema_for_dicts);
+    return CreateDictShaped(GetBag(), cur_shape, keys, values, schema_for_dicts,
+                            /*key_schema=*/std::nullopt,
+                            /*value_schema=*/std::nullopt, dict_itemid);
   }
 
   // Converts a list of Python dicts to an Object or Entity DataSlice,
@@ -436,7 +552,8 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> ConvertDictAsObj(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
-      const std::optional<DataSlice>& schema) {
+      const std::optional<DataSlice>& schema,
+      const std::optional<DataSlice>& itemid) {
     const bool is_struct_schema = IsStructSchema(schema);
 
     absl::flat_hash_map<absl::string_view, std::vector<PyObject*>>
@@ -490,7 +607,7 @@ class FromPyConverter {
         ++i;
       }
       return CreateEntitiesFromAttrNamesAndValues(attr_names, attributes_values,
-                                                  cur_shape, *schema);
+                                                  cur_shape, *schema, itemid);
     }
 
     // Used for objects: we have a single list of values, one for each
@@ -503,7 +620,7 @@ class FromPyConverter {
       attr_values.push_back(values[0]);
     }
 
-    return ConvertObjectFromAttrNamesAndValues(attr_names, attr_values);
+    return ConvertObjectFromAttrNamesAndValues(attr_names, attr_values, itemid);
   }
 
   // Converts a list of Python objects to an Entity DataSlice, assuming that
@@ -512,7 +629,8 @@ class FromPyConverter {
   // attributes and finally creates an Entity DataSlice.
   absl::StatusOr<DataSlice> ConvertEntities(
       const std::vector<PyObject*>& py_objects,
-      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema) {
+      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema,
+      const std::optional<DataSlice>& itemid) {
     DCHECK(schema.IsEntitySchema());
 
     ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, schema.GetAttrNames());
@@ -548,7 +666,7 @@ class FromPyConverter {
     }
 
     return CreateEntitiesFromAttrNamesAndValues(
-        attr_names_vec, attr_python_values_vec, cur_shape, schema);
+        attr_names_vec, attr_python_values_vec, cur_shape, schema, itemid);
   }
 
   // Converts a list of Python objects to an Entity DataSlice, assuming that
@@ -558,7 +676,8 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> CreateEntitiesFromAttrNamesAndValues(
       const std::vector<absl::string_view>& attr_names,
       const std::vector<std::vector<PyObject*>>& attr_python_values_vec,
-      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema) {
+      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema,
+      const std::optional<DataSlice>& itemid) {
     DCHECK(schema.IsEntitySchema());
 
     std::vector<std::optional<DataSlice>> attr_schemas(attr_names.size());
@@ -569,24 +688,34 @@ class FromPyConverter {
 
     std::vector<DataSlice> values;
     values.reserve(attr_names.size());
-    for (int i = 0; i < attr_names.size(); ++i) {
-      std::optional<DataSlice> attr_schema = std::move(attr_schemas[i]);
+    for (int attr_index = 0; attr_index < attr_names.size(); ++attr_index) {
+      const absl::string_view attr_name = attr_names[attr_index];
+      std::optional<DataSlice> attr_schema =
+          std::move(attr_schemas[attr_index]);
       if (attr_schema && attr_schema->IsPrimitiveSchema()) {
         // This is a hack to get a nice error message with the attribute name.
         attr_schema = std::nullopt;
       }
-      ASSIGN_OR_RETURN(
-          values.emplace_back(),
-          ConvertImpl(attr_python_values_vec[i], cur_shape, attr_schema));
+
+      std::optional<DataSlice> child_itemid_ds;
+      if (itemid.has_value()) {
+        ASSIGN_OR_RETURN(child_itemid_ds,
+                         MakeChildrenItemUuids(itemid, cur_shape, attr_name));
+      }
+
+      ASSIGN_OR_RETURN(values.emplace_back(),
+                       ConvertImpl(attr_python_values_vec[attr_index],
+                                   cur_shape, attr_schema, child_itemid_ds));
     }
 
     return EntityCreator::Shaped(GetBag(), cur_shape, attr_names, values,
-                                 schema);
+                                 schema, false, itemid);
   }
 
   // Converts a Python object (dataclass) to an Entity. Since we don't have a
   // schema, we get attribute names and values from the dataclass itself.
-  absl::StatusOr<DataSlice> ConvertObject(PyObject* py_obj) {
+  absl::StatusOr<DataSlice> ConvertObject(
+      PyObject* py_obj, const std::optional<DataSlice>& itemid) {
     // This is a case when we try to parse a single PyObject as a dataclass
     // object. Checking that it is a dataclass is expensive, so we try to get
     // the attributes of a dataclass immediately.
@@ -605,24 +734,37 @@ class FromPyConverter {
         attr_names_and_values->attr_names.begin(),
         attr_names_and_values->attr_names.end());
 
-    return ConvertObjectFromAttrNamesAndValues(attr_names_views,
-                                               attr_names_and_values->values);
+    return ConvertObjectFromAttrNamesAndValues(
+        attr_names_views, attr_names_and_values->values, itemid);
   }
 
   absl::StatusOr<DataSlice> ConvertObjectFromAttrNamesAndValues(
       const std::vector<absl::string_view>& attr_names,
-      const std::vector<PyObject*>& values) {
+      const std::vector<PyObject*>& values,
+      const std::optional<DataSlice>& itemid) {
+    // Create an object DataSlice with the given shape and attributes
+    // names/values.
+
     DCHECK(attr_names.size() == values.size());
     const size_t size = attr_names.size();
 
     std::vector<DataSlice> converted_values(size);
-    for (int i = 0; i < size; ++i) {
-      ASSIGN_OR_RETURN(converted_values[i],
-                       ConvertImpl({values[i]}, DataSlice::JaggedShape::Empty(),
-                                   std::nullopt));
+    for (int attr_index = 0; attr_index < size; ++attr_index) {
+      std::optional<DataSlice> child_itemid_ds;
+      if (itemid.has_value()) {
+        ASSIGN_OR_RETURN(child_itemid_ds,
+                         MakeChildrenItemUuids(
+                             itemid, DataSlice::JaggedShape::FlatFromSize(size),
+                             attr_names[attr_index]));
+      }
+
+      ASSIGN_OR_RETURN(
+          converted_values[attr_index],
+          ConvertImpl({values[attr_index]}, DataSlice::JaggedShape::Empty(),
+                      std::nullopt, child_itemid_ds));
     }
     return ObjectCreator::Shaped(GetBag(), DataSlice::JaggedShape::Empty(),
-                                 attr_names, converted_values);
+                                 attr_names, converted_values, itemid);
   }
 
   const DataBagPtr& GetBag() {
@@ -643,7 +785,8 @@ class FromPyConverter {
 
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
-                                    size_t from_dim, bool dict_as_obj) {
+                                    size_t from_dim, bool dict_as_obj,
+                                    const std::optional<DataSlice>& itemid) {
   AdoptionQueue adoption_queue;
   DataItem schema_item;
   if (schema) {
@@ -651,9 +794,10 @@ absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
     adoption_queue.Add(*schema);
     schema_item = schema->item();
   }
+
   FromPyConverter from_py_converter(adoption_queue, dict_as_obj);
   ASSIGN_OR_RETURN(DataSlice res_slice,
-                   from_py_converter.Convert(py_obj, schema, from_dim));
+                   from_py_converter.Convert(py_obj, schema, from_dim, itemid));
 
   DataBagPtr res_db = std::move(from_py_converter).GetCreatedBag();
   if (res_db == nullptr) {
