@@ -60,7 +60,6 @@ arolla_cc_operator_package(
         "@com_google_arolla//arolla/derived_qtype/operators",
         "@com_google_arolla//arolla/jagged_shape/expr",
         "@com_google_arolla//arolla/objects/operators",
-        "@com_google_arolla//arolla/objects/s11n",
         "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",
     ],
 )
