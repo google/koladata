@@ -1477,10 +1477,13 @@ assigned schema: ENTITY(x=INT32)'''
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_item_id_errors(self, from_py_fn):
-    with self.assertRaisesRegex(
-        ValueError, '`itemid` expected ITEMID schema, got INT32'
-    ):
-      _ = py_conversions.from_py([1, 2], itemid=ds(42))
+    error_msg = (
+        '`itemid` expected ITEMID schema, got INT32'
+        if from_py_fn == py_conversions.from_py
+        else 'ITEMID schema requires DataSlice to hold object ids'
+    )
+    with self.assertRaisesRegex(ValueError, error_msg):
+      _ = from_py_fn([1, 2], itemid=ds(42))
     with self.assertRaisesRegex(
         ValueError,
         'ItemId for DataSlice size=1 does not match the input list size=2 when'
@@ -1629,20 +1632,21 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(ValueError, error_msg):
       from_py_fn(py_l, schema=schema)
 
-  def test_deep_object_repetitions(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_deep_object_repetitions(self, from_py_fn):
     py_d = {'abc': 42}
     schema = kde.uu_schema(abc=schema_constants.INT32).eval()
     for _ in range(2):
       py_d = {'x': py_d, 'y': py_d}
       schema = kde.uu_schema(x=schema, y=schema).eval()
 
-    obj = py_conversions.from_py(py_d, dict_as_obj=True)
+    obj = from_py_fn(py_d, dict_as_obj=True)
     testing.assert_equal(obj.x.x.abc.no_bag(), ds(42))
     testing.assert_equal(obj.x.y.abc.no_bag(), ds(42))
     testing.assert_equal(obj.y.x.abc.no_bag(), ds(42))
     testing.assert_equal(obj.y.y.abc.no_bag(), ds(42))
 
-    entity = py_conversions.from_py(py_d, dict_as_obj=True, schema=schema)
+    entity = from_py_fn(py_d, dict_as_obj=True, schema=schema)
     testing.assert_equal(entity.x.x.abc.no_bag(), ds(42))
     testing.assert_equal(entity.x.y.abc.no_bag(), ds(42))
     testing.assert_equal(entity.y.x.abc.no_bag(), ds(42))
@@ -1692,7 +1696,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.subTest('object'):
       py_d = {'a': 1, 'b': 2}
       py_d2 = {'a': {'b': py_d}, 'b': {'a': py_d}}
-      _ = py_conversions.from_py(py_d2, dict_as_obj=True)
+      _ = from_py_fn(py_d2, dict_as_obj=True)
 
     with self.subTest('different levels'):
       x = [1]
@@ -1729,7 +1733,8 @@ assigned schema: ENTITY(x=INT32)'''
     ):
       py_conversions._from_py_v2([1, 2], schema=schema_constants.SCHEMA)
 
-  def test_arg_errors(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_arg_errors(self, from_py_fn):
     with self.assertRaisesRegex(
         TypeError, 'expecting dict_as_obj to be a bool, got int'
     ):
@@ -1738,7 +1743,7 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(
         TypeError, 'expecting itemid to be a DataSlice, got int'
     ):
-      py_conversions.from_py(  # pytype: disable=wrong-arg-types
+      from_py_fn(  # pytype: disable=wrong-arg-types
           [1, 2],
           dict_as_obj=False,
           itemid=42,
@@ -1746,10 +1751,12 @@ assigned schema: ENTITY(x=INT32)'''
           from_dim=0,
       )
 
-    with self.assertRaisesRegex(
-        TypeError, 'expecting from_dim to be an int, got str'
-    ):
-      py_conversions.from_py([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
+    if from_py_fn == py_conversions.from_py:
+      error_msg = 'expecting from_dim to be an int, got str'
+    else:
+      error_msg = 'incompatible function arguments'
+    with self.assertRaisesRegex(TypeError, error_msg):
+      from_py_fn([1, 2], from_dim='abc')  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':
