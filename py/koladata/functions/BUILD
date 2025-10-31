@@ -107,6 +107,10 @@ py_library(
 py_library(
     name = "py_conversions",
     srcs = ["py_conversions.py"],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata/ext/view:__pkg__",  # TODO: Remove this once from_py_v2 is launched.
+    ],
     deps = [
         "//py:python_path",
         "//py/koladata/base/py_conversions:clib",
