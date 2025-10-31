@@ -84,6 +84,63 @@ def _presence_and_impl(x: Any, y: Any) -> Any:
   )
 
 
+def _select_impl(x: tuple[Any, ...], fltr: tuple[Any, ...]) -> tuple[Any, ...]:
+  """Implements select for a single item."""
+  res = []
+  for a, b in zip(x, fltr, strict=True):
+    if b is mask_constants.present:
+      res.append(a)
+    elif b is not None:
+      raise ValueError(
+          f'the filter must have only kv.present and None values, got: {b}'
+      )
+  return tuple(res)
+
+
+def _select_constant_fltr_impl(
+    x: tuple[Any, ...], fltr: Any
+) -> tuple[Any, ...]:
+  """Implements select for a single item where the filter is a constant."""
+  if fltr is mask_constants.present:
+    return x
+  if fltr is None:
+    return ()
+  raise ValueError(
+      f'the filter must have only kv.present and None values, got: {fltr}'
+  )
+
+
+def _inverse_select_impl(
+    x: tuple[Any, ...], fltr: tuple[Any, ...]
+) -> tuple[Any, ...]:
+  """Implements inverse_select for a single item."""
+  x_iter = iter(x)
+  length_mismatch_error = (
+      'the number of items in the data does not match the number of present'
+      ' values in the filter'
+  )
+
+  def _get_next(b: Any) -> Any:
+    if b is mask_constants.present:
+      try:
+        return next(x_iter)
+      except StopIteration:
+        raise ValueError(length_mismatch_error) from None
+    if b is None:
+      return None
+    raise ValueError(
+        f'the filter must have only kv.present and None values, got: {b}'
+    )
+
+  res = [_get_next(b) for b in fltr]
+  try:
+    next(x_iter)
+    raise ValueError(length_mismatch_error)
+  except StopIteration:
+    pass
+  return tuple(res)
+
+
 # Most methods of this class are also available as operators in the `kv` module.
 # Please consider adding an operator when adding a new method here.
 class View:
@@ -269,7 +326,14 @@ class View:
     outer = self.implode(self._depth - to_dim)
     res = _map1(lambda x: [], inner, include_missing=True)
     _map2(lambda x, y: x.append(y), res, outer, include_missing=True)
-    return res.explode(self._depth - to_dim + 1)
+    # We need to run explode() once to convert lists to tuples, but for the
+    # remaining levels we can just set the depth to avoid additional traversal,
+    # since they already have tuples.
+    return View(
+        res.explode().get(),
+        self._depth - (to_dim - from_dim) + 1,
+        _INTERNAL_CALL,
+    )
 
   def expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View:
     """Expands the view to the shape of other view."""
@@ -293,7 +357,8 @@ class View:
           f' with depth {other._depth}'  # pylint: disable=protected-access
       )
     if ndim:
-      res = res.explode(ndim)
+      # We already have tuples so we can just increase the depth.
+      return View(res.get(), res.get_depth() + ndim, _INTERNAL_CALL)
     return res
 
   def map(
@@ -345,11 +410,13 @@ class View:
     for arg in args:
       if arg.get_depth() != self._depth:
         raise ValueError('all arguments must have the same shape')
-    return map_(
+    res = map_(
         functools.partial(_group_by_impl, sort),
         self.implode(),
         *[arg.implode() for arg in args],
-    ).explode(2)
+    )
+    # We already have tuples so we can just increase the depth.
+    return View(res.get(), res.get_depth() + 2, _INTERNAL_CALL)
 
   def collapse(self, ndim: int = 1) -> View:
     """Collapses equal items along the specified number dimensions of the view."""
@@ -359,6 +426,49 @@ class View:
           f' {self._depth}], got {ndim}'
       )
     return self.flatten(self._depth - ndim).map(_collapse_impl, ndim=1)
+
+  def select(self, fltr: ViewOrAutoBoxType, expand_filter: bool = True) -> View:
+    """Keeps only items in the view where the filter is present."""
+    fltr = box(fltr)
+    if fltr.get_depth() > self._depth:
+      raise ValueError(
+          'the filter cannot have a higher depth than the data being selected'
+      )
+    if expand_filter:
+      select_dim = self._depth - 1
+    else:
+      select_dim = fltr.get_depth() - 1
+    if select_dim < 0:
+      if not self._depth:
+        raise ValueError(
+            'cannot select from a scalar view, maybe use .flatten() first?'
+        )
+      raise ValueError(
+          'the filter must have at least one dimension when expand_filter=False'
+      )
+    data = self.implode(self._depth - select_dim)
+    if fltr.get_depth() > select_dim:
+      assert fltr.get_depth() == select_dim + 1
+      res = _map2(_select_impl, data, fltr.implode())
+    else:
+      res = _map2(_select_constant_fltr_impl, data, fltr, include_missing=True)
+    # We already have tuples so we can just increase the depth.
+    return View(res.get(), self._depth, _INTERNAL_CALL)
+
+  def inverse_select(self, fltr: ViewOrAutoBoxType) -> View:
+    """Restores the original shape that was reduced by select."""
+    fltr = box(fltr)
+    if fltr.get_depth() != self._depth:
+      raise ValueError(
+          'the filter must have the same depth as the data being selected'
+      )
+    if not self._depth:
+      raise ValueError(
+          'cannot select from a scalar view, maybe use .flatten() first?'
+      )
+    res = _map2(_inverse_select_impl, self.implode(), fltr.implode())
+    # We already have tuples so we can just increase the depth.
+    return View(res.get(), self._depth, _INTERNAL_CALL)
 
   def get_depth(self) -> int:
     """Returns the depth of the view."""

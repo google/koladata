@@ -289,3 +289,29 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "inverse_select_test",
+    srcs = ["inverse_select_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:slices_inverse_select_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
+    name = "select_test",
+    srcs = ["select_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:slices_select_testdata",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)

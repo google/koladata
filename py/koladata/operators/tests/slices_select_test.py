@@ -25,6 +25,7 @@ from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_select_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -46,92 +47,25 @@ QTYPES = frozenset([
 class SlicesSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (
-          ds([1, 2, 3]),
-          ds([None, None, None], schema_constants.MASK),
-          ds([], schema_constants.INT32),
-      ),
-      # Multi-dimensional.
-      (
-          ds([[1], [2], [3]]),
-          ds(
-              [[None], [arolla.present()], [None]],
-              schema_constants.MASK,
-          ),
-          ds([[], [2], []]),
-      ),
-      # Object schema
-      (
-          ds([[1], [2], [3]]),
-          ds(
-              [[None], [arolla.present()], [None]],
-              schema_constants.OBJECT,
-          ),
-          ds([[], [2], []]),
-      ),
-      (
-          ds([[1], [None], [3]]),
-          ds([[None], [None], [None]], schema_constants.MASK),
-          ds([[], [], []], schema_constants.INT32),
-      ),
-      (
-          ds([[1], [None], [3]]),
-          ds([[None], [None], [None]], schema_constants.OBJECT),
-          ds([[], [], []], schema_constants.INT32),
-      ),
-      # Mixed types
-      (
-          ds(['a', 1, None, 1.5]),
-          ds(
-              [None, None, None, arolla.present()],
-              schema_constants.MASK,
-          ),
-          ds([1.5], schema_constants.OBJECT),
-      ),
-      # Empty
-      (
-          ds([]),
-          ds([], schema_constants.MASK),
-          ds([]),
-      ),
-      (
-          ds([[], [], []]),
-          ds([[], [], []], schema_constants.MASK),
-          ds([[], [], []]),
-      ),
-      # one scalar input.
-      (
-          ds([1, None, 3]),
-          ds(arolla.present()),
-          ds([1, None, 3]),
-      ),
-      # Expand by default.
-      (
-          ds([[1], [2], [3]]),
-          ds(arolla.present(), schema_constants.MASK),
-          ds([[1], [2], [3]]),
-      ),
-      (
-          ds([1, None, 3]),
-          ds(None, schema_constants.MASK),
-          ds([], schema_constants.INT32),
-      ),
+      *slices_select_testdata.TEST_CASES,
       # Functor
-      (ds([1, 2, 3]), functor_factories.expr_fn(I.self >= 2), ds([2, 3])),
+      (ds([1, 2, 3]), functor_factories.expr_fn(I.self >= 2), {}, ds([2, 3])),
       (
           ds([[1], [2], [3]]),
           functor_factories.expr_fn(I.self == 2),
+          {},
           ds([[], [2], []]),
       ),
       # Python function
       (
           ds([1, 2, 3]),
           lambda x: x >= 2,
+          {},
           ds([2, 3]),
       ),
   )
-  def test_eval(self, values, filter_arr, expected):
-    result = expr_eval.eval(kde.slices.select(values, filter_arr))
+  def test_eval(self, values, filter_arr, kwargs, expected):
+    result = expr_eval.eval(kde.slices.select(values, filter_arr, **kwargs))
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -141,99 +75,6 @@ class SlicesSelectTest(parameterized.TestCase):
   def test_eval_with_expr_input(self, fltr):
     result = expr_eval.eval(kde.slices.select(I.x, fltr), x=ds([1, 2, 3]))
     testing.assert_equal(result, ds([2, 3]))
-
-  @parameterized.parameters(
-      (
-          ds([1, 2, 3]),
-          ds(
-              [arolla.missing(), arolla.present(), arolla.present()],
-              schema_constants.MASK,
-          ),
-          True,
-          ds([2, 3]),
-      ),
-      (
-          ds([[1], [2], [3]]),
-          ds(
-              [[arolla.missing()], [arolla.present()], [arolla.missing()]],
-              schema_constants.MASK,
-          ),
-          True,
-          ds([[], [2], []]),
-      ),
-      # Mixed types
-      (
-          ds(['a', 1, None, 1.5]),
-          ds(
-              [
-                  arolla.missing(),
-                  arolla.missing(),
-                  arolla.missing(),
-                  arolla.present(),
-              ],
-              schema_constants.MASK,
-          ),
-          True,
-          ds([1.5], schema_constants.OBJECT),
-      ),
-      # Scalar input
-      (
-          ds([[1], [2], [3]]),
-          ds(arolla.unit(), schema_constants.MASK),
-          True,
-          ds([[1], [2], [3]]),
-      ),
-      (
-          ds([[1], [2], [3]]),
-          ds(None, schema_constants.MASK),
-          True,
-          ds([[], [], []], schema_constants.INT32),
-      ),
-      # disable expand filter
-      (
-          ds([[1], [2], [3]]),
-          ds(
-              [arolla.missing(), arolla.present(), arolla.present()],
-              schema_constants.MASK,
-          ),
-          False,
-          ds([[2], [3]]),
-      ),
-      # Mixed types
-      (
-          ds([['a'], [2.5], [3, None]]),
-          ds(
-              [arolla.missing(), arolla.present(), arolla.present()],
-              schema_constants.MASK,
-          ),
-          False,
-          ds([[2.5], [3, None]], schema_constants.OBJECT),
-      ),
-      # Empty
-      (
-          ds([]),
-          ds([], schema_constants.MASK),
-          False,
-          ds([]),
-      ),
-      (
-          ds([[[]], [[]], [[]]]),
-          ds([[None], [None], [None]], schema_constants.MASK),
-          False,
-          ds([[], [], []]).repeat(0),
-      ),
-  )
-  def test_eval_with_expand_filter(
-      self,
-      values,
-      filter_arr,
-      expand_filter,
-      expected,
-  ):
-    result = expr_eval.eval(
-        kde.slices.select(values, filter_arr, expand_filter)
-    )
-    testing.assert_equal(result, expected)
 
   def test_eval_filter_fn_exception(self):
 

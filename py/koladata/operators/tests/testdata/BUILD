@@ -230,3 +230,25 @@ py_library(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_library(
+    name = "slices_select_testdata",
+    srcs = ["slices_select_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "slices_inverse_select_testdata",
+    srcs = ["slices_inverse_select_testdata.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)

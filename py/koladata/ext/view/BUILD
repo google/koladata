@@ -86,6 +86,7 @@ py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
     deps = [
+        ":mask_constants",
         ":test_utils",
         ":view",
         "//py:python_path",

@@ -377,6 +377,81 @@ def collapse(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
   return view_lib.box(v).collapse(ndim)
 
 
+def select(
+    v: view_lib.ViewOrAutoBoxType,
+    fltr: view_lib.ViewOrAutoBoxType,
+    expand_filter: bool = True,
+) -> view_lib.View:
+  """Creates a new view by filtering out items where filter is not present.
+
+  The dimensions of `fltr` needs to be compatible with the dimensions of `v`.
+  By default, `fltr` is expanded to 'v' and items in `v` corresponding to
+  missing items in `fltr` are removed. The last dimension of the resulting
+  view is changed while the first N-1 dimensions are the same as those in
+  `v`.
+
+  Example:
+    val = kv.view([[1, None, 4], [None], [2, 8]])[:][:]
+    kv.select(val, val > 3).get()
+    # ((4,), (), (8,))
+    fltr = kv.view(
+        [[None, kv.present, kv.present], [kv.present], [kv.present, None]]
+    )[:][:]
+    kv.select(val, fltr).get()
+    # ((None, 4), (None,), (2))
+
+    fltr = kv.view([kv.present, kv.present, None])[:]
+    kv.select(val, fltr)
+    # ((1, None, 4), (None,), ())
+    kv.select(val, fltr, expand_filter=False)
+    # ((1, None, 4), (None,))
+
+  Args:
+    v: View with depth > 0 to be filtered.
+    fltr: filter view with values kv.present or None.
+    expand_filter: flag indicating if the 'fltr' should be expanded to 'v'. When
+      False, we will remove items at the level of `fltr`.
+
+  Returns:
+    Filtered view.
+  """
+  return view_lib.box(v).select(fltr, expand_filter)
+
+
+def inverse_select(
+    v: view_lib.ViewOrAutoBoxType, fltr: view_lib.ViewOrAutoBoxType
+) -> view_lib.View:
+  """Creates a view by putting items in `v` to present positions in `fltr`.
+
+  The depth of `v` and `fltr` must be the same.
+  The number of items in `v` must be equal to the number of present items in
+  `fltr`.
+
+  Example:
+    v = kv.view([[1, None], [2]])[:][:]
+    fltr = kv.view([[None, kv.present, kv.present], [kv.present, None]])[:][:]
+    kv.inverse_select(v, fltr).get()
+    # ((None, 1, None), (2, None))
+
+  The most common use case of inverse_select is to restore the shape of the
+  original view after applying select and performing some operations on
+  the subset of items in the original view. E.g.
+    a = kv.view(...)
+    fltr = a > 0
+    filtered_v = kv.select(a, fltr)
+    # do something on filtered_v
+    a = kv.inverse_select(filtered_v, fltr) | a
+
+  Args:
+    v: view to be inverse filtered.
+    fltr: filter view with values kv.present or None.
+
+  Returns:
+    Inverse filtered view.
+  """
+  return view_lib.box(v).inverse_select(fltr)
+
+
 def apply_mask(
     a: view_lib.ViewOrAutoBoxType, b: view_lib.ViewOrAutoBoxType
 ) -> view_lib.View:

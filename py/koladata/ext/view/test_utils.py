@@ -49,6 +49,6 @@ def from_ds(a: kd.types.DataSlice) -> view_lib.View:
   if not isinstance(a, kd.types.DataSlice):
     raise AssertionError(f'Expected a DataSlice, got {type(a)}')
   res = view_lib.view(a.to_py(max_depth=-1)).explode(a.get_ndim())
-  if a.get_schema() == kd.MASK:
+  if kd.get_primitive_schema(a) == kd.MASK:
     res = res.map(lambda x: mask_constants.present if x else None)
   return res

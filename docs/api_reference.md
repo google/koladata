@@ -11997,6 +11997,36 @@ Args:
 Returns:
   A new view with `ndim` fewer dimensions.</code></pre>
 
+### `kd_ext.kv.inverse_select(v: View | int | float | str | bytes | bool | _Present | None, fltr: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.inverse_select}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a view by putting items in `v` to present positions in `fltr`.
+
+The depth of `v` and `fltr` must be the same.
+The number of items in `v` must be equal to the number of present items in
+`fltr`.
+
+Example:
+  v = kv.view([[1, None], [2]])[:][:]
+  fltr = kv.view([[None, kv.present, kv.present], [kv.present, None]])[:][:]
+  kv.inverse_select(v, fltr).get()
+  # ((None, 1, None), (2, None))
+
+The most common use case of inverse_select is to restore the shape of the
+original view after applying select and performing some operations on
+the subset of items in the original view. E.g.
+  a = kv.view(...)
+  fltr = a &gt; 0
+  filtered_v = kv.select(a, fltr)
+  # do something on filtered_v
+  a = kv.inverse_select(filtered_v, fltr) | a
+
+Args:
+  v: view to be inverse filtered.
+  fltr: filter view with values kv.present or None.
+
+Returns:
+  Inverse filtered view.</code></pre>
+
 ### `kd_ext.kv.less(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.less}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">An alias for `a &lt; b`.
@@ -12076,6 +12106,41 @@ Args:
 
 Returns:
   A new view with the comparison result.</code></pre>
+
+### `kd_ext.kv.select(v: View | int | float | str | bytes | bool | _Present | None, fltr: View | int | float | str | bytes | bool | _Present | None, expand_filter: bool = True) -> View` {#kd_ext.kv.select}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new view by filtering out items where filter is not present.
+
+The dimensions of `fltr` needs to be compatible with the dimensions of `v`.
+By default, `fltr` is expanded to &#39;v&#39; and items in `v` corresponding to
+missing items in `fltr` are removed. The last dimension of the resulting
+view is changed while the first N-1 dimensions are the same as those in
+`v`.
+
+Example:
+  val = kv.view([[1, None, 4], [None], [2, 8]])[:][:]
+  kv.select(val, val &gt; 3).get()
+  # ((4,), (), (8,))
+  fltr = kv.view(
+      [[None, kv.present, kv.present], [kv.present], [kv.present, None]]
+  )[:][:]
+  kv.select(val, fltr).get()
+  # ((None, 4), (None,), (2))
+
+  fltr = kv.view([kv.present, kv.present, None])[:]
+  kv.select(val, fltr)
+  # ((1, None, 4), (None,), ())
+  kv.select(val, fltr, expand_filter=False)
+  # ((1, None, 4), (None,))
+
+Args:
+  v: View with depth &gt; 0 to be filtered.
+  fltr: filter view with values kv.present or None.
+  expand_filter: flag indicating if the &#39;fltr&#39; should be expanded to &#39;v&#39;. When
+    False, we will remove items at the level of `fltr`.
+
+Returns:
+  Filtered view.</code></pre>
 
 ### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | _Present | None, index: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.take}
 

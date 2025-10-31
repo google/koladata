@@ -22,6 +22,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators.tests.testdata import slices_inverse_select_testdata
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -42,64 +43,7 @@ QTYPES = frozenset([
 
 class SlicesInverseSelectTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      (
-          ds([2, 3]),
-          ds([None, arolla.present(), arolla.present()], schema_constants.MASK),
-          ds([None, 2, 3]),
-      ),
-      # Multi-dimensional.
-      (
-          ds([[], [2], [3]]),
-          ds(
-              [[None], [arolla.present()], [arolla.present()]],
-              schema_constants.MASK,
-          ),
-          ds([[None], [2], [3]]),
-      ),
-      # OBJECT filter
-      (
-          ds([[], [2], [3]]),
-          ds(
-              [[None], [arolla.present()], [arolla.present()]],
-              schema_constants.OBJECT,
-          ),
-          ds([[None], [2], [3]]),
-      ),
-      # Empty ds
-      (
-          ds([[], [], []]),
-          ds([[None], [None], [None]], schema_constants.MASK),
-          ds([[None], [None], [None]]),
-      ),
-      (
-          ds([[], [], []], schema_constants.OBJECT),
-          ds([[None], [None], [None]], schema_constants.MASK),
-          ds([[None], [None], [None]], schema_constants.OBJECT),
-      ),
-      # Mixed types
-      (
-          ds(['a', 1.5]),
-          ds(
-              [None, arolla.present(), None, arolla.present()],
-              schema_constants.MASK,
-          ),
-          ds([None, 'a', None, 1.5]),
-      ),
-      # Empty ds and empty filter
-      (
-          ds([[], [], []]),
-          ds([[], [], []], schema_constants.MASK),
-          ds([[], [], []]),
-      ),
-      # Two scalar input, scalar output.
-      (ds(1), ds(arolla.present()), ds(1)),
-      (
-          ds(None, schema_constants.INT32),
-          ds(arolla.missing()),
-          ds(None, schema_constants.INT32),
-      ),
-  )
+  @parameterized.parameters(*slices_inverse_select_testdata.TEST_CASES)
   def test_eval(self, values, fltr, expected):
     result = expr_eval.eval(kde.slices.inverse_select(values, fltr))
     testing.assert_equal(result, expected)

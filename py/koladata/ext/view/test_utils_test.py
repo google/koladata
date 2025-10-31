@@ -15,6 +15,7 @@
 import re
 from absl.testing import absltest
 from koladata import kd
+from koladata.ext.view import mask_constants
 from koladata.ext.view import test_utils
 from koladata.ext.view import view as view_lib
 
@@ -63,6 +64,21 @@ class TestUtilsTest(absltest.TestCase):
     kd_slice_of_objects = kd.obj(x=kd.slice([1, 2, 3]))
     view_of_objects = test_utils.from_ds(kd_slice_of_objects)
     test_utils.assert_equal(view_of_objects.x, view_lib.view([1, 2, 3])[:])
+
+    kd_slice_of_mask = kd.slice([kd.present, None, None])
+    view_of_mask = test_utils.from_ds(kd_slice_of_mask)
+    test_utils.assert_equal(
+        view_of_mask, view_lib.view([mask_constants.present, None, None])[:]
+    )
+
+    kd_slice_of_mask_as_obj = kd.slice([kd.present, None, None]).with_schema(
+        kd.OBJECT
+    )
+    view_of_mask_as_obj = test_utils.from_ds(kd_slice_of_mask_as_obj)
+    test_utils.assert_equal(
+        view_of_mask_as_obj,
+        view_lib.view([mask_constants.present, None, None])[:],
+    )
 
   def test_from_ds_not_a_dataslice(self):
     with self.assertRaisesRegex(
