@@ -170,6 +170,7 @@ class View:
   # implement a CPython accessor for the attributes since using
   # `tuple.__getitem__` kills all gains due to the additional indirection.
   def __init__(self, obj: Any, depth: int, internal_call: object, /):
+    """Internal constructor. Please use kv.view() instead."""
     if internal_call is not _INTERNAL_CALL:
       raise ValueError(
           'Please do not call the View constructor directly, use view()'
