@@ -62,6 +62,18 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(x[1]._b, 7)
     self.assertEqual(x[1].a, 8)
 
+  def test_setitem(self):
+    x = [{1: 5, -1: 7}, [1, 2, 3]]
+    v = view_lib.view(x)[:]
+    v[-1] = 6
+    self.assertEqual(x, [{1: 5, -1: 6}, [1, 2, 6]])
+
+  def test_set_item(self):
+    x = [{1: 5, -1: 7}, [1, 2, 3]]
+    v = view_lib.view(x)[:]
+    v.set_item(-1, 6)
+    self.assertEqual(x, [{1: 5, -1: 6}, [1, 2, 6]])
+
   def test_setattr_underscore_fails(self):
     x = Obj(_a=1)
     v = view_lib.view(x)

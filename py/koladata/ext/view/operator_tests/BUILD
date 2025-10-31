@@ -325,3 +325,13 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "set_item_test",
+    srcs = ["set_item_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

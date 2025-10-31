@@ -81,6 +81,36 @@ def set_attr(
   view_lib.box(v).set_attr(attr_name, value)
 
 
+def set_item(
+    v: view_lib.ViewOrAutoBoxType,
+    key_or_index: view_lib.ViewOrAutoBoxType,
+    value: view_lib.ViewOrAutoBoxType,
+):
+  """Sets an item or items for all containers in the view.
+
+  This essentially calls `x[y] = z` for `x, y, z` in `zip(v, key_or_index,
+  value)`, but with additions:
+  - when `key_or_index` or `value` are views or auto-boxable into a view, we
+    first align all arguments.
+  - if `x` is None or `y` is None, we skip setting the item.
+  - if `x[y] = z` raises IndexError, we catch it and ignore it.
+
+  If the same (object, key) pair appears multiple times, we will process the
+  assignments in order, so the attribute will have the last assigned value.
+
+  Example:
+    x = [{}, {'a': 1}]
+    kv.set_item(kv.view(x)[:], 'a', kv.view([10, 20])[:])
+    # x is now [{'a': 10}, {'a': 20}]
+
+  Args:
+    v: The view containing the collections to set items in.
+    key_or_index: The key or index to set.
+    value: The value to set.
+  """
+  view_lib.box(v).set_item(key_or_index, value)
+
+
 def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:
   """Unnests iterable elements, increasing rank by `ndim`.
 

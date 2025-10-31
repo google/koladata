@@ -12162,6 +12162,30 @@ Args:
   value: The value to set the attribute to. Can also be a Python primitive,
     which will be automatically boxed into a view.</code></pre>
 
+### `kd_ext.kv.set_item(v: View | int | float | str | bytes | bool | _Present | None, key_or_index: View | int | float | str | bytes | bool | _Present | None, value: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.set_item}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an item or items for all containers in the view.
+
+This essentially calls `x[y] = z` for `x, y, z` in `zip(v, key_or_index,
+value)`, but with additions:
+- when `key_or_index` or `value` are views or auto-boxable into a view, we
+  first align all arguments.
+- if `x` is None or `y` is None, we skip setting the item.
+- if `x[y] = z` raises IndexError, we catch it and ignore it.
+
+If the same (object, key) pair appears multiple times, we will process the
+assignments in order, so the attribute will have the last assigned value.
+
+Example:
+  x = [{}, {&#39;a&#39;: 1}]
+  kv.set_item(kv.view(x)[:], &#39;a&#39;, kv.view([10, 20])[:])
+  # x is now [{&#39;a&#39;: 10}, {&#39;a&#39;: 20}]
+
+Args:
+  v: The view containing the collections to set items in.
+  key_or_index: The key or index to set.
+  value: The value to set.</code></pre>
+
 ### `kd_ext.kv.take(v: View | int | float | str | bytes | bool | _Present | None, index: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.take}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a view with the items at the given index in the last dimension.

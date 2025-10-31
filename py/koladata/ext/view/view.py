@@ -42,6 +42,15 @@ def _get_item_impl(x: Any, key_or_index: Any):
     return None
 
 
+def _set_item_impl(x: Any, key_or_index: Any, value: Any):
+  if x is None or key_or_index is None:
+    return
+  try:
+    x[key_or_index] = value
+  except IndexError:
+    pass
+
+
 def _group_by_impl(
     sort: bool, x: tuple[Any, ...], *args: tuple[Any, ...]
 ) -> tuple[tuple[Any, ...], ...]:
@@ -290,6 +299,28 @@ class View:
   def __getitem__(self, key_or_index: ViewOrAutoBoxType | slice) -> View:
     """Returns an item or items from the given view containing containers."""
     return self.get_item(key_or_index)
+
+  def set_item(self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType):
+    """Sets an item or items for all containers in the view."""
+    if isinstance(key_or_index, slice):
+      raise ValueError('slice is not yet supported in View.__setitem__')
+    if (
+        isinstance(value, View)
+        and value.get_depth() > self._depth
+        and value.get_depth()
+        > (key_or_index.get_depth() if isinstance(key_or_index, View) else 0)
+    ):
+      raise ValueError(
+          'The value being set must have same or lower depth than the objects'
+          ' or the keys. Maybe you forgot to call .implode()?'
+      )
+    return map_(_set_item_impl, self, key_or_index, value, include_missing=True)
+
+  def __setitem__(
+      self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType
+  ):
+    """Sets an item or items for all containers in the view."""
+    return self.set_item(key_or_index, value)
 
   def take(self, index: ViewOrAutoBoxType) -> View:
     """Returns a view with the given index in the last dimension."""
