@@ -116,67 +116,6 @@ def add_to_registry(
   return impl
 
 
-# TODO: b/433243661 - Come up with a more generic solution once we
-# use add_to_registry_as_overloadable_with_default for more operators.
-_KODA_NATIVE_QTYPES_CONDITION_EXPR = (arolla.P.x == qtypes.DATA_SLICE) & (
-    arolla.P.y == qtypes.DATA_SLICE
-)
-
-
-def add_to_registry_as_overloadable_with_default(
-    name: str | None = None,
-    *,
-    aliases: Collection[str] = (),
-    unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
-    repr_fn: op_repr.OperatorReprFn | None = None,
-    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
-):
-  """Wrapper around Arolla's add_to_registry with a default overload.
-
-  The implementation provided in the wrapped function is registered as
-  the overload for Koladata native types.
-
-  Args:
-    name: Optional name of the operator. Otherwise, inferred from the op.
-    aliases: Optional aliases for the operator.
-    unsafe_override: Whether to override an existing operator.
-    view: Optional view to use for the operator. If None, the default arolla
-      ExprView will be used.
-    repr_fn: Optional repr function to use for the operator and its aliases. In
-      case of None, a default repr function will be used.
-    aux_policy: Aux policy for the operator.
-
-  Returns:
-    Registered operator.
-  """
-  repr_fn = repr_fn or op_repr.default_op_repr
-
-  def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
-    op_name = name or op.display_name
-
-    generic_op = add_to_registry_as_overloadable(
-        op_name,
-        unsafe_override=unsafe_override,
-        view=view,
-        repr_fn=repr_fn,
-        aux_policy=aux_policy,
-    )(op)
-
-    _ = add_to_registry_as_overload(
-        op_name + '._internal',
-        unsafe_override=unsafe_override,
-        overload_condition_expr=_KODA_NATIVE_QTYPES_CONDITION_EXPR,
-    )(op)
-
-    for alias in aliases:
-      add_alias(op_name, alias)
-
-    return generic_op
-
-  return impl
-
-
 def add_to_registry_as_overloadable(
     name: str,
     *,

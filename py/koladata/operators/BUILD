@@ -303,7 +303,6 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 

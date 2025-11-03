@@ -26,9 +26,7 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 
 
-@optools.add_to_registry_as_overloadable_with_default(
-    aliases=['kd.add'], repr_fn=op_repr.add_repr
-)
+@optools.add_to_registry(aliases=['kd.add'], repr_fn=op_repr.add_repr)
 @optools.as_backend_operator(
     'kd.math.add',
     qtype_constraints=[
@@ -54,9 +52,7 @@ def subtract(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry_as_overloadable_with_default(
-    repr_fn=op_repr.multiply_repr
-)
+@optools.add_to_registry(repr_fn=op_repr.multiply_repr)
 @optools.as_backend_operator(
     'kd.math.multiply',
     qtype_constraints=[
