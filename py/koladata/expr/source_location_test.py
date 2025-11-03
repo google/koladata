@@ -61,7 +61,7 @@ class SourceLocationTest(absltest.TestCase):
     )
 
   def test_attaching_source_location(self):
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test.plus_one')
     def plus_one(x):
       return x + 1
@@ -99,7 +99,7 @@ class SourceLocationTest(absltest.TestCase):
           source_location._OperatorsContainerWrapper,
       )
       nested_plus_one = arolla.optools.add_to_registry(
-          'test.subcontainer.plus_one', unsafe_override=True
+          'test.subcontainer.plus_one', if_present='unsafe_override'
       )(plus_one)
       expr = container.test.subcontainer.plus_one(I.x)
       testing.assert_traced_exprs_equal(expr, nested_plus_one(I.x))

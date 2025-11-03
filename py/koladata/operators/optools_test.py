@@ -154,7 +154,7 @@ class OptoolsTest(parameterized.TestCase):
     def op_2(x):
       return math.add(x, 1)
 
-    with self.assertRaisesRegex(ValueError, 'already exists'):
+    with self.assertRaisesRegex(ValueError, 'already registered'):
       _ = optools.add_to_registry(unsafe_override=False)(op_2)
 
     _ = optools.add_to_registry(unsafe_override=True)(op_2)

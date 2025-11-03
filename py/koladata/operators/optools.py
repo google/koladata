@@ -90,11 +90,12 @@ def add_to_registry(
     Registered operator.
   """
   repr_fn = repr_fn or op_repr.default_op_repr
+  if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
     def _register_op(op, name):
       registered_op = arolla.optools.add_to_registry(
-          name, unsafe_override=unsafe_override
+          name, if_present=if_present
       )(op)
       arolla.abc.set_expr_view_for_registered_operator(
           registered_op.display_name, view
@@ -141,11 +142,12 @@ def add_to_registry_as_overloadable(
     An overloadable registered operator.
   """
   repr_fn = repr_fn or op_repr.default_op_repr
+  if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(fn) -> arolla.types.RegisteredOperator:
     overloadable_op = arolla.optools.add_to_registry_as_overloadable(
         name,
-        unsafe_override=unsafe_override,
+        if_present=if_present,
         experimental_aux_policy=aux_policy,
     )(fn)
     arolla.abc.set_expr_view_for_registered_operator(
@@ -185,6 +187,7 @@ def add_to_registry_as_overload(
     corresponding name. Returns the original operator (unlinke the arolla
     equivalent).
   """
+  if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.Operator:
     # To enable registering an overload for an alias, we need to register it
@@ -195,7 +198,7 @@ def add_to_registry_as_overload(
 
     _ = arolla.optools.add_to_registry_as_overload(
         canonical_name + '.' + name_suffix,
-        unsafe_override=unsafe_override,
+        if_present=if_present,
         overload_condition_expr=overload_condition_expr,
     )(op)
     return op

@@ -23,7 +23,7 @@ from arolla import arolla
 P = arolla.P
 
 
-@arolla.optools.add_to_registry()
+@arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.iterables.is_iterable_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -34,7 +34,7 @@ def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry()
+@arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_future_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -45,7 +45,7 @@ def is_future_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry()
+@arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_stream_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -56,7 +56,7 @@ def is_stream_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry()
+@arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.get_execution_context_qtype',
     qtype_inference_expr=arolla.QTYPE,

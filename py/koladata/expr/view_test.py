@@ -640,7 +640,7 @@ class KodaViewTest(parameterized.TestCase):
   def test_unpacking_by_operator(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test_make_tuple')
     def test_make_tuple(*args):
       return arolla.optools.fix_trace_args(args)

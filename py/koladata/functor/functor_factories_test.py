@@ -1263,7 +1263,8 @@ class FunctorFactoriesTest(absltest.TestCase):
   def test_register_py_fn_reregister_error(self):
     _ = functor_factories.register_py_fn(test_identity_fn_2)
     with self.assertRaisesRegex(
-        ValueError, "operator '__main__.test_identity_fn_2' already exists"
+        ValueError,
+        "operator '__main__.test_identity_fn_2' is already registered",
     ):
       _ = functor_factories.register_py_fn(test_bad_identity_fn)
     fn = functor_factories.register_py_fn(

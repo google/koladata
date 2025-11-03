@@ -36,12 +36,16 @@ UuPerson = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
 @contextlib.contextmanager
 def override_operator(operator_name: str, new_operator: arolla.abc.Operator):
   old_operator = arolla.abc.decay_registered_operator(operator_name)
-  arolla.abc.unsafe_override_registered_operator(operator_name, new_operator)
+  arolla.abc.register_operator(
+      operator_name, new_operator, if_present='unsafe_override'
+  )
 
   try:
     yield
   finally:
-    arolla.abc.unsafe_override_registered_operator(operator_name, old_operator)
+    arolla.abc.register_operator(
+        operator_name, old_operator, if_present='unsafe_override'
+    )
 
 
 ERROR_CASES = (

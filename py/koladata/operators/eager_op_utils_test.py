@@ -31,24 +31,24 @@ class EagerOpUtilsTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test.namespace_1.op_1')
     def op_1(a, b):
       del b
       return a
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test.namespace_1.op_2')
     def op_2(a, b):
       del a
       return b
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test.namespace_2.op')
     def op_3(a, b):
       return (a, b)
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator('test.op')
     def op_4(a, b):
       return (b, a)
@@ -90,7 +90,7 @@ class EagerOpUtilsTest(parameterized.TestCase):
   )
   def test_operators_container(self, namespace, op_name):
 
-    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator(namespace + '.' + op_name)
     def first_op(a, b):
       """first_op docstring."""
