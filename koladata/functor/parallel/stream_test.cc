@@ -175,7 +175,7 @@ TEST(StreamTest, Subscription) {
   }
 }
 
-TEST(StreamTest, SubscriptionCallbackTriggeredonStreamWriterDestructor) {
+TEST(StreamTest, SubscriptionCallbackTriggeredOnStreamWriterDestructor) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   auto reader = stream->MakeReader();
   bool callback_done = false;

@@ -32,9 +32,11 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::QValueWith;
+using ::testing::Pointee;
 
 template <class T>
 void MarkReinitialized(T&) {}
@@ -140,6 +142,101 @@ TEST(FutureTest, GetValueForTestingOnError) {
   std::move(writer).SetValue(absl::OutOfRangeError("test error"));
   EXPECT_THAT(x->GetValueForTesting(),
               StatusIs(absl::StatusCode::kOutOfRange, "test error"));
+}
+
+TEST(FutureTest, StreamFromFutureBasic) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream = StreamFromFuture(future);
+  EXPECT_EQ(stream->value_qtype(), arolla::GetQType<int>());
+  auto stream_reader = stream->MakeReader();
+  EXPECT_TRUE(stream_reader->TryRead().empty());
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_THAT(stream_reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(FutureTest, StreamFromFutureSubscription) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream = StreamFromFuture(future);
+  {
+    auto stream_reader_1 = stream->MakeReader();
+    {
+      ASSERT_TRUE(stream_reader_1->TryRead().empty());
+    }
+    {
+      bool callback_done = false;
+      stream_reader_1->SubscribeOnce(
+          [&callback_done] { callback_done = true; });
+      ASSERT_FALSE(callback_done);
+      std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+      ASSERT_TRUE(callback_done);
+    }
+    {
+      bool callback_done = false;
+      stream_reader_1->SubscribeOnce(
+          [&callback_done] { callback_done = true; });
+      ASSERT_TRUE(callback_done);
+      ASSERT_THAT(stream_reader_1->TryRead().item(),
+                  Pointee(QValueWith<int>(1)));
+    }
+    {
+      bool callback_done = false;
+      stream_reader_1->SubscribeOnce(
+          [&callback_done] { callback_done = true; });
+      ASSERT_TRUE(callback_done);
+      ASSERT_THAT(stream_reader_1->TryRead().close_status(), Pointee(IsOk()));
+    }
+  }
+  {
+    auto stream_reader_2 = stream->MakeReader();
+    {
+      bool callback_done = false;
+      stream_reader_2->SubscribeOnce(
+          [&callback_done] { callback_done = true; });
+      ASSERT_TRUE(callback_done);
+      ASSERT_THAT(stream_reader_2->TryRead().item(),
+                  Pointee(QValueWith<int>(1)));
+    }
+    {
+      bool callback_done = false;
+      stream_reader_2->SubscribeOnce(
+          [&callback_done] { callback_done = true; });
+      ASSERT_TRUE(callback_done);
+      ASSERT_THAT(stream_reader_2->TryRead().close_status(), Pointee(IsOk()));
+    }
+  }
+}
+
+TEST(FutureTest, StreamFromFutureSetError) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream = StreamFromFuture(future);
+  auto stream_reader = stream->MakeReader();
+  std::move(writer).SetValue(absl::InvalidArgumentError("Boom!"));
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+}
+
+TEST(FutureTest,
+     StreamFromFutureSubscriptionCallbackTriggeredOnWriterDestructor) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream = StreamFromFuture(future);
+  auto stream_reader = stream->MakeReader();
+  bool callback_done = false;
+  stream_reader->SubscribeOnce([&callback_done] { callback_done = true; });
+  ASSERT_FALSE(callback_done);
+  {
+    auto tmp = std::move(writer);
+  }
+  ASSERT_TRUE(callback_done);
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
+}
+
+TEST(FutureTest, StreamFromFutureNoReader) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  StreamFromFuture(std::move(future)).reset();
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  // No crash.
 }
 
 }  // namespace

@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -28,6 +29,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 
@@ -94,9 +96,26 @@ std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype) {
   return {std::move(future), std::move(future_writer)};
 }
 
+StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future) {
+  // Note: Consider implementing the stream interface directly over the future
+  // to avoid copying values into the stream buffer.
+  auto [result, writer] = MakeStream(future->value_qtype(), 1);
+  future->AddConsumer([writer = std::move(writer)](
+                          absl::StatusOr<arolla::TypedValue> value) mutable {
+    if (value.ok()) {
+      writer->Write(value->AsRef());
+      std::move(*writer).Close();
+    } else {
+      std::move(*writer).Close(std::move(value).status());
+    }
+  });
+  return std::move(result);
+}
+
 }  // namespace koladata::functor::parallel
 
 namespace arolla {
+
 void FingerprintHasherTraits<koladata::functor::parallel::FuturePtr>::
 operator()(FingerprintHasher* hasher,
            const koladata::functor::parallel::FuturePtr& value) const {
@@ -113,4 +132,5 @@ ReprToken ReprTraits<koladata::functor::parallel::FuturePtr>::operator()(
   // Maybe include the contents of the future here in the future?
   return ReprToken{absl::StrCat("future[", value->value_qtype()->name(), "]")};
 }
+
 }  // namespace arolla

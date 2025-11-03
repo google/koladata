@@ -29,6 +29,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 
@@ -126,6 +127,9 @@ class FutureWriter {
 
 // Creates a future and a writer for it.
 std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype);
+
+// Returns a stream from the given future.
+StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future);
 
 }  // namespace koladata::functor::parallel
 

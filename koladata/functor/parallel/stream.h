@@ -139,7 +139,9 @@ class StreamReader {
   // Attempts a non-blocking read operation. If no data is immediately available
   // and the stream is still open, returns a result with neither `item` nor
   // `close_status` set.
-  virtual TryReadResult TryRead() = 0;
+  //
+  // Note: This method is not thread-safe.
+  virtual TryReadResult TryRead() ABSL_ATTRIBUTE_LIFETIME_BOUND = 0;
 
   // Subscribes a callback to be invoked when the stream's state changes
   // such that a subsequent TryRead() call is guaranteed to return a non-empty

@@ -281,19 +281,7 @@ class StreamFromFutureOperator : public arolla::QExprOperator {
           if (future == nullptr) {
             return absl::InvalidArgumentError("future is null");
           }
-          auto [result_stream, result_writer] =
-              MakeStream(future->value_qtype());
-          future->AddConsumer(
-              [result_writer = std::move(result_writer)](
-                  absl::StatusOr<arolla::TypedValue> value) mutable {
-                if (!value.ok()) {
-                  std::move(*result_writer).Close(std::move(value).status());
-                  return;
-                }
-                result_writer->Write(value->AsRef());
-                std::move(*result_writer).Close();
-              });
-          frame.Set(output_slot, std::move(result_stream));
+          frame.Set(output_slot, StreamFromFuture(future));
           return absl::OkStatus();
         });
   }
