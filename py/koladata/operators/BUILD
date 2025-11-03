@@ -98,7 +98,6 @@ py_library(
     name = "kde_operators",
     srcs = ["kde_operators.py"],
     visibility = [
-        # TODO: b/454825280 - Use operators via kd.py instead.
         "//koladata:internal",
     ],
     deps = [
