@@ -15,6 +15,7 @@
 #ifndef KOLADATA_SCHEMA_UTILS_H_
 #define KOLADATA_SCHEMA_UTILS_H_
 
+#include <optional>
 #include <string>
 
 #include "absl/base/nullability.h"
@@ -70,6 +71,10 @@ inline absl::Status ExpectSchema(absl::string_view arg_name,
                                  const DataSlice& arg) {
   return ExpectDType(arg_name, arg, schema::kSchema);
 }
+
+// Returns OK if the DataSlice contains a present scalar.
+absl::Status ExpectPresentScalar(
+    absl::string_view arg_name, const DataSlice& arg);
 
 // Returns OK if the DataSlice contains a present scalar castable to the
 // expected dtype.

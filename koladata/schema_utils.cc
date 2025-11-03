@@ -176,6 +176,21 @@ absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
 }
 
 absl::Status ExpectPresentScalar(absl::string_view arg_name,
+                                 const DataSlice& arg) {
+  if (!arg.is_item()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("argument `%s` must be an item, got a "
+                        "slice of rank %i > 0",
+                        arg_name, arg.GetShape().rank()));
+  }
+  if (arg.IsEmpty()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a present item, got missing", arg_name));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ExpectPresentScalar(absl::string_view arg_name,
                                  const DataSlice& arg,
                                  const schema::DType expected_dtype) {
   if (!arg.is_item()) {
