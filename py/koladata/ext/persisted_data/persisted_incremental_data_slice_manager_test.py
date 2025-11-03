@@ -4002,10 +4002,17 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     with self.subTest('get_revision_history_uses_local_timezone_by_default'):
       manager_revision_0 = manager.get_revision_history()[0]
+      expected_tzname = (
+          # One might be tempted to use "datetime.datetime.now()" here, but that
+          # can yield an incorrect timezone name. For example, for machines in
+          # California, if "now()" is summer, it will be PDT, and in the winter
+          # it will be PST. To avoid that, we use the original timestamp here.
+          datetime.datetime.fromtimestamp(1756729753)
+          .astimezone()
+          .tzname()
+      )
       self.assertTrue(
-          manager_revision_0.timestamp.endswith(
-              f' {datetime.datetime.now().astimezone().tzname()}'
-          )
+          manager_revision_0.timestamp.endswith(f' {expected_tzname}')
       )
 
     with self.subTest('get_revision_history_with_specified_timezone'):
