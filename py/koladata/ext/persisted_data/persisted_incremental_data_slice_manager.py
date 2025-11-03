@@ -210,6 +210,13 @@ class PersistedIncrementalDataSliceManager(
     # initial_data_manager.serialize() call or at the latest by the creation of
     # the data_bag_manager below.
 
+    # Fail fast if the initial data manager is not registered. If a user is able
+    # to create an instance, then it should be registered. Otherwise it would
+    # typically be impossible later on for create_from_dir() to find the id in
+    # the registry when it wants to deserialize the initial data manager.
+    initial_data_manager_registry.get_initial_data_manager_class(
+        initial_data_manager.get_id()
+    )
     initial_data_manager.serialize(
         _get_initial_data_dir(persistence_dir), fs=fs
     )

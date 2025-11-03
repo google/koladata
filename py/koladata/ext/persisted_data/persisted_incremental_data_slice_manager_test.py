@@ -4569,6 +4569,34 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     PersistedIncrementalDataSliceManager.create_new(new_dir)
     self.assertTrue(os.path.isdir(new_dir))
 
+  def test_create_new_with_non_registered_initial_data_manager(self):
+
+    class NonRegisteredInitialDataManager(
+        initial_data_manager_interface.InitialDataManagerInterface
+    ):
+
+      @classmethod
+      def get_id(cls) -> str:
+        return 'non_registered_id'
+
+    # Note that we do not add NonRegisteredInitialDataManager to the registry.
+
+    persistence_dir = self.create_tempdir().full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "initial data manager with id 'non_registered_id' is not registered"
+        ),
+    ):
+      PersistedIncrementalDataSliceManager.create_new(
+          persistence_dir,
+          initial_data_manager=NonRegisteredInitialDataManager(),
+      )
+
+    # Fail fast if the initial data manager is not registered: don't create any
+    # artifacts in the persistence_dir:
+    self.assertEmpty(os.listdir(persistence_dir))
+
 
 if __name__ == '__main__':
   absltest.main()
