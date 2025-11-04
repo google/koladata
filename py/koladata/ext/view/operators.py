@@ -88,7 +88,7 @@ def set_item(
 ):
   """Sets an item or items for all containers in the view.
 
-  This essentially calls `x[y] = z` for `x, y, z` in `zip(v, key_or_index,
+  This essentially calls `(x[y] = z) for x, y, z in zip(v, key_or_index,
   value)`, but with additions:
   - when `key_or_index` or `value` are views or auto-boxable into a view, we
     first align all arguments.
@@ -109,6 +109,39 @@ def set_item(
     value: The value to set.
   """
   view_lib.box(v).set_item(key_or_index, value)
+
+
+def append(
+    v: view_lib.ViewOrAutoBoxType,
+    value: view_lib.ViewOrAutoBoxType,
+):
+  """Appends an item or items to all containers in the view.
+
+  This essentially calls `x.append(y) for x, y in `zip(v, value)`, but with
+  additions:
+  - when `value` is a view or auto-boxable into a view, we first align all
+    arguments.
+  - if `x` is None, we skip appending the item.
+
+  If the same list object appears multiple times in `v`, or `v` has lower depth
+  than `value`, we will append all corresponding values in order. Where in
+  Python one would call `list1.extend(list2)`, we can achieve the same effect
+  with `kv.append(kv.view(list1), kv.view(list2)[:])`.
+
+  Example:
+    x = [[], [1]]
+    kv.append(kv.view(x)[:], kv.view([10, 20])[:])
+    # x is now [[10], [1, 20]]
+    kv.append(kv.view(x)[:], kv.view([[30, 40], [50]])[:][:])
+    # x is now [[10, 30, 40], [1, 20, 50]]
+    kv.append(kv.view(x)[:], kv.view(None))
+    # x is now [[10, 30, 40, None], [1, 20, 50, None]]
+
+  Args:
+    v: The view containing the lists to append items to.
+    value: The value to append.
+  """
+  view_lib.box(v).append(value)
 
 
 def explode(v: view_lib.ViewOrAutoBoxType, ndim: int = 1) -> view_lib.View:

@@ -11636,6 +11636,10 @@ Experimental Koda View API.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Internal constructor. Please use kv.view() instead.</code></pre>
 
+### `View.append(self, value: ViewOrAutoBoxType)` {#View.append}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Appends an item or items to all containers in the view.</code></pre>
+
 ### `View.collapse(self, ndim: int = 1) -> View` {#View.collapse}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Collapses equal items along the specified number dimensions of the view.</code></pre>
@@ -11755,6 +11759,34 @@ Args:
 
 Returns:
   A tuple of aligned views, of size len(others) + 1.</code></pre>
+
+### `kd_ext.kv.append(v: View | int | float | str | bytes | bool | _Present | None, value: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.append}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Appends an item or items to all containers in the view.
+
+This essentially calls `x.append(y) for x, y in `zip(v, value)`, but with
+additions:
+- when `value` is a view or auto-boxable into a view, we first align all
+  arguments.
+- if `x` is None, we skip appending the item.
+
+If the same list object appears multiple times in `v`, or `v` has lower depth
+than `value`, we will append all corresponding values in order. Where in
+Python one would call `list1.extend(list2)`, we can achieve the same effect
+with `kv.append(kv.view(list1), kv.view(list2)[:])`.
+
+Example:
+  x = [[], [1]]
+  kv.append(kv.view(x)[:], kv.view([10, 20])[:])
+  # x is now [[10], [1, 20]]
+  kv.append(kv.view(x)[:], kv.view([[30, 40], [50]])[:][:])
+  # x is now [[10, 30, 40], [1, 20, 50]]
+  kv.append(kv.view(x)[:], kv.view(None))
+  # x is now [[10, 30, 40, None], [1, 20, 50, None]]
+
+Args:
+  v: The view containing the lists to append items to.
+  value: The value to append.</code></pre>
 
 ### `kd_ext.kv.apply_mask(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.apply_mask}
 
@@ -12285,7 +12317,7 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an item or items for all containers in the view.
 
-This essentially calls `x[y] = z` for `x, y, z` in `zip(v, key_or_index,
+This essentially calls `(x[y] = z) for x, y, z in zip(v, key_or_index,
 value)`, but with additions:
 - when `key_or_index` or `value` are views or auto-boxable into a view, we
   first align all arguments.

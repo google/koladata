@@ -328,6 +328,15 @@ class View:
     """Sets an item or items for all containers in the view."""
     return self.set_item(key_or_index, value)
 
+  def append(self, value: ViewOrAutoBoxType):
+    """Appends an item or items to all containers in the view."""
+    _map2(
+        lambda x, y: x.append(y) if x is not None else None,
+        self,
+        value,
+        include_missing=True,
+    )
+
   def take(self, index: ViewOrAutoBoxType) -> View:
     """Returns a view with the given index in the last dimension."""
     return self.implode()[index]

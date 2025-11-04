@@ -305,6 +305,11 @@ class ViewTest(absltest.TestCase):
     ):
       bool(view_lib.view(1))
 
+  def test_append(self):
+    x = [[], [1]]
+    view_lib.view(x)[:].append(view_lib.view([None, 20])[:])
+    self.assertEqual(x, [[None], [1, 20]])
+
 
 if __name__ == '__main__':
   absltest.main()

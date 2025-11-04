@@ -33,6 +33,7 @@ flatten = _operators.flatten
 expand_to = _operators.expand_to
 get_item = _operators.get_item
 set_item = _operators.set_item
+append = _operators.append
 take = _operators.take
 group_by = _operators.group_by
 collapse = _operators.collapse
