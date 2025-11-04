@@ -539,6 +539,21 @@ class View:
     """Returns the depth of the view."""
     return self._depth
 
+  def __bool__(self) -> bool:
+    if self._depth:
+      raise ValueError(
+          'can only use views with depth=0 in if-statements, got'
+          f' depth={self._depth}'
+      )
+    if self._obj is mask_constants.present:
+      return True
+    if self._obj is None:
+      return False
+    raise ValueError(
+        'can only use views with kv.present or None in if-statements, got'
+        f' {self._obj}'
+    )
+
   def __and__(self, other: ViewOrAutoBoxType) -> View:
     return _map2(_presence_and_impl, self, other)
 

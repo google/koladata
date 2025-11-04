@@ -291,6 +291,20 @@ class ViewTest(absltest.TestCase):
     ):
       list(view_lib.view([1, 2])[:])
 
+  def test_bool(self):
+    self.assertTrue(view_lib.view(mask_constants.present))
+    self.assertFalse(view_lib.view(None))
+    with self.assertRaisesRegex(
+        ValueError,
+        'can only use views with depth=0 in if-statements, got depth=1',
+    ):
+      bool(view_lib.view([None])[:])
+    with self.assertRaisesRegex(
+        ValueError,
+        'can only use views with kv.present or None in if-statements, got 1',
+    ):
+      bool(view_lib.view(1))
+
 
 if __name__ == '__main__':
   absltest.main()
