@@ -239,26 +239,30 @@ class View:
     attr_getter = lambda x: getattr(x, attr_name)
     return _map1(attr_getter, self)
 
-  def set_attr(self, attr_name: str, value: ViewOrAutoBoxType):
-    """Sets the given attribute of each item."""
+  def set_attrs(self, /, **attrs: ViewOrAutoBoxType) -> None:
+    """Sets the given attributes of each item."""
 
-    if isinstance(value, View) and value.get_depth() > self._depth:
-      raise ValueError(
-          'The value being set as attribute must have same or lower depth than'
-          ' the object itself. Maybe you forgot to call .implode()?'
-      )
+    # NOTE: For most cases, this impl faster than changing attr_setter to take
+    # `**attrs` which requires repeated handling of dicts.
+    for attr_name, value in attrs.items():
+      if isinstance(value, View) and value.get_depth() > self._depth:
+        raise ValueError(
+            f'The value being set as attribute {attr_name!r} must have same or'
+            ' lower depth than the object itself. Maybe you forgot to call'
+            ' .implode()?'
+        )
 
-    def attr_setter(x: Any, v: Any):
-      if x is not None:
-        setattr(x, attr_name, v)
+      def attr_setter(x: Any, v: Any):
+        if x is not None:
+          setattr(x, attr_name, v)  # pylint: disable=cell-var-from-loop
 
-    _map2(attr_setter, self, value, include_missing=True)
+      _map2(attr_setter, self, value, include_missing=True)
 
   def __setattr__(self, attr_name: str, value: ViewOrAutoBoxType):
     """Sets the given attribute of each item."""
     if attr_name.startswith('_'):
       raise AttributeError(attr_name)
-    self.set_attr(attr_name, value)
+    return self.set_attrs(**{attr_name: value})
 
   # TODO: In this and other places, make sure (and test) that
   # the API aligns with the corresponding Koda API.

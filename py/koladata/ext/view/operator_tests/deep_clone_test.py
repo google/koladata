@@ -36,7 +36,7 @@ class DeepCloneTest(absltest.TestCase):
   def test_multidim(self):
     x = [[[Obj(a=1)], [Obj(a=2), None]], [[Obj(a=3)]]]
     y = kv.deep_clone(kv.view(x)[:])
-    y[:][:].set_attr('a', 4)
+    y[:][:].set_attrs(a=4)
     self.assertEqual(x, [[[Obj(a=1)], [Obj(a=2), None]], [[Obj(a=3)]]])
     self.assertEqual(y.get(), ([[Obj(a=4)], [Obj(a=4), None]], [[Obj(a=4)]]))
 

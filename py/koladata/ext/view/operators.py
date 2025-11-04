@@ -51,34 +51,30 @@ def get_attr(
   return view_lib.box(v).get_attr(attr_name, default)
 
 
-def set_attr(
-    v: view_lib.ViewOrAutoBoxType,
-    attr_name: str,
-    value: view_lib.ViewOrAutoBoxType,
+def set_attrs(
+    v: view_lib.ViewOrAutoBoxType, /, **attrs: view_lib.ViewOrAutoBoxType
 ):
-  """Sets the given attribute of each item.
+  """Sets the given attributes of each item.
 
   If one of the items in `v` is None, the corresponding value will be ignored.
-  If one of the items in `value` is None, the attribute of the corresponding
+  If one of the items in `attrs` is None, the attribute of the corresponding
   item will be set to None.
 
   If the same object has multiple references in `v`, we will process the
-  set_attr in order, so the attribute will have the last assigned value.
+  set_attrs in order, so the attribute will have the last assigned value.
 
   Example:
     o = kv.view([types.SimpleNamespace(), types.SimpleNamespace()])[:]
-    kv.set_attr(o, 'a', 1)
-    kv.set_attr(o, '_b', kv.view([None, 2])[:])
+    kv.set_attrs(o, a=1, _b=kv.view([None, 2])[:])
     o.get()
     # (namespace(a=1, _b=None), namespace(a=1, _b=2))
 
   Args:
     v: The view to set the attribute for.
-    attr_name: The name of the attribute to set.
-    value: The value to set the attribute to. Can also be a Python primitive,
-      which will be automatically boxed into a view.
+    **attrs: The values to set the attributes to. Can also be a Python
+      primitive, which will be automatically boxed into a view.
   """
-  view_lib.box(v).set_attr(attr_name, value)
+  view_lib.box(v).set_attrs(**attrs)
 
 
 def set_item(

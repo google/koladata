@@ -84,8 +84,8 @@ py_test(
 )
 
 py_test(
-    name = "set_attr_test",
-    srcs = ["set_attr_test.py"],
+    name = "set_attrs_test",
+    srcs = ["set_attrs_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/ext/view:kv",

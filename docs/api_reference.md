@@ -11732,9 +11732,9 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Keeps only items in the view where the filter is present.</code></pre>
 
-### `View.set_attr(self, attr_name: str, value: ViewOrAutoBoxType)` {#View.set_attr}
+### `View.set_attrs(self, /, **attrs: ViewOrAutoBoxType) -> None` {#View.set_attrs}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attribute of each item.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attributes of each item.</code></pre>
 
 ### `View.set_item(self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType)` {#View.set_item}
 
@@ -12303,29 +12303,27 @@ Args:
 Returns:
   Filtered view.</code></pre>
 
-### `kd_ext.kv.set_attr(v: View | int | float | str | bytes | bool | _Present | None, attr_name: str, value: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.set_attr}
+### `kd_ext.kv.set_attrs(v: View | int | float | str | bytes | bool | _Present | None, /, **attrs: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.set_attrs}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attribute of each item.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attributes of each item.
 
 If one of the items in `v` is None, the corresponding value will be ignored.
-If one of the items in `value` is None, the attribute of the corresponding
+If one of the items in `attrs` is None, the attribute of the corresponding
 item will be set to None.
 
 If the same object has multiple references in `v`, we will process the
-set_attr in order, so the attribute will have the last assigned value.
+set_attrs in order, so the attribute will have the last assigned value.
 
 Example:
   o = kv.view([types.SimpleNamespace(), types.SimpleNamespace()])[:]
-  kv.set_attr(o, &#39;a&#39;, 1)
-  kv.set_attr(o, &#39;_b&#39;, kv.view([None, 2])[:])
+  kv.set_attrs(o, a=1, _b=kv.view([None, 2])[:])
   o.get()
   # (namespace(a=1, _b=None), namespace(a=1, _b=2))
 
 Args:
   v: The view to set the attribute for.
-  attr_name: The name of the attribute to set.
-  value: The value to set the attribute to. Can also be a Python primitive,
-    which will be automatically boxed into a view.</code></pre>
+  **attrs: The values to set the attributes to. Can also be a Python
+    primitive, which will be automatically boxed into a view.</code></pre>
 
 ### `kd_ext.kv.set_item(v: View | int | float | str | bytes | bool | _Present | None, key_or_index: View | int | float | str | bytes | bool | _Present | None, value: View | int | float | str | bytes | bool | _Present | None)` {#kd_ext.kv.set_item}
 

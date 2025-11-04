@@ -54,13 +54,17 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(x[1].a, 6)
     self.assertEqual(x[1].b, 7)
 
-  def test_set_attr(self):
+  def test_set_attrs(self):
     x = [Obj(_b=6), Obj(a=8)]
     v = view_lib.view(x)[:]
-    v.set_attr('_b', 7)
+    v.set_attrs(_b=7)
     self.assertEqual(x[0]._b, 7)
     self.assertEqual(x[1]._b, 7)
     self.assertEqual(x[1].a, 8)
+    # We can use "self" as a name.
+    x = Obj()
+    view_lib.view(x).set_attrs(self=2)
+    self.assertEqual(x.self, 2)
 
   def test_setitem(self):
     x = [{1: 5, -1: 7}, [1, 2, 3]]
@@ -314,11 +318,11 @@ class ViewTest(absltest.TestCase):
     obj = Obj(a=1)
     a = view_lib.view(obj)
     # Sanity check.
-    a.set_attr('a', 2)
+    a.set_attrs(a=2)
     self.assertEqual(obj.a, 2)
     # Cloning.
     b = a.deep_clone()
-    b.set_attr('a', 3)
+    b.set_attrs(a=3)
     self.assertEqual(b.a.get(), 3)
     self.assertEqual(obj.a, 2)
 
