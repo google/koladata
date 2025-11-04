@@ -682,3 +682,15 @@ def greater_equal(
     A new view with the comparison result.
   """
   return view_lib.box(a) >= b
+
+
+def deep_clone(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
+  """Returns a deep copy of the given view.
+
+  Utilizes `copy.deepcopy` in the implementation. See its documentation for how
+  to customize the copying behavior.
+
+  Args:
+    v: The view to deep copy.
+  """
+  return view_lib.box(v).deep_clone()

@@ -47,6 +47,7 @@ less = _operators.less
 less_equal = _operators.less_equal
 greater = _operators.greater
 greater_equal = _operators.greater_equal
+deep_clone = _operators.deep_clone
 
 present = _mask_constants.present
 missing = _mask_constants.missing

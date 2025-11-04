@@ -310,6 +310,18 @@ class ViewTest(absltest.TestCase):
     view_lib.view(x)[:].append(view_lib.view([None, 20])[:])
     self.assertEqual(x, [[None], [1, 20]])
 
+  def test_deep_clone(self):
+    obj = Obj(a=1)
+    a = view_lib.view(obj)
+    # Sanity check.
+    a.set_attr('a', 2)
+    self.assertEqual(obj.a, 2)
+    # Cloning.
+    b = a.deep_clone()
+    b.set_attr('a', 3)
+    self.assertEqual(b.a.get(), 3)
+    self.assertEqual(obj.a, 2)
+
 
 if __name__ == '__main__':
   absltest.main()

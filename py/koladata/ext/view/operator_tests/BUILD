@@ -345,3 +345,13 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
+
+py_test(
+    name = "deep_clone_test",
+    srcs = ["deep_clone_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/view:kv",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

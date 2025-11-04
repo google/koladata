@@ -11644,6 +11644,10 @@ Experimental Koda View API.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Collapses equal items along the specified number dimensions of the view.</code></pre>
 
+### `View.deep_clone(self) -> View` {#View.deep_clone}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a deep copy of the view.</code></pre>
+
 ### `View.expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View` {#View.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Expands the view to the shape of other view.</code></pre>
@@ -11834,6 +11838,16 @@ Returns:
   A new view with `ndim` fewer dimensions. The value of each item is equal
   to the value of its uncollapsed items if they are the same, or None
   otherwise.</code></pre>
+
+### `kd_ext.kv.deep_clone(v: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.deep_clone}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a deep copy of the given view.
+
+Utilizes `copy.deepcopy` in the implementation. See its documentation for how
+to customize the copying behavior.
+
+Args:
+  v: The view to deep copy.</code></pre>
 
 ### `kd_ext.kv.equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.equal}
 

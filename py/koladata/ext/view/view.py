@@ -15,6 +15,7 @@
 """Koda View class."""
 
 from __future__ import annotations
+import copy
 import functools
 import itertools
 from typing import Any, Callable
@@ -543,6 +544,10 @@ class View:
     res = _map2(_inverse_select_impl, self.implode(), fltr.implode())
     # We already have tuples so we can just increase the depth.
     return View(res.get(), self._depth, _INTERNAL_CALL)
+
+  def deep_clone(self) -> View:
+    """Returns a deep copy of the view."""
+    return View(copy.deepcopy(self._obj), self._depth, _INTERNAL_CALL)
 
   def get_depth(self) -> int:
     """Returns the depth of the view."""
