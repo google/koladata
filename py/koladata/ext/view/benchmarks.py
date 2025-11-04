@@ -246,6 +246,159 @@ def _example_computation_kd_no_py_single_bag_vectorized(
   return item_groups
 
 
+def _example_computation_kv_pointwise(datas: list[Data]) -> list[list[Group]]:
+  """An example pointwise computation in Koda View."""
+  datas = kv.view(datas)
+  # We don't support iteration over View yet, so for now we unwrap and wrap
+  # again when we want to iterate, and also for "a in b".
+  # I still write .map(lambda x: x.keys()).get() instead of .get().keys() to
+  # have an upper bound on the overhead for the case when/if we decide to
+  # have more expansive pointwise iteration support in Koda View.
+  for data in datas.get():
+    data = kv.view(data)
+    items = kv.view([])
+    for x in data.items.get():
+      x = kv.view(x)
+      if x.attr1 != 'Skip':
+        items.append(x)
+    grouped = kv.view({})
+    for item in items.get():
+      item = kv.view(item)
+      if item.attr1.get() not in grouped.get():
+        grouped[item.attr1] = kv.view([])
+      grouped[item.attr1].append(item)
+
+    for attr1, items in zip(
+        grouped.map(lambda x: x.keys()).get(),
+        grouped.map(lambda x: x.values()).get(),
+    ):
+      attr1 = kv.view(attr1)
+      items = kv.view(items)
+      fitems = kv.view([])
+      pcombined = kv.view({})
+      for item in items.get():
+        item = kv.view(item)
+        details = item.details
+        attr3 = details.attr3
+        if attr3 == 'Type4':
+          combined = details.attr4
+        elif attr3 == 'Type5':
+          combined = details.attr5
+        else:
+          combined = details.attr6
+        if combined.get() in pcombined.get():
+          fitems.append(pcombined[combined])
+        else:
+          fitems.append(item)
+          pcombined[combined] = item
+
+      grouped[attr1] = fitems
+
+    attr7_dict = kv.view({})
+    for info in data.extra_info.get():
+      info = kv.view(info)
+      attr7_dict[info.attr1] = info.attr7
+
+    index = kv.view({})
+    for attr1 in grouped.map(lambda x: x.keys()).get():
+      attr1 = kv.view(attr1)
+      if attr1.get() in attr7_dict.get():
+        index[attr1] = attr7_dict[attr1]
+      elif attr1 == 'Special1':
+        index[attr1] = 101
+      elif attr1 == 'Special2':
+        index[attr1] = 102
+      else:
+        index[attr1] = -1
+
+    item_groups = kv.view([])
+    for attr1 in grouped.map(lambda x: x.keys()).get():
+      if index[attr1] >= 0:
+        group = kv.map(
+            Group,
+            attr1=attr1,
+            index=index[attr1],
+            items=grouped[attr1],
+        )
+        item_groups.append(group)
+    item_groups = item_groups.map(lambda g: sorted(g, key=lambda x: x.index))
+    data.item_groups = item_groups
+
+  return datas[:].item_groups.get()
+
+
+def _example_computation_kd_no_py_single_bag_pointwise(
+    datas: kd.types.DataSlice,
+) -> kd.types.DataSlice:
+  """An example pointwise computation in Koda."""
+  datas = datas.fork_bag()
+  bag = datas.get_bag()
+  item_schema = datas.get_schema().get_item_schema().items.get_item_schema()
+  group_schema = bag.adopt(GROUP_SCHEMA)
+  for data in datas:
+    items = bag.list(
+        [x for x in data.items if x.attr1 != 'Skip'], item_schema=item_schema
+    )
+    grouped = bag.dict(
+        key_schema=kd.STRING, value_schema=bag.list_schema(item_schema)
+    )
+    for item in items:
+      if item.attr1 in grouped:
+        grouped[item.attr1].append(item)
+      else:
+        grouped[item.attr1] = bag.list([item])
+    for attr1, items in zip(
+        bag.implode(grouped.get_keys()), bag.implode(grouped.get_values())
+    ):
+      fitems = bag.list(item_schema=item_schema)
+      pcombined = bag.dict(key_schema=kd.STRING, value_schema=item_schema)
+      for item in items:
+        details = item.details
+        attr3 = details.attr3
+        if attr3 == 'Type4':
+          combined = details.attr4
+        elif attr3 == 'Type5':
+          combined = details.attr5
+        else:
+          combined = details.attr6
+        if combined in pcombined:
+          fitems.append(pcombined[combined])
+        else:
+          fitems.append(item)
+          pcombined[combined] = item
+      grouped[attr1] = fitems
+
+    attr7_dict = bag.dict(key_schema=kd.STRING, value_schema=kd.INT64)
+    for info in data.extra_info:
+      attr7_dict[info.attr1] = info.attr7
+
+    index = bag.dict(key_schema=kd.STRING, value_schema=kd.INT64)
+    for attr1 in bag.implode(grouped.get_keys()):
+      if attr1 in attr7_dict:
+        index[attr1] = attr7_dict[attr1]
+      elif attr1 == 'Special1':
+        index[attr1] = 101
+      elif attr1 == 'Special2':
+        index[attr1] = 102
+      else:
+        index[attr1] = -1
+
+    item_groups = bag.list(item_schema=group_schema)
+    for attr1 in bag.implode(grouped.get_keys()):
+      if index[attr1] >= 0:
+        group = bag.new(
+            schema=group_schema,
+            attr1=attr1,
+            index=index[attr1],
+            items=grouped[attr1],
+        )
+        item_groups.append(group)
+    item_groups = bag.list(sorted(item_groups, key=lambda x: x.index))
+    data.item_groups = item_groups
+
+  return datas[:].item_groups
+
+
 def _very_small_dataset() -> list[Data]:
   return [
       Data(
@@ -508,6 +661,43 @@ def example_computation_kd_no_py_single_bag_vectorized(state):
   assert output == expected_output, output
   while state:
     _ = _example_computation_kd_no_py_single_bag_vectorized(kd_ds)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['dataset'])
+@google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
+def example_computation_kv_pointwise(state):
+  """An example simple computation."""
+  dataset_fn = _DATASET_CHOICES[state.range(0)]
+  ds = dataset_fn()
+  expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
+  expected_output = expected_output_fn()
+  # Sanity check. We return a tuple instead of a list, so we need to convert
+  # for exact equality comparison.
+  output = list(_example_computation_kv_pointwise(ds))
+  assert output == expected_output, output
+  while state:
+    _ = _example_computation_kv_pointwise(ds)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['dataset'])
+@google_benchmark.option.dense_range(0, len(_DATASET_CHOICES) - 1)
+def example_computation_kd_no_py_single_bag_pointwise(state):
+  """An example simple computation."""
+  dataset_fn = _DATASET_CHOICES[state.range(0)]
+  ds = dataset_fn()
+  expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
+  expected_output = expected_output_fn()
+  kd_ds = py_conversions._from_py_v2(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  # Sanity check. We return tuples instead of lists, so we need to convert
+  # for exact equality comparison.
+  output = _example_computation_kd_no_py_single_bag_pointwise(kd_ds).to_py(
+      max_depth=-1
+  )
+  assert output == expected_output, output
+  while state:
+    _ = _example_computation_kd_no_py_single_bag_pointwise(kd_ds)
 
 
 if __name__ == '__main__':
