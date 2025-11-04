@@ -301,6 +301,11 @@ class View:
     """Returns an item or items from the given view containing containers."""
     return self.get_item(key_or_index)
 
+  def __iter__(self):
+    # We need this, otherwise thanks to __getitem__ never raising KeyError
+    # Python iterates infinitely over the view.
+    raise ValueError('iteration over a view is not supported yet')
+
   def set_item(self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType):
     """Sets an item or items for all containers in the view."""
     if isinstance(key_or_index, slice):

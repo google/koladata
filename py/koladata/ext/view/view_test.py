@@ -280,6 +280,17 @@ class ViewTest(absltest.TestCase):
 )>""",
     )
 
+  def test_iter_raises_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'iteration over a view is not supported yet'
+    ):
+      iter(view_lib.view([1, 2])[:])
+
+    with self.assertRaisesRegex(
+        ValueError, 'iteration over a view is not supported yet'
+    ):
+      list(view_lib.view([1, 2])[:])
+
 
 if __name__ == '__main__':
   absltest.main()
