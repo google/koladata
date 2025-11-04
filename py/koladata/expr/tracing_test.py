@@ -85,15 +85,12 @@ class TracingTest(absltest.TestCase):
     self.assertIsInstance(e, arolla.Expr)
     self.assertEqual(e.eval().get_schema(), kd.FLOAT32)
 
-  # TODO: Make this work.
-  # def test_obj_from_dict_with_itemid(self):
-  #   o = kd.new()
-  #   e = tracing.trace(
-  #       lambda: kd.obj(kd.dict({1: 2}, itemid=kd.get_itemid(o))))
-  #   self.assertIsInstance(e, arolla.Expr)
-  #   self.assertEqual(e.eval(x=o)[1], 2)
-  #   self.assertEqual(e.eval(x=o).get_schema(), kd.OBJECT)
-  #   self.assertEqual(e.eval(x=o), o)
+  def test_obj_from_dict_with_itemid(self):
+    o = kd.dict()
+    e = tracing.trace(lambda: kd.obj(kd.dict({1: 2}, itemid=o.get_itemid())))
+    self.assertIsInstance(e, arolla.Expr)
+    self.assertEqual(e.eval()[1], 2)
+    self.assertEqual(e.eval().get_schema(), kd.OBJECT)
 
   def test_defaults_ignored(self):
     e = tracing.trace(lambda x=1, *, y=2: x + y)
