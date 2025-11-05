@@ -177,6 +177,10 @@ class View:
           'Please do not call the View constructor directly, use view()'
           ' instead.'
       )
+    # This is noticably faster than isinstance(obj, View). Since we don't expect
+    # to have child classes of View, this is a cheaper but equivalent version.
+    if type(obj) == View:  # pylint: disable=unidiomatic-typecheck
+      raise TypeError('cannot wrap a View into another View')
     # This class represents a jagged array of objects, in other words a
     # list-of-lists-...-of-lists with a constant level of nesting, for example
     # [[A, B], [], [C]].

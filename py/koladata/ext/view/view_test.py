@@ -326,6 +326,20 @@ class ViewTest(absltest.TestCase):
     self.assertEqual(b.a.get(), 3)
     self.assertEqual(obj.a, 2)
 
+  def test_view_of_view_error(self):
+    with self.assertRaisesRegex(
+        TypeError, 'cannot wrap a View into another View'
+    ):
+      view_lib.view(view_lib.view(1))
+
+    # Protecting against views inside of structures would be too expensive.
+    views = view_lib.view([view_lib.view(1)])
+    # But once extracted, we can detect it.
+    with self.assertRaisesRegex(
+        TypeError, 'cannot wrap a View into another View'
+    ):
+      _ = views[0]
+
 
 if __name__ == '__main__':
   absltest.main()
