@@ -192,6 +192,7 @@ cc_library(
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/eval",
+        "@com_google_arolla//arolla/io",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/jagged_shape/dense_array/util",
         "@com_google_arolla//arolla/jagged_shape/util:concat",

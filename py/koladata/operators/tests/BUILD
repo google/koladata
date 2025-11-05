@@ -669,6 +669,20 @@ py_test(
 )
 
 py_test(
+    name = "core_arolla_expr_eval_test",
+    srcs = ["core_arolla_expr_eval_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "core_is_entity_test",
     srcs = ["core_is_entity_test.py"],
     deps = [

@@ -36,14 +36,24 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/eval/verbose_runtime_error.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/expr_node.h"
+#include "arolla/expr/quote.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "arolla/io/typed_refs_input_loader.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/memory/frame.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/standard_type_properties/properties.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/status.h"
 #include "koladata/arolla_utils.h"
@@ -53,7 +63,9 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -261,6 +273,112 @@ absl::Status SimplifyExprEvaluationError(absl::Status status) {
   return status;
 }
 
+class ExprEvalCompiler {
+  using InputTypes = std::vector<std::pair<std::string, arolla::QTypePtr>>;
+  using Inputs = absl::Span<const arolla::TypedRef>;
+  using ModelOr =
+      absl::StatusOr<std::function<absl::StatusOr<DataSlice>(const Inputs&)>>;
+  using Compiler = ::arolla::ExprCompiler<Inputs, DataSlice>;
+  using Cache = arolla::LruCache<arolla::Fingerprint, ModelOr>;
+
+ public:
+  static ModelOr Compile(const arolla::expr::ExprNodePtr& expr,
+                         InputTypes types) {
+    arolla::FingerprintHasher hasher("ExprEvalCompiler");
+    hasher.Combine(expr->fingerprint());
+    hasher.Combine(types.size());
+    for (const auto& [name, t] : types) {
+      hasher.Combine(name, t);
+    }
+    arolla::Fingerprint key = std::move(hasher).Finish();
+    {
+      absl::MutexLock lock(mutex_);
+      if (auto* hit = cache_->LookupOrNull(key); hit != nullptr) {
+        return *hit;
+      }
+    }
+    ModelOr model = Compiler()
+                        .SetInputLoader(arolla::CreateTypedRefsInputLoader(
+                            std::move(types)))
+                        .SetPoolThreadSafetyPolicy()
+                        .Compile(expr);
+    absl::MutexLock lock(mutex_);
+    return *cache_->Put(key, std::move(model));
+  }
+
+  static void Clear() {
+    absl::MutexLock lock(mutex_);
+    cache_->Clear();
+  }
+
+ private:
+  static absl::NoDestructor<Cache> cache_ ABSL_GUARDED_BY(mutex_);
+  static absl::Mutex mutex_;
+};
+
+absl::NoDestructor<ExprEvalCompiler::Cache> ExprEvalCompiler::cache_(
+    kCompilationCacheSize);
+absl::Mutex ExprEvalCompiler::mutex_{absl::kConstInit};
+
+class ArollaExprEvalOperator : public arolla::QExprOperator {
+ public:
+  explicit ArollaExprEvalOperator(
+      absl::Span<const arolla::QTypePtr> input_types)
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator(
+        "kd.core._arolla_expr_eval",
+        [expr_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         args_slot = input_slots[1],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& expr_slice = frame.Get(expr_slot);
+          if (!expr_slice.is_item() ||
+              !expr_slice.item().holds_value<arolla::expr::ExprQuote>()) {
+            return absl::InvalidArgumentError(
+                "first argument is expected to be a DataItem with ExprQuote");
+          }
+          ASSIGN_OR_RETURN(
+              arolla::expr::ExprNodePtr expr,
+              expr_slice.item().value<arolla::expr::ExprQuote>().expr());
+          ASSIGN_OR_RETURN(expr,
+                           arolla::expr::CallOp("koda_internal.to_data_slice",
+                                                {std::move(expr)}));
+
+          // Prepare arguments
+          absl::Span<const std::string> arg_names =
+              arolla::GetFieldNames(args_slot.GetType());
+          std::vector<arolla::TypedValue> arg_values;
+          std::vector<std::pair<std::string, arolla::QTypePtr>> types_in_order;
+          arg_values.reserve(args_slot.SubSlotCount());
+          types_in_order.reserve(args_slot.SubSlotCount());
+          for (int i = 0; i < args_slot.SubSlotCount(); ++i) {
+            ASSIGN_OR_RETURN(
+                arolla::TypedValue tv,
+                DataSliceToArollaValue(
+                    frame.Get(args_slot.SubSlot(i).UnsafeToSlot<DataSlice>())));
+            types_in_order.emplace_back(arg_names[i], tv.GetType());
+            arg_values.push_back(std::move(tv));
+          }
+          std::vector<arolla::TypedRef> arg_refs;
+          arg_refs.reserve(args_slot.SubSlotCount());
+          for (const auto& tv : arg_values) {
+            arg_refs.push_back(tv.AsRef());
+          }
+
+          ASSIGN_OR_RETURN(
+              const auto& model,
+              ExprEvalCompiler::Compile(expr, std::move(types_in_order)));
+          ASSIGN_OR_RETURN(*frame.GetMutable(output_slot), model(arg_refs));
+          return absl::OkStatus();
+        });
+  }
+};
+
 }  // namespace
 
 namespace compiler_internal {
@@ -280,7 +398,10 @@ absl::StatusOr<arolla::TypedValue> EvalExpr(
   return result;
 }
 
-void ClearCompilationCache() { return EvalCompiler::Clear(); }
+void ClearCompilationCache() {
+  EvalCompiler::Clear();
+  ExprEvalCompiler::Clear();
+}
 
 absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
     const DataSlice& x) {
@@ -381,6 +502,22 @@ absl::StatusOr<DataSlice> SimpleAggOverEval(
   return SimpleAggEval(op_name, std::move(inputs), std::move(output_schema),
                        edge_arg_index,
                        /*is_agg_into=*/false, primary_operand_indices);
+}
+
+absl::StatusOr<arolla::OperatorPtr> ArollaExprEvalOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires first argument to be DataItem with ExprQuote");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[1]));
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<ArollaExprEvalOperator>(input_types), input_types,
+      output_type);
 }
 
 }  // namespace koladata::ops

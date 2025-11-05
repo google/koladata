@@ -671,7 +671,7 @@ absl::StatusOr<arolla::OperatorPtr> AttrsImplOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   if (input_types.size() != 4) {
-    return absl::InvalidArgumentError("requires exactly 3 arguments");
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(

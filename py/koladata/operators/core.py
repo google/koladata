@@ -351,6 +351,16 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.core._arolla_expr_eval',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _arolla_expr_eval(expr_quote, args_tuple):  # pylint: disable=unused-argument,redefined-outer-name
+  """Evaluates arolla expression on given inputs."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.as_backend_operator(
     'kd.core._attrs_impl',
     qtype_inference_expr=qtypes.DATA_BAG,

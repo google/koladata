@@ -29,6 +29,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -226,6 +227,13 @@ absl::StatusOr<DataSlice> SimpleAggOverEval(
     int edge_arg_index = 1,
     const std::optional<absl::Span<const int>>& primary_operand_indices =
         std::nullopt);
+
+// kd.core._arolla_expr_eval.
+class ArollaExprEvalOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
 
 // koda_internal._to_data_slice operator.
 //

@@ -32,6 +32,7 @@
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
+#include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/bags.h"
 #include "koladata/operators/bitwise.h"
@@ -107,9 +108,11 @@ OPERATOR("kd.comparison.greater", Greater);
 OPERATOR("kd.comparison.greater_equal", GreaterEqual);
 OPERATOR("kd.comparison.less", Less);
 OPERATOR("kd.comparison.less_equal", LessEqual);
+//
+OPERATOR_FAMILY("kd.core._arolla_expr_eval",
+                std::make_unique<ArollaExprEvalOperatorFamily>());
 OPERATOR_FAMILY("kd.core._attrs_impl",
                 std::make_unique<AttrsImplOperatorFamily>());
-//
 OPERATOR("kd.core._clone", Clone, "kd.core.clone");
 OPERATOR("kd.core._deep_clone", DeepClone, "kd.core.deep_clone");
 OPERATOR("kd.core._extract", Extract, "kd.core.extract");
