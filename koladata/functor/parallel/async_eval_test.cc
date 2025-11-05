@@ -77,7 +77,7 @@ using ::testing::HasSubstr;
 
 TEST(AsyncEvalTest, Simple) {
   auto executor = GetEagerExecutor();
-  ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.add"));
+  ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.math.add"));
   auto x = DataSlice::CreatePrimitive(1);
   auto y = DataSlice::CreatePrimitive(2);
   ASSERT_OK_AND_ASSIGN(
@@ -92,7 +92,7 @@ TEST(AsyncEvalTest, Simple) {
 
 TEST(AsyncEvalTest, FutureInputs) {
   auto executor = GetEagerExecutor();
-  ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.add"));
+  ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.math.add"));
   auto [x_future, x_writer] = MakeFuture(GetQType<DataSlice>());
   std::move(x_writer).SetValue(
       TypedValue::FromValue(DataSlice::CreatePrimitive(1)));
@@ -113,7 +113,7 @@ TEST(AsyncEvalTest, FutureInputs) {
 
 TEST(AsyncEvalTest, Nested) {
   auto executor = GetEagerExecutor();
-  ASSERT_OK_AND_ASSIGN(auto op, LookupOperator("kd.add"));
+  ASSERT_OK_AND_ASSIGN(auto op, LookupOperator("kd.math.add"));
   auto x = DataSlice::CreatePrimitive(1);
   auto y = DataSlice::CreatePrimitive(2);
   auto z = DataSlice::CreatePrimitive(3);
@@ -159,8 +159,8 @@ TEST(AsyncEvalTest, NestedErrorPropagation) {
   ASSERT_OK_AND_ASSIGN(
       auto outer_op,
       MakeLambdaOperator(CallOp(
-          "kd.add", {Placeholder("x"), Literal(DataSlice::CreatePrimitive(2))},
-          {})));
+          "kd.math.add",
+          {Placeholder("x"), Literal(DataSlice::CreatePrimitive(2))}, {})));
 
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
@@ -198,7 +198,7 @@ TEST(AsyncEvalTest, TwoErrors) {
   auto z = DataSlice::CreatePrimitive(Text("c"));
 
   ASSERT_OK_AND_ASSIGN(auto inner_op, LookupOperator("kd.get_attr"));
-  ASSERT_OK_AND_ASSIGN(auto outer_op, LookupOperator("kd.add"));
+  ASSERT_OK_AND_ASSIGN(auto outer_op, LookupOperator("kd.math.add"));
   ASSERT_OK_AND_ASSIGN(
       auto inner_future1,
       AsyncEvalWithCompilationCache(
@@ -242,10 +242,11 @@ TEST(AsyncEvalTest, Multithreaded) {
       auto add_modulo_op,
       MakeLambdaOperator(
           ExprOperatorSignature{{"x"}, {"y"}},
-          CallOp("kd.math.mod",
-                 {CallOp("kd.add", {Placeholder("x"), Placeholder("y")}, {}),
-                  Literal(DataSlice::CreatePrimitive(kModulo))},
-                 {})));
+          CallOp(
+              "kd.math.mod",
+              {CallOp("kd.math.add", {Placeholder("x"), Placeholder("y")}, {}),
+               Literal(DataSlice::CreatePrimitive(kModulo))},
+              {})));
   auto x_signature = ExprOperatorSignature{{"x"}};
   auto get_data_slice_output_type =
       [](absl::Span<const QType* const> input_qtypes) {

@@ -26,7 +26,7 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kd.add'], repr_fn=op_repr.add_repr)
+@optools.add_to_registry(repr_fn=op_repr.add_repr)
 @optools.as_backend_operator(
     'kd.math.add',
     qtype_constraints=[

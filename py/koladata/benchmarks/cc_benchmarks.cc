@@ -71,7 +71,7 @@ void BM_Add(benchmark::State& state) {
 
   auto expr = Leaf("x");
   for (size_t i = 0; i < num_operators; ++i) {
-    expr = CallOp("kd.add", {expr, Leaf("x")}).value();
+    expr = CallOp("kd.math.add", {expr, Leaf("x")}).value();
   }
 
   using Inputs = std::tuple<DataSlice>;
@@ -279,7 +279,7 @@ void BM_AddViaFunctor(benchmark::State& state) {
                    .value();
   auto expr = input;
   for (size_t i = 0; i < num_operators; ++i) {
-    expr = CallOp("kd.add", {expr, input}).value();
+    expr = CallOp("kd.math.add", {expr, input}).value();
   }
   auto expr_slice =
       DataSlice::Create(internal::DataItem(arolla::expr::ExprQuote(expr)),

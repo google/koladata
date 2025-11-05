@@ -598,7 +598,6 @@ class tuples:
   tuple = _operators_tuple.tuple_
 
 
-add = _operators_math.add
 agg_all = _operators_masking.agg_all
 agg_any = _operators_masking.agg_any
 agg_count = _operators_slices.agg_count

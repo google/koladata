@@ -128,7 +128,6 @@ cc_test(
         "//koladata/functor:call",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
-        "//koladata/internal:non_deterministic_token",
         "//koladata/testing:eval_python_declared_ops_in_cpp_tests",
         "//koladata/testing:matchers",
         "@com_google_absl//absl/status:status_matchers",

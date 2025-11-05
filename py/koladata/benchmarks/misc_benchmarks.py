@@ -143,7 +143,7 @@ def add_kd_call(state):
   x = kd.slice([1])
   y = kd.slice([2])
   # To initialize all lazy initializers and reduce variance.
-  fn = kdf.expr_fn(kde.add(I.x, I.y))
+  fn = kdf.expr_fn(kde.math.add(I.x, I.y))
   _ = kd.call(fn, x=x, y=y)
   while state:
     kd.call(fn, x=x, y=y)
@@ -154,7 +154,7 @@ def add_10000_kd_call(state):
   x = kd.slice([1] * 10000)
   y = kd.slice([2] * 10000)
   # To initialize all lazy initializers and reduce variance.
-  fn = kdf.expr_fn(kde.add(I.x, I.y))
+  fn = kdf.expr_fn(kde.math.add(I.x, I.y))
   _ = kd.call(fn, x=x, y=y)
   while state:
     kd.call(fn, x=x, y=y)

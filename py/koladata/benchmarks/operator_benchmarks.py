@@ -33,9 +33,9 @@ def add_eager(state):
   x = kd.slice(1)
   y = kd.slice(2)
   # To initialize all lazy initializers and reduce variance.
-  _ = kd.add(x, y)
+  _ = kd.math.add(x, y)
   while state:
-    kd.add(x, y)
+    kd.math.add(x, y)
 
 
 @google_benchmark.register
@@ -53,7 +53,7 @@ def add(state):
   x = kd.slice(1)
   y = kd.slice(2)
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(arolla.L.x, arolla.L.y)
+  expr = kde.math.add(arolla.L.x, arolla.L.y)
   _ = arolla.eval(expr, x=x, y=y)
   while state:
     arolla.eval(expr, x=x, y=y)
@@ -64,7 +64,7 @@ def add_10000(state):
   x = kd.slice([1] * 10000)
   y = kd.slice([2] * 10000)
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(arolla.L.x, arolla.L.y)
+  expr = kde.math.add(arolla.L.x, arolla.L.y)
   _ = arolla.eval(expr, x=x, y=y)
   while state:
     arolla.eval(expr, x=x, y=y)
@@ -75,7 +75,7 @@ def add_kd_eval(state):
   x = kd.slice([1])
   y = kd.slice([2])
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(I.x, I.y)
+  expr = kde.math.add(I.x, I.y)
   _ = kd.eval(expr, x=x, y=y)
   while state:
     kd.eval(expr, x=x, y=y)
@@ -86,7 +86,7 @@ def add_10000_kd_eval(state):
   x = kd.slice([1] * 10000)
   y = kd.slice([2] * 10000)
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(I.x, I.y)
+  expr = kde.math.add(I.x, I.y)
   _ = kd.eval(expr, x=x, y=y)
   while state:
     kd.eval(expr, x=x, y=y)
@@ -97,7 +97,7 @@ def add_10000_mixed_rank(state):
   x = kd.slice([1] * 10000)
   y = kd.slice(2)
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(arolla.L.x, arolla.L.y)
+  expr = kde.math.add(arolla.L.x, arolla.L.y)
   _ = arolla.eval(expr, x=x, y=y)
   while state:
     arolla.eval(expr, x=x, y=y)
@@ -108,7 +108,7 @@ def add_10000_rank_1_and_rank_2(state):
   x = kd.slice([1] * 1000)
   y = kd.slice([[1] * 10] * 1000)
   # To initialize all lazy initializers and reduce variance.
-  expr = kde.add(arolla.L.x, arolla.L.y)
+  expr = kde.math.add(arolla.L.x, arolla.L.y)
   _ = arolla.eval(expr, x=x, y=y)
   while state:
     arolla.eval(expr, x=x, y=y)

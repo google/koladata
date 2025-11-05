@@ -236,16 +236,16 @@ Implicit casting, or type promotion, plays a role in many parts of Koda. Values
 are casted implicitly without user intervention to make for a smooth experience.
 For example, the following examples show the type promotion rules in action:
 
-*   `kd.add(kd.int32(1), kd.int64(2))` results in `kd.int64(3)`.
+*   `kd.math.add(kd.int32(1), kd.int64(2))` results in `kd.int64(3)`.
 *   `kd.schema.new_schema(x=kd.INT64).new(x=kd.int32(1)).x` results in
     `kd.int64(1)`.
 *   `kd.slice([1, 2.0])` results in a `FLOAT32` DataSlice `kd.float32([1.0,
     2.0])`.
 
-The output schema of the `kd.add` example is the *common schema* of the input
-schemas `<INT32, INT64> = INT64`. The type promotion rules dictate the common
-schema for a collection of input schemas, and casts are done to the common
-schema and are applied implicitly. Because of this, these rules should be
+The output schema of the `kd.math.add` example is the *common schema* of the
+input schemas `<INT32, INT64> = INT64`. The type promotion rules dictate the
+common schema for a collection of input schemas, and casts are done to the
+common schema and are applied implicitly. Because of this, these rules should be
 consistent and result in safe (not raise) and efficient casts. Note that not all
 combinations of schemas have a common schema, for example `<ITEMID, INT32>`, and
 an error is instead raised when computing it.

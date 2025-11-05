@@ -2981,7 +2981,7 @@ in the tracing mode.
 ```py
 def f1(a):
   b = kd.item(1) + kd.item(2)
-  return kd.add(a, b)
+  return kd.math.add(a, b)
 
 f1(1)  # 4
 # Returns Functor(return=I.a + 1 + 2)
@@ -2990,7 +2990,7 @@ kd.trace_py_fn(f1)(a=1)  # 4
 
 def f2(a):
   b = kd.eager.item(1) + kd.eager.item(2)
-  return kd.add(a, b)
+  return kd.math.add(a, b)
 
 f2(1)  # 4
 # Returns Functor(return=I.a + 3)
@@ -3049,7 +3049,7 @@ If some operators should always be executed eagerly, use `kd.eager` instead of
 ```py
 def f1(a):
   b = kd.eager.item(1) + kd.eager.item(2)
-  return kd.add(a, b)
+  return a + b
 
 kd.trace_py_fn(f1)
 # Functor(return=I.a + 3)
@@ -3174,9 +3174,9 @@ S = kd.S
 
 ```py
 # Create an Expr to represent a + b
-expr1 = kd.lazy.add(I.a, I.b)
+expr1 = I.a + I.b
 # which is equivalent to
-expr2 = I.a + I.b
+expr2 = kd.lazy.math.add(I.a, I.b)
 
 # We can also use literals
 expr3 = I.a + 1
@@ -3213,7 +3213,7 @@ assert kd.is_expr(expr1)
 ### Evaluating Koda Expr
 
 ```py
-expr = kd.lazy.add(I.a, I.b)
+expr = I.a + I.b
 kd.eval(expr, a=kd.slice([1, 2, 3]), b=kd.item(2))
 
 # which is equivalent to
@@ -3344,7 +3344,7 @@ kd.core.score(a, b, w)
 @kd.optools.add_to_registry()
 @kd.optools.as_lambda_operator('E.my_func')
 def my_func(a):
-  return kd.lazy.add(a, a)
+  return kd.lazy.math.add(a, a)
 
 # Create the operator container 'E'
 E = arolla.OperatorsContainer(unsafe_extra_namespaces=['E']).E
@@ -3369,8 +3369,8 @@ def fn(a, pos):
 kd.eval(kd.lazy.core.fn(kd.slice([1, 2, 3]), 1))
 
 # Register operator alias so that
-# kd.add is same as E.add
-kd.optools.add_alias('kd.add', 'E.Add')
+# kd.math.add is same as E.add
+kd.optools.add_alias('kd.math.add', 'E.Add')
 ```
 
 </section>

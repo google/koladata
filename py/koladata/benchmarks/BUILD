@@ -175,7 +175,6 @@ py_test(
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
-        "//py/koladata/functions/tests:test_py_pb2",
         # Enables python functions in profile.
         # Enables --cpu_profile.
         # Enables --peakheap_profile.

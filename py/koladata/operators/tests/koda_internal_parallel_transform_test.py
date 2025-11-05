@@ -155,7 +155,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         functor_factories.trace_py_fn(lambda x, y: x + y * 2),
         replacements=[
             fns.obj(
-                from_op='kd.add',
+                from_op='kd.math.add',
                 to_op='koda_internal.parallel.transform_test.my_add',
                 argument_transformation=fns.obj(
                     arguments=[

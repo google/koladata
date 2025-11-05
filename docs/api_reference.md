@@ -4189,9 +4189,6 @@ Arithmetic operators.
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise absolute value of the input.</code></pre>
 
 ### `kd.math.add(x, y)` {#kd.math.add}
-Aliases:
-
-- [kd.add](#kd.add)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise x + y.</code></pre>
 
@@ -9134,10 +9131,6 @@ Aliases:
 <section class="zippy closed">
 
 **Operators**
-
-### `kd.add(x, y)` {#kd.add}
-
-Alias for [kd.math.add](#kd.math.add) operator.
 
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 

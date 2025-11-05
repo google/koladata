@@ -94,7 +94,7 @@ class KdTest(absltest.TestCase):
 
   def test_ops(self):
     kd.testing.assert_equal(
-        kd.add(kd.slice([1, 2]), kd.slice([3, 4])), kd.slice([4, 6])
+        kd.math.add(kd.slice([1, 2]), kd.slice([3, 4])), kd.slice([4, 6])
     )
     kd.testing.assert_equal(
         kd.has(kd.slice([1, None])), kd.slice([arolla.present(), None])
@@ -132,7 +132,7 @@ class KdTest(absltest.TestCase):
   def test_expr(self):
     kd.testing.assert_equal(
         kd.eval(
-            kd.lazy.add(S.x, I.y),
+            kd.lazy.math.add(S.x, I.y),
             kd.new(x=kd.slice([1, 2])),
             y=kd.slice([3, 4]),
         ),
@@ -801,8 +801,8 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(get_data_slice(), kd.qtypes.DATA_SLICE)
 
   def test_eager_operator(self):
-    self.assertIsInstance(kd.add, kd.optools.eager.EagerOperator)
-    kd.testing.assert_equal(kd.add.lazy_op, kd.lazy.add)
+    self.assertIsInstance(kd.math.add, kd.optools.eager.EagerOperator)
+    kd.testing.assert_equal(kd.math.add.lazy_op, kd.lazy.math.add)
 
   def test_function_boxing(self):
     fn = kd.expr.as_expr(lambda x: x + 1)

@@ -121,8 +121,8 @@ longer compatible with the new sizes except in trivial cases. This practically
 restricts broadcasting to a prohibitively limited set of cases given how common
 jaggedness is in Koda.
 
-NOTE: In Koda, broadcasting normally happens implicitly. For example, `kd.add(x,
-y)` produces a result with the *common shape* of `x` and `y`.
+NOTE: In Koda, broadcasting normally happens implicitly. For example, `x + y`
+produces a result with the *common shape* of `x` and `y`.
 
 ### Indexing
 

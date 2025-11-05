@@ -32,7 +32,7 @@ def koda_operator_test(
         kd_op_mapping: List of `<arolla_op>:<kd_op>` mappings. During expr eval, each `arolla_op`
             will be evaluated using the corresponding `kd_op`. If an arolla_op is encountered that
             is not listed, an exception will be raised. Example: ["strings.join:add","math.add:add"]
-            indicates that `M.strings.join` and `M.math.add` should be evaluated using `kd.add`.
+            indicates that `M.strings.join` and `M.math.add` should be evaluated using `kd.math.add`.
         args_for_reshape: List of argument names in the Arolla operator to reshape based on the
             shape derived from `over` or `into` . If None, the first argument will be reshaped.
         skip_test_patterns: List of test name patterns to skip. The patterns are matched with the
@@ -75,11 +75,11 @@ def koda_operator_coverage_test(
     """Creates a test that checks that `koda_op` covers the provided `arolla_op`.
 
     Example:
-        # Runs all `M.math.add` tests using `kd.add`.
+        # Runs all `M.math.add` tests for `kd.math.add`.
         koda_operator_coverage_test(
             name = "kd_add_covers_math_add_test",
             arolla_op = "math.add",
-            koda_op = "add",
+            koda_op = "math.add",
         )
 
     Args:
@@ -89,8 +89,8 @@ def koda_operator_coverage_test(
         kd_op_mapping: List of `<arolla_op>:<kd_op>` mappings. During expr eval, each `arolla_op` will
             be evaluated using the corresponding `kd_op`. If an arolla_op is encountered that is not
             listed, an exception will be raised. Example: ["strings.join:add", "math.add:add"]
-            indicates that `M.strings.join` and `M.math.add` should be evaluated using `kd.add`. If
-            None, [f"{arolla_op}:{koda_op_name}"] will be used instead (eventually).
+            indicates that `M.strings.join` and `M.math.add` should be evaluated using `kd.math.add`.
+            If None, [f"{arolla_op}:{koda_op_name}"] will be used instead (eventually).
         args_for_reshape: List of argument names in the Arolla operator to reshape based on the
             shape derived from `over` or `into` . If None, the first argument will be reshaped.
         main: Python test file to be tested. If None, "{arolla_op_snake}_test.py" will be used.

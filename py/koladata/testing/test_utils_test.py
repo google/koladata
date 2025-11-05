@@ -56,9 +56,9 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_equal_expr(self):
     # Success.
-    test_utils.assert_equal(kde.add(1, 3), kde.add(1, 3))
+    test_utils.assert_equal(kde.math.add(1, 3), kde.math.add(1, 3))
     # Failure.
-    lhs = kde.math.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)
     rhs = kde.math.subtract(1, 3)
     with self.assertRaisesWithLiteralMatch(
         AssertionError,
@@ -140,7 +140,7 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_not_equal_expr(self):
     # Success.
-    lhs = kde.math.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)
     rhs = kde.math.subtract(1, 3)
     test_utils.assert_not_equal(lhs, rhs)
     # Failure.

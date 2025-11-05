@@ -173,7 +173,9 @@ class KodaTestEvalTest(parameterized.TestCase):
     expr = M.math.add(L.x, L.y)
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
-    mock_add = mock.MagicMock(wraps=lambda x, y: kd.add(kd.add(x, y), x))
+    mock_add = mock.MagicMock(
+        wraps=lambda x, y: kd.math.add(kd.math.add(x, y), x)
+    )
     with mock.patch.object(
         koda_test_eval, '_get_eager_koda_op', return_value=mock_add
     ):
@@ -192,8 +194,8 @@ class KodaTestEvalTest(parameterized.TestCase):
     y = arolla.dense_array([4, 5, 6])
     with flagsaver.flagsaver(
         extra_flags=[
-            'kd_op_mapping:math.subtract:add',
-            'kd_op_mapping:math.multiply:add',
+            'kd_op_mapping:math.subtract:math.add',
+            'kd_op_mapping:math.multiply:math.add',
         ]
     ):
       arolla.testing.assert_qvalue_allequal(
@@ -242,7 +244,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     x = arolla.optional_int32(1)
     y = arolla.optional_int32(2)
     implicit_koda_output = data_conversion.arolla_from_koda(
-        kd.add(
+        kd.math.add(
             data_conversion.koda_from_arolla(x),
             data_conversion.koda_from_arolla(y),
         )

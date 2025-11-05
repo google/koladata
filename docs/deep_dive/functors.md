@@ -167,12 +167,12 @@ If this expression is evaluated with `a = kd.int32(2)`, `b = kd.int32(3)`, and
 
 1.  The input nodes `I.a`, `I.b`, and `I.c` are resolved to their respective
     `DataItem` values: `2`, `3`, and `4`.
-2.  The `+` operator (resolved to `kd.add`), with its inputs `I.a` and `I.b` now
-    known, is evaluated: `kd.add(kd.int32(2), kd.int32(3))` yields
-    `kd.int32(5)`.
-3.  The `*` operator (resolved to `kd.multiply`) at the root has its inputs
+2.  The `+` operator (resolved to `kd.math.add`), with its inputs `I.a` and
+    `I.b` now known, is evaluated: `kd.math.add(kd.int32(2), kd.int32(3))`
+    yields `kd.int32(5)`.
+3.  The `*` operator (resolved to `kd.math.multiply`) at the root has its inputs
     resolved to the result of `I.a + I.b` (which is `5`) and `I.c` (which is
-    `4`). The multiplication is performed: `kd.multiply(kd.int32(5),
+    `4`). The multiplication is performed: `kd.math.multiply(kd.int32(5),
     kd.int32(4))` results in `kd.int32(20)`. This `kd.int32(20)` is the final
     result of the expression's evaluation.
 
@@ -225,10 +225,10 @@ is termed *tracing*. This process involves:
     inferred from the Python function's signature (e.g. `I.x`, `I.y`). These
     placeholders represent the arguments that will be supplied when the Functor
     is eventually evaluated.
-3.  Koda operations encountered within the function (e.g. `kd.add`) construct
-    Expressions. The standard `kd.*` operators, when invoked within a tracing
-    context, typically delegate to their `kd.lazy.*` counterparts, which are
-    responsible for building these Expression nodes.
+3.  Koda operations encountered within the function (e.g. `kd.math.add`)
+    construct Expressions. The standard `kd.*` operators, when invoked within a
+    tracing context, typically delegate to their `kd.lazy.*` counterparts, which
+    are responsible for building these Expression nodes.
 4.  Native Python control flow constructs such as `if` statements and `for` or
     `while` loops are executed during the tracing phase itself. The structure of
     the generated Expression may be determined by this control flow, but the

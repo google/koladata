@@ -38,7 +38,6 @@
 #include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/testing/matchers.h"
 
 namespace koladata::functor::parallel {
@@ -60,7 +59,7 @@ TEST(TransformTest, Basic) {
   ASSERT_OK_AND_ASSIGN(expr::InputContainer input_container,
                        expr::InputContainer::Create("I"));
   ASSERT_OK_AND_ASSIGN(auto returns_expr,
-                       arolla::expr::CallOp("kd.add",
+                       arolla::expr::CallOp("kd.math.add",
                                             {input_container.CreateInput("a"),
                                              input_container.CreateInput("b")},
                                             {}));
