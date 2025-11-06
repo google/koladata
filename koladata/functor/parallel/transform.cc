@@ -494,11 +494,6 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         }
         break;
       }
-      case ParallelTransformConfigProto::ArgumentTransformation::
-          EXECUTION_CONTEXT: {
-        new_deps.push_back(arolla::expr::Literal(config));
-        break;
-      }
       case ParallelTransformConfigProto::ArgumentTransformation::EXECUTOR: {
         new_deps.push_back(executor_input);
         break;

@@ -54,8 +54,8 @@ message ParallelTransformConfigProto {
       NOT_SET = 0;
       ORIGINAL_ARGUMENTS = 1;
       EXECUTOR = 2;
-      EXECUTION_CONTEXT = 3;
       NON_DETERMINISTIC_TOKEN = 4;
+      reserved 3;
     }
 
     // The arguments to pass to the replaced operator.

@@ -46,9 +46,6 @@ _ORIGINAL_ARGUMENTS = (
 _EXECUTOR = (
     transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.EXECUTOR
 )
-_EXECUTION_CONTEXT = (
-    transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.EXECUTION_CONTEXT
-)
 _NON_DETERMINISTIC_TOKEN = (
     transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.NON_DETERMINISTIC_TOKEN
 )
@@ -136,14 +133,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         qtype_inference_expr=future_data_slice_qtype,
         deterministic=False,
     )
-    def my_add(op_context, op_executor, x, y):
+    def my_add(op_executor, x, y):
       testing.assert_equal(
           op_executor,
           expr_eval.eval(koda_internal_parallel.get_eager_executor()),
-      )
-      testing.assert_equal(
-          op_context.qtype,
-          expr_eval.eval(bootstrap.get_transform_config_qtype()),
       )
       x_value = expr_eval.eval(
           koda_internal_parallel.get_future_value_for_testing(x)
@@ -161,7 +154,6 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
                 to_op='koda_internal.parallel.transform_test.my_add',
                 argument_transformation=fns.obj(
                     arguments=[
-                        _EXECUTION_CONTEXT,
                         _EXECUTOR,
                         _ORIGINAL_ARGUMENTS,
                         _NON_DETERMINISTIC_TOKEN,

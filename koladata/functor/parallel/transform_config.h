@@ -46,8 +46,8 @@ class ParallelTransformConfig {
 
   using ReplacementMap = absl::flat_hash_map<arolla::Fingerprint, Replacement>;
 
-  explicit ParallelTransformConfig(bool allow_runtime_transforms,
-                                   ReplacementMap operator_replacements)
+  ParallelTransformConfig(bool allow_runtime_transforms,
+                          ReplacementMap operator_replacements)
       : allow_runtime_transforms_(allow_runtime_transforms),
         operator_replacements_(std::move(operator_replacements)) {}
 
@@ -61,18 +61,14 @@ class ParallelTransformConfig {
   // the fingerprint of the QValue.
   const arolla::Fingerprint& uuid() const { return uuid_; }
 
-  ParallelTransformConfig(const ParallelTransformConfig&) = delete;
-  ParallelTransformConfig& operator=(const ParallelTransformConfig&) = delete;
-  ParallelTransformConfig(ParallelTransformConfig&&) = default;
-  ParallelTransformConfig& operator=(ParallelTransformConfig&&) = default;
-
  private:
   bool allow_runtime_transforms_;
   ReplacementMap operator_replacements_;
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
 };
 
-using ParallelTransformConfigPtr = std::shared_ptr<ParallelTransformConfig>;
+using ParallelTransformConfigPtr =
+    std::shared_ptr<const ParallelTransformConfig>;
 
 }  // namespace koladata::functor::parallel
 
