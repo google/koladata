@@ -30,34 +30,34 @@ koda_internal_parallel = kde_operators.internal.parallel
 # We do not have a Python API for fetching the config from the context,
 # so that part is tested in the C++ tests, here just do small sanity
 # checks.
-class KodaInternalParallelCreateExecutionContextTest(absltest.TestCase):
+class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_can_run(self):
-    _ = arolla.eval(koda_internal_parallel.create_execution_context(None))
+    _ = arolla.eval(koda_internal_parallel.create_transform_config(None))
 
   def test_config_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'config must be a scalar, got rank 1',
+        'config_src must be a scalar, got rank 1',
     ):
       _ = arolla.eval(
-          koda_internal_parallel.create_execution_context(ds([None]))
+          koda_internal_parallel.create_transform_config(ds([None]))
       )
 
   def test_qtype_signatures(self):
-    execution_context_qtype = arolla.eval(
-        bootstrap.get_execution_context_qtype()
+    parallel_transform_config_qtype = arolla.eval(
+        bootstrap.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.create_execution_context,
-        [(qtypes.DATA_SLICE, execution_context_qtype)],
+        koda_internal_parallel.create_transform_config,
+        [(qtypes.DATA_SLICE, parallel_transform_config_qtype)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        + (execution_context_qtype,),
+        + (parallel_transform_config_qtype,),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.create_execution_context(I.x))
+        view.has_koda_view(koda_internal_parallel.create_transform_config(I.x))
     )
 
 

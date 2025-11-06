@@ -51,7 +51,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_simple_with_replacements(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.get_default_execution_context()
+    config = koda_internal_parallel.get_default_transform_config()
     fn = functor_factories.expr_fn(
         koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
     )
@@ -62,7 +62,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
             y=I.bar,
         )
     )
-    call_expr = koda_internal_parallel.transform(context, call_fn)(
+    call_expr = koda_internal_parallel.transform(config, call_fn)(
         executor,
         func=koda_internal_parallel.as_future(fn),
         foo=koda_internal_parallel.as_future(I.foo),
@@ -94,7 +94,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     self.assertTrue(
         view.has_koda_view(
             koda_internal_parallel.parallel_call_fn_returning_stream(
-                I.executor, I.context, I.fn
+                I.executor, I.config, I.fn
             )
         )
     )

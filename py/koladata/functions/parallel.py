@@ -185,9 +185,9 @@ def transform(
     The transformed functor.
   """
   fn = py_boxing.as_qvalue(fn)
-  context = koda_internal_parallel.create_execution_context(
-      koda_internal_parallel.get_default_execution_config().with_attrs(
+  config = koda_internal_parallel.create_transform_config(
+      koda_internal_parallel.get_default_transform_config_src().with_attrs(
           allow_runtime_transforms=allow_runtime_transforms
       )
   )
-  return arolla.eval(koda_internal_parallel.transform(context, fn))
+  return arolla.eval(koda_internal_parallel.transform(config, fn))

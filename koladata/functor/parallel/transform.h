@@ -15,10 +15,11 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_H_
 #define KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_H_
 
+#include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.h"
 
 namespace koladata::functor::parallel {
 
@@ -31,8 +32,8 @@ namespace koladata::functor::parallel {
 //
 // This method applies this transformation to the given functor and the
 // sub-functors that are called inside it.
-absl::StatusOr<DataSlice> TransformToParallel(
-    const ExecutionContextPtr& context, DataSlice functor);
+absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
+    const ParallelTransformConfigPtr absl_nonnull& config, DataSlice functor);
 
 // A wrapper around TransformToParallel that can additionally process:
 // 1) a DataSlice of several functors, in which case we will translate
@@ -43,7 +44,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
 // This is the operation that is applied to arguments marked as
 // functor_argument_indices in the replacement config.
 absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
-    const ExecutionContextPtr& context, arolla::TypedValue functors);
+    const ParallelTransformConfigPtr absl_nonnull& config,
+    arolla::TypedValue functors);
 
 }  // namespace koladata::functor::parallel
 

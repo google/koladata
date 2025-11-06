@@ -31,7 +31,7 @@
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/parallel/create_execution_context.h"
+#include "koladata/functor/parallel/create_transform_config.h"
 #include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
@@ -55,7 +55,8 @@ TEST(TransformTest, Basic) {
                        DataSlice::Create(internal::DataItem(),
                                          internal::DataItem(schema::kObject),
                                          DataBag::EmptyMutable()));
-  ASSERT_OK_AND_ASSIGN(auto context, CreateExecutionContext(missing_object));
+  ASSERT_OK_AND_ASSIGN(auto config,
+                       CreateParallelTransformConfig(missing_object));
   ASSERT_OK_AND_ASSIGN(expr::InputContainer input_container,
                        expr::InputContainer::Create("I"));
   ASSERT_OK_AND_ASSIGN(auto returns_expr,
@@ -68,7 +69,7 @@ TEST(TransformTest, Basic) {
   ASSERT_OK_AND_ASSIGN(DataSlice functor,
                        CreateFunctor(returns, missing_object, {}, {}));
   ASSERT_OK_AND_ASSIGN(DataSlice transformed_functor,
-                       TransformToParallel(context, functor));
+                       TransformToParallel(config, functor));
   auto [future_a, writer_a] = MakeFuture(arolla::GetQType<DataSlice>());
   std::move(writer_a).SetValue(
       arolla::TypedValue::FromValue(DataSlice::CreatePrimitive(1)));

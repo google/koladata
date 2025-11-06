@@ -9147,7 +9147,7 @@ py_test(
     name = "koda_internal_parallel_transform_test",
     srcs = ["koda_internal_parallel_transform_test.py"],
     deps = [
-        "//koladata/functor/parallel:execution_config_py_proto",
+        "//koladata/functor/parallel:transform_config_py_proto",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -9288,8 +9288,8 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_get_execution_context_qtype_test",
-    srcs = ["koda_internal_parallel_get_execution_context_qtype_test.py"],
+    name = "koda_internal_parallel_get_transform_config_qtype_test",
+    srcs = ["koda_internal_parallel_get_transform_config_qtype_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:view",
@@ -9300,8 +9300,8 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_create_execution_context_test",
-    srcs = ["koda_internal_parallel_create_execution_context_test.py"],
+    name = "koda_internal_parallel_create_transform_config_test",
+    srcs = ["koda_internal_parallel_create_transform_config_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:input_container",
@@ -9317,8 +9317,8 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_get_default_execution_context_test",
-    srcs = ["koda_internal_parallel_get_default_execution_context_test.py"],
+    name = "koda_internal_parallel_get_default_transform_config_test",
+    srcs = ["koda_internal_parallel_get_default_transform_config_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
@@ -9440,10 +9440,10 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_get_default_execution_config_test",
-    srcs = ["koda_internal_parallel_get_default_execution_config_test.py"],
+    name = "koda_internal_parallel_get_default_transform_config_src_test",
+    srcs = ["koda_internal_parallel_get_default_transform_config_src_test.py"],
     deps = [
-        "//koladata/functor/parallel:execution_config_py_proto",
+        "//koladata/functor/parallel:transform_config_py_proto",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",

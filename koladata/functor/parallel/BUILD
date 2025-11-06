@@ -74,8 +74,8 @@ cc_library(
     srcs = ["transform.cc"],
     hdrs = ["transform.h"],
     deps = [
-        ":execution_config_cc_proto",
-        ":execution_context",
+        ":transform_config",
+        ":transform_config_cc_proto",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -91,6 +91,7 @@ cc_library(
         "//koladata/operators:lib",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
@@ -114,7 +115,7 @@ cc_test(
     name = "transform_test",
     srcs = ["transform_test.cc"],
     deps = [
-        ":create_execution_context",
+        ":create_transform_config",
         ":eager_executor",
         ":executor",
         ":future",
@@ -143,11 +144,9 @@ cc_library(
     srcs = ["eager_executor.cc"],
     hdrs = ["eager_executor.h"],
     deps = [
-        ":context_guard",
         ":executor",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/functional:any_invocable",
     ],
 )
 
@@ -695,8 +694,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = [
         ":async_eval_operator",
-        ":create_execution_context",
-        ":execution_context",
+        ":create_transform_config",
         ":executor",
         ":future_operators",
         ":future_qtype",
@@ -704,6 +702,7 @@ cc_library(
         ":stream_operators",
         ":stream_qtype",
         ":transform",
+        ":transform_config",
         ":transform_operators",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -926,11 +925,11 @@ cc_library(
 )
 
 cc_library(
-    name = "execution_context",
-    srcs = ["execution_context.cc"],
-    hdrs = ["execution_context.h"],
+    name = "transform_config",
+    srcs = ["transform_config.cc"],
+    hdrs = ["transform_config.h"],
     deps = [
-        ":execution_config_cc_proto",
+        ":transform_config_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
@@ -939,11 +938,11 @@ cc_library(
 )
 
 cc_test(
-    name = "execution_context_test",
-    srcs = ["execution_context_test.cc"],
+    name = "transform_config_test",
+    srcs = ["transform_config_test.cc"],
     deps = [
-        ":execution_config_cc_proto",
-        ":execution_context",
+        ":transform_config",
+        ":transform_config_cc_proto",
         "//koladata/testing:test_env",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/operators:bootstrap",
@@ -955,14 +954,15 @@ cc_test(
 )
 
 cc_library(
-    name = "create_execution_context",
-    srcs = ["create_execution_context.cc"],
-    hdrs = ["create_execution_context.h"],
+    name = "create_transform_config",
+    srcs = ["create_transform_config.cc"],
+    hdrs = ["create_transform_config.h"],
     deps = [
-        ":execution_config_cc_proto",
-        ":execution_context",
+        ":transform_config",
+        ":transform_config_cc_proto",
         "//koladata:data_slice",
         "//koladata/proto:to_proto",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -978,8 +978,8 @@ cc_library(
     srcs = ["transform_operators.cc"],
     hdrs = ["transform_operators.h"],
     deps = [
-        ":execution_context",
         ":transform",
+        ":transform_config",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal/op_utils:qexpr",
@@ -994,11 +994,11 @@ cc_library(
 )
 
 cc_test(
-    name = "create_execution_context_test",
-    srcs = ["create_execution_context_test.cc"],
+    name = "create_transform_config_test",
+    srcs = ["create_transform_config_test.cc"],
     deps = [
-        ":create_execution_context",
-        ":execution_config_cc_proto",
+        ":create_transform_config",
+        ":transform_config_cc_proto",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/proto:from_proto",
@@ -1026,21 +1026,21 @@ cc_test(
 )
 
 proto_library(
-    name = "execution_config_proto",
-    srcs = ["execution_config.proto"],
+    name = "transform_config_proto",
+    srcs = ["transform_config.proto"],
 )
 
 py_proto_library(
-    name = "execution_config_py_proto",
+    name = "transform_config_py_proto",
     deps = [
-        ":execution_config_proto",
+        ":transform_config_proto",
     ],
 )
 
 cc_proto_library(
-    name = "execution_config_cc_proto",
+    name = "transform_config_cc_proto",
     deps = [
-        ":execution_config_proto",
+        ":transform_config_proto",
     ],
 )
 

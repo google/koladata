@@ -16,7 +16,7 @@ edition = "2023";
 
 package koladata.functor.parallel;
 
-// This message contains the configuration for a parallel execution.
+// This message contains a configuration for the parallel transformation.
 //
 // The configuration is list of operator replacements. Each operator replacement
 // describes the handling of a specific operator in a parallel execution.
@@ -48,7 +48,7 @@ package koladata.functor.parallel;
 // Additionally, the operator replacement can specify that we need to pass
 // additional arguments to the parallel operator, such as the executor or the
 // execution context or the non-deterministic token.
-message ExecutionConfig {
+message ParallelTransformConfigProto {
   message ArgumentTransformation {
     enum ReplacementArgument {
       NOT_SET = 0;

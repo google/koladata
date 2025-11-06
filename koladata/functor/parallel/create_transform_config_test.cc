@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/create_execution_context.h"
+#include "koladata/functor/parallel/create_transform_config.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -23,7 +23,7 @@
 #include "arolla/util/testing/equals_proto.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/parallel/execution_config.pb.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 #include "koladata/proto/from_proto.h"
 
 namespace koladata::functor::parallel {
@@ -34,38 +34,40 @@ using ::arolla::testing::EqualsProto;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
-TEST(CreateExecutionContextTest, Default) {
-  ExecutionConfig config;
+TEST(CreateParallelTransformConfigTest, Default) {
+  ParallelTransformConfigProto config_proto;
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_OK_AND_ASSIGN(auto execution_context,
-                       CreateExecutionContext(config_slice));
+                       CreateParallelTransformConfig(config_slice));
   EXPECT_EQ(execution_context->operator_replacements().size(), 0);
   EXPECT_FALSE(execution_context->allow_runtime_transforms());
 }
 
-TEST(CreateExecutionContextTest, Basic) {
-  ExecutionConfig config;
-  auto* replacement = config.add_operator_replacements();
+TEST(CreateParallelTransformConfigTest, Basic) {
+  ParallelTransformConfigProto config_proto;
+  auto* replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
   replacement->set_to_op("core.make_tuple");
   auto* transformation = replacement->mutable_argument_transformation();
   transformation->add_arguments(
-      ExecutionConfig::ArgumentTransformation::EXECUTOR);
+      ParallelTransformConfigProto::ArgumentTransformation::EXECUTOR);
   transformation->add_arguments(
-      ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
+      ParallelTransformConfigProto::ArgumentTransformation::ORIGINAL_ARGUMENTS);
   transformation->add_keep_literal_argument_indices(1);
-  config.set_allow_runtime_transforms(true);
+  config_proto.set_allow_runtime_transforms(true);
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_OK_AND_ASSIGN(auto execution_context,
-                       CreateExecutionContext(config_slice));
+                       CreateParallelTransformConfig(config_slice));
   ASSERT_OK_AND_ASSIGN(arolla::expr::ExprOperatorPtr op_before,
                        arolla::expr::LookupOperator("core.get_nth"));
   ASSERT_OK_AND_ASSIGN(op_before,
@@ -87,23 +89,24 @@ TEST(CreateExecutionContextTest, Basic) {
   EXPECT_TRUE(execution_context->allow_runtime_transforms());
 }
 
-TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
-  ExecutionConfig config;
-  auto* replacement = config.add_operator_replacements();
+TEST(CreateParallelTransformConfigTest, OriginalArgumentsImplied) {
+  ParallelTransformConfigProto config_proto;
+  auto* replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
   replacement->set_to_op("core.make_tuple");
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_OK_AND_ASSIGN(auto execution_context,
-                       CreateExecutionContext(config_slice));
-  EXPECT_THAT(
-      execution_context->operator_replacements()
-          .begin()
-          ->second.argument_transformation.arguments(),
-      ElementsAre(ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS));
+                       CreateParallelTransformConfig(config_slice));
+  EXPECT_THAT(execution_context->operator_replacements()
+                  .begin()
+                  ->second.argument_transformation.arguments(),
+              ElementsAre(ParallelTransformConfigProto::ArgumentTransformation::
+                              ORIGINAL_ARGUMENTS));
   EXPECT_THAT(
       execution_context->operator_replacements()
           .begin()
@@ -111,65 +114,69 @@ TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
       ElementsAre());
 }
 
-TEST(CreateExecutionContextTest, UnknownFromOperator) {
-  ExecutionConfig config;
-  auto* replacement = config.add_operator_replacements();
+TEST(CreateParallelTransformConfigTest, UnknownFromOperator) {
+  ParallelTransformConfigProto config_proto;
+  auto* replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("core.non_existing_operator");
   replacement->set_to_op("core.make_tuple");
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(config_slice),
+      CreateParallelTransformConfig(config_slice),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("operator not found: core.non_existing_operator")));
 }
 
-TEST(CreateExecutionContextTest, UnknownToOperator) {
-  ExecutionConfig config;
-  auto* replacement = config.add_operator_replacements();
+TEST(CreateParallelTransformConfigTest, UnknownToOperator) {
+  ParallelTransformConfigProto config_proto;
+  auto* replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
   replacement->set_to_op("core.non_existing_operator");
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(config_slice),
+      CreateParallelTransformConfig(config_slice),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("operator not found: core.non_existing_operator")));
 }
 
-TEST(CreateExecutionContextTest, DuplicateFromOperator) {
-  ExecutionConfig config;
-  auto* replacement = config.add_operator_replacements();
+TEST(CreateParallelTransformConfigTest, DuplicateFromOperator) {
+  ParallelTransformConfigProto config_proto;
+  auto* replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("kd.call");
   replacement->set_to_op("kd.call");
-  replacement = config.add_operator_replacements();
+  replacement = config_proto.add_operator_replacements();
   replacement->set_from_op("kd.functor.call");
   replacement->set_to_op("kd.call");
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
   ASSERT_OK_AND_ASSIGN(
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(config_slice),
+      CreateParallelTransformConfig(config_slice),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr("duplicate operator replacement for: kd.functor.call")));
 }
 
-TEST(CreateExecutionContextTest, InvalidConfigShape) {
-  ExecutionConfig config;
+TEST(CreateParallelTransformConfigTest, InvalidConfigShape) {
+  ParallelTransformConfigProto config_proto;
   auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
-  EXPECT_THAT(CreateExecutionContext(config_slice_1d),
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d,
+                       FromProto(db, {&config_proto}));
+  EXPECT_THAT(CreateParallelTransformConfig(config_slice_1d),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("config must be a scalar, got rank 1")));
+                       HasSubstr("config_src must be a scalar, got rank 1")));
 }
 
 }  // namespace

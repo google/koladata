@@ -215,12 +215,12 @@ def expect_executor_or_unspecified(param) -> constraints.QTypeConstraint:
   )
 
 
-def expect_execution_context(param) -> constraints.QTypeConstraint:
-  """Returns a constraint that the argument is an ExecutionContext."""
+def expect_parallel_transform_config(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a PARALLEL_TRANSFORM_CONFIG."""
   return (
-      param == bootstrap.get_execution_context_qtype(),
+      param == bootstrap.get_transform_config_qtype(),
       (
-          'expected an execution context, got'
+          'expected a parallel transform config, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
       ),
   )

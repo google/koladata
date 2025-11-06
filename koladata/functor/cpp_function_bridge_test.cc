@@ -215,8 +215,7 @@ TEST(CppFunctionBridgeTest, DefaultValues) {
   EXPECT_THAT(
       CallFunctorWithCompilationCache(
           functor,
-          {arolla::TypedRef::FromValue(DataSlice::CreatePrimitive(10))},
-          {"x"}),
+          {arolla::TypedRef::FromValue(DataSlice::CreatePrimitive(10))}, {"x"}),
       IsOkAndHolds(QValueWith<DataSlice>(
           IsEquivalentTo(DataSlice::CreatePrimitive(11)))));
   EXPECT_THAT(CallFunctorWithCompilationCache(
@@ -271,7 +270,7 @@ TEST(CppFunctionBridgeTest, UnsupportedSignatures) {
                     [](const DataSlice& x,
                        const DataSlice& y) -> absl::StatusOr<DataSlice> {
                       return DataSlice::CreatePrimitive(x.item().value<int>() +
-                                                         y.item().value<int>());
+                                                        y.item().value<int>());
                     },
                     "my_add", std::move(signature)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
@@ -287,7 +286,7 @@ TEST(CppFunctionBridgeTest, UnsupportedSignatures) {
             [](const DataSlice& x,
                const DataSlice& y) -> absl::StatusOr<DataSlice> {
               return DataSlice::CreatePrimitive(x.item().value<int>() +
-                                                 y.item().value<int>());
+                                                y.item().value<int>());
             },
             "my_add", std::move(signature)),
         StatusIs(absl::StatusCode::kInvalidArgument,
@@ -300,7 +299,7 @@ TEST(CppFunctionBridgeTest, UnsupportedSignatures) {
                     [](const DataSlice& x,
                        const DataSlice& y) -> absl::StatusOr<DataSlice> {
                       return DataSlice::CreatePrimitive(x.item().value<int>() +
-                                                         y.item().value<int>());
+                                                        y.item().value<int>());
                     },
                     "my_add", std::move(signature)),
                 StatusIs(absl::StatusCode::kInvalidArgument,
@@ -336,7 +335,7 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelTransform) {
   auto executor_expr =
       arolla::expr::CallOp("koda_internal.parallel.get_eager_executor", {});
   auto execution_context_expr = arolla::expr::CallOp(
-      "koda_internal.parallel.get_default_execution_context", {});
+      "koda_internal.parallel.get_default_transform_config", {});
   auto unspecified_expr = arolla::expr::Literal(arolla::GetUnspecifiedQValue());
   auto input_value_expr = arolla::expr::Literal(DataSlice::CreatePrimitive(1));
   auto args_expr = arolla::expr::CallOp(

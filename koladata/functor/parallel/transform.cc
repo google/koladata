@@ -25,6 +25,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -61,8 +62,8 @@
 #include "koladata/expr/non_determinism.h"
 #include "koladata/functor/auto_variables.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/parallel/execution_config.pb.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
+#include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
@@ -87,8 +88,9 @@ inline constexpr absl::string_view kExecutorParamName = "_executor";
 // therefore the resulting functor is simpler to debug.
 absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
     DataSlice functor,
-    absl::AnyInvocable<absl::StatusOr<const ExecutionContext::Replacement*>(
-        const arolla::expr::ExprNodePtr&) const>
+    absl::AnyInvocable<
+        absl::StatusOr<const ParallelTransformConfig::Replacement*>(
+            const arolla::expr::ExprNodePtr&) const>
         find_replacement_fn) {
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
@@ -170,12 +172,13 @@ absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
 // The following subexpression become their own variables:
 // - all inputs
 // - all leaves (the only expected leaf is the non-deterministic leaf)
-// - all operations that have a custom replacement in the execution context.
+// - all operations that have a custom replacement in the config.
 // - the inputs to such operations, except literals.
 absl::StatusOr<DataSlice> AddVariables(
     DataSlice functor, const expr::InputContainer& variable_container,
-    absl::AnyInvocable<absl::StatusOr<const ExecutionContext::Replacement*>(
-        const arolla::expr::ExprNodePtr&) const>
+    absl::AnyInvocable<
+        absl::StatusOr<const ParallelTransformConfig::Replacement*>(
+            const arolla::expr::ExprNodePtr&) const>
         find_replacement_fn) {
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
@@ -244,12 +247,12 @@ class InnerTransformManager {
     bool is_future;
   };
 
-  InnerTransformManager(const ExecutionContextPtr& context,
+  InnerTransformManager(const ParallelTransformConfigPtr absl_nonnull& config,
                         const DataSlice& functor,
                         const DataSlice::AttrNamesSet& attr_names,
                         const expr::InputContainer& variable_container,
                         const arolla::expr::ExprNodePtr& executor_input)
-      : context_(context),
+      : config_(config),
         functor_(functor),
         variable_container_(variable_container),
         used_var_names_(attr_names),
@@ -300,7 +303,7 @@ class InnerTransformManager {
       results_.emplace(var_name, result);
       return result;
     }
-    if (!context_->allow_runtime_transforms()) {
+    if (!config_->allow_runtime_transforms()) {
       return absl::InvalidArgumentError(absl::StrCat(
           "The parallel transformation requires that all sub-functors being"
           " called are specified as literals, instead of being computed"
@@ -313,7 +316,8 @@ class InnerTransformManager {
           " computed sub-functor in a parallel fashion, you can pass"
           " allow_runtime_transforms=True to kd.parallel.transform, but this"
           " will be slower and should not be used in production."
-          "\nThe offending sub-functor ", var_name, ": ", arolla::Repr(var),
+          "\nThe offending sub-functor ",
+          var_name, ": ", arolla::Repr(var),
           " . The whole functor: ", arolla::Repr(functor_)));
     }
     result.is_future = true;
@@ -340,18 +344,18 @@ class InnerTransformManager {
     // a variable in a functor (we need to have a list as a variable +
     // a kd.explode() expr). So "Many" is a bit misleading here, but I prefer
     // to keep one function for both eager and lazy transformation.
-    return TransformManyToParallel(context_, std::move(sub_functor));
+    return TransformManyToParallel(config_, std::move(sub_functor));
   }
 
   absl::StatusOr<arolla::expr::ExprNodePtr> TransformLazy(
       arolla::expr::ExprNodePtr sub_functor) {
     return arolla::expr::CallOp(
         "koda_internal.parallel._async_transform_many",
-        {executor_input_, arolla::expr::Literal(context_),
+        {executor_input_, arolla::expr::Literal(config_),
          std::move(sub_functor)});
   }
 
-  const ExecutionContextPtr& context_;
+  const ParallelTransformConfigPtr absl_nonnull& config_;
   const DataSlice& functor_;
   const expr::InputContainer& variable_container_;
   DataSlice::AttrNamesSet used_var_names_;
@@ -446,8 +450,9 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateAsyncReplacement(
 // Applies the given replacement to the given expression. The top-level node
 // of the expression must be the source operator of the replacement.
 absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
-    arolla::expr::ExprNodePtr var_expr, const ExecutionContextPtr& context,
-    const ExecutionContext::Replacement& replacement,
+    arolla::expr::ExprNodePtr var_expr,
+    const ParallelTransformConfigPtr absl_nonnull& config,
+    const ParallelTransformConfig::Replacement& replacement,
     const arolla::expr::ExprNodePtr& executor_input,
     const expr::InputContainer& variable_container,
     InnerTransformManager& inner_transform_manager) {
@@ -462,7 +467,8 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
   std::vector<int64_t> functor_future_indices;
   for (const auto& arg : transformation.arguments()) {
     switch (arg) {
-      case ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS: {
+      case ParallelTransformConfigProto::ArgumentTransformation::
+          ORIGINAL_ARGUMENTS: {
         const auto& functor_indices = transformation.functor_argument_indices();
         for (int64_t child_i = 0; child_i < var_expr->node_deps().size();
              ++child_i) {
@@ -488,16 +494,17 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         }
         break;
       }
-      case ExecutionConfig::ArgumentTransformation::EXECUTION_CONTEXT: {
-        new_deps.push_back(
-            arolla::expr::Literal(arolla::TypedValue::FromValue(context)));
+      case ParallelTransformConfigProto::ArgumentTransformation::
+          EXECUTION_CONTEXT: {
+        new_deps.push_back(arolla::expr::Literal(config));
         break;
       }
-      case ExecutionConfig::ArgumentTransformation::EXECUTOR: {
+      case ParallelTransformConfigProto::ArgumentTransformation::EXECUTOR: {
         new_deps.push_back(executor_input);
         break;
       }
-      case ExecutionConfig::ArgumentTransformation::NON_DETERMINISTIC_TOKEN: {
+      case ParallelTransformConfigProto::ArgumentTransformation::
+          NON_DETERMINISTIC_TOKEN: {
         ASSIGN_OR_RETURN(new_deps.emplace_back(),
                          expr::GenNonDeterministicToken());
         break;
@@ -698,12 +705,12 @@ absl::StatusOr<bool> IsAnnotationChainOnAVariable(
 //    can be made based on the top-level operator of each variable expression
 //    only, without further Expr traversals.
 // 2. For each variable, we either apply the default replacement (async_eval)
-//    or use the custom replacement provided by the execution context.
+//    or use the custom replacement provided by the config.
 //
 // The resulting functor expects proper parallel types for its inputs, and
 // guarantees that each variable is also of a proper parallel type.
-absl::StatusOr<DataSlice> TransformToParallel(
-    const ExecutionContextPtr& context, DataSlice functor) {
+absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
+    const ParallelTransformConfigPtr absl_nonnull& config, DataSlice functor) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError("functor must be a functor");
@@ -715,9 +722,9 @@ absl::StatusOr<DataSlice> TransformToParallel(
   ASSIGN_OR_RETURN(auto executor_input,
                    input_container.CreateInput(kExecutorParamName));
 
-  const auto& replacements = context->operator_replacements();
+  const auto& replacements = config->operator_replacements();
   auto find_replacement = [&replacements](const arolla::expr::ExprNodePtr& node)
-      -> absl::StatusOr<const ExecutionContext::Replacement*> {
+      -> absl::StatusOr<const ParallelTransformConfig::Replacement*> {
     ASSIGN_OR_RETURN(auto node_op,
                      arolla::expr::DecayRegisteredOperator(node->op()));
     if (node_op == nullptr) {
@@ -767,7 +774,7 @@ absl::StatusOr<DataSlice> TransformToParallel(
   var_names.reserve(attr_names.size() - 2);
   var_values.reserve(attr_names.size() - 2);
   InnerTransformManager inner_transform_manager(
-      context, functor, attr_names, variable_container, executor_input);
+      config, functor, attr_names, variable_container, executor_input);
   for (const auto& attr_name : attr_names) {
     if (attr_name == kSignatureAttrName) {
       continue;
@@ -784,7 +791,7 @@ absl::StatusOr<DataSlice> TransformToParallel(
     ASSIGN_OR_RETURN(const auto* replacement, find_replacement(var_expr));
     if (replacement) {
       ASSIGN_OR_RETURN(
-          var_expr, ApplyReplacement(std::move(var_expr), context, *replacement,
+          var_expr, ApplyReplacement(std::move(var_expr), config, *replacement,
                                      executor_input, variable_container,
                                      inner_transform_manager));
     } else if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
@@ -839,7 +846,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
 }
 
 absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
-    const ExecutionContextPtr& context, arolla::TypedValue functors) {
+    const ParallelTransformConfigPtr absl_nonnull& config,
+    arolla::TypedValue functors) {
   if (functors.GetType() == arolla::GetUnspecifiedQType()) {
     return functors;
   }
@@ -859,7 +867,7 @@ absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
     ASSIGN_OR_RETURN(DataSlice fn,
                      ops::Take(unique_fns, DataSlice::CreatePrimitive(i)));
     ASSIGN_OR_RETURN(DataSlice transformed_fn,
-                     TransformToParallel(context, std::move(fn)));
+                     TransformToParallel(config, std::move(fn)));
     unique_transformed_fns_vec.emplace_back(std::move(transformed_fn));
   }
   DataSlice is_stack = DataSlice::CreatePrimitive(true);

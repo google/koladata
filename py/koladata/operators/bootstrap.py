@@ -58,9 +58,9 @@ def is_stream_qtype(qtype):  # pylint: disable=unused-argument
 
 @arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
-    'koda_internal.parallel.get_execution_context_qtype',
+    'koda_internal.parallel.get_transform_config_qtype',
     qtype_inference_expr=arolla.QTYPE,
 )
-def get_execution_context_qtype():
-  """Returns the qtype for ExecutionContext."""
+def get_transform_config_qtype():
+  """Returns the qtype for ParallelTransformConfig."""
   raise NotImplementedError('implemented in the backend')

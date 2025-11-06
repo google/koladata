@@ -25,8 +25,8 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
-#include "koladata/functor/parallel/create_execution_context.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/create_transform_config.h"
+#include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
@@ -45,12 +45,10 @@ namespace {
 #define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 #define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
 // go/keep-sorted start
-OPERATOR("koda_internal.parallel.create_execution_context",
-         CreateExecutionContext);
+OPERATOR("koda_internal.parallel.create_transform_config",
+         CreateParallelTransformConfig);
 OPERATOR("koda_internal.parallel.current_executor",
          [](internal::NonDeterministicToken) { return CurrentExecutor(); });
-OPERATOR("koda_internal.parallel.get_execution_context_qtype",
-         []() { return arolla::GetQType<ExecutionContextPtr>(); });
 OPERATOR("koda_internal.parallel.get_future_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
@@ -61,6 +59,8 @@ OPERATOR("koda_internal.parallel.get_stream_qtype",
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
            return GetStreamQType(value_qtype);
          });
+OPERATOR("koda_internal.parallel.get_transform_config_qtype",
+         []() { return arolla::GetQType<ParallelTransformConfigPtr>(); });
 OPERATOR("koda_internal.parallel.is_future_qtype",
          [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
            return arolla::OptionalUnit(IsFutureQType(qtype));

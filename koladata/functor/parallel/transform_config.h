@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_FUNCTOR_PARALLEL_EXECUTION_CONTEXT_H_
-#define KOLADATA_FUNCTOR_PARALLEL_EXECUTION_CONTEXT_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_CONFIG_H_
+#define KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_CONFIG_H_
 
 #include <memory>
 #include <utility>
@@ -23,11 +23,11 @@
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
-#include "koladata/functor/parallel/execution_config.pb.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 
 namespace koladata::functor::parallel {
 
-// This class stores the pre-processed configuration of the parallel execution.
+// This class stores a configuration for TransformToParallel.
 //
 // It is used to implement parallel_call. Advanced users that operate on futures
 // and streams directly shouldn't use this class.
@@ -36,17 +36,18 @@ namespace koladata::functor::parallel {
 // replacement, the key in the map is the fingerprint of the decayed version of
 // the original operator, and the value is the description of its parallel
 // version.
-class ExecutionContext {
+class ParallelTransformConfig {
  public:
   struct Replacement {
     arolla::expr::ExprOperatorPtr op;
-    ExecutionConfig::ArgumentTransformation argument_transformation;
+    ParallelTransformConfigProto::ArgumentTransformation
+        argument_transformation;
   };
 
   using ReplacementMap = absl::flat_hash_map<arolla::Fingerprint, Replacement>;
 
-  explicit ExecutionContext(bool allow_runtime_transforms,
-                            ReplacementMap operator_replacements)
+  explicit ParallelTransformConfig(bool allow_runtime_transforms,
+                                   ReplacementMap operator_replacements)
       : allow_runtime_transforms_(allow_runtime_transforms),
         operator_replacements_(std::move(operator_replacements)) {}
 
@@ -55,16 +56,15 @@ class ExecutionContext {
     return operator_replacements_;
   }
 
-  // Returns the uuid of the execution context. This is a randomly generated
+  // Returns the uuid of the config. This is a randomly generated
   // fingerprint, unique for each instance, that is used to compute
   // the fingerprint of the QValue.
   const arolla::Fingerprint& uuid() const { return uuid_; }
 
-  // Disallow copy but allow move.
-  ExecutionContext(const ExecutionContext&) = delete;
-  ExecutionContext& operator=(const ExecutionContext&) = delete;
-  ExecutionContext(ExecutionContext&&) = default;
-  ExecutionContext& operator=(ExecutionContext&&) = default;
+  ParallelTransformConfig(const ParallelTransformConfig&) = delete;
+  ParallelTransformConfig& operator=(const ParallelTransformConfig&) = delete;
+  ParallelTransformConfig(ParallelTransformConfig&&) = default;
+  ParallelTransformConfig& operator=(ParallelTransformConfig&&) = default;
 
  private:
   bool allow_runtime_transforms_;
@@ -72,17 +72,18 @@ class ExecutionContext {
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
 };
 
-using ExecutionContextPtr = std::shared_ptr<ExecutionContext>;
+using ParallelTransformConfigPtr = std::shared_ptr<ParallelTransformConfig>;
 
 }  // namespace koladata::functor::parallel
 
 namespace arolla {
 
 AROLLA_DECLARE_FINGERPRINT_HASHER_TRAITS(
-    koladata::functor::parallel::ExecutionContextPtr);
-AROLLA_DECLARE_REPR(koladata::functor::parallel::ExecutionContextPtr);
-AROLLA_DECLARE_SIMPLE_QTYPE(EXECUTION_CONTEXT,
-                            koladata::functor::parallel::ExecutionContextPtr);
+    koladata::functor::parallel::ParallelTransformConfigPtr);
+AROLLA_DECLARE_REPR(koladata::functor::parallel::ParallelTransformConfigPtr);
+AROLLA_DECLARE_SIMPLE_QTYPE(
+    PARALLEL_TRANSFORM_CONFIG,
+    koladata::functor::parallel::ParallelTransformConfigPtr);
 
 }  // namespace arolla
 

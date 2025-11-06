@@ -31,20 +31,22 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 
-from koladata.functor.parallel import execution_config_pb2
+from koladata.functor.parallel import transform_config_pb2
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
 koda_internal_parallel = kde_operators.internal.parallel
 
 
-class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
+class KodaInternalParallelGetDefaultTransformConfigSrcTest(
+    parameterized.TestCase
+):
 
   def test_format_matches_proto(self):
-    config = koda_internal_parallel.get_default_execution_config().eval()
+    config = koda_internal_parallel.get_default_transform_config_src().eval()
     self.assertEqual(config.qtype, qtypes.DATA_SLICE)
     config_proto = proto_conversions.to_proto(
-        config, execution_config_pb2.ExecutionConfig
+        config, transform_config_pb2.ParallelTransformConfigProto
     )
     reconstructed_config = proto_conversions.from_proto(config_proto)
     self.assertEqual(
@@ -52,13 +54,13 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
     )
 
   def test_works(self):
-    # What we would like to test is that the config matches the default
-    # execution context, but we cannot extract the config back from the
+    # What we would like to test is that the config_src matches the default
+    # parallel transform config, but we cannot extract the config back from the
     # context in Python now. So we do an imperfect proxy test here by just
-    # doing one test for the execution context created from the default config.
-    # Most of the testing is done in the get_default_execution_context tests.
-    context = koda_internal_parallel.create_execution_context(
-        koda_internal_parallel.get_default_execution_config(),
+    # doing one test for the config created from the default_config_src.
+    # Most of the testing is done in the get_default_transform_config tests.
+    context = koda_internal_parallel.create_transform_config(
+        koda_internal_parallel.get_default_transform_config_src(),
     ).eval()
 
     barrier = threading.Barrier(2)
@@ -102,7 +104,7 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.get_default_execution_config,
+        koda_internal_parallel.get_default_transform_config_src,
         [
             (qtypes.DATA_SLICE,),
         ],
@@ -112,7 +114,7 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.get_default_execution_config()
+            koda_internal_parallel.get_default_transform_config_src()
         )
     )
 

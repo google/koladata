@@ -222,11 +222,17 @@ class KodaQTypesTest(absltest.TestCase):
       return 123
 
     with self.subTest('success'):
-      _op(py_expr_eval_py_ext.eval_expr(arolla.abc.bind_op(
-          'koda_internal.non_deterministic',
-          arolla.L[py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY],
-          arolla.literal(arolla.int64(0))
-      )))
+      _op(
+          py_expr_eval_py_ext.eval_expr(
+              arolla.abc.bind_op(
+                  'koda_internal.non_deterministic',
+                  arolla.L[
+                      py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY
+                  ],
+                  arolla.literal(arolla.int64(0)),
+              )
+          )
+      )
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(
@@ -388,21 +394,23 @@ class KodaQTypesTest(absltest.TestCase):
     # Make sure we can serialize operators using expect_stream.
     _ = arolla.s11n.dumps(_op)
 
-  def test_expect_execution_context(self):
+  def test_expect_parallel_transform_config(self):
     @arolla.optools.as_lambda_operator(
         'op4.name',
-        qtype_constraints=[qtype_utils.expect_execution_context(arolla.P.x)],
+        qtype_constraints=[
+            qtype_utils.expect_parallel_transform_config(arolla.P.x)
+        ],
     )
     def _op(x):
       return x
 
     with self.subTest('success'):
-      _op(koda_internal_parallel.create_execution_context(None))
+      _op(koda_internal_parallel.create_transform_config(None))
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(
           ValueError,
-          'expected an execution context, got x: DATA_SLICE',
+          'expected a parallel transform config, got x: DATA_SLICE',
       ):
         _op(data_slice.DataSlice.from_vals(1))
 

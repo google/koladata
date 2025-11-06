@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.h"
 
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
@@ -20,24 +20,28 @@
 
 namespace arolla {
 
-void FingerprintHasherTraits<koladata::functor::parallel::ExecutionContextPtr>::
-operator()(
-    FingerprintHasher* hasher,
-    const koladata::functor::parallel::ExecutionContextPtr& value) const {
+void FingerprintHasherTraits<
+    koladata::functor::parallel::ParallelTransformConfigPtr>::
+operator()(FingerprintHasher* hasher,
+           const koladata::functor::parallel::ParallelTransformConfigPtr& value)
+    const {
   if (value != nullptr) {
     hasher->Combine(value->uuid());
   }
 }
 
 ReprToken
-ReprTraits<koladata::functor::parallel::ExecutionContextPtr>::operator()(
-    const koladata::functor::parallel::ExecutionContextPtr& value) const {
+ReprTraits<koladata::functor::parallel::ParallelTransformConfigPtr>::operator()(
+    const koladata::functor::parallel::ParallelTransformConfigPtr& value)
+    const {
   if (value == nullptr) {
-    return ReprToken{"execution_context{nullptr}"};
+    return ReprToken{"parallel_transform_config{nullptr}"};
   }
-  return ReprToken{"execution_context"};
+  return ReprToken{"parallel_transform_config"};
 }
 
-AROLLA_DEFINE_SIMPLE_QTYPE(EXECUTION_CONTEXT,
-                           koladata::functor::parallel::ExecutionContextPtr);
+AROLLA_DEFINE_SIMPLE_QTYPE(
+    PARALLEL_TRANSFORM_CONFIG,
+    koladata::functor::parallel::ParallelTransformConfigPtr);
+
 }  // namespace arolla

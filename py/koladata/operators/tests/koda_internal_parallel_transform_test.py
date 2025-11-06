@@ -37,18 +37,20 @@ from koladata.types import data_slice
 from koladata.types import iterable_qvalue
 from koladata.types import signature_utils
 
-from koladata.functor.parallel import execution_config_pb2
+from koladata.functor.parallel import transform_config_pb2
 
 
 _ORIGINAL_ARGUMENTS = (
-    execution_config_pb2.ExecutionConfig.ArgumentTransformation.ORIGINAL_ARGUMENTS
+    transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.ORIGINAL_ARGUMENTS
 )
-_EXECUTOR = execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTOR
+_EXECUTOR = (
+    transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.EXECUTOR
+)
 _EXECUTION_CONTEXT = (
-    execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTION_CONTEXT
+    transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.EXECUTION_CONTEXT
 )
 _NON_DETERMINISTIC_TOKEN = (
-    execution_config_pb2.ExecutionConfig.ArgumentTransformation.NON_DETERMINISTIC_TOKEN
+    transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.NON_DETERMINISTIC_TOKEN
 )
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -59,7 +61,7 @@ koda_internal_parallel = kde_operators.internal.parallel
 koda_internal_iterables = kde_operators.internal.iterables
 kd = eager_op_utils.operators_container('kd')
 _PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
-    koda_internal_parallel.create_execution_context(
+    koda_internal_parallel.create_transform_config(
         fns.obj(
             operator_replacements=[
                 fns.new(
@@ -67,8 +69,8 @@ _PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
                     to_op='koda_internal.parallel._parallel_call',
                     argument_transformation=fns.new(
                         arguments=[
-                            execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTOR,
-                            execution_config_pb2.ExecutionConfig.ArgumentTransformation.ORIGINAL_ARGUMENTS,
+                            transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.EXECUTOR,
+                            transform_config_pb2.ParallelTransformConfigProto.ArgumentTransformation.ORIGINAL_ARGUMENTS,
                         ],
                         functor_argument_indices=[0],
                     ),
@@ -91,15 +93,15 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       allow_runtime_transforms=False
   ):
     executor = koda_internal_parallel.get_eager_executor()
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=replacements,
                 allow_runtime_transforms=allow_runtime_transforms,
             ),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(context, fn)
+    transformed_fn = koda_internal_parallel.transform(config, fn)
     testing.assert_equal(
         expr_eval.eval(
             koda_internal_parallel.get_future_value_for_testing(
@@ -141,7 +143,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       )
       testing.assert_equal(
           op_context.qtype,
-          expr_eval.eval(bootstrap.get_execution_context_qtype()),
+          expr_eval.eval(bootstrap.get_transform_config_qtype()),
       )
       x_value = expr_eval.eval(
           koda_internal_parallel.get_future_value_for_testing(x)
@@ -192,8 +194,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         lambda x, y: user_facing_kd.iterables.chain(x, y)  # pylint: disable=unnecessary-lambda
     )
     executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -215,7 +217,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(context, fn)
+    transformed_fn = koda_internal_parallel.transform(config, fn)
     res_stream = expr_eval.eval(
         transformed_fn(
             executor,
@@ -301,8 +303,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
           koda_internal_parallel.as_future(arolla.M.strings.static_decode(z)),
       )
 
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -328,7 +330,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             arolla.bytes(b'123'), arolla.bytes(b'123'), arolla.bytes(b'789')
         )
     )
-    transformed_fn = koda_internal_parallel.transform(context, fn)
+    transformed_fn = koda_internal_parallel.transform(config, fn)
     res = expr_eval.eval(
         transformed_fn(
             koda_internal_parallel.get_eager_executor(),
@@ -360,13 +362,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_no_expr_functor(self):
     fn = functor_factories.expr_fn(ds(1))
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(operator_replacements=[]),
         )
     )
     transformed_fn = expr_eval.eval(
-        koda_internal_parallel.transform(context, fn)
+        koda_internal_parallel.transform(config, fn)
     )
     testing.assert_equal(
         expr_eval.eval(
@@ -383,8 +385,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
 
   def test_non_functor(self):
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(operator_replacements=[]),
         )
     )
@@ -393,7 +395,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'functor must be a functor',
     ):
       expr_eval.eval(
-          koda_internal_parallel.transform(context, ds(1)),
+          koda_internal_parallel.transform(config, ds(1)),
       )
 
   def test_tuples_without_replacement(self):
@@ -435,8 +437,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(
         lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda
     )
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -449,7 +451,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(context, fn)
+    transformed_fn = koda_internal_parallel.transform(config, fn)
     res = expr_eval.eval(
         transformed_fn(
             koda_internal_parallel.get_eager_executor(),
@@ -511,11 +513,11 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_default_value_non_parallel_slice_passed(self):
     fn = functor_factories.trace_py_fn(lambda y=1: y)
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(None)
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(None)
     )
     transformed_fn = expr_eval.eval(
-        koda_internal_parallel.transform(context, fn)
+        koda_internal_parallel.transform(config, fn)
     )
     future_slice = koda_internal_parallel.as_future(data_slice.DataSlice).eval()
     with self.assertRaisesRegex(
@@ -542,8 +544,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       )
 
   def test_annotations_basic(self):
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(operator_replacements=[]),
         )
     )
@@ -552,7 +554,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     fn = functor_factories.expr_fn(expr)
     transformed_fn = expr_eval.eval(
-        koda_internal_parallel.transform(context, fn)
+        koda_internal_parallel.transform(config, fn)
     )
     testing.assert_equal(
         koda_internal_parallel.get_future_value_for_testing(
@@ -588,8 +590,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       y_value = koda_internal_parallel.get_future_value_for_testing(y)
       return koda_internal_parallel.stream_make(y_value, x_value)
 
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -605,7 +607,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     fn = functor_factories.expr_fn(expr)
     transformed_fn = expr_eval.eval(
-        koda_internal_parallel.transform(context, fn)
+        koda_internal_parallel.transform(config, fn)
     )
     testing.assert_equal(
         arolla.tuple(
@@ -635,8 +637,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     def empty_iterable():
       return kde.iterables.make()
 
-    context = expr_eval.eval(
-        koda_internal_parallel.create_execution_context(
+    config = expr_eval.eval(
+        koda_internal_parallel.create_transform_config(
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -656,7 +658,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(expr), iterable_qvalue.Iterable())
     fn = functor_factories.expr_fn(expr)
     transformed_fn = expr_eval.eval(
-        koda_internal_parallel.transform(context, fn)
+        koda_internal_parallel.transform(config, fn)
     )
     with self.assertRaisesRegex(ValueError, 'inconsistent annotation.qtype'):
       _ = transformed_fn(
@@ -866,25 +868,25 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     testing.assert_equal(res, ds(5))
 
   def test_qtype_signatures(self):
-    execution_context_qtype = expr_eval.eval(
-        bootstrap.get_execution_context_qtype()
+    parallel_transform_config_qtype = expr_eval.eval(
+        bootstrap.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.transform,
         [
             (
-                execution_context_qtype,
+                parallel_transform_config_qtype,
                 qtypes.DATA_SLICE,
                 qtypes.DATA_SLICE,
             ),
         ],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
-        + (execution_context_qtype,),
+        + (parallel_transform_config_qtype,),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.transform(I.context, I.fn))
+        view.has_koda_view(koda_internal_parallel.transform(I.config, I.fn))
     )
 
 

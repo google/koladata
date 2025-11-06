@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/create_execution_context.h"
+#include "koladata/functor/parallel/create_transform_config.h"
 
 #include <memory>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -25,24 +26,26 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/fingerprint.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/parallel/execution_config.pb.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 #include "koladata/proto/to_proto.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 
-absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config) {
-  if (config.GetShape().rank() != 0) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "config must be a scalar, got rank ", config.GetShape().rank()));
+absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
+CreateParallelTransformConfig(DataSlice config_src) {
+  if (config_src.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("config_src must be a scalar, got rank ",
+                     config_src.GetShape().rank()));
   }
-  ExecutionConfig config_proto;
+  ParallelTransformConfigProto config_proto;
   ASSIGN_OR_RETURN(DataSlice config_1d,
-                   config.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
+                   config_src.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
   RETURN_IF_ERROR(ToProto(config_1d, {&config_proto}));
 
-  absl::flat_hash_map<arolla::Fingerprint, ExecutionContext::Replacement>
+  absl::flat_hash_map<arolla::Fingerprint, ParallelTransformConfig::Replacement>
       operator_replacements;
   operator_replacements.reserve(config_proto.operator_replacements_size());
   for (const auto& replacement : config_proto.operator_replacements()) {
@@ -69,13 +72,14 @@ absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config) {
     auto transformation = replacement.argument_transformation();
     if (transformation.arguments_size() == 0) {
       transformation.add_arguments(
-          ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
+          ParallelTransformConfigProto::ArgumentTransformation::
+              ORIGINAL_ARGUMENTS);
     }
     operator_replacements[from_op->fingerprint()] = {
         .op = std::move(to_op),
         .argument_transformation = std::move(transformation)};
   }
-  return std::make_shared<ExecutionContext>(
+  return std::make_shared<ParallelTransformConfig>(
       config_proto.allow_runtime_transforms(),
       std::move(operator_replacements));
 }

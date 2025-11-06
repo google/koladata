@@ -30,7 +30,7 @@
 #include "arolla/qtype/unspecified_qtype.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/parallel/transform.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/util/status_macros_backport.h"
@@ -47,14 +47,15 @@ class TransformManyOperator : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return MakeBoundOperator(
         "koda_internal.parallel.transform_many",
-        [context_slot = input_slots[0].UnsafeToSlot<ExecutionContextPtr>(),
+        [config_slot =
+             input_slots[0].UnsafeToSlot<ParallelTransformConfigPtr>(),
          fn_slot = input_slots[1],
          output_slot = output_slot](arolla::EvaluationContext* ctx,
                                     arolla::FramePtr frame) -> absl::Status {
-          const auto& context = frame.Get(context_slot);
+          const auto& config = frame.Get(config_slot);
           arolla::TypedValue fn = arolla::TypedValue::FromSlot(fn_slot, frame);
           ASSIGN_OR_RETURN(arolla::TypedValue result,
-                           TransformManyToParallel(context, std::move(fn)));
+                           TransformManyToParallel(config, std::move(fn)));
           RETURN_IF_ERROR(result.CopyToSlot(output_slot, frame));
           return absl::OkStatus();
         });
@@ -69,9 +70,9 @@ absl::StatusOr<arolla::OperatorPtr> TransformManyOperatorFamily::DoGetOperator(
   if (input_types.size() != 2) {
     return absl::InvalidArgumentError("requires exactly 2 arguments");
   }
-  if (input_types[0] != arolla::GetQType<ExecutionContextPtr>()) {
+  if (input_types[0] != arolla::GetQType<ParallelTransformConfigPtr>()) {
     return absl::InvalidArgumentError(
-        "requires first argument to be ExecutionContext");
+        "requires first argument to be PARALLEL_TRANSFORM_CONFIG");
   }
   if (input_types[1] != arolla::GetQType<DataSlice>() &&
       input_types[1] != arolla::GetUnspecifiedQType()) {

@@ -44,7 +44,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-from koladata.functor.parallel import execution_config_pb2
+from koladata.functor.parallel import transform_config_pb2
 
 
 M = arolla.M | derived_qtype.M
@@ -123,22 +123,23 @@ def current_executor():
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'koda_internal.parallel.create_execution_context',
-    qtype_inference_expr=bootstrap.get_execution_context_qtype(),
+    'koda_internal.parallel.create_transform_config',
+    qtype_inference_expr=bootstrap.get_transform_config_qtype(),
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.config),
+        qtype_utils.expect_data_slice(P.config_src),
     ],
 )
-def create_execution_context(config):  # pylint: disable=unused-argument
-  """Creates an execution context with the given config.
+def create_transform_config(config_src):  # pylint: disable=unused-argument
+  """Creates a parallel transform config from the given config.
 
   Args:
-    config: A data slice with the configuration to be used. It must be a scalar
-      with structure corresponding to the ExecutionConfig proto. Attributes
-      which are not part of ExecutionConfig proto will be ignored.
+    config_src: A data slice with the configuration to be used. It must be
+      a scalar with structure corresponding to the ParallelTransformConfigProto.
+      Attributes which are not part of ParallelTransformConfigProto will be
+      ignored.
 
   Returns:
-    An execution context with the given config.
+    A parallel transform config.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -967,11 +968,11 @@ def _get_value_or_parallel_default(
     'koda_internal.parallel.transform',
     qtype_inference_expr=qtypes.DATA_SLICE,
     qtype_constraints=[
-        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_parallel_transform_config(P.config),
         qtype_utils.expect_data_slice(P.fn),
     ],
 )
-def transform(context, fn):  # pylint: disable=unused-argument
+def transform(config, fn):  # pylint: disable=unused-argument
   """Transforms the given functor to a parallel version.
 
   The transformed functor will expect all arguments in the parallel form
@@ -990,16 +991,16 @@ def transform(context, fn):  # pylint: disable=unused-argument
   the result to a stream after the asynchronous evaluation of the variable expr.
 
   However, custom behavior overrides can be added for particular operators via
-  `context`. In particular, `context` is expected to contain custom behavior
+  `config`. In particular, `config` is expected to contain custom behavior
   for all operators that take an iterable as input.
 
   Example:
-    transformed_fn = transform(context, kd.fn(I.x + I.y))
+    transformed_fn = transform(config, kd.fn(I.x + I.y))
     transformed_fn(executor, x=as_future(2), y=as_future(3))
     # returns a future equivalent to as_future(5)
 
   Args:
-    context: The execution context to use for the transformation.
+    config: The config to use for the transformation.
     fn: The functor to transform.
 
   Returns:
@@ -1015,11 +1016,11 @@ def transform(context, fn):  # pylint: disable=unused-argument
     'koda_internal.parallel.transform_many',
     qtype_inference_expr=P.fns,
     qtype_constraints=[
-        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_parallel_transform_config(P.config),
         qtype_utils.expect_data_slice_or_unspecified(P.fns),
     ],
 )
-def transform_many(context, fns):  # pylint: disable=unused-argument
+def transform_many(config, fns):  # pylint: disable=unused-argument
   """Applies the parallel transform to many functors at once."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1029,18 +1030,13 @@ def transform_many(context, fns):  # pylint: disable=unused-argument
     'koda_internal.parallel._async_transform_many',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_parallel_transform_config(P.config),
         qtype_utils.expect_future(P.fns),
     ],
 )
-def _async_transform_many(executor, context, fns):
+def _async_transform_many(executor, config, fns):
   """A version of transform_many that works on futures."""
-  return async_eval(
-      executor,
-      transform_many,
-      context,
-      fns,
-  )
+  return async_eval(executor, transform_many, config, fns)
 
 
 @optools.as_lambda_operator(
@@ -1186,7 +1182,7 @@ def parallel_call_fn_returning_stream(
 
   This operator is intented to be used as a parallel version of
   `functor.call_fn_returning_stream_when_parallel`,
-  therefore all inputs except `context` must have parallel types
+  therefore all inputs except `executor` must have parallel types
   (futures/streams/tuples thereof).
   See execution_config.proto for more details about parallel types.
 
@@ -2381,7 +2377,7 @@ def _create_as_parallel_wrapping_fn():
 _AS_PARALLEL_WRAPPING_FN = _create_as_parallel_wrapping_fn()
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -2412,7 +2408,7 @@ def _parallel_stream_flat_map_chain(
   )
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -2466,7 +2462,7 @@ _SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN = (
 )
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -2636,7 +2632,7 @@ def _empty_yields_namedtuple(outer_yields, outer_yields_interleaved):
   )(outer_yields, outer_yields_interleaved)
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -2822,7 +2818,7 @@ def _create_for_finalize_wrapping_fn():
 _FOR_FINALIZE_WRAPPING_FN = _create_for_finalize_wrapping_fn()
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -3122,7 +3118,7 @@ def _internal_parallel_stream_map(
   )
 
 
-# qtype constraints for everything except context are omitted in favor of
+# qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -3197,7 +3193,7 @@ def _parallel_with_assertion(executor, x, condition, message_or_fn, args):
   )
 
 
-_DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
+_DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
     to_op: "core.make_tuple"
@@ -3406,13 +3402,13 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   }
 """
 
-_DEFAULT_EXECUTION_CONFIG = py_expr_eval_py_ext.eval_expr(
+_DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC = py_expr_eval_py_ext.eval_expr(
     proto_ops.from_proto_bytes(
         text_format.Parse(
-            _DEFAULT_EXECUTION_CONFIG_TEXTPROTO,
-            execution_config_pb2.ExecutionConfig(),
+            _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO,
+            transform_config_pb2.ParallelTransformConfigProto(),
         ).SerializeToString(),
-        'koladata.functor.parallel.ExecutionConfig',
+        'koladata.functor.parallel.ParallelTransformConfigProto',
     )
 )
 
@@ -3421,17 +3417,17 @@ _DEFAULT_EXECUTION_CONFIG = py_expr_eval_py_ext.eval_expr(
 # C++.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel.get_default_execution_config'
+    'koda_internal.parallel.get_default_transform_config_src'
 )
-def get_default_execution_config():
-  """Returns the default execution config for parallel computation."""
-  return literal_operator.literal(_DEFAULT_EXECUTION_CONFIG)
+def get_default_transform_config_src():
+  """Returns the default parallel transform config as a data-item."""
+  return literal_operator.literal(_DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC)
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel.get_default_execution_context'
+    'koda_internal.parallel.get_default_transform_config'
 )
-def get_default_execution_context():
-  """Returns the default execution config for parallel computation."""
-  return create_execution_context(get_default_execution_config())
+def get_default_transform_config():
+  """Returns the default parallel transform config for parallel computation."""
+  return create_transform_config(get_default_transform_config_src())

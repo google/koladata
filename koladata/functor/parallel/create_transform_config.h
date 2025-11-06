@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_FUNCTOR_PARALLEL_CREATE_EXECUTION_CONTEXT_H_
-#define KOLADATA_FUNCTOR_PARALLEL_CREATE_EXECUTION_CONTEXT_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
+#define KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
 
+#include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/parallel/execution_context.h"
+#include "koladata/functor/parallel/transform_config.h"
 
 namespace koladata::functor::parallel {
 
-// Creates an execution context from the given config.
-// The config is given as a scalar DataSlice transformed from an
-// ExecutionConfig proto.
-absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config);
+// Creates a ParallelTransformConfig from the given config_src -- a scalar
+// DataSlice with a structure corresponding to ParallelTransformConfigProto.
+absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
+CreateParallelTransformConfig(DataSlice config_src);
 
 }  // namespace koladata::functor::parallel
 
-#endif  // KOLADATA_FUNCTOR_PARALLEL_CREATE_EXECUTION_CONTEXT_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
