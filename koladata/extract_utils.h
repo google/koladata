@@ -26,8 +26,12 @@ namespace koladata::extract_utils_internal {
 // Returns a copy of `ds` that has the schema `schema`, and uses a new DataBag
 // that contains only triples reachable from `ds` (when interpreted as having
 // the schema `schema`) or from `schema`.
+// If `cast_primitives` is true, the extracted data would be casted during the
+// extraction  to the types specified in the schema. Only the struct schema is
+// supported with this option.
 absl::StatusOr<DataSlice> ExtractWithSchema(
-    const DataSlice& ds, const DataSlice& schema, int max_depth = -1,
+    const DataSlice& ds, const DataSlice& schema, bool cast_primitives,
+    int max_depth = -1,
     const std::optional<internal::LeafCallback>& leaf_callback = std::nullopt);
 
 // Returns a copy of `ds` that uses a new DataBag that contains only triples

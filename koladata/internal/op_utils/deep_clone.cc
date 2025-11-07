@@ -420,7 +420,7 @@ absl::StatusOr<DataSliceImpl> DeepCloneOp::operator()(
   // databag. Thus, we can extract any part of the initial databag, and existing
   // content of the `new_databag_` would not interfere with the extraction.
   RETURN_IF_ERROR(extract_op(explicit_schemas_slice, DataItem(schema::kSchema),
-                             databag, fallbacks, nullptr, {}, -1));
+                             databag, fallbacks, nullptr, {}));
   return std::move(result_items).Build();
 }
 

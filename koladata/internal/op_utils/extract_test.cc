@@ -1117,9 +1117,9 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
     SetDataTriples(*expected_db, data_triples);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}, nullptr, {},
-                                         /*max_depth=*/1));
+    ASSERT_OK(ExtractOp(result_db.get())(
+        a1, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {},
+        /*cast_primitives=*/false, /*max_depth=*/1));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1132,9 +1132,9 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
     SetDataTriples(*expected_db, data_triples_deep);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}, nullptr, {},
-                                         /*max_depth=*/2));
+    ASSERT_OK(ExtractOp(result_db.get())(
+        a1, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {},
+        /*cast_primitives=*/false, /*max_depth=*/2));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1199,10 +1199,10 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadataObject) {
     SetDataTriples(*expected_db, data_triples);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kObject),
-                                         *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}, nullptr, {},
-                                         /*max_depth=*/1));
+    ASSERT_OK(ExtractOp(result_db.get())(
+        ds, DataItem(schema::kObject), *GetMainDb(db),
+        {GetFallbackDb(db).get()}, nullptr, {},
+        /*cast_primitives=*/false, /*max_depth=*/1));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1215,10 +1215,10 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadataObject) {
     SetDataTriples(*expected_db, data_triples_deep);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kObject),
-                                         *GetMainDb(db),
-                                         {GetFallbackDb(db).get()}, nullptr, {},
-                                         /*max_depth=*/2));
+    ASSERT_OK(ExtractOp(result_db.get())(
+        ds, DataItem(schema::kObject), *GetMainDb(db),
+        {GetFallbackDb(db).get()}, nullptr, {},
+        /*cast_primitives=*/false, /*max_depth=*/2));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1312,7 +1312,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
 
       ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
+          nullptr, {}, /*cast_primitives=*/false, /*max_depth=*/2,
+          leaf_collector.GetCallback()));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1333,7 +1334,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
 
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}, /*max_depth=*/1, leaf_collector.GetCallback()));
+        {}, /*cast_primitives=*/false, /*max_depth=*/1,
+        leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1351,7 +1353,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
 
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}, /*max_depth=*/0, leaf_collector.GetCallback()));
+        {}, /*cast_primitives=*/false, /*max_depth=*/0,
+        leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1451,7 +1454,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
 
       ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
+          nullptr, {}, /*cast_primitives=*/false, /*max_depth=*/2,
+          leaf_collector.GetCallback()));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1472,7 +1476,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
 
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}, /*max_depth=*/1, leaf_collector.GetCallback()));
+        {}, /*cast_primitives=*/false, /*max_depth=*/1,
+        leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1490,7 +1495,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
 
     ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}, /*max_depth=*/0, leaf_collector.GetCallback()));
+        {}, /*cast_primitives=*/false, /*max_depth=*/0,
+        leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1623,7 +1629,8 @@ TEST_P(ExtractTest, MaxDepth) {
 
       ASSERT_OK(ExtractOp(result_db.get())(
           root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}, /*max_depth=*/3, leaf_collector.GetCallback()));
+          nullptr, {}, /*cast_primitives=*/false, /*max_depth=*/3,
+          leaf_collector.GetCallback()));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1646,6 +1653,7 @@ TEST_P(ExtractTest, MaxDepth) {
     LeafCollector leaf_collector;
     ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
                                          {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*cast_primitives=*/false,
                                          /*max_depth=*/2,
                                          leaf_collector.GetCallback()));
 
@@ -1666,6 +1674,7 @@ TEST_P(ExtractTest, MaxDepth) {
     LeafCollector leaf_collector;
     ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
                                          {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*cast_primitives=*/false,
                                          /*max_depth=*/1,
                                          leaf_collector.GetCallback()));
 
@@ -1684,6 +1693,7 @@ TEST_P(ExtractTest, MaxDepth) {
     LeafCollector leaf_collector;
     ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
                                          {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*cast_primitives=*/false,
                                          /*max_depth=*/0,
                                          leaf_collector.GetCallback()));
 
@@ -3034,6 +3044,193 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeInSlice) {
                "while the actual content has type INT32"));
 }
 
+TEST_P(ExtractTest, CastPrimitiveType) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(1.1)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(
+      ExtractOp(result_db.get())(
+          a0,
+          schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}, /*cast_primitives=*/true));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {{a0, {{"x", DataItem(1)}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+
+TEST_P(ExtractTest, CastPrimitiveTypeSchemaBag) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kFloat32)}}}};
+  TriplesT schema_db_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(2.3)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*schema_db, schema_db_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+      &*GetMainDb(schema_db), {GetFallbackDb(schema_db).get()},
+      /*cast_primitives=*/true));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {{a0, {{"x", DataItem(2)}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_db_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, CastUpPrimitiveType) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kFloat32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(1)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(
+      ExtractOp(result_db.get())(
+          a0,
+          schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}, /*cast_primitives=*/true));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {{a0, {{"x", DataItem(1.0f)}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
+  ASSERT_OK_AND_ASSIGN(auto result_x, result_db->GetAttr(a0, "x", {}));
+  EXPECT_TRUE(result_x.holds_value<float>());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+
+TEST_P(ExtractTest, CastToStringPrimitiveType) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(1.1)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {},
+                                       /*cast_primitives=*/true));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {a0, {{"x", DataItem(arolla::Text("1.1"))}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, CastErrorPrimitiveType) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem("foo")}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_THAT(ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*cast_primitives=*/true),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unable to parse INT32: 'foo'"));
+}
+
+TEST_P(ExtractTest, CastErrorToPrimitive) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem("foo")}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_THAT(
+      ExtractOp(result_db.get())(a0, DataItem(schema::kFloat32), *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {},
+                                 /*cast_primitives=*/true),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "Only casting to struct schema is supported by ExtractOp."));
+}
+
+
+TEST_P(ExtractTest, CastErrorToObject) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kObject)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem("foo")}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_THAT(
+      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {},
+                                 /*cast_primitives=*/true),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting to OBJECT is not supported during the deep casting"));
+}
+
+TEST_P(ExtractTest, CastObjectToEntity) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+  auto entity_schema = AllocateSchema();
+
+  TriplesT schema_triples = {
+      {entity_schema, {{"x", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {{a0,
+                            {{schema::kSchemaAttr, entity_schema},
+                             {"x", DataItem(arolla::Text("foo"))}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*schema_db, schema_triples);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(
+      a0, DataItem(entity_schema), *GetMainDb(db), {GetFallbackDb(db).get()},
+      &*GetMainDb(schema_db), {GetFallbackDb(schema_db).get()},
+      /*cast_primitives=*/true));
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {a0, {{"x", DataItem(arolla::Text("foo"))}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+
 TEST_P(ExtractTest, InvalidPrimitiveTypeInList) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto lists = AllocateEmptyLists(3);
@@ -3058,6 +3255,35 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeInList) {
                "during extract/clone, while processing the list items, "
                "got a slice with primitive type INT32 "
                "while the actual content has type INT64"));
+}
+
+TEST_P(ExtractTest, CastPrimitiveTypeInList) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto lists = AllocateEmptyLists(3);
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 4, 5, 6, 7}));
+  auto edge = test::EdgeFromSplitPoints({0, 3, 5, 7});
+  ASSERT_OK(db->ExtendLists(lists, values, edge));
+  auto list_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kFloat32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyLists(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {},
+                                       /*cast_primitives=*/true));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  auto expected_values = DataSliceImpl::Create(
+      CreateDenseArray<float>({1., 2., 3., 4., 5., 6., 7.}));
+  ASSERT_OK(expected_db->ExtendLists(lists, expected_values, edge));
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
 TEST_P(ExtractTest, InvalidPrimitiveTypeInDictKeys) {
@@ -3090,6 +3316,43 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeInDictKeys) {
              "while the actual content has type INT64"));
 }
 
+
+TEST_P(ExtractTest, CastPrimitiveTypeInDictKeys) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dicts = AllocateEmptyDicts(3);
+  auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
+  auto keys =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 1, 5, 3, 7}));
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<float>({1, 2, 3, 4, 5, 6, 7}));
+  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
+  auto dict_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyDicts(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(
+    ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                               {GetFallbackDb(db).get()}, nullptr, {},
+                               /*cast_primitives=*/true));
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  auto expected_keys = DataSliceImpl::Create(CreateDenseArray<arolla::Text>(
+      {arolla::Text("1"), arolla::Text("2"), arolla::Text("3"),
+       arolla::Text("1"), arolla::Text("5"), arolla::Text("3"),
+       arolla::Text("7")}));
+  ASSERT_OK(expected_db->SetInDict(dicts_expanded, expected_keys, values));
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+
 TEST_P(ExtractTest, InvalidPrimitiveTypeInDictValues) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto dicts = AllocateEmptyDicts(3);
@@ -3118,6 +3381,40 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeInDictValues) {
              "during extract/clone, while processing the dict values, "
              "got a slice with primitive type STRING "
              "while the actual content has type FLOAT32"));
+}
+
+TEST_P(ExtractTest, CastPrimitiveTypeInDictValues) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dicts = AllocateEmptyDicts(3);
+  auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
+  auto keys =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 1, 5, 3, 7}));
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<float>({1, 2, 3, 4, 5, 6, 7}));
+  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
+  auto dict_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kString)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyDicts(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {},
+                                       /*cast_primitives=*/true));
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  auto expected_values = DataSliceImpl::Create(CreateDenseArray<arolla::Text>(
+      {arolla::Text("1"), arolla::Text("2"), arolla::Text("3"),
+       arolla::Text("4"), arolla::Text("5"), arolla::Text("6"),
+       arolla::Text("7")}));
+  ASSERT_OK(expected_db->SetInDict(dicts_expanded, keys, expected_values));
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
 }  // namespace

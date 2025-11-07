@@ -125,6 +125,7 @@ cc_library(
         ":has",
         ":presence_and",
         ":presence_or",
+        "//koladata/internal:casting",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

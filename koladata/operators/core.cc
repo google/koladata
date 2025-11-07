@@ -401,7 +401,8 @@ EnrichedOrUpdatedOperatorFamily::DoGetOperator(
 
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds,
                                   const DataSlice& schema) {
-  return koladata::extract_utils_internal::ExtractWithSchema(ds, schema);
+  return koladata::extract_utils_internal::ExtractWithSchema(
+      ds, schema, /*cast_primitives=*/false);
 }
 
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj) {
