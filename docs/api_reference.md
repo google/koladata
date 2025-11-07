@@ -9297,7 +9297,7 @@ Example for complex schemas:
     return query.docs[:]
 
 Example for an argument that should not be an Expr at tracing time:
-  @kd.check_inputs(x=kd.constant_when_tracing(kd.INT32))
+  @kd.check_inputs(x=kd.static_when_tracing(kd.INT32))
   def f(x):
     return x
 
