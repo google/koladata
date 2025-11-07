@@ -228,7 +228,7 @@ absl::StatusOr<DataSlice> SimpleAggOverEval(
     const std::optional<absl::Span<const int>>& primary_operand_indices =
         std::nullopt);
 
-// kd.core._arolla_expr_eval.
+// koda_internal.arolla_expr_eval.
 class ArollaExprEvalOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,

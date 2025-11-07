@@ -330,7 +330,7 @@ class ArollaExprEvalOperator : public arolla::QExprOperator {
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
     return MakeBoundOperator(
-        "kd.core._arolla_expr_eval",
+        "koda_internal.arolla_expr_eval",
         [expr_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          args_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](

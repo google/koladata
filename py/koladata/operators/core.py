@@ -353,7 +353,7 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kd.core._arolla_expr_eval',
+    'koda_internal.arolla_expr_eval',
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _arolla_expr_eval(expr_quote, args_tuple):  # pylint: disable=unused-argument,redefined-outer-name

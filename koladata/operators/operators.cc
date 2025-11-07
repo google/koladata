@@ -109,8 +109,6 @@ OPERATOR("kd.comparison.greater_equal", GreaterEqual);
 OPERATOR("kd.comparison.less", Less);
 OPERATOR("kd.comparison.less_equal", LessEqual);
 //
-OPERATOR_FAMILY("kd.core._arolla_expr_eval",
-                std::make_unique<ArollaExprEvalOperatorFamily>());
 OPERATOR_FAMILY("kd.core._attrs_impl",
                 std::make_unique<AttrsImplOperatorFamily>());
 OPERATOR("kd.core._clone", Clone, "kd.core.clone");
@@ -409,6 +407,8 @@ OPERATOR("kd.strings.strip", Strip);
 OPERATOR("kd.strings.substr", Substr);
 OPERATOR("kd.strings.upper", Upper);
 //
+OPERATOR_FAMILY("koda_internal.arolla_expr_eval",
+                std::make_unique<ArollaExprEvalOperatorFamily>());
 OPERATOR("koda_internal.create_metadata", CreateMetadata);
 OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR_FAMILY("koda_internal.non_deterministic_identity",

@@ -669,8 +669,8 @@ py_test(
 )
 
 py_test(
-    name = "core_arolla_expr_eval_test",
-    srcs = ["core_arolla_expr_eval_test.py"],
+    name = "koda_internal_arolla_expr_eval_test",
+    srcs = ["koda_internal_arolla_expr_eval_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/operators:eager_op_utils",
