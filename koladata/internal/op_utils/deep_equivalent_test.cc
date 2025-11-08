@@ -73,7 +73,6 @@ TEST_P(DeepEquivalentTest, FloatSlice) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
@@ -132,7 +131,6 @@ TEST_P(DeepEquivalentTest, DeepEntitySlice) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
@@ -188,7 +186,6 @@ TEST_P(DeepEquivalentTest, DeepEntitySlicePartial) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
@@ -249,7 +246,6 @@ TEST_P(DeepEquivalentTest, DeepEntityItem) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_item, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
@@ -273,7 +269,6 @@ TEST_P(DeepEquivalentTest, PrimitiveSlice) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
@@ -318,7 +313,6 @@ TEST_P(DeepEquivalentTest, SchemaSlice) {
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_item, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
-  diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
     diff_paths.push_back(
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
