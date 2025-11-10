@@ -310,6 +310,7 @@ present = _same_when_tracing(_mask_constants.present)
 
 testing = _eager_only(_testing)
 eager = _same_when_tracing(_py_types.ModuleType('eager'))
+signature_utils = _eager_only(_functor_functions._signature_utils)  # pylint: disable=protected-access
 
 __all__ = [api for api in globals().keys() if not api.startswith('_')]
 
