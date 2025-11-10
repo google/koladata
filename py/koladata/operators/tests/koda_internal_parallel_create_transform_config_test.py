@@ -16,7 +16,6 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import bootstrap
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.types import data_slice
@@ -46,7 +45,7 @@ class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = arolla.eval(
-        bootstrap.get_transform_config_qtype()
+        koda_internal_parallel.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.create_transform_config,

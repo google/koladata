@@ -15,24 +15,28 @@
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import view
-from koladata.operators import bootstrap
+from koladata.operators import kde_operators
+
+koda_internal_parallel = kde_operators.internal.parallel
 
 
 class KodaInternalParallelGetTransformConfigQTypeTest(absltest.TestCase):
 
   def test_eval(self):
-    qtype = arolla.eval(bootstrap.get_transform_config_qtype())
+    qtype = arolla.eval(koda_internal_parallel.get_transform_config_qtype())
     self.assertEqual(qtype.qtype, arolla.QTYPE)
     self.assertEqual(qtype.name, 'PARALLEL_TRANSFORM_CONFIG')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        bootstrap.get_transform_config_qtype,
+        koda_internal_parallel.get_transform_config_qtype,
         [(arolla.QTYPE,)],
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(bootstrap.get_transform_config_qtype()))
+    self.assertFalse(
+        view.has_koda_view(koda_internal_parallel.get_transform_config_qtype())
+    )
 
 
 if __name__ == '__main__':

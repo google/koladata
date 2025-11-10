@@ -17,7 +17,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import bootstrap
 from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import iterable_qvalue
@@ -48,7 +47,7 @@ _ALL_POSSIBLE_QTYPES.extend([qtypes.DATA_SLICE, qtypes.DATA_BAG])
 _QTYPE_SIGNATURES = tuple(
     (arg_qtype, arg_qtype)
     for arg_qtype in _ALL_POSSIBLE_QTYPES
-    if arolla.eval(bootstrap.is_iterable_qtype(arg_qtype))
+    if arolla.eval(koda_internal_iterables.is_iterable_qtype(arg_qtype))
 )
 
 

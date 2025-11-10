@@ -26,7 +26,6 @@ from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib as _
-from koladata.operators import bootstrap
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -861,7 +860,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(
-        bootstrap.get_transform_config_qtype()
+        koda_internal_parallel.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.transform,

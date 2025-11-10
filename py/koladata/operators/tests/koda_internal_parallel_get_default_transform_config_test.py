@@ -27,7 +27,6 @@ from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib
-from koladata.operators import bootstrap
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -99,7 +98,7 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.get_default_transform_config,
         [
-            (arolla.eval(bootstrap.get_transform_config_qtype()),),
+            (arolla.eval(koda_internal_parallel.get_transform_config_qtype()),),
         ],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
@@ -115,7 +114,8 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     expr = koda_internal_parallel.get_default_transform_config()
     res = expr.eval()
     testing.assert_equal(
-        res.qtype, arolla.eval(bootstrap.get_transform_config_qtype())
+        res.qtype,
+        arolla.eval(koda_internal_parallel.get_transform_config_qtype()),
     )
 
   @parameterized.named_parameters(

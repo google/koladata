@@ -23,7 +23,6 @@ from koladata.operators import arolla_bridge as _
 from koladata.operators import assertion as _
 from koladata.operators import bags as _
 from koladata.operators import bitwise as _
-from koladata.operators import bootstrap as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import curves as _

@@ -17,7 +17,6 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import bootstrap
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import qtypes
@@ -34,7 +33,7 @@ class KodaInternalParallelIsFutureQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(bootstrap.is_future_qtype(value_qtype)),
+        arolla.eval(koda_internal_parallel.is_future_qtype(value_qtype)),
         arolla.missing_unit(),
     )
 
@@ -44,18 +43,20 @@ class KodaInternalParallelIsFutureQTypeTest(parameterized.TestCase):
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(bootstrap.is_future_qtype(value_qtype)),
+        arolla.eval(koda_internal_parallel.is_future_qtype(value_qtype)),
         arolla.present_unit(),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        bootstrap.is_future_qtype,
+        koda_internal_parallel.is_future_qtype,
         [(arolla.QTYPE, arolla.OPTIONAL_UNIT)],
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(bootstrap.is_future_qtype(I.x)))
+    self.assertFalse(
+        view.has_koda_view(koda_internal_parallel.is_future_qtype(I.x))
+    )
 
 
 if __name__ == '__main__':

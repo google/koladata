@@ -19,7 +19,6 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
-from koladata.operators import bootstrap
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
@@ -110,7 +109,7 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(
-        bootstrap.get_transform_config_qtype()
+        koda_internal_parallel.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.transform_many,

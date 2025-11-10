@@ -133,7 +133,6 @@ py_library(
         ":assertion",
         ":bags",
         ":bitwise",
-        ":bootstrap",
         ":comparison",
         ":core",
         ":curves",
@@ -282,7 +281,6 @@ py_library(
         "//koladata:internal",
     ],
     deps = [
-        ":bootstrap",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/operators",
         "//py:python_path",
@@ -854,7 +852,6 @@ py_library(
     name = "iterables",
     srcs = ["iterables.py"],
     deps = [
-        ":bootstrap",
         ":koda_internal_iterables",
         ":optools",
         ":qtype_utils",
@@ -879,23 +876,10 @@ py_library(
 )
 
 py_library(
-    name = "bootstrap",
-    srcs = ["bootstrap.py"],
-    visibility = [
-        "//koladata:internal",
-    ],
-    deps = [
-        "//py:python_path",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
     name = "koda_internal_parallel",
     srcs = ["koda_internal_parallel.py"],
     deps = [
         ":assertion",
-        ":bootstrap",
         ":core",
         ":functor",
         ":iterables",

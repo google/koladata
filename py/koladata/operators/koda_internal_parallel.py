@@ -22,7 +22,6 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import assertion
-from koladata.operators import bootstrap
 from koladata.operators import core
 from koladata.operators import functor
 from koladata.operators import iterables
@@ -76,6 +75,38 @@ def _replace_non_deterministic_leaf_with_param(expr):
   )
 
 
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel.is_future_qtype',
+    qtype_inference_expr=arolla.OPTIONAL_UNIT,
+    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+)
+def is_future_qtype(qtype):  # pylint: disable=unused-argument
+  """Checks if the given qtype is a future qtype."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel.is_stream_qtype',
+    qtype_inference_expr=arolla.OPTIONAL_UNIT,
+    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+)
+def is_stream_qtype(qtype):  # pylint: disable=unused-argument
+  """Checks if the given qtype is a stream qtype."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel.get_transform_config_qtype',
+    qtype_inference_expr=arolla.QTYPE,
+)
+def get_transform_config_qtype():
+  """Returns the qtype for ParallelTransformConfig."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.make_executor',
@@ -126,7 +157,7 @@ def current_executor():
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.create_transform_config',
-    qtype_inference_expr=bootstrap.get_transform_config_qtype(),
+    qtype_inference_expr=get_transform_config_qtype(),
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.config_src),
     ],
@@ -165,11 +196,11 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
     qtype_inference_expr=get_future_qtype(P.arg),
     qtype_constraints=[
         (
-            ~bootstrap.is_stream_qtype(P.arg),
+            ~is_stream_qtype(P.arg),
             'as_future cannot be applied to a stream',
         ),
         (
-            ~bootstrap.is_future_qtype(P.arg),
+            ~is_future_qtype(P.arg),
             'as_future cannot be applied to a future',
         ),
     ],
@@ -199,7 +230,7 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
         (
-            bootstrap.is_future_qtype(M.qtype.get_value_qtype(P.arg)),
+            is_future_qtype(M.qtype.get_value_qtype(P.arg)),
             (
                 'expected a future to a future, got'
                 f' {arolla.optools.constraints.name_type_msg(P.arg)}'
@@ -219,7 +250,7 @@ def unwrap_future_to_future(arg):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
         (
-            bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
+            is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
             (
                 'expected a future to a stream, got'
                 f' {arolla.optools.constraints.name_type_msg(P.arg)}'
@@ -257,7 +288,7 @@ _STREAM_CHAIN_QTYPE_CONSTRAINTS = (
     (
         M.seq.all(
             M.seq.map(
-                bootstrap.is_stream_qtype,
+                is_stream_qtype,
                 M.qtype.get_field_qtypes(P.streams),
             )
         ),
@@ -346,7 +377,7 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            bootstrap.is_stream_qtype(
+            is_stream_qtype(
                 M.qtype.get_value_qtype(P.stream_of_streams)
             ),
             (
@@ -391,7 +422,7 @@ def stream_chain_from_stream(stream_of_streams):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            bootstrap.is_stream_qtype(
+            is_stream_qtype(
                 M.qtype.get_value_qtype(P.stream_of_streams)
             ),
             (
@@ -497,11 +528,11 @@ def stream_from_iterable(iterable):
     'koda_internal.parallel._internal_as_parallel',
     qtype_constraints=[
         (
-            ~bootstrap.is_future_qtype(P.outer_arg),
+            ~is_future_qtype(P.outer_arg),
             'as_parallel cannot be applied to a future',
         ),
         (
-            ~bootstrap.is_stream_qtype(P.outer_arg),
+            ~is_stream_qtype(P.outer_arg),
             'as_parallel cannot be applied to a stream',
         ),
     ],
@@ -534,7 +565,7 @@ def _internal_as_parallel(outer_arg, outer_self_op):
       ),
       iterable_case=arolla.types.DispatchCase(
           stream_from_iterable(P.arg),
-          condition=bootstrap.is_iterable_qtype(P.arg),
+          condition=koda_internal_iterables.is_iterable_qtype(P.arg),
       ),
       non_deterministic_token_case=arolla.types.DispatchCase(
           P.arg,
@@ -622,12 +653,12 @@ def _nonrecursive_is_parallel_qtype(arg):
   """
   return (
       (
-          bootstrap.is_future_qtype(arg)
+          is_future_qtype(arg)
           & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(arg))
           & ~M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(arg))
           & (M.qtype.get_value_qtype(arg) != qtypes.NON_DETERMINISTIC_TOKEN)
       )
-      | bootstrap.is_stream_qtype(arg)
+      | is_stream_qtype(arg)
       | (arg == qtypes.NON_DETERMINISTIC_TOKEN)
       | M.qtype.is_tuple_qtype(arg)
       | M.qtype.is_namedtuple_qtype(arg)
@@ -642,7 +673,7 @@ def _nonrecursive_is_parallel_qtype(arg):
         qtype_utils.expect_executor(P.outer_executor),
         (
             _nonrecursive_is_parallel_qtype(P.outer_arg)
-            & ~bootstrap.is_stream_qtype(P.outer_arg),
+            & ~is_stream_qtype(P.outer_arg),
             (
                 'future_from_parallel can only be applied to a parallel'
                 ' non-stream type, got'
@@ -692,7 +723,7 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
       ),
       future_case=arolla.types.DispatchCase(
           P.arg,
-          condition=bootstrap.is_future_qtype(P.arg),
+          condition=is_future_qtype(P.arg),
       ),
   )(outer_arg, outer_executor, outer_self_op)
 
@@ -799,7 +830,9 @@ def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
                   P.arg,
               )
           ),
-          condition=bootstrap.is_iterable_qtype(M.qtype.get_value_qtype(P.arg)),
+          condition=koda_internal_iterables.is_iterable_qtype(
+              M.qtype.get_value_qtype(P.arg)
+          ),
       ),
       default=P.arg,
   )(
@@ -1094,11 +1127,11 @@ def _internal_unwrap_future_to_parallel(outer_arg, outer_self_op):
       ),
       future_case=arolla.types.DispatchCase(
           unwrap_future_to_future(P.arg),
-          condition=bootstrap.is_future_qtype(M.qtype.get_value_qtype(P.arg)),
+          condition=is_future_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
       stream_case=arolla.types.DispatchCase(
           unwrap_future_to_stream(P.arg),
-          condition=bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
+          condition=is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
       ),
   )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
 
@@ -1888,7 +1921,7 @@ def stream_for(
         qtype_utils.expect_data_slice(P.fn),
     ],
     qtype_inference_expr=M.qtype.conditional_qtype(
-        bootstrap.is_stream_qtype(P.return_type_as),
+        is_stream_qtype(P.return_type_as),
         P.return_type_as,
         get_stream_qtype(P.return_type_as),
     ),
@@ -1975,7 +2008,7 @@ def stream_await(arg):
               ),
               P.arg,
           ),
-          condition=bootstrap.is_stream_qtype(P.arg),
+          condition=is_stream_qtype(P.arg),
       ),
       default=P.arg,
   )(arg)
@@ -2277,7 +2310,7 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
       'inner_executor, inner_value_type_as',
       unspecified_case=arolla.types.DispatchCase(
           tuple_ops.tuple_(),
-          condition=bootstrap.is_future_qtype(P.inner_value_type_as)
+          condition=is_future_qtype(P.inner_value_type_as)
           & (
               M.qtype.get_value_qtype(P.inner_value_type_as)
               == arolla.UNSPECIFIED

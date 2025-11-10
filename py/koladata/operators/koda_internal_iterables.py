@@ -42,6 +42,17 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 
 
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@arolla.optools.as_backend_operator(
+    'koda_internal.iterables.is_iterable_qtype',
+    qtype_inference_expr=arolla.OPTIONAL_UNIT,
+    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+)
+def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
+  """Checks if the given qtype is an iterable qtype."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'koda_internal.iterables.from_sequence',

@@ -16,12 +16,28 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
-from koladata.operators import bootstrap
 from koladata.types import qtypes
 
 constraints = arolla.optools.constraints
 
 M, P = arolla.M, arolla.P
+
+# Forward declare operators that are potentially undefined yet, but will be
+# defined when the operator library is fully loaded. This is necessary to break
+# the circular dependency, as the operator library potentially depends on
+# qtype_utils.py.
+is_iterable_qtype = arolla.abc.unsafe_make_registered_operator(
+    'koda_internal.iterables.is_iterable_qtype'
+)
+is_future_qtype = arolla.abc.unsafe_make_registered_operator(
+    'koda_internal.parallel.is_future_qtype'
+)
+is_stream_qtype = arolla.abc.unsafe_make_registered_operator(
+    'koda_internal.parallel.is_stream_qtype'
+)
+get_transform_config_qtype = arolla.abc.unsafe_make_registered_operator(
+    'koda_internal.parallel.get_transform_config_qtype'
+)
 
 
 def expect_data_slice(param) -> constraints.QTypeConstraint:
@@ -154,7 +170,7 @@ def expect_non_deterministic(param) -> constraints.QTypeConstraint:
 def expect_iterable(param):
   """Returns a QType constraint that the given param is an iterable."""
   return (
-      bootstrap.is_iterable_qtype(param),
+      is_iterable_qtype(param),
       (
           'expected an iterable type, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -165,7 +181,7 @@ def expect_iterable(param):
 def expect_iterable_or_unspecified(param):
   """Returns a QType constraint that the given param is an iterable or unspecified."""
   return (
-      (bootstrap.is_iterable_qtype(param)) | (param == arolla.UNSPECIFIED),
+      is_iterable_qtype(param) | (param == arolla.UNSPECIFIED),
       (
           'expected an iterable type or unspecified, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -218,7 +234,7 @@ def expect_executor_or_unspecified(param) -> constraints.QTypeConstraint:
 def expect_parallel_transform_config(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a PARALLEL_TRANSFORM_CONFIG."""
   return (
-      param == bootstrap.get_transform_config_qtype(),
+      param == get_transform_config_qtype(),
       (
           'expected a parallel transform config, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -229,7 +245,7 @@ def expect_parallel_transform_config(param) -> constraints.QTypeConstraint:
 def expect_future(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Future."""
   return (
-      bootstrap.is_future_qtype(param),
+      is_future_qtype(param),
       (
           'expected a future, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -240,7 +256,7 @@ def expect_future(param) -> constraints.QTypeConstraint:
 def expect_stream(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Stream."""
   return (
-      bootstrap.is_stream_qtype(param),
+      is_stream_qtype(param),
       (
           'expected a stream, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
@@ -251,7 +267,7 @@ def expect_stream(param) -> constraints.QTypeConstraint:
 def expect_stream_or_unspecified(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Stream."""
   return (
-      bootstrap.is_stream_qtype(param) | (param == arolla.UNSPECIFIED),
+      is_stream_qtype(param) | (param == arolla.UNSPECIFIED),
       (
           'expected a stream, got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
