@@ -216,7 +216,62 @@ def _get_recursive_obj_schema():
   ).eval()
 
 
+@dataclasses.dataclass
+class _A:
+  x: float | None = None
+  y: list[str] | None = None
+
+
+@dataclasses.dataclass
+class _B:
+  a_list: list[_A] | None = None
+  a_dict: dict[str, _A] | None = None
+  a_obj: _A | None = None
+
+
+@dataclasses.dataclass
+class _C:
+  b: list[_B]
+
+
 class FromPyTest(parameterized.TestCase):
+
+  def test_none_in_complex_structures(self):
+
+    a1 = _A(x=1.0, y=['a', 'b', None])
+    a2 = _A(x=2.0)
+
+    b1 = _B(a_list=[a1, a2], a_obj=a1)
+    b2 = _B(a_list=None, a_dict={'a': a1, 'b': a2, 'c': None})
+    c1 = _C(b=[b1, b2, None])
+
+    schema_a = kde.schema.new_schema(
+        x=schema_constants.FLOAT32,
+        y=kde.list_schema(schema_constants.STRING).eval(),
+    ).eval()
+    schema_b = kde.schema.new_schema(
+        a_list=kde.list_schema(schema_a).eval(),
+        a_dict=kde.dict_schema(schema_constants.STRING, schema_a).eval(),
+        a_obj=schema_a,
+    ).eval()
+    schema_c = kde.schema.new_schema(
+        b=kde.list_schema(schema_b).eval(),
+    ).eval()
+    kd_a1 = schema_a.new(x=1.0, y=fns.list(['a', 'b', None]))
+    kd_a2 = schema_a.new(x=2.0)
+    new_obj = schema_c.new(
+        b=fns.list([
+            schema_b.new(a_list=fns.list([kd_a1, kd_a2]), a_obj=kd_a1),
+            schema_b.new(
+                a_list=None,
+                a_dict=fns.dict({'a': kd_a1, 'b': kd_a2, 'c': None}),
+            ),
+            None,
+        ])
+    )
+    from_py_obj = py_conversions._from_py_v2(c1, schema=schema_c)
+
+    testing.assert_equivalent(from_py_obj, new_obj)
 
   # More detailed tests for conversions to Koda OBJECT are located in
   # obj_test.py.

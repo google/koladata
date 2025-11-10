@@ -319,10 +319,11 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
 }  // namespace
 
 bool IsPyScalarOrQValueObject(PyObject* py_obj) {
+  // None is excluded from this check, since it can be both a complex structure
+  // (dict/list/object) or a scalar.
   return PyBool_Check(py_obj) || PyLong_Check(py_obj) ||
          PyFloat_Check(py_obj) || PyUnicode_Check(py_obj) ||
-         PyBytes_Check(py_obj) || py_obj == Py_None ||
-         arolla::python::IsPyQValueInstance(py_obj);
+         PyBytes_Check(py_obj) || arolla::python::IsPyQValueInstance(py_obj);
 }
 
 absl::Status CreateIncompatibleSchemaErrorFromStatus(
