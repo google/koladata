@@ -48,7 +48,7 @@ class DictItemTest(parameterized.TestCase):
     py_dicts = [
         None,
         {'a': 42},
-        {'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}},
+        {'a': db.dict({b'x': 42, b'y': 12}), 'b': db.dict({b'z': 15})},
     ]
     for py_dict_1, py_dict_2 in itertools.combinations(py_dicts, 2):
       self.assertNotEqual(hash(db.dict(py_dict_1)), hash(db.dict(py_dict_2)))

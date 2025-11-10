@@ -64,7 +64,7 @@ class DictTest(parameterized.TestCase):
     )
 
   def test_single_arg(self):
-    d = fns.dict({'a': {'b': 42}})
+    d = fns.dict({'a': fns.dict({'b': 42})})
     self.assertIsInstance(d, dict_item.DictItem)
     testing.assert_equal(d['a']['b'], ds(42).with_bag(d.get_bag()))
     with self.assertRaisesRegex(
@@ -98,6 +98,12 @@ class DictTest(parameterized.TestCase):
         d, ds([['a', 'b'], ['c']]).with_bag(d.get_bag())
     )
     testing.assert_equal(d['a'], ds([1, None]).with_bag(d.get_bag()))
+
+  def test_nested_structures_unsupported(self):
+    with self.assertRaisesRegex(ValueError, 'unsupported type: dict'):
+      fns.dict({'a': {'b': 42}})
+    with self.assertRaisesRegex(ValueError, 'unsupported type: list'):
+      fns.dict({'a': [1, 2, 3]})
 
   def test_itemid(self):
     itemid = expr_eval.eval(

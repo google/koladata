@@ -17,6 +17,7 @@
 #include <Python.h>
 
 #include <any>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
@@ -782,6 +783,38 @@ PyObject* absl_nullable PyDataBag_uu_obj_factory(PyObject* self,
 
 namespace {
 
+// Converts Python dictionary to a DataSlice of keys and a DataSlice of values.
+// Nested dicts are not supported in order to preserve compatibility with
+// tracing. For deep conversion, kd.from_py should be used, instead.
+absl::Status ConvertDictKeysAndValues(PyObject* py_obj,
+                                      AdoptionQueue& adoption_queue,
+                                      std::optional<DataSlice>& keys,
+                                      std::optional<DataSlice>& values) {
+  size_t dict_size = PyDict_Size(py_obj);
+  std::vector<PyObject*> py_keys(dict_size);
+  std::vector<PyObject*> py_values(dict_size);
+  Py_ssize_t pos = 0;
+  for (size_t i = 0; i < dict_size; ++i) {
+    auto check = PyDict_Next(py_obj, &pos, &py_keys[i], &py_values[i]);
+    DCHECK(check);
+  }
+  DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
+
+  ASSIGN_OR_RETURN(
+      keys,
+      DataSliceFromPyFlatList(py_keys,
+                              DataSlice::JaggedShape::FlatFromSize(dict_size),
+                              /*schema=*/internal::DataItem(),  // auto-detect.
+                              adoption_queue));
+  ASSIGN_OR_RETURN(
+      values,
+      DataSliceFromPyFlatList(py_values,
+                              DataSlice::JaggedShape::FlatFromSize(dict_size),
+                              /*schema=*/internal::DataItem(),  // auto-detect.
+                              adoption_queue));
+  return absl::OkStatus();
+}
+
 // Converts `py_items_or_keys` and `py_values` into DataSlices `keys` and
 // `values` if present and if possible. On success, returns true. On failure,
 // sets Python error and returns false.
@@ -802,15 +835,11 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
       return false;
     }
     ASSIGN_OR_RETURN(keys,
-                     AssignmentRhsFromPyValue(
-                         py_items_or_keys, prohibit_boxing_to_multi_dim_slice,
-                         db, adoption_queue),
+                     DataSliceFromPyValue(py_items_or_keys, adoption_queue),
                      (arolla::python::SetPyErrFromStatus(_), false));
-    ASSIGN_OR_RETURN(
-        values,
-        AssignmentRhsFromPyValue(py_values, prohibit_boxing_to_multi_dim_slice,
-                                 db, adoption_queue),
-        (arolla::python::SetPyErrFromStatus(_), false));
+    ASSIGN_OR_RETURN(values,
+                     DataSliceFromPyValue(py_values, adoption_queue),
+                     (arolla::python::SetPyErrFromStatus(_), false));
     return true;
   }
   if (py_items_or_keys && py_items_or_keys != Py_None) {
@@ -829,8 +858,8 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
           "DataItem can be created directly from Python dictionary");
       return false;
     }
-    if (auto status = ConvertDictKeysAndValues(py_items_or_keys, db,
-                                               adoption_queue, keys, values);
+    if (auto status = ConvertDictKeysAndValues(py_items_or_keys, adoption_queue,
+                                               keys, values);
         !status.ok()) {
       arolla::python::SetPyErrFromStatus(status);
       return false;

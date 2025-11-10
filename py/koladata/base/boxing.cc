@@ -837,20 +837,6 @@ class UniversalConverter {
     return res.Reshape(std::move(shape));
   }
 
-  // TODO: Consider passing `schema` here as well. This requires
-  // refactoring dict_shaped in data_bag.cc.
-  absl::Status ConvertDictKeysAndValues(PyObject* py_obj,
-                                        std::optional<DataSlice>& keys,
-                                        std::optional<DataSlice>& values) && {
-    RETURN_IF_ERROR(ParsePyDict(py_obj, /*dict_schema=*/std::nullopt,
-                                /*compute_dict=*/false));
-    RETURN_IF_ERROR(Run());
-    size_t dict_size = PyDict_Size(py_obj);
-    ASSIGN_OR_RETURN(keys, ComputeDataSlice(dict_size));
-    ASSIGN_OR_RETURN(values, ComputeDataSlice(dict_size));
-    return absl::OkStatus();
-  }
-
   absl_nullable DataBagPtr GetCreatedBag() && {
     return std::move(db_);
   }
@@ -944,7 +930,8 @@ class UniversalConverter {
     std::vector<PyObject*> values(dict_size);
     Py_ssize_t pos = 0;
     for (size_t i = dict_size; i > 0; --i) {
-      CHECK(PyDict_Next(py_obj, &pos, &keys[i - 1], &values[i - 1]));
+      auto check = PyDict_Next(py_obj, &pos, &keys[i - 1], &values[i - 1]);
+      DCHECK(check);
     }
     DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
     std::optional<DataSlice> key_schema;
@@ -1397,14 +1384,6 @@ absl::StatusOr<DataSlice> ObjectsFromPyObject(
   }
   return UniversalConverter<ObjectCreator>(db, adoption_queue)
       .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0, itemid);
-}
-
-absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
-                                      AdoptionQueue& adoption_queue,
-                                      std::optional<DataSlice>& keys,
-                                      std::optional<DataSlice>& values) {
-  return UniversalConverter<EntityCreator>(db, adoption_queue)
-      .ConvertDictKeysAndValues(py_obj, keys, values);
 }
 
 absl::StatusOr<DataSlice> GenericFromPyObject(

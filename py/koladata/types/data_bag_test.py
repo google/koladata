@@ -142,7 +142,7 @@ Top attrs:$""",
       ),
       (
           'dicts',
-          bag().dict({'a': {'inner': 42}}).get_bag(),
+          bag().dict({'a': bag().dict({'inner': 42})}).get_bag(),
           r"""^DataBag \$[0-9a-f]{4}:
   0 Entities/Objects with 0 values in 0 attrs
   0 non empty Lists with 0 items
@@ -1352,12 +1352,10 @@ Assigned schema for keys: INT32""",
     with self.subTest('dict arg'):
       x = db.dict({'a': 42})
       testing.assert_equal(x['a'], ds(42).with_bag(db))
+
     with self.subTest('dict arg with bytes key'):
-      x = db.dict({'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}})
-      testing.assert_equal(
-          x[ds(['a', 'b'])][ds([[b'x', b'x'], [b'z']])],
-          ds([[42, 42], [15]]).with_bag(db),
-      )
+      x = db.dict({b'a': 42, b'b': 12})
+      testing.assert_equal(x[ds([b'a', b'b'])], ds([42, 12]).with_bag(db))
 
     with self.subTest('keys and values'):
       x = db.dict(ds(['a', 'b']), 1)
@@ -1401,10 +1399,10 @@ Assigned schema for keys: INT32""",
         ValueError,
         r"""cannot find a common schema
 
- the common schema\(s\) #[a-zA-Z0-9]+: LIST\[NONE\]
- the first conflicting schema #[a-zA-Z0-9]+: LIST\[STRING\]""",
+ the common schema\(s\) #[a-zA-Z0-9]+: LIST\[STRING\]
+ the first conflicting schema #[a-zA-Z0-9]+: LIST\[NONE\]""",
     ):
-      db.dict({'foo': [''], 'bar': []})
+      db.dict({'foo': db.list(['']), 'bar': db.list([])})
 
   def test_dict_shaped(self):
     # NOTE: more tests for dict_shaped in

@@ -117,21 +117,6 @@ absl::StatusOr<DataSlice> ObjectsFromPyObject(
     PyObject* py_obj, const std::optional<DataSlice>& itemid,
     const DataBagPtr& db, AdoptionQueue& adoption_queue);
 
-// Applies UniversalConverter (with EntityCreator) to each key and value of a
-// dict `py_obj` and returns them as DataSlices.
-//
-// The only input argument is `py_obj`, while others are output arguments. `db`
-// is not a real output argument, but is used to create Koda objects in it.
-// `adoption_queue` is used to collect DataBag(s) of DataSlices found in nested
-// `py_obj`.
-//
-// `keys` and `values` are true output arguments and are used to build a
-// dictionary by the caller.
-absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
-                                      AdoptionQueue& adoption_queue,
-                                      std::optional<DataSlice>& keys,
-                                      std::optional<DataSlice>& values);
-
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda Objects / Entities depending on schema. The conversion is deep.
 //
