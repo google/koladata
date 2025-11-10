@@ -19,7 +19,9 @@ from koladata.operators import optools
 
 
 @optools.add_to_registry_as_overloadable(
-    'koda_internal.view.get_item', repr_fn=op_repr.get_item_repr
+    'koda_internal.view.get_item',
+    repr_fn=op_repr.get_item_repr,
+    via_cc_operator_package=True,
 )
 def get_item(x, key):  # pylint: disable=unused-argument
   """Returns `x[key]`."""

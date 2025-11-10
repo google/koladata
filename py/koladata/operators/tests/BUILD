@@ -7590,7 +7590,7 @@ py_test(
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
-        "//py/koladata/operators:view_overloads",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

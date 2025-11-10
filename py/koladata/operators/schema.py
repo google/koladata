@@ -30,7 +30,7 @@ constraints = arolla.optools.constraints
 with_schema = masking._with_schema  # pylint: disable=protected-access
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.new_schema',
     qtype_constraints=[
@@ -51,7 +51,7 @@ def new_schema(**kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.uu_schema'])
+@optools.add_to_registry(aliases=['kd.uu_schema'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.uu_schema',
     qtype_constraints=[
@@ -84,7 +84,9 @@ def uu_schema(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.named_schema'])
+@optools.add_to_registry(
+    aliases=['kd.named_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.named_schema',
     qtype_constraints=[
@@ -118,7 +120,7 @@ def _internal_maybe_named_schema(name_or_schema):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.schema.internal_maybe_named_schema',
     qtype_constraints=[
@@ -149,7 +151,7 @@ def internal_maybe_named_schema(name_or_schema):
   return process_if_specified(name_or_schema)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.cast_to_implicit',
     qtype_constraints=[
@@ -170,7 +172,7 @@ def cast_to_implicit(x, schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.cast_to'])
+@optools.add_to_registry(aliases=['kd.cast_to'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.cast_to',
     qtype_constraints=[
@@ -191,7 +193,7 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.cast_to_narrow',
     qtype_constraints=[
@@ -213,7 +215,9 @@ def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list_schema'])
+@optools.add_to_registry(
+    aliases=['kd.list_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.list_schema',
     qtype_constraints=[
@@ -226,7 +230,9 @@ def list_schema(item_schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dict_schema'])
+@optools.add_to_registry(
+    aliases=['kd.dict_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.dict_schema',
     qtype_constraints=[
@@ -240,70 +246,70 @@ def dict_schema(key_schema, value_schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_int32')
 def to_int32(x):
   """Casts `x` to INT32 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.INT32)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_int64')
 def to_int64(x):
   """Casts `x` to INT64 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.INT64)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_float32')
 def to_float32(x):
   """Casts `x` to FLOAT32 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.FLOAT32)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_float64')
 def to_float64(x):
   """Casts `x` to FLOAT64 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.FLOAT64)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_mask')
 def to_mask(x):
   """Casts `x` to MASK using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.MASK)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_bool')
 def to_bool(x):
   """Casts `x` to BOOLEAN using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.BOOLEAN)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_bytes')
 def to_bytes(x):
   """Casts `x` to BYTES using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.BYTES)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_str')
 def to_str(x):
   """Casts `x` to STRING using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.STRING)
 
 
-@optools.add_to_registry(aliases=['kd.to_expr'])
+@optools.add_to_registry(aliases=['kd.to_expr'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_expr')
 def to_expr(x):
   """Casts `x` to EXPR using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.EXPR)
 
 
-@optools.add_to_registry(aliases=['kd.to_schema'])
+@optools.add_to_registry(aliases=['kd.to_schema'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_schema')
 def to_schema(x):
   """Casts `x` to SCHEMA using explicit (permissive) casting rules."""
@@ -315,7 +321,8 @@ def to_schema(x):
         'kd.to_itemid',
         'kd.schema.get_itemid',
         'kd.get_itemid',
-    ]
+    ],
+    via_cc_operator_package=True,
 )
 @optools.as_lambda_operator('kd.schema.to_itemid')
 def to_itemid(x):
@@ -326,21 +333,23 @@ def to_itemid(x):
 # pylint: enable=g-doc-args,g-doc-return-or-yield
 
 
-@optools.add_to_registry(aliases=['kd.to_object'])
+@optools.add_to_registry(aliases=['kd.to_object'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_object')
 def to_object(x):
   """Casts `x` to OBJECT using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.OBJECT)
 
 
-@optools.add_to_registry(aliases=['kd.to_none'])
+@optools.add_to_registry(aliases=['kd.to_none'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.to_none')
 def to_none(x):
   """Casts `x` to NONE using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.NONE)
 
 
-@optools.add_to_registry(aliases=['kd.get_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -355,7 +364,8 @@ def get_schema(x):  # pylint: disable=unused-argument
         'kd.get_primitive_schema',
         'kd.schema.get_dtype',
         'kd.get_dtype',
-    ]
+    ],
+    via_cc_operator_package=True,
 )
 @optools.as_backend_operator(
     'kd.schema.get_primitive_schema',
@@ -388,7 +398,9 @@ def get_primitive_schema(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_obj_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_obj_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_obj_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -415,7 +427,9 @@ def get_obj_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_item_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_item_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_item_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_schema)],
@@ -426,7 +440,9 @@ def get_item_schema(list_schema):  # pylint: disable=unused-argument,redefined-o
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_key_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_key_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_key_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
@@ -437,7 +453,9 @@ def get_key_schema(dict_schema):  # pylint: disable=unused-argument,redefined-ou
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_value_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_value_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_value_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_schema)],
@@ -448,7 +466,7 @@ def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_dict_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -458,7 +476,7 @@ def is_dict_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_entity_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -468,7 +486,7 @@ def is_entity_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_struct_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -478,7 +496,7 @@ def is_struct_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_list_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -488,7 +506,7 @@ def is_list_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_primitive_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -503,7 +521,7 @@ def _agg_common_schema(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.schema.agg_common_schema',
     qtype_constraints=[
@@ -534,7 +552,7 @@ def agg_common_schema(x, ndim=arolla.unspecified()):
   return _agg_common_schema(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.schema.common_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -550,14 +568,16 @@ def common_schema(x):
   return agg_common_schema(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator('kd.schema._unsafe_cast_to')
 def _unsafe_cast_to(x, schema):  # pylint: disable=unused-argument
   """Casts x to schema using explicit rules, allowing unvalidated entity casts."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.with_schema_from_obj'])
+@optools.add_to_registry(
+    aliases=['kd.with_schema_from_obj'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.schema.with_schema_from_obj',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -585,7 +605,9 @@ def with_schema_from_obj(x):
   return _unsafe_cast_to(x, schema)
 
 
-@optools.add_to_registry(aliases=['kd.nofollow_schema'])
+@optools.add_to_registry(
+    aliases=['kd.nofollow_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.nofollow_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
@@ -604,7 +626,9 @@ def nofollow_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_nofollowed_schema'])
+@optools.add_to_registry(
+    aliases=['kd.get_nofollowed_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.get_nofollowed_schema',
     qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
@@ -621,7 +645,7 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.get_repr',
     qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],

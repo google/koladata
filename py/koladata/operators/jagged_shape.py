@@ -48,7 +48,7 @@ def _expect_slices_or_edges(value):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.shapes.new',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
@@ -88,7 +88,7 @@ def new(*dimensions):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.shapes._new_with_size',
     qtype_constraints=[
@@ -119,7 +119,7 @@ def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.size',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
@@ -131,7 +131,7 @@ def size(shape):
   )
 
 
-@optools.add_to_registry(aliases=['kd.get_shape'])
+@optools.add_to_registry(aliases=['kd.get_shape'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.shapes.get_shape',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -142,7 +142,7 @@ def get_shape(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.reshape'])
+@optools.add_to_registry(aliases=['kd.reshape'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.shapes.reshape')
 def reshape(x, shape):
   """Returns a DataSlice with the provided shape.
@@ -189,14 +189,16 @@ def reshape(x, shape):
   return _reshape(x, to_shape(x, shape))
 
 
-@optools.add_to_registry(aliases=['kd.reshape_as'])
+@optools.add_to_registry(
+    aliases=['kd.reshape_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator('kd.shapes.reshape_as')
 def reshape_as(x, shape_from):
   """Returns a DataSlice x reshaped to the shape of DataSlice shape_from."""
   return reshape(x, get_shape(shape_from))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal._flatten_last_ndim',
     qtype_constraints=[
@@ -254,7 +256,7 @@ def _flatten_last_ndim(x, ndim):
   )(x, ndim)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.flatten_last_ndim',
     qtype_constraints=[(
@@ -286,7 +288,7 @@ def flatten_last_ndim(x, ndim):
   return flatten_if_specified(x, ndim)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal._remove_last_ndim',
     qtype_constraints=[
@@ -307,7 +309,7 @@ def _remove_last_ndim(x, ndim):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.remove_last_ndim',
     qtype_constraints=[
@@ -340,7 +342,9 @@ def _expand_to_shape(x, shape, ndim):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.expand_to_shape'])
+@optools.add_to_registry(
+    aliases=['kd.expand_to_shape'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.shapes.expand_to_shape',
     qtype_constraints=[
@@ -415,7 +419,7 @@ def expand_to_shape(x, shape, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.is_expandable_to_shape',
     qtype_constraints=[
@@ -444,7 +448,7 @@ def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kd.flatten'])
+@optools.add_to_registry(aliases=['kd.flatten'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.flatten',
     qtype_constraints=[
@@ -513,7 +517,9 @@ def flatten(
   )
 
 
-@optools.add_to_registry(aliases=['kd.flatten_end'])
+@optools.add_to_registry(
+    aliases=['kd.flatten_end'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.shapes.flatten_end',
     qtype_constraints=[
@@ -556,7 +562,9 @@ def flatten_end(x, n_times=data_slice.DataSlice.from_vals(1, INT64)):
   )
 
 
-@optools.add_to_registry(aliases=['kd.shapes.ndim'])
+@optools.add_to_registry(
+    aliases=['kd.shapes.ndim'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.shapes.rank',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
@@ -569,7 +577,7 @@ def rank(shape):
 
 
 # TODO: Remove this operator once the shapes.get_sizes is ready.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.dim_sizes',
     qtype_constraints=[
@@ -599,7 +607,7 @@ def dim_sizes(shape, dim):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.dim_mapping',
     qtype_constraints=[

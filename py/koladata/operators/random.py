@@ -86,7 +86,7 @@ def _to_dense_array_text_or_unspecified(x):
   )(x)
 
 
-@optools.add_to_registry(aliases=['kd.cityhash'])
+@optools.add_to_registry(aliases=['kd.cityhash'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.random.cityhash',
     qtype_constraints=[
@@ -117,7 +117,7 @@ def cityhash(x, seed):
   return result_ds
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.random.mask',
     qtype_constraints=[
@@ -200,7 +200,7 @@ def mask(x, ratio, seed, key=arolla.unspecified()):
   return arolla_bridge.to_data_slice(flat_mask).reshape(x_shape)
 
 
-@optools.add_to_registry(aliases=['kd.sample'])
+@optools.add_to_registry(aliases=['kd.sample'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.random.sample',
     qtype_constraints=[
@@ -262,7 +262,7 @@ def sample(
   return slices.internal_select_by_slice(x, mask(x, ratio, seed, key))
 
 
-@optools.add_to_registry(aliases=['kd.sample_n'])
+@optools.add_to_registry(aliases=['kd.sample_n'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.random.sample_n',
     qtype_constraints=[
@@ -350,7 +350,9 @@ def sample_n(
   return slices.internal_select_by_slice(x, ds_mask)
 
 
-@optools.add_to_registry(aliases=['kd.randint_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.randint_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.random.randint_shaped',
     qtype_constraints=[
@@ -423,7 +425,9 @@ def randint_shaped(
   return arolla_bridge.to_data_slice(flat_res).reshape(shape)
 
 
-@optools.add_to_registry(aliases=['kd.randint_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.randint_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.random.randint_shaped_as',
     qtype_constraints=[
@@ -459,7 +463,9 @@ def randint_shaped_as(
   return randint_shaped(jagged_shape_ops.get_shape(x), low, high, seed)
 
 
-@optools.add_to_registry(aliases=['kd.randint_like'])
+@optools.add_to_registry(
+    aliases=['kd.randint_like'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.random.randint_like',
     qtype_constraints=[
@@ -495,7 +501,7 @@ def randint_like(
   return randint_shaped_as(x, low, high, seed) & masking.has(x)
 
 
-@optools.add_to_registry(aliases=['kd.shuffle'])
+@optools.add_to_registry(aliases=['kd.shuffle'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.random.shuffle',
     qtype_constraints=[

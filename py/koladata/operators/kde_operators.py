@@ -15,10 +15,12 @@
 """Initializes Koda operators."""
 
 from arolla import arolla
-from koladata.operators import base_cc_operators as _
-from koladata.operators import extra_cc_operators as _
-from koladata.operators import koda_internal_parallel as _
+from koladata.operators import cc_operators_py_clib as _
 from koladata.operators import py as _
+
+# The Arolla operators are coming from :cc_operators package, importing this
+# module in order to register Koda-specific parts like view and repr.
+from koladata.operators import operators_in_cc_operator_package as _  # pylint: disable=g-bad-import-order
 
 
 kde = arolla.OperatorsContainer(

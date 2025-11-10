@@ -31,7 +31,7 @@ def _new(arg, schema, overwrite_schema, itemid, attrs):  # pylint: disable=unuse
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new'])
+@optools.add_to_registry(aliases=['kd.new'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.entities.new',
     qtype_constraints=[
@@ -91,7 +91,9 @@ def _shaped(shape, schema, overwrite_schema, itemid, attrs):  # pylint: disable=
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.new_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.entities.shaped',
     qtype_constraints=[
@@ -135,7 +137,9 @@ def shaped(
   )
 
 
-@optools.add_to_registry(aliases=['kd.new_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.new_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.entities.shaped_as',
     qtype_constraints=[
@@ -185,7 +189,7 @@ def _like(shape_and_mask_from, schema, overwrite_schema, itemid, attrs):  # pyli
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.new_like'])
+@optools.add_to_registry(aliases=['kd.new_like'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.entities.like',
     qtype_constraints=[
@@ -236,7 +240,7 @@ def _uu(seed, schema, overwrite_schema, kwargs):  # pylint: disable=unused-argum
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.uu'])
+@optools.add_to_registry(aliases=['kd.uu'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.entities.uu',
     qtype_constraints=[

@@ -42,8 +42,9 @@ P = arolla.P
 M = arolla.M
 
 
-@optools.add_to_registry(aliases=['kd.call'],
-                         repr_fn=op_repr.call_repr)
+@optools.add_to_registry(
+    aliases=['kd.call'], repr_fn=op_repr.call_repr, via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.functor.call',
     qtype_inference_expr=P.return_type_as,
@@ -91,7 +92,7 @@ def call(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.functor.call_fn_normally_when_parallel')
 def call_fn_normally_when_parallel(
     fn,
@@ -138,7 +139,7 @@ def call_fn_normally_when_parallel(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.functor.call_fn_returning_stream_when_parallel')
 def call_fn_returning_stream_when_parallel(
     fn,
@@ -172,7 +173,7 @@ def call_fn_returning_stream_when_parallel(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.call_and_update_namedtuple',
     qtype_inference_expr=P.namedtuple_to_update,
@@ -218,7 +219,7 @@ def call_and_update_namedtuple(fn, *args, namedtuple_to_update, **kwargs):  # py
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.map'])
+@optools.add_to_registry(aliases=['kd.map'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.map',
     qtype_constraints=[
@@ -278,7 +279,7 @@ def map_(fn, *args, include_missing=False, **kwargs):  # pylint: disable=unused-
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.if_'])
+@optools.add_to_registry(aliases=['kd.if_'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.if_',
     qtype_constraints=[
@@ -335,7 +336,7 @@ def if_(
 # We could later move this operator to slices.py or a similar lower-level
 # operator module if we discover that we have too many unrelated operators in
 # this module because they use _maybe_call.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor._maybe_call',
     qtype_constraints=[
@@ -350,7 +351,7 @@ def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
 
 
 # This operator is defined here since it depends on _maybe_call.
-@optools.add_to_registry(aliases=['kd.select'])
+@optools.add_to_registry(aliases=['kd.select'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.select',
     qtype_constraints=[
@@ -401,7 +402,9 @@ def select(ds, fltr, expand_filter=True):
 
 
 # This operator is defined here since it depends on _maybe_call.
-@optools.add_to_registry(aliases=['kd.select_keys'])
+@optools.add_to_registry(
+    aliases=['kd.select_keys'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.select_keys',
     qtype_constraints=[
@@ -428,7 +431,9 @@ def select_keys(ds, fltr):
 
 
 # This operator is defined here since it depends on _maybe_call.
-@optools.add_to_registry(aliases=['kd.select_values'])
+@optools.add_to_registry(
+    aliases=['kd.select_values'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.select_values',
     qtype_constraints=[
@@ -455,7 +460,9 @@ def select_values(ds, fltr):
 
 
 # This operator is defined here since it depends on _maybe_call.
-@optools.add_to_registry(aliases=['kd.select_items'])
+@optools.add_to_registry(
+    aliases=['kd.select_items'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.lists.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
@@ -478,7 +485,7 @@ def select_items(ds, fltr):
   return select(ds=lists.explode(ds), fltr=fltr)
 
 
-@optools.add_to_registry(aliases=['kd.is_fn'])
+@optools.add_to_registry(aliases=['kd.is_fn'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.is_fn', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -493,7 +500,7 @@ def is_fn(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.has_fn'])
+@optools.add_to_registry(aliases=['kd.has_fn'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.has_fn', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -509,7 +516,7 @@ def has_fn(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor._while',
     qtype_inference_expr=arolla.M.qtype.conditional_qtype(
@@ -536,7 +543,7 @@ def _while(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.while_'])
+@optools.add_to_registry(aliases=['kd.while_'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.while_',
     qtype_constraints=(
@@ -694,7 +701,7 @@ def _reduce_op(tuple_fn_x, y):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.reduce',
     qtype_constraints=[
@@ -732,7 +739,7 @@ def reduce(fn, items, initial_value):
   return M.core.get_second(res)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.expr_fn',
     qtype_constraints=[
@@ -943,7 +950,7 @@ _FOR_ITERATION_BODY_FN = _create_for_iteration_body_fn()
 _FOR_ITERATION_CONDITION_FN = _create_for_iteration_condition_fn()
 
 
-@optools.add_to_registry(aliases=['kd.for_'])
+@optools.add_to_registry(aliases=['kd.for_'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.for_',
     qtype_constraints=(
@@ -1094,7 +1101,7 @@ def for_(
   )
 
 
-@optools.add_to_registry(aliases=['kd.bind'])
+@optools.add_to_registry(aliases=['kd.bind'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.functor.bind',
     qtype_constraints=[
@@ -1182,7 +1189,9 @@ _FOR_FLAT_MAP_INTERLEAVED_STEP_FN = _create_for_flat_map_step_fn(
 )
 
 
-@optools.add_to_registry(aliases=['kd.flat_map_chain'])
+@optools.add_to_registry(
+    aliases=['kd.flat_map_chain'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.functor.flat_map_chain',
     qtype_constraints=(
@@ -1238,7 +1247,9 @@ def flat_map_chain(
   )
 
 
-@optools.add_to_registry(aliases=['kd.flat_map_interleaved'])
+@optools.add_to_registry(
+    aliases=['kd.flat_map_interleaved'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.functor.flat_map_interleaved',
     qtype_constraints=(

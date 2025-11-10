@@ -41,7 +41,7 @@ def _agg_join(x, sep):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.strings.agg_join',
     qtype_constraints=[
@@ -68,7 +68,7 @@ def agg_join(x, sep=None, ndim=arolla.unspecified()):
   return _agg_join(jagged_shape_ops.flatten_last_ndim(x, ndim), sep)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.contains',
     qtype_constraints=[
@@ -97,7 +97,7 @@ def contains(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.count',
     qtype_constraints=[
@@ -126,7 +126,7 @@ def count(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.find',
     qtype_constraints=[
@@ -161,7 +161,7 @@ def find(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.strings.printf',
     qtype_constraints=[
@@ -191,7 +191,7 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.format'])
+@optools.add_to_registry(aliases=['kd.format'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.format',
     qtype_constraints=[
@@ -240,7 +240,7 @@ def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.fstr'])
+@optools.add_to_registry(aliases=['kd.fstr'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.strings.fstr',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.strings.fstr]',
@@ -319,7 +319,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.strings._test_only_format_wrapper',
     qtype_constraints=[
@@ -335,7 +335,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.strings.join',
     qtype_constraints=[
@@ -366,7 +366,7 @@ def join(*args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.length', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -390,7 +390,7 @@ def length(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.lower', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -412,7 +412,7 @@ def lower(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.lstrip',
     qtype_constraints=[
@@ -447,7 +447,7 @@ def lstrip(s, chars=None):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.regex_extract',
     qtype_constraints=[
@@ -490,7 +490,7 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.regex_match',
     qtype_constraints=[
@@ -528,7 +528,7 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.strings.regex_find_all',
     qtype_constraints=[
@@ -603,7 +603,7 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.strings.regex_replace_all',
     qtype_constraints=[
@@ -686,7 +686,7 @@ def regex_replace_all(text, regex, replacement):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.replace',
     qtype_constraints=[
@@ -725,7 +725,7 @@ def replace(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.rfind',
     qtype_constraints=[
@@ -761,7 +761,7 @@ def rfind(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.rstrip',
     qtype_constraints=[
@@ -796,7 +796,7 @@ def rstrip(s, chars=None):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.split',
     qtype_constraints=[
@@ -819,7 +819,7 @@ def split(x, sep=None):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.strip',
     qtype_constraints=[
@@ -854,7 +854,7 @@ def strip(s, chars=None):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.substr',
     qtype_constraints=[
@@ -908,7 +908,7 @@ def substr(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.upper', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -930,7 +930,7 @@ def upper(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.decode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -939,7 +939,7 @@ def decode(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.encode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -948,13 +948,13 @@ def encode(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator('kd.strings._decode_base64')
 def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.strings.decode_base64',
     qtype_constraints=[
@@ -991,7 +991,7 @@ def decode_base64(x, /, *, on_invalid=arolla.unspecified()):
   )(x, on_invalid)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.strings.encode_base64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],

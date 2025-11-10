@@ -22,19 +22,26 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.operators import comparison as _
-from koladata.operators import jagged_shape
-from koladata.operators import koda_internal as _
-from koladata.operators import math
 from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
-from koladata.operators import tuple as _
 from koladata.testing import testing
 from koladata.types import data_item as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
+
+# Unlike all other tests, this one does not depend on cc_operator_package,
+# so in order to use the operators below, we need to forcibly register them in
+# Arolla registry using building_cc_operator_package() context.
+# pylint: disable=g-import-not-at-top
+with optools.building_cc_operator_package():
+  from koladata.operators import comparison as _
+  from koladata.operators import jagged_shape
+  from koladata.operators import koda_internal as _
+  from koladata.operators import math
+  from koladata.operators import tuple as _
+# pylint: enable=g-import-not-at-top
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
@@ -175,6 +182,30 @@ class OptoolsTest(parameterized.TestCase):
           'test_add_to_registry_with_view.op_2', view=None
       )(op)
       self.assertFalse(view.has_koda_view(op_2(1)))
+
+  def test_building_cc_operator_package(self):
+    @optools.as_py_function_operator(
+        'my_op', qtype_inference_expr=qtypes.DATA_SLICE
+    )
+    def op(x, y):
+      """MyDocstring."""
+      return x + y
+
+    with optools.building_cc_operator_package():
+      package_registered_op = optools.add_to_registry(
+          via_cc_operator_package=True
+      )(op)
+
+    with self.assertRaisesRegex(
+        ValueError, "operator 'my_op' is already registered"
+    ):
+      optools.add_to_registry()(op)
+
+    runtime_registered_op = optools.add_to_registry(
+        via_cc_operator_package=True
+    )(op)
+
+    testing.assert_equal(runtime_registered_op, package_registered_op)
 
   def test_equiv_to_op(self):
     @arolla.optools.as_lambda_operator('test.test_equiv_to_op.foo')

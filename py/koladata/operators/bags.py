@@ -29,7 +29,7 @@ _MASK = _schema_constants.MASK
 _constraints = _arolla.optools.constraints
 
 
-@_optools.add_to_registry(aliases=['kd.bag'])
+@_optools.add_to_registry(aliases=['kd.bag'], via_cc_operator_package=True)
 @_optools.as_backend_operator(
     'kd.bags.new',
     qtype_inference_expr=_qtypes.DATA_BAG,
@@ -40,7 +40,9 @@ def new():
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry(aliases=['kd.is_null_bag'])
+@_optools.add_to_registry(
+    aliases=['kd.is_null_bag'], via_cc_operator_package=True
+)
 @_optools.as_backend_operator(
     'kd.bags.is_null_bag',
     qtype_constraints=[_qtype_utils.expect_data_bag(_P.bag)],
@@ -51,7 +53,9 @@ def is_null_bag(bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry(aliases=['kd.enriched_bag'])
+@_optools.add_to_registry(
+    aliases=['kd.enriched_bag'], via_cc_operator_package=True
+)
 @_arolla.optools.as_backend_operator(
     'kd.bags.enriched',
     qtype_constraints=[
@@ -80,7 +84,9 @@ def enriched(*bags):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry(aliases=['kd.updated_bag'])
+@_optools.add_to_registry(
+    aliases=['kd.updated_bag'], via_cc_operator_package=True
+)
 @_arolla.optools.as_backend_operator(
     'kd.bags.updated',
     qtype_constraints=[

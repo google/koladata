@@ -22,7 +22,7 @@ _P = _arolla.P
 
 
 @_optools.add_to_registry(
-    aliases=['kd.bitwise_and'],
+    aliases=['kd.bitwise_and'], via_cc_operator_package=True
 )
 @_optools.as_backend_operator(
     'kd.bitwise.bitwise_and',
@@ -37,7 +37,7 @@ def bitwise_and(x, y):  # pylint: disable=unused-argument
 
 
 @_optools.add_to_registry(
-    aliases=['kd.bitwise_or'],
+    aliases=['kd.bitwise_or'], via_cc_operator_package=True
 )
 @_optools.as_backend_operator(
     'kd.bitwise.bitwise_or',
@@ -52,7 +52,7 @@ def bitwise_or(x, y):  # pylint: disable=unused-argument
 
 
 @_optools.add_to_registry(
-    aliases=['kd.bitwise_xor'],
+    aliases=['kd.bitwise_xor'], via_cc_operator_package=True
 )
 @_optools.as_backend_operator(
     'kd.bitwise.bitwise_xor',
@@ -67,7 +67,7 @@ def bitwise_xor(x, y):  # pylint: disable=unused-argument
 
 
 @_optools.add_to_registry(
-    aliases=['kd.bitwise_invert'],
+    aliases=['kd.bitwise_invert'], via_cc_operator_package=True
 )
 @_optools.as_backend_operator(
     'kd.bitwise.invert',
@@ -81,7 +81,7 @@ def invert(x):  # pylint: disable=unused-argument
 
 
 @_optools.add_to_registry(
-    aliases=['kd.bitwise_count'],
+    aliases=['kd.bitwise_count'], via_cc_operator_package=True
 )
 @_optools.as_backend_operator(
     'kd.bitwise.count',

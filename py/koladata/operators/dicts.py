@@ -44,8 +44,11 @@ def _shaped(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dict'],
-                         repr_fn=op_repr.hide_non_deterministic_repr_fn)
+@optools.add_to_registry(
+    aliases=['kd.dict'],
+    repr_fn=op_repr.hide_non_deterministic_repr_fn,
+    via_cc_operator_package=True,
+)
 @arolla.optools.as_lambda_operator(
     'kd.dicts.new',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.dicts.new]',
@@ -217,7 +220,9 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.dict_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.dict_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.shaped',
     qtype_constraints=[
@@ -284,7 +289,9 @@ def shaped(
   )
 
 
-@optools.add_to_registry(aliases=['kd.dict_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.dict_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.shaped_as',
     qtype_constraints=[
@@ -351,7 +358,7 @@ def _like(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dict_like'])
+@optools.add_to_registry(aliases=['kd.dict_like'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.dicts.like',
     qtype_constraints=[
@@ -419,7 +426,7 @@ def like(
   )
 
 
-@optools.add_to_registry(aliases=['kd.dict_size'])
+@optools.add_to_registry(aliases=['kd.dict_size'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.dicts.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_slice)],
@@ -429,7 +436,7 @@ def size(dict_slice):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.has_dict'])
+@optools.add_to_registry(aliases=['kd.has_dict'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.dicts.has_dict',
     qtype_constraints=[
@@ -459,7 +466,7 @@ def has_dict(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.is_dict'])
+@optools.add_to_registry(aliases=['kd.is_dict'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.dicts.is_dict', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -488,7 +495,7 @@ def is_dict(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_keys'])
+@optools.add_to_registry(aliases=['kd.get_keys'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.dicts.get_keys',
     qtype_constraints=[
@@ -521,7 +528,9 @@ def _get_values_by_keys(dict_ds, key_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_values'])
+@optools.add_to_registry(
+    aliases=['kd.get_values'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.get_values',
     qtype_constraints=[
@@ -564,7 +573,9 @@ def _dict_update(x, keys, values):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dict_update'])
+@optools.add_to_registry(
+    aliases=['kd.dict_update'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.dict_update',
     qtype_constraints=[
@@ -601,7 +612,9 @@ def dict_update(x, keys, values=arolla.unspecified()):
   )(x, keys, values)
 
 
-@optools.add_to_registry(aliases=['kd.with_dict_update'])
+@optools.add_to_registry(
+    aliases=['kd.with_dict_update'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.dicts.with_dict_update',
     qtype_constraints=[

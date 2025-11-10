@@ -4758,10 +4758,10 @@ Operator definition and registration tooling.
 
 **Operators**
 
-### `kd.optools.add_alias(name: str, alias: str)` {#kd.optools.add_alias}
+### `kd.optools.add_alias(name: str, alias: str, via_cc_operator_package: bool = False)` {#kd.optools.add_alias}
 *No description*
 
-### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None)` {#kd.optools.add_to_registry}
+### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wrapper around Arolla&#39;s add_to_registry with Koda functionality.
 
@@ -4773,11 +4773,17 @@ Args:
     ExprView will be used.
   repr_fn: Optional repr function to use for the operator and its aliases. In
     case of None, a default repr function will be used.
+  via_cc_operator_package: If True, the operator will be only registered
+    during arolla_cc_operator_package construction, and just looked up in the
+    global registry during normal execution. Note that this flag does not set
+    up any C++ operator package, this has to be done separately via
+    building_cc_operator_package context manager and
+    arolla_cc_operator_package BUILD rule.
 
 Returns:
   Registered operator.</code></pre>
 
-### `kd.optools.add_to_registry_as_overload(name: str | None = None, *, overload_condition_expr: Any, unsafe_override: bool = False)` {#kd.optools.add_to_registry_as_overload}
+### `kd.optools.add_to_registry_as_overload(name: str | None = None, *, overload_condition_expr: Any, unsafe_override: bool = False, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overload}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overload.
 
@@ -4790,13 +4796,19 @@ Args:
   name: Optional name of the operator. Otherwise, inferred from the op.
   overload_condition_expr: Condition for the overload.
   unsafe_override: Whether to override an existing operator.
+  via_cc_operator_package: If True, the operator will be only registered
+    during arolla_cc_operator_package construction, and just looked up in the
+    global registry during normal execution. Note that this flag does not set
+    up any C++ operator package, this has to be done separately via
+    building_cc_operator_package context manager and
+    arolla_cc_operator_package BUILD rule.
 
 Returns:
   A decorator that registers an overload for the operator with the
   corresponding name. Returns the original operator (unlinke the arolla
   equivalent).</code></pre>
 
-### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_default_boxing')` {#kd.optools.add_to_registry_as_overloadable}
+### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_default_boxing', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overloadable.
 
@@ -4810,6 +4822,12 @@ Args:
   repr_fn: Optional repr function to use for the operator and its aliases. In
     case of None, a default repr function will be used.
   aux_policy: Aux policy for the operator.
+  via_cc_operator_package: If True, the operator will be only registered
+    during arolla_cc_operator_package construction, and just looked up in the
+    global registry during normal execution. Note that this flag does not set
+    up any C++ operator package, this has to be done separately via
+    building_cc_operator_package context manager and
+    arolla_cc_operator_package BUILD rule.
 
 Returns:
   An overloadable registered operator.</code></pre>

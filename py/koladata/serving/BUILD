@@ -35,7 +35,7 @@ cc_library(
         "//koladata/iterables:operators",
         "//koladata/operators",
         "//koladata/s11n",
-        "//py/koladata/operators:base_cc_operators",
+        "//py/koladata/operators:cc_operators",
         "@com_google_arolla//arolla/expr/operators:bootstrap",
         "@com_google_arolla//arolla/expr/operators/all",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qexpr",

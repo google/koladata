@@ -23,7 +23,11 @@ from koladata.operators import qtype_utils as _qtype_utils
 _P = _arolla.P
 
 
-@_optools.add_to_registry(aliases=['kd.equal'], repr_fn=_op_repr.equal_repr)
+@_optools.add_to_registry(
+    aliases=['kd.equal'],
+    repr_fn=_op_repr.equal_repr,
+    via_cc_operator_package=True,
+)
 @_optools.as_backend_operator(
     'kd.comparison.equal',
     qtype_constraints=[
@@ -45,7 +49,9 @@ def equal(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry(aliases=['kd.full_equal'])
+@_optools.add_to_registry(
+    aliases=['kd.full_equal'], via_cc_operator_package=True
+)
 @_optools.as_lambda_operator(
     'kd.comparison.full_equal',
     qtype_constraints=[
@@ -74,6 +80,7 @@ def full_equal(x, y):  # pylint: disable=unused-argument
 @_optools.add_to_registry(
     aliases=['kd.not_equal'],
     repr_fn=_op_repr.not_equal_repr,
+    via_cc_operator_package=True,
 )
 @_optools.as_lambda_operator(
     'kd.comparison.not_equal',
@@ -99,6 +106,7 @@ def not_equal(x, y):
 @_optools.add_to_registry(
     aliases=['kd.greater'],
     repr_fn=_op_repr.greater_repr,
+    via_cc_operator_package=True,
 )
 @_optools.as_backend_operator(
     'kd.comparison.greater',
@@ -121,7 +129,11 @@ def greater(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry(aliases=['kd.less'], repr_fn=_op_repr.less_repr)
+@_optools.add_to_registry(
+    aliases=['kd.less'],
+    repr_fn=_op_repr.less_repr,
+    via_cc_operator_package=True,
+)
 @_optools.as_backend_operator(
     'kd.comparison.less',
     qtype_constraints=[
@@ -146,6 +158,7 @@ def less(x, y):  # pylint: disable=unused-argument
 @_optools.add_to_registry(
     aliases=['kd.greater_equal'],
     repr_fn=_op_repr.greater_equal_repr,
+    via_cc_operator_package=True,
 )
 @_optools.as_backend_operator(
     'kd.comparison.greater_equal',
@@ -171,6 +184,7 @@ def greater_equal(x, y):  # pylint: disable=unused-argument
 @_optools.add_to_registry(
     aliases=['kd.less_equal'],
     repr_fn=_op_repr.less_equal_repr,
+    via_cc_operator_package=True,
 )
 @_optools.as_backend_operator(
     'kd.comparison.less_equal',

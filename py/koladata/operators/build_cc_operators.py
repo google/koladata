@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes extra Koda operators that are available in C++."""
+"""Building block for :cc_operators package."""
 
-from koladata.operators import koda_internal_parallel as _
+from koladata.operators import optools
+
+# pylint: disable=g-import-not-at-top
+
+with optools.building_cc_operator_package():
+  from koladata.operators import operators_in_cc_operator_package as _

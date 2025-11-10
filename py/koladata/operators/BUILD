@@ -14,6 +14,7 @@
 
 # Arolla Expr Operators on Koda abstractions.
 
+load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load(
     "@com_google_arolla//py/arolla/optools:optools.bzl",
     "arolla_cc_operator_package",
@@ -35,7 +36,7 @@ licenses(["notice"])
 #
 # In Python use `import kde_operators` instead.
 arolla_cc_operator_package(
-    name = "base_cc_operators",
+    name = "cc_operators",
     arolla_initializer = {
         "name": "arolla_operators/koda_base",
         "deps": [
@@ -64,30 +65,13 @@ arolla_cc_operator_package(
     ],
 )
 
-# Extra Koda Expr operators available in C++.
-#
-# Depending on this target will make the operators available to call and evaluate, but will not give
-# Python-specific addons like custom repr. You need to also depend on their QExpr implementations in
-# //koladata/iterables:operators and //koladata/functor/parallel:operators.
-#
-# In Python use `import kde_operators` instead.
-arolla_cc_operator_package(
-    name = "extra_cc_operators",
-    arolla_initializer = {
-        "name": "arolla_operators/extra",
-        "deps": [
-            "arolla_operators/koda_base",
-            "arolla_operators/koda_functor_parallel",
-        ],
-    },
-    snapshot = ":extra_operator_package.pb2",
-    visibility = ["//visibility:public"],
+arolla_py_cc_deps(
+    name = "cc_operators_py_clib",
+    dynamic_deps = [
+        "//py/koladata/dynamic_deps:koladata_so",
+    ],
     deps = [
-        ":base_cc_operators",
-        "//koladata/functor/parallel:init_expr_operators",
-        "//koladata/functor/parallel:operators",
-        "//koladata/s11n",
-        "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",
+        ":cc_operators",
     ],
 )
 
@@ -101,10 +85,8 @@ py_library(
         "//koladata:internal",
     ],
     deps = [
-        ":base_cc_operators_lib",
-        ":extra_cc_operators_lib",
-        ":koda_internal_parallel",
-        ":optools",
+        ":cc_operators_py_clib",
+        ":operators_in_cc_operator_package",
         ":py",
         "//py:python_path",
         "@com_google_arolla//py/arolla",
@@ -125,7 +107,7 @@ py_library(
 arolla_operator_package_snapshot(
     name = "operator_package.pb2",
     imports = [
-        "koladata.operators.base_cc_operators",
+        "koladata.operators.build_cc_operators",
     ],
     preimports = [
         "arolla.jagged_shape.jagged_shape",
@@ -134,35 +116,20 @@ arolla_operator_package_snapshot(
         "koladata.types.data_slice",
     ],
     deps = [
-        ":base_cc_operators_lib",
+        ":build_cc_operators",
         "@com_google_arolla//py/arolla/derived_qtype",
         "@com_google_arolla//py/arolla/jagged_shape",
         "@com_google_arolla//py/arolla/objects",
     ],
 )
 
-arolla_operator_package_snapshot(
-    name = "extra_operator_package.pb2",
-    imports = [
-        "koladata.operators.extra_cc_operators",
-    ],
-    preimports = [
-        "arolla.jagged_shape.jagged_shape",
-        "koladata.types.data_slice",
-        "koladata.operators.base_cc_operators",
-    ],
-    deps = [
-        ":base_cc_operators_lib",
-        ":extra_cc_operators_lib",
-    ],
-)
-
 py_library(
-    name = "base_cc_operators_lib",
-    srcs = ["base_cc_operators.py"],
+    name = "operators_in_cc_operator_package",
+    srcs = ["operators_in_cc_operator_package.py"],
     deps = [
         ":allocation",
         ":annotation",
+        ":arolla_bridge",
         ":assertion",
         ":bags",
         ":bitwise",
@@ -180,6 +147,7 @@ py_library(
         ":json",
         ":koda_internal",
         ":koda_internal_iterables",
+        ":koda_internal_parallel",
         ":lists",
         ":masking",
         ":math",
@@ -191,17 +159,18 @@ py_library(
         ":streams",
         ":strings",
         ":tuple",
+        ":view_overloads",
         "//py:python_path",
     ],
 )
 
 py_library(
-    name = "extra_cc_operators_lib",
-    srcs = ["extra_cc_operators.py"],
+    name = "build_cc_operators",
+    srcs = ["build_cc_operators.py"],
     deps = [
-        ":koda_internal_parallel",
+        ":operators_in_cc_operator_package",
+        ":optools",
         "//py:python_path",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -769,7 +738,6 @@ py_library(
         ":op_repr",
         ":optools",
         "//py:python_path",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -1021,7 +989,7 @@ cc_test(
     name = "operator_package_test",
     srcs = ["operator_package_test.cc"],
     deps = [
-        ":base_cc_operators",
+        ":cc_operators",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",

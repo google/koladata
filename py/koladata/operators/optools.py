@@ -14,6 +14,7 @@
 
 """Operator definition and registration tooling."""
 
+import contextlib
 import dataclasses
 import inspect
 import types
@@ -43,6 +44,50 @@ class _RegisteredOp:
 _REGISTERED_OPS: dict[str, _RegisteredOp] = {}
 
 
+# False means that Arolla operators are already registered, and will be looked
+# up by name instead of registration.
+_BUILDING_OPERATOR_PACKAGE = False
+
+
+@contextlib.contextmanager
+def building_cc_operator_package():
+  """Enables registration of operators marked as via_cc_operator_package.
+
+  Instead of registering operators in Arolla, they will be looked up as if they
+  were already registered. The goal is to allow running Python-specific operator
+  registration, while the operators are taken from arolla_cc_operator_package
+  BUILD rule.
+
+  Usage example:
+    # my_operators.py
+
+    @kd.optools.add_to_registry(via_cc_operator_package=True)
+    @kd.optools.as_lambda_operator('my_package.my_operator')
+    def my_operator(x, y):
+      return x + y
+
+    # build_my_operators.py
+
+    with kd.optools.building_cc_operator_package():
+      from my_package import my_operators as _
+
+    # BUILD
+
+    arolla_operator_package_snapshot(
+      name = "my_operator_package.pb2",
+      imports = [
+          "my_package.build_my_operators",
+      ],
+      ...
+    )
+  """
+  global _BUILDING_OPERATOR_PACKAGE
+  previous_value = _BUILDING_OPERATOR_PACKAGE
+  _BUILDING_OPERATOR_PACKAGE = True
+  yield
+  _BUILDING_OPERATOR_PACKAGE = previous_value
+
+
 def _clear_registered_ops():
   _REGISTERED_OPS.clear()
   # Manually added public operators that are defined in C++ and are therefore
@@ -58,12 +103,15 @@ arolla.abc.cache_clear_callbacks.add(_clear_registered_ops)
 _clear_registered_ops()
 
 
-def add_alias(name: str, alias: str):
+def add_alias(name: str, alias: str, via_cc_operator_package: bool = False):
   registered_op = _REGISTERED_OPS.get(name)
   if registered_op is None:
     raise ValueError(f'Operator {name} is not registered.')
   add_to_registry(
-      alias, view=registered_op.view, repr_fn=registered_op.repr_fn
+      alias,
+      view=registered_op.view,
+      repr_fn=registered_op.repr_fn,
+      via_cc_operator_package=via_cc_operator_package,
   )(registered_op.op)
 
 
@@ -74,6 +122,7 @@ def add_to_registry(
     unsafe_override: bool = False,
     view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn | None = None,
+    via_cc_operator_package: bool = False,
 ):
   """Wrapper around Arolla's add_to_registry with Koda functionality.
 
@@ -85,18 +134,30 @@ def add_to_registry(
       ExprView will be used.
     repr_fn: Optional repr function to use for the operator and its aliases. In
       case of None, a default repr function will be used.
+    via_cc_operator_package: If True, the operator will be only registered
+      during arolla_cc_operator_package construction, and just looked up in the
+      global registry during normal execution. Note that this flag does not set
+      up any C++ operator package, this has to be done separately via
+      building_cc_operator_package context manager and
+      arolla_cc_operator_package BUILD rule.
 
   Returns:
     Registered operator.
   """
+  assert not (unsafe_override and via_cc_operator_package), (
+      'unsafe_override and via_cc_operator_package cannot be both set to True.'
+  )
   repr_fn = repr_fn or op_repr.default_op_repr
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
     def _register_op(op, name):
-      registered_op = arolla.optools.add_to_registry(
-          name, if_present=if_present
-      )(op)
+      if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
+        registered_op = arolla.abc.lookup_operator(name or op.display_name)
+      else:
+        registered_op = arolla.optools.add_to_registry(
+            name, if_present=if_present
+        )(op)
       arolla.abc.set_expr_view_for_registered_operator(
           registered_op.display_name, view
       )
@@ -111,7 +172,7 @@ def add_to_registry(
     _REGISTERED_OPS[op_name] = _RegisteredOp(op, view, repr_fn)
 
     for alias in aliases:
-      add_alias(op_name, alias)
+      add_alias(op_name, alias, via_cc_operator_package=via_cc_operator_package)
     return op
 
   return impl
@@ -124,6 +185,7 @@ def add_to_registry_as_overloadable(
     view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn | None = None,
     aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
+    via_cc_operator_package: bool = False,
 ):
   """Koda wrapper around Arolla's add_to_registry_as_overloadable.
 
@@ -137,19 +199,31 @@ def add_to_registry_as_overloadable(
     repr_fn: Optional repr function to use for the operator and its aliases. In
       case of None, a default repr function will be used.
     aux_policy: Aux policy for the operator.
+    via_cc_operator_package: If True, the operator will be only registered
+      during arolla_cc_operator_package construction, and just looked up in the
+      global registry during normal execution. Note that this flag does not set
+      up any C++ operator package, this has to be done separately via
+      building_cc_operator_package context manager and
+      arolla_cc_operator_package BUILD rule.
 
   Returns:
     An overloadable registered operator.
   """
+  assert not (unsafe_override and via_cc_operator_package), (
+      'unsafe_override and via_cc_operator_package cannot be both set to True.'
+  )
   repr_fn = repr_fn or op_repr.default_op_repr
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(fn) -> arolla.types.RegisteredOperator:
-    overloadable_op = arolla.optools.add_to_registry_as_overloadable(
-        name,
-        if_present=if_present,
-        experimental_aux_policy=aux_policy,
-    )(fn)
+    if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
+      overloadable_op = arolla.abc.lookup_operator(name)
+    else:
+      overloadable_op = arolla.optools.add_to_registry_as_overloadable(
+          name,
+          if_present=if_present,
+          experimental_aux_policy=aux_policy,
+      )(fn)
     arolla.abc.set_expr_view_for_registered_operator(
         overloadable_op.display_name, view
     )
@@ -169,6 +243,7 @@ def add_to_registry_as_overload(
     *,
     overload_condition_expr: Any,
     unsafe_override: bool = False,
+    via_cc_operator_package: bool = False,
 ):
   """Koda wrapper around Arolla's add_to_registry_as_overload.
 
@@ -181,12 +256,21 @@ def add_to_registry_as_overload(
     name: Optional name of the operator. Otherwise, inferred from the op.
     overload_condition_expr: Condition for the overload.
     unsafe_override: Whether to override an existing operator.
+    via_cc_operator_package: If True, the operator will be only registered
+      during arolla_cc_operator_package construction, and just looked up in the
+      global registry during normal execution. Note that this flag does not set
+      up any C++ operator package, this has to be done separately via
+      building_cc_operator_package context manager and
+      arolla_cc_operator_package BUILD rule.
 
   Returns:
     A decorator that registers an overload for the operator with the
     corresponding name. Returns the original operator (unlinke the arolla
     equivalent).
   """
+  assert not (unsafe_override and via_cc_operator_package), (
+      'unsafe_override and via_cc_operator_package cannot be both set to True.'
+  )
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.Operator:
@@ -196,11 +280,14 @@ def add_to_registry_as_overload(
     name_ns, _, name_suffix = op_name.rpartition('.')
     canonical_name = arolla.abc.decay_registered_operator(name_ns).display_name
 
-    _ = arolla.optools.add_to_registry_as_overload(
-        canonical_name + '.' + name_suffix,
-        if_present=if_present,
-        overload_condition_expr=overload_condition_expr,
-    )(op)
+    if not via_cc_operator_package or _BUILDING_OPERATOR_PACKAGE:
+      arolla.optools.add_to_registry_as_overload(
+          canonical_name + '.' + name_suffix,
+          if_present=if_present,
+          overload_condition_expr=overload_condition_expr,
+      )(op)
+    # TODO: b/454825280 - The operator should not return the original operator
+    # but a new registered one (or the one it overloads?).
     return op
 
   return impl

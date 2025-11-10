@@ -26,7 +26,7 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 
 
-@optools.add_to_registry(repr_fn=op_repr.add_repr)
+@optools.add_to_registry(repr_fn=op_repr.add_repr, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.add',
     qtype_constraints=[
@@ -39,7 +39,9 @@ def add(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.subtract_repr)
+@optools.add_to_registry(
+    repr_fn=op_repr.subtract_repr, via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.math.subtract',
     qtype_constraints=[
@@ -52,7 +54,9 @@ def subtract(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.multiply_repr)
+@optools.add_to_registry(
+    repr_fn=op_repr.multiply_repr, via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.math.multiply',
     qtype_constraints=[
@@ -65,7 +69,7 @@ def multiply(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.log',
     qtype_constraints=[
@@ -77,7 +81,7 @@ def log(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.log10',
     qtype_constraints=[
@@ -89,7 +93,7 @@ def log10(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.sigmoid',
     qtype_constraints=[
@@ -114,7 +118,7 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.t_distribution_inverse_cdf',
     qtype_constraints=[
@@ -135,7 +139,7 @@ def t_distribution_inverse_cdf(x, degrees_of_freedom):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.exp',
     qtype_constraints=[
@@ -147,7 +151,7 @@ def exp(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.abs',
     qtype_constraints=[
@@ -159,7 +163,7 @@ def abs(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.neg_repr)
+@optools.add_to_registry(repr_fn=op_repr.neg_repr, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.neg',
     qtype_constraints=[
@@ -171,7 +175,7 @@ def neg(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.sign',
     qtype_constraints=[
@@ -190,7 +194,7 @@ def sign(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.pos_repr)
+@optools.add_to_registry(repr_fn=op_repr.pos_repr, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.pos',
     qtype_constraints=[
@@ -202,7 +206,7 @@ def pos(x):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.ceil',
     qtype_constraints=[
@@ -218,7 +222,7 @@ def ceil(x):  # pylint: disable=unused-argument,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.floor',
     qtype_constraints=[
@@ -234,7 +238,7 @@ def floor(x):  # pylint: disable=unused-argument,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.round',
     qtype_constraints=[
@@ -259,7 +263,9 @@ def round(x):  # pylint: disable=unused-argument,redefined-builtin,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.divide_repr)
+@optools.add_to_registry(
+    repr_fn=op_repr.divide_repr, via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.math.divide',
     qtype_constraints=[
@@ -272,7 +278,7 @@ def divide(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.sqrt',
     qtype_constraints=[
@@ -284,7 +290,7 @@ def sqrt(x):  # pylint: disable=unused-argument,g-doc-args
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.pow_repr)
+@optools.add_to_registry(repr_fn=op_repr.pow_repr, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.pow',
     qtype_constraints=[
@@ -297,7 +303,9 @@ def pow(x, y):  # pylint: disable=unused-argument,redefined-builtin
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.floordiv_repr)
+@optools.add_to_registry(
+    repr_fn=op_repr.floordiv_repr, via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.math.floordiv',
     qtype_constraints=[
@@ -310,7 +318,7 @@ def floordiv(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(repr_fn=op_repr.mod_repr)
+@optools.add_to_registry(repr_fn=op_repr.mod_repr, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.mod',
     qtype_constraints=[
@@ -328,7 +336,7 @@ def _agg_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_sum'])
+@optools.add_to_registry(aliases=['kd.agg_sum'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_sum',
     qtype_constraints=[
@@ -356,7 +364,7 @@ def agg_sum(x, ndim=arolla.unspecified()):
   return _agg_sum(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kd.sum'])
+@optools.add_to_registry(aliases=['kd.sum'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.math.sum')
 def sum(x):
   """Returns the sum of elements over all dimensions.
@@ -374,7 +382,7 @@ def _agg_mean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_mean',
     qtype_constraints=[
@@ -402,7 +410,7 @@ def agg_mean(x, ndim=arolla.unspecified()):
   return _agg_mean(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.math.mean')
 def mean(x):
   """Returns the mean of elements over all dimensions.
@@ -420,7 +428,7 @@ def _agg_median(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_median',
     qtype_constraints=[
@@ -448,7 +456,7 @@ def agg_median(x, ndim=arolla.unspecified()):
   return _agg_median(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.math.median')
 def median(x):
   """Returns the median of elements over all dimensions.
@@ -472,7 +480,7 @@ def _agg_std(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_std',
     qtype_constraints=[
@@ -510,7 +518,7 @@ def _agg_var(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_var',
     qtype_constraints=[
@@ -543,7 +551,7 @@ def agg_var(x, unbiased=True, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kd.maximum'])
+@optools.add_to_registry(aliases=['kd.maximum'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.maximum',
     qtype_constraints=[
@@ -556,7 +564,7 @@ def maximum(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.minimum'])
+@optools.add_to_registry(aliases=['kd.minimum'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.minimum',
     qtype_constraints=[
@@ -574,7 +582,7 @@ def _agg_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_max'])
+@optools.add_to_registry(aliases=['kd.agg_max'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_max',
     qtype_constraints=[
@@ -608,7 +616,7 @@ def _argmax(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.argmax'])
+@optools.add_to_registry(aliases=['kd.argmax'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.argmax',
     qtype_constraints=[
@@ -638,7 +646,7 @@ def argmax(x, ndim=arolla.unspecified()):
   return _argmax(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kd.max'])
+@optools.add_to_registry(aliases=['kd.max'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.math.max')
 def max(x):  # pylint: disable=redefined-builtin
   """Returns the maximum of items over all dimensions.
@@ -657,7 +665,7 @@ def _cum_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.cum_max'])
+@optools.add_to_registry(aliases=['kd.cum_max'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.cum_max',
     qtype_constraints=[
@@ -676,7 +684,7 @@ def _agg_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_min'])
+@optools.add_to_registry(aliases=['kd.agg_min'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_min',
     qtype_constraints=[
@@ -704,7 +712,7 @@ def agg_min(x, ndim=arolla.unspecified()):
   return _agg_min(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kd.min'])
+@optools.add_to_registry(aliases=['kd.min'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.math.min')
 def min(x):  # pylint: disable=redefined-builtin
   """Returns the minimum of items over all dimensions.
@@ -723,7 +731,7 @@ def _argmin(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.argmin'])
+@optools.add_to_registry(aliases=['kd.argmin'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.argmin',
     qtype_constraints=[
@@ -759,7 +767,7 @@ def _cum_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.cum_min',
     qtype_constraints=[
@@ -779,7 +787,7 @@ def _cum_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.cum_sum',
     qtype_constraints=[
@@ -798,7 +806,7 @@ def _softmax(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.softmax',
     qtype_constraints=[
@@ -829,7 +837,7 @@ def _cdf(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.cdf',
     qtype_constraints=[
@@ -874,7 +882,7 @@ def _agg_inverse_cdf(x, cdf_arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.agg_inverse_cdf',
     qtype_constraints=[
@@ -900,7 +908,7 @@ def agg_inverse_cdf(x, cdf_arg, ndim=arolla.unspecified()):
   return _agg_inverse_cdf(jagged_shape_ops.flatten_last_ndim(x, ndim), cdf_arg)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.math.inverse_cdf',
     qtype_constraints=[
@@ -921,7 +929,7 @@ def inverse_cdf(x, cdf_arg):
   return agg_inverse_cdf(jagged_shape_ops.flatten(x), cdf_arg)
 
 
-@optools.add_to_registry(aliases=['kd.is_nan'])
+@optools.add_to_registry(aliases=['kd.is_nan'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.math.is_nan',
     qtype_constraints=[

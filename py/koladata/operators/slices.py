@@ -51,7 +51,9 @@ val_shaped_as = masking._val_shaped_as  # pylint: disable=protected-access
 val_like = masking._val_like  # pylint: disable=protected-access
 
 
-@optools.add_to_registry(aliases=['kd.empty_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.empty_shaped'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.slices.empty_shaped',
     qtype_constraints=[
@@ -72,7 +74,9 @@ def empty_shaped(shape, schema=schema_constants.MASK):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.empty_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.empty_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.empty_shaped_as',
     qtype_constraints=[
@@ -93,7 +97,7 @@ def empty_shaped_as(shape_from, schema=schema_constants.MASK):  # pylint: disabl
   return empty_shaped(shape_from.get_shape(), schema)
 
 
-@optools.add_to_registry(aliases=['kd.agg_count'])
+@optools.add_to_registry(aliases=['kd.agg_count'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.agg_count',
     qtype_constraints=[
@@ -130,7 +134,7 @@ def agg_count(x, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kd.cum_count'])
+@optools.add_to_registry(aliases=['kd.cum_count'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.cum_count',
     qtype_constraints=[
@@ -170,7 +174,7 @@ def cum_count(x, ndim=arolla.unspecified()):
   return arolla_bridge.to_data_slice(flat_res).reshape(x_shape)
 
 
-@optools.add_to_registry(aliases=['kd.count'])
+@optools.add_to_registry(aliases=['kd.count'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.slices.count')
 def count(x):
   """Returns the count of present items over all dimensions.
@@ -183,7 +187,7 @@ def count(x):
   return agg_count(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kd.agg_size'])
+@optools.add_to_registry(aliases=['kd.agg_size'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.agg_size',
     qtype_constraints=[
@@ -216,7 +220,7 @@ def agg_size(x, ndim=arolla.unspecified()):
   return agg_count(masking.present_shaped_as(x), ndim)
 
 
-@optools.add_to_registry(aliases=['kd.size'])
+@optools.add_to_registry(aliases=['kd.size'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.slices.size')
 def size(x):
   """Returns the number of items in `x`, including missing items.
@@ -230,7 +234,7 @@ def size(x):
   return jagged_shape_ops.size(jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry(aliases=['kd.align'])
+@optools.add_to_registry(aliases=['kd.align'], via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.slices.align',
     qtype_constraints=[
@@ -278,7 +282,7 @@ def _collapse(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.collapse'])
+@optools.add_to_registry(aliases=['kd.collapse'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.collapse',
     qtype_constraints=[
@@ -313,7 +317,9 @@ def collapse(x, ndim=arolla.unspecified()):
   return _collapse(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry()  # Registered in order to be used in unit tests.
+@optools.add_to_registry(
+    via_cc_operator_package=True
+)  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'kd.slices._concat_or_stack', qtype_inference_expr=qtypes.DATA_SLICE
 )
@@ -349,7 +355,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.concat'])
+@optools.add_to_registry(aliases=['kd.concat'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.concat',
     qtype_constraints=[
@@ -424,7 +430,9 @@ def _dense_rank(x, descending):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.dense_rank'])
+@optools.add_to_registry(
+    aliases=['kd.dense_rank'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.dense_rank',
     qtype_constraints=[
@@ -476,7 +484,7 @@ def dense_rank(x, descending=False, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry(aliases=['kd.expand_to'])
+@optools.add_to_registry(aliases=['kd.expand_to'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.expand_to',
     qtype_constraints=[
@@ -543,7 +551,9 @@ def expand_to(x, target, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kd.is_expandable_to'])
+@optools.add_to_registry(
+    aliases=['kd.is_expandable_to'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.is_expandable_to',
     qtype_constraints=[
@@ -567,7 +577,7 @@ def is_expandable_to(x, target, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kd.get_ndim'])
+@optools.add_to_registry(aliases=['kd.get_ndim'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.get_ndim',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -577,7 +587,9 @@ def get_ndim(x):
   return jagged_shape_ops.rank(jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry(aliases=['kd.take', 'kd.slices.at', 'kd.at'])
+@optools.add_to_registry(
+    aliases=['kd.take', 'kd.slices.at', 'kd.at'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.slices.take',
     qtype_constraints=[
@@ -629,7 +641,9 @@ def _group_by_indices(*keys):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.group_by_indices'])
+@optools.add_to_registry(
+    aliases=['kd.group_by_indices'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.group_by_indices',
     qtype_constraints=[
@@ -703,7 +717,7 @@ def group_by_indices(*keys, sort=False):  # pylint: disable=redefined-outer-name
   return M.core.apply_varargs(_group_by_indices, sort, keys)
 
 
-@optools.add_to_registry(aliases=['kd.group_by'])
+@optools.add_to_registry(aliases=['kd.group_by'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.group_by',
     qtype_constraints=[
@@ -820,7 +834,7 @@ def normalize_dim(x, dim):
   return masking.cond(comparison.less(dim, 0), get_ndim(x) + dim, dim)
 
 
-@optools.add_to_registry(aliases=['kd.index'])
+@optools.add_to_registry(aliases=['kd.index'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.index',
     qtype_constraints=[
@@ -892,7 +906,9 @@ def _inverse_mapping(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.inverse_mapping'])
+@optools.add_to_registry(
+    aliases=['kd.inverse_mapping'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.inverse_mapping',
     qtype_constraints=[
@@ -939,7 +955,8 @@ def inverse_mapping(x, ndim=arolla.unspecified()):
         'kd.inverse_select',
         'kd.slices.reverse_select',
         'kd.reverse_select',
-    ]
+    ],
+    via_cc_operator_package=True,
 )
 @optools.as_backend_operator(
     'kd.slices.inverse_select',
@@ -996,7 +1013,7 @@ def inverse_select(ds, fltr):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.isin'])
+@optools.add_to_registry(aliases=['kd.isin'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.isin',
     qtype_constraints=[
@@ -1012,7 +1029,7 @@ def isin(x, y):
   return masking.any_(x == y)
 
 
-@optools.add_to_registry(aliases=['kd.is_empty'])
+@optools.add_to_registry(aliases=['kd.is_empty'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.is_empty',
     qtype_constraints=[
@@ -1024,7 +1041,9 @@ def is_empty(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.is_shape_compatible'])
+@optools.add_to_registry(
+    aliases=['kd.is_shape_compatible'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.is_shape_compatible',
     qtype_constraints=[
@@ -1055,7 +1074,9 @@ def _ordinal_rank(x, tie_breaker, descending):  # pylint: disable=unused-argumen
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.ordinal_rank'])
+@optools.add_to_registry(
+    aliases=['kd.ordinal_rank'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.ordinal_rank',
     qtype_constraints=[
@@ -1123,7 +1144,7 @@ def ordinal_rank(
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.add_to_registry(aliases=['kd.repeat'])
+@optools.add_to_registry(aliases=['kd.repeat'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.repeat',
     qtype_constraints=[
@@ -1169,7 +1190,9 @@ def repeat(x, sizes):
   return jagged_shape_ops.expand_to_shape(x, target_shape)
 
 
-@optools.add_to_registry(aliases=['kd.repeat_present'])
+@optools.add_to_registry(
+    aliases=['kd.repeat_present'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.repeat_present',
     qtype_constraints=[
@@ -1204,7 +1227,7 @@ def repeat_present(x, sizes):
   return repeat(x, masking.cond(masking.has(x), expanded_sizes, 0))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices._range',
     qtype_constraints=[
@@ -1224,7 +1247,7 @@ def internal_range(start, end):
   )
 
 
-@optools.add_to_registry(aliases=['kd.range'])
+@optools.add_to_registry(aliases=['kd.range'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.range',
     qtype_constraints=[
@@ -1265,7 +1288,7 @@ def _range(start, end=arolla.unspecified()):
   )(start, end)
 
 
-@optools.add_to_registry(aliases=['kd.tile'])
+@optools.add_to_registry(aliases=['kd.tile'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.tile',
     qtype_constraints=[
@@ -1296,7 +1319,7 @@ def tile(x, shape):
   return jagged_shape_ops.expand_to_shape(x, shape, get_ndim(x))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.internal_select_by_slice',
     qtype_constraints=[
@@ -1310,7 +1333,9 @@ def internal_select_by_slice(ds, fltr, expand_filter=True):  # pylint: disable=u
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.select_present'])
+@optools.add_to_registry(
+    aliases=['kd.select_present'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.select_present',
     qtype_constraints=[
@@ -1335,7 +1360,7 @@ def select_present(ds):
   return internal_select_by_slice(ds=ds, fltr=masking.has(ds))
 
 
-@optools.add_to_registry(aliases=['kd.reverse'])
+@optools.add_to_registry(aliases=['kd.reverse'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.reverse',
     qtype_constraints=[
@@ -1361,7 +1386,7 @@ def reverse(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.sort'])
+@optools.add_to_registry(aliases=['kd.sort'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.sort',
     qtype_constraints=[
@@ -1440,7 +1465,7 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
   return take(x, inverse_mapping(ordinal_rank(sort_by, descending=descending)))
 
 
-@optools.add_to_registry(aliases=['kd.stack'])
+@optools.add_to_registry(aliases=['kd.stack'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.stack',
     qtype_constraints=[
@@ -1531,6 +1556,7 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
 @optools.add_to_registry(
     aliases=['kd.subslice'],
     repr_fn=op_repr.subslice_repr,
+    via_cc_operator_package=True,
 )
 @arolla.optools.as_backend_operator(
     'kd.slices.subslice',
@@ -1663,10 +1689,11 @@ def subslice(x, *slices):  # pylint: disable=unused-argument
 optools.add_to_registry(
     'kd.slices._subslice_for_slicing_helper',
     repr_fn=op_repr.subslicehelper_repr,
+    via_cc_operator_package=True,
 )(subslice)
 
 
-@optools.add_to_registry(aliases=['kd.translate'])
+@optools.add_to_registry(aliases=['kd.translate'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.translate',
     qtype_constraints=[
@@ -1708,7 +1735,9 @@ def translate(keys_to, keys_from, values_from):  # pylint: disable=unused-argume
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.translate_group'])
+@optools.add_to_registry(
+    aliases=['kd.translate_group'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.translate_group',
     qtype_constraints=[
@@ -1782,7 +1811,7 @@ def translate_group(keys_to, keys_from, values_from):
   return subslice(grouped_values, ..., translated_indices, slice(None))
 
 
-@optools.add_to_registry(aliases=['kd.unique'])
+@optools.add_to_registry(aliases=['kd.unique'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.unique',
     qtype_constraints=[
@@ -1837,7 +1866,7 @@ def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argume
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.zip'])
+@optools.add_to_registry(aliases=['kd.zip'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.zip',
     qtype_constraints=[
@@ -1881,7 +1910,7 @@ def _zip(*args):
   )
 
 
-@optools.add_to_registry(aliases=['kd.item'])
+@optools.add_to_registry(aliases=['kd.item'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.item',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.item]',
@@ -1951,7 +1980,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.slice'])
+@optools.add_to_registry(aliases=['kd.slice'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.slice',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.slice]',
@@ -2034,7 +2063,7 @@ def _typed_slice_bind_args(x, schema):
   return (bound_x,)
 
 
-@optools.add_to_registry(aliases=['kd.int32'])
+@optools.add_to_registry(aliases=['kd.int32'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.int32',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.int32]',
@@ -2054,7 +2083,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.int64'])
+@optools.add_to_registry(aliases=['kd.int64'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.int64',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.int64]',
@@ -2074,7 +2103,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.float32'])
+@optools.add_to_registry(aliases=['kd.float32'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.float32',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.float32]',
@@ -2094,7 +2123,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.float64'])
+@optools.add_to_registry(aliases=['kd.float64'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.float64',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.float64]',
@@ -2114,7 +2143,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.str'])
+@optools.add_to_registry(aliases=['kd.str'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.str',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.str]',
@@ -2127,7 +2156,7 @@ def str_(x):
   return schema_ops.to_str(x)
 
 
-@optools.add_to_registry(aliases=['kd.get_repr'])
+@optools.add_to_registry(aliases=['kd.get_repr'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.get_repr',
     qtype_constraints=[
@@ -2188,7 +2217,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.bytes'])
+@optools.add_to_registry(aliases=['kd.bytes'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.bytes',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.bytes]',
@@ -2208,7 +2237,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.bool'])
+@optools.add_to_registry(aliases=['kd.bool'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.bool',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.bool]',
@@ -2228,7 +2257,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.mask'])
+@optools.add_to_registry(aliases=['kd.mask'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.mask',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.mask]',
@@ -2248,7 +2277,9 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kd.expr_quote'])
+@optools.add_to_registry(
+    aliases=['kd.expr_quote'], via_cc_operator_package=True
+)
 @arolla.optools.as_lambda_operator(
     'kd.slices.expr_quote',
     experimental_aux_policy=(
@@ -2272,7 +2303,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 
 # There is an alternative faster implementation by implementing _concat_or_stack
 # on a sequence of DataSlices at QExpr level.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.shapes.get_sizes',
     qtype_constraints=[(

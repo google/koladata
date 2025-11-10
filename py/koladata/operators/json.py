@@ -25,7 +25,7 @@ from koladata.types import schema_constants
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kd.from_json'])
+@optools.add_to_registry(aliases=['kd.from_json'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.json.from_json',
     qtype_constraints=[
@@ -36,7 +36,7 @@ P = arolla.P
         qtype_utils.expect_data_slice(P.keys_attr),
         qtype_utils.expect_data_slice(P.values_attr),
     ],
-    deterministic=False
+    deterministic=False,
 )
 def from_json(
     x,  # pylint: disable=unused-argument
@@ -184,7 +184,7 @@ def from_json(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.to_json'])
+@optools.add_to_registry(aliases=['kd.to_json'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.json.to_json',
     qtype_constraints=[

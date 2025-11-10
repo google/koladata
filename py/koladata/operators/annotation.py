@@ -24,7 +24,9 @@ source_location = _arolla.abc.lookup_operator('kd.annotation.source_location')
 
 
 with_name = _optools.add_to_registry(
-    name='kd.annotation.with_name', aliases=['kd.with_name']
+    name='kd.annotation.with_name',
+    aliases=['kd.with_name'],
+    via_cc_operator_package=True,
 )(_arolla.abc.lookup_operator('koda_internal.with_name'))
 
 

@@ -45,13 +45,15 @@ def _wrap(obj, qtype):
 
 # Lambda operator without qtype_constraints to support `M.annotation.qtype` to
 # propagate even `obj` is symbolic.
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.wrap')
 def wrap(obj, qtype):
   return M.annotation.qtype(_wrap(obj, qtype), qtype)
 
 
-@optools.add_to_registry(view=view.BaseKodaView)
+@optools.add_to_registry(view=view.BaseKodaView, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.extension_types.unwrap',
     qtype_constraints=[(
@@ -68,14 +70,18 @@ def unwrap(ext):
   return M.derived_qtype.upcast(M.qtype.qtype_of(ext), ext)
 
 
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.dynamic_cast')
 def dynamic_cast(ext, qtype):
   """Up-, down-, and side-casts `value` to `qtype`."""
   return wrap(unwrap(ext), qtype)
 
 
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.make')
 def make(qtype, prototype=arolla.unspecified(), /, **attrs):
   """Returns an extension type of the given `qtype` with the given `attrs`.
@@ -90,7 +96,9 @@ def make(qtype, prototype=arolla.unspecified(), /, **attrs):
   return wrap(obj, qtype)
 
 
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.with_attrs')
 def with_attrs(ext, /, **attrs):
   """Returns `ext` containing the given `attrs`."""
@@ -107,7 +115,9 @@ def with_attrs(ext, /, **attrs):
 
 # Consider asserting that `ext` is not null. Note that this adds ~50ns overhead
 # compared to the existing total time of ~80ns.
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.get_attr')
 def get_attr(ext, attr, qtype):
   """Returns the attribute of `ext` with name `attr` and type `qtype`."""
@@ -115,7 +125,7 @@ def get_attr(ext, attr, qtype):
   return M.objects.get_object_attr(unwrap(ext), attr, qtype)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.extension_types.has_attr')
 def has_attr(ext, attr):
   """Returns present iff `attr` is an attribute of `ext`."""
@@ -125,7 +135,9 @@ def has_attr(ext, attr):
   )
 
 
-@optools.add_to_registry(view=None)  # Provided by the QType.
+@optools.add_to_registry(
+    view=None, via_cc_operator_package=True
+)  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.make_null')
 def make_null(qtype):
   """Returns a null instance of an extension type.
@@ -141,14 +153,14 @@ def make_null(qtype):
   return wrap(_NULL_OBJ, qtype)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.extension_types.is_null')
 def is_null(ext):
   """Returns present iff `ext` is null."""
   return has_attr(ext, '_is_null_marker')
 
 
-@optools.add_to_registry(view=view.BaseKodaView)
+@optools.add_to_registry(view=view.BaseKodaView, via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.extension_types.get_attr_qtype')
 def get_attr_qtype(ext, attr):
   """Returns the qtype of the `attr`, or NOTHING if the `attr` is missing."""

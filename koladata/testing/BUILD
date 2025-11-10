@@ -71,8 +71,7 @@ cc_library(
         ":test_env",
         "//koladata:all_qexpr_operators",
         "//koladata/s11n",
-        "//py/koladata/operators:base_cc_operators",
-        "//py/koladata/operators:extra_cc_operators",
+        "//py/koladata/operators:cc_operators",
         "@com_google_arolla//arolla/qexpr/operators/all",
     ],
 )

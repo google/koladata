@@ -27,7 +27,7 @@ M = arolla.M
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kd.has'])
+@optools.add_to_registry(aliases=['kd.has'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.masking.has', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -48,7 +48,9 @@ def has(x):  # pylint: disable=unused-argument
 
 
 # Implemented here to avoid a dependency cycle.
-@optools.add_to_registry(aliases=['kd.with_schema'])
+@optools.add_to_registry(
+    aliases=['kd.with_schema'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.schema.with_schema',
     qtype_constraints=[
@@ -101,6 +103,7 @@ def _with_schema(x, schema):  # pylint: disable=unused-argument
 @optools.add_to_registry(
     aliases=['kd.apply_mask'],
     repr_fn=op_repr.apply_mask_repr,
+    via_cc_operator_package=True,
 )
 @optools.as_backend_operator(
     'kd.masking.apply_mask',
@@ -128,6 +131,7 @@ def apply_mask(x, y):  # pylint: disable=unused-argument
 @optools.add_to_registry(
     aliases=['kd.coalesce'],
     repr_fn=op_repr.coalesce_repr,
+    via_cc_operator_package=True,
 )
 @optools.as_backend_operator(
     'kd.masking.coalesce',
@@ -159,7 +163,11 @@ def _has_not(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.has_not'], repr_fn=op_repr.not_repr)
+@optools.add_to_registry(
+    aliases=['kd.has_not'],
+    repr_fn=op_repr.not_repr,
+    via_cc_operator_package=True,
+)
 @optools.as_lambda_operator(
     'kd.masking.has_not',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -180,7 +188,7 @@ def has_not(x):
   return _has_not(has(x))
 
 
-@optools.add_to_registry(aliases=['kd.cond'])
+@optools.add_to_registry(aliases=['kd.cond'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.cond',
     qtype_constraints=[
@@ -213,7 +221,7 @@ def cond(condition, yes, no=None):
   return (yes & condition) | (no & ~condition)
 
 
-@optools.add_to_registry(aliases=['kd.mask_and'])
+@optools.add_to_registry(aliases=['kd.mask_and'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.mask_and',
     qtype_constraints=[
@@ -244,7 +252,7 @@ def mask_and(x, y):
   return _with_schema(x & y, schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kd.mask_or'])
+@optools.add_to_registry(aliases=['kd.mask_or'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.mask_or',
     qtype_constraints=[
@@ -275,7 +283,9 @@ def mask_or(x, y):
   return _with_schema(x | y, schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kd.mask_equal'])
+@optools.add_to_registry(
+    aliases=['kd.mask_equal'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.masking.mask_equal',
     qtype_constraints=[
@@ -307,7 +317,9 @@ def mask_equal(x, y):
   return _with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kd.mask_not_equal'])
+@optools.add_to_registry(
+    aliases=['kd.mask_not_equal'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.masking.mask_not_equal',
     qtype_constraints=[
@@ -338,7 +350,7 @@ def mask_not_equal(x, y):
   return ~mask_equal(x, y)
 
 
-@optools.add_to_registry(aliases=['kd.xor'])
+@optools.add_to_registry(aliases=['kd.xor'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.xor',
     qtype_constraints=[
@@ -374,7 +386,7 @@ def _agg_any(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_any'])
+@optools.add_to_registry(aliases=['kd.agg_any'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.agg_any',
     qtype_constraints=[
@@ -398,7 +410,7 @@ def agg_any(x, ndim=arolla.unspecified()):
   return _agg_any(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kd.any'])
+@optools.add_to_registry(aliases=['kd.any'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.masking.any')
 def any_(x):
   """Returns present iff any element is present over all dimensions.
@@ -413,7 +425,7 @@ def any_(x):
   return agg_any(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kd.agg_has'])
+@optools.add_to_registry(aliases=['kd.agg_has'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.masking.agg_has')
 def agg_has(x, ndim=arolla.unspecified()):
   """Returns present iff any element is present along the last ndim dimensions.
@@ -436,7 +448,7 @@ def _agg_all(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_all'])
+@optools.add_to_registry(aliases=['kd.agg_all'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.masking.agg_all',
     qtype_constraints=[
@@ -460,7 +472,7 @@ def agg_all(x, ndim=arolla.unspecified()):
   return _agg_all(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kd.all'])
+@optools.add_to_registry(aliases=['kd.all'], via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.masking.all')
 def all_(x):
   """Returns present iff all elements are present over all dimensions.
@@ -475,7 +487,9 @@ def all_(x):
   return agg_all(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kd.disjoint_coalesce'])
+@optools.add_to_registry(
+    aliases=['kd.disjoint_coalesce'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.masking.disjoint_coalesce',
     qtype_constraints=[
@@ -500,7 +514,9 @@ def disjoint_coalesce(x, y):  # pylint: disable=unused-argument
 
 
 # NOTE: Implemented here to avoid a dependency cycle between masking and slices.
-@optools.add_to_registry(aliases=['kd.val_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.val_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.val_shaped',
     qtype_constraints=[
@@ -527,7 +543,9 @@ def _val_shaped(shape, val):
   return jagged_shape_ops.expand_to_shape(val, shape)
 
 
-@optools.add_to_registry(aliases=['kd.val_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.val_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.slices.val_shaped_as',
     qtype_constraints=[
@@ -554,7 +572,7 @@ def _val_shaped_as(x, val):
   return _val_shaped(jagged_shape_ops.get_shape(x), val)
 
 
-@optools.add_to_registry(aliases=['kd.val_like'])
+@optools.add_to_registry(aliases=['kd.val_like'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.val_like',
     qtype_constraints=[
@@ -581,7 +599,9 @@ def _val_like(x, val):
   return _val_shaped_as(x, val) & has(x)
 
 
-@optools.add_to_registry(aliases=['kd.present_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.present_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.masking.present_shaped',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
@@ -603,7 +623,9 @@ def present_shaped(shape):
   return _val_shaped(shape, data_slice.DataSlice.from_vals(arolla.present()))
 
 
-@optools.add_to_registry(aliases=['kd.present_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.present_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.masking.present_shaped_as',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -624,7 +646,9 @@ def present_shaped_as(x):
   return _val_shaped_as(x, data_slice.DataSlice.from_vals(arolla.present()))
 
 
-@optools.add_to_registry(aliases=['kd.present_like'])
+@optools.add_to_registry(
+    aliases=['kd.present_like'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.masking.present_like',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],

@@ -24,7 +24,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.curves.log_pwl_curve',
     qtype_constraints=[
@@ -48,7 +48,7 @@ def log_pwl_curve(p, adjustments):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.pwl_curve'])
+@optools.add_to_registry(aliases=['kd.pwl_curve'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.curves.pwl_curve',
     qtype_constraints=[
@@ -72,7 +72,7 @@ def pwl_curve(p, adjustments):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.curves.log_p1_pwl_curve',
     qtype_constraints=[
@@ -96,7 +96,7 @@ def log_p1_pwl_curve(p, adjustments):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.curves.symmetric_log_p1_pwl_curve',
     qtype_constraints=[

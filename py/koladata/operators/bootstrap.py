@@ -23,7 +23,10 @@ from arolla import arolla
 P = arolla.P
 
 
-@arolla.optools.add_to_registry(if_present='skip')
+# TODO: b/454825280 - If we register the operators, importing bootstrap before
+# kde_operators will fail in OSS build, even with `if_present='skip'`. We need
+# to find a more robust solution.
+# @arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.iterables.is_iterable_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -34,7 +37,10 @@ def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry(if_present='skip')
+# TODO: b/454825280 - If we register the operators, importing bootstrap before
+# kde_operators will fail in OSS build, even with `if_present='skip'`. We need
+# to find a more robust solution.
+# @arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_future_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -45,7 +51,10 @@ def is_future_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry(if_present='skip')
+# TODO: b/454825280 - If we register the operators, importing bootstrap before
+# kde_operators will fail in OSS build, even with `if_present='skip'`. We need
+# to find a more robust solution.
+# @arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_stream_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -56,7 +65,10 @@ def is_stream_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.add_to_registry(if_present='skip')
+# TODO: b/454825280 - If we register the operators, importing bootstrap before
+# kde_operators will fail in OSS build, even with `if_present='skip'`. We need
+# to find a more robust solution.
+# @arolla.optools.add_to_registry(if_present='skip')
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.get_transform_config_qtype',
     qtype_inference_expr=arolla.QTYPE,

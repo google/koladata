@@ -26,21 +26,21 @@ P = arolla.P
 current_executor = arolla.abc.lookup_operator('kd.streams.current_executor')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.get_default_executor')
 def get_default_executor():
   """Returns the default executor."""
   return koda_internal_parallel.get_default_executor()
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.get_eager_executor')
 def get_eager_executor():
   """Returns an executor that runs tasks right away on the same thread."""
   return koda_internal_parallel.get_eager_executor()
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.make_executor',
     qtype_constraints=[qtype_utils.expect_data_slice(P.thread_limit)],
@@ -60,14 +60,14 @@ def make_executor(*, thread_limit=0):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.get_stream_qtype')
 def get_stream_qtype(value_qtype):
   """Returns the stream qtype for the given value qtype."""
   return koda_internal_parallel.get_stream_qtype(value_qtype)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.make')
 def make(*items, value_type_as=arolla.unspecified()):
   """Creates a stream from the given items, in the given order.
@@ -92,7 +92,7 @@ def make(*items, value_type_as=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.chain')
 def chain(*streams, value_type_as=arolla.unspecified()):
   """Creates a stream that chains the given streams, in the given order.
@@ -119,7 +119,7 @@ def chain(*streams, value_type_as=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.interleave')
 def interleave(*streams, value_type_as=arolla.unspecified()):
   """Creates a stream that interleaves the given streams.
@@ -154,7 +154,7 @@ def interleave(*streams, value_type_as=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.chain_from_stream')
 def chain_from_stream(stream_of_streams):
   """Creates a stream that chains the given streams.
@@ -183,7 +183,7 @@ def chain_from_stream(stream_of_streams):
   return koda_internal_parallel.stream_chain_from_stream(stream_of_streams)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.streams.interleave_from_stream')
 def interleave_from_stream(stream_of_streams):
   """Creates a stream that interleaves the given streams.
@@ -205,7 +205,7 @@ def interleave_from_stream(stream_of_streams):
   return koda_internal_parallel.stream_interleave_from_stream(stream_of_streams)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.map',
     qtype_constraints=[
@@ -243,7 +243,7 @@ def map_(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.map_unordered',
     qtype_constraints=[
@@ -283,7 +283,7 @@ def map_unordered(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.flat_map_chained',
     qtype_constraints=[
@@ -331,7 +331,7 @@ def flat_map_chained(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.flat_map_interleaved',
     qtype_constraints=[
@@ -386,7 +386,7 @@ def flat_map_interleaved(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.reduce',
     qtype_constraints=[
@@ -427,7 +427,7 @@ def reduce(fn, stream, initial_value, *, executor=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.reduce_concat',
     qtype_constraints=[
@@ -466,7 +466,7 @@ def reduce_concat(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.reduce_stack',
     qtype_constraints=[
@@ -505,7 +505,7 @@ def reduce_stack(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.while_',
     qtype_constraints=[
@@ -577,7 +577,7 @@ def while_(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.foreach',
     qtype_constraints=[
@@ -675,7 +675,7 @@ def for_(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.streams.call',
     qtype_constraints=[

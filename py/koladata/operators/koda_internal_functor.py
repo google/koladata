@@ -18,7 +18,7 @@ from koladata.operators import optools
 from koladata.types import qtypes
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.functor.pack_as_literal',
     qtype_inference_expr=qtypes.DATA_SLICE,

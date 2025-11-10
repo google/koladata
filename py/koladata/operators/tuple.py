@@ -31,7 +31,7 @@ constraints = arolla.optools.constraints
 
 # Note that we use the lambda operator instead of an alias so that the operator
 # implemented Koladata-specific boxing rules.
-@optools.add_to_registry(aliases=['kd.tuple'])
+@optools.add_to_registry(aliases=['kd.tuple'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.tuples.tuple',
     experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
@@ -41,7 +41,7 @@ def tuple_(*args):
   return arolla.optools.fix_trace_args(args)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.tuples.slice')
 def slice_(
     start=arolla.unspecified(),
@@ -58,7 +58,9 @@ def slice_(
   return arolla.M.core.make_slice(start, stop, step)
 
 
-@optools.add_to_registry(aliases=['kd.namedtuple'])
+@optools.add_to_registry(
+    aliases=['kd.namedtuple'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator('kd.tuples.namedtuple')
 def namedtuple_(**kwargs):
   """Returns a namedtuple-like object containing the given `**kwargs`."""
@@ -69,8 +71,9 @@ def namedtuple_(**kwargs):
     'koda_internal.view.get_item._tuple',
     overload_condition_expr=M.qtype.is_tuple_qtype(P.x)
     | M.qtype.is_slice_qtype(P.x),
+    via_cc_operator_package=True,
 )
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.tuples.get_nth',
     qtype_constraints=[qtype_utils.expect_data_slice(P.n)],
@@ -92,8 +95,9 @@ def get_nth(x, n):
 @optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._namedtuple',
     overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),
+    via_cc_operator_package=True,
 )
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.tuples.get_namedtuple_field',
     qtype_constraints=[qtype_utils.expect_data_slice(P.field_name)],

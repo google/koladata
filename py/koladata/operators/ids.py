@@ -30,7 +30,7 @@ constraints = arolla.optools.constraints
 _AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
 
 
-@optools.add_to_registry(aliases=['kd.uuid'])
+@optools.add_to_registry(aliases=['kd.uuid'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.ids.uuid',
     qtype_constraints=[
@@ -53,7 +53,7 @@ def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.ids.is_uuid',
     qtype_constraints=[
@@ -84,7 +84,7 @@ def is_uuid(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.ids.has_uuid',
     qtype_constraints=[
@@ -116,7 +116,8 @@ def has_uuid(x):  # pylint: disable=unused-argument
     aliases=[
         'kd.uuid_for_list',
         'lists.uuid_for_list',
-    ]
+    ],
+    via_cc_operator_package=True
 )
 @optools.as_backend_operator(
     'kd.ids.uuid_for_list',
@@ -150,7 +151,8 @@ def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
     aliases=[
         'kd.uuid_for_dict',
         'dicts.uuid_for_dict',
-    ]
+    ],
+    via_cc_operator_package=True
 )
 @optools.as_backend_operator(
     'kd.ids.uuid_for_dict',
@@ -180,7 +182,9 @@ def uuid_for_dict(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.uuids_with_allocation_size'])
+@optools.add_to_registry(
+    aliases=['kd.uuids_with_allocation_size'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.ids.uuids_with_allocation_size',
     qtype_constraints=[
@@ -211,7 +215,7 @@ def _agg_uuid(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.agg_uuid'])
+@optools.add_to_registry(aliases=['kd.agg_uuid'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.ids.agg_uuid',
     qtype_constraints=[
@@ -247,7 +251,7 @@ def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.deep_uuid'])
+@optools.add_to_registry(aliases=['kd.deep_uuid'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.ids.deep_uuid',
     qtype_constraints=[
@@ -272,7 +276,9 @@ def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
   return _deep_uuid(x, schema, seed)
 
 
-@optools.add_to_registry(aliases=['kd.encode_itemid'])
+@optools.add_to_registry(
+    aliases=['kd.encode_itemid'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.ids.encode_itemid',
     qtype_constraints=[
@@ -284,7 +290,9 @@ def encode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.decode_itemid'])
+@optools.add_to_registry(
+    aliases=['kd.decode_itemid'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.ids.decode_itemid',
     qtype_constraints=[
@@ -296,7 +304,9 @@ def decode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.hash_itemid'])
+@optools.add_to_registry(
+    aliases=['kd.hash_itemid'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.ids.hash_itemid',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],

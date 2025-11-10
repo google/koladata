@@ -76,7 +76,7 @@ def _replace_non_deterministic_leaf_with_param(expr):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.make_executor',
     qtype_constraints=[
@@ -101,7 +101,9 @@ def make_executor(thread_limit=0):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.streams.current_executor'])
+@optools.add_to_registry(
+    aliases=['kd.streams.current_executor'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.current_executor',
     qtype_inference_expr=EXECUTOR,
@@ -121,7 +123,7 @@ def current_executor():
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.create_transform_config',
     qtype_inference_expr=bootstrap.get_transform_config_qtype(),
@@ -144,7 +146,7 @@ def create_transform_config(config_src):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_qtype',
     qtype_inference_expr=arolla.QTYPE,
@@ -157,7 +159,7 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
 
 # Since futures holding a value are immutable, this operator can be kept
 # deterministic.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.as_future',
     qtype_inference_expr=get_future_qtype(P.arg),
@@ -177,7 +179,7 @@ def as_future(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_value_for_testing',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -190,7 +192,7 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_future',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -210,7 +212,7 @@ def unwrap_future_to_future(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_stream',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -230,7 +232,7 @@ def unwrap_future_to_stream(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_stream_qtype',
     qtype_inference_expr=arolla.QTYPE,
@@ -277,7 +279,7 @@ _STREAM_CHAIN_QTYPE_CONSTRAINTS = (
 )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_chain',
     qtype_inference_expr=_STREAM_CHAIN_QTYPE_INFERENCE_EXPR,
@@ -303,7 +305,7 @@ def stream_chain(*streams, value_type_as=arolla.unspecified()):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_interleave',
     qtype_inference_expr=_STREAM_CHAIN_QTYPE_INFERENCE_EXPR,
@@ -337,7 +339,7 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_chain_from_stream',
     qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
@@ -382,7 +384,7 @@ def stream_chain_from_stream(stream_of_streams):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_interleave_from_stream',
     qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
@@ -422,7 +424,7 @@ def stream_interleave_from_stream(stream_of_streams):
 
 # Since the stream returned by this operator is immutable, this operator can be
 # kept deterministic.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_make',
     qtype_constraints=[
@@ -471,7 +473,7 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
 
 # Since the stream returned by this operator is immutable, this operator can be
 # kept deterministic.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_iterable',
     qtype_constraints=[
@@ -542,7 +544,7 @@ def _internal_as_parallel(outer_arg, outer_self_op):
   )(outer_arg, outer_self_op)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.as_parallel',
 )
@@ -695,7 +697,7 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
   )(outer_arg, outer_executor, outer_self_op)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.future_from_parallel',
     qtype_constraints=[
@@ -723,7 +725,7 @@ def future_from_parallel(executor, arg):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.async_unpack_tuple',
     qtype_constraints=[
@@ -808,7 +810,7 @@ def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.parallel_from_future',
     qtype_constraints=[
@@ -838,7 +840,7 @@ def parallel_from_future(executor, arg):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_map',
     qtype_constraints=[
@@ -869,7 +871,7 @@ def stream_map(executor, stream, fn, *, value_type_as=data_slice.DataSlice):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_map_unordered',
     qtype_constraints=[
@@ -905,7 +907,7 @@ def stream_map_unordered(
 
 
 # This operator is tested via koda_internal_parallel_transform_test.py.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._get_value_or_parallel_default',
 )
@@ -963,7 +965,7 @@ def _get_value_or_parallel_default(
 # However, since it is an internal operator, we can accept the consequencecs
 # of marking it deterministic, namely that evaluating it twice on the same
 # input may result in the same result because of literal folding.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.transform',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -1011,7 +1013,7 @@ def transform(config, fn):  # pylint: disable=unused-argument
 
 # This operator could be a lambda, but then we'd have to invoke it from eager
 # C++ TransformToParallel code, which would be harder to maintain and debug.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.transform_many',
     qtype_inference_expr=P.fns,
@@ -1025,7 +1027,7 @@ def transform_many(config, fns):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._async_transform_many',
     qtype_constraints=[
@@ -1101,7 +1103,7 @@ def _internal_unwrap_future_to_parallel(outer_arg, outer_self_op):
   )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.unwrap_future_to_parallel',
     qtype_constraints=[
@@ -1136,7 +1138,7 @@ def _expect_future_data_slice_or_unspecified(arg):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_call',
     qtype_constraints=[
@@ -1162,7 +1164,7 @@ def _parallel_call(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.parallel_call_fn_returning_stream',
     qtype_constraints=[
@@ -1222,7 +1224,7 @@ def parallel_call_fn_returning_stream(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_chain',
     qtype_constraints=[
@@ -1271,7 +1273,7 @@ def stream_flat_map_chain(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_interleaved',
     qtype_constraints=[
@@ -1327,7 +1329,7 @@ def stream_flat_map_interleaved(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_reduce',
     qtype_constraints=[
@@ -1368,7 +1370,7 @@ def stream_reduce(executor, fn, stream, initial_value):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_reduce_concat',
     qtype_constraints=[
@@ -1410,7 +1412,7 @@ def stream_reduce_concat(executor, stream, initial_value, ndim=1):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_reduce_stack',
     qtype_constraints=[
@@ -1452,7 +1454,9 @@ def stream_reduce_stack(executor, stream, initial_value, ndim=0):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()  # Registered in order to be used in unit tests.
+@optools.add_to_registry(
+    via_cc_operator_package=True
+)  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_while_returns',
     qtype_inference_expr=get_stream_qtype(P.initial_returns),
@@ -1492,7 +1496,9 @@ def _stream_while_returns(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()  # Registered in order to be used in unit tests.
+@optools.add_to_registry(
+    via_cc_operator_package=True
+)  # Registered in order to be used in unit tests.
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_while_yields',
     qtype_inference_expr=get_stream_qtype(P.initial_yields),
@@ -1537,7 +1543,7 @@ def _stream_while_yields(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_while',
     qtype_constraints=[
@@ -1708,7 +1714,7 @@ def _stream_for_yields(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_for',
     qtype_constraints=[
@@ -1874,7 +1880,7 @@ def stream_for(
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_call',
     qtype_constraints=[
@@ -1933,7 +1939,9 @@ def stream_call(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.streams.await_'])
+@optools.add_to_registry(
+    aliases=['kd.streams.await_'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator('koda_internal.parallel.stream_await')
 def stream_await(arg):
   """Indicates to kd.streams.call that the argument should be awaited.
@@ -1973,7 +1981,9 @@ def stream_await(arg):
   )(arg)
 
 
-@optools.add_to_registry(aliases=['kd.streams.sync_wait'])
+@optools.add_to_registry(
+    aliases=['kd.streams.sync_wait'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.sync_wait',
     qtype_constraints=[
@@ -1996,7 +2006,9 @@ def sync_wait(stream):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.streams.unsafe_blocking_wait'])
+@optools.add_to_registry(
+    aliases=['kd.streams.unsafe_blocking_wait'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.unsafe_blocking_wait',
     qtype_constraints=[
@@ -2038,7 +2050,9 @@ def unsafe_blocking_wait(stream):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.streams.from_1d_slice'])
+@optools.add_to_registry(
+    aliases=['kd.streams.from_1d_slice'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_1d_slice',
     qtype_constraints=[
@@ -2059,7 +2073,7 @@ def stream_from_1d_slice(slice_):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_future',
     qtype_constraints=[
@@ -2072,7 +2086,7 @@ def stream_from_future(future):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.future_from_single_value_stream',
     qtype_constraints=[
@@ -2094,7 +2108,7 @@ def future_from_single_value_stream(stream):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.future_iterable_from_stream',
     qtype_constraints=[
@@ -2120,7 +2134,7 @@ def future_iterable_from_stream(stream):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_get_item',
     qtype_constraints=[
@@ -2180,7 +2194,7 @@ def _parallel_if_impl(
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_if',
     qtype_constraints=[
@@ -2215,7 +2229,7 @@ def _parallel_if(
 
 # Since the stream returned by this operator is immutable, this operator can be
 # kept deterministic.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.empty_stream_like',
     qtype_constraints=[
@@ -2230,7 +2244,7 @@ def empty_stream_like(stream):  # pylint: disable=unused-argument
 
 # This operator takes executor as the second argument because we want to
 # pass it to core.map_tuple.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._single_element_stream_from_parallel',
 )
@@ -2239,7 +2253,7 @@ def _single_element_stream_from_parallel(arg, executor):
   return stream_from_future(future_from_parallel(executor, arg))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._empty_streams_from_value_type_as',
 )
@@ -2281,7 +2295,7 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_chain',
     qtype_constraints=[
@@ -2302,7 +2316,7 @@ def _parallel_stream_chain(executor, streams, value_type_as):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_interleave',
     qtype_constraints=[
@@ -2323,7 +2337,7 @@ def _parallel_stream_interleave(executor, streams, value_type_as):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_make',
     qtype_constraints=[
@@ -2342,7 +2356,7 @@ def _parallel_stream_make(executor, items, value_type_as):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_make_unordered',
     qtype_constraints=[
@@ -2379,7 +2393,7 @@ _AS_PARALLEL_WRAPPING_FN = _create_as_parallel_wrapping_fn()
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_flat_map_chain',
     qtype_constraints=[
@@ -2410,7 +2424,7 @@ def _parallel_stream_flat_map_chain(
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_flat_map_interleaved',
     qtype_constraints=[
@@ -2464,7 +2478,7 @@ _SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN = (
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_reduce',
     qtype_constraints=[
@@ -2494,7 +2508,7 @@ def _parallel_stream_reduce(executor, transformed_fn, items, initial_value):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_reduce_concat',
     qtype_constraints=[
@@ -2514,7 +2528,7 @@ def _parallel_stream_reduce_concat(executor, items, initial_value, ndim):
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_reduce_updated_bag',
     qtype_constraints=[
@@ -2634,7 +2648,7 @@ def _empty_yields_namedtuple(outer_yields, outer_yields_interleaved):
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_while',
     qtype_constraints=[
@@ -2820,7 +2834,7 @@ _FOR_FINALIZE_WRAPPING_FN = _create_for_finalize_wrapping_fn()
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_for',
     qtype_constraints=[
@@ -3120,7 +3134,7 @@ def _internal_parallel_stream_map(
 
 # qtype constraints for everything except `executor` are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_map',
     qtype_constraints=[
@@ -3170,7 +3184,7 @@ def _internal_parallel_with_assertion(
 
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_with_assertion',
     qtype_constraints=[
@@ -3415,7 +3429,7 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC = py_expr_eval_py_ext.eval_expr(
 
 # This is a lambda operator with a literal inside so that it's also available in
 # C++.
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.get_default_transform_config_src'
 )
@@ -3424,7 +3438,7 @@ def get_default_transform_config_src():
   return literal_operator.literal(_DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.parallel.get_default_transform_config'
 )

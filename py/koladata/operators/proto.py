@@ -49,7 +49,9 @@ def _from_proto_bytes(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.from_proto_bytes'])
+@optools.add_to_registry(
+    aliases=['kd.from_proto_bytes'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.proto.from_proto_bytes',
     qtype_constraints=[
@@ -153,7 +155,9 @@ def _from_proto_json(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.from_proto_json'])
+@optools.add_to_registry(
+    aliases=['kd.from_proto_json'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.proto.from_proto_json',
     qtype_constraints=[
@@ -231,7 +235,9 @@ def from_proto_json(
   )
 
 
-@optools.add_to_registry(aliases=['kd.schema_from_proto_path'])
+@optools.add_to_registry(
+    aliases=['kd.schema_from_proto_path'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.proto.schema_from_proto_path',
     qtype_constraints=[
@@ -267,7 +273,9 @@ def schema_from_proto_path(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.to_proto_bytes'])
+@optools.add_to_registry(
+    aliases=['kd.to_proto_bytes'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.proto.to_proto_bytes',
     qtype_constraints=[
@@ -305,7 +313,9 @@ def to_proto_bytes(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.to_proto_json'])
+@optools.add_to_registry(
+    aliases=['kd.to_proto_json'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.proto.to_proto_json',
     qtype_constraints=[
@@ -343,7 +353,7 @@ def to_proto_json(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.proto.get_proto_full_name',
     qtype_constraints=[
@@ -372,7 +382,7 @@ def get_proto_full_name(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.proto.get_proto_field_custom_default',
     qtype_constraints=[
@@ -407,7 +417,9 @@ def get_proto_field_custom_default(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.get_proto_attr'])
+@optools.add_to_registry(
+    aliases=['kd.get_proto_attr'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.proto.get_proto_attr',
     qtype_constraints=[

@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes base Koda operators that are available in C++."""
+"""Imports operators that are available in C++.
+
+DO NOT USE DIRECTLY, use via kde_operators or build_cc_operators.
+"""
 
 from koladata.operators import allocation as _
 from koladata.operators import annotation as _
+from koladata.operators import arolla_bridge as _
 from koladata.operators import assertion as _
 from koladata.operators import bags as _
 from koladata.operators import bitwise as _
@@ -33,6 +37,7 @@ from koladata.operators import jagged_shape as _
 from koladata.operators import json as _
 from koladata.operators import koda_internal as _
 from koladata.operators import koda_internal_iterables as _
+from koladata.operators import koda_internal_parallel as _
 from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
@@ -44,3 +49,4 @@ from koladata.operators import slices as _
 from koladata.operators import streams as _
 from koladata.operators import strings as _
 from koladata.operators import tuple as _
+from koladata.operators import view_overloads as _

@@ -31,7 +31,7 @@ P = arolla.P
 M = arolla.M
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.iterables.make',
 )
@@ -76,7 +76,7 @@ def make(*items, value_type_as=arolla.unspecified()):
   return koda_internal_iterables.from_sequence(seq)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.iterables.make_unordered',
 )
@@ -153,7 +153,7 @@ _ITERABLES_CHAIN_QTYPE_CONSTRAINTS = (
 )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.iterables.chain',
     qtype_constraints=_ITERABLES_CHAIN_QTYPE_CONSTRAINTS,
@@ -194,7 +194,7 @@ def chain(*iterables, value_type_as=arolla.unspecified()):
   )(iterables, value_type_as)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.iterables.interleave',
     qtype_constraints=_ITERABLES_CHAIN_QTYPE_CONSTRAINTS,
@@ -245,7 +245,7 @@ def interleave(*iterables, value_type_as=arolla.unspecified()):
   )(iterables, value_type_as, optools.unified_non_deterministic_arg())
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.iterables.reduce_concat',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -281,7 +281,7 @@ def reduce_concat(items, initial_value, ndim=1):  # pylint: disable=unused-argum
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.iterables.reduce_updated_bag',
     qtype_inference_expr=qtypes.DATA_BAG,
@@ -317,7 +317,7 @@ def reduce_updated_bag(items, initial_value):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.iterables.from_1d_slice',
     qtype_constraints=[

@@ -45,7 +45,7 @@ def _like(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list_like'])
+@optools.add_to_registry(aliases=['kd.list_like'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.lists.like',
     qtype_constraints=[
@@ -96,7 +96,9 @@ def _shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unuse
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.list_shaped'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.lists.shaped',
     qtype_constraints=[
@@ -140,7 +142,9 @@ def shaped(
   return _shaped(shape, items, item_schema, schema, itemid)
 
 
-@optools.add_to_registry(aliases=['kd.list_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.list_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.lists.shaped_as',
     qtype_constraints=[
@@ -190,7 +194,7 @@ def _explode(x, ndim):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.explode'])
+@optools.add_to_registry(aliases=['kd.explode'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.lists.explode',
     qtype_constraints=[
@@ -230,7 +234,7 @@ def _implode(x, ndim, itemid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.implode'])
+@optools.add_to_registry(aliases=['kd.implode'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.lists.implode',
     qtype_constraints=[
@@ -283,8 +287,11 @@ def _new(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list'],
-                         repr_fn=op_repr.hide_non_deterministic_repr_fn)
+@optools.add_to_registry(
+    aliases=['kd.list'],
+    repr_fn=op_repr.hide_non_deterministic_repr_fn,
+    via_cc_operator_package=True,
+)
 @arolla.optools.as_lambda_operator(
     'kd.lists.new',
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.lists.new]',
@@ -416,7 +423,9 @@ def _concat_lists(*args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.concat_lists'])
+@optools.add_to_registry(
+    aliases=['kd.concat_lists'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.lists.concat',
     qtype_constraints=[
@@ -436,7 +445,7 @@ def concat_lists(arg0, *args):
   )
 
 
-@optools.add_to_registry(aliases=['kd.list_size'])
+@optools.add_to_registry(aliases=['kd.list_size'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.lists.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_slice)],
@@ -446,7 +455,7 @@ def size(list_slice):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.has_list'])
+@optools.add_to_registry(aliases=['kd.has_list'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.lists.has_list',
     qtype_constraints=[
@@ -476,7 +485,7 @@ def has_list(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.is_list'])
+@optools.add_to_registry(aliases=['kd.is_list'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.lists.is_list', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
@@ -505,7 +514,9 @@ def is_list(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.appended_list'])
+@optools.add_to_registry(
+    aliases=['kd.appended_list'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.lists.appended_list',
     qtype_constraints=[
@@ -531,7 +542,9 @@ def appended_list(x, append):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.list_append_update'])
+@optools.add_to_registry(
+    aliases=['kd.list_append_update'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.lists.list_append_update',
     qtype_constraints=[
@@ -561,7 +574,9 @@ def list_update(x, append):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.with_list_append_update'])
+@optools.add_to_registry(
+    aliases=['kd.with_list_append_update'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.lists.with_list_append_update',
     qtype_constraints=[

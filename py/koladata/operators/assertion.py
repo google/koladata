@@ -26,7 +26,7 @@ _M = _arolla.M
 _constraints = _arolla.optools.constraints
 
 
-@_optools.add_to_registry()
+@_optools.add_to_registry(via_cc_operator_package=True)
 @_optools.as_backend_operator(
     'kd.assertion._with_assertion',
     qtype_constraints=[
@@ -39,7 +39,7 @@ def _with_assertion(x, condition, message_or_fn, args):  # pylint: disable=unuse
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry()
+@_optools.add_to_registry(via_cc_operator_package=True)
 @_optools.as_lambda_operator(
     'kd.assertion.with_assertion',
     qtype_constraints=[
@@ -105,7 +105,7 @@ def with_assertion(x, condition, message_or_fn, *args):
   )
 
 
-@_optools.add_to_registry()
+@_optools.add_to_registry(via_cc_operator_package=True)
 @_optools.as_backend_operator(
     'kd.assertion.assert_primitive',
     qtype_constraints=[
@@ -143,7 +143,7 @@ def assert_primitive(arg_name, ds, primitive_schema):  # pylint: disable=unused-
   raise NotImplementedError('implemented in the backend')
 
 
-@_optools.add_to_registry()
+@_optools.add_to_registry(via_cc_operator_package=True)
 @_optools.as_backend_operator(
     'kd.assertion.assert_present_scalar',
     qtype_constraints=[

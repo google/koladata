@@ -18,7 +18,7 @@ from arolla import arolla
 from koladata.operators import optools
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.non_deterministic_identity',
     qtype_inference_expr=arolla.P.x,

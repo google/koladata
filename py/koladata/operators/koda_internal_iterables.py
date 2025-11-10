@@ -42,7 +42,7 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'koda_internal.iterables.from_sequence',
     qtype_constraints=[
@@ -59,7 +59,7 @@ def from_sequence(x):
   )
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.to_sequence',
     qtype_constraints=[
@@ -71,7 +71,7 @@ def to_sequence(x):
   return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_from_1d_slice',
     qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
@@ -84,7 +84,7 @@ def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'koda_internal.iterables.sequence_to_1d_slice',
     qtype_inference_expr=qtypes.DATA_SLICE,
@@ -101,7 +101,7 @@ def sequence_to_1d_slice(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.shuffle',
     qtype_constraints=[
@@ -141,7 +141,7 @@ def shuffle(x):
   return from_sequence(shuffled_seq)
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_chain',
     qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.sequences),
@@ -160,7 +160,7 @@ def sequence_chain(sequences):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry(view=None, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.sequence_interleave',
     qtype_constraints=[
@@ -235,7 +235,7 @@ def sequence_interleave(sequences):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.empty_as',
     qtype_constraints=[

@@ -24,7 +24,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kd.obj'])
+@optools.add_to_registry(aliases=['kd.obj'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.objs.new',
     qtype_constraints=[
@@ -52,7 +52,9 @@ def obj(arg=arolla.unspecified(), /, *, itemid=arolla.unspecified(), **attrs):  
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.obj_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.obj_shaped'], via_cc_operator_package=True
+)
 @optools.as_backend_operator(
     'kd.objs.shaped',
     qtype_constraints=[
@@ -78,7 +80,9 @@ def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: di
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.obj_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.obj_shaped_as'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
     'kd.objs.shaped_as',
     qtype_constraints=[
@@ -110,7 +114,7 @@ def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
   )
 
 
-@optools.add_to_registry(aliases=['kd.obj_like'])
+@optools.add_to_registry(aliases=['kd.obj_like'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.objs.like',
     qtype_constraints=[
@@ -140,7 +144,7 @@ def obj_like(shape_and_mask_from, /, *, itemid=arolla.unspecified(), **attrs):  
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.uuobj'])
+@optools.add_to_registry(aliases=['kd.uuobj'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.objs.uu',
     qtype_constraints=[
