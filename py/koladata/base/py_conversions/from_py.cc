@@ -24,6 +24,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -275,7 +276,7 @@ class FromPyConverter {
           DataSlice ds,
           ConvertImpl({py_objects[i]}, DataSlice::JaggedShape::Empty(),
                       object_schema, child_itemid_ds_item,
-                      /*computing_object=*/true, /*is_root=*/is_root));
+                      /*computing_object=*/true, is_root));
       if (!is_struct_schema && ds.GetSchemaImpl().is_struct_schema()) {
         // Converting only non-primitives to OBJECTs, in order to embed schema.
         ASSIGN_OR_RETURN(ds, ObjectCreator::ConvertWithoutAdopt(GetBag(), ds));
@@ -329,6 +330,21 @@ class FromPyConverter {
       const std::optional<DataSlice>& schema,
       const std::optional<DataSlice>& itemid, bool computing_object = false,
       bool is_root = false) {
+#ifndef ADDRESS_SANITIZER
+    constexpr static int kMaxConversionDepth = 3000;
+#else
+    constexpr static int kMaxConversionDepth = 5000;
+#endif
+    thread_local int cur_depth = 0;
+    if (cur_depth > kMaxConversionDepth) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("objects with depth > %d are not supported, "
+                          "recursive Python object cannot be converted",
+                          kMaxConversionDepth));
+    }
+    ++cur_depth;
+    absl::Cleanup cleanup = [&] { --cur_depth; };
+
     if (py_objects.empty()) {
       return DataSlice::Create(
           internal::DataSliceImpl::CreateEmptyAndUnknownType(0), cur_shape,
@@ -393,7 +409,7 @@ class FromPyConverter {
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
       const std::optional<DataSlice>& schema,
-      const std::optional<DataSlice>& itemid, bool is_root = false) {
+      const std::optional<DataSlice>& itemid, bool is_root) {
     std::vector<PyObject*> next_level_py_objs;
     shape::ShapeBuilder shape_builder(cur_shape);
     ASSIGN_OR_RETURN(
@@ -485,7 +501,7 @@ class FromPyConverter {
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
       const std::optional<DataSlice>& schema,
-      const std::optional<DataSlice>& itemid, bool is_root = false) {
+      const std::optional<DataSlice>& itemid, bool is_root) {
     std::vector<PyObject*> next_level_py_keys;
     std::vector<PyObject*> next_level_py_values;
     shape::ShapeBuilder shape_builder(cur_shape);

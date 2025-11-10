@@ -17,6 +17,7 @@ import enum
 import gc
 import re
 import sys
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
@@ -60,10 +61,10 @@ _VERSION_PARAMS = [
 ]
 
 
-def _zip_with_version_params(input_objects):
-  test_cases = zip(input_objects, _VERSION_PARAMS)
-  for (case_name, input_obj), (version, from_py_fn) in test_cases:
-    yield (f'{case_name}_{version}', (input_obj, from_py_fn))
+def _decorate_with_version_params(input_objects):
+  for case_name, input_obj in input_objects:
+    for version, from_py_fn in _VERSION_PARAMS:
+      yield (f'{case_name}_{version}', (input_obj, from_py_fn))
 
 
 def _get_child_list_item_id(from_py_fn, parent_itemid, **kwargs):
@@ -115,6 +116,104 @@ def _get_child_entity_item_id(from_py_fn, parent_itemid, attr_name, **kwargs):
     return kde.uuid(
         '__from_py_child__', parent=parent_itemid, attr_name=attr_name
     ).eval()
+
+
+def _get_recursive_list(exponential=True):
+  py_l = []
+  bottom_l = py_l
+  for _ in range(3):
+    if exponential:
+      py_l = [py_l, py_l]
+    else:
+      py_l = [py_l]
+  level_1_l = py_l
+  py_l = [level_1_l]
+  bottom_l.append(level_1_l)
+  return py_l
+
+
+def _get_deep_list_schema():
+  schema = kde.list_schema(schema_constants.OBJECT).eval()
+  for _ in range(3):
+    schema = kde.list_schema(schema).eval()
+  return schema
+
+
+def _get_recursive_list_schema():
+  list_schema = kde.list_schema(schema_constants.INT32).eval()
+  top_list_schema = kde.list_schema(list_schema).eval()
+  top_list_schema = top_list_schema.with_attrs(
+      __items__=list_schema.with_attrs(__items__=top_list_schema)
+  )
+  return top_list_schema
+
+
+def _get_recursive_dict(exponential=True):
+  py_d = {}
+  bottom_d = py_d
+  for i in range(3):
+    if exponential:
+      py_d = {f'd{i}': py_d, f'e{i}': py_d}
+    else:
+      py_d = {f'd{i}': py_d}
+
+  level_1_d = py_d
+  py_d = {'top': level_1_d}
+  bottom_d['cycle'] = level_1_d
+  return py_d
+
+
+def _get_recursive_obj():
+  @dataclasses.dataclass
+  class A:
+    value: str = '123'
+    children: list[Any] | None = None
+
+  py_obj = A()
+  bottom_obj = py_obj
+  for _ in range(3):
+    py_obj = A(children=[py_obj])
+  level_1_obj = py_obj
+  bottom_obj.children = [level_1_obj]
+  return py_obj
+
+
+def _get_deep_dict_schema():
+  schema = kde.dict_schema(
+      schema_constants.STRING, schema_constants.OBJECT
+  ).eval()
+  for _ in range(3):
+    schema = kde.dict_schema(schema_constants.STRING, schema).eval()
+  return schema
+
+
+def _get_recursive_dict_schema():
+  dict_schema = kde.dict_schema(
+      schema_constants.STRING, schema_constants.INT32
+  ).eval()
+  top_dict_schema = kde.dict_schema(schema_constants.STRING, dict_schema).eval()
+  top_dict_schema = top_dict_schema.with_attrs(
+      __values__=dict_schema.with_attrs(__values__=top_dict_schema)
+  )
+  return top_dict_schema
+
+
+def _get_deep_obj_schema():
+  schema = kde.uu_schema(
+      a=schema_constants.INT32, cycle=schema_constants.OBJECT
+  ).eval()
+  for i in range(3):
+    schema = kde.uu_schema(**{f'd{i}': schema}).eval()
+  schema = kde.uu_schema(top=schema).eval()
+  return schema
+
+
+def _get_recursive_obj_schema():
+  return kde.named_schema(
+      'TreeNode',
+      value=schema_constants.STRING,
+      children=kde.list_schema(kde.named_schema('TreeNode').eval()).eval(),
+  ).eval()
 
 
 class FromPyTest(parameterized.TestCase):
@@ -313,14 +412,14 @@ class FromPyTest(parameterized.TestCase):
       )
 
   @parameterized.named_parameters(
-      _zip_with_version_params((
+      _decorate_with_version_params([
           ('list', [1, 2, 3]),
           ('dict', {'a': 2, 'b': 4}),
           ('list of dicts', [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}]),
           ('empty_tuple', ()),
           ('tuple', (1, 2, 3)),
           ('obj', dataclasses.make_dataclass('Obj', [('x', int)])(x=123)),
-      ))
+      ])
   )
   def test_same_objects_converted_to_different_items(self, test_case):
     input_obj, from_py_fn = test_case
@@ -1570,24 +1669,45 @@ assigned schema: ENTITY(x=INT32)'''
       testing.assert_dicts_keys_equal(d21, ds(['abc', 'def']))
       testing.assert_dicts_keys_equal(d22, ds(['abc', 'def']))
 
-  def test_deep_dict_recursive_error(self):
-    py_d = {'a': 42}
-    schema = kde.dict_schema(
-        schema_constants.STRING, schema_constants.OBJECT
-    ).eval()
-    bottom_d = py_d
-    for i in range(3):
-      py_d = {f'd{i}': py_d}
-      schema = kde.dict_schema(schema_constants.STRING, schema).eval()
-    level_1_d = py_d
-    py_d = {'top': level_1_d}
-    bottom_d['cycle'] = level_1_d
-
-    # TODO: handle recursion in v2.
+  @parameterized.named_parameters(
+      _decorate_with_version_params([
+          (
+              'dict',
+              {
+                  'input_obj': _get_recursive_dict(),
+                  'schema': _get_deep_dict_schema(),
+                  'itemid': kde.uuid_for_dict('dict').eval(),
+              },
+          ),
+          (
+              'list',
+              {
+                  'input_obj': _get_recursive_list(),
+                  'schema': _get_deep_list_schema(),
+                  'itemid': kde.uuid_for_list('list').eval(),
+              },
+          ),
+          (
+              'object',
+              {
+                  'input_obj': _get_recursive_dict(),
+                  'schema': _get_deep_obj_schema(),
+                  'itemid': kde.uuid('obj').eval(),
+              },
+          ),
+      ])
+  )
+  def test_deep_error(self, test_case):
+    params, from_py_fn = test_case
+    input_obj = params['input_obj']
+    schema = params['schema']
+    itemid = params['itemid']
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d)
+      from_py_fn(input_obj)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, schema=schema)
+      from_py_fn(input_obj, schema=schema)
+    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+      from_py_fn(input_obj, itemid=itemid)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_deep_list_with_repetitions(self, from_py_fn):
@@ -1611,28 +1731,6 @@ assigned schema: ENTITY(x=INT32)'''
     )
 
   @parameterized.named_parameters(_VERSION_PARAMS)
-  def test_deep_list_recursive_error(self, from_py_fn):
-    py_l = [1, 2, 3]
-    schema = kde.list_schema(schema_constants.INT32).eval()
-    bottom_l = py_l
-    for _ in range(3):
-      py_l = [py_l, py_l]
-      schema = kde.list_schema(schema).eval()
-    level_1_l = py_l
-    py_l = [level_1_l]
-    bottom_l.append(level_1_l)
-    # TODO: handle recursion in v2.
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_l)
-    error_msg = (
-        'recursive .* cannot be converted'
-        if from_py_fn == py_conversions.from_py
-        else 'object with unsupported type: list'
-    )
-    with self.assertRaisesRegex(ValueError, error_msg):
-      from_py_fn(py_l, schema=schema)
-
-  @parameterized.named_parameters(_VERSION_PARAMS)
   def test_deep_object_repetitions(self, from_py_fn):
     py_d = {'abc': 42}
     schema = kde.uu_schema(abc=schema_constants.INT32).eval()
@@ -1652,25 +1750,8 @@ assigned schema: ENTITY(x=INT32)'''
     testing.assert_equal(entity.y.x.abc.no_bag(), ds(42))
     testing.assert_equal(entity.y.y.abc.no_bag(), ds(42))
 
-  def test_deep_object_recursive_error(self):
-    py_d = {'a': 42}
-    schema = kde.uu_schema(
-        a=schema_constants.INT32, cycle=schema_constants.OBJECT
-    ).eval()
-    bottom_d = py_d
-    for i in range(3):
-      py_d = {f'd{i}': py_d}
-      schema = kde.uu_schema(**{f'd{i}': schema}).eval()
-    level_1_d = py_d
-    py_d = {'top': level_1_d}
-    schema = kde.uu_schema(top=schema).eval()
-    bottom_d['cycle'] = level_1_d
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, dict_as_obj=True)
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_d, dict_as_obj=True, schema=schema)
-
-  def test_deep_itemid_recursive_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_recursive_error_with_schema(self, from_py_fn):
     py_l = [1, 2, 3]
     schema = kde.list_schema(schema_constants.INT32).eval()
     bottom_l = py_l
@@ -1680,8 +1761,49 @@ assigned schema: ENTITY(x=INT32)'''
     level_1_l = py_l
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
+    if from_py_fn == py_conversions.from_py:
+      error_msg = 'recursive .* cannot be converted'
+    else:
+      # TODO: Make the error message indicate the actual problem.
+      error_msg = 'object with unsupported type: list'
+
+    with self.assertRaisesRegex(ValueError, error_msg):
+      from_py_fn(py_l, schema=schema)
+
+  # TODO: find a way to handle exponential recursion with
+  # recursive schema in V2.
+  @parameterized.named_parameters(
+      _decorate_with_version_params([
+          (
+              'dict',
+              {
+                  'input_obj': _get_recursive_dict(exponential=False),
+                  'schema': _get_recursive_dict_schema(),
+              },
+          ),
+          (
+              'list',
+              {
+                  'input_obj': _get_recursive_list(exponential=False),
+                  'schema': _get_recursive_list_schema(),
+              },
+          ),
+          (
+              'object',
+              {
+                  'input_obj': _get_recursive_obj(),
+                  'schema': _get_recursive_obj_schema(),
+              },
+          ),
+      ])
+  )
+  def test_recursive_error_with_recursive_schema(self, test_case):
+    params, from_py_fn = test_case
+    input_obj = params['input_obj']
+    schema = params['schema']
+
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      py_conversions.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
+      from_py_fn(input_obj, schema=schema)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_no_recursion_detected(self, from_py_fn):
