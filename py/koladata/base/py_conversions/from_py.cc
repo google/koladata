@@ -348,11 +348,8 @@ class FromPyConverter {
       const std::optional<DataSlice>& schema,
       const std::optional<DataSlice>& itemid, bool computing_object = false,
       bool is_root = false) {
-#ifndef ADDRESS_SANITIZER
-    constexpr static int kMaxConversionDepth = 3000;
-#else
-    constexpr static int kMaxConversionDepth = 5000;
-#endif
+    constexpr static int kMaxConversionDepth = 2500;
+
     thread_local int cur_depth = 0;
     if (cur_depth > kMaxConversionDepth) {
       return absl::InvalidArgumentError(
