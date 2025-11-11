@@ -57,13 +57,13 @@ def _call(
     )
 
 
-_bind_method_impl: Callable[..., data_slice.DataSlice] = None
+_bind_method_impl: Callable[..., DataItem] = None
 
 
 # As soon as this pattern is used >=3 times, please create a general
 # registration mechanism for non-operator-based DataItem methods.
 def register_bind_method_implementation(
-    fn: Callable[..., data_slice.DataSlice],
+    fn: Callable[..., DataItem],
 ):
   """Registers a method implementation for DataItem.bind."""
   global _bind_method_impl
@@ -78,7 +78,7 @@ def bind(
     *args: Any,
     return_type_as: Any = data_slice.DataSlice,
     **kwargs: Any,
-) -> data_slice.DataSlice:
+) -> DataItem:
   """Returns a Koda functor that partially binds a function to `args` and `kwargs`.
 
   This function is intended to work the same as functools.partial in Python.

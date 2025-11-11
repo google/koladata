@@ -34,6 +34,7 @@ from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_constants
@@ -773,7 +774,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('bind() expects a functor')
     ):
-      functor_factories.bind(ds(1), y=2)
+      functor_factories.bind(data_item.DataItem.from_vals(1), y=2)
 
   def test_bind_args_kwargs(self):
     sig = signature_utils.signature([

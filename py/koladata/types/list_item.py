@@ -14,6 +14,7 @@
 
 """ListItem."""
 
+import typing
 from typing import Any
 
 from arolla import arolla
@@ -43,7 +44,7 @@ class ListItem(data_item.DataItem):
       raise IndexError(
           f'List index out of range: list size {l} vs index {index}'
       )
-    return super(ListItem, self).pop(index)
+    return typing.cast(data_item.DataItem, super(ListItem, self).pop(index))
 
   def __len__(self) -> int:
     return self.list_size().internal_as_py()

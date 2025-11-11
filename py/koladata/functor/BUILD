@@ -141,6 +141,7 @@ py_test(
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",

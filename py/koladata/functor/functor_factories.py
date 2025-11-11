@@ -17,6 +17,7 @@
 import functools
 import inspect
 import types as py_types
+import typing
 from typing import Any, Callable
 
 from arolla import arolla
@@ -56,7 +57,7 @@ def expr_fn(
     signature: data_slice.DataSlice | None = None,
     auto_variables: bool = False,
     **variables: Any,
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Creates a functor.
 
   Args:
@@ -90,7 +91,7 @@ def expr_fn(
   return res
 
 
-def is_fn(obj: Any) -> data_slice.DataSlice:
+def is_fn(obj: Any) -> data_item.DataItem:
   """Checks if `obj` represents a functor.
 
   Args:
@@ -111,7 +112,7 @@ def is_fn(obj: Any) -> data_slice.DataSlice:
 @kd_functools.skip_from_functor_stack_trace
 def trace_py_fn(
     f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor created by tracing a given Python function.
 
   When 'f' has variadic positional (*args) or variadic keyword
@@ -151,6 +152,7 @@ def trace_py_fn(
   if module := getattr(f, '__module__', None):
     traced_f = traced_f.with_attr('__module__', module)
 
+  traced_f = typing.cast(data_item.DataItem, traced_f)
   return bind(traced_f, **defaults) if defaults else traced_f
 
 
@@ -159,7 +161,7 @@ def py_fn(
     *,
     return_type_as: Any = data_slice.DataSlice,
     **defaults: Any,
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor wrapping a python function.
 
   This is the most flexible way to wrap a python function for large, complex
@@ -210,6 +212,7 @@ def py_fn(
     py_functor = py_functor.with_attr('__qualname__', qualname)
   if module := getattr(f, '__module__', None):
     py_functor = py_functor.with_attr('__module__', module)
+  py_functor = typing.cast(data_item.DataItem, py_functor)
   return bind(py_functor, **defaults) if defaults else py_functor
 
 
@@ -219,7 +222,7 @@ def register_py_fn(
     return_type_as: Any = data_slice.DataSlice,
     unsafe_override: bool = False,
     **defaults: Any,
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor wrapping a function registered as an operator.
 
   This is the recommended way to wrap a non-traceable python function into a
@@ -288,16 +291,17 @@ def register_py_fn(
     py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
   py_functor = py_functor.with_attr('__qualname__', qualname)
   py_functor = py_functor.with_attr('__module__', module)
+  py_functor = typing.cast(data_item.DataItem, py_functor)
   return bind(py_functor, **defaults) if defaults else py_functor
 
 
 def bind(
-    fn_def: data_slice.DataSlice,
+    fn_def: data_item.DataItem,
     /,
     *args: Any,
     return_type_as: Any = data_slice.DataSlice,
     **kwargs: Any,
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor that partially binds a function.
 
   This function is intended to work the same as functools.partial in Python.
@@ -406,7 +410,7 @@ def bind(
   )
 
 
-def fstr_fn(returns: str, **kwargs) -> data_slice.DataSlice:
+def fstr_fn(returns: str, **kwargs) -> data_item.DataItem:
   """Returns a Koda functor from format string.
 
   Format-string must be created via Python f-string syntax. It must contain at
@@ -438,7 +442,7 @@ data_item.register_bind_method_implementation(bind)
 @kd_functools.skip_from_functor_stack_trace
 def fn(
     f: Any, *, use_tracing: bool = True, **kwargs: Any
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor representing `f`.
 
   This is the most generic version of the functools builder functions.
@@ -477,7 +481,7 @@ def map_py_fn(
     ndim: Any = 0,
     include_missing: Any = None,
     **defaults: Any,
-) -> data_slice.DataSlice:
+) -> data_item.DataItem:
   """Returns a Koda functor wrapping a python function for kd.map_py.
 
   See kd.map_py for detailed APIs, and kd.py_fn for details about function
@@ -516,8 +520,8 @@ def map_py_fn(
 
 
 def get_signature(
-    fn_def: data_slice.DataSlice,
-) -> data_slice.DataSlice:
+    fn_def: data_item.DataItem,
+) -> data_item.DataItem:
   """Retrieves the signature attached to the given functor.
 
   Args:
@@ -526,12 +530,12 @@ def get_signature(
   Returns:
     The signature(s) attached to the functor(s).
   """
-  return fn_def.get_attr('__signature__')
+  return typing.cast(data_item.DataItem, fn_def.get_attr('__signature__'))
 
 
 def allow_arbitrary_unused_inputs(
-    fn_def: data_slice.DataSlice,
-) -> data_slice.DataSlice:
+    fn_def: data_item.DataItem,
+) -> data_item.DataItem:
   """Returns a functor that allows unused inputs but otherwise behaves the same.
 
   This is done by adding a `**__extra_inputs__` argument to the signature if

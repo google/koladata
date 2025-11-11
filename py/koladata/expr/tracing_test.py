@@ -21,6 +21,7 @@ from koladata import kd
 from koladata.expr import tracing
 from koladata.extension_types import extension_types
 from koladata.functions import parallel
+from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.testing import testing
 from koladata.types import extension_type_registry
@@ -279,7 +280,11 @@ class TracingTest(absltest.TestCase):
       return e.x + 2
 
     self.assertEqual(
-        parallel.call_multithreaded(fn, e=ParallelCallableExtension(x=1)), 3
+        parallel.call_multithreaded(
+            functor_factories.py_fn(fn),
+            e=ParallelCallableExtension(x=1),
+        ),
+        3,
     )
 
   def test_extension_type_with_fn_returning_const(self):

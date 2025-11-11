@@ -167,6 +167,7 @@ py_test(
         "//py/koladata:kd",
         "//py/koladata/extension_types",
         "//py/koladata/functions:parallel",
+        "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/testing",
         "//py/koladata/types:extension_type_registry",

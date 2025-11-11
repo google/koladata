@@ -463,7 +463,12 @@ def _with_lazy_constraint_verification(
         result,
         actual_schema == constraint,
         lambda actual_schema: _lazy_type_mismatch_error_message(
-            arg_key, path, constraint, actual_schema
+            arg_key,
+            path,
+            constraint
+            if isinstance(constraint, schema_item.SchemaItem)
+            else constraint.base_type,
+            actual_schema,
         ),
         actual_schema,
     )

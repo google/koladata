@@ -225,6 +225,8 @@ koladata_py_extension(
 py_library(
     name = "data_item",
     srcs = ["data_item.py"],
+    pyi_deps = [":data_bag"],
+    pyi_srcs = ["data_item.pyi"],
     deps = [
         ":data_item_py_ext",
         ":data_slice",

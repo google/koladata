@@ -2171,7 +2171,7 @@ Operators to create and call functors.
 Implements:
   (py_types.FunctionType, return_type_as: arolla.QValue) -&gt; DataItem</code></pre>
 
-### `kd.functor.allow_arbitrary_unused_inputs(fn_def: DataSlice) -> DataSlice` {#kd.functor.allow_arbitrary_unused_inputs}
+### `kd.functor.allow_arbitrary_unused_inputs(fn_def: DataItem) -> DataItem` {#kd.functor.allow_arbitrary_unused_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a functor that allows unused inputs but otherwise behaves the same.
 
@@ -2193,7 +2193,7 @@ Returns:
   but with an additional `**__extra_inputs__` variadic keyword argument if
   there is no existing variadic keyword argument.</code></pre>
 
-### `kd.functor.bind(fn_def: DataSlice, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.functor.bind}
+### `kd.functor.bind(fn_def: DataItem, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#kd.functor.bind}
 Aliases:
 
 - [kd.bind](#kd.bind)
@@ -2345,7 +2345,7 @@ Args:
     not return a Iterable[DataSlice].
   **kwargs: The keyword arguments to pass to the call.</code></pre>
 
-### `kd.functor.expr_fn(returns: Any, *, signature: DataSlice | None = None, auto_variables: bool = False, **variables: Any) -> DataSlice` {#kd.functor.expr_fn}
+### `kd.functor.expr_fn(returns: Any, *, signature: DataSlice | None = None, auto_variables: bool = False, **variables: Any) -> DataItem` {#kd.functor.expr_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a functor.
 
@@ -2442,7 +2442,7 @@ Args:
 Returns:
   The resulting iterable as interleaved output of `fn`.</code></pre>
 
-### `kd.functor.fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataSlice` {#kd.functor.fn}
+### `kd.functor.fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataItem` {#kd.functor.fn}
 Aliases:
 
 - [kd.fn](#kd.fn)
@@ -2531,7 +2531,7 @@ Args:
 Returns:
   Either the return value or the iterable of yielded values.</code></pre>
 
-### `kd.functor.fstr_fn(returns: str, **kwargs) -> DataSlice` {#kd.functor.fstr_fn}
+### `kd.functor.fstr_fn(returns: str, **kwargs) -> DataItem` {#kd.functor.fstr_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor from format string.
 
@@ -2555,7 +2555,7 @@ Args:
   returns: A format string.
   **kwargs: variable assignments.</code></pre>
 
-### `kd.functor.get_signature(fn_def: DataSlice) -> DataSlice` {#kd.functor.get_signature}
+### `kd.functor.get_signature(fn_def: DataItem) -> DataItem` {#kd.functor.get_signature}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Retrieves the signature attached to the given functor.
 
@@ -2608,7 +2608,7 @@ Args:
 Returns:
   The result of the call of either `yes_fn` or `no_fn`.</code></pre>
 
-### `kd.functor.is_fn(obj: Any) -> DataSlice` {#kd.functor.is_fn}
+### `kd.functor.is_fn(obj: Any) -> DataItem` {#kd.functor.is_fn}
 Aliases:
 
 - [kd.is_fn](#kd.is_fn)
@@ -2666,7 +2666,7 @@ Args:
 Returns:
   The evaluation result.</code></pre>
 
-### `kd.functor.map_py_fn(f: Union[Callable[..., Any], PyObject], *, schema: Any = None, max_threads: Any = 1, ndim: Any = 0, include_missing: Any = None, **defaults: Any) -> DataSlice` {#kd.functor.map_py_fn}
+### `kd.functor.map_py_fn(f: Union[Callable[..., Any], PyObject], *, schema: Any = None, max_threads: Any = 1, ndim: Any = 0, include_missing: Any = None, **defaults: Any) -> DataItem` {#kd.functor.map_py_fn}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor wrapping a python function for kd.map_py.
 
@@ -2685,7 +2685,7 @@ Args:
     may be kde expressions, format strings, or 0-dim DataSlices. See the
     docstring for py_fn for more details.</code></pre>
 
-### `kd.functor.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataSlice` {#kd.functor.py_fn}
+### `kd.functor.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
 Aliases:
 
 - [kd.py_fn](#kd.py_fn)
@@ -2741,7 +2741,7 @@ Args:
 Returns:
   Result of the reduction as a single value.</code></pre>
 
-### `kd.functor.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataSlice` {#kd.functor.register_py_fn}
+### `kd.functor.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.functor.register_py_fn}
 Aliases:
 
 - [kd.register_py_fn](#kd.register_py_fn)
@@ -2834,7 +2834,7 @@ nicer stack traces in case of an exception. However, we will still apply
 the boxing rules on the returned value (for example, convert Python primitives
 to DataItems) to better emulate what will happen in tracing mode.</code></pre>
 
-### `kd.functor.trace_py_fn(f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any) -> DataSlice` {#kd.functor.trace_py_fn}
+### `kd.functor.trace_py_fn(f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any) -> DataItem` {#kd.functor.trace_py_fn}
 Aliases:
 
 - [kd.trace_py_fn](#kd.trace_py_fn)
@@ -9234,7 +9234,7 @@ Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
-### `kd.bind(fn_def: DataSlice, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#kd.bind}
+### `kd.bind(fn_def: DataItem, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#kd.bind}
 
 Alias for [kd.functor.bind](#kd.functor.bind) operator.
 
@@ -9691,7 +9691,7 @@ Alias for [kd.slices.float32](#kd.slices.float32) operator.
 
 Alias for [kd.slices.float64](#kd.slices.float64) operator.
 
-### `kd.fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataSlice` {#kd.fn}
+### `kd.fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataItem` {#kd.fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
@@ -10026,7 +10026,7 @@ Alias for [kd.slices.is_expandable_to](#kd.slices.is_expandable_to) operator.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.present if the given object is an Expr and kd.missing otherwise.</code></pre>
 
-### `kd.is_fn(obj: Any) -> DataSlice` {#kd.is_fn}
+### `kd.is_fn(obj: Any) -> DataItem` {#kd.is_fn}
 
 Alias for [kd.functor.is_fn](#kd.functor.is_fn) operator.
 
@@ -10345,7 +10345,7 @@ Alias for [kd.masking.present_shaped_as](#kd.masking.present_shaped_as) operator
 
 Alias for [kd.curves.pwl_curve](#kd.curves.pwl_curve) operator.
 
-### `kd.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataSlice` {#kd.py_fn}
+### `kd.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.py_fn}
 
 Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
@@ -10386,7 +10386,7 @@ Alias for [kd.slices.range](#kd.slices.range) operator.
 
 Alias for [kd.core.ref](#kd.core.ref) operator.
 
-### `kd.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataSlice` {#kd.register_py_fn}
+### `kd.register_py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, unsafe_override: bool = False, **defaults: Any) -> DataItem` {#kd.register_py_fn}
 
 Alias for [kd.functor.register_py_fn](#kd.functor.register_py_fn) operator.
 
@@ -10709,7 +10709,7 @@ Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
 
-### `kd.trace_py_fn(f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any) -> DataSlice` {#kd.trace_py_fn}
+### `kd.trace_py_fn(f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any) -> DataItem` {#kd.trace_py_fn}
 
 Alias for [kd.functor.trace_py_fn](#kd.functor.trace_py_fn) operator.
 
@@ -12434,11 +12434,11 @@ Returns:
 
 **Operators**
 
-### `kd_ext.Fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataSlice` {#kd_ext.Fn}
+### `kd_ext.Fn(f: Any, *, use_tracing: bool = True, **kwargs: Any) -> DataItem` {#kd_ext.Fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PyFn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataSlice` {#kd_ext.PyFn}
+### `kd_ext.PyFn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd_ext.PyFn}
 
 Alias for [kd.functor.py_fn](#kd.functor.py_fn) operator.
 
@@ -14333,7 +14333,7 @@ Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
 Alias for [DataSlice.append](#DataSlice.append) operator.
 
-### `DataItem.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataSlice` {#DataItem.bind}
+### `DataItem.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#DataItem.bind}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `args` and `kwargs`.
 

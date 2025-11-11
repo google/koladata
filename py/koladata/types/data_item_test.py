@@ -95,11 +95,11 @@ class DataItemTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments but 3 were given'
     ):
-      _ = data_item.DataItem.from_vals(1, 2, 3)
+      _ = data_item.DataItem.from_vals(1, 2, 3)  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments but 0 were given'
     ):
-      _ = data_item.DataItem.from_vals(schema=schema_constants.INT32)
+      _ = data_item.DataItem.from_vals(schema=schema_constants.INT32)  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got .*QType'
     ):

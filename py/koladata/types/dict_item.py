@@ -14,6 +14,7 @@
 
 """DictItem."""
 
+import typing
 from typing import Any
 
 from arolla import arolla
@@ -29,7 +30,9 @@ class DictItem(data_item.DataItem):
     """Removes an item from the DictItem."""
     if key not in self:
       raise KeyError(key)
+    value = self[key]
     self[key] = None
+    return typing.cast(data_item.DataItem, value)
 
   def __len__(self) -> int:
     return self.dict_size().internal_as_py()
