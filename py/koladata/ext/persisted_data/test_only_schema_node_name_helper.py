@@ -32,7 +32,7 @@ def schema_node_name(
       obtained by applying `action.get_subschema(schema)` is returned.
     action: The action to get the subschema of `schema`.
   """
-  snn = schema_helper._get_schema_node_name_from_schema_having_an_item_id(  # pylint: disable=protected-access
+  snn = schema_helper.get_schema_node_name_from_schema_having_an_item_id(
       schema
   )
   if action is None:
@@ -44,7 +44,7 @@ def schema_node_name(
         ' schema_node_name(child_schema) instead, i.e. without the'
         ' "action" kwarg'
     )
-  return schema_helper._get_schema_node_name(  # pylint: disable=protected-access
+  return schema_helper.get_schema_node_name(
       parent_schema_item=schema,
       action=action,
       child_schema_item=child_schema_item,

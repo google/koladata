@@ -228,7 +228,7 @@ def _get_item_id(item: kd.types.DataItem) -> kd.types.DataItem | None:
     return None
 
 
-def _get_schema_node_name_from_schema_having_an_item_id(
+def get_schema_node_name_from_schema_having_an_item_id(
     schema_item: kd.types.DataItem,
 ) -> str:
   item_id = _get_item_id(schema_item)
@@ -236,7 +236,7 @@ def _get_schema_node_name_from_schema_having_an_item_id(
   return kd.encode_itemid(item_id).to_py()
 
 
-def _get_schema_node_name(
+def get_schema_node_name(
     *,
     parent_schema_item: kd.types.DataItem | None,
     action: data_slice_path_lib.DataSliceAction | None,
@@ -300,7 +300,7 @@ def _get_schema_node_name(
     # These are the schemas that don't have item ids and whose values cannot be
     # aliased. Each occurrence of them is expanded into a separate leaf node.
     parent_schema_node_name = (
-        _get_schema_node_name_from_schema_having_an_item_id(parent_schema_item)
+        get_schema_node_name_from_schema_having_an_item_id(parent_schema_item)
         if parent_schema_item is not None
         else ''
     )
@@ -456,17 +456,15 @@ def _analyze_schema(
   while level:
     new_level = []
     for parent_schema, action, child_schema in level:
-      child_name = _get_schema_node_name(
+      child_name = get_schema_node_name(
           parent_schema_item=parent_schema,
           action=action,
           child_schema_item=child_schema,
       )
       parent_name = (
-          _NO_PARENT_MARKER  # pylint: disable=g-long-ternary
+          _NO_PARENT_MARKER
           if parent_schema is None
-          else _get_schema_node_name_from_schema_having_an_item_id(
-              parent_schema
-          )
+          else get_schema_node_name_from_schema_having_an_item_id(parent_schema)
       )
       if not is_first_level:
         # After the first level, we know that the parent_schema is not None and
@@ -559,7 +557,7 @@ def _get_schema_node_name_for_data_slice_path(
       )
     except data_slice_path_lib.IncompatibleSchemaError as e:
       raise create_error(action_index, child_schema) from e
-  return _get_schema_node_name(
+  return get_schema_node_name(
       parent_schema_item=parent_schema,
       action=action,
       child_schema_item=child_schema,

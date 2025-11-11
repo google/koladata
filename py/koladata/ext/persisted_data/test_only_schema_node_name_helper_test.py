@@ -46,7 +46,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
     ]:
       self.assertEqual(
           schema_node_name(schema),
-          schema_helper._get_schema_node_name_from_schema_having_an_item_id(
+          schema_helper.get_schema_node_name_from_schema_having_an_item_id(
               schema
           ),
       )
@@ -58,7 +58,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             list_schema,
             action=ListExplode(),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=list_schema,
             action=ListExplode(),
             child_schema_item=kd.INT32,
@@ -71,7 +71,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             dict_schema,
             action=DictGetKeys(),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=dict_schema,
             action=DictGetKeys(),
             child_schema_item=kd.STRING,
@@ -82,7 +82,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             dict_schema,
             action=DictGetValues(),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=dict_schema,
             action=DictGetValues(),
             child_schema_item=kd.FLOAT32,
@@ -95,7 +95,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             named_schema,
             action=GetAttr('x'),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=named_schema,
             action=GetAttr('x'),
             child_schema_item=kd.INT32,
@@ -108,7 +108,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             schema,
             action=GetAttr('a'),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=schema,
             action=GetAttr('a'),
             child_schema_item=kd.FLOAT32,
@@ -119,7 +119,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
             schema,
             action=GetAttr('b'),
         ),
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=schema,
             action=GetAttr('b'),
             child_schema_item=kd.INT32,

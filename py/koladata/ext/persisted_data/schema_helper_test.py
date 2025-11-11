@@ -814,7 +814,7 @@ class SchemaHelperTest(absltest.TestCase):
     foo_schema = kd.named_schema('foo')
     foo_schema_node_name = schema_node_name(foo_schema)
     self.assertEqual(
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=foo_schema,
             action=GetAttr('bar'),
             child_schema_item=kd.INT32,
@@ -822,7 +822,7 @@ class SchemaHelperTest(absltest.TestCase):
         f'{foo_schema_node_name}.bar:INT32',
     )
     self.assertEqual(
-        schema_helper._get_schema_node_name(
+        schema_helper.get_schema_node_name(
             parent_schema_item=foo_schema,
             action=GetAttr('bar'),
             # kd.named_schema will use a fixed item id:
@@ -859,7 +859,7 @@ class SchemaHelperTest(absltest.TestCase):
           root_with_aliased_value.value.get_schema(),
       )
       self.assertEqual(
-          schema_helper._get_schema_node_name(
+          schema_helper.get_schema_node_name(
               parent_schema_item=foo_schema,
               action=GetAttr('bar'),
               child_schema_item=value.get_schema(),
