@@ -610,8 +610,7 @@ absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
 
-  auto struct_has_attr =
-      [&](const auto& attr_schema) -> absl::StatusOr<ImplT> {
+  auto struct_has_attr = [&](const auto& attr_schema) -> absl::StatusOr<ImplT> {
     // Consider adding a low level HasAttr to avoid actually fetching the data.
     ASSIGN_OR_RETURN(auto attr, db_impl.GetAttr(impl, attr_name, fallbacks));
     ASSIGN_OR_RETURN(auto has_attr_schema, internal::HasOp()(attr_schema));
@@ -620,9 +619,8 @@ absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
   };
 
   if (schema == schema::kSchema) {
-    ASSIGN_OR_RETURN(
-        auto res_schema,
-        db_impl.GetSchemaAttrAllowMissing(impl, attr_name, fallbacks));
+    ASSIGN_OR_RETURN(auto res_schema, db_impl.GetSchemaAttrAllowMissing(
+                                          impl, attr_name, fallbacks));
     return internal::HasOp()(res_schema);
   } else if (schema == schema::kObject) {
     // `__schema__` is not an actual attribute of the underlying schema, so we
@@ -1148,12 +1146,14 @@ absl::StatusOr<DataSlice> DataSlice::Reshape(
   });
 }
 
-absl::StatusOr<DataSlice> DataSlice::Flatten(
-    int64_t from_dim, std::optional<int64_t> to_dim) const {
+DataSlice DataSlice::Flatten(int64_t from_dim,
+                             std::optional<int64_t> to_dim) const {
   const int64_t rank = GetShape().rank();
   auto new_shape = arolla::JaggedShapeFlattenOp<JaggedShape>()(
       GetShape(), from_dim, to_dim.value_or(rank));
-  return Reshape(std::move(new_shape));
+  // This Reshape cannot fail, because the computed shape will always have the
+  // right number of elements.
+  return *Reshape(std::move(new_shape));
 }
 
 DataSlice DataSlice::GetSchema() const {
@@ -2350,12 +2350,12 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   FlattenFallbackFinder fb_finder(*db);
   internal::DataItem schema(schema::kInt64);
   return lists.VisitImpl([&]<class T>(
-                              const T& impl) -> absl::StatusOr<DataSlice> {
+                             const T& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto res_impl, db->GetImpl().GetListSize(
                                         impl, fb_finder.GetFlattenFallbacks()));
     if constexpr (std::is_same_v<T, internal::DataItem>) {
       return DataSlice::Create(std::move(res_impl), lists.GetShape(),
-                                std::move(schema), /*db=*/nullptr);
+                               std::move(schema), /*db=*/nullptr);
     } else {
       return DataSlice::Create(
           internal::DataSliceImpl::Create(std::move(res_impl)),

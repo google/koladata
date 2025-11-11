@@ -196,7 +196,7 @@ class DataSlice {
   // range `[0, rank()]`. After adjustments, the new DataSlice has `rank() ==
   // old_rank - (to_dim - from_dim) + 1`. Note that if `from_dim == to_dim`, a
   // "unit" dimension is inserted at `from_dim`.
-  absl::StatusOr<DataSlice> Flatten(
+  DataSlice Flatten(
       int64_t from_dim = 0, std::optional<int64_t> to_dim = std::nullopt) const;
 
   // Returns a DataSlice that represents a Schema.
@@ -676,9 +676,9 @@ inline absl::StatusOr<DataSlice> BroadcastToShape(
 // otherwise we overwrite the schema.
 // In case of unsupported casting, an error is returned.
 absl::StatusOr<DataSlice> CastOrUpdateSchema(
-  const DataSlice& value, const internal::DataItem& lhs_schema,
-  absl::string_view attr_name, bool overwrite_schema,
-  internal::DataBagImpl& db_impl);
+    const DataSlice& value, const internal::DataItem& lhs_schema,
+    absl::string_view attr_name, bool overwrite_schema,
+    internal::DataBagImpl& db_impl);
 
 // Returns the size of each list in the given DataSlice.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);

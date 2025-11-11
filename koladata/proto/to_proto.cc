@@ -908,17 +908,16 @@ absl::StatusOr<google::protobuf::FileDescriptorProto> ProtoDescriptorFromSchema(
 
 absl::StatusOr<std::vector<std::unique_ptr<google::protobuf::Message>>> ToProtoMessages(
     const DataSlice& x, const google::protobuf::Message* absl_nonnull message_prototype) {
-  ASSIGN_OR_RETURN(auto x_flat, x.Flatten());
   std::vector<google::protobuf::Message*> messages;
-  messages.reserve(x_flat.size());
+  messages.reserve(x.size());
   std::vector<std::unique_ptr<google::protobuf::Message>> owned_messages;
-  owned_messages.reserve(x_flat.size());
-  for (int64_t i = 0; i < x_flat.size(); ++i) {
+  owned_messages.reserve(x.size());
+  for (int64_t i = 0; i < x.size(); ++i) {
     auto message = std::unique_ptr<google::protobuf::Message>(message_prototype->New());
     messages.push_back(message.get());
     owned_messages.push_back(std::move(message));
   }
-  RETURN_IF_ERROR(ToProto(std::move(x_flat), std::move(messages)));
+  RETURN_IF_ERROR(ToProto(std::move(x).Flatten(), std::move(messages)));
   return std::move(owned_messages);
 }
 

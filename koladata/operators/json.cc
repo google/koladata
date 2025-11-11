@@ -1332,11 +1332,9 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
     }
   }
 
-  ASSIGN_OR_RETURN(auto flat_x, x.Reshape(x.GetShape().FlatFromSize(x.size())));
-
   arolla::DenseArrayBuilder<arolla::Text> result_builder(x.size());
   RETURN_IF_ERROR(ForEachDataItem(
-      flat_x, [&](int64_t i, const DataSlice& item) -> absl::Status {
+      x.Flatten(), [&](int64_t i, const DataSlice& item) -> absl::Status {
         if (!item.item().has_value()) {
           return absl::OkStatus();
         }

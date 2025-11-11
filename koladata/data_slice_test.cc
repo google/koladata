@@ -5548,14 +5548,14 @@ TEST(DataSliceTest, Flatten) {
   // Flatten with no args
   {
     auto di = test::DataItem(1);
-    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten());
+    auto flat = di.Flatten();
     EXPECT_THAT(flat.slice(), ElementsAre(1));
     EXPECT_THAT(flat.GetShape(),
                 IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
   }
   {
     auto ds = test::DataSlice<int>({1});
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten());
+    auto flat = ds.Flatten();
     EXPECT_THAT(flat.slice(), ElementsAre(1));
     EXPECT_THAT(flat.GetShape(), IsEquivalentTo(ds.GetShape()));
   }
@@ -5564,7 +5564,7 @@ TEST(DataSliceTest, Flatten) {
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
         /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten());
+    auto flat = ds.Flatten();
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
     EXPECT_THAT(flat.GetShape(),
@@ -5574,7 +5574,7 @@ TEST(DataSliceTest, Flatten) {
   // Flatten with from_dim
   {
     auto di = test::DataItem(1);
-    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten(0));
+    auto flat = di.Flatten(0);
     EXPECT_THAT(flat.slice(), ElementsAre(1));
     EXPECT_THAT(flat.GetShape(),
                 IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
@@ -5584,7 +5584,7 @@ TEST(DataSliceTest, Flatten) {
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
         /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1));
+    auto flat = ds.Flatten(/*from_dim=*/1);
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
     EXPECT_THAT(flat.GetShape(),
@@ -5595,7 +5595,7 @@ TEST(DataSliceTest, Flatten) {
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
         /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-1));
+    auto flat = ds.Flatten(/*from_dim=*/-1);
     EXPECT_THAT(flat, IsEquivalentTo(ds));
   }
   {
@@ -5603,7 +5603,7 @@ TEST(DataSliceTest, Flatten) {
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
         /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2));
+    auto flat = ds.Flatten(/*from_dim=*/-2);
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
     EXPECT_THAT(flat.GetShape(),
@@ -5613,15 +5613,14 @@ TEST(DataSliceTest, Flatten) {
   // Flatten with from_dim and to_dim
   {
     auto di = test::DataItem(1);
-    ASSERT_OK_AND_ASSIGN(auto flat,
-                         di.Flatten(/*from_dim=*/0, /*to_dim=*/std::nullopt));
+    auto flat = di.Flatten(/*from_dim=*/0, /*to_dim=*/std::nullopt);
     EXPECT_THAT(flat.slice(), ElementsAre(1));
     EXPECT_THAT(flat.GetShape(),
                 IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
   }
   {
     auto di = test::DataItem(1);
-    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten(/*from_dim=*/0, /*to_dim=*/0));
+    auto flat = di.Flatten(/*from_dim=*/0, /*to_dim=*/0);
     EXPECT_THAT(flat.slice(), ElementsAre(1));
     EXPECT_THAT(flat.GetShape(),
                 IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
@@ -5631,47 +5630,46 @@ TEST(DataSliceTest, Flatten) {
       {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
       /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
   {
-    ASSERT_OK_AND_ASSIGN(auto flat,
-                         ds.Flatten(/*from_dim=*/1, /*to_dim=*/std::nullopt));
+    auto flat = ds.Flatten(/*from_dim=*/1, /*to_dim=*/std::nullopt);
     ASSERT_OK_AND_ASSIGN(auto expected,
                          ds.Reshape(test::ShapeFromSizes({{2}, {3, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/0, /*to_dim=*/2));
+    auto flat = ds.Flatten(/*from_dim=*/0, /*to_dim=*/2);
     ASSERT_OK_AND_ASSIGN(auto expected,
                          ds.Reshape(test::ShapeFromSizes({{3}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/1));
+    auto flat = ds.Flatten(/*from_dim=*/1, /*to_dim=*/1);
     ASSERT_OK_AND_ASSIGN(
         auto expected,
         ds.Reshape(test::ShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/2, /*to_dim=*/2));
+    auto flat = ds.Flatten(/*from_dim=*/2, /*to_dim=*/2);
     ASSERT_OK_AND_ASSIGN(
         auto expected,
         ds.Reshape(test::ShapeFromSizes({{2}, {2, 1}, {1, 1, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/0));
+    auto flat = ds.Flatten(/*from_dim=*/1, /*to_dim=*/0);
     ASSERT_OK_AND_ASSIGN(
         auto expected,
         ds.Reshape(test::ShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2, /*to_dim=*/5));
+    auto flat = ds.Flatten(/*from_dim=*/-2, /*to_dim=*/5);
     ASSERT_OK_AND_ASSIGN(auto expected,
                          ds.Reshape(test::ShapeFromSizes({{2}, {3, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-5, /*to_dim=*/-1));
+    auto flat = ds.Flatten(/*from_dim=*/-5, /*to_dim=*/-1);
     ASSERT_OK_AND_ASSIGN(auto expected,
                          ds.Reshape(test::ShapeFromSizes({{3}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));

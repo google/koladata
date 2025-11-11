@@ -204,8 +204,7 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
                            std::move(*std::get_if<Slice>(&slice_arg)), edge));
     }
   }
-  ASSIGN_OR_RETURN(auto flat_x, x.Flatten());
-  return AtImpl(flat_x, chosen_indices);
+  return AtImpl(x.Flatten(), chosen_indices);
 }
 
 }  // namespace koladata::subslice
