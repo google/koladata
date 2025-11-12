@@ -660,8 +660,8 @@ class KdTest(absltest.TestCase):
     self.assertNotEqual(itemid1.fingerprint, itemid2.fingerprint)
 
   def test_clear_eval_cache(self):
-    obj = kd.obj(a=42)
-    expr = kd.lazy.extract(obj)
+    non_whole_ds = kd.obj(non_whole_attr=kd.obj(a=42)).non_whole_attr
+    expr = kd.lazy.extract(non_whole_ds)
     first_eval = expr.eval()
     cached_eval = expr.eval()  # literal-folded computation.
     kd.testing.assert_equal(first_eval, cached_eval)

@@ -31,9 +31,19 @@ TEST(ExtractionUtilsTest, ExtractWholeKeepBagTheSame) {
                                          internal::DataItem(schema::kInt32), db,
                                          DataSlice::Wholeness::kWhole));
   EXPECT_TRUE(ds.IsWhole());
-  ASSERT_OK_AND_ASSIGN(auto ds_extracted, extract_utils_internal::Extract(ds));
-  EXPECT_EQ(ds.GetBag().get(), ds_extracted.GetBag().get());
-  EXPECT_TRUE(ds_extracted.IsWhole());
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds_extracted,
+                         extract_utils_internal::Extract(ds));
+    EXPECT_EQ(ds.GetBag().get(), ds_extracted.GetBag().get());
+    EXPECT_TRUE(ds_extracted.IsWhole());
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(
+        auto ds_extracted,
+        extract_utils_internal::ExtractWithSchema(ds, ds.GetSchema(), false));
+    EXPECT_EQ(ds.GetBag().get(), ds_extracted.GetBag().get());
+    EXPECT_TRUE(ds_extracted.IsWhole());
+  }
 }
 
 TEST(ExtractionUtilsTest, ExtractNonWholeMarksWhole) {

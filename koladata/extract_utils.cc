@@ -36,6 +36,9 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
     return absl::InvalidArgumentError("cannot extract without a DataBag");
   }
   const auto& schema_db = schema.GetBag();
+  if (ds.IsWhole() && db == schema_db && max_depth == -1) {
+    return ds;
+  }
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   const auto& schema_impl = schema.impl<internal::DataItem>();
   FlattenFallbackFinder fb_finder(*db);
