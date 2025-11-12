@@ -14,9 +14,6 @@
 
 """SchemaItem."""
 
-import typing
-from typing import Any
-
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item
@@ -42,14 +39,6 @@ class SchemaItem(data_item.DataItem):
     if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
       return arolla.abc.aux_bind_op('kd.new', schema=self, **attrs)
     return _eval_op('kd.new', schema=self, **attrs)
-
-  def extract(self, schema: Any = arolla.unspecified()) -> 'SchemaItem':
-    """Creates a SchemaItem with a new bag containing only reachable attrs."""
-    return typing.cast('SchemaItem', super().extract(schema=schema))
-
-  def with_attrs(self, **attrs) -> 'SchemaItem':
-    """Returns a SchemaItem with a new DataBag containing updated attrs."""
-    return typing.cast('SchemaItem', super().with_attrs(**attrs))
 
 
 arolla.abc.register_qvalue_specialization(
