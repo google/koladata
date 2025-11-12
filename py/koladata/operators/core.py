@@ -1107,16 +1107,16 @@ def has_bag(ds):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kd.extract_bag'], via_cc_operator_package=True
+    aliases=['kd.extract_update'], via_cc_operator_package=True
 )
 @optools.as_lambda_operator(
-    'kd.core.extract_bag',
+    'kd.core.extract_update',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
     ],
 )
-def extract_bag(ds, schema=arolla.unspecified()):
+def extract_update(ds, schema=arolla.unspecified()):
   """Creates a new DataBag containing only reachable attrs from 'ds'.
 
   Args:

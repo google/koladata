@@ -2548,21 +2548,21 @@ a = kd.new(x=kd.implode(kd.new(v=kd.slice([[1, 2], [3, 4]]))),
            y=kd.slice([5, 6]))
 a.x[:].v  # [[1, 2], [3, 4]]
 a.y  # [5, 6]
-a.extract_bag().get_approx_size()  # 16
-a.x[:].extract_bag().get_approx_size()  # 5  - only 'v' attributes
+a.extract_update().get_approx_size()  # 16
+a.x[:].extract_update().get_approx_size()  # 5  - only 'v' attributes
 
 # Add 'recursion' by adding a parent.
 a1 = a.updated(kd.attrs(a.x[:], parent=a))
 a1.x[:].parent.y  # [[5, 5], [6, 6]]
 a1.x[:].parent.x[:].v  # [[[1, 2], [1, 2]], [[3, 4], [3, 4]]]
-a1.extract_bag().get_approx_size()  # 21
-a1.x[:].extract_bag().get_approx_size()  # 21 - the same as above
+a1.extract_update().get_approx_size()  # 21
+a1.x[:].extract_update().get_approx_size()  # 21 - the same as above
 a1.x[:].extract().parent.y  # [[5, 5], [6, 6]] - works
 
 # Stop recursion during extraction.
 a2 = a.updated(kd.attrs(a.x[:], parent=kd.nofollow(a)))
 a2.x[:].parent.y  # [[5, 5], [6, 6]] - works
-a2.x[:].extract_bag().get_approx_size()  # 10 - don't follow
+a2.x[:].extract_update().get_approx_size()  # 10 - don't follow
 a2.x[:].extract().parent  # works, as the reference is still assigned
 # a2.x[:].extract().parent.y  # doesn't work, as we don't follow
 

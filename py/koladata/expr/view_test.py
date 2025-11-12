@@ -363,8 +363,8 @@ class KodaViewTest(parameterized.TestCase):
   def test_extract(self):
     self.assert_exprs_equal(C.x.extract(), kde.extract(C.x))
 
-  def test_extract_bag(self):
-    self.assert_exprs_equal(C.x.extract_bag(), kde.extract_bag(C.x))
+  def test_extract_update(self):
+    self.assert_exprs_equal(C.x.extract_update(), kde.extract_update(C.x))
 
   def test_clone(self):
     self.assert_non_deterministic_exprs_equal(

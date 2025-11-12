@@ -175,11 +175,11 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
             empty_list[:]
             .no_bag()
             .implode(itemid=empty_list.get_itemid())
-            .extract_bag(),
+            .extract_update(),
             standard_list[:]
             .no_bag()
             .implode(itemid=standard_list.get_itemid())
-            .extract_bag(),
+            .extract_update(),
         ).merge_fallbacks(),
     )
     # At the time of writing, list_ds.stub().get_bag() would additionally
@@ -198,7 +198,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
         nested_list[:]
         .no_bag()
         .implode(itemid=nested_list.get_itemid())
-        .extract_bag(),
+        .extract_update(),
     )
     # Notice that nested_list.stub() here retains the full inner list:
     kd.testing.assert_equivalent(
@@ -239,7 +239,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           standard_list[:]
           .no_bag()
           .implode(itemid=standard_list.get_itemid())
-          .extract_bag(),
+          .extract_update(),
       )
 
     with self.subTest('with_items_that_are_schemas'):
@@ -252,7 +252,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
               list_ds
           ),
-          list_ds.extract_bag(),
+          list_ds.extract_update(),
       )
 
     with self.subTest('with_items_that_are_unsupported_schemas'):
@@ -338,7 +338,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
               dict_ds
           ),
-          dict_ds.extract_bag(),
+          dict_ds.extract_update(),
       )
 
     with self.subTest('with_values_that_are_unsupported_schemas'):
@@ -448,7 +448,7 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
               entity_ds, 's'
           ),
-          entity_ds.extract_bag(),
+          entity_ds.extract_update(),
       )
 
     with self.subTest('with_attr_values_that_are_unsupported_schemas'):

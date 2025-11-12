@@ -7619,8 +7619,8 @@ py_test(
 )
 
 py_test(
-    name = "core_extract_bag_test",
-    srcs = ["core_extract_bag_test.py"],
+    name = "core_extract_update_test",
+    srcs = ["core_extract_update_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:input_container",

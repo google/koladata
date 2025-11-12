@@ -50,8 +50,8 @@ class CoreExtractBagTest(absltest.TestCase):
     db = data_bag.DataBag.empty_mutable()
     o1 = db.implode(db.new(c=ds(['foo', 'bar', 'baz'])))
     o2 = db.implode(o1[0:2])
-    bag1 = kd.extract_bag(o1)
-    bag2 = kd.extract_bag(o2)
+    bag1 = kd.extract_update(o1)
+    bag2 = kd.extract_update(o2)
     self.assertFalse(bag1.is_mutable())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(
@@ -73,7 +73,7 @@ class CoreExtractBagTest(absltest.TestCase):
     new_schema = kd.list_schema(
         kd.named_schema('test', b=schema_constants.INT32)
     )
-    bag2 = kd.extract_bag(o1, new_schema)
+    bag2 = kd.extract_update(o1, new_schema)
     o2 = o1.with_bag(bag2).with_schema(new_schema.no_bag())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(o2[:].b, ds([1, None, 2]).with_bag(bag2))
@@ -89,17 +89,19 @@ class CoreExtractBagTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.extract_bag,
+            kde.core.extract_update,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.extract_bag(I.x)))
+    self.assertTrue(view.has_koda_view(kde.extract_update(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.extract_bag, kde.extract_bag))
+    self.assertTrue(
+        optools.equiv_to_op(kde.core.extract_update, kde.extract_update)
+    )
 
 
 if __name__ == '__main__':

@@ -3490,14 +3490,14 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
   @parameterized.product(
       pass_schema=[True, False],
   )
-  def test_extract_bag(self, pass_schema):
+  def test_extract_update(self, pass_schema):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     if pass_schema:
-      result = o.extract_bag(o.get_schema())
+      result = o.extract_update(o.get_schema())
     else:
-      result = o.extract_bag()
+      result = o.extract_update()
 
     self.assertNotEqual(o.get_bag().fingerprint, result.fingerprint)
     res_o = o.with_bag(result)

@@ -278,9 +278,9 @@ def _extract(self, schema: Any = arolla.unspecified()) -> DataSlice:
   return _eval_op('kd.extract', self, schema)
 
 
-@add_method(DataSlice, 'extract_bag', docstring_from='kd.extract_bag')
-def _extract_bag(self, schema: Any = arolla.unspecified()) -> DataBag:
-  return _eval_op('kd.extract_bag', self, schema)
+@add_method(DataSlice, 'extract_update', docstring_from='kd.extract_update')
+def _extract_update(self, schema: Any = arolla.unspecified()) -> DataBag:
+  return _eval_op('kd.extract_update', self, schema)
 
 
 @add_method(DataSlice, 'clone', docstring_from='kd.clone')

@@ -120,7 +120,7 @@ class core:
   deep_clone = _operators_core.deep_clone
   enriched = _operators_core.enriched
   extract = _operators_core.extract
-  extract_bag = _operators_core.extract_bag
+  extract_update = _operators_core.extract_update
   flatten_cyclic_references = _operators_core.flatten_cyclic_references
   follow = _operators_core.follow
   freeze = _operators_core.freeze
@@ -662,7 +662,7 @@ expand_to_shape = _operators_jagged_shape.expand_to_shape
 explode = _operators_lists.explode
 expr_quote = _operators_slices.expr_quote
 extract = _operators_core.extract
-extract_bag = _operators_core.extract_bag
+extract_update = _operators_core.extract_update
 flat_map_chain = _operators_functor.flat_map_chain
 flat_map_interleaved = _operators_functor.flat_map_interleaved
 flatten = _operators_jagged_shape.flatten

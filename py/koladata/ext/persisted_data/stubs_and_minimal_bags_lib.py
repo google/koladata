@@ -170,7 +170,7 @@ def minimal_bag_associating_list_with_its_items(
     return None
   items_stub = _stubby(list_ds[:])
   itemids = list_ds.get_itemid()
-  return (items_stub.implode(itemid=itemids) & mask).extract_bag()
+  return (items_stub.implode(itemid=itemids) & mask).extract_update()
 
 
 def minimal_bag_associating_dict_with_its_keys_and_values(
@@ -194,7 +194,7 @@ def minimal_bag_associating_dict_with_its_keys_and_values(
   keys_stub = _stubby(keys)
   values_stub = _stubby(dict_ds.get_values())
   itemids = dict_ds.get_itemid()
-  return kd.dict(keys_stub, values_stub, itemid=itemids).extract_bag()
+  return kd.dict(keys_stub, values_stub, itemid=itemids).extract_update()
 
 
 def minimal_bag_associating_entity_with_its_attr_value(

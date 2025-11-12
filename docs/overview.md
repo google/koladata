@@ -884,10 +884,10 @@ a.enriched(a_attrs) # Obj(u=5, x=2, y=Obj(z=3))
 
 Updates and enrichments merge multiple bags together. After enrichments and
 updates, merged bags may contain attributes irrelevant to a specific object or
-entity (e.g. enrichment with unrelated data). The `ds.extract_bag()` method
+entity (e.g. enrichment with unrelated data). The `ds.extract_update()` method
 allows extracting a bag containing only relevant attributes (those recursively
 accessible from `ds`). `ds.extract()` is equivalent to
-`ds.with_bag(ds.extract_bag())`.
+`ds.with_bag(ds.extract_update())`.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
@@ -896,7 +896,7 @@ a.get_bag().get_approx_size()  # 20
 ay1 = a.y.with_attrs(z=4, zz=5)  # Modify ay1 on its own
 ay1.get_bag().get_approx_size()  # 25, as it contains all attributes from a
 
-extracted_bag = ay1.extract_bag()
+extracted_bag = ay1.extract_update()
 extracted_bag.get_approx_size()  # 5, only it only contain ay1 attributes
 
 a.updated(extracted_bag)  # Apply the attributes from ay1 to a

@@ -376,8 +376,8 @@ class KodaView(BaseKodaView):
   def extract(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
     return _aux_bind_op('kd.extract', self, schema)
 
-  def extract_bag(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
-    return _aux_bind_op('kd.extract_bag', self, schema)
+  def extract_update(self, schema: Any = arolla.unspecified()) -> arolla.Expr:
+    return _aux_bind_op('kd.extract_update', self, schema)
 
   def get_itemid(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_itemid', self)

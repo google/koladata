@@ -712,10 +712,10 @@ Args:
 Returns:
   A DataSlice with a new immutable DataBag attached.</code></pre>
 
-### `kd.core.extract_bag(ds, schema=unspecified)` {#kd.core.extract_bag}
+### `kd.core.extract_update(ds, schema=unspecified)` {#kd.core.extract_update}
 Aliases:
 
-- [kd.extract_bag](#kd.extract_bag)
+- [kd.extract_update](#kd.extract_update)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataBag containing only reachable attrs from &#39;ds&#39;.
 
@@ -9663,9 +9663,9 @@ Alias for [kd.extension_types.extension_type](#kd.extension_types.extension_type
 
 Alias for [kd.core.extract](#kd.core.extract) operator.
 
-### `kd.extract_bag(ds, schema=unspecified)` {#kd.extract_bag}
+### `kd.extract_update(ds, schema=unspecified)` {#kd.extract_update}
 
-Alias for [kd.core.extract_bag](#kd.core.extract_bag) operator.
+Alias for [kd.core.extract_update](#kd.core.extract_update) operator.
 
 ### `kd.flat_map_chain(iterable, fn, value_type_as=None)` {#kd.flat_map_chain}
 
@@ -12715,10 +12715,10 @@ Args:
 Returns:
   A DataSlice with a new immutable DataBag attached.</code></pre>
 
-### `DataSlice.extract_bag(self, schema: Any = unspecified) -> DataBag` {#DataSlice.extract_bag}
+### `DataSlice.extract_update(self, schema: Any = unspecified) -> DataBag` {#DataSlice.extract_update}
 Aliases:
 
-- [DataItem.extract_bag](#DataItem.extract_bag)
+- [DataItem.extract_update](#DataItem.extract_update)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataBag containing only reachable attrs from &#39;ds&#39;.
 
@@ -14420,9 +14420,9 @@ Alias for [DataSlice.explode](#DataSlice.explode) operator.
 
 Alias for [DataSlice.extract](#DataSlice.extract) operator.
 
-### `DataItem.extract_bag(self, schema: Any = unspecified) -> DataBag` {#DataItem.extract_bag}
+### `DataItem.extract_update(self, schema: Any = unspecified) -> DataBag` {#DataItem.extract_update}
 
-Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
+Alias for [DataSlice.extract_update](#DataSlice.extract_update) operator.
 
 ### `DataItem.flatten(self, from_dim: int | DataSlice = 0, to_dim: Any = unspecified) -> DataSlice` {#DataItem.flatten}
 
