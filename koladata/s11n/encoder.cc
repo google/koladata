@@ -380,19 +380,38 @@ absl::StatusOr<ValueProto> EncodeDataBag(arolla::TypedRef value,
     value_proto.add_input_value_indices(fb_index);
   }
 
-  ASSIGN_OR_RETURN(internal::DataBagContent content,
-                   db->GetImpl().ExtractContent());
-  for (const auto& [attr_name, data] : content.attrs) {
-    RETURN_IF_ERROR(EncodeAttribute(attr_name, data, *db_proto->add_attrs(),
-                                    value_proto, encoder));
+  internal::DataBagIndex index = db->GetImpl().CreateIndex();
+  internal::DataBagIndex partial_index;
+  for (const auto& [attr_name, attr_index] : index.attrs) {
+    partial_index.attrs.emplace(attr_name, attr_index);
+    ASSIGN_OR_RETURN(internal::DataBagContent content,
+                     db->GetImpl().ExtractContent(partial_index));
+    partial_index.attrs.clear();
+    for (const auto& [attr_name, data] : content.attrs) {
+      RETURN_IF_ERROR(EncodeAttribute(attr_name, data, *db_proto->add_attrs(),
+                                      value_proto, encoder));
+    }
   }
-  for (const internal::DataBagContent::DictContent& d : content.dicts) {
-    RETURN_IF_ERROR(
-        EncodeDict(d, *db_proto->add_dicts(), value_proto, encoder));
+  for (internal::AllocationId dict_alloc : index.dicts) {
+    partial_index.dicts.push_back(dict_alloc);
+    ASSIGN_OR_RETURN(internal::DataBagContent content,
+                     db->GetImpl().ExtractContent(partial_index));
+    partial_index.dicts.clear();
+    for (const internal::DataBagContent::DictContent& d : content.dicts) {
+      RETURN_IF_ERROR(
+          EncodeDict(d, *db_proto->add_dicts(), value_proto, encoder));
+    }
   }
-  for (const internal::DataBagContent::ListsContent& lists : content.lists) {
-    RETURN_IF_ERROR(EncodeLists(lists, *db_proto, value_proto, encoder));
+  for (internal::AllocationId list_alloc : index.lists) {
+    partial_index.lists.push_back(list_alloc);
+    ASSIGN_OR_RETURN(internal::DataBagContent content,
+                     db->GetImpl().ExtractContent(partial_index));
+    partial_index.lists.clear();
+    for (const internal::DataBagContent::ListsContent& lists : content.lists) {
+      RETURN_IF_ERROR(EncodeLists(lists, *db_proto, value_proto, encoder));
+    }
   }
+
   return value_proto;
 }
 
