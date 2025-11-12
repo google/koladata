@@ -29,10 +29,13 @@
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/object_factories.h"
 
 namespace koladata {
 namespace {
@@ -102,6 +105,29 @@ auto RandomDataSlice(int64_t size) {
   }
 }
 
+void BM_DataBagSerialization5Attr(benchmark::State& state) {
+  arolla::InitArolla();
+  int64_t size = state.range(0);
+  absl::BitGen gen;
+  auto db = DataBag::EmptyMutable();
+  auto attr_ds =
+      DataSlice::CreateWithFlatShape(RandomDataSlice<int64_t>(size),
+                                     internal::DataItem(schema::kInt64))
+          .value();
+  auto ds =
+      EntityCreator::FromAttrs(db, {"a", "b", "c", "d", "e"},
+                               {attr_ds, attr_ds, attr_ds, attr_ds, attr_ds})
+          .value();
+
+  std::vector<TypedValue> typed_values{TypedValue::FromValue(db)};
+  while (state.KeepRunningBatch(size)) {
+    benchmark::DoNotOptimize(typed_values);
+    auto proto = arolla::serialization::Encode(typed_values, {});
+    CHECK_OK(proto);
+    benchmark::DoNotOptimize(proto);
+  }
+}
+
 template <typename T>
 void BM_DataSliceSerialization(benchmark::State& state) {
   arolla::InitArolla();
@@ -143,6 +169,8 @@ BENCHMARK(BM_DataSliceDeserialization<int64_t>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<float>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<arolla::Text>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<internal::ObjectId>)->Range(1, kMaxSize);
+
+BENCHMARK(BM_DataBagSerialization5Attr)->Range(1, kMaxSize);
 
 }  // namespace
 }  // namespace koladata
