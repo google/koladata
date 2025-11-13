@@ -433,12 +433,14 @@ class FromPyConverter {
     const bool is_struct_schema = IsStructSchema(schema);
 
     arolla::bitmap::AlmostFullBuilder bitmap_builder(py_objects.size());
+    bool has_none = false;
 
     for (int i = 0; i < py_objects.size(); ++i) {
       PyObject* py_obj = py_objects[i];
       if (Py_IsNone(py_obj)) {
         bitmap_builder.AddMissed(i);
         shape_builder.Add(0);
+        has_none = true;
         continue;
       }
       if (!PyList_Check(py_obj) && !PyTuple_Check(py_obj)) {
@@ -447,9 +449,9 @@ class FromPyConverter {
         return absl::InvalidArgumentError(
             "schema mismatch: expected list/tuple");
       }
-      shape_builder.Add(PySequence_Fast_GET_SIZE(py_obj));
-      absl::Span<PyObject*> py_items(PySequence_Fast_ITEMS(py_obj),
-                                     PySequence_Fast_GET_SIZE(py_obj));
+      const size_t list_size = PySequence_Fast_GET_SIZE(py_obj);
+      shape_builder.Add(list_size);
+      absl::Span<PyObject*> py_items(PySequence_Fast_ITEMS(py_obj), list_size);
       for (PyObject* py_item : py_items) {
         next_level_py_objs.push_back(py_item);
       }
@@ -471,37 +473,44 @@ class FromPyConverter {
                        MakeChildrenItemUuids(list_itemid, next_level_shape,
                                              kChildListItemAttributeName));
     }
-    ASSIGN_OR_RETURN(std::optional<DataSlice> list_items,
+    ASSIGN_OR_RETURN(DataSlice list_items,
                      ConvertImpl(next_level_py_objs, next_level_shape,
                                  std::move(item_schema), child_itemid_ds));
     const std::optional<DataSlice>& schema_for_lists =
         is_struct_schema ? schema : std::nullopt;
+    if (has_none) {
+      ASSIGN_OR_RETURN(DataSlice shape_and_mask,
+                       CreateMaskSlice(bitmap_builder, cur_shape));
 
-    ASSIGN_OR_RETURN(DataSlice shape_and_mask,
-                     CreateMaskSlice(bitmap_builder, cur_shape));
+      return CreateListLike(GetBag(), std::move(shape_and_mask),
+                            std::move(list_items), schema_for_lists,
+                            /*item_schema=*/std::nullopt, list_itemid);
+    }
 
-    return CreateListLike(GetBag(), std::move(shape_and_mask), list_items,
-                          schema_for_lists,
-                          /*item_schema=*/std::nullopt, list_itemid);
+    return CreateListShaped(GetBag(), cur_shape, std::move(list_items),
+                            schema_for_lists,
+                            /*item_schema=*/std::nullopt, list_itemid);
   }
 
   // Fills a vector of pairs of (key, value) for each dict in `py_dicts`.
   // If there is a schema mismatch, returns an error with the given message.
-  // Returns a DataSlice with the shape and mask of the dicts (i.e. Missing if
-  // the dict is None, present otherwise)
-  absl::StatusOr<DataSlice> FillDictKeysAndValuesAndCreateMaskSlice(
+  // Sets shape_and_mask of the dicts (i.e. Missing if
+  // the dict is None, present otherwise) only if there are Nones in py_dicts.
+  absl::Status ParseDict(
       std::vector<PyObject*> py_dicts, const DataSlice::JaggedShape& cur_shape,
       std::vector<std::vector<std::pair<PyObject*, PyObject*>>>& py_keys_values,
+      std::optional<DataSlice>& shape_and_mask,
       absl::string_view error_message_for_schema_mismatch) {
     py_keys_values.resize(py_dicts.size());
 
     arolla::bitmap::AlmostFullBuilder bitmap_builder(py_dicts.size());
-
+    bool has_none = false;
     for (int dict_index = 0; dict_index < py_dicts.size(); ++dict_index) {
       PyObject* py_obj = py_dicts[dict_index];
       if (Py_IsNone(py_obj)) {
         bitmap_builder.AddMissed(dict_index);
         py_keys_values[dict_index].resize(0);
+        has_none = true;
         continue;
       }
       std::vector<std::pair<PyObject*, PyObject*>>& cur_dict_keys_values =
@@ -526,7 +535,11 @@ class FromPyConverter {
       DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
     }
 
-    return CreateMaskSlice(bitmap_builder, cur_shape);
+    if (has_none) {
+      ASSIGN_OR_RETURN(shape_and_mask,
+                       CreateMaskSlice(bitmap_builder, cur_shape));
+    }
+    return absl::OkStatus();
   }
 
   // Converts a list of Python objects to a Dict DataSlice, assuming that
@@ -551,11 +564,10 @@ class FromPyConverter {
         GetSchemaAttrOrObjectSchema(schema, schema::kDictValuesSchemaAttr));
 
     std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
-    ASSIGN_OR_RETURN(
-        DataSlice shape_and_mask,
-        FillDictKeysAndValuesAndCreateMaskSlice(
-            py_objects, cur_shape, py_keys_values,
-            "schema mismatch: expected dict object for dict schema"));
+    std::optional<DataSlice> shape_and_mask;
+    RETURN_IF_ERROR(
+        ParseDict(py_objects, cur_shape, py_keys_values, shape_and_mask,
+                  "schema mismatch: expected dict object for dict schema"));
 
     for (const std::vector<std::pair<PyObject*, PyObject*>>&
              cur_dict_keys_values : py_keys_values) {
@@ -586,20 +598,26 @@ class FromPyConverter {
                        MakeChildrenItemUuids(dict_itemid, next_level_shape,
                                              kChildDictValueAttributeName));
     }
-    ASSIGN_OR_RETURN(std::optional<DataSlice> keys,
+    ASSIGN_OR_RETURN(DataSlice keys,
                      ConvertImpl(next_level_py_keys, next_level_shape,
                                  std::move(key_schema), child_keys_itemid));
-    ASSIGN_OR_RETURN(std::optional<DataSlice> values,
+    ASSIGN_OR_RETURN(DataSlice values,
                      ConvertImpl(next_level_py_values, next_level_shape,
                                  std::move(value_schema), child_values_itemid));
 
     const std::optional<DataSlice>& schema_for_dicts =
         is_struct_schema ? schema : std::nullopt;
 
-    return CreateDictLike(GetBag(), shape_and_mask, keys, values,
-                          schema_for_dicts,
-                          /*key_schema=*/std::nullopt,
-                          /*value_schema=*/std::nullopt, dict_itemid);
+    if (shape_and_mask.has_value()) {
+      return CreateDictLike(GetBag(), *shape_and_mask, std::move(keys),
+                            std::move(values), schema_for_dicts,
+                            /*key_schema=*/std::nullopt,
+                            /*value_schema=*/std::nullopt, dict_itemid);
+    }
+    return CreateDictShaped(GetBag(), cur_shape, std::move(keys),
+                            std::move(values), schema_for_dicts,
+                            /*key_schema=*/std::nullopt,
+                            /*value_schema=*/std::nullopt, dict_itemid);
   }
 
   // Converts a list of Python dicts to an Object or Entity DataSlice,
@@ -620,11 +638,11 @@ class FromPyConverter {
     }
 
     std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
-    ASSIGN_OR_RETURN(DataSlice shape_and_mask,
-                     FillDictKeysAndValuesAndCreateMaskSlice(
-                         py_objects, cur_shape, py_keys_values,
-                         "schema mismatch: expected dict object when "
-                         "parsing dict as object"));
+    std::optional<DataSlice> shape_and_mask;
+    RETURN_IF_ERROR(ParseDict(py_objects, cur_shape, py_keys_values,
+                              shape_and_mask,
+                              "schema mismatch: expected dict object when "
+                              "parsing dict as object"));
 
     int i = 0;
     for (const std::vector<std::pair<PyObject*, PyObject*>>&
@@ -703,9 +721,11 @@ class FromPyConverter {
 
     std::vector<std::vector<PyObject*>> attr_python_values_vec(
         attr_names.size());
+    bool has_none = false;
     for (size_t i = 0; i < py_objects.size(); ++i) {
       PyObject* py_obj = py_objects[i];
       if (py_obj == Py_None) {
+        has_none = true;
         bitmap_builder.AddMissed(i);
         // TODO: find a smarter (and maybe faster) way to do this,
         // p.ex. by using `nullptr` instead of `None` in
@@ -728,12 +748,18 @@ class FromPyConverter {
       }
     }
 
-    ASSIGN_OR_RETURN(DataSlice shape_and_mask,
-                     CreateMaskSlice(bitmap_builder, cur_shape));
+    if (has_none) {
+      ASSIGN_OR_RETURN(DataSlice shape_and_mask,
+                       CreateMaskSlice(bitmap_builder, cur_shape));
 
-    return CreateEntitiesFromAttrNamesAndValues(
-        attr_names_vec, attr_python_values_vec, cur_shape, shape_and_mask,
-        schema, itemid);
+      return CreateEntitiesFromAttrNamesAndValues(
+          attr_names_vec, attr_python_values_vec, cur_shape,
+          std::move(shape_and_mask), schema, itemid);
+    } else {
+      return CreateEntitiesFromAttrNamesAndValues(
+          attr_names_vec, attr_python_values_vec, cur_shape, std::nullopt,
+          schema, itemid);
+    }
   }
 
   // Converts a list of Python objects to an Entity DataSlice, assuming that
@@ -743,8 +769,9 @@ class FromPyConverter {
   absl::StatusOr<DataSlice> CreateEntitiesFromAttrNamesAndValues(
       const std::vector<absl::string_view>& attr_names,
       const std::vector<std::vector<PyObject*>>& attr_python_values_vec,
-      const DataSlice::JaggedShape& cur_shape, const DataSlice& shape_and_mask,
-      const DataSlice& schema, const std::optional<DataSlice>& itemid) {
+      const DataSlice::JaggedShape& cur_shape,
+      const std::optional<DataSlice>& shape_and_mask, const DataSlice& schema,
+      const std::optional<DataSlice>& itemid) {
     DCHECK(schema.IsEntitySchema());
 
     std::vector<std::optional<DataSlice>> attr_schemas(attr_names.size());
@@ -775,8 +802,13 @@ class FromPyConverter {
                                    cur_shape, attr_schema, child_itemid_ds));
     }
 
-    return EntityCreator::Like(GetBag(), shape_and_mask, attr_names, values,
-                               schema, false, itemid);
+    if (shape_and_mask.has_value()) {
+      return EntityCreator::Like(GetBag(), *shape_and_mask, attr_names, values,
+                                 schema, false, itemid);
+    }
+    return EntityCreator::Shaped(GetBag(), cur_shape, attr_names, values,
+                                 schema,
+                                 /*override_schema=*/false, itemid);
   }
 
   // Converts a Python object (dataclass) to an Entity. Since we don't have a
