@@ -80,6 +80,25 @@ absl::StatusOr<DataSlice> CreateSwapFunctor() {
                                     {CreateInput("y"), CreateInput("x")})));
   return CreateFunctor(returns_expr, koda_signature, {}, {});
 }
+
+// Returns a functor: lambda x: kd.tuple(x[1], x[0])
+absl::StatusOr<DataSlice> CreateSwapTupleFunctor() {
+  ASSIGN_OR_RETURN(
+      auto signature,
+      Signature::Create(
+          {{.name = "x",
+            .kind = Signature::Parameter::Kind::kPositionalOrKeyword}}));
+  ASSIGN_OR_RETURN(auto koda_signature, CppSignatureToKodaSignature(signature));
+  auto first_expr = arolla::expr::CallOp(
+      "core.get_nth", {CreateInput("x"), arolla::expr::Literal(0)});
+  auto second_expr = arolla::expr::CallOp(
+      "core.get_nth", {CreateInput("x"), arolla::expr::Literal(1)});
+  ASSIGN_OR_RETURN(auto returns_expr,
+                   WrapExpr(arolla::expr::CallOp("core.make_tuple",
+                                                 {second_expr, first_expr})));
+  return CreateFunctor(returns_expr, koda_signature, {}, {});
+}
+
 // Returns a functor: lambda fn, x, y: fn(x, y)
 absl::StatusOr<DataSlice> CreateCallFunctor(arolla::TypedValue return_type_as) {
   ASSIGN_OR_RETURN(
@@ -152,6 +171,25 @@ TEST(ParallelCallUtilsTest, TransformToSimpleParallelCallFn) {
       auto result, simple_parallel_call_fn({arolla::TypedRef::FromValue(20),
                                             arolla::TypedRef::FromValue(10)},
                                            {}));
+  ASSERT_EQ(result.GetType(),
+            GetFutureQType(arolla::MakeTupleQType(
+                {arolla::GetQType<int>(), arolla::GetQType<int>()})));
+  ASSERT_OK_AND_ASSIGN(auto tuple,
+                       result.UnsafeAs<FuturePtr>()->GetValueForTesting());
+  ASSERT_THAT(tuple.GetField(0), QValueWith<int>(10));
+  ASSERT_THAT(tuple.GetField(1), QValueWith<int>(20));
+}
+
+TEST(ParallelCallUtilsTest, TransformToSimpleParallelCallFnTupleInput) {
+  ASSERT_OK_AND_ASSIGN(auto functor, CreateSwapTupleFunctor());
+  ASSERT_OK_AND_ASSIGN(auto simple_parallel_call_fn,
+                       TransformToSimpleParallelCallFn(
+                           functor, /*allow_runtime_transforms=*/false));
+  CurrentExecutorScopeGuard executor_guard(GetEagerExecutor());
+  auto input_tuple = arolla::MakeTuple(
+      {arolla::TypedRef::FromValue(20), arolla::TypedRef::FromValue(10)});
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       simple_parallel_call_fn({input_tuple.AsRef()}, {}));
   ASSERT_EQ(result.GetType(),
             GetFutureQType(arolla::MakeTupleQType(
                 {arolla::GetQType<int>(), arolla::GetQType<int>()})));
