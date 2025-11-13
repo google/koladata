@@ -1213,6 +1213,141 @@ class SchemaHelperTest(absltest.TestCase):
         query_schema.get_bag(),
     )
 
+  def test_get_parent_schema_node_names(self):
+    schema = kd.schema.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+    self.assertEmpty(
+        helper.get_parent_schema_node_names(schema_node_name(schema))
+    )
+
+    schema = schema.with_attrs(loop=schema)
+    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))
+    helper = schema_helper.SchemaHelper(schema)
+    self.assertEqual(
+        helper.get_parent_schema_node_names(
+            schema_node_name(schema, action=GetAttr('foo'))
+        ),
+        {schema_node_name(schema)},
+    )
+    self.assertEqual(
+        helper.get_parent_schema_node_names(schema_node_name(schema.bar)),
+        {schema_node_name(schema)},
+    )
+    self.assertEqual(
+        helper.get_parent_schema_node_names(schema_node_name(schema.loop)),
+        to_same_len_set(
+            [schema_node_name(schema), schema_node_name(schema.loop_via_list)]
+        ),
+    )
+    self.assertEqual(
+        helper.get_parent_schema_node_names(
+            schema_node_name(schema.bar, action=GetAttr('zoo'))
+        ),
+        {schema_node_name(schema.bar)},
+    )
+    self.assertEqual(
+        helper.get_parent_schema_node_names(schema_node_name(schema.loop.bar)),
+        {schema_node_name(schema)},
+    )
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape("invalid schema node name: 'abcde'")
+    ):
+      helper.get_parent_schema_node_names('abcde')
+
+  def test_get_child_schema_node_names(self):
+    schema = kd.schema.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+    )
+    schema = schema.with_attrs(loop=schema)
+    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))
+    helper = schema_helper.SchemaHelper(schema)
+    self.assertEmpty(
+        helper.get_child_schema_node_names(
+            schema_node_name(schema, action=GetAttr('foo'))
+        )
+    )
+    self.assertEqual(
+        helper.get_child_schema_node_names(schema_node_name(schema)),
+        to_same_len_set([
+            schema_node_name(schema, action=GetAttr('foo')),
+            schema_node_name(schema.bar),
+            schema_node_name(schema),  # Via the 'loop' attribute.
+            schema_node_name(schema.loop_via_list),
+        ]),
+    )
+    self.assertEqual(
+        helper.get_child_schema_node_names(
+            schema_node_name(schema.loop_via_list)
+        ),
+        {schema_node_name(schema)},
+    )
+    self.assertEqual(
+        helper.get_child_schema_node_names(schema_node_name(schema.bar)),
+        {schema_node_name(schema.bar, action=GetAttr('zoo'))},
+    )
+    self.assertEqual(
+        helper.get_child_schema_node_names(schema_node_name(schema.loop.bar)),
+        {schema_node_name(schema.bar, action=GetAttr('zoo'))},
+    )
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape("invalid schema node name: 'abcde'")
+    ):
+      helper.get_child_schema_node_names('abcde')
+
+  def test_get_minimal_schema_bag_for_parent_child_relationship(self):
+    schema = kd.schema.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+
+    kd.testing.assert_equivalent(
+        helper.get_minimal_schema_bag_for_parent_child_relationship(
+            parent_schema_node_name=schema_node_name(schema),
+            child_schema_node_name=schema_node_name(
+                schema, action=GetAttr('foo')
+            ),
+        ),
+        # The bag does not mention 'bar' or 'zoo':
+        kd.attrs(kd.schema.named_schema('SomeSchema'), foo=kd.INT32),
+    )
+    kd.testing.assert_equivalent(
+        helper.get_minimal_schema_bag_for_parent_child_relationship(
+            parent_schema_node_name=schema_node_name(schema),
+            child_schema_node_name=schema_node_name(schema.bar),
+        ),
+        # Note that the inner schema is minimal: it does not mention 'zoo':
+        kd.attrs(
+            kd.schema.named_schema('SomeSchema'),
+            bar=kd.schema.named_schema('InnerSchema'),
+        ),
+    )
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape("invalid schema node name: 'abcde'")
+    ):
+      helper.get_minimal_schema_bag_for_parent_child_relationship(
+          parent_schema_node_name='abcde',
+          child_schema_node_name=schema_node_name(schema.bar),
+      )
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape("invalid schema node name: 'abcde'")
+    ):
+      helper.get_minimal_schema_bag_for_parent_child_relationship(
+          parent_schema_node_name=schema_node_name(schema),
+          child_schema_node_name='abcde',
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -619,23 +619,36 @@ class SchemaHelper:
     _check_is_schema_item(schema)
     self._schema = schema
     artifacts = _analyze_schema(self._schema)
-    self._schema_graph = artifacts.schema_graph
+    self._parent_to_child_graph = artifacts.schema_graph
     self._schema_node_name_to_schema = artifacts.schema_node_name_to_schema
     self._parent_and_child_to_schema_bag = (
         artifacts.parent_and_child_to_schema_bag
     )
+    self._child_to_parent_graph = _get_converse_relation(artifacts.schema_graph)
 
   def get_schema(self) -> kd.types.DataItem:
     return self._schema
 
   def get_all_schema_node_names(self) -> AbstractSet[str]:
-    return set(self._schema_graph.keys())
+    return set(self._parent_to_child_graph.keys())
 
   def get_leaf_schema_node_names(self) -> AbstractSet[str]:
-    return {k for k, v in self._schema_graph.items() if not v}
+    return {k for k, v in self._parent_to_child_graph.items() if not v}
 
   def get_non_leaf_schema_node_names(self) -> AbstractSet[str]:
-    return {k for k, v in self._schema_graph.items() if v}
+    return {k for k, v in self._parent_to_child_graph.items() if v}
+
+  def get_parent_schema_node_names(
+      self, schema_node_name: str
+  ) -> AbstractSet[str]:
+    self._check_is_valid_schema_node_name(schema_node_name)
+    return self._child_to_parent_graph[schema_node_name]
+
+  def get_child_schema_node_names(
+      self, schema_node_name: str
+  ) -> AbstractSet[str]:
+    self._check_is_valid_schema_node_name(schema_node_name)
+    return self._parent_to_child_graph[schema_node_name]
 
   def get_ancestor_schema_node_names(
       self, schema_node_names: AbstractSet[str]
@@ -643,7 +656,7 @@ class SchemaHelper:
     for sp in schema_node_names:
       self._check_is_valid_schema_node_name(sp)
     return _get_transitive_closure_image(
-        _get_converse_relation(self._schema_graph), schema_node_names
+        self._child_to_parent_graph, schema_node_names
     )
 
   def get_descendant_schema_node_names(
@@ -651,15 +664,17 @@ class SchemaHelper:
   ) -> AbstractSet[str]:
     for sp in schema_node_names:
       self._check_is_valid_schema_node_name(sp)
-    return _get_transitive_closure_image(self._schema_graph, schema_node_names)
+    return _get_transitive_closure_image(
+        self._parent_to_child_graph, schema_node_names
+    )
 
   def is_valid_schema_node_name(self, schema_node_name: str) -> bool:
-    return schema_node_name in self._schema_graph
+    return schema_node_name in self._parent_to_child_graph
 
   def is_leaf_schema_node_name(self, schema_node_name: str) -> bool:
     """Returns True iff the given valid schema node name is a leaf in the graph."""
     self._check_is_valid_schema_node_name(schema_node_name)
-    children = self._schema_graph[schema_node_name]
+    children = self._parent_to_child_graph[schema_node_name]
     return len(children) == 0  # pylint: disable=g-explicit-length-test
 
   def is_non_leaf_schema_node_name(self, schema_node_name: str) -> bool:
@@ -797,8 +812,17 @@ class SchemaHelper:
         *(augmented_stub_bags + minimal_bags_capturing_relationships)
     ).merge_fallbacks()
 
+  def get_minimal_schema_bag_for_parent_child_relationship(
+      self, *, parent_schema_node_name: str, child_schema_node_name: str
+  ) -> kd.types.DataBag:
+    self._check_is_valid_schema_node_name(parent_schema_node_name)
+    self._check_is_valid_schema_node_name(child_schema_node_name)
+    return self._parent_and_child_to_schema_bag[
+        (parent_schema_node_name, child_schema_node_name)
+    ]
+
   def _check_is_valid_schema_node_name(self, schema_node_name: str):
-    if schema_node_name not in self._schema_graph:
+    if schema_node_name not in self._parent_to_child_graph:
       raise ValueError(
           f"invalid schema node name: '{schema_node_name}'. Valid names are:"
           f' {sorted(self.get_all_schema_node_names())}'
