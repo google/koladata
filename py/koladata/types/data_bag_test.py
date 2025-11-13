@@ -97,13 +97,7 @@ class DataBagTest(parameterized.TestCase):
       (
           'empty',
           bag(),
-          r"""^DataBag \$[0-9a-f]{4}:
-  0 Entities/Objects with 0 values in 0 attrs
-  0 non empty Lists with 0 items
-  0 non empty Dicts with 0 key/value entries
-  0 schemas with 0 values
-
-Top attrs:$""",
+          r'DataBag\(empty, \$[0-9a-f]{4}\)',
       ),
       (
           'attributes',

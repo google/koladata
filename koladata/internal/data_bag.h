@@ -126,6 +126,8 @@ struct DataBagStatistics {
 
   // Add the statistics of the other DataBag into this one.
   void Add(const DataBagStatistics& other);
+
+  bool AllZero() const;
 };
 
 // Returns merge options that would achieve the same result, but when

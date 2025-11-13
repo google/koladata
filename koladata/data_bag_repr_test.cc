@@ -720,5 +720,14 @@ TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
               R"regex((.|\n)*0 non empty Dicts with 0 key/value entries(.|\n)*)regex"),
           MatchesRegex(R"regex((.|\n)*2 schemas with 2 values(.|\n)*)regex"))));
 }
+
+TEST(DataBagReprTest, TestDataBagStatistics_Empty) {
+  DataBagPtr bag = DataBag::EmptyMutable();
+
+  EXPECT_THAT(DataBagStatistics(bag),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(DataBag\(empty, \$[0-9a-f]{4}\))regex")));
+}
+
 }  // namespace
 }  // namespace koladata

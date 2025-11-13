@@ -454,6 +454,13 @@ void DataBagStatistics::Add(const DataBagStatistics& other) {
   }
 }
 
+bool DataBagStatistics::AllZero() const {
+  return entity_and_object_count == 0 && total_non_empty_lists == 0 &&
+         total_items_in_lists == 0 && total_non_empty_dicts == 0 &&
+         total_items_in_dicts == 0 && total_explicit_schemas == 0 &&
+         total_explicit_schema_attrs == 0 && attr_values_sizes.empty();
+}
+
 // *******  Factory interface
 
 /*static*/ DataBagImplPtr DataBagImpl::CreateEmptyDatabag() {

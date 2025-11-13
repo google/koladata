@@ -475,6 +475,10 @@ absl::StatusOr<std::string> DataBagStatistics(const DataBagPtr& db,
     stats.Add(fallback_stats);
   }
 
+  if (stats.AllZero()) {
+    return absl::StrFormat("DataBag(empty, %s)", GetBagIdRepr(db));
+  }
+
   std::vector<std::pair<int, absl::string_view>> top_attrs;
   top_attrs.reserve(stats.attr_values_sizes.size());
   for (const auto& [attr, count] : stats.attr_values_sizes) {

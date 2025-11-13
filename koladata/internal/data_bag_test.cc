@@ -1880,6 +1880,18 @@ TEST(DataBagTest, StatisticsAdds) {
   EXPECT_EQ(stats.entity_and_object_count, 16);
 }
 
+TEST(DataBagTest, StatisticsAllZero) {
+  EXPECT_TRUE(DataBagStatistics{}.AllZero());
+  EXPECT_FALSE((DataBagStatistics{.entity_and_object_count = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_non_empty_lists = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_items_in_lists = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_non_empty_dicts = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_items_in_dicts = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_explicit_schemas = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.total_explicit_schema_attrs = 1}.AllZero()));
+  EXPECT_FALSE((DataBagStatistics{.attr_values_sizes = {{"a", 0}}}.AllZero()));
+}
+
 TEST(DataBagTest, GetStatistics_Lists) {
   {
     DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();

@@ -103,7 +103,7 @@ class TestUtilsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         AssertionError,
         re.compile(
-            r'not equal by fingerprint:.*DataBag \$[0-9a-f]{4}(\n|.)*'
+            r'not equal by fingerprint:.*DataBag\(empty, \$[0-9a-f]{4}\)(\n|.)*'
             r' DataBag'
             r' \$[0-9a-f]{4}(\n|.)*',
             re.MULTILINE | re.DOTALL,
