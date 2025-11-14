@@ -31,6 +31,7 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
+
 # Unlike all other tests, this one does not depend on cc_operator_package,
 # so in order to use the operators below, we need to forcibly register them in
 # Arolla registry using building_cc_operator_package() context.
@@ -191,6 +192,14 @@ class OptoolsTest(parameterized.TestCase):
       """MyDocstring."""
       return x + y
 
+    with self.assertRaisesRegex(
+        ValueError,
+        'operators included to cc_operator_package must be registered with'
+        ' via_cc_operator_package=True',
+    ):
+      with optools.building_cc_operator_package():
+        optools.add_to_registry()(op)
+
     with optools.building_cc_operator_package():
       package_registered_op = optools.add_to_registry(
           via_cc_operator_package=True
@@ -335,10 +344,32 @@ class OptoolsTest(parameterized.TestCase):
 
   def test_add_to_registry_as_overloadable_defaults(self):
 
-    @optools.add_to_registry_as_overloadable('test.op_6')
     def op(x, y):
       del x, y
       raise NotImplementedError('overloadable operator')
+
+    with self.assertRaisesRegex(LookupError, 'unknown operator: test.op_6'):
+      optools.add_to_registry_as_overloadable(
+          'test.op_6', via_cc_operator_package=True
+      )(op)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'operators included to cc_operator_package must be registered with'
+        ' via_cc_operator_package=True',
+    ):
+      with optools.building_cc_operator_package():
+        optools.add_to_registry_as_overloadable('test.op_6')(op)
+
+    with optools.building_cc_operator_package():
+      optools.add_to_registry_as_overloadable(
+          'test.op_6', via_cc_operator_package=True
+      )(op)
+
+    # No registration error, the operator is just looked up.
+    op = optools.add_to_registry_as_overloadable(
+        'test.op_6', via_cc_operator_package=True
+    )(op)
 
     @arolla.optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
@@ -416,13 +447,32 @@ class OptoolsTest(parameterized.TestCase):
       del x, y
       raise NotImplementedError('overloadable operator')
 
-    @optools.add_to_registry_as_overload(
-        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
-    )
     @arolla.optools.as_lambda_operator('test.op_8.overload_1')
     def overload_1(x, y):  # pylint: disable=unused-variable
       del y
       return math.add(x, 1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'operators included to cc_operator_package must be registered with'
+        ' via_cc_operator_package=True',
+    ):
+      with optools.building_cc_operator_package():
+        optools.add_to_registry_as_overload(
+            overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+        )(overload_1)
+
+    with optools.building_cc_operator_package():
+      optools.add_to_registry_as_overload(
+          overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
+          via_cc_operator_package=True,
+      )(overload_1)
+
+    # No registration error, the operator is just looked up.
+    optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
+        via_cc_operator_package=True,
+    )(overload_1)
 
     @optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
@@ -431,6 +481,15 @@ class OptoolsTest(parameterized.TestCase):
     def overload_2(x, y):  # pylint: disable=unused-variable
       del y
       return math.add(x, -1)
+
+    with self.assertRaisesRegex(
+        ValueError, "operator 'test.op_8.overload_2' is already registered"
+    ):
+      # Without via_cc_operator_package=True, we raise on the second
+      # registration.
+      optools.add_to_registry_as_overload(
+          overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
+      )(overload_2)
 
     # Is registered as an overload.
     reg_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')

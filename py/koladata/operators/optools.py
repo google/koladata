@@ -84,8 +84,10 @@ def building_cc_operator_package():
   global _BUILDING_OPERATOR_PACKAGE
   previous_value = _BUILDING_OPERATOR_PACKAGE
   _BUILDING_OPERATOR_PACKAGE = True
-  yield
-  _BUILDING_OPERATOR_PACKAGE = previous_value
+  try:
+    yield
+  finally:
+    _BUILDING_OPERATOR_PACKAGE = previous_value
 
 
 def _clear_registered_ops():
@@ -154,6 +156,11 @@ def add_to_registry(
     def _register_op(op, name):
       if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
         registered_op = arolla.abc.lookup_operator(name or op.display_name)
+      elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
+        raise ValueError(
+            'operators included to cc_operator_package must be registered with'
+            ' via_cc_operator_package=True'
+        )
       else:
         registered_op = arolla.optools.add_to_registry(
             name, if_present=if_present
@@ -218,6 +225,11 @@ def add_to_registry_as_overloadable(
   def impl(fn) -> arolla.types.RegisteredOperator:
     if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
       overloadable_op = arolla.abc.lookup_operator(name)
+    elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
+      raise ValueError(
+          'operators included to cc_operator_package must be registered with'
+          ' via_cc_operator_package=True'
+      )
     else:
       overloadable_op = arolla.optools.add_to_registry_as_overloadable(
           name,
@@ -280,7 +292,14 @@ def add_to_registry_as_overload(
     name_ns, _, name_suffix = op_name.rpartition('.')
     canonical_name = arolla.abc.decay_registered_operator(name_ns).display_name
 
-    if not via_cc_operator_package or _BUILDING_OPERATOR_PACKAGE:
+    if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
+      pass
+    elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
+      raise ValueError(
+          'operators included to cc_operator_package must be registered with'
+          ' via_cc_operator_package=True'
+      )
+    else:
       arolla.optools.add_to_registry_as_overload(
           canonical_name + '.' + name_suffix,
           if_present=if_present,
