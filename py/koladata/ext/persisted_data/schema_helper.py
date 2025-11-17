@@ -473,12 +473,20 @@ def _analyze_schema(
         # in the schema_graph.
         schema_graph[parent_name].add(child_name)
       if not only_compute_schema_graph:
+        new_relationship_bag = _get_schema_bag(
+            parent_schema_item=parent_schema,
+            action=action,
+            child_schema_item=child_schema,
+        )
+        existing_relationship_bag = parent_and_child_to_schema_bag.get(
+            (parent_name, child_name)
+        )
+        if existing_relationship_bag is not None:
+          new_relationship_bag = kd.bags.updated(
+              new_relationship_bag, existing_relationship_bag
+          ).merge_fallbacks()
         parent_and_child_to_schema_bag[(parent_name, child_name)] = (
-            _get_schema_bag(
-                parent_schema_item=parent_schema,
-                action=action,
-                child_schema_item=child_schema,
-            )
+            new_relationship_bag
         )
       if child_name in schema_graph:
         continue

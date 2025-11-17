@@ -1332,6 +1332,34 @@ class SchemaHelperTest(absltest.TestCase):
         ),
     )
 
+    schema = schema.with_attrs(bar2=schema.bar)
+    helper = schema_helper.SchemaHelper(schema)
+    kd.testing.assert_equivalent(
+        helper.get_minimal_schema_bag_for_parent_child_relationship(
+            parent_schema_node_name=schema_node_name(schema),
+            child_schema_node_name=schema_node_name(schema.bar),
+        ),
+        # Similar to the previous case, but now the bag also contains 'bar2':
+        kd.attrs(
+            kd.schema.named_schema('SomeSchema'),
+            bar=kd.schema.named_schema('InnerSchema'),
+            bar2=kd.schema.named_schema('InnerSchema')
+        ),
+    )
+
+    schema = schema.with_attrs(loop=schema)
+    helper = schema_helper.SchemaHelper(schema)
+    kd.testing.assert_equivalent(
+        helper.get_minimal_schema_bag_for_parent_child_relationship(
+            parent_schema_node_name=schema_node_name(schema),
+            child_schema_node_name=schema_node_name(schema),
+        ),
+        kd.attrs(
+            kd.schema.named_schema('SomeSchema'),
+            loop=kd.schema.named_schema('SomeSchema'),
+        ),
+    )
+
     with self.assertRaisesRegex(
         ValueError, re.escape("invalid schema node name: 'abcde'")
     ):
