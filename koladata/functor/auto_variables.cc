@@ -72,15 +72,16 @@ absl::StatusOr<bool> IsSliceOrItemOperator(const ExprNodePtr& node) {
     return false;
   }
   ASSIGN_OR_RETURN(ExprOperatorPtr slice_op,
-                   arolla::expr::DecayRegisteredOperator(
-                       arolla::expr::ExprOperatorRegistry::GetInstance()
-                           ->LookupOperatorOrNull("kd.slice")));
+                   arolla::expr::LookupOperator("kd.slice"));
+  ASSIGN_OR_RETURN(slice_op,
+                   arolla::expr::DecayRegisteredOperator(std::move(slice_op)));
   ASSIGN_OR_RETURN(ExprOperatorPtr item_op,
-                   arolla::expr::DecayRegisteredOperator(
-                       arolla::expr::ExprOperatorRegistry::GetInstance()
-                           ->LookupOperatorOrNull("kd.item")));
+                   arolla::expr::LookupOperator("kd.item"));
+  ASSIGN_OR_RETURN(item_op,
+                   arolla::expr::DecayRegisteredOperator(std::move(item_op)));
   ASSIGN_OR_RETURN(auto op, arolla::expr::DecayRegisteredOperator(node->op()));
-  return (op == slice_op) || (op == item_op);
+  return (op->fingerprint() == slice_op->fingerprint()) ||
+         (op->fingerprint() == item_op->fingerprint());
 }
 
 // We want to avoid creating duplicate computations by extracting a sub-expr

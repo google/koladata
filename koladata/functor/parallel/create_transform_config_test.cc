@@ -127,8 +127,8 @@ TEST(CreateParallelTransformConfigTest, UnknownFromOperator) {
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
       CreateParallelTransformConfig(config_slice),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("operator not found: core.non_existing_operator")));
+      StatusIs(absl::StatusCode::kNotFound,
+               HasSubstr("operator 'core.non_existing_operator' not found")));
 }
 
 TEST(CreateParallelTransformConfigTest, UnknownToOperator) {
@@ -144,8 +144,8 @@ TEST(CreateParallelTransformConfigTest, UnknownToOperator) {
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
       CreateParallelTransformConfig(config_slice),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("operator not found: core.non_existing_operator")));
+      StatusIs(absl::StatusCode::kNotFound,
+               HasSubstr("operator 'core.non_existing_operator' not found")));
 }
 
 TEST(CreateParallelTransformConfigTest, DuplicateFromOperator) {

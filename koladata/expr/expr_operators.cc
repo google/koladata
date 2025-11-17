@@ -118,8 +118,8 @@ arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value) {
   // therefore know that this cannot fail. It's therefore safe to dereference
   // the StatusOr without properly handling potential errors.
   auto output_attr = *op->InferAttributes({});
-  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
-      std::move(op), {}, std::move(output_attr));
+  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(std::move(op), {},
+                                                        std::move(output_attr));
 }
 
 std::shared_ptr<LiteralOperator> LiteralOperator::MakeLiteralOperator(
@@ -212,12 +212,12 @@ ToArollaTextOperator::ToArollaTextOperator()
           "koda_internal.to_arolla_text", arolla::GetQType<arolla::Text>()) {}
 
 NonDeterministicOperator::NonDeterministicOperator()
-  : arolla::expr::ExprOperatorWithFixedSignature(
-      "koda_internal.non_deterministic",
-      arolla::expr::ExprOperatorSignature{{"arg"}, {"random"}},
-      "Returns a non_deterministic value.",
-      arolla::FingerprintHasher("::koladata::ops::NonDeterministicOp")
-      .Finish()) {}
+    : arolla::expr::ExprOperatorWithFixedSignature(
+          "koda_internal.non_deterministic",
+          arolla::expr::ExprOperatorSignature{{"arg"}, {"random"}},
+          "Returns a non_deterministic value.",
+          arolla::FingerprintHasher("::koladata::ops::NonDeterministicOp")
+              .Finish()) {}
 
 absl::StatusOr<arolla::expr::ExprAttributes>
 NonDeterministicOperator::InferAttributes(
@@ -250,14 +250,7 @@ bool IsLiteral(const arolla::expr::ExprNodePtr& node) {
 
 absl::StatusOr<InputContainer> InputContainer::Create(
     absl::string_view cont_name) {
-  arolla::expr::ExprOperatorPtr input_op =
-      arolla::expr::ExprOperatorRegistry::GetInstance()->LookupOperatorOrNull(
-          kInternalInput);
-  if (input_op == nullptr) {
-    return absl::InternalError(
-        absl::StrCat("operator not found: ", kInternalInput));
-  }
-
+  ASSIGN_OR_RETURN(auto input_op, arolla::expr::LookupOperator(kInternalInput));
   return InputContainer(
       std::move(input_op),
       MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(cont_name))));

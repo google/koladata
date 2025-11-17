@@ -49,22 +49,12 @@ CreateParallelTransformConfig(DataSlice config_src) {
       operator_replacements;
   operator_replacements.reserve(config_proto.operator_replacements_size());
   for (const auto& replacement : config_proto.operator_replacements()) {
-    arolla::expr::ExprOperatorPtr from_op =
-        arolla::expr::ExprOperatorRegistry::GetInstance()->LookupOperatorOrNull(
-            replacement.from_op());
-    if (from_op == nullptr) {
-      return absl::InvalidArgumentError(
-          absl::StrCat("operator not found: ", replacement.from_op()));
-    }
+    ASSIGN_OR_RETURN(arolla::expr::ExprOperatorPtr from_op,
+                     arolla::expr::LookupOperator(replacement.from_op()));
     ASSIGN_OR_RETURN(from_op,
                      arolla::expr::DecayRegisteredOperator(std::move(from_op)));
-    arolla::expr::ExprOperatorPtr to_op =
-        arolla::expr::ExprOperatorRegistry::GetInstance()->LookupOperatorOrNull(
-            replacement.to_op());
-    if (to_op == nullptr) {
-      return absl::InvalidArgumentError(
-          absl::StrCat("operator not found: ", replacement.to_op()));
-    }
+    ASSIGN_OR_RETURN(arolla::expr::ExprOperatorPtr to_op,
+                     arolla::expr::LookupOperator(replacement.to_op()));
     if (operator_replacements.contains(from_op->fingerprint())) {
       return absl::InvalidArgumentError(absl::StrCat(
           "duplicate operator replacement for: ", replacement.from_op()));
