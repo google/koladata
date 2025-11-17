@@ -1131,17 +1131,17 @@ absl::StatusOr<DataSlice> FromProto(
 absl::StatusOr<DataSlice> FromProto(
     absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     absl::Span<const std::string_view> extensions,
-    const std::optional<DataSlice>& itemids,
-    const std::optional<DataSlice>& schema) {
+    const std::optional<DataSlice>& itemids, std::optional<DataSlice> schema) {
   DataBagPtr bag;
   if (schema.has_value() && schema->GetBag() != nullptr &&
       schema->GetBag()->GetFallbacks().empty()) {
-    ASSIGN_OR_RETURN(bag, schema->GetBag()->Fork());
+    ASSIGN_OR_RETURN(schema, schema->ForkBag());
+    bag = schema->GetBag();
   } else {
     bag = DataBag::EmptyMutable();
   }
-  ASSIGN_OR_RETURN(auto result,
-                   FromProto(bag, messages, extensions, itemids, schema));
+  ASSIGN_OR_RETURN(auto result, FromProto(bag, messages, extensions, itemids,
+                                          std::move(schema)));
   bag->UnsafeMakeImmutable();
   return result;
 }
@@ -1150,10 +1150,9 @@ absl::StatusOr<DataSlice> FromProto(
 absl::StatusOr<DataSlice> FromProto(
     const google::protobuf::Message& message,
     absl::Span<const std::string_view> extensions,
-    const std::optional<DataSlice>& itemids,
-    const std::optional<DataSlice>& schema) {
-  ASSIGN_OR_RETURN(auto result_slice,
-                   FromProto({&message}, extensions, itemids, schema));
+    const std::optional<DataSlice>& itemids, std::optional<DataSlice> schema) {
+  ASSIGN_OR_RETURN(auto result_slice, FromProto({&message}, extensions, itemids,
+                                                std::move(schema)));
   return result_slice.Reshape(DataSlice::JaggedShape::Empty());
 }
 

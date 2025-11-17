@@ -93,14 +93,14 @@ absl::StatusOr<DataSlice> FromProto(
     absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
-    const std::optional<DataSlice>& schema = std::nullopt);
+    std::optional<DataSlice> schema = std::nullopt);
 
 // Same as above, but takes a single proto and returns a DataItem.
 absl::StatusOr<DataSlice> FromProto(
     const google::protobuf::Message& message,
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
-    const std::optional<DataSlice>& schema = std::nullopt);
+    std::optional<DataSlice> schema = std::nullopt);
 
 // Converts a proto descriptor to an entity schema.
 //
