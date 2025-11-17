@@ -23,8 +23,9 @@ be auto-boxed by the View method that we call.
 The tests are in operator_tests/ folder.
 """
 
-from typing import Any
+from typing import Any, Callable
 from koladata.ext.view import view as view_lib
+from optree import pytree
 
 
 def get_attr(
@@ -690,3 +691,57 @@ def deep_clone(v: view_lib.ViewOrAutoBoxType) -> view_lib.View:
     v: The view to deep copy.
   """
   return view_lib.box(v).deep_clone()
+
+
+# TODO: Implement an equivalent to deep_map in Koda.
+def deep_map(
+    f: Callable[..., Any],
+    *args: view_lib.ViewOrAutoBoxType,
+    include_missing: bool = False,
+    namespace: str = '',
+) -> view_lib.View:
+  """Applies a function to every nested primitive value in the args views.
+
+  All arguments will be broadcasted to a common shape based on the depth of the
+  views. There must be at least one argument.
+
+  Unlike `map`, which applies the function to each value at the current depth,
+  `deep_map` traverses nested structures indiscriminately using
+  `optree.tree_map` keeping structures intact. See https://optree.readthedocs.io
+  for more details on how to register handlers for custom types.
+
+  Example:
+    kv.deep_map(lambda x: x * 2, kv.view([1, None, 2])).get()
+    # [2, None, 4]
+    kv.deep_map(lambda x: x * 2, kv.view([{'x': 1, 'y': 2, 'z': None}])).get()
+    # [{'x': 2, 'y': 4, 'z': None}]
+    kv.deep_map(
+        lambda x, y: x + y,
+        kv.view([[1, 2], [3, 4]])[:],
+        kv.view([5, 6])
+    ).get()
+    # [[6, 8], [8, 10]]
+    # `[5, 6]` is broadcasted to ([5, 6], [5, 6]) before mapped.
+
+  Args:
+    f: The function to apply.
+    *args: The views to apply the function to.
+    include_missing: Specifies whether `f` applies to all items (`=True`) or
+      only to present items (`=False`).
+    namespace: The namespace to use for the custom type handler.
+
+  Returns:
+    A new view with the function applied to every nested primitive value.
+  """
+  if include_missing:
+    fn = f
+  else:
+    fn = lambda *args: None if any(arg is None for arg in args) else f(*args)
+  # NOTE: `none_is_leaf=False` raises for `pytree.map(fn, [None], [1])`, so we
+  # avoid this altogether.
+  map_fn = lambda *args: pytree.map(
+      fn, *args, none_is_leaf=True, namespace=namespace
+  )
+  # NOTE: `include_missing=True` to force structural equality even in case of
+  # missing data.
+  return view_lib.map_(map_fn, *args, include_missing=True)

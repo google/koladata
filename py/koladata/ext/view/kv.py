@@ -25,6 +25,7 @@ from koladata.ext.view import view as _view
 align = _view.align
 view = _view.view
 map = _view.map_  # pylint: disable=redefined-builtin
+deep_map = _operators.deep_map
 get_attr = _operators.get_attr
 set_attrs = _operators.set_attrs
 explode = _operators.explode

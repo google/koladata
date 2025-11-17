@@ -19,6 +19,7 @@ from absl.testing import absltest
 from koladata.ext.view import mask_constants
 from koladata.ext.view import test_utils
 from koladata.ext.view import view as view_lib
+from optree import pytree
 
 
 Obj = types.SimpleNamespace
@@ -101,6 +102,61 @@ class ViewTest(absltest.TestCase):
         .get(),
         (False, True, False),
     )
+
+  def test_deep_map(self):
+    self.assertEqual(view_lib.view(1).deep_map(lambda x: x * 2).get(), 2)
+    self.assertIsNone(view_lib.view(None).deep_map(lambda x: x * 2).get())
+    self.assertEqual(
+        view_lib.view(None).deep_map(lambda x: -1, include_missing=True).get(),
+        -1,
+    )
+    self.assertEqual(
+        view_lib.view([1, None, 2]).deep_map(lambda x: x * 2).get(),
+        [2, None, 4],
+    )
+    self.assertEqual(
+        view_lib.view([1, None, 2])[:].deep_map(lambda x: x * 2).get(),
+        (2, None, 4),
+    )
+    self.assertEqual(
+        view_lib.view([{'x': 1, 'y': 2, 'z': None}])
+        .deep_map(lambda x: x * 2)
+        .get(),
+        [{'x': 2, 'y': 4, 'z': None}],
+    )
+    self.assertEqual(
+        view_lib.view([1, None, 2])
+        .deep_map(lambda x: -1 if x is None else x * 2, include_missing=True)
+        .get(),
+        [2, -1, 4],
+    )
+    self.assertEqual(
+        view_lib.view([Obj(x=1), None, Obj(x=2)])
+        .deep_map(lambda o: o.x * 2)
+        .get(),
+        [2, None, 4],
+    )
+
+    # Custom handler.
+    class Cls:
+
+      def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    pytree.register_node(
+        Cls,
+        lambda c: ((c.x, c.y), None, None),
+        lambda _, children: Cls(*children),
+        namespace='test_custom_handler',
+    )
+    res = view_lib.view(Cls(1, 2)).deep_map(
+        lambda x: x + 1, namespace='test_custom_handler'
+    ).get()
+    self.assertIsInstance(res, Cls)
+    self.assertEqual(res.x, 2)
+    self.assertEqual(res.y, 3)
+    pytree.unregister_node(Cls, namespace='test_custom_handler')
 
   def test_agg_map(self):
     self.assertEqual(

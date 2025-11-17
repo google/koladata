@@ -21,6 +21,7 @@ import itertools
 from typing import Any, Callable
 from koladata.ext.view import clib_py_ext as view_clib
 from koladata.ext.view import mask_constants
+from optree import pytree
 
 _cc_map_structure = view_clib.map_structures
 _INTERNAL_CALL = object()
@@ -483,6 +484,46 @@ class View:
     """
     return map_(f, self, ndim=ndim, include_missing=include_missing)
 
+  def deep_map(
+      self,
+      f: Callable[[Any], Any],
+      *,
+      include_missing: bool = False,
+      namespace: str = '',
+  ) -> View:
+    """Applies a function to every nested primitive value in the view.
+
+    Unlike `map`, which applies the function to each value at the current depth,
+    `deep_map` traverses nested structures indiscriminately using
+    `optree.tree_map` while keeping structures intact. See
+    https://optree.readthedocs.io for more details on how to register handlers
+    for custom types.
+
+    Example:
+      view([1, None, 2]).deep_map(lambda x: x * 2).get()
+      # [2, None, 4]
+      view([1, None, 2])[:].deep_map(lambda x: x * 2).get()
+      # (2, None, 4)
+      view([{'x': 1, 'y': 2, 'z': None}]).deep_map(lambda x: x * 2).get()
+      # [{'x': 2, 'y': 4, 'z': None}]
+
+    Args:
+      f: The function to apply.
+      include_missing: Specifies whether `f` applies to all items (`=True`) or
+        only to present items (`=False`).
+      namespace: The namespace to use for the custom type handler.
+
+    Returns:
+      A new view with the function applied to every nested primitive value.
+    """
+    return View(
+        pytree.map(
+            f, self._obj, none_is_leaf=include_missing, namespace=namespace
+        ),
+        self._depth,
+        _INTERNAL_CALL,
+    )
+
   def group_by(self, *args: ViewOrAutoBoxType, sort: bool = False) -> View:
     """Groups items by the values of the given args."""
     if not self._depth:
@@ -854,7 +895,11 @@ def map_(
       append_depth(arg._depth)  # pylint: disable=protected-access
       append_arg(arg._obj)  # pylint: disable=protected-access
     else:
-      assert isinstance(arg, AutoBoxType)
+      if not isinstance(arg, AutoBoxType):
+        raise ValueError(
+            f'expected a View or a boxable typle, got {arg}. Use kv.view()'
+            ' explicitly if you want to construct a view from it.'
+        )
       append_depth(0)
       append_arg(arg)
 

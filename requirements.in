@@ -3,5 +3,6 @@ cloudpickle
 google-benchmark
 ipython
 numpy
+optree
 pandas
 scipy

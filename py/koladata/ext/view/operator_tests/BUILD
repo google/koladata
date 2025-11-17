@@ -15,6 +15,7 @@
 # Tests for operators in "kv" module.
 # The implementations for the operators tested here are either in view.py or in operators.py.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_test")
 
 licenses(["notice"])
@@ -353,5 +354,20 @@ py_test(
         "//py:python_path",
         "//py/koladata/ext/view:kv",
         "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "deep_map_test",
+    srcs = ["deep_map_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/ext/view:kv",
+        "//py/koladata/ext/view:test_utils",
+        "//py/koladata/operators/tests/testdata:py_map_py_testdata",
+        requirement("optree"),
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )

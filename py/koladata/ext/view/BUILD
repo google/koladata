@@ -50,6 +50,7 @@ py_test(
         ":test_utils",
         ":view",
         "//py:python_path",
+        requirement("optree"),
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -104,6 +105,7 @@ py_library(
         ":clib_py_ext",
         ":mask_constants",
         "//py:python_path",
+        requirement("optree"),
     ],
 )
 
@@ -130,6 +132,7 @@ py_library(
     deps = [
         ":view",
         "//py:python_path",
+        requirement("optree"),
     ],
 )
 

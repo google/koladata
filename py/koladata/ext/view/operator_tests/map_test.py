@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import types
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -82,6 +83,14 @@ class MapTest(parameterized.TestCase):
         ValueError, 'include_missing=False can only be used with ndim=0'
     ):
       _ = kv.map(lambda x: x, v, ndim=1, include_missing=False)
+
+  def test_no_auto_boxing_for_object(self):
+    x = Obj(a=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('expected a View or a boxable typle, got namespace(a=1)'),
+    ):
+      kv.map(lambda x: x.a, x)  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

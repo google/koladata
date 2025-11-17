@@ -11659,6 +11659,33 @@ Experimental Koda View API.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a deep copy of the view.</code></pre>
 
+### `View.deep_map(self, f: Callable[[Any], Any], *, include_missing: bool = False, namespace: str = '') -> View` {#View.deep_map}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to every nested primitive value in the view.
+
+Unlike `map`, which applies the function to each value at the current depth,
+`deep_map` traverses nested structures indiscriminately using
+`optree.tree_map` while keeping structures intact. See
+https://optree.readthedocs.io for more details on how to register handlers
+for custom types.
+
+Example:
+  view([1, None, 2]).deep_map(lambda x: x * 2).get()
+  # [2, None, 4]
+  view([1, None, 2])[:].deep_map(lambda x: x * 2).get()
+  # (2, None, 4)
+  view([{&#39;x&#39;: 1, &#39;y&#39;: 2, &#39;z&#39;: None}]).deep_map(lambda x: x * 2).get()
+  # [{&#39;x&#39;: 2, &#39;y&#39;: 4, &#39;z&#39;: None}]
+
+Args:
+  f: The function to apply.
+  include_missing: Specifies whether `f` applies to all items (`=True`) or
+    only to present items (`=False`).
+  namespace: The namespace to use for the custom type handler.
+
+Returns:
+  A new view with the function applied to every nested primitive value.</code></pre>
+
 ### `View.expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View` {#View.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Expands the view to the shape of other view.</code></pre>
@@ -11859,6 +11886,41 @@ to customize the copying behavior.
 
 Args:
   v: The view to deep copy.</code></pre>
+
+### `kd_ext.kv.deep_map(f: Callable[..., Any], *args: View | int | float | str | bytes | bool | _Present | None, include_missing: bool = False, namespace: str = '') -> View` {#kd_ext.kv.deep_map}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to every nested primitive value in the args views.
+
+All arguments will be broadcasted to a common shape based on the depth of the
+views. There must be at least one argument.
+
+Unlike `map`, which applies the function to each value at the current depth,
+`deep_map` traverses nested structures indiscriminately using
+`optree.tree_map` keeping structures intact. See https://optree.readthedocs.io
+for more details on how to register handlers for custom types.
+
+Example:
+  kv.deep_map(lambda x: x * 2, kv.view([1, None, 2])).get()
+  # [2, None, 4]
+  kv.deep_map(lambda x: x * 2, kv.view([{&#39;x&#39;: 1, &#39;y&#39;: 2, &#39;z&#39;: None}])).get()
+  # [{&#39;x&#39;: 2, &#39;y&#39;: 4, &#39;z&#39;: None}]
+  kv.deep_map(
+      lambda x, y: x + y,
+      kv.view([[1, 2], [3, 4]])[:],
+      kv.view([5, 6])
+  ).get()
+  # [[6, 8], [8, 10]]
+  # `[5, 6]` is broadcasted to ([5, 6], [5, 6]) before mapped.
+
+Args:
+  f: The function to apply.
+  *args: The views to apply the function to.
+  include_missing: Specifies whether `f` applies to all items (`=True`) or
+    only to present items (`=False`).
+  namespace: The namespace to use for the custom type handler.
+
+Returns:
+  A new view with the function applied to every nested primitive value.</code></pre>
 
 ### `kd_ext.kv.equal(a: View | int | float | str | bytes | bool | _Present | None, b: View | int | float | str | bytes | bool | _Present | None) -> View` {#kd_ext.kv.equal}
 
