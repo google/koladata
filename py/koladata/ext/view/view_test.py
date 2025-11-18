@@ -339,6 +339,20 @@ class ViewTest(absltest.TestCase):
   depth=2,
 )>""",
     )
+    self.assertEqual(
+        repr(
+            view_lib.view(
+                [list(range(9)), {'x': [1, 2, 3], 'y': list(range(30))}]
+            )
+        ),
+        """<View(
+  obj=[[0, 1, 2, 3, 4, 5, 6, 7, 8],
+       {'x': [1, 2, 3],
+        'y': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+              19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]}],
+  depth=0,
+)>""",
+    )
 
   def test_iter_raises_error(self):
     with self.assertRaisesRegex(

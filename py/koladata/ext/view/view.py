@@ -18,6 +18,8 @@ from __future__ import annotations
 import copy
 import functools
 import itertools
+import pprint
+import textwrap
 from typing import Any, Callable
 from koladata.ext.view import clib_py_ext as view_clib
 from koladata.ext.view import mask_constants
@@ -200,7 +202,12 @@ class View:
     _VIEW_DEPTH_SETTER(self, depth)
 
   def __repr__(self) -> str:
-    return f'<View(\n  obj={self._obj!r},\n  depth={self._depth!r},\n)>'
+    obj_prefix = '  obj='
+    obj_pp = pprint.pformat(
+        self._obj, sort_dicts=False, width=80 - len(obj_prefix), compact=True
+    )
+    obj_pp = textwrap.indent(obj_pp, ' ' * len(obj_prefix))[len(obj_prefix):]
+    return f'<View(\n{obj_prefix}{obj_pp},\n  depth={self._depth!r},\n)>'
 
   def get_attr(self, attr_name: str, default: Any = NO_DEFAULT) -> View:
     """Returns a new view with the given attribute of each item."""
