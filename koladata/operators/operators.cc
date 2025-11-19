@@ -20,16 +20,12 @@
 #include "arolla/qexpr/operator_factory.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
-#include "koladata/jagged_shape_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/arolla_bridge.h"
@@ -61,31 +57,15 @@ namespace koladata::ops {
 namespace {
 
 #define OPERATOR KODA_QEXPR_OPERATOR
-#define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
 #define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY,OPERATOR_WITH_SIGNATURE NOLINT
+// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY NOLINT
 OPERATOR("kd.allocation.new_dictid_like", NewDictIdLike);
-OPERATOR_WITH_SIGNATURE(
-    "kd.allocation.new_dictid_shaped",
-    arolla::QExprOperatorSignature::Get(
-        {GetJaggedShapeQType(),
-         arolla::GetQType<internal::NonDeterministicToken>()},
-        arolla::GetQType<DataSlice>()), NewDictIdShaped);
+OPERATOR("kd.allocation.new_dictid_shaped", NewDictIdShaped);
 OPERATOR("kd.allocation.new_itemid_like", NewItemIdLike);
-OPERATOR_WITH_SIGNATURE(
-    "kd.allocation.new_itemid_shaped",
-    arolla::QExprOperatorSignature::Get(
-        {GetJaggedShapeQType(),
-         arolla::GetQType<internal::NonDeterministicToken>()},
-        arolla::GetQType<DataSlice>()), NewItemIdShaped);
+OPERATOR("kd.allocation.new_itemid_shaped", NewItemIdShaped);
 OPERATOR("kd.allocation.new_listid_like", NewListIdLike);
-OPERATOR_WITH_SIGNATURE(
-    "kd.allocation.new_listid_shaped",
-    arolla::QExprOperatorSignature::Get(
-        {GetJaggedShapeQType(),
-         arolla::GetQType<internal::NonDeterministicToken>()},
-        arolla::GetQType<DataSlice>()), NewListIdShaped);
+OPERATOR("kd.allocation.new_listid_shaped", NewListIdShaped);
 //
 OPERATOR("kd.assertion.assert_present_scalar", AssertPresentScalar);
 OPERATOR("kd.assertion.assert_primitive", AssertPrimitive);
@@ -159,16 +139,7 @@ OPERATOR("kd.dicts._get_values", GetValues, "kd.dicts.get_values");
 OPERATOR("kd.dicts._get_values_by_keys", GetValuesByKeys,
          "kd.dicts.get_values_by_keys");
 OPERATOR("kd.dicts._like", DictLike, "kd.dicts.like");
-OPERATOR_WITH_SIGNATURE(
-    "kd.dicts._shaped",
-    arolla::QExprOperatorSignature::Get(
-        {GetJaggedShapeQType(), arolla::GetQType<DataSlice>(),
-         arolla::GetQType<DataSlice>(), arolla::GetQType<DataSlice>(),
-         arolla::GetQType<DataSlice>(), arolla::GetQType<DataSlice>(),
-         arolla::GetQType<DataSlice>(),
-         arolla::GetQType<internal::NonDeterministicToken>()},
-        arolla::GetQType<DataSlice>()),
-    DictShaped, "kd.dicts.shaped");
+OPERATOR("kd.dicts._shaped", DictShaped, "kd.dicts.shaped");
 OPERATOR("kd.dicts.get_keys", GetKeys);
 OPERATOR("kd.dicts.has_dict", HasDict);
 OPERATOR("kd.dicts.is_dict", IsDict);
@@ -203,15 +174,7 @@ OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
 OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");
 OPERATOR("kd.lists._like", ListLike, "kd.lists.like");
 OPERATOR("kd.lists._new", List);
-OPERATOR_WITH_SIGNATURE(
-    "kd.lists._shaped",
-    arolla::QExprOperatorSignature::Get(
-        {GetJaggedShapeQType(), arolla::GetQType<DataSlice>(),
-         arolla::GetQType<DataSlice>(), arolla::GetQType<DataSlice>(),
-         arolla::GetQType<DataSlice>(),
-         arolla::GetQType<internal::NonDeterministicToken>()},
-        arolla::GetQType<DataSlice>()),
-    ListShaped, "kd.lists.shaped");
+OPERATOR("kd.lists._shaped", ListShaped, "kd.lists.shaped");
 OPERATOR("kd.lists.appended_list", ListAppended);
 OPERATOR("kd.lists.has_list", HasList);
 OPERATOR("kd.lists.is_list", IsList);
@@ -322,17 +285,8 @@ OPERATOR("kd.shapes._expand_to_shape", ExpandToShape,
          "kd.shapes.expand_to_shape");
 OPERATOR_FAMILY("kd.shapes._new_with_size",
                 std::make_unique<JaggedShapeCreateWithSizeOperatorFamily>());
-OPERATOR_WITH_SIGNATURE(
-    "kd.shapes._reshape",
-    arolla::QExprOperatorSignature::Get({arolla::GetQType<DataSlice>(),
-                                         GetJaggedShapeQType()},
-                                        arolla::GetQType<DataSlice>()),
-    Reshape, "kd.shapes.reshape");
-OPERATOR_WITH_SIGNATURE(
-    "kd.shapes.get_shape",
-    arolla::QExprOperatorSignature::Get({arolla::GetQType<DataSlice>()},
-                                        GetJaggedShapeQType()),
-    GetShape);
+OPERATOR("kd.shapes._reshape", Reshape, "kd.shapes.reshape");
+OPERATOR("kd.shapes.get_shape", GetShape);
 OPERATOR_FAMILY("kd.shapes.new",
                 std::make_unique<JaggedShapeCreateOperatorFamily>());
 //
@@ -356,12 +310,7 @@ OPERATOR("kd.slices._inverse_mapping", InverseMapping,
 OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
 OPERATOR_FAMILY("kd.slices.align",
                      std::make_unique<AlignOperatorFamily>());
-OPERATOR_WITH_SIGNATURE(
-    "kd.slices.empty_shaped",
-    arolla::QExprOperatorSignature::Get({GetJaggedShapeQType(),
-                                         arolla::GetQType<DataSlice>()},
-                                        arolla::GetQType<DataSlice>()),
-    EmptyShaped);
+OPERATOR("kd.slices.empty_shaped", EmptyShaped);
 OPERATOR("kd.slices.get_repr", GetRepr);
 OPERATOR("kd.slices.internal_select_by_slice", Select, "kd.slices.select");
 OPERATOR("kd.slices.inverse_select", InverseSelect);
