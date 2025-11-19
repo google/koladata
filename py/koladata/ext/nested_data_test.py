@@ -591,6 +591,13 @@ class NestedDataTest(parameterized.TestCase):
           root_slice, ['x', 'y'], lambda s: s.x.y > 100
       )
 
+  def test_select_with_mask_schema_freezes_bag(self):
+    root_item = kdi.new(x=kdi.list([0, 1, 2]))
+    selected_db = nested_data.selected_path_update(
+        root_item, ['x'], root_item.x[:] != 1
+    )
+    self.assertFalse(selected_db.is_mutable())
+
 
 if __name__ == '__main__':
   absltest.main()

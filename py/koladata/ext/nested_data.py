@@ -24,10 +24,10 @@ kdi = kd.eager
 
 
 def selected_path_update(
-    root_ds: kdi.types.DataSlice,
+    root_ds: kd.types.DataSlice,
     selection_ds_path: list[str],
-    selection_ds: kdi.types.DataSlice | py_types.FunctionType,
-) -> kdi.types.DataBag:
+    selection_ds: kd.types.DataSlice | py_types.FunctionType,
+) -> kd.types.DataBag:
   """Returns a DataBag where only the selected items are present in child lists.
 
   The selection_ds_path must contain at least one list attribute. In general,
@@ -56,7 +56,7 @@ def selected_path_update(
     @root_ds.updated(selected_path(....)).
   """
   selection_ds = functools.MaybeEval(selection_ds, root_ds)
-  if selection_ds.get_schema() != kdi.MASK:
+  if selection_ds.get_schema() != kd.MASK:
     raise ValueError(
         f'selection_ds must be kd.MASK, got: {selection_ds.get_schema()}.'
     )
@@ -110,4 +110,4 @@ def selected_path_update(
         mask = kdi.agg_any(mask)
       child_slice = db.list_like(mask, child_slice)
     db.adopt_stub(parent_slice & mask).set_attr(attribute, child_slice)
-  return db
+  return db.freeze()
