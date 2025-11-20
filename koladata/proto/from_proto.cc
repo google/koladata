@@ -51,11 +51,14 @@
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/comparison.h"
 #include "koladata/operators/slices.h"
+#include "koladata/proto/annotations.pb.h"
 #include "koladata/proto/proto_schema_utils.h"
 #include "koladata/shape_utils.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/message.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -281,6 +284,49 @@ absl::StatusOr<std::optional<DataSlice>> MakeFlatChildIndexItemUuids(
   return std::move(flat_child_itemids);
 }
 
+absl::StatusOr<std::optional<internal::DataItem>>
+SchemaItemFromPrimitiveFieldKodaOptions(
+    const FieldDescriptor& field_descriptor) {
+  DCHECK(field_descriptor.message_type() == nullptr);
+  const auto& koda_field_options =
+      field_descriptor.options().GetExtension(koladata::options);
+  if (koda_field_options.has_schema()) {
+    if (field_descriptor.has_default_value()) {
+      return absl::InvalidArgumentError(
+          "koda field schema override cannot be used on fields with a "
+          "custom default value");
+    }
+    switch (koda_field_options.schema()) {
+      case KodaOptions::SCHEMA_UNSPECIFIED:
+        return absl::InvalidArgumentError(
+            absl::StrFormat("invalid koda field schema override enum value: %d",
+                            koda_field_options.schema()));
+      case KodaOptions::SCHEMA_MASK:
+        if (field_descriptor.cpp_type() !=
+            google::protobuf::FieldDescriptor::CPPTYPE_BOOL) {
+          return absl::InvalidArgumentError(
+              "MASK koda field schema override can only be used on bool "
+              "fields");
+        }
+        return internal::DataItem(schema::kMask);
+    }
+  }
+  return std::nullopt;
+}
+
+absl::StatusOr<DataSlice> CastToExplicitForProtoPrimitive(
+    DataSlice slice, internal::DataItem schema_item) {
+  if (slice.GetSchemaImpl() == schema_item) {
+    return std::move(slice);
+  }
+  if (schema_item == internal::DataItem(schema::kMask) &&
+      slice.GetSchemaImpl() == internal::DataItem(schema::kBool)) {
+    return ops::Equal(slice, DataSlice::CreatePrimitive(true));
+  }
+  return CastToExplicit(slice, schema_item,
+                        /*validate_schema=*/false);
+}
+
 absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(
     const FieldDescriptor& field_descriptor) {
   DCHECK(field_descriptor.message_type() == nullptr);
@@ -473,17 +519,27 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
                               std::move(flat_items_builder).Build()),
                           std::move(items_shape),
                           internal::DataItem(schema::GetDType<T>())));
-    ASSIGN_OR_RETURN(auto items_schema, GetPrimitiveListItemsSchema(schema));
-    if (items_schema.has_value()) {
-      // We could probably improve performance by using the correct backing
-      // DenseArray type based on `schema` instead of casting afterward, but
-      // that has a lot more cases to handle, and only has an effect if the
-      // user provides an explicit schema that disagrees with the proto field
-      // schemas, which should be rare.
-      //
-      // `validate_schema` is a no-op for primitives, so we disable it.
-      ASSIGN_OR_RETURN(items, CastToExplicit(items, items_schema->item(),
-                                             /*validate_schema=*/false));
+    if (schema.has_value()) {
+      ASSIGN_OR_RETURN(auto items_schema, GetPrimitiveListItemsSchema(schema));
+      if (items_schema.has_value()) {
+        // We could probably improve performance by using the correct backing
+        // DenseArray type based on `schema` instead of casting afterward, but
+        // that has a lot more cases to handle, and only has an effect if the
+        // user provides an explicit schema that disagrees with the proto field
+        // schemas, which should be rare.
+        //
+        // `validate_schema` is a no-op for primitives, so we disable it.
+        ASSIGN_OR_RETURN(items, CastToExplicitForProtoPrimitive(
+                                    std::move(items), items_schema->item()));
+      }
+    } else {
+      ASSIGN_OR_RETURN(
+          auto schema_item,
+          SchemaItemFromPrimitiveFieldKodaOptions(field_descriptor));
+      if (schema_item.has_value()) {
+        ASSIGN_OR_RETURN(items, CastToExplicitForProtoPrimitive(
+                                    std::move(items), std::move(*schema_item)));
+      }
     }
 
     ASSIGN_OR_RETURN(
@@ -581,17 +637,16 @@ absl::Status FromProtoMessageField(
           internal::DataSliceImpl::Create(std::move(mask_builder).Build()),
           DataSlice::JaggedShape::FlatFromSize(parent_messages.size()),
           internal::DataItem(schema::kMask)));
-  ASSIGN_OR_RETURN(auto packed_itemid,
-                   [&]() -> absl::StatusOr<std::optional<DataSlice>> {
-                     if (!itemid.has_value()) {
-                       return std::nullopt;
-                     }
-                     ASSIGN_OR_RETURN(
-                         auto packed_itemid,
+  ASSIGN_OR_RETURN(
+      auto packed_itemid, [&]() -> absl::StatusOr<std::optional<DataSlice>> {
+        if (!itemid.has_value()) {
+          return std::nullopt;
+        }
+        ASSIGN_OR_RETURN(auto packed_itemid,
                          ops::Select(*itemid, *vars->mask,
                                      DataSlice::CreatePrimitive(false)));
-                     return packed_itemid;
-                   }());
+        return packed_itemid;
+      }());
 
   RETURN_IF_ERROR(FromProtoMessageBreakRecursion(
       db, *field_descriptor.message_type(), std::move(packed_child_messages),
@@ -651,17 +706,29 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoPrimitiveField(
             internal::DataSliceImpl::Create(std::move(builder).Build()),
             DataSlice::JaggedShape::FlatFromSize(parent_messages.size()),
             internal::DataItem(schema::GetDType<T>())));
-    ASSIGN_OR_RETURN(auto schema, GetChildAttrSchema(parent_schema, attr_name));
-    if (schema.has_value() && schema->item() != schema::kObject) {
-      // We could probably improve performance by using the correct backing
-      // DenseArray type based on `schema` instead of casting afterward, but
-      // that has a lot more cases to handle, and only has an effect if the
-      // user provides an explicit schema that disagrees with the proto field
-      // schemas, which should be rare.
-      //
-      // `validate_schema` is a no-op for primitives, so we disable it.
-      return CastToExplicit(std::move(result), schema->item(),
-                            /*validate_schema=*/false);
+    if (parent_schema.has_value()) {
+      ASSIGN_OR_RETURN(auto schema,
+                       GetChildAttrSchema(parent_schema, attr_name));
+      if (schema.has_value() && schema->item() != schema::kObject) {
+        // We could probably improve performance by using the correct backing
+        // DenseArray type based on `schema` instead of casting afterward, but
+        // that has a lot more cases to handle, and only has an effect if the
+        // user provides an explicit schema that disagrees with the proto field
+        // schemas, which should be rare.
+        //
+        // `validate_schema` is a no-op for primitives, so we disable it.
+        return CastToExplicitForProtoPrimitive(std::move(result),
+                                               schema->item());
+      }
+    } else {
+      ASSIGN_OR_RETURN(
+          auto schema_item,
+          SchemaItemFromPrimitiveFieldKodaOptions(field_descriptor));
+      if (schema_item.has_value()) {
+        // `validate_schema` is a no-op for primitives, so we disable it.
+        return CastToExplicitForProtoPrimitive(std::move(result),
+                                               std::move(*schema_item));
+      }
     }
     return std::move(result);
   };
@@ -1069,8 +1136,8 @@ absl::Status FromProtoMessageBreakRecursion(
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   executor.Enqueue([db = db, message_descriptor = &message_descriptor,
                     messages = std::move(messages), itemid = std::move(itemid),
-                    schema = std::move(schema), extension_map,
-                    &executor, &result]() -> absl::Status {
+                    schema = std::move(schema), extension_map, &executor,
+                    &result]() -> absl::Status {
     return FromProtoMessage(db, *message_descriptor, messages, itemid, schema,
                             extension_map, executor, result);
   });
@@ -1165,37 +1232,43 @@ absl::StatusOr<DataSlice> SchemaFromProtoPrimitiveField(
     const FieldDescriptor& field_descriptor) {
   DCHECK(field_descriptor.message_type() == nullptr);
   internal::DataItem schema_item;
-  switch (field_descriptor.cpp_type()) {
-    case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
-    case google::protobuf::FieldDescriptor::CPPTYPE_ENUM:
-      schema_item = internal::DataItem(schema::kInt32);
-      break;
-    case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
-    case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
-    case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
-      schema_item = internal::DataItem(schema::kInt64);
-      break;
-    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
-      schema_item = internal::DataItem(schema::kFloat64);
-      break;
-    case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
-      schema_item = internal::DataItem(schema::kFloat32);
-      break;
-    case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
-      schema_item = internal::DataItem(schema::kBool);
-      break;
-    case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
-      if (field_descriptor.type() == google::protobuf::FieldDescriptor::TYPE_BYTES) {
-        schema_item = internal::DataItem(schema::kBytes);
-      } else {
-        schema_item = internal::DataItem(schema::kString);
-      }
-      break;
-    default:
-      DCHECK(false);
-      return absl::InvalidArgumentError(
-          absl::StrFormat("expected primitive proto field, got %v",
-                          field_descriptor.DebugString()));
+  ASSIGN_OR_RETURN(auto field_options_schema_item,
+                   SchemaItemFromPrimitiveFieldKodaOptions(field_descriptor));
+  if (field_options_schema_item.has_value()) {
+    schema_item = std::move(*field_options_schema_item);
+  } else {
+    switch (field_descriptor.cpp_type()) {
+      case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+      case google::protobuf::FieldDescriptor::CPPTYPE_ENUM:
+        schema_item = internal::DataItem(schema::kInt32);
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
+      case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
+      case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
+        schema_item = internal::DataItem(schema::kInt64);
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+        schema_item = internal::DataItem(schema::kFloat64);
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
+        schema_item = internal::DataItem(schema::kFloat32);
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
+        schema_item = internal::DataItem(schema::kBool);
+        break;
+      case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
+        if (field_descriptor.type() == google::protobuf::FieldDescriptor::TYPE_BYTES) {
+          schema_item = internal::DataItem(schema::kBytes);
+        } else {
+          schema_item = internal::DataItem(schema::kString);
+        }
+        break;
+      default:
+        DCHECK(false);
+        return absl::InvalidArgumentError(
+            absl::StrFormat("expected primitive proto field, got %v",
+                            field_descriptor.DebugString()));
+    }
   }
   return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema));
 }
@@ -1292,8 +1365,8 @@ absl::Status FillSchemaFromProtoMessageFieldDescriptor(
 // Child fields are populated asynchronously using `executor`.
 absl::Status FillSchemaFromProtoFieldDescriptor(
     const DataSlice& parent_message_schema,
-    const DataSlice& parent_schema_metadata,
-    absl::string_view attr_name, const FieldDescriptor& field_descriptor,
+    const DataSlice& parent_schema_metadata, absl::string_view attr_name,
+    const FieldDescriptor& field_descriptor,
     const ExtensionMap* absl_nullable parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
@@ -1359,11 +1432,11 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
   if (extension_map != nullptr) {
     for (const auto& [attr_name, field] : extension_map->extension_fields) {
       if (field->containing_type() != &message_descriptor) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "extension \"%s\" exists, but isn't an extension "
-            "on target message type \"%s\", expected \"%s\"",
-            field->full_name(), message_descriptor.full_name(),
-            field->containing_type()->full_name()));
+        return absl::InvalidArgumentError(
+            absl::StrFormat("extension \"%s\" exists, but isn't an extension "
+                            "on target message type \"%s\", expected \"%s\"",
+                            field->full_name(), message_descriptor.full_name(),
+                            field->containing_type()->full_name()));
       }
       RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
           schema, metadata, attr_name, *field, extension_map,

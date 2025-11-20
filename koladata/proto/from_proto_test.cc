@@ -23,6 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/jagged_shape/testing/matchers.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -31,6 +32,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/masking.h"
@@ -684,6 +686,29 @@ TEST(FromProtoTest, ExplicitSchema) {
                   schema::kInt64, db))));
 }
 
+TEST(FromProtoTest, KodaOptions) {
+  testing::ExampleMessageWithKodaOptions message;
+  CHECK(TextFormat::ParseFromString(R"pb(
+                                      bool_field: true
+                                      repeated_bool_field: [ false, true ]
+                                    )pb",
+                                    &message));
+
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
+
+  EXPECT_THAT(result.GetAttr("bool_field"),
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataSlice<arolla::Unit>({arolla::kUnit}, db))));
+  EXPECT_THAT(result.GetAttr("repeated_bool_field")
+                  ->ExplodeList(0, std::nullopt)
+                  ->Flatten(),
+              IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                  {arolla::OptionalValue<arolla::Unit>(),
+                   arolla::OptionalValue<arolla::Unit>(arolla::kUnit)},
+                  db)));
+}
+
 TEST(FromProtoTest, Uint64Overflow) {
   testing::ExampleMessage message;
   // 18446744069414584319 = 2**64 - 2**32 - 1
@@ -1277,6 +1302,37 @@ TEST(FromProtoTest, SchemaFromProtoWithNestedExtension) {
                 ->GetAttr("(koladata.testing.m2_bool_extension_field)")
                 ->item(),
             internal::DataItem(schema::kBool));
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptions) {
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessageWithKodaOptions::descriptor()));
+  EXPECT_EQ(schema.GetAttr("bool_field")->item(),
+            internal::DataItem(schema::kMask));
+  EXPECT_EQ(schema.GetAttr("repeated_bool_field")
+                ->GetAttr(schema::kListItemsSchemaAttr)
+                ->item(),
+            internal::DataItem(schema::kMask));
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsWrongType) {
+  EXPECT_THAT(
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessageWrongType::descriptor()),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "MASK koda field schema override can only be used on bool fields"));
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsConflictAnnotation) {
+  EXPECT_THAT(
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessageConflictAnnotation::descriptor()),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "koda field schema override cannot be used on fields with a "
+               "custom default value"));
 }
 
 }  // namespace

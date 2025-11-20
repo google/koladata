@@ -14,6 +14,7 @@
 
 # Proto conversions for Koda.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
@@ -32,6 +33,11 @@ proto_library(
     ],
 )
 
+cc_proto_library(
+    name = "annotations_cc_proto",
+    deps = [":annotations_proto"],
+)
+
 cc_library(
     name = "from_proto",
     srcs = ["from_proto.cc"],
@@ -41,6 +47,7 @@ cc_library(
         "//koladata:internal",
     ],
     deps = [
+        ":annotations_cc_proto",
         ":proto_schema_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -81,6 +88,7 @@ cc_test(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal/testing:matchers",
         "//koladata/operators:lib",
         "//koladata/proto/testing:test_proto2_cc_proto",
@@ -90,6 +98,7 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/jagged_shape/testing",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
