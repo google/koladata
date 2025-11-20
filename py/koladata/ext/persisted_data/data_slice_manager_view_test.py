@@ -262,13 +262,6 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
       self.assertEmpty(docs.title.get_children())
 
-    with self.subTest('__iter__'):
-      for some_view in [root, root.query, queries, docs, docs.title]:
-        self.assertEqual(
-            [child for child in some_view],
-            some_view.get_children(),
-        )
-
     with self.subTest('get_list_items'):
       self.assertEqual(
           root.query.get_list_items(),
@@ -524,12 +517,6 @@ class DataSliceManagerViewTest(absltest.TestCase):
         re.escape("invalid data slice path: '.query[:].doc[:].title'"),
     ):
       doc_title.get_children()
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape("invalid data slice path: '.query[:].tokens'"),
-    ):
-      for _ in tokens:
-        pass
 
     # Specific methods for navigation require valid views from which to start
     # the navigation.

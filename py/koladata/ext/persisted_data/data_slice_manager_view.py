@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generator, Iterator
+from typing import Any, Callable, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -295,17 +295,6 @@ class DataSliceManagerView:
       of kd.dir(self.get_schema()).
     """
     return list(self.find_descendants(lambda v: True, max_delta_depth=1))
-
-  def __iter__(self) -> Iterator[DataSliceManagerView]:
-    """Iterates over the children of the view path.
-
-    The view path must be valid, i.e. self.is_view_valid() must be True.
-
-    Yields:
-      The views of the children of the view path, in the order defined by
-      self.get_children().
-    """
-    yield from self.get_children()
 
   def find_descendants(
       self,
