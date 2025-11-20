@@ -1,0 +1,41 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+syntax = "proto2";
+
+package koladata;
+
+import "google/protobuf/descriptor.proto";
+
+// Controls how the field is converted to a Koda schema.
+// Error will be raised by koda operators if the type promotion rules are
+// violated.
+message KodaOptions {
+  enum Schema {
+    // This should not be used to annotate any field.
+    SCHEMA_UNSPECIFIED = 0;
+
+    // Only used for bool fields. If a proto field is annotated with this:
+    // * the field is converted to a Koda mask by schema_from_proto.
+    // * bool value is converted to present/missing accordingly.
+    // * kd.missing will be converted to unset when converting to a proto.
+    // * this annotation conflicts with default_value.
+    SCHEMA_MASK = 5;
+  }
+  optional Schema schema = 1;
+}
+
+extend google.protobuf.FieldOptions {
+  optional KodaOptions options = 535815045;
+}

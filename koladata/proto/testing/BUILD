@@ -26,6 +26,7 @@ licenses(["notice"])
 proto_library(
     name = "test_proto2_proto",
     srcs = ["test_proto2.proto"],
+    deps = ["//koladata/proto:annotations_proto"],
 )
 
 cc_proto_library(

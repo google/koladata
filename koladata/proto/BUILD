@@ -14,6 +14,7 @@
 
 # Proto conversions for Koda.
 
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
@@ -22,6 +23,14 @@ package(default_visibility = [
 ])
 
 licenses(["notice"])
+
+proto_library(
+    name = "annotations_proto",
+    srcs = ["annotations.proto"],
+    deps = [
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+)
 
 cc_library(
     name = "from_proto",

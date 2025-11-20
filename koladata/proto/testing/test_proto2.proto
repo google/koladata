@@ -16,6 +16,8 @@ syntax = "proto2";
 
 package koladata.testing;
 
+import "koladata/proto/annotations.proto";
+
 enum ExampleEnum {
   EXAMPLE_ENUM_UNKNOWN = 0;
   EXAMPLE_ENUM_FOO = 1;
@@ -66,4 +68,19 @@ message ExampleMessage2 {
 extend ExampleMessage2 {
   optional bool m2_bool_extension_field = 2000;
   optional ExampleMessage2 m2_message2_extension_field = 2001;
+}
+
+message ExampleMessageWithKodaOptions {
+  optional bool bool_field = 1 [(koladata.options) = { schema: SCHEMA_MASK }];
+  repeated bool repeated_bool_field = 2
+      [(koladata.options) = { schema: SCHEMA_MASK }];
+}
+
+message ExampleMessageWrongType {
+  optional int32 int32_field = 1 [(koladata.options) = { schema: SCHEMA_MASK }];
+}
+
+message ExampleMessageConflictAnnotation {
+  optional bool bool_field = 1
+      [(koladata.options) = { schema: SCHEMA_MASK }, default = true];
 }
