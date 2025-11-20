@@ -88,8 +88,8 @@ absl::StatusOr<ValueDecoderResult> DecodeLiteralOperator(
         "expected 1 input_value_index, got %d; value=LITERAL_OPERATOR",
         input_values.size()));
   }
-  arolla::expr::ExprOperatorPtr op =
-      expr::LiteralOperator::MakeLiteralOperator(input_values[0]);
+  ASSIGN_OR_RETURN(arolla::expr::ExprOperatorPtr op,
+                   koladata::expr::LiteralOperator::Make(input_values[0]));
   return TypedValue::FromValue(std::move(op));
 }
 
@@ -678,7 +678,7 @@ struct DataBagDecoder {
       fallbacks.reserve(db_proto.fallback_count());
       for (int i = 0; i < db_proto.fallback_count(); ++i) {
         ASSIGN_OR_RETURN(fallbacks.emplace_back(),
-                        input_values[i].As<DataBagPtr>());
+                         input_values[i].As<DataBagPtr>());
       }
       db = DataBag::ImmutableEmptyWithFallbacks(fallbacks);
     } else {

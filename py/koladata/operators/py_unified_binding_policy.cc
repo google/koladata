@@ -456,8 +456,11 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
     if (auto* expr = std::get_if<ExprNodePtr>(&arg)) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(koladata::expr::MakeLiteral(
-          std::move(*std::get_if<TypedValue>(&arg))));
+      // Note: Consider adding a note with the argument name to the error.
+      ASSIGN_OR_RETURN(node_deps.emplace_back(),
+                       koladata::expr::MakeLiteral(
+                           std::move(*std::get_if<TypedValue>(&arg))),
+                       (SetPyErrFromStatus(_), std::nullopt));
     }
   }
   static const absl::NoDestructor make_tuple_op(
@@ -522,8 +525,11 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwargs(
     if (auto* expr = std::get_if<ExprNodePtr>(&args[i])) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(koladata::expr::MakeLiteral(
-          std::move(*std::get_if<TypedValue>(&args[i]))));
+      // Note: Consider adding a note with the argument name to the error.
+      ASSIGN_OR_RETURN(node_deps.emplace_back(),
+                       koladata::expr::MakeLiteral(
+                           std::move(*std::get_if<TypedValue>(&args[i]))),
+                       (SetPyErrFromStatus(_), std::nullopt));
     }
   }
   node_deps[0] = arolla::expr::Literal(Text(std::move(field_names)));
@@ -727,8 +733,10 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   }
 
   // (See the base class.)
-  absl_nullable ExprNodePtr MakeLiteral(TypedValue&& value) const final {
-    return koladata::expr::MakeLiteral(std::move(value));
+  ExprNodePtr absl_nullable MakeLiteral(TypedValue&& value) const final {
+    ASSIGN_OR_RETURN(auto result, koladata::expr::MakeLiteral(std::move(value)),
+                     (SetPyErrFromStatus(_), nullptr));
+    return result;
   }
 };
 

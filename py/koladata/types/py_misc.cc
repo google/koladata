@@ -49,8 +49,11 @@ PyObject* absl_nullable PyLiteral(PyObject* /*module*/, PyObject* value) {
         "`value` must be a QValue to be wrapped into a literal, got: %s",
         Py_TYPE(value)->tp_name);
   }
-  return arolla::python::WrapAsPyExpr(
-      koladata::expr::MakeLiteral(arolla::python::UnsafeUnwrapPyQValue(value)));
+  ASSIGN_OR_RETURN(
+      auto result,
+      koladata::expr::MakeLiteral(arolla::python::UnsafeUnwrapPyQValue(value)),
+      arolla::python::SetPyErrFromStatus(_));
+  return arolla::python::WrapAsPyExpr(std::move(result));
 }
 
 PyObject* absl_nullable PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
@@ -78,8 +81,8 @@ PyObject* absl_nullable PyFlattenPyList(PyObject* /*module*/,
   for (int i = 0; i < py_objects.size(); ++i) {
     PyList_SetItem(py_list.get(), i, Py_NewRef(py_objects[i]));
   }
-  auto py_shape = arolla::python::PyObjectPtr::Own(
-      WrapPyJaggedShape(std::move(shape)));
+  auto py_shape =
+      arolla::python::PyObjectPtr::Own(WrapPyJaggedShape(std::move(shape)));
   return PyTuple_Pack(2, py_list.release(), py_shape.release());
 }
 

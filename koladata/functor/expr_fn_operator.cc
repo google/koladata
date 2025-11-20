@@ -135,8 +135,9 @@ class PackAsLiteralOperator : public arolla::QExprOperator {
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
-          auto literal = expr::MakeLiteral(
-              arolla::TypedValue::FromSlot(input_slot, frame));
+          ASSIGN_OR_RETURN(auto literal,
+                           expr::MakeLiteral(arolla::TypedValue::FromSlot(
+                               input_slot, frame)));
           auto quote = arolla::expr::ExprQuote(std::move(literal));
           frame.Set(output_slot, DataSlice::CreatePrimitive(std::move(quote)));
           return absl::OkStatus();

@@ -56,9 +56,9 @@ class LiteralOperator final
   struct PrivateConstructorTag {};
 
  public:
-  explicit LiteralOperator(arolla::TypedValue value, PrivateConstructorTag);
+  explicit LiteralOperator(PrivateConstructorTag, arolla::TypedValue value);
 
-  static std::shared_ptr<LiteralOperator> MakeLiteralOperator(
+  static absl::StatusOr<std::shared_ptr<LiteralOperator>> Make(
       arolla::TypedValue value);
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
@@ -115,7 +115,7 @@ class ToArollaTextOperator final : public ToArollaValueOperator {
 };
 
 // Return a literal Expr node.
-arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value);
+absl::StatusOr<arolla::expr::ExprNodePtr> MakeLiteral(arolla::TypedValue value);
 
 // Non-lowerable operator
 // ```

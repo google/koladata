@@ -221,6 +221,7 @@ py_test(
         ":unified_binding_policy",
         "//py:python_path",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",

@@ -58,8 +58,10 @@ class PyBoxingTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     qvalue_handler_registry = py_boxing._DUMMY_QVALUE_HANDLER_REGISTRY.copy()
+
     def cleanup():
       py_boxing._DUMMY_QVALUE_HANDLER_REGISTRY = qvalue_handler_registry
+
     self.addCleanup(cleanup)
 
   @parameterized.parameters(
@@ -311,11 +313,11 @@ class PyBoxingTest(parameterized.TestCase):
     ):
       py_boxing.as_expr([1])
 
-  def test_databag_literal_is_immutable(self):
+  def test_error_mutable_databag_non_frozen(self):
     db = bag()
     self.assertTrue(db.is_mutable())
-    self.assertFalse(py_boxing.as_expr(db).qvalue.is_mutable())
-    self.assertFalse(py_boxing.as_expr(db.new(x='hello')).qvalue.is_mutable())
+    with self.assertRaisesRegex(ValueError, re.escape('DataBag is not frozen')):
+      _ = py_boxing.as_expr(db)
 
 
 class DefaultBoxingPolicyTest(absltest.TestCase):

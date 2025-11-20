@@ -21,7 +21,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
-
+from koladata.expr import input_container
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -31,6 +31,7 @@ from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
+I = input_container.InputContainer('I')
 
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty_mutable
@@ -296,9 +297,7 @@ $""",
         r'\n\nSchemaBag:',
     )
     # NOTE: the order of the lines below is not deterministic.
-    self.assertRegex(
-        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32'
-    )
+    self.assertRegex(db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32')
     self.assertRegex(
         db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<INT32>'
     )
@@ -335,9 +334,7 @@ $""",
         r'\n\nSchemaBag:',
     )
     # NOTE: the order of the lines below is not deterministic.
-    self.assertRegex(
-        db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32'
-    )
+    self.assertRegex(db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => INT32')
     self.assertRegex(
         db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<INT32>'
     )
@@ -1215,7 +1212,7 @@ Assigned schema for keys: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.new_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has(x).eval().with_bag(None),
+        kde.has(I.x).eval(x=x).with_bag(None),
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     self.assertIsInstance(x, data_slice.DataSlice)
@@ -1289,7 +1286,7 @@ Assigned schema for keys: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.obj_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(),
+        kde.has(I.x).eval(x=x).no_bag(),
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     x.a = ds([[1, 2, 3], [4, 5]])
@@ -1533,7 +1530,7 @@ Assigned schema for keys: INT32""",
     db = bag()
     with self.assertRaisesRegex(
         TypeError,
-        re.escape('_list_like() takes from 2 to 3 positional arguments')
+        re.escape('_list_like() takes from 2 to 3 positional arguments'),
     ):
       db.list_like(ds([]), ds([]), ds([]))  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
@@ -1552,7 +1549,7 @@ Assigned schema for keys: INT32""",
     db = bag()
     with self.assertRaisesRegex(
         TypeError,
-        re.escape('_implode() takes from 2 to 4 positional arguments')
+        re.escape('_implode() takes from 2 to 4 positional arguments'),
     ):
       db.implode(ds([]), 1, 2, 3)  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(

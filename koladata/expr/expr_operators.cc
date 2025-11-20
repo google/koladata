@@ -23,7 +23,6 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -43,7 +42,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
-#include "koladata/data_bag.h"
+#include "koladata/check_frozen.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/non_deterministic_token.h"
@@ -67,19 +66,6 @@ absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
         absl::StrFormat("expected %s to be a literal", param_name));
   }
   return absl::OkStatus();
-}
-
-arolla::TypedValue FreezeDataBagOrDataSlice(arolla::TypedValue value) {
-  if (value.GetType() == arolla::GetQType<DataBagPtr>()) {
-    DataBagPtr bag = value.UnsafeAs<DataBagPtr>();
-    if (bag != nullptr) {
-      return arolla::TypedValue::FromValue(bag->Freeze());
-    }
-  } else if (value.GetType() == arolla::GetQType<DataSlice>()) {
-    return arolla::TypedValue::FromValue(
-        value.UnsafeAs<DataSlice>().FreezeBag());
-  }
-  return value;
 }
 
 }  // namespace
@@ -112,24 +98,22 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
   return arolla::expr::ExprAttributes{};
 }
 
-arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value) {
-  auto op = expr::LiteralOperator::MakeLiteralOperator(std::move(value));
-  // NOTE: We own the LiteralOperator::InferAttributes computation, and
-  // therefore know that this cannot fail. It's therefore safe to dereference
-  // the StatusOr without properly handling potential errors.
-  auto output_attr = *op->InferAttributes({});
-  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(std::move(op), {},
-                                                        std::move(output_attr));
-}
-
-std::shared_ptr<LiteralOperator> LiteralOperator::MakeLiteralOperator(
+absl::StatusOr<arolla::expr::ExprNodePtr> MakeLiteral(
     arolla::TypedValue value) {
-  return std::make_shared<LiteralOperator>(
-      FreezeDataBagOrDataSlice(std::move(value)), PrivateConstructorTag{});
+  ASSIGN_OR_RETURN(auto op, expr::LiteralOperator::Make(value));
+  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
+      std::move(op), {}, arolla::expr::ExprAttributes(std::move(value)));
 }
 
-LiteralOperator::LiteralOperator(arolla::TypedValue value,
-                                 PrivateConstructorTag)
+absl::StatusOr<std::shared_ptr<LiteralOperator>> LiteralOperator::Make(
+    arolla::TypedValue value) {
+  RETURN_IF_ERROR(CheckFrozen(value.AsRef()));
+  return std::make_shared<LiteralOperator>(PrivateConstructorTag{},
+                                           std::move(value));
+}
+
+LiteralOperator::LiteralOperator(PrivateConstructorTag,
+                                 arolla::TypedValue value)
     : arolla::expr::ExprOperatorWithFixedSignature(
           "koda_internal.literal", arolla::expr::ExprOperatorSignature{},
           "Koda literal.",
@@ -238,30 +222,26 @@ bool IsInput(const arolla::expr::ExprNodePtr& node) {
 }
 
 bool IsLiteral(const arolla::expr::ExprNodePtr& node) {
-  if (node->is_op()) {
-    return nullptr !=
-           arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
-               arolla::expr::DecayRegisteredOperator(node->op())
-                   .value_or(nullptr)
-                   .get());
-  }
-  return node->is_literal();
+  return node->is_literal() ||
+         (arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
+              node->op().get()) != nullptr);
 }
 
 absl::StatusOr<InputContainer> InputContainer::Create(
     absl::string_view cont_name) {
   ASSIGN_OR_RETURN(auto input_op, arolla::expr::LookupOperator(kInternalInput));
-  return InputContainer(
-      std::move(input_op),
-      MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(cont_name))));
+  ASSIGN_OR_RETURN(auto cont_name_literal,
+                   MakeLiteral(arolla::TypedValue::FromValue(
+                       arolla::Text(std::string(cont_name)))));
+  return InputContainer(std::move(input_op), std::move(cont_name_literal));
 }
 
 absl::StatusOr<arolla::expr::ExprNodePtr> InputContainer::CreateInput(
     absl::string_view key) const {
-  return arolla::expr::MakeOpNode(
-      input_op_,
-      {cont_name_,
-       MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(key)))});
+  ASSIGN_OR_RETURN(auto key_literal, MakeLiteral(arolla::TypedValue::FromValue(
+                                         arolla::Text(std::string(key)))));
+  return arolla::expr::MakeOpNode(input_op_,
+                                  {cont_name_, std::move(key_literal)});
 }
 
 absl::StatusOr<std::optional<std::string>> InputContainer::GetInputName(

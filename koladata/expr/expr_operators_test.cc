@@ -19,142 +19,81 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
+#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
-#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/test_utils.h"
 
 namespace koladata::expr {
-
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
+using ::testing::HasSubstr;
 using testing::UnorderedElementsAre;
 
-TEST(LiteralOperatorTest, DatabagLiteral) {
-  // Literal freezes databag.
-  {
-    auto db = DataBag::EmptyMutable();
-    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-        arolla::TypedValue::FromValue(db));
+TEST(MakeLiteralTest, Basics) {
+  constexpr auto check = [](arolla::TypedValue value) {
+    ASSERT_OK_AND_ASSIGN(auto literal, MakeLiteral(value));
+    EXPECT_TRUE(
+        literal->attr().IsIdenticalTo(arolla::expr::ExprAttributes(value)));
+    auto literal_op = dynamic_cast<const LiteralOperator*>(literal->op().get());
+    ASSERT_NE(literal_op, nullptr);
+    EXPECT_EQ(literal_op->value().GetFingerprint(), value.GetFingerprint());
+  };
 
-    EXPECT_NE(db, literal_op->value().UnsafeAs<DataBagPtr>());
-    EXPECT_FALSE(literal_op->value().UnsafeAs<DataBagPtr>()->IsMutable());
-    ASSERT_OK_AND_ASSIGN(auto attr, literal_op->InferAttributes({}));
-    EXPECT_TRUE(attr.IsIdenticalTo(
-        arolla::expr::ExprAttributes(literal_op->value())));
-  }
-  // Frozen Databag remains unchanged.
-  {
-    auto db = DataBag::EmptyMutable();
-    db = db->Freeze();
-    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-        arolla::TypedValue::FromValue(db));
+  check(arolla::TypedValue::FromValue(DataBag::Empty()));
+  check(arolla::TypedValue::FromValue(DataBagPtr{nullptr}));
+  check(arolla::TypedValue::FromValue(
+      test::DataSlice<int>({1, 2, 3}, DataBag::Empty())));
+  check(arolla::TypedValue::FromValue(int64_t{1}));
 
-    EXPECT_EQ(db, literal_op->value().UnsafeAs<DataBagPtr>());
-    EXPECT_FALSE(literal_op->value().UnsafeAs<DataBagPtr>()->IsMutable());
-    ASSERT_OK_AND_ASSIGN(auto attr, literal_op->InferAttributes({}));
-    EXPECT_TRUE(attr.IsIdenticalTo(
-        arolla::expr::ExprAttributes(literal_op->value())));
+  {  // Mutable DataBag is not supported.
+    auto db = arolla::TypedValue::FromValue(DataBag::EmptyMutable());
+    EXPECT_THAT(MakeLiteral(db), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("DataBag is not frozen")));
   }
-  // Null DataBag is supported.
-  {
-    DataBagPtr db = nullptr;
-    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-        arolla::TypedValue::FromValue(db));
-    EXPECT_EQ(db, literal_op->value().UnsafeAs<DataBagPtr>());
+  {  // Mutable DataSlice is not supported.
+    auto ds = arolla::TypedValue::FromValue(
+        test::DataSlice<int>({1, 2, 3}, DataBag::EmptyMutable()));
+    EXPECT_THAT(LiteralOperator::Make(ds),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("DataSlice is not frozen")));
   }
 }
 
-TEST(LiteralOperatorTest, DataSliceLiteral) {
-  // Literal freezes DataSlice.
-  {
-    auto db = DataBag::EmptyMutable();
-    auto ds = test::DataSlice<int>({1, 2, 3}, db);
-    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-        arolla::TypedValue::FromValue(ds));
-    EXPECT_NE(db, literal_op->value().UnsafeAs<DataSlice>().GetBag());
-    EXPECT_FALSE(
-        literal_op->value().UnsafeAs<DataSlice>().GetBag()->IsMutable());
-    ASSERT_OK_AND_ASSIGN(auto attr, literal_op->InferAttributes({}));
-    EXPECT_TRUE(attr.IsIdenticalTo(
-        arolla::expr::ExprAttributes(literal_op->value())));
-  }
-  // Frozen DataSlice remains unchanged.
-  {
-    auto db = DataBag::EmptyMutable();
-    auto ds = test::DataSlice<int>({1, 2, 3}, db);
-    ds = ds.FreezeBag();
-    auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-        arolla::TypedValue::FromValue(ds));
-    EXPECT_EQ(ds.GetBag(), literal_op->value().UnsafeAs<DataSlice>().GetBag());
-    EXPECT_FALSE(
-        literal_op->value().UnsafeAs<DataSlice>().GetBag()->IsMutable());
-    ASSERT_OK_AND_ASSIGN(auto attr, literal_op->InferAttributes({}));
-    EXPECT_TRUE(attr.IsIdenticalTo(
-        arolla::expr::ExprAttributes(literal_op->value())));
-  }
+TEST(MakeLiteralTest, FingerprintProperties) {
+  auto db_1 = arolla::TypedValue::FromValue(DataBag::Empty());
+  auto db_2 = arolla::TypedValue::FromValue(DataBag::Empty());
+  ASSERT_OK_AND_ASSIGN(auto literal_1_1, MakeLiteral(db_1));
+  ASSERT_OK_AND_ASSIGN(auto literal_1_2, MakeLiteral(db_1));
+  ASSERT_OK_AND_ASSIGN(auto literal_2, MakeLiteral(db_2));
+  EXPECT_EQ(literal_1_1->fingerprint(), literal_1_2->fingerprint());
+  EXPECT_NE(literal_1_1->fingerprint(), literal_2->fingerprint());
 }
 
-TEST(LiteralOperatorTest, RegularLiteral) {
-  auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(int64_t{1}));
-  EXPECT_EQ(1, literal_op->value().UnsafeAs<int64_t>());
-  ASSERT_OK_AND_ASSIGN(auto attr, literal_op->InferAttributes({}));
-  EXPECT_TRUE(attr.IsIdenticalTo(
-      arolla::expr::ExprAttributes(literal_op->value())));
-}
-
-TEST(LiteralOperatorTest, FingerprintProperties) {
-  // A literal constructed from a mutable databag has the same fingerprint as
-  // a literal constructed from the resulting frozen databag.
-  auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(DataBag::EmptyMutable()));
-  auto literal_op_from_frozen = expr::LiteralOperator::MakeLiteralOperator(
-      literal_op->value());
-  EXPECT_EQ(literal_op->fingerprint(), literal_op_from_frozen->fingerprint());
-
-  // A literal constructed from a different databag has a different fingerprint.
-  auto literal_from_second_bag = expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(DataBag::EmptyMutable()));
-  EXPECT_NE(literal_op->fingerprint(), literal_from_second_bag->fingerprint());
-
-  // Same as above but for DataSlices.
-  auto literal_op_from_ds =
-      expr::LiteralOperator::MakeLiteralOperator(arolla::TypedValue::FromValue(
-          test::DataSlice<int>({1, 2, 3}, DataBag::EmptyMutable())));
-  auto literal_op_from_frozen_ds = expr::LiteralOperator::MakeLiteralOperator(
-      literal_op_from_ds->value());
-  EXPECT_EQ(literal_op_from_ds->fingerprint(),
-            literal_op_from_frozen_ds->fingerprint());
-  auto literal_op_from_second_ds =
-      expr::LiteralOperator::MakeLiteralOperator(arolla::TypedValue::FromValue(
-          test::DataSlice<int>({1, 2, 3}, DataBag::EmptyMutable())));
-  EXPECT_NE(literal_op_from_ds->fingerprint(),
-            literal_op_from_second_ds->fingerprint());
-
-  // Values different than db and ds.
-  EXPECT_EQ(expr::LiteralOperator::MakeLiteralOperator(
-      arolla::TypedValue::FromValue(int64_t{1}))->fingerprint(),
-      expr::LiteralOperator::MakeLiteralOperator(
-          arolla::TypedValue::FromValue(int64_t{1}))->fingerprint()
-      );
-}
-
-TEST(LiteralOperatorTest, IsLiteral) {
-  auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
-    arolla::TypedValue::FromValue(int64_t{1}));
-  ASSERT_OK_AND_ASSIGN(auto koda_literal,
-                       arolla::expr::MakeOpNode(literal_op, {}));
-  auto arolla_literal = arolla::expr::Literal(int64_t{1});
+TEST(MakeLiteralTest, IsLiteral) {
+  auto value = arolla::TypedValue::FromValue(int64_t{1});
+  ASSERT_OK_AND_ASSIGN(auto koda_literal, MakeLiteral(value));
+  auto arolla_literal = arolla::expr::Literal(value);
   EXPECT_TRUE(IsLiteral(koda_literal));
   EXPECT_TRUE(IsLiteral(arolla_literal));
   EXPECT_FALSE(IsLiteral(arolla::expr::Leaf("x")));
+  {
+    ASSERT_OK_AND_ASSIGN(
+        auto reg_op,
+        arolla::expr::RegisterOperator(
+            "koladata_testing.make_literal_test.literal_operator",
+            LiteralOperator::Make(arolla::TypedValue::FromValue(int64_t{1}))));
+    ASSERT_OK_AND_ASSIGN(auto reg_literal, arolla::expr::CallOp(reg_op, {}));
+    EXPECT_FALSE(IsLiteral(reg_literal));
+  }
 }
 
 TEST(InputContainerTest, Container) {
@@ -195,6 +134,4 @@ TEST(InputContainerTest, Container) {
 }
 
 }  // namespace
-
 }  // namespace koladata::expr
-

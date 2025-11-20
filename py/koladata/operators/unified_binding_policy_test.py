@@ -23,6 +23,7 @@ from arolla import arolla
 from koladata.operators import op_repr
 from koladata.operators import unified_binding_policy
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -155,7 +156,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
         ValueError,
         "custom_boxing_fn_name specified for unknown parameter: 'a5'",
     ):
-      sig = unified_binding_policy.make_unified_signature(
+      _ = unified_binding_policy.make_unified_signature(
           inspect.signature(op),
           deterministic=False,
           custom_boxing_fn_name_per_parameter=dict(a5='as_qvalue_or_expr'),
@@ -747,6 +748,24 @@ class BindArgumentsTest(parameterized.TestCase):
         str(outer_ex.__cause__),
         '`koladata.types.py_boxing` is not imported yet',
     )
+
+  def test_error_make_literal_failure(self):
+    op = arolla.optools.make_lambda(
+        unified_binding_policy.make_unified_signature(
+            inspect.signature(lambda x, *args, **kwargs: None),
+            deterministic=True,
+            custom_boxing_fn_name_per_parameter={},
+        ),
+        (P.x, P.args, P.kwargs),
+        name='unified_op',
+    )
+    m = data_bag.DataBag.empty_mutable()
+    with self.assertRaisesRegex(ValueError, re.escape('DataBag is not frozen')):
+      _ = op(m)
+    with self.assertRaisesRegex(ValueError, re.escape('DataBag is not frozen')):
+      _ = op(0, m)
+    with self.assertRaisesRegex(ValueError, re.escape('DataBag is not frozen')):
+      _ = op(0, m=m)
 
 
 unified_op = arolla.abc.register_operator(

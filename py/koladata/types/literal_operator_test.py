@@ -72,7 +72,7 @@ class LiteralOperatorTest(parameterized.TestCase):
         literal_operator.literal(ds([1, 2, 3])).qtype, qtypes.DATA_SLICE
     )
     self.assertEqual(
-        literal_operator.literal(data_bag.DataBag.empty_mutable()).qtype,
+        literal_operator.literal(data_bag.DataBag.empty()).qtype,
         qtypes.DATA_BAG,
     )
 
@@ -114,7 +114,7 @@ class LiteralOperatorTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(x))
 
     # DataBag.
-    x = literal_operator.literal(data_bag.DataBag.empty_mutable())
+    x = literal_operator.literal(data_bag.DataBag.empty())
     self.assertTrue(view.has_koda_view(x))
 
     # Arolla values also have a KodaView, which is suboptimal, but we want e.g.
@@ -159,6 +159,7 @@ class LiteralOperatorTest(parameterized.TestCase):
         data_bag.DataBag.empty_mutable()
         .new(x=1)
         .enriched(data_bag.DataBag.empty_mutable())
+        .freeze_bag()
     )
     l = literal_operator.literal(x)
     self.assertEqual(

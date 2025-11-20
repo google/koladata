@@ -30,7 +30,7 @@ namespace koladata::functor::parallel {
 
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprOperatorSignature;
-using ::arolla::expr::LambdaOperator;
+using ::arolla::expr::MakeLambdaOperator;
 using ::arolla::expr::RegisterOperator;
 using ::koladata::expr::MakeLiteral;
 
@@ -41,7 +41,7 @@ AROLLA_INITIALIZER(
           RETURN_IF_ERROR(
               RegisterOperator(
                   "koda_internal.parallel.get_eager_executor",
-                  LambdaOperator::Make(
+                  MakeLambdaOperator(
                       "kd.parallel.get_eager_executor", ExprOperatorSignature{},
                       MakeLiteral(TypedValue::FromValue(GetEagerExecutor())),
                       "Returns an executor that runs tasks right away on the "
@@ -50,7 +50,7 @@ AROLLA_INITIALIZER(
           RETURN_IF_ERROR(
               RegisterOperator(
                   "koda_internal.parallel.get_default_executor",
-                  LambdaOperator::Make(
+                  MakeLambdaOperator(
                       "kd.parallel.get_default_executor",
                       ExprOperatorSignature{},
                       MakeLiteral(TypedValue::FromValue(GetDefaultExecutor())),
