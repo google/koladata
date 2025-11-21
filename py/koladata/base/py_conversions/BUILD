@@ -75,6 +75,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:schema_attrs",
         "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:trampoline_executor",
         "//py/koladata/base:boxing",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
