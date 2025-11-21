@@ -61,10 +61,6 @@ obj_shaped_as = _object_factories.obj_shaped_as
 
 # NOTE: Explicitly overwrite operators that accept a DataBag as an argument or
 # are mutable in "core" namespace.
-core = _py_types.SimpleNamespace(
-    container=_object_factories.container,
-)
-
 bags = _py_types.SimpleNamespace(
     new=_object_factories.bag,
 )

@@ -158,7 +158,6 @@ optools.eager.EagerOperator = _eager_op_utils.EagerOperator
 ### Public functions.
 
 # go/keep-sorted start
-container = _eager_only(_object_factories.container)
 del_attr = _eager_only(_attrs.del_attr)
 dir = _eager_only(_attrs.dir)  # pylint: disable=redefined-builtin
 dumps = _eager_only(_s11n.dumps)

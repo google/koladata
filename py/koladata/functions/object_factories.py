@@ -603,22 +603,6 @@ def obj(
   )
 
 
-def container(**attrs: Any) -> data_slice.DataSlice:
-  """Creates new Objects with an implicit stored schema.
-
-  Returned DataSlice has OBJECT schema and mutable DataBag.
-
-  Args:
-    **attrs: attrs to set on the returned object.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
-  """
-  o = mutable_bag().obj()
-  o.set_attrs(**attrs)
-  return o
-
-
 def obj_shaped(
     shape: jagged_shape.JaggedShape,
     /,

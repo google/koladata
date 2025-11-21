@@ -34,6 +34,10 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
 
+def mutable_obj():
+  return object_factories.mutable_bag().obj()
+
+
 class ToPyTest(parameterized.TestCase):
 
   def test_empty_slice(self):
@@ -51,7 +55,7 @@ class ToPyTest(parameterized.TestCase):
     )
 
   def test_list(self):
-    root = object_factories.container()
+    root = mutable_obj()
     root.none_list_value = []
     root.none_list_value.append(None)
     with self.assertRaisesRegex(
@@ -120,7 +124,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertNotEqual(id(res.p1), id(res.p2))
 
   def test_dict(self):
-    root = object_factories.container()
+    root = mutable_obj()
     root.dict_value = fns.dict()
     root.dict_value['key_1'] = 'value_1'
     root.dict_value['key_2'] = 'value_2'
@@ -142,7 +146,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(py_obj, expected)
 
   def test_dict_with_obj_keys(self):
-    root = object_factories.container()
+    root = mutable_obj()
     root.dict_value = fns.dict()
     k1 = fns.obj(a=1)
     k2 = fns.list([1, 2])
@@ -170,7 +174,7 @@ class ToPyTest(parameterized.TestCase):
     )
 
   def test_dict_with_obj_keys_with_schema(self):
-    root = object_factories.container()
+    root = mutable_obj()
     schema = root.get_bag().new_schema(a=schema_constants.INT32)
 
     k1 = fns.new(a=1, schema=schema)
@@ -223,7 +227,7 @@ class ToPyTest(parameterized.TestCase):
 
   def test_self_reference_object(self):
     with self.subTest('in_attribute'):
-      root = object_factories.container()
+      root = mutable_obj()
       root.x = fns.obj()
       root.x.y = root
       py_obj = py_conversions.to_py(root)
@@ -232,7 +236,7 @@ class ToPyTest(parameterized.TestCase):
       self.assertEqual(id(py_obj['x']['y']), id(py_obj))
 
     with self.subTest('in_dict'):
-      root = object_factories.container()
+      root = mutable_obj()
       root.x = fns.dict({'y': root})
       py_obj = py_conversions.to_py(root)
       self.assertEqual(id(py_obj.x['y']), id(py_obj))
@@ -240,7 +244,7 @@ class ToPyTest(parameterized.TestCase):
       self.assertEqual(id(py_obj['x']['y']), id(py_obj))
 
     with self.subTest('in_list'):
-      root = object_factories.container()
+      root = mutable_obj()
       root.a = fns.list([root])
       py_obj = py_conversions.to_py(root)
       self.assertEqual(id(py_obj.a[0]), id(py_obj))
@@ -291,7 +295,7 @@ class ToPyTest(parameterized.TestCase):
       self.assertEqual(id(py_obj[0]['a']), id(py_obj))
 
   def test_multiple_references(self):
-    x = object_factories.container()
+    x = mutable_obj()
     x.foo = [1, 2]
     x.bar = x.foo
 
@@ -321,7 +325,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(expected, py_obj)
 
   def test_does_not_pollute_bag(self):
-    root = object_factories.container()
+    root = mutable_obj()
     root.foo = fns.implode(fns.implode(ds([[1, 2], [3, 4, 5]])))
     old_data_repr = repr(root.get_bag())
     py_conversions.to_py(root.foo[:][:])

@@ -632,21 +632,6 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
-### `kd.core.container(**attrs: Any) -> DataSlice` {#kd.core.container}
-Aliases:
-
-- [kd.container](#kd.container)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Objects with an implicit stored schema.
-
-Returned DataSlice has OBJECT schema and mutable DataBag.
-
-Args:
-  **attrs: attrs to set on the returned object.
-
-Returns:
-  data_slice.DataSlice with the given attrs and kd.OBJECT schema.</code></pre>
-
 ### `kd.core.deep_clone(x, /, schema=unspecified, **overrides)` {#kd.core.deep_clone}
 Aliases:
 
@@ -9412,10 +9397,6 @@ Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
 Alias for [kd.masking.cond](#kd.masking.cond) operator.
 
-### `kd.container(**attrs: Any) -> DataSlice` {#kd.container}
-
-Alias for [kd.core.container](#kd.core.container) operator.
-
 ### `kd.count(x)` {#kd.count}
 
 Alias for [kd.slices.count](#kd.slices.count) operator.
@@ -10196,30 +10177,37 @@ Aliases:
 
 ### `kd.named_container()` {#kd.named_container}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Container that automatically names Exprs.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A container that automatically names expressions.
 
-For non-expr inputs, in tracing mode it will be converted to an Expr,
-while in non-tracing mode it will be stored as is. This allows to use
-NamedContainer eager code that will later be traced.
+In eager mode, non-expression inputs are stored as-is. In tracing mode,
+they are converted to expressions (functions and lambdas are automatically
+traced).
 
-For example:
-  c = kd.ext.expr_container.NamedContainer()
+Example:
+  c = kd.named_container()
+
+  # 1. Non-tracing mode
+  # Storing a value:
+  c.foo = 5
+  c.foo       # Returns 5
+
+  # Storing an expression:
   c.x_plus_y = I.x + I.y
   c.x_plus_y  # Returns (I.x + I.y).with_name(&#39;x_plus_y&#39;)
-  c.foo = 5
-  c.foo  # Returns 5
 
-Functions and lambdas are automatically traced in tracing mode.
+  # Listing stored items:
+  vars(c)  # Returns {&#39;foo&#39;: 5, &#39;x_plus_y&#39;: (I.x + I.y).with_name(&#39;x_plus_y&#39;)}
 
-For example:
-  def foo(x):
-    c = kd.ext.expr_container.NamedContainer()
-    c.x = x
-    c.update = lambda x: x + 1
-    return c.update(c.x)
+  # 2. Tracing mode
+  def my_fn(x):
+    c = kd.named_container()
+    c.a = 2
+    c.b = 1
+    return c.a * x + c.b
 
-  fn = kd.fn(foo)
-  fn(x=5)  # Returns 6</code></pre>
+  fn = kd.fn(my_fn)
+  fn.a  # Returns 2 (accessible because it was named by the container)
+  fn(x=5)  # Returns 11</code></pre>
 
 ### `kd.named_schema(name, /, **kwargs)` {#kd.named_schema}
 

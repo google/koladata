@@ -611,19 +611,6 @@ py_test(
 )
 
 py_test(
-    name = "container_test",
-    srcs = ["container_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/functions:object_factories",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
     name = "update_schema_test",
     srcs = ["update_schema_test.py"],
     deps = [

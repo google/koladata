@@ -1043,17 +1043,6 @@ kd.ordinal_rank(x, descending=True)  # [[1, 3, 0, 4, 2], [0, None, 1]]
 kd.dense_rank(x)  # [[1, 0, 2, 0, 1], [1, None, 0]]
 ```
 
-**Containers to manage data**
-
-```py
-# Editable containers
-x = kd.container()
-x.a = 1
-x.d = kd.container()
-x.d.e = 4
-x.d.f = kd.list([1, 2, 3])
-```
-
 **Serialization**
 
 ```py

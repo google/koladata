@@ -25,30 +25,37 @@ kde = kde_operators.kde
 
 
 class NamedContainer:
-  """Container that automatically names Exprs.
+  """A container that automatically names expressions.
 
-  For non-expr inputs, in tracing mode it will be converted to an Expr,
-  while in non-tracing mode it will be stored as is. This allows to use
-  NamedContainer eager code that will later be traced.
+  In eager mode, non-expression inputs are stored as-is. In tracing mode,
+  they are converted to expressions (functions and lambdas are automatically
+  traced).
 
-  For example:
-    c = kd.ext.expr_container.NamedContainer()
+  Example:
+    c = kd.named_container()
+
+    # 1. Non-tracing mode
+    # Storing a value:
+    c.foo = 5
+    c.foo       # Returns 5
+
+    # Storing an expression:
     c.x_plus_y = I.x + I.y
     c.x_plus_y  # Returns (I.x + I.y).with_name('x_plus_y')
-    c.foo = 5
-    c.foo  # Returns 5
 
-  Functions and lambdas are automatically traced in tracing mode.
+    # Listing stored items:
+    vars(c)  # Returns {'foo': 5, 'x_plus_y': (I.x + I.y).with_name('x_plus_y')}
 
-  For example:
-    def foo(x):
-      c = kd.ext.expr_container.NamedContainer()
-      c.x = x
-      c.update = lambda x: x + 1
-      return c.update(c.x)
+    # 2. Tracing mode
+    def my_fn(x):
+      c = kd.named_container()
+      c.a = 2
+      c.b = 1
+      return c.a * x + c.b
 
-    fn = kd.fn(foo)
-    fn(x=5)  # Returns 6
+    fn = kd.fn(my_fn)
+    fn.a  # Returns 2 (accessible because it was named by the container)
+    fn(x=5)  # Returns 11
   """
 
   _HAS_DYNAMIC_ATTRIBUTES = True

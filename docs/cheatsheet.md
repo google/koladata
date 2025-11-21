@@ -571,11 +571,10 @@ ds.L[1] # DataSlice([4, 5], ...)
 ### Editable Containers
 
 ```py
-x = kd.container()
+x = kd.named_container()
 x.a = 1
-x.d = kd.container()
-x.d.e = 4
-x.d.f = kd.list([1, 2, 3])
+x.b = kd.list([1, 2, 3])
+kd.obj(**vars(x))
 ```
 
 </section>

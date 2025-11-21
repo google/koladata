@@ -16,7 +16,6 @@
 from dataclasses import dataclass as _dataclass
 from koladata.extension_types import extension_types as _extension_types_extension_types
 from koladata.extension_types import util as _extension_types_util
-from koladata.functions import object_factories as _functions_object_factories
 from koladata.functions import proto_conversions as _functions_proto_conversions
 from koladata.functions import schema as _functions_schema
 from koladata.functor import functor_factories as _functor_functor_factories
@@ -116,7 +115,6 @@ class core:
   attr = _operators_core._attr
   attrs = _operators_core.attrs
   clone = _operators_core.clone
-  container = _functions_object_factories.container
   deep_clone = _operators_core.deep_clone
   enriched = _operators_core.enriched
   extract = _operators_core.extract

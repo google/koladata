@@ -122,13 +122,6 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_not_equal(x, y)
     kd.testing.assert_equal(x.a.no_bag(), y.a.no_bag())
 
-  def test_container(self):
-    x = kd.container(x=1, y=2)
-    kd.testing.assert_equal(x.x, kd.item(1).with_bag(x.get_bag()))
-    kd.testing.assert_equal(x.y, kd.item(2).with_bag(x.get_bag()))
-    x.x = 3
-    kd.testing.assert_equal(x.x, kd.item(3).with_bag(x.get_bag()))
-
   def test_expr(self):
     kd.testing.assert_equal(
         kd.eval(
@@ -484,12 +477,6 @@ class KdTest(absltest.TestCase):
 
   def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():
-      with self.assertRaisesRegex(
-          AttributeError,
-          "attribute 'container' is not available in tracing mode on"
-          " 'koladata.kd'",
-      ):
-        _ = kd.container
       with self.assertRaisesRegex(
           AttributeError,
           "attribute 'to_py' is not available in tracing mode on 'koladata.kd'",

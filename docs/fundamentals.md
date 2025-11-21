@@ -764,7 +764,7 @@ kd.uu(x=1, y=2).get_itemid() == kd.uu(x=1, y=2).get_itemid()  # yes
 kd.uuobj(x=1, y=2).get_itemid() == kd.uuobj(x=1, y=2).get_itemid()  # yes
 ```
 
-uu versions of entities and objects can be used as named tuples.
+`uu` versions of entities and objects can be used as named tuples.
 
 ```py
 d = kd.dict({kd.uu(x=1, y=2): 'a'})
@@ -772,32 +772,6 @@ d = d.with_dict_update(kd.uu(x=3, y=4), 'b')
 d[kd.uu(x=3, y=4)]  # 'b'
 d[kd.uu(x=5, y=6)]  # None
 # d[kd.new(x=3, y=4)]  # fail, as a key with different schema
-```
-
-### Containers
-
-As a convenience option, it is possible to create mutable containers that hold
-items and DataSlices.
-
-Containers can be converted into objects and back.
-
-NOTE: We are still iterating on container APIs which are subject to change.
-
-```py
-x = kd.container()
-x.a = 1
-x.b = 2
-x.a = 3
-x.d = kd.container()
-x.d.e = 4
-x.d.f = kd.list([1, 2, 3])
-x.d.g = kd.dict({'a': 1, 'b': 2})
-
-# Convert containers to objects
-o = x.freeze()
-
-# Convert objects to containers
-x1 = o.fork_bag()
 ```
 
 ### Schemas
@@ -3204,6 +3178,31 @@ factorial_rec = kd.fn(lambda c: kd.map(c.factorial_rec & (c.n > 0),
 factorial = kd.fn(lambda n: kd.map(factorial_rec,
                                 kd.obj(n=n, factorial_rec=factorial_rec)))
 factorial(kd.slice([5,3,4]))  # [120, 6, 24]
+```
+
+### Containers
+
+When you need to create named expressions, it can be convenient to use
+`kd.named_container()`, which automatically names all expressions stored within
+it.
+
+In eager mode, non-expression inputs are stored as-is. In tracing mode, however,
+they are automatically converted to named expressions.
+
+```py
+def ax_plus_b(x):
+  c = kd.named_container()
+  c.a = 2   # Converted to kd.expr.as_expr(2).with_name('a') during tracing
+  c.b = 1   #              kd.expr.as_expr(1).with_name('b')
+  return c.a * x + c.b
+
+# Eager usage (stores raw integers):
+ax_plus_b(5)  # Returns 11
+
+# Traced usage (converts integers to expressions):
+fn = kd.fn(ax_plus_b)
+fn.a          # Returns 2  (accessible because it was named by the container)
+fn(x=5)       # Returns 11
 ```
 
 ## Interoperability (a.k.a. Koda I/O)
