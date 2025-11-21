@@ -31,8 +31,8 @@
 
 namespace koladata::python {
 
-// TODO(b/394023266) Consider moving dataclasses functions from
-// koladata/types/py_attr_provider to this class.
+// Util class for working with Python dataclasses (getting attributes, making
+// instances, etc.) It also owns the dataclass object instances it creates.
 class DataClassesUtil {
  public:
   struct AttrResult {
