@@ -184,6 +184,10 @@ class ListsListTest(parameterized.TestCase):
           kde.lists.new(x, item_schema=schema_constants.INT64), x=2.1
       )
 
+  def test_returns_frozen_bag(self):
+    res = expr_eval.eval(kde.lists.new([1, 2, 3]))
+    self.assertFalse(res.get_bag().is_mutable())
+
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.lists.new, kde.list))
 

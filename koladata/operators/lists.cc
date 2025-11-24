@@ -126,14 +126,18 @@ absl::StatusOr<DataSlice> List(const DataSlice& items,
                                const DataSlice& schema, const DataSlice& itemid,
                                internal::NonDeterministicToken) {
   auto db = DataBag::EmptyMutable();
-  return CreateNestedList(
-      db, items,
-      IsUnspecifiedDataSlice(schema) ? std::nullopt
-                                     : std::make_optional(schema),
-      IsUnspecifiedDataSlice(item_schema) ? std::nullopt
-                                          : std::make_optional(item_schema),
-      IsUnspecifiedDataSlice(itemid) ? std::nullopt
-                                     : std::make_optional(itemid));
+  ASSIGN_OR_RETURN(
+      auto result,
+      CreateNestedList(
+          db, items,
+          IsUnspecifiedDataSlice(schema) ? std::nullopt
+                                         : std::make_optional(schema),
+          IsUnspecifiedDataSlice(item_schema) ? std::nullopt
+                                              : std::make_optional(item_schema),
+          IsUnspecifiedDataSlice(itemid) ? std::nullopt
+                                         : std::make_optional(itemid)));
+  result.UnsafeMakeWholeOnImmutableDb();
+  return result;
 }
 
 absl::StatusOr<DataSlice> ListShaped(
