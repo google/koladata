@@ -103,7 +103,7 @@ class DataSliceManagerView:
     )
 
   def get_data_slice(
-      self, with_ancestors: bool = False, with_descendants: bool = False
+      self, *, with_ancestors: bool = False, with_descendants: bool = False
   ) -> kd.types.DataSlice:
     """Returns the DataSlice at the view path.
 
@@ -129,6 +129,23 @@ class DataSliceManagerView:
     if with_ancestors:
       return ds
     return self._path_from_root.evaluate(ds)
+
+  def get(
+      self, *, with_ancestors: bool = False, with_descendants: bool = False
+  ) -> kd.types.DataSlice:
+    """Returns the DataSlice at the view path. Sugar for get_data_slice().
+
+    The view path must be valid, i.e. self.is_view_valid() must be True.
+
+    Args:
+      with_ancestors: If True, then the DataSlice will include the data of all
+        the ancestors of the view path.
+      with_descendants: If True, then the DataSlice will include the data of all
+        the descendants of the view path.
+    """
+    return self.get_data_slice(
+        with_ancestors=with_ancestors, with_descendants=with_descendants
+    )
 
   def update(
       self,
@@ -526,7 +543,7 @@ class DataSliceManagerView:
     # From here on, we add the attributes that are only available for valid
     # paths.
 
-    attributes.extend(['get_schema', 'get_data_slice'])
+    attributes.extend(['get_schema', 'get_data_slice', 'get'])
 
     schema = self.get_schema()
     if schema.is_struct_schema():

@@ -57,11 +57,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
     kd.testing.assert_equivalent(
-        queries.text.get_data_slice(),
+        queries.text.get(),
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     kd.testing.assert_equivalent(
-        queries.get_data_slice(with_descendants=True),
+        queries.get(with_descendants=True),
         kd.slice([
             expected_query_schema.new(query_id=0, text='How tall is Obama'),
             expected_query_schema.new(
@@ -71,7 +71,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)
     kd.testing.assert_equivalent(
-        queries.query_id.get_data_slice(with_ancestors=True),
+        queries.query_id.get(with_ancestors=True),
         kd.new(
             query=kd.list([
                 restricted_query_schema.new(query_id=0),
@@ -101,7 +101,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         kd.STRING,
     )
     kd.testing.assert_equivalent(
-        docs.title.get_data_slice(),
+        docs.title.get(),
         kd.slice([['Barack Obama', 'Michelle Obama'], ['Tower of London']]),
     )
 
@@ -326,7 +326,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
       self.assertEqual(
           # The keys are not ordered, so we use sets of keys.
-          [set(t) for t in tokens.get_dict_keys().get_data_slice().to_py()],
+          [set(t) for t in tokens.get_dict_keys().get().to_py()],
           [
               {'How', 'tall', 'is', 'Obama'},
               {'How', 'high', 'is', 'the', 'Eiffel', 'tower'},
@@ -340,10 +340,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
           [
               dict(zip(keys, values))
               for keys, values in zip(
-                  tokens.get_dict_keys().get_data_slice().to_py(),
-                  tokens.get_dict_values()
-                  .part_of_speech.get_data_slice()
-                  .to_py(),
+                  tokens.get_dict_keys().get().to_py(),
+                  tokens.get_dict_values().part_of_speech.get().to_py(),
               )
           ],
           [
@@ -477,6 +475,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       doc_title.get_data_slice()
     with self.assertRaisesRegex(
         ValueError,
+        re.escape("invalid data slice path: '.query[:].doc[:].title'"),
+    ):
+      doc_title.get()
+    with self.assertRaisesRegex(
+        ValueError,
         re.escape("invalid data slice path: '.query[:].doc[:]'"),
     ):
       doc.word_count = kd.item(12345)
@@ -564,6 +567,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           # Note no get_parent() or get_grandparent() or get_list_items() here:
           [
               'find_descendants',
+              'get',
               'get_ancestor',
               'get_attr',
               'get_children',
@@ -585,6 +589,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           # Note no get_grandparent() here:
           [
               'find_descendants',
+              'get',
               'get_ancestor',
               'get_children',
               'get_data_slice',
@@ -603,6 +608,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.query.__all__,
           [
               'find_descendants',
+              'get',
               'get_ancestor',
               'get_children',
               'get_data_slice',
@@ -621,6 +627,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.get_dict_values().__all__,
           [
+              'get',
               'get_ancestor',
               'get_data_slice',
               'get_grandparent',
@@ -654,6 +661,27 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_path_from_root',
               'get_root',
               'is_view_valid',
+          ],
+      )
+      # The root view:
+      self.assertEqual(
+          root.__all__,
+          [
+              'find_descendants',
+              'get',
+              'get_ancestor',
+              'get_attr',
+              'get_children',
+              'get_data_slice',
+              'get_manager',
+              'get_path_from_root',
+              'get_root',
+              'get_schema',
+              'grep_descendants',
+              'is_view_valid',
+              'query',
+              'some_list',
+              'update',
           ],
       )
 
@@ -847,6 +875,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         root.__all__,
         [
             'find_descendants',
+            'get',
             'get_ancestor',
             'get_attr',
             'get_children',
