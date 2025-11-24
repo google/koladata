@@ -170,7 +170,7 @@ class PersistedIncrementalDataSliceManager(
       persistence_dir: str,
       *,
       fs: fs_interface.FileSystemInterface | None = None,
-      description: str = 'Initial state with an empty root DataSlice',
+      description: str | None = None,
       initial_data_manager: (
           initial_data_manager_interface.InitialDataManagerInterface | None
       ) = None,
@@ -183,8 +183,8 @@ class PersistedIncrementalDataSliceManager(
         or not exist.
       fs: All interactions with the file system will go through this instance.
         If None, then the default interaction with the file system is used.
-      description: A description of the initial state of the DataSlice. This
-        description is stored in the history metadata.
+      description: A description of the initial state of the DataSlice. If
+        provided, this description is stored in the history metadata.
       initial_data_manager: The initial data of the DataSlice. By default, an
         empty root obtained by kd.new() is used.
 
@@ -196,6 +196,10 @@ class PersistedIncrementalDataSliceManager(
         initial_data_manager
         or bare_root_initial_data_manager.BareRootInitialDataManager()
     )
+    if description is None:
+      description = (
+          f'Initial state with {initial_data_manager.get_description()}'
+      )
 
     if fs.exists(persistence_dir):
       if not fs.is_dir(persistence_dir):

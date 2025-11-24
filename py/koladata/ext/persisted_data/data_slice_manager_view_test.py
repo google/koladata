@@ -788,7 +788,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     self.assertEqual(
         manager_revision_descriptions,
         [
-            'Initial state with an empty root DataSlice',
+            'Initial state with an empty root',
             'Added query with query_id and text populated',
             'Added doc with doc_id and title populated',
         ],

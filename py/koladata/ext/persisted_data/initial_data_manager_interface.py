@@ -117,3 +117,13 @@ class InitialDataManagerInterface:
     result as before.
     """
     raise NotImplementedError(type(self))
+
+  def get_description(self) -> str:
+    """Returns a brief description of the initial data.
+
+    If the user does not provide a description when creating a
+    PersistedIncrementalDataSliceManager, then the manager will craft a
+    description of the form
+    f'Initial state with {initial_data_manager.get_description()}'.
+    """
+    raise NotImplementedError(type(self))

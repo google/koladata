@@ -4030,7 +4030,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_branch_with_revision_history_index(self):
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(
+        trunk_dir, description='Initial state with an empty root DataSlice'
+    )
     trunk_manager_root = trunk_manager.get_data_slice()
 
     query_schema = kd.named_schema('query')
@@ -4217,7 +4219,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             for revision in trunk_manager.get_revision_history()
         ],
         [
-            'Initial state with an empty root DataSlice',
+            'Initial state with an empty root',
             'Added queries with only query_id populated',
             'Added docs to queries',
         ],
@@ -4579,6 +4581,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       def get_id(cls) -> str:
         return 'non_registered_id'
 
+      def get_description(self) -> str:
+        return 'non registered initial data manager'
+
     # Note that we do not add NonRegisteredInitialDataManager to the registry.
 
     persistence_dir = self.create_tempdir().full_path
@@ -4596,6 +4601,24 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Fail fast if the initial data manager is not registered: don't create any
     # artifacts in the persistence_dir:
     self.assertEmpty(os.listdir(persistence_dir))
+
+  def test_description_of_initial_revision(self):
+    manager = PersistedIncrementalDataSliceManager.create_new(
+        self.create_tempdir().full_path
+    )
+    self.assertEqual(
+        [m.description for m in manager.get_revision_history()],
+        ['Initial state with an empty root'],
+    )
+
+    manager = PersistedIncrementalDataSliceManager.create_new(
+        self.create_tempdir().full_path,
+        description='Some bespoke description',
+    )
+    self.assertEqual(
+        [m.description for m in manager.get_revision_history()],
+        ['Some bespoke description'],
+    )
 
 
 if __name__ == '__main__':

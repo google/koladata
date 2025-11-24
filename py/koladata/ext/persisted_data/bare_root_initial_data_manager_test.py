@@ -214,6 +214,10 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         root, root_after_clear_cache, ids_equality=True
     )
 
+  def test_get_description(self):
+    manager = BareRootInitialDataManager()
+    self.assertEqual(manager.get_description(), 'an empty root')
+
 
 if __name__ == '__main__':
   absltest.main()
