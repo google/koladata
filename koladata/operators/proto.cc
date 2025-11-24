@@ -27,6 +27,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/util/bytes.h"
@@ -49,6 +50,7 @@
 #include "koladata/proto/to_proto.h"
 #include "koladata/schema_utils.h"
 #include "koladata/uuid_utils.h"
+#include "google/protobuf/arena.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "google/protobuf/util/json_util.h"
@@ -107,17 +109,11 @@ absl::StatusOr<std::vector<absl::string_view>> GetExtensions(
 
 absl::StatusOr<DataSlice> FromProtoMessages(
     arolla::EvaluationContext* ctx,
-    const std::vector<std::unique_ptr<google::protobuf::Message>>& messages,
+    absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     const DataSlice::JaggedShape& input_shape, const DataSlice& input_mask,
     const DataSlice& parse_error_mask, const DataSlice& extensions,
     const DataSlice& itemids, const DataSlice& schema,
     const DataSlice& on_invalid) {
-  std::vector<google::protobuf::Message*> message_ptrs;
-  message_ptrs.reserve(messages.size());
-  for (const auto& message : messages) {
-    message_ptrs.push_back(message.get());
-  }
-
   ASSIGN_OR_RETURN((std::vector<absl::string_view> extensions_value),
                    GetExtensions(extensions));
   std::optional<DataSlice> itemids_value;
@@ -129,7 +125,7 @@ absl::StatusOr<DataSlice> FromProtoMessages(
     schema_value = schema;
   }
 
-  ASSIGN_OR_RETURN(auto result, FromProto(message_ptrs, extensions_value,
+  ASSIGN_OR_RETURN(auto result, FromProto(messages, extensions_value,
                                           itemids_value, schema_value));
 
   // (result & input_mask & ~parse_error_mask) | (on_invalid & parse_error_mask)
@@ -161,12 +157,13 @@ absl::StatusOr<DataSlice> FromProtoBytes(
   auto x_flat = x.Flatten();
   bool raise_on_invalid = IsUnspecifiedDataSlice(on_invalid);
 
-  std::vector<std::unique_ptr<google::protobuf::Message>> messages;
+  google::protobuf::Arena arena;
+  std::vector<google::protobuf::Message*> messages;
   messages.reserve(x_flat.size());
   arolla::DenseArrayBuilder<arolla::Unit> parse_error_mask_builder(
       x_flat.size());
   for (int64_t i = 0; i < x_flat.size(); ++i) {
-    auto message = std::unique_ptr<google::protobuf::Message>(message_prototype->New());
+    auto message = message_prototype->New(&arena);
     if (x_flat.slice().present(i)) {
       if (!message->ParsePartialFromString(
           x_flat.slice().values<arolla::Bytes>().values[i])) {
@@ -179,7 +176,7 @@ absl::StatusOr<DataSlice> FromProtoBytes(
         }
       }
     }
-    messages.push_back(std::move(message));
+    messages.push_back(message);
   }
   ASSIGN_OR_RETURN(
       auto parse_error_mask_flat,
@@ -208,16 +205,16 @@ absl::StatusOr<DataSlice> FromProtoJson(
   auto x_flat = x.Flatten();
   bool raise_on_invalid = IsUnspecifiedDataSlice(on_invalid);
 
-  std::vector<std::unique_ptr<google::protobuf::Message>> messages;
+  google::protobuf::Arena arena;
+  std::vector<google::protobuf::Message*> messages;
   messages.reserve(x_flat.size());
   arolla::DenseArrayBuilder<arolla::Unit> parse_error_mask_builder(
       x_flat.size());
   for (int64_t i = 0; i < x_flat.size(); ++i) {
-    auto message = std::unique_ptr<google::protobuf::Message>(message_prototype->New());
+    auto message = message_prototype->New(&arena);
     if (x_flat.slice().present(i)) {
       auto status = google::protobuf::util::JsonStringToMessage(
-          x_flat.slice().values<arolla::Text>().values[i],
-          message.get());
+          x_flat.slice().values<arolla::Text>().values[i], message);
       if (!status.ok()) {
         if (raise_on_invalid) {
           return absl::InvalidArgumentError(absl::StrFormat(
@@ -228,7 +225,7 @@ absl::StatusOr<DataSlice> FromProtoJson(
         }
       }
     }
-    messages.push_back(std::move(message));
+    messages.push_back(message);
   }
   ASSIGN_OR_RETURN(
       auto parse_error_mask_flat,
