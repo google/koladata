@@ -57,21 +57,10 @@ def from_py(
   Returns:
     A DataItem with the converted data.
   """
-  return data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
-      py_obj, dict_as_obj, itemid, schema, from_dim
-  )
-
-
-def _from_py_v2(
-    py_obj: Any,
-    *,
-    dict_as_obj: bool = False,
-    itemid: data_slice.DataSlice | None = None,
-    schema: data_slice.DataSlice | None = None,
-    from_dim: int = 0,
-) -> data_slice.DataSlice:
-  """New version of from_py; it will eventually replace the old one."""
   return base_clib._from_py_v2(py_obj, schema, from_dim, dict_as_obj, itemid)  # pylint: disable=protected-access
+
+# TODO(b/379122942) remove this alias when V2 is the default version.
+_from_py_v2 = from_py
 
 
 def to_pylist(x: data_slice.DataSlice) -> list[Any]:
