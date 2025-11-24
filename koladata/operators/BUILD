@@ -334,6 +334,26 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "proto_benchmarks",
+    srcs = ["proto_benchmarks.cc"],
+    deps = [
+        ":proto",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/proto/testing:test_proto2_cc_proto",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
 to_data_slice_types = [
     "int32_t",
     "int64_t",
