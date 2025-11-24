@@ -63,6 +63,11 @@ class ListsListTest(parameterized.TestCase):
     testing.assert_equal(res.explode(-1).no_bag(), ds([[0, 1], [2]]))
 
   @parameterized.parameters(
+      (
+          arolla.unspecified(),
+          schema_constants.INT32,
+          ds([], schema_constants.INT32),
+      ),
       ([], schema_constants.INT32, ds([], schema_constants.INT32)),
       ([1, 2, 3], schema_constants.FLOAT32, ds([1.0, 2.0, 3.0])),
   )

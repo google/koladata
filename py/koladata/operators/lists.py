@@ -386,11 +386,16 @@ def _new_bind_args(
   elif not _is_unspecified(schema):
     schema_to_use = schema.get_item_schema()
 
-  if _is_unspecified(items) and _is_unspecified(schema_to_use):
+  if _is_unspecified(items):
     return (
-        data_slice.DataSlice.from_vals([], schema_constants.OBJECT),
-        schema,
-        item_schema,
+        data_slice.DataSlice.from_vals(
+            [],
+            schema_constants.OBJECT
+            if _is_unspecified(schema_to_use)
+            else schema_to_use,
+        ),
+        schema_to_use,
+        arolla.unspecified(),
         itemid,
         optools.unified_non_deterministic_arg(),
     )
