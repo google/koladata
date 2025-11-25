@@ -1219,6 +1219,29 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "deep_schema_compatible",
+    srcs = ["deep_schema_compatible.cc"],
+    hdrs = ["deep_schema_compatible.h"],
+    deps = [
+        ":deep_comparator",
+        ":deep_diff",
+        ":object_finder",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
 cc_test(
     name = "print_test",
     srcs = ["print_test.cc"],
@@ -1226,6 +1249,21 @@ cc_test(
         ":print",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/cleanup",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "deep_schema_compatible_test",
+    srcs = ["deep_schema_compatible_test.cc"],
+    deps = [
+        ":deep_schema_compatible",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal/testing:deep_op_utils",
         "@com_google_googletest//:gtest_main",
     ],
 )

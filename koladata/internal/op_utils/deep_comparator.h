@@ -45,7 +45,7 @@ class AbstractComparator {
   virtual ~AbstractComparator() = default;
 
   // Returns -1, 0, 1 if `lhs` should be placed before, in the same
-  // position as, or after `rhs`.
+  // position as, or after `rhs` in the sorted order of transition keys.
   virtual int CompareOrder(const TraverseHelper::TransitionKey& lhs,
                            const TraverseHelper::TransitionKey& rhs) = 0;
 
