@@ -162,7 +162,7 @@ def uuid_slice(state):
 
 @google_benchmark.register
 def create_list_shaped(state):
-  data = [list(range(100))] * 10
+  data = kd.slice([list(range(100))] * 10)
   shape = kd.shapes.new([10])
   while (state):
     _ = kd.list_shaped(shape, data)
