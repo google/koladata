@@ -503,7 +503,8 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceImplValue(
 // ValueProto.input_value_indices[2]: Schema (DataItem)
 // ValueProto.input_value_indices[3]: (optional) DataBag
 absl::StatusOr<ValueDecoderResult> DecodeDataSliceValue(
-    absl::Span<const TypedValue> input_values) {
+    absl::Span<const TypedValue> input_values,
+    const KodaV1Proto::DataSliceProto& proto = KodaV1Proto::DataSliceProto()) {
   if (input_values.size() != 3 && input_values.size() != 4) {
     return absl::InvalidArgumentError(
         absl::StrCat("wrong number of input_values in DecodeDataSliceValue: ",
@@ -523,8 +524,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceValue(
           std::type_identity<T>) -> absl::StatusOr<ValueDecoderResult> {
     ASSIGN_OR_RETURN(const T& item, input_values[0].As<T>());
     ASSIGN_OR_RETURN(
-        auto res, DataSlice::Create(item, std::move(shape), std::move(schema),
-                                    std::move(db)));
+        auto res,
+        DataSlice::Create(item, shape, schema, std::move(db),
+                          proto.is_whole() ? DataSlice::Wholeness::kWhole
+                                           : DataSlice::Wholeness::kNotWhole));
     return TypedValue::FromValue(std::move(res));
   };
 
@@ -745,6 +748,9 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
       return arolla::TypedValue::FromValue(arolla::GetQType<DataBagPtr>());
     case KodaV1Proto::kDataSliceValue:
       return DecodeDataSliceValue(input_values);
+    case KodaV1Proto::kDataSliceValueV2:
+      return DecodeDataSliceValue(input_values,
+                                  koda_proto.data_slice_value_v2());
     case KodaV1Proto::kDataBagValue:
       return DataBagDecoder::DecodeDataBagValue(koda_proto.data_bag_value(),
                                                 input_values);

@@ -87,6 +87,7 @@ cc_test(
     deps = [
         ":s11n",
         "//koladata:data_bag",
+        "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:jagged_shape_qtype",
         "//koladata:test_utils",

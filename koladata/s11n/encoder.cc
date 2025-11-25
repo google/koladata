@@ -197,8 +197,8 @@ absl::StatusOr<ValueProto> EncodeDataSlice(arolla::TypedRef value,
   }
   ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
   auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
-  koda_proto->set_data_slice_value(true);
   const DataSlice& slice = value.UnsafeAs<DataSlice>();
+  koda_proto->mutable_data_slice_value_v2()->set_is_whole(slice.IsWhole());
   ASSIGN_OR_RETURN(auto values_index, slice.VisitImpl([&](const auto& v) {
     return encoder.EncodeValue(arolla::TypedValue::FromValue(v));
   }));

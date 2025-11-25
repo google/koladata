@@ -41,6 +41,7 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -423,6 +424,43 @@ TEST(SerializationTest, ImmutableBag) {
                        decode_result.values[0].As<DataBagPtr>());
   EXPECT_FALSE(res->IsMutable());
   EXPECT_EQ(db->fingerprint().AsString(), res->fingerprint().AsString());
+}
+
+TEST(SerializationTest, Wholeness) {
+  auto db1 = DataBag::Empty();
+  auto db2 = DataBag::Empty();
+  DataSlice whole_slice =
+      DataSlice::Create(internal::DataItem(1.0f),
+                        internal::DataItem(schema::kFloat32), db1,
+                        DataSlice::Wholeness::kWhole)
+          .value();
+  DataSlice not_whole_slice =
+      DataSlice::Create(internal::DataItem(1.0f),
+                        internal::DataItem(schema::kFloat32), db2,
+                        DataSlice::Wholeness::kNotWhole)
+          .value();
+  EXPECT_TRUE(whole_slice.IsWhole());
+  EXPECT_FALSE(not_whole_slice.IsWhole());
+
+  // Note: It is important that `db1` and `db2` are different bags because
+  // otherwise `whole_slice` and `not_whole_slice` have same fingerprint and
+  // only one of them gets actually serialized.
+
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(whole_slice),
+                                        TypedValue::FromValue(not_whole_slice)},
+                                       {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 2);
+
+  ASSERT_OK_AND_ASSIGN(DataSlice res1,
+                       decode_result.values[0].As<DataSlice>());
+  ASSERT_OK_AND_ASSIGN(DataSlice res2, decode_result.values[1].As<DataSlice>());
+
+  EXPECT_TRUE(res1.IsWhole());
+  EXPECT_FALSE(res2.IsWhole());
 }
 
 }  // namespace

@@ -104,6 +104,10 @@ message KodaV1Proto {
     }
   }
 
+  message DataSliceProto {
+    optional bool is_whole = 1 [default = false];
+  }
+
   // Represents values of some attribute (attribute name not included) for
   // a sequential range of ObjectIds.
   // `values` can be either DataItem (in this case first_object_id is
@@ -175,7 +179,8 @@ message KodaV1Proto {
     // ValueProto.input_value_indices[1]: JaggedShape
     // ValueProto.input_value_indices[2]: Schema (DataItem)
     // ValueProto.input_value_indices[3]: (optional) DataBag
-    bool data_slice_value = 6;
+    bool data_slice_value = 6;  // equivalent to default DataSliceProto
+    DataSliceProto data_slice_value_v2 = 18;
 
     // Represents koladata::DataSlice's QType
     bool data_slice_qtype = 10;

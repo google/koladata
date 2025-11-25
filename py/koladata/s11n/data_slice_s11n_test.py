@@ -116,7 +116,9 @@ def _get_text_footer_data_slice():
           input_value_indices: 7
           codec_index: 0
           [koladata.s11n.KodaV1Proto.extension] {
-            data_slice_value: true
+            data_slice_value_v2: {
+              is_whole: true
+            }
           }
         }
       }
