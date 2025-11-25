@@ -55,51 +55,53 @@ class DeepDiff {
   //
   // Primitives are returned unchanged. For an ObjectId, a new ObjectId is
   // allocated with the same kListFlag/kDictFlag flags.
-  absl::StatusOr<DataItem> CreateTokenLike(DataItem item);
+  absl::StatusOr<DataItem> CreateTokenLike(const DataItem& item);
 
   // Creates a transition in the result DataBag, that can be traversed from a
   // given token with the provided key, and leads to the given value.
-  absl::Status SaveTransition(DataItem token, TraverseHelper::TransitionKey key,
-                              DataItem value);
+  absl::Status SaveTransition(const DataItem& token,
+                              const TraverseHelper::TransitionKey& key,
+                              const DataItem& value);
 
   // Saves a diff node, representing lhs-only attribute.
-  absl::Status LhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition lhs);
+  absl::Status LhsOnlyAttribute(const DataItem& token,
+                                const TraverseHelper::TransitionKey& key,
+                                const TraverseHelper::Transition& lhs);
 
   // Saves a diff node, representing rhs-only attribute.
-  absl::Status RhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition rhs);
+  absl::Status RhsOnlyAttribute(const DataItem& token,
+                                const TraverseHelper::TransitionKey& key,
+                                const TraverseHelper::Transition& rhs);
 
   // Saves a diff node, representing a mismatch between lhs and rhs.
-  absl::Status LhsRhsMismatch(DataItem token, TraverseHelper::TransitionKey key,
-                              TraverseHelper::Transition lhs,
-                              TraverseHelper::Transition rhs,
+  absl::Status LhsRhsMismatch(const DataItem& token,
+                              const TraverseHelper::TransitionKey& key,
+                              const TraverseHelper::Transition& lhs,
+                              const TraverseHelper::Transition& rhs,
                               bool is_schema_mismatch);
 
   // Saves a diff node, representing a mismatch directly in a provided slices.
-  absl::StatusOr<DataItem> SliceItemMismatch(TraverseHelper::TransitionKey key,
-                                             TraverseHelper::Transition lhs,
-                                             TraverseHelper::Transition rhs,
-                                             bool is_schema_mismatch);
+  absl::StatusOr<DataItem> SliceItemMismatch(
+      const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs, bool is_schema_mismatch);
 
  private:
   // Creates an Object representing an lhs-only attribute.
   absl::StatusOr<DataItem> CreateLhsOnlyDiffItem(
-      TraverseHelper::Transition lhs);
+      const TraverseHelper::Transition& lhs);
 
   // Creates an Object representing an rhs-only attribute.
   absl::StatusOr<DataItem> CreateRhsOnlyDiffItem(
-      TraverseHelper::Transition rhs);
+      const TraverseHelper::Transition& rhs);
 
   // Creates an Object representing a mismatch between lhs and rhs.
   absl::StatusOr<DataItem> CreateMismatchDiffItem(
-      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs,
-      bool is_schema_mismatch);
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs, bool is_schema_mismatch);
 
   // Wraps a diff item with an Object with a diff wrapper uuid schema.
-  absl::StatusOr<DataItem> CreateDiffWrapper(DataItem diff_item);
+  absl::StatusOr<DataItem> CreateDiffWrapper(const DataItem& diff_item);
 
   DataBagImplPtr databag_;
 };

@@ -34,60 +34,56 @@
 
 namespace koladata::internal {
 
-absl::Status DeepDiff::LhsOnlyAttribute(DataItem token,
-                              TraverseHelper::TransitionKey key,
-                              TraverseHelper::Transition lhs) {
+absl::Status DeepDiff::LhsOnlyAttribute(
+    const DataItem& token, const TraverseHelper::TransitionKey& key,
+    const TraverseHelper::Transition& lhs) {
   if (key.type == TraverseHelper::TransitionType::kDictKey) {
     // We process dict keys when we process dict values.
     return absl::OkStatus();
   }
-  ASSIGN_OR_RETURN(auto diff_item, CreateLhsOnlyDiffItem(std::move(lhs)));
-  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(std::move(diff_item)));
-  return SaveTransition(std::move(token), std::move(key),
-                        std::move(diff_wrapper));
+  ASSIGN_OR_RETURN(auto diff_item, CreateLhsOnlyDiffItem(lhs));
+  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(diff_item));
+  return SaveTransition(token, key, std::move(diff_wrapper));
 }
 
-absl::Status DeepDiff::RhsOnlyAttribute(DataItem token,
-                                        TraverseHelper::TransitionKey key,
-                                        TraverseHelper::Transition rhs) {
+absl::Status DeepDiff::RhsOnlyAttribute(
+    const DataItem& token, const TraverseHelper::TransitionKey& key,
+    const TraverseHelper::Transition& rhs) {
   if (key.type == TraverseHelper::TransitionType::kDictKey) {
     // We process dict keys when we process dict values.
     return absl::OkStatus();
   }
-  ASSIGN_OR_RETURN(auto diff_item, CreateRhsOnlyDiffItem(std::move(rhs)));
-  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(std::move(diff_item)));
-  return SaveTransition(std::move(token), std::move(key),
-                        std::move(diff_wrapper));
+  ASSIGN_OR_RETURN(auto diff_item, CreateRhsOnlyDiffItem(rhs));
+  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(diff_item));
+  return SaveTransition(token, key, std::move(diff_wrapper));
 }
 
-absl::Status DeepDiff::LhsRhsMismatch(DataItem token,
-                                      TraverseHelper::TransitionKey key,
-                                      TraverseHelper::Transition lhs,
-                                      TraverseHelper::Transition rhs,
+absl::Status DeepDiff::LhsRhsMismatch(const DataItem& token,
+                                      const TraverseHelper::TransitionKey& key,
+                                      const TraverseHelper::Transition& lhs,
+                                      const TraverseHelper::Transition& rhs,
                                       bool is_schema_mismatch) {
   if (key.type == TraverseHelper::TransitionType::kDictKey) {
     // We process dict keys when we process dict values.
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(auto diff_item,
-                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs),
-                                          is_schema_mismatch));
-  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(std::move(diff_item)));
-  return SaveTransition(std::move(token), std::move(key),
-                        std::move(diff_wrapper));
+                   CreateMismatchDiffItem(lhs, rhs, is_schema_mismatch));
+  ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(diff_item));
+  return SaveTransition(token, key, std::move(diff_wrapper));
 }
 
 absl::StatusOr<DataItem> DeepDiff::SliceItemMismatch(
-    TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
-    TraverseHelper::Transition rhs, bool is_schema_mismatch) {
+    const TraverseHelper::TransitionKey& key,
+    const TraverseHelper::Transition& lhs,
+    const TraverseHelper::Transition& rhs, bool is_schema_mismatch) {
   DCHECK(key.type == TraverseHelper::TransitionType::kSliceItem);
   ASSIGN_OR_RETURN(auto diff_item,
-                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs),
-                                          is_schema_mismatch));
-  return CreateDiffWrapper(std::move(diff_item));
+                   CreateMismatchDiffItem(lhs, rhs, is_schema_mismatch));
+  return CreateDiffWrapper(diff_item);
 }
 
-absl::StatusOr<DataItem> DeepDiff::CreateTokenLike(DataItem item) {
+absl::StatusOr<DataItem> DeepDiff::CreateTokenLike(const DataItem& item) {
   if (!item.holds_value<ObjectId>()) {
     return item;
   }
@@ -110,9 +106,9 @@ absl::StatusOr<DataItem> DeepDiff::CreateTokenLike(DataItem item) {
   return result;
 }
 
-absl::Status DeepDiff::SaveTransition(DataItem token,
-                                      TraverseHelper::TransitionKey key,
-                                      DataItem value) {
+absl::Status DeepDiff::SaveTransition(const DataItem& token,
+                                      const TraverseHelper::TransitionKey& key,
+                                      const DataItem& value) {
   if (key.type == TraverseHelper::TransitionType::kDictKey) {
     // We process dict keys when we process dict values.
     return absl::OkStatus();
@@ -124,7 +120,7 @@ absl::Status DeepDiff::SaveTransition(DataItem token,
     auto attr_name = key.value.value<arolla::Text>();
     RETURN_IF_ERROR(databag_->SetSchemaAttr(token_schema, attr_name,
                                             DataItem(schema::kObject)));
-    RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, std::move(value)));
+    RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, value));
   } else if (key.type == TraverseHelper::TransitionType::kSchemaAttributeName) {
     DCHECK(key.value.holds_value<arolla::Text>());
     // Use of special schema attributes (ex.: kListItemsSchemaAttr,
@@ -135,7 +131,7 @@ absl::Status DeepDiff::SaveTransition(DataItem token,
         kSchemaAttrPrefix, key.value.value<arolla::Text>().view()));
     RETURN_IF_ERROR(databag_->SetSchemaAttr(token_schema, attr_name,
                                             DataItem(schema::kObject)));
-    RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, std::move(value)));
+    RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, value));
   } else if (key.type == TraverseHelper::TransitionType::kListItem) {
     RETURN_IF_ERROR(databag_->SetSchemaAttr(
         token_schema, schema::kListItemsSchemaAttr, DataItem(schema::kObject)));
@@ -147,14 +143,14 @@ absl::Status DeepDiff::SaveTransition(DataItem token,
         std::max(int64_t{0}, key.index + 1 - list_size.value<int64_t>());
     RETURN_IF_ERROR(databag_->ExtendList(
         token, DataSliceImpl::CreateEmptyAndUnknownType(extend_size)));
-    RETURN_IF_ERROR(databag_->SetInList(token, key.index, std::move(value)));
+    RETURN_IF_ERROR(databag_->SetInList(token, key.index, value));
   } else if (key.type == TraverseHelper::TransitionType::kDictValue) {
     RETURN_IF_ERROR(databag_->SetSchemaAttr(
         token_schema, schema::kDictKeysSchemaAttr, DataItem(schema::kObject)));
     RETURN_IF_ERROR(databag_->SetSchemaAttr(token_schema,
                                             schema::kDictValuesSchemaAttr,
                                             DataItem(schema::kObject)));
-    RETURN_IF_ERROR(databag_->SetInDict(token, key.value, std::move(value)));
+    RETURN_IF_ERROR(databag_->SetInDict(token, key.value, value));
   } else {
     return absl::InternalError("unsupported transition type");
   }
@@ -162,7 +158,7 @@ absl::Status DeepDiff::SaveTransition(DataItem token,
 }
 
 absl::StatusOr<DataItem> DeepDiff::CreateLhsOnlyDiffItem(
-    TraverseHelper::Transition lhs) {
+    const TraverseHelper::Transition& lhs) {
   auto result = DataItem(AllocateSingleObject());
   ASSIGN_OR_RETURN(auto result_schema,
                    CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
@@ -170,7 +166,7 @@ absl::StatusOr<DataItem> DeepDiff::CreateLhsOnlyDiffItem(
   RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kLhsAttr, lhs.schema));
   RETURN_IF_ERROR(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
-  RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, std::move(lhs.item)));
+  RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, lhs.item));
   if (lhs.item.holds_value<ObjectId>() && lhs.schema == schema::kObject) {
     RETURN_IF_ERROR(databag_->SetAttr(lhs.item, schema::kSchemaAttr,
                                       DataItem(schema::kItemId)));
@@ -179,15 +175,15 @@ absl::StatusOr<DataItem> DeepDiff::CreateLhsOnlyDiffItem(
 }
 
 absl::StatusOr<DataItem> DeepDiff::CreateRhsOnlyDiffItem(
-    TraverseHelper::Transition rhs) {
+    const TraverseHelper::Transition& rhs) {
   auto result = DataItem(AllocateSingleObject());
   ASSIGN_OR_RETURN(auto result_schema,
-    CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
-        result, schema::kImplicitSchemaSeed));
+                   CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+                       result, schema::kImplicitSchemaSeed));
   RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kRhsAttr, rhs.schema));
   RETURN_IF_ERROR(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
-  RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, std::move(rhs.item)));
+  RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, rhs.item));
   if (rhs.item.holds_value<ObjectId>() && rhs.schema == schema::kObject) {
     RETURN_IF_ERROR(databag_->SetAttr(rhs.item, schema::kSchemaAttr,
                                       DataItem(schema::kItemId)));
@@ -196,15 +192,14 @@ absl::StatusOr<DataItem> DeepDiff::CreateRhsOnlyDiffItem(
 }
 
 absl::StatusOr<DataItem> DeepDiff::CreateMismatchDiffItem(
-    TraverseHelper::Transition lhs, TraverseHelper::Transition rhs,
-    bool is_schema_mismatch) {
+    const TraverseHelper::Transition& lhs,
+    const TraverseHelper::Transition& rhs, bool is_schema_mismatch) {
   auto result = DataItem(AllocateSingleObject());
   ASSIGN_OR_RETURN(auto result_schema,
                    CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
                        result, schema::kImplicitSchemaSeed));
   if (is_schema_mismatch) {
-    RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema,
-                                            kSchemaMismatchAttr,
+    RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kSchemaMismatchAttr,
                                             DataItem(schema::kMask)));
     RETURN_IF_ERROR(databag_->SetAttr(result, kSchemaMismatchAttr,
                                       DataItem(arolla::kPresent)));
@@ -213,8 +208,8 @@ absl::StatusOr<DataItem> DeepDiff::CreateMismatchDiffItem(
   RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kRhsAttr, rhs.schema));
   RETURN_IF_ERROR(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
-  RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, std::move(lhs.item)));
-  RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, std::move(rhs.item)));
+  RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, lhs.item));
+  RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, rhs.item));
   if (lhs.item.holds_value<ObjectId>() && lhs.schema == schema::kObject) {
     RETURN_IF_ERROR(databag_->SetAttr(lhs.item, schema::kSchemaAttr,
                                       DataItem(schema::kItemId)));
@@ -226,11 +221,11 @@ absl::StatusOr<DataItem> DeepDiff::CreateMismatchDiffItem(
   return result;
 }
 
-absl::StatusOr<DataItem> DeepDiff::CreateDiffWrapper(DataItem diff_item) {
+absl::StatusOr<DataItem> DeepDiff::CreateDiffWrapper(
+    const DataItem& diff_item) {
   auto result = DataItem(AllocateSingleObject());
   DataItem object_schema(schema::kObject);
-  RETURN_IF_ERROR(
-      databag_->SetAttr(result, kDiffItemAttr, std::move(diff_item)));
+  RETURN_IF_ERROR(databag_->SetAttr(result, kDiffItemAttr, diff_item));
   auto diff_wrapper_schema =
       CreateSchemaUuidFromFields(kDiffWrapperSeed, {}, {});
   RETURN_IF_ERROR(databag_->SetSchemaAttr(diff_wrapper_schema, kDiffItemAttr,
