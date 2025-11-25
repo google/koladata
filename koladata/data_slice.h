@@ -24,7 +24,6 @@
 #include <utility>
 #include <variant>
 
-#include "absl/base/macros.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/btree_set.h"
@@ -283,7 +282,7 @@ class DataSlice {
 
   // Returns true if all data in this DataSlice's DataBag is reachable from this
   // DataSlice. If this returns false, whether all data is reachable is unknown.
-  bool IsWhole() const;
+  bool IsWhole() const { return internal_->is_whole; }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithBag(DataBagPtr db,
@@ -571,7 +570,7 @@ class DataSlice {
   //
   // This should be only done on DataSlices that are created with newly created
   // DataBag.
-  void UnsafeMakeWholeOnImmutableDb() const;
+  [[nodiscard]] DataSlice UnsafeMakeWholeOnImmutableDb() const;
 
  private:
   using ImplVariant = std::variant<internal::DataItem, internal::DataSliceImpl>;
@@ -612,19 +611,20 @@ class DataSlice {
     // can be changed outside of control of this DataSlice.
     DataBagPtr db;
     // If true, this DataSlice is "whole" (all data in its DataBag is reachable
-    // from it) if `db` has not been modified since this DataSlice was
-    // constructed.
-    bool is_whole_if_db_unmodified = false;
+    // from it). Can be true only if `db` is immutable.
+    bool is_whole = false;
 
     Internal() : shape(JaggedShape::Empty()), schema(schema::kNone) {}
 
     Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
-             DataBagPtr db = nullptr, bool is_whole_if_db_unmodified = false)
+             DataBagPtr db = nullptr, bool is_whole_if_db_immutable = false)
         : impl(std::move(impl)),
           shape(std::move(shape)),
           schema(std::move(schema)),
           db(std::move(db)),
-          is_whole_if_db_unmodified(is_whole_if_db_unmodified) {
+          is_whole(this->db == nullptr ||
+                   (is_whole_if_db_immutable && !this->db->IsMutable() &&
+                    !this->db->HasMutableFallbacks())) {
       DCHECK(schema.has_value());
       DCHECK(!schema.is_implicit_schema())
           << "implicit schemas are not allowed to be used as a DataSlice "

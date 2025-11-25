@@ -37,7 +37,6 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status.h"
-#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
@@ -356,7 +355,7 @@ TEST(DataSliceTest, IsWhole) {
     // No DataBag, trivially whole.
     auto ds = test::DataSlice<int>({1, 2});
     EXPECT_TRUE(ds.IsWhole());
-    ds.UnsafeMakeWholeOnImmutableDb();
+    ds = ds.UnsafeMakeWholeOnImmutableDb();
     EXPECT_TRUE(ds.IsWhole());
   }
 
@@ -367,7 +366,7 @@ TEST(DataSliceTest, IsWhole) {
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);
     EXPECT_FALSE(ds.IsWhole());
-    ds.UnsafeMakeWholeOnImmutableDb();
+    ds = ds.UnsafeMakeWholeOnImmutableDb();
     EXPECT_TRUE(ds.IsWhole());
   }
 
@@ -378,8 +377,8 @@ TEST(DataSliceTest, IsWhole) {
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
-    EXPECT_TRUE(ds.IsWhole());
-    ds.UnsafeMakeWholeOnImmutableDb();
+    EXPECT_FALSE(ds.IsWhole());
+    ds = ds.UnsafeMakeWholeOnImmutableDb();
     EXPECT_TRUE(ds.IsWhole());
   }
 
@@ -393,21 +392,8 @@ TEST(DataSliceTest, IsWhole) {
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     EXPECT_FALSE(ds.IsWhole());
-    ds.UnsafeMakeWholeOnImmutableDb();
+    ds = ds.UnsafeMakeWholeOnImmutableDb();
     EXPECT_TRUE(ds.IsWhole());  // Whole because the DataBag became immutable.
-  }
-
-  {
-    // Flag is true on DataSlice creation, no fallbacks, mutable DataBag forked
-    // after modifications but not modified further.
-    auto db = DataBag::EmptyMutable();
-    ASSERT_OK_AND_ASSIGN(
-        auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
-    ASSERT_OK_AND_ASSIGN(auto db2, db->Fork(/*immutable=*/false));
-    auto ds = *DataSlice::Create(internal::DataItem(),
-                                 internal::DataItem(schema::kInt32), db2,
-                                 DataSlice::Wholeness::kWhole);
-    EXPECT_TRUE(ds.IsWhole());
   }
 
   {
@@ -445,7 +431,8 @@ TEST(DataSliceTest, IsWhole) {
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kWhole);
     auto ds2 = *ds.ForkBag();
-    EXPECT_TRUE(ds2.IsWhole());
+    EXPECT_TRUE(ds.IsWhole());
+    EXPECT_FALSE(ds2.IsWhole());  // not whole because forked db is mutable
   }
 
   {
@@ -465,7 +452,7 @@ TEST(DataSliceTest, IsWhole) {
 TEST(DataSliceTest, Wholeness) {
   {
     SCOPED_TRACE("Override flag");
-    auto db = DataBag::EmptyMutable();
+    auto db = DataBag::Empty();
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db,
                                  DataSlice::Wholeness::kNotWhole);

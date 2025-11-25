@@ -104,8 +104,7 @@ class ObjOperator final : public arolla::QExprOperator {
                              ObjectCreator::FromAttrs(result_db, attr_names,
                                                       attr_values, item_id));
           }
-          result->UnsafeMakeWholeOnImmutableDb();
-          frame.Set(output_slot, *std::move(result));
+          frame.Set(output_slot, result->UnsafeMakeWholeOnImmutableDb());
           return absl::OkStatus();
         });
   }
@@ -139,8 +138,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            ObjectCreator::Shaped(result_db, shape, attr_names,
                                                  attr_values, item_id));
-          result.UnsafeMakeWholeOnImmutableDb();
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.UnsafeMakeWholeOnImmutableDb());
           return absl::OkStatus();
         });
   }
@@ -174,8 +172,7 @@ class ObjLikeOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result, ObjectCreator::Like(
                                             result_db, shape_and_mask_from,
                                             attr_names, attr_values, item_id));
-          result.UnsafeMakeWholeOnImmutableDb();
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.UnsafeMakeWholeOnImmutableDb());
           return absl::OkStatus();
         });
   }
@@ -203,8 +200,7 @@ class UuObjOperator : public arolla::QExprOperator {
           auto db = koladata::DataBag::EmptyMutable();
           ASSIGN_OR_RETURN(auto result,
                            CreateUuObject(db, seed, attr_names, values));
-          result.UnsafeMakeWholeOnImmutableDb();
-          frame.Set(output_slot, std::move(result));
+          frame.Set(output_slot, result.UnsafeMakeWholeOnImmutableDb());
           return absl::OkStatus();
         });
   }

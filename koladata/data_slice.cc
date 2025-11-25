@@ -1326,15 +1326,6 @@ absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {
                    GetBag());
 }
 
-bool DataSlice::IsWhole() const {
-  const auto& bag = GetBag();
-  if (bag == nullptr) {
-    return true;  // If there is no data, it is all reachable.
-  }
-  return internal_->is_whole_if_db_unmodified && !bag->HasMutableFallbacks() &&
-         (!bag->IsMutable() || bag->GetImpl().IsPristine());
-}
-
 absl::StatusOr<DataSlice> DataSlice::ForkBag() const {
   ASSIGN_OR_RETURN(auto forked_db, GetBag()->Fork());
   return DataSlice(internal_->impl, GetShape(), GetSchemaImpl(),
@@ -2364,10 +2355,11 @@ absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
   });
 }
 
-void DataSlice::UnsafeMakeWholeOnImmutableDb() const {
+DataSlice DataSlice::UnsafeMakeWholeOnImmutableDb() const {
   if (internal_->db != nullptr) {
     internal_->db->UnsafeMakeImmutable();
   }
-  internal_->is_whole_if_db_unmodified = true;
+  return DataSlice(internal_->impl, internal_->shape, internal_->schema,
+                   internal_->db, true);
 }
 }  // namespace koladata

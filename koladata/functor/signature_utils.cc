@@ -263,8 +263,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
                    ObjectCreator::FromAttrs(db, {"parameters"},
                                             {std::move(koda_parameter_list)}));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
-  koda_signature.UnsafeMakeWholeOnImmutableDb();
-  return koda_signature;
+  return koda_signature.UnsafeMakeWholeOnImmutableDb();
 }
 
 namespace {
