@@ -25,7 +25,10 @@ There are three main types of operators:
     of the same name.
 
 You can add an operator by name in a global registry by calling
-`kd.optools.add_to_registry`.
+`kd.optools.add_to_registry`. If the operator should be available in C++ via
+`arolla_cc_operator_package` (see
+[Making Operators Available in C++](#making-operators-available-in-c)), it must
+be registered with `via_cc_operator_package=True`.
 
 By default, there is an assumption that the result of an operator evaluation is
 deterministic and therefore cacheable. If this is not the case, all operator
@@ -364,14 +367,52 @@ eager version and `my_project.lazy.cond` for a lazy version.
 
 In order to evaluate Expressions from C++, the operator definitions created in
 Python must be made available in C++, which is done through creating operator
-snapshots and adding relevant build dependencies. Additionally, the
-`arolla_cc_operator_package` must depend on the `cc_library` build targets for
-all relevant backend operators defined in C++ - in our case the one implementing
-`apply_mask`. See
-[implementation](https://github.com/google/koladata/blob/main//py/koladata/operators/BUILD)
-for real examples of this. The following is a simplified example:
+snapshots and adding relevant build dependencies.
 
+All operators that are intended to be available in C++ have to be registered
+with `via_cc_operator_package=True` (e.g.
+`@kd.optools.add_to_registry(via_cc_operator_package=True)`).
+
+To build an operator package, create a Python module (e.g.
+`build_cc_operators.py`) that imports all operator modules under
+`kd.optools.building_cc_operator_package()` context manager:
+
+```python
+# In build_cc_operators.py.
+from koladata.operators import optools
+
+# pylint: disable=g-import-not-at-top
+
+with optools.building_cc_operator_package():
+  # Contains the python definition of `my_project.cond`.
+  from my.namespace import cond_module as _
+  # Contains the python definition of `my_project.apply_mask`.
+  from my.namespace import apply_mask_module as _
+  # Contains the python definition of e.g. `my_project.foo.bar`.
+  from my.namespace import some_other_module as _
 ```
+
+This module will be used by `arolla_operator_package_snapshot` to collect
+operators. Additionally, the `arolla_cc_operator_package` must depend on the
+`cc_library` build targets for all relevant backend operators defined in C++ -
+in our case the one implementing `apply_mask`. See
+[implementation](https://github.com/google/koladata/blob/main//py/koladata/operators/BUILD)
+for real examples of this. The following is a simplified example of BUILD file:
+
+```build
+load("//py/arolla/codegen:operators.bzl", "arolla_cc_operator_package", "arolla_operator_package_snapshot")
+
+pytype_strict_library(
+    name = "build_cc_operators",
+    srcs = ["build_cc_operators.py"],
+    deps = [
+        ":apply_mask_module",
+        ":cond_module",
+        ":some_other_module",
+        "//py/koladata/operators:optools",
+    ],
+)
+
 arolla_cc_operator_package(
     name = "cc_operators",
     arolla_initializer = {
@@ -386,20 +427,41 @@ arolla_cc_operator_package(
     ],
 )
 
-
 arolla_operator_package_snapshot(
     name = "operator_package.pb2",
     imports = [
-        "my.namespace.lazy_ops",
+        "my.namespace.build_cc_operators",
     ],
     preimports = ["koladata.kd"],
     visibility = ["//visibility:private"],
     deps = [
-        ":lazy_ops",
+        ":build_cc_operators",
         "//py/koladata:kd",
+    ],
+)
+
+# Modules that define operators are now private.
+pytype_strict_library(
+    name = "apply_mask_module",
+    srcs = ["apply_mask_module.py"],
+    visibility = ["//visibility:private"],
+    ...
+)
+
+# User visible Python module.
+pytype_strict_library(
+    name = "lazy_ops",
+    srcs = ["lazy_ops.py"],
+    deps = [
+        ...
+        # Add the new library to dependencies of lazy_ops.
+        ":cc_operators",
     ],
 )
 ```
 
 The `cc_operators` build target should be added as a dependency to the C++
-library that evaluates the Expressions.
+library that evaluates the Expressions. The libraries that define individual
+operators must become private in order to avoid double operator registration.
+Python users need to depend on a `py_library` that links `:cc_operators` and
+imports Python operator definitions (e.g. `:lazy_ops`).
