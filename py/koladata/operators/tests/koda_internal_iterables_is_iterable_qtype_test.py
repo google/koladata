@@ -22,7 +22,7 @@ from koladata.testing import testing
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 
 
 class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
@@ -35,19 +35,17 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_iterables.is_iterable_qtype(value_qtype)),
+        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),
         arolla.missing_unit(),
     )
 
   @parameterized.parameters(
-      arolla.eval(
-          koda_internal_iterables.get_iterable_qtype(qtypes.DATA_SLICE)
-      ),
-      arolla.eval(koda_internal_iterables.get_iterable_qtype(qtypes.DATA_BAG)),
+      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)),
+      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)),
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_iterables.is_iterable_qtype(value_qtype)),
+        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),
         arolla.present_unit(),
     )
 
@@ -55,7 +53,7 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                koda_internal_iterables.is_iterable_qtype
+                kde_internal.iterables.is_iterable_qtype
             )
         ),
         frozenset([(arolla.QTYPE, arolla.OPTIONAL_UNIT)]),
@@ -63,7 +61,7 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal_iterables.is_iterable_qtype(I.x))
+        view.has_koda_view(kde_internal.iterables.is_iterable_qtype(I.x))
     )
 
 

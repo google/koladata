@@ -22,31 +22,31 @@ from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 
 I = input_container.InputContainer('I')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelEmptyStreamLikeTest(absltest.TestCase):
 
   def test_eval(self):
-    expr = koda_internal_parallel.empty_stream_like(
-        koda_internal_parallel.stream_make(I.x)
+    expr = kde_internal.parallel.empty_stream_like(
+        kde_internal.parallel.stream_make(I.x)
     )
     res = expr_eval.eval(expr, x=arolla.int32(10))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(koda_internal_parallel.get_stream_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_stream_qtype(arolla.INT32)),
     )
     self.assertEqual(res.read_all(timeout=5.0), [])
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.empty_stream_like,
+        kde_internal.parallel.empty_stream_like,
         [
             (stream_int32_qtype, stream_int32_qtype),
         ],
@@ -56,7 +56,7 @@ class KodaInternalParallelEmptyStreamLikeTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.empty_stream_like(I.x))
+        view.has_koda_view(kde_internal.parallel.empty_stream_like(I.x))
     )
 
 

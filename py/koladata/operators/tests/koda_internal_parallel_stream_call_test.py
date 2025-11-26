@@ -36,11 +36,11 @@ f64 = arolla.float64
 I = input_container.InputContainer('I')
 M = arolla.M
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 py_fn = functor_factories.py_fn
 
-default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
 
 
 def stream_make(*args, **kwargs):
@@ -56,7 +56,7 @@ STREAM_OF_FLOAT64 = stream_make(value_type_as=f64(0)).qtype
 class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_simple(self):
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor, lambda x, y: x * y, x=2, y=3
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -65,11 +65,11 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
   def test_awaited_args(self):
     x, x_writer = Stream.new(qtypes.DATA_SLICE)
     y, y_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor,
         lambda x, y: x * y,
-        x=koda_internal_parallel.stream_await(x),
-        y=koda_internal_parallel.stream_await(y),
+        x=kde_internal.parallel.stream_await(x),
+        y=kde_internal.parallel.stream_await(y),
     ).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -83,12 +83,12 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     def fn(x, y, z):
       return M.math.add(M.math.multiply(x, y), z)
 
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor,
         fn,
         f32(2),
-        y=koda_internal_parallel.stream_await(stream_make(f64(3))),
-        z=koda_internal_parallel.stream_await(stream_make(i32(4))),
+        y=kde_internal.parallel.stream_await(stream_make(f64(3))),
+        z=kde_internal.parallel.stream_await(stream_make(i32(4))),
         return_type_as=f64(-1),
     ).eval()
     self.assertIsInstance(res, Stream)
@@ -97,9 +97,9 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_functor_returns_stream(self):
     def fn():
-      return koda_internal_parallel.stream_make(1, 2, 3)
+      return kde_internal.parallel.stream_make(1, 2, 3)
 
-    res = koda_internal_parallel.stream_call(default_executor, fn).eval()
+    res = kde_internal.parallel.stream_call(default_executor, fn).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     self.assertEqual(res.read_all(timeout=1), [1, 2, 3])
@@ -108,12 +108,12 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     def fn():
       raise RuntimeError('Boom!')
 
-    res = koda_internal_parallel.stream_call(default_executor, py_fn(fn)).eval()
+    res = kde_internal.parallel.stream_call(default_executor, py_fn(fn)).eval()
     with self.assertRaisesRegex(RuntimeError, 'Boom!'):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_wrong_type(self):
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor, lambda: i32(1), return_type_as=f32(1)
     ).eval()
     with self.assertRaisesRegex(
@@ -128,7 +128,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_non_stream(self):
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor, lambda: 1, return_type_as=stream_make()
     ).eval()
     with self.assertRaisesRegex(
@@ -144,7 +144,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_bad_fn(self):
     fn = ds(None)
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor, fn
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -154,8 +154,8 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_in_awaited_arg_before_value(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
-        default_executor, lambda x: x, koda_internal_parallel.stream_await(arg)
+    res = kde_internal.parallel.stream_call(
+        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)
     ).eval()
     arg_writer.close(RuntimeError('Boom!'))
     with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
@@ -163,8 +163,8 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_in_awaited_arg_after_value(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
-        default_executor, lambda x: x, koda_internal_parallel.stream_await(arg)
+    res = kde_internal.parallel.stream_call(
+        default_executor, lambda x: x, kde_internal.parallel.stream_await(arg)
     ).eval()
     arg_writer.write(ds(1))
     arg_writer.close(RuntimeError('Boom!'))
@@ -173,10 +173,10 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_empty_awaited_arg(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor,
         lambda x: x,
-        koda_internal_parallel.stream_await(arg),
+        kde_internal.parallel.stream_await(arg),
     ).eval()
     arg_writer.close()
     with self.assertRaisesRegex(
@@ -187,10 +187,10 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_error_awaited_arg_with_multiple_items(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor,
         lambda x: x,
-        koda_internal_parallel.stream_await(arg),
+        kde_internal.parallel.stream_await(arg),
     ).eval()
     arg_writer.write(ds(1))
     arg_writer.write(ds(2))
@@ -205,7 +205,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
 
   def test_non_awaited_stream_arg(self):
     arg, arg_writer = Stream.new(qtypes.DATA_SLICE)
-    res = koda_internal_parallel.stream_call(
+    res = kde_internal.parallel.stream_call(
         default_executor, lambda x: x, arg, return_type_as=arg
     ).eval()
     self.assertEqual(res.qtype, arg.qtype)
@@ -223,15 +223,15 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       return x
 
     with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*Boom!'):
-      koda_internal_parallel.stream_call(
+      kde_internal.parallel.stream_call(
           default_executor, py_fn(fn), 1
       ).eval().read_all(timeout=1)
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            koda_internal_parallel.stream_call(I.executor, I.fn, I.x),
-            koda_internal_parallel.stream_call(I.executor, I.fn, I.x),
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.x),
         ),
         executor=default_executor,
         fn=lambda x: x,
@@ -242,16 +242,14 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_call(
-                I.executor, I.fn, I.stream, I.arg
-            )
+            kde_internal.parallel.stream_call(I.executor, I.fn, I.stream, I.arg)
         )
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            koda_internal_parallel.stream_call(
+            kde_internal.parallel.stream_call(
                 I.executor,
                 I.fn,
                 I.arg,

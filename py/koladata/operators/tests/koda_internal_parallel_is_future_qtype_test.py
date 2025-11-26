@@ -22,7 +22,7 @@ from koladata.testing import testing
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelIsFutureQTypeTest(parameterized.TestCase):
@@ -33,29 +33,29 @@ class KodaInternalParallelIsFutureQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_parallel.is_future_qtype(value_qtype)),
+        arolla.eval(kde_internal.parallel.is_future_qtype(value_qtype)),
         arolla.missing_unit(),
     )
 
   @parameterized.parameters(
-      arolla.eval(koda_internal_parallel.get_future_qtype(qtypes.DATA_SLICE)),
-      arolla.eval(koda_internal_parallel.get_future_qtype(qtypes.DATA_BAG)),
+      arolla.eval(kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)),
+      arolla.eval(kde_internal.parallel.get_future_qtype(qtypes.DATA_BAG)),
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_parallel.is_future_qtype(value_qtype)),
+        arolla.eval(kde_internal.parallel.is_future_qtype(value_qtype)),
         arolla.present_unit(),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.is_future_qtype,
+        kde_internal.parallel.is_future_qtype,
         [(arolla.QTYPE, arolla.OPTIONAL_UNIT)],
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal_parallel.is_future_qtype(I.x))
+        view.has_koda_view(kde_internal.parallel.is_future_qtype(I.x))
     )
 
 

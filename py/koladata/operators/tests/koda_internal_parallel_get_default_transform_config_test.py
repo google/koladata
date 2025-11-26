@@ -40,7 +40,7 @@ ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 kd = eager_op_utils.operators_container('kd')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 def _parallel_eval(
@@ -53,21 +53,21 @@ def _parallel_eval(
   f = functor_factories.trace_py_fn(func)
 
   if allow_runtime_transforms:
-    config = koda_internal_parallel.create_transform_config(
-        koda_internal_parallel.get_default_transform_config_src().with_attrs(
+    config = kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.get_default_transform_config_src().with_attrs(
             allow_runtime_transforms=True
         )
     )
   else:
-    config = koda_internal_parallel.get_default_transform_config()
+    config = kde_internal.parallel.get_default_transform_config()
 
-  transformed_fn = koda_internal_parallel.transform(config, f)
-  res = koda_internal_parallel.stream_from_future(
+  transformed_fn = kde_internal.parallel.transform(config, f)
+  res = kde_internal.parallel.stream_from_future(
       transformed_fn(
-          koda_internal_parallel.get_default_executor(),
-          *[koda_internal_parallel.as_future(arg) for arg in args],
-          return_type_as=koda_internal_parallel.as_future(return_type_as),
-          **{k: koda_internal_parallel.as_future(v) for k, v in kwargs.items()},
+          kde_internal.parallel.get_default_executor(),
+          *[kde_internal.parallel.as_future(arg) for arg in args],
+          return_type_as=kde_internal.parallel.as_future(return_type_as),
+          **{k: kde_internal.parallel.as_future(v) for k, v in kwargs.items()},
       )
   ).eval()
   return res.read_all(timeout=5.0)[0]
@@ -77,7 +77,7 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
   def _wait_until_n_items(self, stream, n):
     """Waits until at least n items, end-of-stream is counted as 1 item."""
-    executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
+    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
     reader = stream.make_reader()
     found = 0
     while True:
@@ -96,26 +96,24 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.get_default_transform_config,
+        kde_internal.parallel.get_default_transform_config,
         [
-            (arolla.eval(koda_internal_parallel.get_transform_config_qtype()),),
+            (arolla.eval(kde_internal.parallel.get_transform_config_qtype()),),
         ],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(
-            koda_internal_parallel.get_default_transform_config()
-        )
+        view.has_koda_view(kde_internal.parallel.get_default_transform_config())
     )
 
   def test_basic(self):
-    expr = koda_internal_parallel.get_default_transform_config()
+    expr = kde_internal.parallel.get_default_transform_config()
     res = expr.eval()
     testing.assert_equal(
         res.qtype,
-        arolla.eval(koda_internal_parallel.get_transform_config_qtype()),
+        arolla.eval(kde_internal.parallel.get_transform_config_qtype()),
     )
 
   @parameterized.named_parameters(
@@ -182,18 +180,18 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
       return make_tuple_fn(get_first_fn(res), get_second_fn(res))
 
     fn = functor_factories.trace_py_fn(g)
-    config = koda_internal_parallel.get_default_transform_config().eval()
-    executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
-    transformed_fn = koda_internal_parallel.transform(config, fn)
+    config = kde_internal.parallel.get_default_transform_config().eval()
+    executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     future_1 = expr_eval.eval(
-        koda_internal_parallel.async_eval(executor, wait_and_return_1)
+        kde_internal.parallel.async_eval(executor, wait_and_return_1)
     )
     future_2 = expr_eval.eval(
-        koda_internal_parallel.async_eval(executor, wait_and_return_2)
+        kde_internal.parallel.async_eval(executor, wait_and_return_2)
     )
-    future_none = expr_eval.eval(koda_internal_parallel.as_future(None))
+    future_none = expr_eval.eval(kde_internal.parallel.as_future(None))
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
+        kde_internal.parallel.get_default_executor(),
         x=future_1,
         y=future_2,
         return_type_as=make_tuple_fn(future_none, future_none),
@@ -201,10 +199,10 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
     # Make sure the tuple elements can be evaluated independently, with
     # no barrier to sync.
-    first_as_stream = koda_internal_parallel.stream_from_future(
+    first_as_stream = kde_internal.parallel.stream_from_future(
         get_first_fn(res)
     ).eval()
-    second_as_stream = koda_internal_parallel.stream_from_future(
+    second_as_stream = kde_internal.parallel.stream_from_future(
         get_second_fn(res)
     ).eval()
     # unlock get_second_fn while get_first_fn is still waiting.
@@ -215,17 +213,17 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_non_deterministic_token_handling(self):
     fn = functor_factories.expr_fn(optools.unified_non_deterministic_arg())
-    config = koda_internal_parallel.get_default_transform_config().eval()
-    transformed_fn = koda_internal_parallel.transform(config, fn)
+    config = kde_internal.parallel.get_default_transform_config().eval()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
+        kde_internal.parallel.get_default_executor(),
         return_type_as=optools.unified_non_deterministic_arg(),
     ).eval()
     self.assertEqual(res.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
     self.assertNotIn('async_eval', str(res))
     # To make sure the assert above is meaningful.
-    res_no_replacements = koda_internal_parallel.transform(
-        expr_eval.eval(koda_internal_parallel.create_transform_config(None)),
+    res_no_replacements = kde_internal.parallel.transform(
+        expr_eval.eval(kde_internal.parallel.create_transform_config(None)),
         fn,
     ).eval()
     self.assertIn('async_eval', str(res_no_replacements))
@@ -239,16 +237,16 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     y = ds([1, 2, 3])
 
     fn = functor_factories.trace_py_fn(f)
-    config = koda_internal_parallel.get_default_transform_config().eval()
-    transformed_fn = koda_internal_parallel.transform(config, fn)
+    config = kde_internal.parallel.get_default_transform_config().eval()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        x=koda_internal_parallel.as_future(x),
-        y=koda_internal_parallel.as_future(y),
-        return_type_as=koda_internal_parallel.as_future(None),
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(x),
+        y=kde_internal.parallel.as_future(y),
+        return_type_as=kde_internal.parallel.as_future(None),
     ).eval()
 
-    res_as_stream = koda_internal_parallel.stream_from_future(res).eval()
+    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()
     testing.assert_equal(
         res_as_stream.read_all(timeout=5.0)[0],
         ds([2, None, 4]).with_bag(x.get_bag()),
@@ -262,15 +260,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     x = fns.dict({1: 2, 3: 4})
 
     fn = functor_factories.trace_py_fn(f)
-    config = koda_internal_parallel.get_default_transform_config().eval()
-    transformed_fn = koda_internal_parallel.transform(config, fn)
+    config = kde_internal.parallel.get_default_transform_config().eval()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        x=koda_internal_parallel.as_future(x),
-        return_type_as=koda_internal_parallel.as_future(None),
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(x),
+        return_type_as=kde_internal.parallel.as_future(None),
     ).eval()
 
-    res_as_stream = koda_internal_parallel.stream_from_future(res).eval()
+    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()
     testing.assert_equal(
         res_as_stream.read_all(timeout=5.0)[0],
         ds(4).with_bag(x.get_bag()),
@@ -300,13 +298,13 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             branch_to_use, do_two_things, do_other_two_things, x
         )
     )
-    config = koda_internal_parallel.get_default_transform_config()
-    transformed_fn = koda_internal_parallel.transform(config, fn)
-    res = koda_internal_parallel.stream_from_future(
+    config = kde_internal.parallel.get_default_transform_config()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            koda_internal_parallel.as_future(ds(1)),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds(1)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     if branch_to_use:
@@ -324,26 +322,26 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             return_type_as=data_bag.DataBag,
         )
     )
-    config = koda_internal_parallel.get_default_transform_config()
-    transformed_fn = koda_internal_parallel.transform(config, fn)
+    config = kde_internal.parallel.get_default_transform_config()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     y = fns.new()
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            koda_internal_parallel.as_future(mask_constants.present),
-            koda_internal_parallel.as_future(y),
-            return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(mask_constants.present),
+            kde_internal.parallel.as_future(y),
+            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),
         )
     ).eval()
     new_y = y.updated(res.read_all(timeout=5.0)[0])
     testing.assert_equal(new_y.foo.no_bag(), ds(1))
 
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            koda_internal_parallel.as_future(mask_constants.missing),
-            koda_internal_parallel.as_future(y),
-            return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(mask_constants.missing),
+            kde_internal.parallel.as_future(y),
+            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),
         )
     ).eval()
     new_y = y.updated(res.read_all(timeout=5.0)[0])
@@ -380,12 +378,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -436,12 +434,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -474,12 +472,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def f():
       return op()
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEqual(res.read_all(timeout=5.0), [])
@@ -495,12 +493,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def f():
       return op(value_type_as=data_bag.DataBag)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
@@ -513,14 +511,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def f(x):
       return op(x, value_type_as=data_bag.DataBag)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        x=koda_internal_parallel.as_future(db),
-        return_type_as=koda_internal_parallel.stream_make(
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(db),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
@@ -534,14 +532,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def f(x, y):
       return op(kde.tuple(x, y))
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        x=koda_internal_parallel.as_future(1),
-        y=koda_internal_parallel.as_future(2),
-        return_type_as=koda_internal_parallel.stream_make(
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(1),
+        y=kde_internal.parallel.as_future(2),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=kde.tuple(None, None)
         ),
     ).eval()
@@ -595,13 +593,13 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           kde.iterables.make(wait_and_return_4()),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         f,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -664,12 +662,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           kde.iterables.make(wait_and_return_4()),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -702,14 +700,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def f(x):
       return op(kde.iterables.make(x), value_type_as=data_bag.DataBag)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        x=koda_internal_parallel.as_future(db),
-        return_type_as=koda_internal_parallel.stream_make(
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(db),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
@@ -756,14 +754,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x):
       return user_facing_kd.functor.flat_map_chain(x, f)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
+        kde_internal.parallel.get_default_executor(),
         x=stream,
-        return_type_as=koda_internal_parallel.stream_make(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -832,14 +830,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x):
       return user_facing_kd.functor.flat_map_interleaved(x, f)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
+        kde_internal.parallel.get_default_executor(),
         x=stream,
-        return_type_as=koda_internal_parallel.stream_make(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -880,15 +878,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.functor.reduce(f, x, initial)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            x=koda_internal_parallel.stream_make(1, 2, 3, 4),
-            initial=koda_internal_parallel.as_future(5),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(1, 2, 3, 4),
+            initial=kde_internal.parallel.as_future(5),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -901,16 +899,16 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.functor.reduce(f, x, initial)
 
-    config = koda_internal_parallel.get_default_transform_config()
-    transformed_fn = koda_internal_parallel.transform(config, g)
-    res = koda_internal_parallel.stream_from_future(
-        koda_internal_parallel.future_from_parallel(
-            koda_internal_parallel.get_default_executor(),
+    config = kde_internal.parallel.get_default_transform_config()
+    transformed_fn = kde_internal.parallel.transform(config, g)
+    res = kde_internal.parallel.stream_from_future(
+        kde_internal.parallel.future_from_parallel(
+            kde_internal.parallel.get_default_executor(),
             transformed_fn(
-                koda_internal_parallel.get_default_executor(),
-                x=koda_internal_parallel.stream_make(1, 2, 3, 4),
-                initial=koda_internal_parallel.as_parallel((5, 6)),
-                return_type_as=koda_internal_parallel.as_parallel((None, None)),
+                kde_internal.parallel.get_default_executor(),
+                x=kde_internal.parallel.stream_make(1, 2, 3, 4),
+                initial=kde_internal.parallel.as_parallel((5, 6)),
+                return_type_as=kde_internal.parallel.as_parallel((None, None)),
             ),
         )
     ).eval()
@@ -923,15 +921,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.iterables.reduce_concat(x, initial)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            x=koda_internal_parallel.stream_make(ds([1]), ds([2])),
-            initial=koda_internal_parallel.as_future(ds([5])),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(ds([1]), ds([2])),
+            initial=kde_internal.parallel.as_future(ds([5])),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -941,16 +939,16 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial, ndim):
       return user_facing_kd.iterables.reduce_concat(x, initial, ndim=ndim)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            x=koda_internal_parallel.stream_make(ds([[1]]), ds([[2]])),
-            initial=koda_internal_parallel.as_future(ds([[5]])),
-            ndim=koda_internal_parallel.as_future(ds(2)),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(ds([[1]]), ds([[2]])),
+            initial=kde_internal.parallel.as_future(ds([[5]])),
+            ndim=kde_internal.parallel.as_future(ds(2)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -960,19 +958,19 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.iterables.reduce_updated_bag(x, initial)
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     o = fns.new()
     b1 = kd.attrs(o, a=1, b=5)
     b2 = kd.attrs(o, b=2)
     b3 = kd.attrs(o, c=3, a=4)
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            x=koda_internal_parallel.stream_make(b1, b2),
-            initial=koda_internal_parallel.as_future(b3),
-            return_type_as=koda_internal_parallel.as_future(b1),
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(b1, b2),
+            initial=kde_internal.parallel.as_future(b3),
+            return_type_as=kde_internal.parallel.as_future(b1),
         )
     ).eval()
 
@@ -993,15 +991,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             returns=1,
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            n=koda_internal_parallel.as_future(5),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            n=kde_internal.parallel.as_future(5),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(120))
@@ -1020,14 +1018,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             yields=user_facing_kd.iterables.make(),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        n=koda_internal_parallel.as_future(5),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        n=kde_internal.parallel.as_future(5),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1048,14 +1046,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             yields_interleaved=user_facing_kd.iterables.make(),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        n=koda_internal_parallel.as_future(5),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        n=kde_internal.parallel.as_future(5),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertCountEqual(
         [x.to_py() for x in res.read_all(timeout=5.0)],
@@ -1109,12 +1107,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           yields=user_facing_kd.iterables.make(),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1184,12 +1182,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           yields_interleaved=user_facing_kd.iterables.make(),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1226,15 +1224,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             returns=1,
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            vals=koda_internal_parallel.stream_make(*range(1, 6)),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(120))
@@ -1251,14 +1249,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             yields=user_facing_kd.iterables.make(),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        vals=koda_internal_parallel.stream_make(*range(1, 6)),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1277,14 +1275,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             yields_interleaved=user_facing_kd.iterables.make(),
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        vals=koda_internal_parallel.stream_make(*range(1, 6)),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertCountEqual(
         [x.to_py() for x in res.read_all(timeout=5.0)],
@@ -1336,12 +1334,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           yields=user_facing_kd.iterables.make(),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1409,12 +1407,12 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           yields_interleaved=user_facing_kd.iterables.make(),
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), g
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), g
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1453,14 +1451,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make(2, 3)},
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        vals=koda_internal_parallel.stream_make(*range(1, 6)),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1480,15 +1478,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             returns=0,
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            vals=koda_internal_parallel.stream_make(*range(1, 6)),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(-15))
@@ -1505,14 +1503,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make()},
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        vals=koda_internal_parallel.stream_make(*range(1, 6)),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1530,15 +1528,15 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             returns=0,
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            vals=koda_internal_parallel.stream_make(*range(1, 6)),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(6))
@@ -1557,14 +1555,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make()},
         )
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(),
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        vals=koda_internal_parallel.stream_make(*range(1, 6)),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1939,13 +1937,13 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     f = functor_factories.trace_py_fn(
         lambda seq: user_facing_kd.functor.flat_map_chain(seq, tokenize)
     )
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        koda_internal_parallel.stream_make('a b c', 'foo bar'),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        kde_internal.parallel.stream_make('a b c', 'foo bar'),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1954,13 +1952,13 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_iterable_from_1d_slice(self):
     f = functor_factories.fn(lambda x: user_facing_kd.iterables.from_1d_slice(x))  # pylint: disable=unnecessary-lambda
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
-        x=koda_internal_parallel.as_future(ds([1, 2, 3])),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
+        x=kde_internal.parallel.as_future(ds([1, 2, 3])),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1978,14 +1976,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
       return add(a, b)
 
     f = functor_factories.fn(add_fixed, auto_variables=False)
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
-    res = koda_internal_parallel.stream_from_future(
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            koda_internal_parallel.as_future(ds([4, 5, 6])),
-            return_type_as=koda_internal_parallel.as_future(None),
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds([4, 5, 6])),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(
@@ -2002,14 +2000,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           'Test assertion triggered',
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
     res = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
-        value=koda_internal_parallel.stream_make(1, 2),
-        cond=koda_internal_parallel.as_future(mask_constants.present),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
+        value=kde_internal.parallel.stream_make(1, 2),
+        cond=kde_internal.parallel.as_future(mask_constants.present),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -2018,10 +2016,10 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
 
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res_error = transformed_fn(
-        koda_internal_parallel.get_default_executor(),
-        return_type_as=koda_internal_parallel.stream_make(),
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
         value=stream,
-        cond=koda_internal_parallel.as_future(mask_constants.missing),
+        cond=kde_internal.parallel.as_future(mask_constants.missing),
     ).eval()
     # Note that we don't close the writer here, since we want to make sure
     # the assertion does not wait for the stream to be computed.
@@ -2046,14 +2044,14 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           'Test assertion triggered',
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
-    res_error = koda_internal_parallel.stream_from_future(
+    res_error = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            return_type_as=koda_internal_parallel.as_future(None),
-            cond=koda_internal_parallel.as_future(mask_constants.missing),
+            kde_internal.parallel.get_default_executor(),
+            return_type_as=kde_internal.parallel.as_future(None),
+            cond=kde_internal.parallel.as_future(mask_constants.missing),
         )
     ).eval()
     # Note that we don't trigger e1 here, since we want to make sure
@@ -2076,17 +2074,17 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
           y,
       )
 
-    transformed_fn = koda_internal_parallel.transform(
-        koda_internal_parallel.get_default_transform_config(), f
+    transformed_fn = kde_internal.parallel.transform(
+        kde_internal.parallel.get_default_transform_config(), f
     )
-    res_error = koda_internal_parallel.stream_from_future(
+    res_error = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            koda_internal_parallel.get_default_executor(),
-            return_type_as=koda_internal_parallel.as_future(None),
-            value=koda_internal_parallel.as_future(ds(1)),
-            cond=koda_internal_parallel.as_future(mask_constants.missing),
-            x=koda_internal_parallel.as_future(ds(2)),
-            y=koda_internal_parallel.as_future(ds(3)),
+            kde_internal.parallel.get_default_executor(),
+            return_type_as=kde_internal.parallel.as_future(None),
+            value=kde_internal.parallel.as_future(ds(1)),
+            cond=kde_internal.parallel.as_future(mask_constants.missing),
+            x=kde_internal.parallel.as_future(ds(2)),
+            y=kde_internal.parallel.as_future(ds(3)),
         )
     ).eval()
     with self.assertRaisesRegex(

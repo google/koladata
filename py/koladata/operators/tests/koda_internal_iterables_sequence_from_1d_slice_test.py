@@ -23,7 +23,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
@@ -33,7 +33,7 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
   def test_basic(self):
     a = fns.new(x=ds([1, 2, 3]))
     res = expr_eval.eval(
-        koda_internal_iterables.sequence_from_1d_slice(I.arg), arg=a
+        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
@@ -46,7 +46,7 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
   def test_empty(self):
     a = ds([])
     res = expr_eval.eval(
-        koda_internal_iterables.sequence_from_1d_slice(I.arg), arg=a
+        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
@@ -59,18 +59,18 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
         ValueError, 'expected a 1D data slice, got 0 dimensions'
     ):
       _ = expr_eval.eval(
-          koda_internal_iterables.sequence_from_1d_slice(I.arg), arg=a
+          kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
       )
 
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        koda_internal_iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
     )
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                koda_internal_iterables.sequence_from_1d_slice,
+                kde_internal.iterables.sequence_from_1d_slice,
                 possible_qtypes=[
                     qtypes.DATA_SLICE,
                     qtypes.DATA_BAG,
@@ -85,9 +85,7 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(
-            koda_internal_iterables.sequence_from_1d_slice(I.arg)
-        )
+        view.has_koda_view(kde_internal.iterables.sequence_from_1d_slice(I.arg))
     )
 
 

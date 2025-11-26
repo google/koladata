@@ -38,9 +38,9 @@ M = arolla.M
 
 kde = kde_operators.kde
 py_fn = functor_factories.py_fn
-koda_internal_parallel = kde_operators.internal.parallel
-default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
-eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
+kde_internal = kde_operators.internal
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
 
 STREAM_OF_DATA_SLICE = kde.streams.make(value_type_as=ds(0)).qtype
 STREAM_OF_FLOAT64 = kde.streams.make(value_type_as=f64(0)).qtype

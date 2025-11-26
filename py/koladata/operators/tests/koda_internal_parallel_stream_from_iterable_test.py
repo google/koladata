@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor.parallel import clib
@@ -28,10 +27,9 @@ I = input_container.InputContainer('I')
 
 ds = data_slice.DataSlice.from_vals
 kd = eager_op_utils.operators_container('kd')
-koda_internal_parallel = kde_operators.internal.parallel
-kd_internal_parallel = eager_op_utils.operators_container(
-    'koda_internal.parallel',
-    top_level_arolla_container=arolla.unsafe_operators_container(),
+kde_internal = kde_operators.internal
+kd_internal = eager_op_utils.operators_container(
+    top_level_arolla_container=kde_internal
 )
 kde = kde_operators.kde
 
@@ -39,7 +37,7 @@ kde = kde_operators.kde
 class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
 
   def test_from_iterable(self):
-    res = kd_internal_parallel.stream_from_iterable(kd.iterables.make(1, 2))
+    res = kd_internal.parallel.stream_from_iterable(kd.iterables.make(1, 2))
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -50,7 +48,7 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
   def test_from_iterable_with_bags(self):
     db1 = data_bag.DataBag.empty_mutable()
     db2 = data_bag.DataBag.empty_mutable()
-    res = kd_internal_parallel.stream_from_iterable(kd.iterables.make(db1, db2))
+    res = kd_internal.parallel.stream_from_iterable(kd.iterables.make(db1, db2))
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     res_list = res.read_all(timeout=0)
@@ -59,7 +57,7 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     testing.assert_equal(res_list[1], db2)
 
   def test_from_empty_iterable(self):
-    res = kd_internal_parallel.stream_from_iterable(kd.iterables.make())
+    res = kd_internal.parallel.stream_from_iterable(kd.iterables.make())
     self.assertIsInstance(res, clib.Stream)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -68,13 +66,13 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_from_iterable(kd.iterables.make(1, 2))
+            kde_internal.parallel.stream_from_iterable(kd.iterables.make(1, 2))
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(koda_internal_parallel.stream_from_iterable(I.a)),
+        repr(kde_internal.parallel.stream_from_iterable(I.a)),
         'koda_internal.parallel.stream_from_iterable(I.a)',
     )
 

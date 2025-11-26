@@ -40,13 +40,13 @@ f32 = arolla.float32
 I = input_container.InputContainer('I')
 M = arolla.M
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 py_fn = functor_factories.py_fn
 expr_fn = functor_factories.expr_fn
 
-default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
-eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
 
 
 def stream_make(*args, **kwargs):
@@ -82,7 +82,7 @@ def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
 
 # An adapter for testing an internal operator.
 def _stream_while_yields(executor, condition_fn, body_fn, yields, **state):
-  return koda_internal_parallel._stream_while_yields(
+  return kde_internal.parallel._stream_while_yields(
       executor,
       py_boxing.as_qvalue_or_expr(condition_fn),
       py_boxing.as_qvalue_or_expr(body_fn),

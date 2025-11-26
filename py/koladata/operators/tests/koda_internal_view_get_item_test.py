@@ -23,7 +23,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 @arolla.optools.add_to_registry_as_overload(
@@ -39,7 +39,7 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
 
   def test_eval(self):
     testing.assert_equal(
-        expr_eval.eval(koda_internal.view.get_item(arolla.unspecified(), 1)),
+        expr_eval.eval(kde_internal.view.get_item(arolla.unspecified(), 1)),
         ds(1),
     )
 
@@ -48,17 +48,17 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
         ValueError,
         re.escape('no matching overload [x: INT32, key: DATA_SLICE]'),
     ):
-      koda_internal.view.get_item(arolla.int32(1), 1)
+      kde_internal.view.get_item(arolla.int32(1), 1)
 
   def test_repr(self):
     self.assertEqual(
-        repr(koda_internal.view.get_item(arolla.unspecified(), 1)),
+        repr(kde_internal.view.get_item(arolla.unspecified(), 1)),
         'unspecified[DataItem(1, schema: INT32)]',
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal.view.get_item(arolla.unspecified(), 1))
+        view.has_koda_view(kde_internal.view.get_item(arolla.unspecified(), 1))
     )
 
 

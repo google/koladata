@@ -35,7 +35,7 @@ from koladata.functor.parallel import transform_config_pb2
 
 ds = data_slice.DataSlice.from_vals
 I = input_container.InputContainer('I')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelGetDefaultTransformConfigSrcTest(
@@ -43,7 +43,7 @@ class KodaInternalParallelGetDefaultTransformConfigSrcTest(
 ):
 
   def test_format_matches_proto(self):
-    config = koda_internal_parallel.get_default_transform_config_src().eval()
+    config = kde_internal.parallel.get_default_transform_config_src().eval()
     self.assertEqual(config.qtype, qtypes.DATA_SLICE)
     config_proto = proto_conversions.to_proto(
         config, transform_config_pb2.ParallelTransformConfigProto
@@ -59,8 +59,8 @@ class KodaInternalParallelGetDefaultTransformConfigSrcTest(
     # context in Python now. So we do an imperfect proxy test here by just
     # doing one test for the config created from the default_config_src.
     # Most of the testing is done in the get_default_transform_config tests.
-    context = koda_internal_parallel.create_transform_config(
-        koda_internal_parallel.get_default_transform_config_src(),
+    context = kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.get_default_transform_config_src(),
     ).eval()
 
     barrier = threading.Barrier(2)
@@ -85,16 +85,16 @@ class KodaInternalParallelGetDefaultTransformConfigSrcTest(
       return x.updated(parts[0], parts[1])
 
     obj = fns.new()
-    res_future = koda_internal_parallel.transform(context, g)(
+    res_future = kde_internal.parallel.transform(context, g)(
         I.executor,
         I.x,
-        return_type_as=koda_internal_parallel.as_future(data_slice.DataSlice),
+        return_type_as=kde_internal.parallel.as_future(data_slice.DataSlice),
     ).eval(
-        executor=expr_eval.eval(koda_internal_parallel.get_default_executor()),
-        x=koda_internal_parallel.as_future(obj).eval(),
+        executor=expr_eval.eval(kde_internal.parallel.get_default_executor()),
+        x=kde_internal.parallel.as_future(obj).eval(),
     )
     res = (
-        koda_internal_parallel.stream_from_future(res_future)
+        kde_internal.parallel.stream_from_future(res_future)
         .eval()
         .read_all(timeout=5.0)[0]
     )
@@ -104,7 +104,7 @@ class KodaInternalParallelGetDefaultTransformConfigSrcTest(
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.get_default_transform_config_src,
+        kde_internal.parallel.get_default_transform_config_src,
         [
             (qtypes.DATA_SLICE,),
         ],
@@ -114,7 +114,7 @@ class KodaInternalParallelGetDefaultTransformConfigSrcTest(
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.get_default_transform_config_src()
+            kde_internal.parallel.get_default_transform_config_src()
         )
     )
 

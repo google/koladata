@@ -42,7 +42,7 @@ kde = kde_operators.kde
 kdf = functions.functor
 expr_fn = kdf.expr_fn
 py_fn = user_facing_kd.py_fn
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
@@ -74,8 +74,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_returns(self):
     factorial = kdf.fn(
-        lambda n: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda n, returns: n > 0,
             lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
@@ -92,8 +92,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_returns_databag(self):
     factorial = kdf.fn(
-        lambda n, x: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n, x: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda x, returns: x.updated(returns).n > 0,
             lambda x, returns: user_facing_kd.namedtuple(
                 returns=user_facing_kd.attrs(
@@ -135,8 +135,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             returns=x.updated(next_state_bag).result,
         )
 
-      return koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      return kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           lambda x, state_bag, returns: x.updated(state_bag).n > 0,
           _body_fn,
           x=x,
@@ -152,17 +152,17 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_yields(self):
     factorial = kdf.fn(
-        lambda n: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda n, res: n > 0,
             lambda n, res: user_facing_kd.namedtuple(
-                yields=koda_internal_parallel.stream_make(res * n),
+                yields=kde_internal.parallel.stream_make(res * n),
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields=koda_internal_parallel.stream_make(),
+            yields=kde_internal.parallel.stream_make(),
         )
     )
     self.assertEqual(
@@ -174,8 +174,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_yields_no_yield_in_body(self):
     factorial = kdf.fn(
-        lambda n: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda n, res: n > 0,
             lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
@@ -183,7 +183,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             ),
             n=n,
             res=1,
-            yields=koda_internal_parallel.stream_make(5),
+            yields=kde_internal.parallel.stream_make(5),
         )
     )
     self.assertEqual(
@@ -205,15 +205,15 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         update_bag = user_facing_kd.attrs(x, n=x.n - 1, result=x.result * x.n)
         return user_facing_kd.namedtuple(
             x=x.updated(update_bag),
-            yields=koda_internal_parallel.stream_make(update_bag),
+            yields=kde_internal.parallel.stream_make(update_bag),
         )
 
-      return koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      return kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           lambda x: x.n > 0,
           _body_fn,
           x=x.updated(initial_update_bag),
-          yields=koda_internal_parallel.stream_make(initial_update_bag),
+          yields=kde_internal.parallel.stream_make(initial_update_bag),
       )
 
     factorial = kdf.fn(_factorial)
@@ -241,17 +241,17 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_yields_interleaved(self):
     factorial = kdf.fn(
-        lambda n: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda n, res: n > 0,
             lambda n, res: user_facing_kd.namedtuple(
-                yields_interleaved=koda_internal_parallel.stream_make(res * n),
+                yields_interleaved=kde_internal.parallel.stream_make(res * n),
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields_interleaved=koda_internal_parallel.stream_make(),
+            yields_interleaved=kde_internal.parallel.stream_make(),
         ),
     )
     self.assertCountEqual(
@@ -266,8 +266,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
   def test_while_yields_interleaved_no_yield_in_body(self):
     factorial = kdf.fn(
-        lambda n: koda_internal_parallel.stream_while(
-            koda_internal_parallel.get_default_executor(),
+        lambda n: kde_internal.parallel.stream_while(
+            kde_internal.parallel.get_default_executor(),
             lambda n, res: n > 0,
             lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
@@ -275,7 +275,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             ),
             n=n,
             res=1,
-            yields_interleaved=koda_internal_parallel.stream_make(5, 7),
+            yields_interleaved=kde_internal.parallel.stream_make(5, 7),
         )
     )
     self.assertEqual(
@@ -297,8 +297,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
           yields_interleaved=[stream1, stream2][n], n=n + 1
       )
 
-    res = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_eager_executor(),
+    res = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_eager_executor(),
         condition_fn,
         py_fn(body_fn, return_type_as=body_fn(n=ds(0))),
         yields_interleaved=stream0,
@@ -330,8 +330,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     def body_fn(*, n):
       return arolla.namedtuple(yields=[stream1, stream2][n], n=n + 1)
 
-    res = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_eager_executor(),
+    res = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_eager_executor(),
         condition_fn,
         py_fn(body_fn, return_type_as=body_fn(n=ds(0))),
         yields=stream0,
@@ -355,8 +355,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     self.assertIsNone(reader.read_available())
 
   def test_cancel(self):
-    expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         kdf.fn(lambda returns: mask_constants.present),
         kdf.fn(
             lambda returns: arolla.M.core._identity_with_cancel(
@@ -376,8 +376,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             ' be specified'
         ),
     ):
-      _ = koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      _ = kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
           lambda **unused_kwargs: user_facing_kd.namedtuple(),
       )
@@ -390,8 +390,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             ' be specified'
         ),
     ):
-      _ = koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      _ = kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
           lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
@@ -399,11 +399,11 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       )
 
   def test_return_outside_yield_inside_body(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: user_facing_kd.namedtuple(
-            yields=koda_internal_parallel.stream_make()
+            yields=kde_internal.parallel.stream_make()
         ),
         returns=1,
     )
@@ -417,8 +417,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_wrong_type_for_variable(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: user_facing_kd.namedtuple(
             returns=user_facing_kd.tuple(1, 2)
@@ -436,13 +436,13 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_wrong_inner_type_for_yields(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: user_facing_kd.namedtuple(
-            yields=koda_internal_parallel.stream_make(user_facing_kd.bag())
+            yields=kde_internal.parallel.stream_make(user_facing_kd.bag())
         ),
-        yields=koda_internal_parallel.stream_make(),
+        yields=kde_internal.parallel.stream_make(),
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -455,8 +455,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_return_dataslice(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: 2,
         returns=1,
@@ -472,11 +472,11 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_yield_dataslice(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: 2,
-        yields=koda_internal_parallel.stream_make(1),
+        yields=kde_internal.parallel.stream_make(1),
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -489,8 +489,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_non_mask_condition(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: 1,
         lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
@@ -505,8 +505,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr).read_all(timeout=1)
 
   def test_non_scalar_condition(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.slice(
             [user_facing_kd.missing]
         ).no_bag(),
@@ -527,16 +527,16 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         ValueError,
         re.escape('expected DATA_SLICE, got body_fn: namedtuple<>'),
     ):
-      _ = koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      _ = kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
           kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_body(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
         57,
         returns=1,
@@ -552,16 +552,16 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         ValueError,
         re.escape('expected DATA_SLICE, got condition_fn: namedtuple<>'),
     ):
-      _ = koda_internal_parallel.stream_while(
-          koda_internal_parallel.get_default_executor(),
+      _ = kde_internal.parallel.stream_while(
+          kde_internal.parallel.get_default_executor(),
           kde.namedtuple(),
           lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_condition(self):
-    loop_expr = koda_internal_parallel.stream_while(
-        koda_internal_parallel.get_default_executor(),
+    loop_expr = kde_internal.parallel.stream_while(
+        kde_internal.parallel.get_default_executor(),
         user_facing_kd.present,
         lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
@@ -575,7 +575,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_while(
+            kde_internal.parallel.stream_while(
                 I.executor, I.condition, I.body, returns=I.returns, x=I.x
             )
         )
@@ -584,7 +584,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            koda_internal_parallel.stream_while(
+            kde_internal.parallel.stream_while(
                 I.executor,
                 I.condition,
                 I.body,

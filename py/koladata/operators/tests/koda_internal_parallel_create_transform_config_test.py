@@ -23,7 +23,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 # We do not have a Python API for fetching the config from the context,
@@ -32,23 +32,21 @@ koda_internal_parallel = kde_operators.internal.parallel
 class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_can_run(self):
-    _ = arolla.eval(koda_internal_parallel.create_transform_config(None))
+    _ = arolla.eval(kde_internal.parallel.create_transform_config(None))
 
   def test_config_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'config_src must be a scalar, got rank 1',
     ):
-      _ = arolla.eval(
-          koda_internal_parallel.create_transform_config(ds([None]))
-      )
+      _ = arolla.eval(kde_internal.parallel.create_transform_config(ds([None])))
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = arolla.eval(
-        koda_internal_parallel.get_transform_config_qtype()
+        kde_internal.parallel.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.create_transform_config,
+        kde_internal.parallel.create_transform_config,
         [(qtypes.DATA_SLICE, parallel_transform_config_qtype)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
         + (parallel_transform_config_qtype,),
@@ -56,7 +54,7 @@ class KodaInternalParallelCreateTransformConfigTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.create_transform_config(I.x))
+        view.has_koda_view(kde_internal.parallel.create_transform_config(I.x))
     )
 
 

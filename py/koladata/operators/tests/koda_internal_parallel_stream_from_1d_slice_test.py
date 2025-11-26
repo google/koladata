@@ -27,14 +27,14 @@ from koladata.types import data_slice
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
 
   def test_basic(self):
     a = fns.new(x=ds([1, 2, 3]))
-    res = koda_internal_parallel.stream_from_1d_slice(I.arg).eval(arg=a)
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -45,7 +45,7 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
 
   def test_mixed_values(self):
     a = ds([1, '2', fns.obj(x=3)])
-    res = koda_internal_parallel.stream_from_1d_slice(I.arg).eval(arg=a)
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=a)
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -55,7 +55,7 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
     testing.assert_equal(res_list[2], a.S[2])
 
   def test_empty(self):
-    res = koda_internal_parallel.stream_from_1d_slice(I.arg).eval(arg=ds([]))
+    res = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds([]))
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = res.read_all(timeout=0)
@@ -65,19 +65,19 @@ class KodaInternalParallelStreamFrom1DSliceTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a 1D data slice, got 0 dimensions'
     ):
-      _ = koda_internal_parallel.stream_from_1d_slice(I.arg).eval(arg=ds(5))
+      _ = kde_internal.parallel.stream_from_1d_slice(I.arg).eval(arg=ds(5))
 
   def test_qtype_signatures(self):
     stream_of_slice = stream_clib.Stream.new(qtypes.DATA_SLICE)[0].qtype
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.stream_from_1d_slice,
+        kde_internal.parallel.stream_from_1d_slice,
         [(qtypes.DATA_SLICE, stream_of_slice)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.stream_from_1d_slice(I.arg))
+        view.has_koda_view(kde_internal.parallel.stream_from_1d_slice(I.arg))
     )
     self.assertTrue(view.has_koda_view(kde.streams.from_1d_slice(I.arg)))
 

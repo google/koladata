@@ -28,7 +28,7 @@ from koladata.types import data_item
 
 
 I = input_container.InputContainer('I')
-kd_lazy = kde_operators.kde
+kde = kde_operators.kde
 kd_item = data_item.DataItem.from_vals
 eval_op = py_expr_eval_py_ext.eval_op
 
@@ -38,7 +38,7 @@ SRC_PIN = kd_optools.SRC_PIN
 class AnnotationSourceLocationTest(absltest.TestCase):
 
   def test_boxing(self):
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         1, 'foo', 'test.py', 123, 456, '  x + 1'
     )
     # We don't expect users to call the operator directly, so there is no point
@@ -63,7 +63,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     )
 
   def test_noop_eval(self):
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
     )
     kd_testing.assert_equal(expr_eval.eval(expr, x=1), kd_item(2))
@@ -72,18 +72,18 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
     @kd_optools.as_lambda_operator('inner_lambda')
     def inner_lambda(x, y):
-      return kd_lazy.annotation.source_location(
-          kd_lazy.math.floordiv(x, y),
+      return kde.annotation.source_location(
+          kde.math.floordiv(x, y),
           'inner_lambda',
           'file.py',
           57,
           2,
-          'kd_lazy.math.floordiv(x, y)',
+          'kde.math.floordiv(x, y)',
       )
 
     @kd_optools.as_lambda_operator('outer_lambda')
     def outer_lambda(x, y):
-      inner = kd_lazy.annotation.source_location(
+      inner = kde.annotation.source_location(
           inner_lambda(x, y),
           'outer_lambda',
           'file.py',
@@ -91,16 +91,16 @@ class AnnotationSourceLocationTest(absltest.TestCase):
           2,
           'inner_lambda(x, y)',
       )
-      return kd_lazy.annotation.source_location(
-          kd_lazy.math.add(inner, 1),
+      return kde.annotation.source_location(
+          kde.math.add(inner, 1),
           'outer_lambda',
           'file.py',
           59,
           2,
-          'kd_lazy.math.add(inner, 1)',
+          'kde.math.add(inner, 1)',
       )
 
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         outer_lambda(I.x, I.y),
         'main',
         'file.py',
@@ -139,17 +139,17 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     self.assertNotIn('line 59', tb)
 
   def test_repr(self):
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
     )
     self.assertEqual(repr(expr), f'(I.x + DataItem(1, schema: INT32)){SRC_PIN}')
 
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         I.x.attr, 'foo', 'test.py', 123, 456, '  x.attr'
     )
     self.assertEqual(repr(expr), f'I.x.attr{SRC_PIN}')
 
-    expr = kd_lazy.annotation.source_location(
+    expr = kde.annotation.source_location(
         -I.x, 'foo', 'test.py', 123, 456, '  x.attr'
     )
     self.assertEqual(repr(expr), f'(-I.x){SRC_PIN}')

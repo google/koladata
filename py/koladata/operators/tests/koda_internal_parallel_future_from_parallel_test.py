@@ -28,33 +28,30 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-koda_internal_parallel = kde_operators.internal.parallel
-koda_internal_iterables = kde_operators.internal.iterables
 kde = kde_operators.kde
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
 
   def test_future_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(
-        executor, koda_internal_parallel.as_future(I.x)
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(
+        executor, kde_internal.parallel.as_future(I.x)
     )
     res = expr_eval.eval(expr, x=arolla.int32(10))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(koda_internal_parallel.get_future_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.int32(10),
     )
 
   def test_value_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(executor, I.x)
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(executor, I.x)
     with self.assertRaisesRegex(
         ValueError,
         'future_from_parallel can only be applied to a parallel non-stream'
@@ -63,9 +60,9 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_stream_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(
-        executor, koda_internal_parallel.stream_make(I.x)
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(
+        executor, kde_internal.parallel.stream_make(I.x)
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -77,44 +74,42 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_tuple_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(
         executor,
         kde.tuple(
-            koda_internal_parallel.as_future(I.x),
-            koda_internal_parallel.as_future(I.y),
+            kde_internal.parallel.as_future(I.x),
+            kde_internal.parallel.as_future(I.y),
         ),
     )
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.float32(20.0))
     self.assertEqual(
         res.qtype,
         expr_eval.eval(
-            koda_internal_parallel.get_future_qtype(
+            kde_internal.parallel.get_future_qtype(
                 arolla.make_tuple_qtype(arolla.INT32, arolla.FLOAT32)
             )
         ),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.tuple(arolla.int32(10), arolla.float32(20.0)),
     )
 
   def test_nested_tuple_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(
         executor,
         kde.tuple(
-            koda_internal_parallel.as_future(I.x),
-            kde.tuple(koda_internal_parallel.as_future(I.y)),
+            kde_internal.parallel.as_future(I.x),
+            kde.tuple(kde_internal.parallel.as_future(I.y)),
         ),
     )
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.float32(20.0))
     self.assertEqual(
         res.qtype,
         expr_eval.eval(
-            koda_internal_parallel.get_future_qtype(
+            kde_internal.parallel.get_future_qtype(
                 arolla.make_tuple_qtype(
                     arolla.INT32, arolla.make_tuple_qtype(arolla.FLOAT32)
                 )
@@ -122,26 +117,24 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
         ),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.tuple(arolla.int32(10), arolla.tuple(arolla.float32(20.0))),
     )
 
   def test_namedtuple_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(
         executor,
         kde.namedtuple(
-            foo=koda_internal_parallel.as_future(I.x),
-            bar=koda_internal_parallel.as_future(I.y),
+            foo=kde_internal.parallel.as_future(I.x),
+            bar=kde_internal.parallel.as_future(I.y),
         ),
     )
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.float32(20.0))
     self.assertEqual(
         res.qtype,
         expr_eval.eval(
-            koda_internal_parallel.get_future_qtype(
+            kde_internal.parallel.get_future_qtype(
                 arolla.make_namedtuple_qtype(
                     foo=arolla.INT32, bar=arolla.FLOAT32
                 )
@@ -149,15 +142,13 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
         ),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.namedtuple(foo=arolla.int32(10), bar=arolla.float32(20.0)),
     )
 
   def test_value_in_tuple_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(executor, I.x)
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(executor, I.x)
     with self.assertRaisesRegex(
         ValueError,
         'future_from_parallel can only be applied to a parallel non-stream'
@@ -166,64 +157,62 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.tuple(arolla.int32(10)))
 
   def test_non_deterministic_token_input(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    expr = koda_internal_parallel.future_from_parallel(executor, I.x)
+    executor = kde_internal.parallel.get_eager_executor()
+    expr = kde_internal.parallel.future_from_parallel(executor, I.x)
     token = expr_eval.eval(py_boxing.new_non_deterministic_token())
     res = expr_eval.eval(expr, x=token)
     self.assertEqual(
         res.qtype,
         expr_eval.eval(
-            koda_internal_parallel.get_future_qtype(
+            kde_internal.parallel.get_future_qtype(
                 qtypes.NON_DETERMINISTIC_TOKEN
             )
         ),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         token,
     )
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     future_int64_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT64)
+        kde_internal.parallel.get_future_qtype(arolla.INT64)
     )
     stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     iterable_int32_qtype = expr_eval.eval(
-        koda_internal_iterables.get_iterable_qtype(arolla.INT32)
+        kde_internal.iterables.get_iterable_qtype(arolla.INT32)
     )
     future_tuple_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(
+        kde_internal.parallel.get_future_qtype(
             arolla.make_tuple_qtype(arolla.INT32, arolla.INT64)
         )
     )
     future_namedtuple_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(
+        kde_internal.parallel.get_future_qtype(
             arolla.make_namedtuple_qtype(foo=arolla.INT32, bar=arolla.INT64)
         )
     )
     future_empty_tuple_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.make_tuple_qtype())
+        kde_internal.parallel.get_future_qtype(arolla.make_tuple_qtype())
     )
     future_empty_nested_tuple_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(
+        kde_internal.parallel.get_future_qtype(
             arolla.make_tuple_qtype(arolla.make_tuple_qtype())
         )
     )
     future_empty_namedtuple_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.make_namedtuple_qtype())
+        kde_internal.parallel.get_future_qtype(arolla.make_namedtuple_qtype())
     )
     future_non_deterministic_token_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(qtypes.NON_DETERMINISTIC_TOKEN)
+        kde_internal.parallel.get_future_qtype(qtypes.NON_DETERMINISTIC_TOKEN)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.future_from_parallel,
+        kde_internal.parallel.future_from_parallel,
         [
             (qtypes.EXECUTOR, future_int32_qtype, future_int32_qtype),
             (qtypes.EXECUTOR, future_int64_qtype, future_int64_qtype),
@@ -289,7 +278,7 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.future_from_parallel(I.executor, I.x)
+            kde_internal.parallel.future_from_parallel(I.executor, I.x)
         )
     )
 

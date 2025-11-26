@@ -30,10 +30,9 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    'koda_internal',
-    top_level_arolla_container=arolla.unsafe_operators_container(),
+    top_level_arolla_container=kde_internal
 )
 
 
@@ -52,15 +51,15 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        koda_internal.to_arolla_text('abc'),
+        kde_internal.to_arolla_text('abc'),
         arolla.abc.bind_op(
-            koda_internal.to_arolla_text, literal_operator.literal(ds('abc'))
+            kde_internal.to_arolla_text, literal_operator.literal(ds('abc'))
         ),
     )
 
   def test_bind_time_evaluation(self):
     # Allows it to be used in operators that require literal inputs.
-    expr = koda_internal.to_arolla_text(ds('abc'))
+    expr = kde_internal.to_arolla_text(ds('abc'))
     testing.assert_equal(expr.qvalue, arolla.text('abc'))
 
   def test_unsupported_schema_error(self):
@@ -95,13 +94,13 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.to_arolla_text,
+        kde_internal.to_arolla_text,
         [(qtypes.DATA_SLICE, arolla.TEXT)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(koda_internal.to_arolla_text(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_text(I.x)))
 
 
 if __name__ == '__main__':

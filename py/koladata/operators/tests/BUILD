@@ -8984,7 +8984,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -9021,7 +9020,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

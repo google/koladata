@@ -35,7 +35,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 create_shape = jagged_shape.create_shape
 kde = kde_operators.kde
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 class FlattenTest(parameterized.TestCase):
@@ -47,7 +47,7 @@ class FlattenTest(parameterized.TestCase):
     )
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            koda_internal.flatten_last_ndim,
+            kde_internal.flatten_last_ndim,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         tuple((x, ndim, x) for x, ndim in input_qtypes),
@@ -71,31 +71,29 @@ class FlattenTest(parameterized.TestCase):
       (ds([[[1, 2], [3]], [[4, 5]]]), arolla.int64(2), ds([[1, 2, 3], [4, 5]])),
   )
   def test_eval(self, shape, ndim, expected):
-    actual_value = expr_eval.eval(koda_internal.flatten_last_ndim(shape, ndim))
+    actual_value = expr_eval.eval(kde_internal.flatten_last_ndim(shape, ndim))
     testing.assert_equal(actual_value, expected)
 
   def test_multidim_ndim_error(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=2'):
-      expr_eval.eval(
-          koda_internal.flatten_last_ndim(create_shape(2), ds([[1]]))
-      )
+      expr_eval.eval(kde_internal.flatten_last_ndim(create_shape(2), ds([[1]])))
 
   def test_non_int_ndim_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(koda_internal.flatten_last_ndim(create_shape(2), ds(1.0)))
+      expr_eval.eval(kde_internal.flatten_last_ndim(create_shape(2), ds(1.0)))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(koda_internal.flatten_last_ndim(create_shape(2), ndim))
+      expr_eval.eval(kde_internal.flatten_last_ndim(create_shape(2), ndim))
 
   def test_boxing(self):
     testing.assert_equal(
-        koda_internal.flatten_last_ndim(create_shape(), 1),
+        kde_internal.flatten_last_ndim(create_shape(), 1),
         arolla.abc.bind_op(
-            koda_internal.flatten_last_ndim,
+            kde_internal.flatten_last_ndim,
             literal_operator.literal(create_shape()),
             literal_operator.literal(ds(1)),
         ),
@@ -103,7 +101,7 @@ class FlattenTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal.flatten_last_ndim(I.x, I.ndim))
+        view.has_koda_view(kde_internal.flatten_last_ndim(I.x, I.ndim))
     )
 
 

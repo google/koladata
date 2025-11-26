@@ -26,7 +26,7 @@ from koladata.types import jagged_shape
 
 
 I = input_container.InputContainer('I')
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 def create_arolla_shape(*sizes):
@@ -50,13 +50,13 @@ class ShapesToArollaShapeTest(parameterized.TestCase):
   )
   def test_eval(self, shape, expected_res):
     res = expr_eval.eval(
-        koda_internal.to_arolla_jagged_shape(I.shape), shape=shape
+        kde_internal.to_arolla_jagged_shape(I.shape), shape=shape
     )
     testing.assert_equal(res, expected_res)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.to_arolla_jagged_shape,
+        kde_internal.to_arolla_jagged_shape,
         (
             (
                 jagged_shape.JAGGED_SHAPE,
@@ -68,7 +68,7 @@ class ShapesToArollaShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal.to_arolla_jagged_shape(I.x))
+        view.has_koda_view(kde_internal.to_arolla_jagged_shape(I.x))
     )
 
 

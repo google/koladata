@@ -32,8 +32,8 @@ I = input_container.InputContainer('I')
 M = arolla.M
 
 expr_fn = functor_factories.expr_fn
-koda_internal_parallel = kde_operators.internal.parallel
-default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
+kde_internal = kde_operators.internal
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
 
 
 def stream_make(*args, **kwargs):
@@ -50,7 +50,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
 
   def test_default_value_type(self):
     fn = expr_fn(2 * I.self)
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream_make(1, 5, 10), fn
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -59,7 +59,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
 
   def test_value_type_as_int32(self):
     fn = expr_fn(M.math.multiply(2, I.self))
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor,
         stream_make(i32(1), i32(5), i32(10)),
         fn,
@@ -71,7 +71,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
 
   def test_empty_input_stream(self):
     fn = expr_fn(2 * I.self)
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream_make(), fn, value_type_as=i32(0)
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_INT32)
@@ -84,7 +84,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
     fn = expr_fn(I.self + 1)
     expr = I.input_seq
     for _ in range(layer_count):
-      expr = koda_internal_parallel.stream_map(I.executor, expr, I.fn)
+      expr = kde_internal.parallel.stream_map(I.executor, expr, I.fn)
     res = expr.eval(
         executor=default_executor,
         input_seq=stream_make(*range(item_count)),
@@ -95,7 +95,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
 
   def test_error_bad_fn(self):
     fn = ds(None)
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -106,7 +106,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
 
   def test_error_wrong_value_type_as(self):
     fn = expr_fn(2 * I.self)
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -125,7 +125,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
     writer.write(i32(1))
     writer.close(RuntimeError('Boom!'))
     fn = expr_fn(M.math.multiply(2, I.self))
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream, fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
@@ -135,7 +135,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
   def test_cancellation_on_functor(self):
     stream, writer = stream_clib.Stream.new(arolla.INT32)
     fn = expr_fn(M.core._identity_with_cancel(I.self))
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream, fn, value_type_as=i32(0)
     ).eval()
     writer.write(i32(1))  # trigger activity
@@ -147,7 +147,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
   def test_cancellation_on_read(self):
     stream, _ = stream_clib.Stream.new(arolla.INT32)
     fn = expr_fn(I.self)
-    res = koda_internal_parallel.stream_map(
+    res = kde_internal.parallel.stream_map(
         default_executor, stream, fn, value_type_as=i32(0)
     ).eval()
     cancellation_context = arolla.abc.current_cancellation_context()
@@ -159,8 +159,8 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            koda_internal_parallel.stream_map(I.executor, I.stream, I.fn),
-            koda_internal_parallel.stream_map(I.executor, I.stream, I.fn),
+            kde_internal.parallel.stream_map(I.executor, I.stream, I.fn),
+            kde_internal.parallel.stream_map(I.executor, I.stream, I.fn),
         ),
         executor=default_executor,
         stream=stream_make(),
@@ -171,13 +171,13 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_map(I.executor, I.stream, I.fn),
+            kde_internal.parallel.stream_map(I.executor, I.stream, I.fn),
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(koda_internal_parallel.stream_map(I.executor, I.stream, I.fn)),
+        repr(kde_internal.parallel.stream_map(I.executor, I.stream, I.fn)),
         'koda_internal.parallel.stream_map(I.executor, I.stream, I.fn,'
         ' value_type_as=DataItem(None, schema: NONE))',
     )

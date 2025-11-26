@@ -23,20 +23,20 @@ from koladata.testing import testing
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    future_to_future = koda_internal_parallel.async_eval(
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
-        koda_internal_parallel.as_future,
+        kde_internal.parallel.as_future,
         I.x,
     )
-    expr = koda_internal_parallel.unwrap_future_to_future(future_to_future)
-    expr = koda_internal_parallel.get_future_value_for_testing(expr)
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
+    expr = kde_internal.parallel.get_future_value_for_testing(expr)
     testing.assert_equal(
         expr_eval.eval(expr, x=arolla.int32(10)), arolla.int32(10)
     )
@@ -48,54 +48,54 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
 
     @optools.as_lambda_operator('my_outer_op')
     def my_outer_op(executor, x):
-      return koda_internal_parallel.async_eval(executor, my_op, x)
+      return kde_internal.parallel.async_eval(executor, my_op, x)
 
-    executor = koda_internal_parallel.get_eager_executor()
-    future_to_future = koda_internal_parallel.async_eval(
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
         my_outer_op,
         executor,
         I.x,
     )
-    expr = koda_internal_parallel.unwrap_future_to_future(future_to_future)
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
     res = expr_eval.eval(expr, x=10)
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
 
   def test_error_making_future(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return koda_internal_parallel.as_future(
+      return kde_internal.parallel.as_future(
           kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
       )
 
-    executor = koda_internal_parallel.get_eager_executor()
-    future_to_future = koda_internal_parallel.async_eval(
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
         my_op,
         I.x,
     )
-    expr = koda_internal_parallel.unwrap_future_to_future(future_to_future)
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
     res = expr_eval.eval(expr, x=10)
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     future_future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(future_int32_qtype)
+        kde_internal.parallel.get_future_qtype(future_int32_qtype)
     )
     future_future_future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(future_future_int32_qtype)
+        kde_internal.parallel.get_future_qtype(future_future_int32_qtype)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.unwrap_future_to_future,
+        kde_internal.parallel.unwrap_future_to_future,
         [
             (future_future_int32_qtype, future_int32_qtype),
             (future_future_future_int32_qtype, future_future_int32_qtype),
@@ -110,7 +110,7 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.unwrap_future_to_future(I.x))
+        view.has_koda_view(kde_internal.parallel.unwrap_future_to_future(I.x))
     )
 
 

@@ -19,7 +19,7 @@ from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.types import qtypes
 
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelGetDefaultExecutorTest(absltest.TestCase):
@@ -27,7 +27,7 @@ class KodaInternalParallelGetDefaultExecutorTest(absltest.TestCase):
   def test_simple(self):
     # We do not have a Python API to add tasks to an executor, so we just
     # test basic properties.
-    executor = arolla.eval(koda_internal_parallel.get_default_executor())
+    executor = arolla.eval(kde_internal.parallel.get_default_executor())
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -36,14 +36,14 @@ class KodaInternalParallelGetDefaultExecutorTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.get_default_executor,
+        kde_internal.parallel.get_default_executor,
         [(qtypes.EXECUTOR,)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal_parallel.get_default_executor())
+        view.has_koda_view(kde_internal.parallel.get_default_executor())
     )
 
 

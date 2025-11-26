@@ -28,29 +28,26 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-koda_internal_iterables = kde_operators.internal.iterables
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelAsParallelTest(absltest.TestCase):
 
   def test_value_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     res = expr_eval.eval(expr, x=arolla.int32(10))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(koda_internal_parallel.get_future_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.int32(10),
     )
 
   def test_future_input(self):
-    expr = koda_internal_parallel.as_parallel(
-        kde.tuple(koda_internal_parallel.as_future(I.x))
+    expr = kde_internal.parallel.as_parallel(
+        kde.tuple(kde_internal.parallel.as_future(I.x))
     )
     with self.assertRaisesRegex(
         ValueError, 'as_parallel cannot be applied to a future'
@@ -58,8 +55,8 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_stream_input(self):
-    expr = koda_internal_parallel.as_parallel(
-        koda_internal_parallel.stream_make(I.x)
+    expr = kde_internal.parallel.as_parallel(
+        kde_internal.parallel.stream_make(I.x)
     )
     with self.assertRaisesRegex(
         ValueError, 'as_parallel cannot be applied to a stream'
@@ -67,91 +64,91 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_tuple_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     res = expr_eval.eval(expr, x=arolla.tuple(10, 20.0))
     self.assertEqual(
         res.qtype,
         arolla.make_tuple_qtype(
             expr_eval.eval(
-                koda_internal_parallel.get_future_qtype(arolla.INT32)
+                kde_internal.parallel.get_future_qtype(arolla.INT32)
             ),
             expr_eval.eval(
-                koda_internal_parallel.get_future_qtype(arolla.FLOAT32)
+                kde_internal.parallel.get_future_qtype(arolla.FLOAT32)
             ),
         ),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])
         ),
         arolla.int32(10),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res[1])
+            kde_internal.parallel.get_future_value_for_testing(res[1])
         ),
         arolla.float32(20.0),
     )
 
   def test_nested_tuple_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     res = expr_eval.eval(expr, x=arolla.tuple(10, arolla.tuple(20.0)))
     self.assertEqual(
         res.qtype,
         arolla.make_tuple_qtype(
             expr_eval.eval(
-                koda_internal_parallel.get_future_qtype(arolla.INT32)
+                kde_internal.parallel.get_future_qtype(arolla.INT32)
             ),
             arolla.make_tuple_qtype(
                 expr_eval.eval(
-                    koda_internal_parallel.get_future_qtype(arolla.FLOAT32)
+                    kde_internal.parallel.get_future_qtype(arolla.FLOAT32)
                 )
             ),
         ),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])
         ),
         arolla.int32(10),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res[1][0])
+            kde_internal.parallel.get_future_value_for_testing(res[1][0])
         ),
         arolla.float32(20.0),
     )
 
   def test_namedtuple_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     res = expr_eval.eval(expr, x=arolla.namedtuple(foo=10, bar=20.0))
     self.assertEqual(
         res.qtype,
         arolla.make_namedtuple_qtype(
             foo=expr_eval.eval(
-                koda_internal_parallel.get_future_qtype(arolla.INT32)
+                kde_internal.parallel.get_future_qtype(arolla.INT32)
             ),
             bar=expr_eval.eval(
-                koda_internal_parallel.get_future_qtype(arolla.FLOAT32)
+                kde_internal.parallel.get_future_qtype(arolla.FLOAT32)
             ),
         ),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res['foo'])
+            kde_internal.parallel.get_future_value_for_testing(res['foo'])
         ),
         arolla.int32(10),
     )
     testing.assert_equal(
         expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res['bar'])
+            kde_internal.parallel.get_future_value_for_testing(res['bar'])
         ),
         arolla.float32(20.0),
     )
 
   def test_future_in_tuple_input(self):
-    expr = koda_internal_parallel.as_parallel(
-        koda_internal_parallel.as_future(I.x)
+    expr = kde_internal.parallel.as_parallel(
+        kde_internal.parallel.as_future(I.x)
     )
     with self.assertRaisesRegex(
         ValueError, 'as_parallel cannot be applied to a future'
@@ -159,12 +156,12 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
       _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_iterable_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     res = expr_eval.eval(expr, x=iterable_qvalue.Iterable(1, 2, 3))
     self.assertEqual(
         res.qtype,
         expr_eval.eval(
-            koda_internal_parallel.get_stream_qtype(qtypes.DATA_SLICE)
+            kde_internal.parallel.get_stream_qtype(qtypes.DATA_SLICE)
         ),
     )
     testing.assert_equal(
@@ -173,7 +170,7 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
     )
 
   def test_non_deterministic_token_input(self):
-    expr = koda_internal_parallel.as_parallel(I.x)
+    expr = kde_internal.parallel.as_parallel(I.x)
     token = expr_eval.eval(py_boxing.new_non_deterministic_token())
     res = expr_eval.eval(expr, x=token)
     self.assertEqual(res.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
@@ -181,19 +178,19 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     future_int64_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT64)
+        kde_internal.parallel.get_future_qtype(arolla.INT64)
     )
     stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     iterable_int32_qtype = expr_eval.eval(
-        koda_internal_iterables.get_iterable_qtype(arolla.INT32)
+        kde_internal.iterables.get_iterable_qtype(arolla.INT32)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.as_parallel,
+        kde_internal.parallel.as_parallel,
         [
             (arolla.INT32, future_int32_qtype),
             (arolla.INT64, future_int64_qtype),
@@ -238,7 +235,7 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(koda_internal_parallel.as_parallel(I.x)))
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.as_parallel(I.x)))
 
 
 if __name__ == '__main__':

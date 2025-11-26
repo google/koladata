@@ -21,29 +21,25 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 
 I = input_container.InputContainer('I')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelAsFutureTest(absltest.TestCase):
 
   def test_value_input(self):
-    expr = koda_internal_parallel.as_future(I.x)
+    expr = kde_internal.parallel.as_future(I.x)
     res = expr_eval.eval(expr, x=arolla.int32(10))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(koda_internal_parallel.get_future_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         arolla.int32(10),
     )
 
   def test_future_input(self):
-    expr = koda_internal_parallel.as_future(
-        koda_internal_parallel.as_future(I.x)
-    )
+    expr = kde_internal.parallel.as_future(kde_internal.parallel.as_future(I.x))
     with self.assertRaisesRegex(
         ValueError, 'as_future cannot be applied to a future'
     ):
@@ -51,13 +47,13 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.as_future,
+        kde_internal.parallel.as_future,
         [
             (arolla.INT32, future_int32_qtype),
         ],
@@ -65,7 +61,7 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(koda_internal_parallel.as_future(I.x)))
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.as_future(I.x)))
 
 
 if __name__ == '__main__':

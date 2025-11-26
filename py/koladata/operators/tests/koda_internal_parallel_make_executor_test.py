@@ -18,13 +18,13 @@ from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes
 
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = koda_internal_parallel.make_executor().eval()
+    executor = kde_internal.parallel.make_executor().eval()
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -32,7 +32,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
     )
 
   def test_simple_n(self):
-    executor = koda_internal_parallel.make_executor(5).eval()
+    executor = kde_internal.parallel.make_executor(5).eval()
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -41,7 +41,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.make_executor,
+        kde_internal.parallel.make_executor,
         [
             (arolla.INT32, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
             (arolla.INT64, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
@@ -50,7 +50,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(koda_internal_parallel.make_executor()))
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.make_executor()))
 
 
 if __name__ == '__main__':

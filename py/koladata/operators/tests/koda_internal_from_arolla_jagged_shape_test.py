@@ -26,7 +26,7 @@ from koladata.types import jagged_shape
 
 
 I = input_container.InputContainer('I')
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 def create_arolla_shape(*sizes):
@@ -56,7 +56,7 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
   )
   def test_eval(self, shape, expected_res):
     res = expr_eval.eval(
-        koda_internal.from_arolla_jagged_shape(I.shape), shape=shape
+        kde_internal.from_arolla_jagged_shape(I.shape), shape=shape
     )
     testing.assert_equal(res, expected_res)
 
@@ -66,13 +66,13 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
         'expected JAGGED_DENSE_ARRAY_SHAPE, got shape: JAGGED_ARRAY_SHAPE',
     ):
       expr_eval.eval(
-          koda_internal.from_arolla_jagged_shape(I.shape),
+          kde_internal.from_arolla_jagged_shape(I.shape),
           shape=create_array_shape(),
       )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.from_arolla_jagged_shape,
+        kde_internal.from_arolla_jagged_shape,
         (
             (
                 arolla_jagged_shape.JAGGED_DENSE_ARRAY_SHAPE,
@@ -85,7 +85,7 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal.from_arolla_jagged_shape(I.x))
+        view.has_koda_view(kde_internal.from_arolla_jagged_shape(I.x))
     )
 
 

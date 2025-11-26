@@ -27,22 +27,22 @@ I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
-kd_lazy = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde = kde_operators.kde
+kde_internal = kde_operators.internal
 
 
 class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_simple_no_replacements(self):
-    executor = koda_internal_parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()
     fn = functor_factories.expr_fn(
-        koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
+        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),
     )
-    call_expr = koda_internal_parallel.parallel_call_fn_returning_stream(
+    call_expr = kde_internal.parallel.parallel_call_fn_returning_stream(
         executor,
-        koda_internal_parallel.as_future(fn),
-        x=koda_internal_parallel.as_future(I.foo),
-        y=koda_internal_parallel.as_future(I.bar),
+        kde_internal.parallel.as_future(fn),
+        x=kde_internal.parallel.as_future(I.foo),
+        y=kde_internal.parallel.as_future(I.bar),
     )
     self.assertListEqual(
         call_expr.eval(foo=2, bar=3).read_all(timeout=5.0),
@@ -50,24 +50,24 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     )
 
   def test_simple_with_replacements(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    config = koda_internal_parallel.get_default_transform_config()
+    executor = kde_internal.parallel.get_eager_executor()
+    config = kde_internal.parallel.get_default_transform_config()
     fn = functor_factories.expr_fn(
-        koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
+        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),
     )
     call_fn = functor_factories.expr_fn(
-        kd_lazy.functor.call_fn_returning_stream_when_parallel(
+        kde.functor.call_fn_returning_stream_when_parallel(
             I.func,
             x=I.foo,
             y=I.bar,
         )
     )
-    call_expr = koda_internal_parallel.transform(config, call_fn)(
+    call_expr = kde_internal.parallel.transform(config, call_fn)(
         executor,
-        func=koda_internal_parallel.as_future(fn),
-        foo=koda_internal_parallel.as_future(I.foo),
-        bar=koda_internal_parallel.as_future(I.bar),
-        return_type_as=koda_internal_parallel.stream_make(),
+        func=kde_internal.parallel.as_future(fn),
+        foo=kde_internal.parallel.as_future(I.foo),
+        bar=kde_internal.parallel.as_future(I.bar),
+        return_type_as=kde_internal.parallel.stream_make(),
     )
     self.assertListEqual(
         call_expr.eval(foo=2, bar=3).read_all(timeout=5.0),
@@ -75,15 +75,15 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     )
 
   def test_return_type_as(self):
-    executor = koda_internal_parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()
     fn = functor_factories.expr_fn(
-        koda_internal_parallel.stream_make(S, S),
+        kde_internal.parallel.stream_make(S, S),
     )
-    call_expr = koda_internal_parallel.parallel_call_fn_returning_stream(
+    call_expr = kde_internal.parallel.parallel_call_fn_returning_stream(
         executor,
-        koda_internal_parallel.as_future(fn),
-        koda_internal_parallel.as_future(I.foo),
-        return_type_as=koda_internal_parallel.stream_make(data_bag.DataBag),
+        kde_internal.parallel.as_future(fn),
+        kde_internal.parallel.as_future(I.foo),
+        return_type_as=kde_internal.parallel.stream_make(data_bag.DataBag),
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = call_expr.eval(foo=db).read_all(timeout=5.0)
@@ -93,7 +93,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.parallel_call_fn_returning_stream(
+            kde_internal.parallel.parallel_call_fn_returning_stream(
                 I.executor, I.config, I.fn
             )
         )

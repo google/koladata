@@ -32,10 +32,9 @@ I = input_container.InputContainer('I')
 
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    'koda_internal',
-    top_level_arolla_container=arolla.unsafe_operators_container(),
+    top_level_arolla_container=kde_internal
 )
 
 OBJECT = schema_constants.OBJECT
@@ -113,14 +112,14 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.to_arolla_dense_array_int64,
+        kde_internal.to_arolla_dense_array_int64,
         [(qtypes.DATA_SLICE, arolla.DENSE_ARRAY_INT64)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal.to_arolla_dense_array_int64(I.x))
+        view.has_koda_view(kde_internal.to_arolla_dense_array_int64(I.x))
     )
 
 

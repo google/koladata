@@ -30,7 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 class KodaToArollaBooleanTest(parameterized.TestCase):
@@ -42,7 +42,7 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
   )
   def test_eval(self, x, expected):
     testing.assert_equal(
-        expr_eval.eval(koda_internal.to_arolla_boolean(I.x), x=x), expected
+        expr_eval.eval(kde_internal.to_arolla_boolean(I.x), x=x), expected
     )
 
   def test_unsupported_schema_error(self):
@@ -50,36 +50,36 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to BOOLEAN'
     ):
-      expr_eval.eval(koda_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit(), schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to BOOLEAN'
     ):
-      expr_eval.eval(koda_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))
 
   def test_non_dataitem_error(self):
     x = data_slice.DataSlice.from_vals([True])
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(koda_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))
 
   def test_missing_value_error(self):
     x = data_slice.DataSlice.from_vals(arolla.optional_boolean(None))
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      expr_eval.eval(koda_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            koda_internal.to_arolla_boolean,
+            kde_internal.to_arolla_boolean,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         frozenset([(qtypes.DATA_SLICE, arolla.BOOLEAN)]),
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(koda_internal.to_arolla_boolean(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_boolean(I.x)))
 
 
 if __name__ == '__main__':

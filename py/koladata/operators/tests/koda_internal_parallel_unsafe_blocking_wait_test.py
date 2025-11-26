@@ -30,14 +30,14 @@ py_fn = functor_factories.py_fn
 ds = data_slice.DataSlice.from_vals
 
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
 
   def test_basic(self):
-    result = koda_internal_parallel.unsafe_blocking_wait(
-        koda_internal_parallel.stream_make(1)
+    result = kde_internal.parallel.unsafe_blocking_wait(
+        kde_internal.parallel.stream_make(1)
     ).eval()
     self.assertEqual(result, 1)
 
@@ -46,8 +46,8 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
         ValueError,
         re.escape('expected a stream with a single item, got an empty stream'),
     ):
-      _ = koda_internal_parallel.unsafe_blocking_wait(
-          koda_internal_parallel.stream_make()
+      _ = kde_internal.parallel.unsafe_blocking_wait(
+          kde_internal.parallel.stream_make()
       ).eval()
 
   def test_error_stream_with_multiple_items(self):
@@ -58,8 +58,8 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
             ' items'
         ),
     ):
-      _ = koda_internal_parallel.unsafe_blocking_wait(
-          koda_internal_parallel.stream_make(1, 2)
+      _ = kde_internal.parallel.unsafe_blocking_wait(
+          kde_internal.parallel.stream_make(1, 2)
       ).eval()
 
   def test_delayed_item(self):
@@ -67,31 +67,29 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
       time.sleep(0.02)
       return ds(1)
 
-    result = koda_internal_parallel.unsafe_blocking_wait(
-        koda_internal_parallel.stream_call(
-            koda_internal_parallel.get_default_executor(), py_fn(fn)
+    result = kde_internal.parallel.unsafe_blocking_wait(
+        kde_internal.parallel.stream_call(
+            kde_internal.parallel.get_default_executor(), py_fn(fn)
         )
     ).eval()
     self.assertEqual(result, 1)
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(
-            koda_internal_parallel.unsafe_blocking_wait(I.stream)
-        )
+        view.has_koda_view(kde_internal.parallel.unsafe_blocking_wait(I.stream))
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            koda_internal_parallel.unsafe_blocking_wait,
+            kde_internal.parallel.unsafe_blocking_wait,
             kde.streams.unsafe_blocking_wait,
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(koda_internal_parallel.unsafe_blocking_wait(I.stream)),
+        repr(kde_internal.parallel.unsafe_blocking_wait(I.stream)),
         'koda_internal.parallel.unsafe_blocking_wait(I.stream)',
     )
     self.assertEqual(

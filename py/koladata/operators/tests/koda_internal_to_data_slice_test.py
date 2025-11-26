@@ -30,7 +30,7 @@ from koladata.types import literal_operator
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
+kde_internal = kde_operators.internal
 
 
 def gen_testcases():
@@ -74,7 +74,7 @@ class KodaToDataSliceTest(parameterized.TestCase):
 
   @parameterized.parameters(*TEST_CASES)
   def test_eval(self, x, expected):
-    res = expr_eval.eval(koda_internal.to_data_slice(x))
+    res = expr_eval.eval(kde_internal.to_data_slice(x))
     testing.assert_equal(res, expected)
 
   def test_unsupported_value(self):
@@ -82,26 +82,26 @@ class KodaToDataSliceTest(parameterized.TestCase):
         ValueError,
         r'expected the scalar qtype to be one of \[BOOLEAN,.*\], got x: UINT64',
     ):
-      koda_internal.to_data_slice(arolla.types.uint64(1))
+      kde_internal.to_data_slice(arolla.types.uint64(1))
 
   def test_boxing_qvalue(self):
     arolla.testing.assert_expr_equal_by_fingerprint(
-        koda_internal.to_data_slice(arolla.int64(1)),
+        kde_internal.to_data_slice(arolla.int64(1)),
         arolla.abc.bind_op(
-            koda_internal.to_data_slice,
+            kde_internal.to_data_slice,
             literal_operator.literal(arolla.int64(1)),
         ),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.to_data_slice,
+        kde_internal.to_data_slice,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(koda_internal.to_data_slice(I.x)))
+    self.assertTrue(view.has_koda_view(kde_internal.to_data_slice(I.x)))
 
 
 if __name__ == '__main__':

@@ -34,12 +34,12 @@ i32 = arolla.int32
 f32 = arolla.float32
 I = input_container.InputContainer('I')
 M = arolla.M
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 expr_fn = functor_factories.expr_fn
 
-default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
-eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
 
 
 def stream_make(*args, **kwargs):
@@ -68,7 +68,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   )
   def test_basic_sum(self, executor, items, initial_value):
     fn = lambda acc, item: acc + item
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         executor, fn, stream_make(*items), initial_value=initial_value
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
@@ -86,7 +86,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
         ),
     ])
     fn = expr_fn(M.math.add(I.acc, I.item), signature=signature)
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor,
         fn,
         stream_make(*map(i32, range(101))),
@@ -99,7 +99,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   def test_streaming_mode(self):
     stream, writer = stream_clib.Stream.new(qtypes.DATA_SLICE)
     fn = lambda acc, item: acc + item
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream, initial_value=0
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
@@ -112,7 +112,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
 
   def test_left_to_right_order(self):
     fn = lambda acc, item: acc * 0.25 + item
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream_make(3, 4), initial_value=2
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
@@ -121,7 +121,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
 
   def test_non_binary_functor(self):
     fn = lambda x: x
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream_make(2, 3), initial_value=1
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -132,7 +132,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
 
   def test_error_bad_fn(self):
     fn = ds(None)
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream_make(2, 3), initial_value=1
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -142,7 +142,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
 
   def test_error_wrong_return_type(self):
     fn = lambda acc, item: i32(0)
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream_make(2, 3), initial_value=1
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -159,7 +159,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
     writer.write(ds(1))
     writer.close(RuntimeError('Boom!'))
     fn = lambda acc, item: acc + item
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream, initial_value=ds(0)
     ).eval()  # no error
     with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
@@ -169,7 +169,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   def test_cancellation(self):
     stream, _ = stream_clib.Stream.new(qtypes.DATA_SLICE)
     fn = lambda acc, item: acc + item
-    res = koda_internal_parallel.stream_reduce(
+    res = kde_internal.parallel.stream_reduce(
         default_executor, fn, stream, initial_value=ds(0)
     ).eval()
     cancellation_context = arolla.abc.current_cancellation_context()
@@ -181,10 +181,10 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            koda_internal_parallel.stream_reduce(
+            kde_internal.parallel.stream_reduce(
                 I.executor, I.fn, I.items, initial_value=I.initial_value
             ),
-            koda_internal_parallel.stream_reduce(
+            kde_internal.parallel.stream_reduce(
                 I.executor, I.fn, I.items, initial_value=I.initial_value
             ),
         ),
@@ -198,7 +198,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_reduce(
+            kde_internal.parallel.stream_reduce(
                 I.executor, I.fn, I.stream, I.initial
             )
         )
@@ -207,7 +207,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            koda_internal_parallel.stream_reduce(
+            kde_internal.parallel.stream_reduce(
                 I.executor, I.fn, I.stream, I.initial_value
             )
         ),

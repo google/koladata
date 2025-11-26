@@ -28,7 +28,7 @@ from koladata.types import iterable_qvalue
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 I = input_container.InputContainer('I')
 
 
@@ -88,7 +88,7 @@ class FlatMapInterleavedTest(absltest.TestCase):
     res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)
 
     res = expr_eval.eval(
-        koda_internal_iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
     )
     self.assertLen(res, 4)
     self.assertCountEqual(
@@ -116,7 +116,7 @@ class FlatMapInterleavedTest(absltest.TestCase):
     res = expr.eval(input_seq=user_facing_kd.iterables.make(obj, obj), fn=py_fn)
 
     res = expr_eval.eval(
-        koda_internal_iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
     )
     self.assertLen(res, 4)
     self.assertCountEqual(

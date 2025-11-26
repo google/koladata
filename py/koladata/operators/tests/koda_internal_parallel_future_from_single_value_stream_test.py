@@ -27,117 +27,111 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelFutureFromSingleValueStreamTest(absltest.TestCase):
 
   def test_simple(self):
-    stream = koda_internal_parallel.stream_make(I.x)
-    expr = koda_internal_parallel.future_from_single_value_stream(stream)
+    stream = kde_internal.parallel.stream_make(I.x)
+    expr = kde_internal.parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(expr, x=10)
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         ds(10),
     )
 
   def test_two_elements(self):
-    stream = koda_internal_parallel.stream_make(I.x, I.x)
-    expr = koda_internal_parallel.future_from_single_value_stream(stream)
+    stream = kde_internal.parallel.stream_make(I.x, I.x)
+    expr = kde_internal.parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(expr, x=10)
     with self.assertRaisesRegex(ValueError, 'stream has more than one value'):
       _ = (
           expr_eval.eval(
-              koda_internal_parallel.get_future_value_for_testing(res)
+              kde_internal.parallel.get_future_value_for_testing(res)
           ),
       )
 
   def test_no_elements(self):
-    stream = koda_internal_parallel.stream_make()
-    expr = koda_internal_parallel.future_from_single_value_stream(stream)
+    stream = kde_internal.parallel.stream_make()
+    expr = kde_internal.parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(expr)
     with self.assertRaisesRegex(ValueError, 'stream has no values'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
 
   def test_waits_until_stream_closed(self):
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
-    expr = koda_internal_parallel.future_from_single_value_stream(stream)
+    expr = kde_internal.parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(expr)
     with self.assertRaisesRegex(ValueError, 'future has no value'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
     writer.write(ds(1))
     with self.assertRaisesRegex(ValueError, 'future has no value'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
     writer.close()
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         ds(1),
     )
 
   def test_errors(self):
-    executor = koda_internal_parallel.get_eager_executor()
-    stream = koda_internal_parallel.stream_map(
+    executor = kde_internal.parallel.get_eager_executor()
+    stream = kde_internal.parallel.stream_map(
         executor,
         I.x,
         lambda x: kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd'),
     )
-    expr = koda_internal_parallel.future_from_single_value_stream(stream)
+    expr = kde_internal.parallel.future_from_single_value_stream(stream)
     res = expr_eval.eval(
-        expr, x=expr_eval.eval(koda_internal_parallel.stream_make(1, 2))
+        expr, x=expr_eval.eval(kde_internal.parallel.stream_make(1, 2))
     )
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
     res = expr_eval.eval(
-        expr, x=expr_eval.eval(koda_internal_parallel.stream_make(2, 1))
+        expr, x=expr_eval.eval(kde_internal.parallel.stream_make(2, 1))
     )
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
     res = expr_eval.eval(
-        expr, x=expr_eval.eval(koda_internal_parallel.stream_make(2))
+        expr, x=expr_eval.eval(kde_internal.parallel.stream_make(2))
     )
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          koda_internal_parallel.get_future_value_for_testing(res)
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
     res = expr_eval.eval(
-        expr, x=expr_eval.eval(koda_internal_parallel.stream_make(1))
+        expr, x=expr_eval.eval(kde_internal.parallel.stream_make(1))
     )
     testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
         ds(1),
     )
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     future_stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(stream_int32_qtype)
+        kde_internal.parallel.get_future_qtype(stream_int32_qtype)
     )
     stream_stream_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_stream_qtype(stream_int32_qtype)
+        kde_internal.parallel.get_stream_qtype(stream_int32_qtype)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.future_from_single_value_stream,
+        kde_internal.parallel.future_from_single_value_stream,
         [
             (stream_int32_qtype, future_int32_qtype),
             (stream_stream_int32_qtype, future_stream_int32_qtype),
@@ -154,7 +148,7 @@ class KodaInternalParallelFutureFromSingleValueStreamTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.future_from_single_value_stream(I.x)
+            kde_internal.parallel.future_from_single_value_stream(I.x)
         )
     )
 

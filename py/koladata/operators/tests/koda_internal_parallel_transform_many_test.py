@@ -27,22 +27,22 @@ from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_item(self):
     fn = functor_factories.trace_py_fn(lambda x, y: x + y)
-    config = koda_internal_parallel.create_transform_config(None)
-    transformed_fn = koda_internal_parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
     testing.assert_equal(
-        koda_internal_parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(
             transformed_fn(
-                koda_internal_parallel.get_eager_executor(),
-                koda_internal_parallel.as_future(1),
-                koda_internal_parallel.as_future(2),
-                return_type_as=koda_internal_parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),
+                kde_internal.parallel.as_future(1),
+                kde_internal.parallel.as_future(2),
+                return_type_as=kde_internal.parallel.as_future(
                     data_slice.DataSlice
                 ),
             )
@@ -52,33 +52,33 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_missing_item(self):
     fn = fns.obj(None)
-    config = koda_internal_parallel.create_transform_config(None)
-    transformed_fn = koda_internal_parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
     # Note that here we get schema NONE, not schema OBJECT. It's probably OK.
     testing.assert_equal(transformed_fn, ds(None))
 
   def test_unspecified(self):
     fn = arolla.unspecified()
-    config = koda_internal_parallel.create_transform_config(None)
-    transformed_fn = koda_internal_parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
     testing.assert_equal(transformed_fn, fn)
 
   def test_slice(self):
     fn1 = functor_factories.trace_py_fn(lambda x, y: x + y)
     fn2 = functor_factories.trace_py_fn(lambda x, y: x - y)
     fn = fns.slice([[fn1, None, fn2], [fn1, fn1, None, None]])
-    config = koda_internal_parallel.create_transform_config(None)
-    transformed_fn = koda_internal_parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
     testing.assert_equal(transformed_fn.get_shape(), fn.get_shape())
     transformed_fn1 = transformed_fn.S[0, 0]
     transformed_fn2 = transformed_fn.S[0, 2]
     testing.assert_equal(
-        koda_internal_parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(
             transformed_fn1(
-                koda_internal_parallel.get_eager_executor(),
-                koda_internal_parallel.as_future(1),
-                koda_internal_parallel.as_future(2),
-                return_type_as=koda_internal_parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),
+                kde_internal.parallel.as_future(1),
+                kde_internal.parallel.as_future(2),
+                return_type_as=kde_internal.parallel.as_future(
                     data_slice.DataSlice
                 ),
             )
@@ -86,12 +86,12 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
         ds(3),
     )
     testing.assert_equal(
-        koda_internal_parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(
             transformed_fn2(
-                koda_internal_parallel.get_eager_executor(),
-                koda_internal_parallel.as_future(1),
-                koda_internal_parallel.as_future(2),
-                return_type_as=koda_internal_parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),
+                kde_internal.parallel.as_future(1),
+                kde_internal.parallel.as_future(2),
+                return_type_as=kde_internal.parallel.as_future(
                     data_slice.DataSlice
                 ),
             )
@@ -109,10 +109,10 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(
-        koda_internal_parallel.get_transform_config_qtype()
+        kde_internal.parallel.get_transform_config_qtype()
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.transform_many,
+        kde_internal.parallel.transform_many,
         [
             (
                 parallel_transform_config_qtype,
@@ -131,7 +131,7 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(koda_internal_parallel.transform(I.config, I.fn))
+        view.has_koda_view(kde_internal.parallel.transform(I.config, I.fn))
     )
 
 

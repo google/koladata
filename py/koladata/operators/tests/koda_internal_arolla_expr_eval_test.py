@@ -23,7 +23,7 @@ from koladata.types import schema_constants as sc
 L, M = arolla.L, arolla.M
 ds = data_slice.DataSlice.from_vals
 kd = eager_op_utils.operators_container('kd')
-koda_internal = eager_op_utils.operators_container(
+kde_internal = eager_op_utils.operators_container(
     'koda_internal',
     top_level_arolla_container=arolla.unsafe_operators_container(),
 )
@@ -32,14 +32,14 @@ koda_internal = eager_op_utils.operators_container(
 class KodaInternalArollaExprEvalTest(absltest.TestCase):
 
   def test_simple_expr(self):
-    res = koda_internal.arolla_expr_eval(
+    res = kde_internal.arolla_expr_eval(
         ds(arolla.quote(L.x + L.y)),
         kd.tuples.namedtuple(x=ds([1, 2, 3]), y=ds(4)),
     )
     testing.assert_equal(res, ds([5, 6, 7]))
 
   def test_missing(self):
-    res = koda_internal.arolla_expr_eval(
+    res = kde_internal.arolla_expr_eval(
         ds(arolla.quote(L.x | L.y)),
         kd.tuples.namedtuple(
             x=ds([None, None], schema=sc.FLOAT32), y=ds([None, 1])
@@ -48,7 +48,7 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
     testing.assert_equal(res, ds([None, 1], schema=sc.FLOAT32))
 
   def test_strings(self):
-    res = koda_internal.arolla_expr_eval(
+    res = kde_internal.arolla_expr_eval(
         ds(arolla.quote(M.strings.join(L.x, M.strings.decode(L.y)))),
         kd.tuples.namedtuple(x=ds(['1', None, '3']), y=ds([b'a', b'b', b'c'])),
     )
@@ -58,15 +58,15 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'requires last argument to be NamedTuple'
     ):
-      koda_internal.arolla_expr_eval(ds(0), ds(1))
+      kde_internal.arolla_expr_eval(ds(0), ds(1))
     with self.assertRaisesRegex(
         ValueError, 'first argument is expected to be a DataItem with ExprQuote'
     ):
-      koda_internal.arolla_expr_eval(ds(0), kd.tuples.namedtuple())
+      kde_internal.arolla_expr_eval(ds(0), kd.tuples.namedtuple())
     with self.assertRaisesRegex(
         ValueError, r'unknown inputs: y \(available: x, b\)'
     ):
-      koda_internal.arolla_expr_eval(
+      kde_internal.arolla_expr_eval(
           ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds(1), b=ds(0)),
       )
@@ -75,19 +75,19 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
         'only DataSlices with primitive values of the same type can be'
         ' converted to Arolla value, got: MIXED',
     ):
-      koda_internal.arolla_expr_eval(
+      kde_internal.arolla_expr_eval(
           ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds([1, 'a', 3]), y=ds(4)),
       )
     with self.assertRaisesRegex(
         ValueError, 'expected numerics, got x: DENSE_ARRAY_TEXT'
     ):
-      koda_internal.arolla_expr_eval(
+      kde_internal.arolla_expr_eval(
           ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds(['a', 'b', 'c']), y=ds(4)),
       )
     with self.assertRaisesRegex(ValueError, 'division by zero'):
-      koda_internal.arolla_expr_eval(
+      kde_internal.arolla_expr_eval(
           ds(arolla.quote(M.math.floordiv(L.x, L.y))),
           kd.tuples.namedtuple(x=ds(1), y=ds(0)),
       )

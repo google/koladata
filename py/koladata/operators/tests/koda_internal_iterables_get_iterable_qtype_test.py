@@ -21,7 +21,7 @@ from koladata.operators import kde_operators
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 
 
 class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
@@ -33,7 +33,7 @@ class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
   )
   def test_eval(self, value_qtype):
     iterable_qtype = arolla.eval(
-        koda_internal_iterables.get_iterable_qtype(arolla.L.arg),
+        kde_internal.iterables.get_iterable_qtype(arolla.L.arg),
         arg=value_qtype,
     )
     self.assertEqual(iterable_qtype.name, f'ITERABLE[{value_qtype.name}]')
@@ -45,7 +45,7 @@ class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
       arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_BAG),
   )
   def test_infer_attributes(self, value_qtype):
-    iterable_qtype = koda_internal_iterables.get_iterable_qtype(
+    iterable_qtype = kde_internal.iterables.get_iterable_qtype(
         value_qtype
     ).qvalue
     self.assertEqual(iterable_qtype.name, f'ITERABLE[{value_qtype.name}]')
@@ -55,7 +55,7 @@ class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                koda_internal_iterables.get_iterable_qtype
+                kde_internal.iterables.get_iterable_qtype
             )
         ),
         frozenset([(arolla.QTYPE, arolla.QTYPE)]),
@@ -63,7 +63,7 @@ class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(koda_internal_iterables.get_iterable_qtype(I.x))
+        view.has_koda_view(kde_internal.iterables.get_iterable_qtype(I.x))
     )
 
 

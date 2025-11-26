@@ -27,7 +27,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 
 
 class IterablesFrom1DSliceTest(absltest.TestCase):
@@ -61,7 +61,7 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        koda_internal_iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
     )
     self.assertEqual(
         frozenset(

@@ -31,12 +31,9 @@ I = input_container.InputContainer('I')
 
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-koda_internal = kde_operators.internal
-# TODO: b/454825280 - Disambiguate kd_internal from koda_internal, here and in
-# all other tests.
+kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    'koda_internal',
-    top_level_arolla_container=arolla.unsafe_operators_container(),
+    top_level_arolla_container=kde_internal
 )
 
 
@@ -62,15 +59,15 @@ class KodaToArollaInt64Test(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        koda_internal.to_arolla_int64(1),
+        kde_internal.to_arolla_int64(1),
         arolla.abc.bind_op(
-            koda_internal.to_arolla_int64, literal_operator.literal(ds(1))
+            kde_internal.to_arolla_int64, literal_operator.literal(ds(1))
         ),
     )
 
   def test_bind_time_evaluation(self):
     # Allows it to be used in operators that require literal inputs.
-    expr = koda_internal.to_arolla_int64(ds(1))
+    expr = kde_internal.to_arolla_int64(ds(1))
     testing.assert_equal(expr.qvalue, arolla.int64(1))
 
   def test_unsupported_schema_error(self):
@@ -78,19 +75,19 @@ class KodaToArollaInt64Test(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      koda_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit(), schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      koda_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)
 
   def test_missing_value_error(self):
     x = data_slice.DataSlice.from_vals(arolla.optional_int64(None))
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      koda_internal.to_arolla_int64(x)
+      kde_internal.to_arolla_int64(x)
 
   def test_unsupported_entity(self):
     with self.assertRaisesRegex(ValueError, 'common schema'):
@@ -108,13 +105,13 @@ class KodaToArollaInt64Test(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal.to_arolla_int64,
+        kde_internal.to_arolla_int64,
         [(qtypes.DATA_SLICE, arolla.INT64)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(koda_internal.to_arolla_int64(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_int64(I.x)))
 
 
 if __name__ == '__main__':

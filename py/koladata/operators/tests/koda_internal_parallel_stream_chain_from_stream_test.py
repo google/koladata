@@ -24,7 +24,7 @@ from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
 
 
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 I = input_container.InputContainer('I')
 i32 = arolla.int32
 
@@ -36,7 +36,7 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
   def test_basic(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        koda_internal_parallel.stream_chain_from_stream(sstream)
+        kde_internal.parallel.stream_chain_from_stream(sstream)
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -66,7 +66,7 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
   def test_empty_input_stream(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        koda_internal_parallel.stream_chain_from_stream(sstream)
+        kde_internal.parallel.stream_chain_from_stream(sstream)
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -86,7 +86,7 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
     sstreams, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     res = expr_eval.eval(
-        koda_internal_parallel.stream_chain_from_stream(sstreams)
+        kde_internal.parallel.stream_chain_from_stream(sstreams)
     )
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_INT32)
@@ -95,7 +95,7 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
   def test_error_on_stream(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
-        koda_internal_parallel.stream_chain_from_stream(sstream)
+        kde_internal.parallel.stream_chain_from_stream(sstream)
     )
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     reader = res.make_reader()
@@ -120,27 +120,27 @@ class KodaInternalParallelStreamChainFromStreamTest(parameterized.TestCase):
             'expected a stream of streams, got stream_of_streams: STREAM[INT32]'
         ),
     ):
-      koda_internal_parallel.stream_chain_from_stream(stream)
+      kde_internal.parallel.stream_chain_from_stream(stream)
 
   def test_non_determinism(self):
     sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     stream_1, stream_2 = expr_eval.eval((
-        koda_internal_parallel.stream_chain_from_stream(sstream),
-        koda_internal_parallel.stream_chain_from_stream(sstream),
+        kde_internal.parallel.stream_chain_from_stream(sstream),
+        kde_internal.parallel.stream_chain_from_stream(sstream),
     ))
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_chain_from_stream(I.sstream)
+            kde_internal.parallel.stream_chain_from_stream(I.sstream)
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(koda_internal_parallel.stream_chain_from_stream(I.a)),
+        repr(kde_internal.parallel.stream_chain_from_stream(I.a)),
         'koda_internal.parallel.stream_chain_from_stream(I.a)',
     )
 

@@ -28,7 +28,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 kd = eager_op_utils.operators_container('kd')
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 
 
 class IterablesReduceUpdatedBagTest(absltest.TestCase):
@@ -61,10 +61,10 @@ class IterablesReduceUpdatedBagTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     iterable_slice = arolla.eval(
-        koda_internal_iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
     )
     iterable_bag = arolla.eval(
-        koda_internal_iterables.get_iterable_qtype(qtypes.DATA_BAG)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)
     )
     arolla.testing.assert_qtype_signatures(
         kde.iterables.reduce_updated_bag,

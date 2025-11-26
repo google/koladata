@@ -29,7 +29,7 @@ from koladata.types import iterable_qvalue
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 I = input_container.InputContainer('I')
-koda_internal_iterables = kde_operators.internal.iterables
+kde_internal = kde_operators.internal
 
 
 class FlatMapChainTest(absltest.TestCase):
@@ -71,7 +71,7 @@ class FlatMapChainTest(absltest.TestCase):
     res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)
 
     res = expr_eval.eval(
-        koda_internal_iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
     )
     self.assertLen(res, 4)
     self.assertEqual(obj.with_bag(res[0]).to_py(obj_as_dict=True), {'a': 2})
@@ -97,7 +97,7 @@ class FlatMapChainTest(absltest.TestCase):
     )
 
     res = expr_eval.eval(
-        koda_internal_iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
     )
     self.assertLen(res, 4)
     self.assertEqual(obj1.with_bag(res[0]).to_py(obj_as_dict=True), {'a': 2})

@@ -21,7 +21,7 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 
 I = input_container.InputContainer('I')
-koda_internal_parallel = kde_operators.internal.parallel
+kde_internal = kde_operators.internal
 
 
 class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
@@ -29,8 +29,8 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
   def test_simple(self):
     # We cannot currently get a future without a value in Python, so we only
     # test the "has value" case.
-    expr = koda_internal_parallel.get_future_value_for_testing(
-        koda_internal_parallel.as_future(I.x)
+    expr = kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.as_future(I.x)
     )
     testing.assert_equal(
         expr_eval.eval(expr, x=arolla.int32(10)), arolla.int32(10)
@@ -38,10 +38,10 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        koda_internal_parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.get_future_value_for_testing,
+        kde_internal.parallel.get_future_value_for_testing,
         [
             (future_int32_qtype, arolla.INT32),
         ],
@@ -51,7 +51,7 @@ class KodaInternalParallelGetFutureValueForTestingTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.get_future_value_for_testing(I.x)
+            kde_internal.parallel.get_future_value_for_testing(I.x)
         )
     )
 
