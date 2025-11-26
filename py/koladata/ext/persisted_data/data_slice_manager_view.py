@@ -210,6 +210,100 @@ class DataSliceManagerView:
         f" self.update('{attr_name}', ...) instead"
     )
 
+  def filter(
+      self,
+      selection_mask: kd.types.DataSlice,
+      *,
+      description: str | None = None,
+  ):
+    """Filters the DataSlice at the view path.
+
+    Filtering is only supported for valid non-root paths. It is a no-op if the
+    selection mask contains only kd.present. Otherwise, this method mutates the
+    underlying DataSliceManager. When all items at a container such as a list or
+    a dict are removed, their container is also removed up to the root
+    attribute. The root itself is never removed.
+
+    Args:
+      selection_mask: A MASK DataSlice with the same shape as the DataSlice at
+        the view path, or a shape that can be expanded to the shape of the
+        DataSlice at the view path. It indicates which items to keep.
+      description: A description of the filtering operation. Optional. If
+        provided, it will be stored in the history metadata of the underlying
+        DataSliceManager.
+    """
+    if description is None:
+      description = f'Filtered items at path "{self._path_from_root}"'
+
+    self._check_path_from_root_is_valid()
+    if not self._path_from_root.actions:
+      raise ValueError(
+          'the root cannot be filtered. Please filter a non-root path'
+      )
+    current_child_path = self._path_from_root
+    current_child_ds = self._data_slice_manager.get_data_slice_at(
+        current_child_path
+    )
+    current_child_selection_mask = selection_mask.expand_to(current_child_ds)
+    if kd.all(kd.has(current_child_selection_mask)):
+      # Nothing to filter out, i.e. keep everything.
+      return
+    for action in reversed(self._path_from_root.actions):
+      parent_path = data_slice_path_lib.DataSlicePath(
+          current_child_path.actions[:-1]
+      )
+      if not parent_path.actions:  # The parent_path is for the root.
+        assert isinstance(action, data_slice_path_lib.GetAttr)
+        attr_value = (
+            current_child_ds
+            if current_child_selection_mask
+            else kd.item(None, schema=current_child_ds.get_schema())
+        )
+        self._data_slice_manager.update(
+            at_path=parent_path,
+            attr_name=action.attr_name,
+            attr_value=attr_value,
+            description=description,
+        )
+        break
+      # Switch on the action type. Each case must assign current_child_ds and
+      # current_child_selection_mask. Right after the loop, we update
+      # current_child_path for all cases.
+      if isinstance(action, data_slice_path_lib.ListExplode):
+        filtered_child_ds = current_child_ds.select(
+            current_child_selection_mask
+        )
+        # Set the variables for the next iteration:
+        current_child_selection_mask = kd.agg_any(kd.has(filtered_child_ds))
+        current_child_ds = filtered_child_ds.implode()
+      elif isinstance(action, data_slice_path_lib.DictGetKeys):
+        new_keys_ds = current_child_ds.select(current_child_selection_mask)
+        new_values_ds = self._data_slice_manager.get_data_slice_at(
+            parent_path.extended_with_action(
+                data_slice_path_lib.DictGetValues()
+            )
+        ).select(current_child_selection_mask)
+        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))
+        current_child_ds = kd.dict(new_keys_ds, new_values_ds)
+      elif isinstance(action, data_slice_path_lib.DictGetValues):
+        new_values_ds = current_child_ds.select(current_child_selection_mask)
+        new_keys_ds = self._data_slice_manager.get_data_slice_at(
+            parent_path.extended_with_action(data_slice_path_lib.DictGetKeys())
+        ).select(current_child_selection_mask)
+        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))
+        current_child_ds = kd.dict(new_keys_ds, new_values_ds)
+      elif isinstance(action, data_slice_path_lib.GetAttr):
+        parent_ds = self._data_slice_manager.get_data_slice_at(parent_path)
+        # Set the variables for the next iteration:
+        current_child_ds = (parent_ds & current_child_selection_mask).with_attr(
+            action.attr_name, current_child_ds
+        )
+        # current_child_selection_mask stays the same in the next iteration, so
+        # we don't assign it here.
+      else:
+        raise ValueError(f'unsupported action: {action}')
+      current_child_path = parent_path
+
   # Accessing the state.
 
   def get_path_from_root(self) -> data_slice_path_lib.DataSlicePath:
@@ -564,5 +658,7 @@ class DataSliceManagerView:
       attributes.append('get_list_items')
     if schema.is_dict_schema():
       attributes.extend(['get_dict_keys', 'get_dict_values'])
+    if path_length >= 1:
+      attributes.append('filter')
 
     return sorted(attributes)

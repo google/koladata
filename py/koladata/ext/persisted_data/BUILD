@@ -402,6 +402,7 @@ py_test(
     name = "data_slice_manager_view_test",
     srcs = ["data_slice_manager_view_test.py"],
     deps = [
+        ":bare_root_initial_data_manager",
         ":data_slice_manager_view",
         ":data_slice_path",
         ":persisted_incremental_data_slice_manager",

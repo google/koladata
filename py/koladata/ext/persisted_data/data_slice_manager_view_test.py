@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import re
+from typing import Callable
 
 from absl.testing import absltest
 from koladata import kd
+from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_view as data_slice_manager_view_lib
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as pidsm
@@ -52,9 +54,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     expected_query_schema = kd.named_schema(
         'query', query_id=kd.INT32, text=kd.STRING
     )
-    kd.testing.assert_equivalent(
-        queries.get_schema(), expected_query_schema
-    )
+    kd.testing.assert_equivalent(queries.get_schema(), expected_query_schema)
 
     kd.testing.assert_equivalent(
         queries.text.get(),
@@ -480,6 +480,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       doc_title.get()
     with self.assertRaisesRegex(
         ValueError,
+        re.escape("invalid data slice path: '.query[:].doc[:].title'"),
+    ):
+      doc_title.filter(kd.missing)  # Try to filter out all the docs.
+    with self.assertRaisesRegex(
+        ValueError,
         re.escape("invalid data slice path: '.query[:].doc[:]'"),
     ):
       doc.word_count = kd.item(12345)
@@ -588,6 +593,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.some_list.__all__,
           # Note no get_grandparent() here:
           [
+              'filter',
               'find_descendants',
               'get',
               'get_ancestor',
@@ -607,6 +613,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.__all__,
           [
+              'filter',
               'find_descendants',
               'get',
               'get_ancestor',
@@ -627,6 +634,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.get_dict_values().__all__,
           [
+              'filter',
               'get',
               'get_ancestor',
               'get_data_slice',
@@ -667,6 +675,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.__all__,
           [
+              # Note: no filter here because the root cannot be filtered out.
+              # Also, no get_parent or get_grandparent here:
               'find_descendants',
               'get',
               'get_ancestor',
@@ -836,6 +846,563 @@ class DataSliceManagerViewTest(absltest.TestCase):
             ),
         ],
     )
+
+  def test_filter(self):
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
+    doc_schema = kd.named_schema(
+        'doc',
+        doc_id=kd.INT32,
+        title=kd.STRING,
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),
+    )
+    query_metadata_schema = kd.named_schema(
+        'query_metadata',
+        locale=kd.STRING,
+    )
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+        metadata=query_metadata_schema,
+    )
+    query_list = kd.list([
+        query_schema.new(
+            query_id=0,
+            text='How tall is Obama',
+            doc=kd.list([
+                doc_schema.new(doc_id=0, title='Barack Obama'),
+                doc_schema.new(doc_id=1, title='Michelle Obama'),
+                doc_schema.new(doc_id=2, title='George W. Bush'),
+            ]),
+        ),
+        query_schema.new(
+            query_id=1,
+            text='How high is the Eiffel tower',
+            doc=kd.list([
+                doc_schema.new(
+                    doc_id=3,
+                    title='Eiffel tower',
+                    tokens=kd.dict({
+                        'How': token_info_schema.new(is_noun=False),
+                        'Eiffel tower': token_info_schema.new(is_noun=True),
+                    }),
+                ),
+                doc_schema.new(doc_id=4, title='Tower of London'),
+            ]),
+            metadata=query_metadata_schema.new(locale='en-GB'),
+        ),
+        query_schema.new(
+            query_id=2,
+            text='How old is Bush?',
+            doc=kd.list([
+                doc_schema.new(
+                    doc_id=5,
+                    title='George W. Bush hands over the baton',
+                    tokens=kd.dict({
+                        'George W. Bush': token_info_schema.new(is_noun=True),
+                        'hands': token_info_schema.new(is_noun=False),
+                    }),
+                ),
+                doc_schema.new(doc_id=6, title='The oldest bushes'),
+                doc_schema.new(doc_id=7, title='Ancient bushes'),
+            ]),
+            metadata=query_metadata_schema.new(locale='en-US'),
+        ),
+    ])
+
+    persistence_dir = self.create_tempdir().full_path
+    trunk_initial_data_manager = (
+        bare_root_initial_data_manager.BareRootInitialDataManager()
+    )
+    trunk_manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+        persistence_dir, initial_data_manager=trunk_initial_data_manager
+    )
+    trunk_root = DataSliceManagerView(trunk_manager)
+    trunk_root.query = query_list, 'Added queries populated with data'
+
+    with self.subTest('filter_root'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter root'
+      )
+      root = DataSliceManagerView(branch_manager)
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'the root cannot be filtered. Please filter a non-root path'
+          ),
+      ):
+        root.filter(kd.present)
+
+    def _test_filter_docs_from_view(
+        view_creator_fn: Callable[[DataSliceManagerView], DataSliceManagerView],
+    ):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter docs'
+      )
+      root = DataSliceManagerView(branch_manager)
+      view = view_creator_fn(root)
+      # Filter the docs to only keep the ones with "Barack" in the title, and
+      # filter the queries to only keep the ones with at least one such doc.
+      view.filter(
+          kd.strings.contains(
+              root.query[:].doc[:].title.get_data_slice(), 'Barack'
+          ),
+          description=(
+              'Filtered docs to keep only those with "Barack" in the title'
+          ),
+      )
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=0,
+                      text='How tall is Obama',
+                      doc=kd.list([
+                          doc_schema.new(doc_id=0, title='Barack Obama'),
+                      ]),
+                  ),
+              ])
+          ),
+      )
+      # The itemids of the entities in the filtered DataSlice are the same as
+      # in the unfiltered DataSlice:
+      kd.testing.assert_equivalent(
+          root.get_data_slice().get_itemid(),
+          trunk_root.get_data_slice().get_itemid(),
+      )
+      kd.testing.assert_equivalent(
+          root.query[:].get_data_slice().S[0].get_itemid(),
+          trunk_root.query[:].get_data_slice().S[0].get_itemid(),
+      )
+      kd.testing.assert_equivalent(
+          root.query[:].doc[:].get_data_slice().S[0, 0].get_itemid(),
+          trunk_root.query[:].doc[:].get_data_slice().S[0, 0].get_itemid(),
+      )
+      branch_manager_revision_descriptions = [
+          revision_metadata.description
+          for revision_metadata in branch_manager._metadata.revision_history
+      ]
+      self.assertEqual(
+          branch_manager_revision_descriptions,
+          [
+              'Branch to filter docs',
+              'Filtered docs to keep only those with "Barack" in the title',
+          ],
+      )
+
+    with self.subTest('filter_docs_from_doc_entity_view'):
+      _test_filter_docs_from_view(lambda root: root.query[:].doc[:])
+
+    with self.subTest('filter_docs_from_doc_feature_view'):
+      _test_filter_docs_from_view(lambda root: root.query[:].doc[:].title)
+
+    with self.subTest('filter_docs_with_all_present_mask_is_a_noop'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter docs'
+      )
+      root = DataSliceManagerView(branch_manager)
+      doc = root.query[:].doc[:]
+      for selection_mask in [kd.present, kd.val_like(doc.get(), kd.present)]:
+        doc.filter(
+            selection_mask,
+            description='Filtered docs by selecting all of them',
+        )
+        kd.testing.assert_equivalent(
+            root.get_data_slice(with_descendants=True),
+            trunk_root.get_data_slice(with_descendants=True),
+            ids_equality=True,
+        )
+        branch_manager_revision_descriptions = [
+            revision_metadata.description
+            for revision_metadata in branch_manager._metadata.revision_history
+        ]
+        self.assertEqual(
+            branch_manager_revision_descriptions,
+            [
+                'Branch to filter docs',
+                # Note that the filtering above is a no-op, so no revision is
+                # added to the branch manager.
+            ],
+        )
+
+    with self.subTest('filter_docs_with_all_missing_mask'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter docs'
+      )
+      root = DataSliceManagerView(branch_manager)
+      doc = root.query[:].doc[:]
+      doc.filter(
+          kd.missing,
+          description='Filtered all docs',
+      )
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_root.get_data_slice()
+          .with_attr('query', None)
+          .with_schema(trunk_root.get_schema()),
+          ids_equality=True,
+      )
+      branch_manager_revision_descriptions = [
+          revision_metadata.description
+          for revision_metadata in branch_manager._metadata.revision_history
+      ]
+      self.assertEqual(
+          branch_manager_revision_descriptions,
+          [
+              'Branch to filter docs',
+              'Filtered all docs',
+          ],
+      )
+
+    with self.subTest('filter_queries_from_a_doc_list_view'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description='Branch to filter queries',
+      )
+      root = DataSliceManagerView(branch_manager)
+      doc_list = root.query[:].doc
+      doc_list.filter(
+          # This business with explode and implode is needed because the size
+          # operator does not work for the minimal DataSlices of list views.
+          # Such minimal DataSlices only have the list itemids and the list
+          # schemaid and no information about the number of items.
+          # That might seems strange, but it is consistent with the behavior of
+          # DICT stubs, which also do not know the number of items in the dict,
+          # and entity stubs, which do not know whether an attribute is present
+          # or not.
+          kd.lists.size(doc_list[:].get_data_slice().implode()) <= 2,
+          description=(
+              'Filtered queries to keep only those with a doc list of size at'
+              ' most 2'
+          ),
+      )
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=1,
+                      text='How high is the Eiffel tower',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=3,
+                              title='Eiffel tower',
+                              tokens=kd.dict({
+                                  'How': token_info_schema.new(is_noun=False),
+                                  'Eiffel tower': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                              }),
+                          ),
+                          doc_schema.new(doc_id=4, title='Tower of London'),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-GB'),
+                  ),
+              ])
+          ),
+      )
+      # The itemids of the entities in the filtered DataSlice are the same as
+      # in the unfiltered DataSlice:
+      kd.testing.assert_equivalent(
+          root.get_data_slice().get_itemid(),
+          trunk_root.get_data_slice().get_itemid(),
+      )
+      kd.testing.assert_equivalent(
+          root.query[:].get_data_slice().S[0].get_itemid(),
+          trunk_root.query[:].get_data_slice().S[1].get_itemid(),
+      )
+      kd.testing.assert_equivalent(
+          root.query[:].doc[:].get_data_slice(with_descendants=True).L[0],
+          trunk_root.query[:].doc[:].get_data_slice(with_descendants=True).L[1],
+          ids_equality=True,
+      )
+      branch_manager_revision_descriptions = [
+          revision_metadata.description
+          for revision_metadata in branch_manager._metadata.revision_history
+      ]
+      self.assertEqual(
+          branch_manager_revision_descriptions,
+          [
+              'Branch to filter queries',
+              (
+                  'Filtered queries to keep only those with a doc list of size'
+                  ' at most 2'
+              ),
+          ],
+      )
+
+    with self.subTest('filter_from_dict_keys'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter tokens'
+      )
+      root = DataSliceManagerView(branch_manager)
+      token_key = root.query[:].doc[:].tokens.get_dict_keys()
+      token_key.filter(
+          token_key.get_data_slice() == 'hands',
+          description='Filtered token keys to keep only those that are "hands"',
+      )
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=2,
+                      text='How old is Bush?',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=5,
+                              title='George W. Bush hands over the baton',
+                              tokens=kd.dict({
+                                  'hands': token_info_schema.new(is_noun=False),
+                                  # Note that the other tokens are filtered out.
+                              }),
+                          ),
+                          # Note that the other docs are filtered out.
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-US'),
+                  ),
+              ])
+          ),
+      )
+
+    with self.subTest('filter_from_dict_values'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description=(
+              'Branch to filter tokens to keep only those that are nouns'
+          ),
+      )
+      root = DataSliceManagerView(branch_manager)
+      is_noun = root.query[:].doc[:].tokens.get_dict_values().is_noun
+      is_noun.filter(
+          is_noun.get_data_slice() == kd.item(True),
+          description='Filtered token values to keep only those that are nouns',
+      )
+
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=1,
+                      text='How high is the Eiffel tower',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=3,
+                              title='Eiffel tower',
+                              tokens=kd.dict({
+                                  'Eiffel tower': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-GB'),
+                  ),
+                  query_schema.new(
+                      query_id=2,
+                      text='How old is Bush?',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=5,
+                              title='George W. Bush hands over the baton',
+                              tokens=kd.dict({
+                                  'George W. Bush': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-US'),
+                  ),
+              ])
+          ),
+      )
+
+    with self.subTest('filter_from_dict_view'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description='Branch to filter docs to keep only those with tokens',
+      )
+      root = DataSliceManagerView(branch_manager)
+      tokens = root.query[:].doc[:].tokens
+      tokens.filter(
+          kd.has(tokens.get_data_slice()),
+          description='Filtered docs to keep only those with tokens',
+      )
+
+      kd.testing.assert_equivalent(
+          root.get_data_slice(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=1,
+                      text='How high is the Eiffel tower',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=3,
+                              title='Eiffel tower',
+                              tokens=kd.dict({
+                                  'How': token_info_schema.new(is_noun=False),
+                                  'Eiffel tower': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-GB'),
+                  ),
+                  query_schema.new(
+                      query_id=2,
+                      text='How old is Bush?',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=5,
+                              title='George W. Bush hands over the baton',
+                              tokens=kd.dict({
+                                  'George W. Bush': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                                  'hands': token_info_schema.new(is_noun=False),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-US'),
+                  ),
+              ])
+          ),
+      )
+
+    with self.subTest('filter_description_in_revision_history'):
+      # When an explicit description is provided, it is stored in the revision
+      # history:
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter docs'
+      )
+      root = DataSliceManagerView(branch_manager)
+      doc = root.query[:].doc[:]
+      doc.filter(
+          kd.missing,
+          description='Filtered all docs',
+      )
+      self.assertEqual(
+          branch_manager._metadata.revision_history[-1].description,
+          'Filtered all docs',
+      )
+
+      # When no explicit description is provided, the default description is
+      # used. It mentions that a filtering operation happened and at which path,
+      # so it is reasonably informative.
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path, description='Branch to filter docs'
+      )
+      root = DataSliceManagerView(branch_manager)
+      doc = root.query[:].doc[:]
+      doc.filter(
+          kd.missing,
+          # No description is provided here.
+      )
+      self.assertEqual(
+          branch_manager._metadata.revision_history[-1].description,
+          'Filtered items at path ".query[:].doc[:]"',
+      )
+
+    with self.subTest('filter_docs_and_then_filter_queries'):
+      branch_manager = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description='Branch to filter docs and then to filter queries',
+      )
+      root = DataSliceManagerView(branch_manager)
+      query = root.query[:]
+      tokens = query.doc[:].tokens
+      tokens.filter(
+          kd.has(tokens.get()),
+          description='Filtered docs to keep only those with tokens',
+      )
+      kd.testing.assert_equivalent(
+          root.get(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=1,
+                      text='How high is the Eiffel tower',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=3,
+                              title='Eiffel tower',
+                              tokens=kd.dict({
+                                  'How': token_info_schema.new(is_noun=False),
+                                  'Eiffel tower': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-GB'),
+                  ),
+                  query_schema.new(
+                      query_id=2,
+                      text='How old is Bush?',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=5,
+                              title='George W. Bush hands over the baton',
+                              tokens=kd.dict({
+                                  'George W. Bush': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                                  'hands': token_info_schema.new(is_noun=False),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-US'),
+                  ),
+              ])
+          ),
+      )
+
+      query.filter(
+          kd.strings.contains(query.text.get(), 'Bush'),
+          description=(
+              'Filtered queries to keep only those with "Bush" in the title'
+          ),
+      )
+      kd.testing.assert_equivalent(
+          root.get(with_descendants=True),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=2,
+                      text='How old is Bush?',
+                      doc=kd.list([
+                          doc_schema.new(
+                              doc_id=5,
+                              title='George W. Bush hands over the baton',
+                              tokens=kd.dict({
+                                  'George W. Bush': token_info_schema.new(
+                                      is_noun=True
+                                  ),
+                                  'hands': token_info_schema.new(is_noun=False),
+                              }),
+                          ),
+                      ]),
+                      metadata=query_metadata_schema.new(locale='en-US'),
+                  ),
+              ])
+          ),
+      )
+
+      # The two filter operations have separate entries in the revision history:
+      self.assertEqual(
+          [m.description for m in branch_manager._metadata.revision_history],
+          [
+              'Branch to filter docs and then to filter queries',
+              'Filtered docs to keep only those with tokens',
+              'Filtered queries to keep only those with "Bush" in the title',
+          ],
+      )
 
   def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
     manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
