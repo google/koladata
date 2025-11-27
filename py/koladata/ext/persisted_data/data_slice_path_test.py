@@ -15,6 +15,7 @@
 import itertools
 import re
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 
@@ -26,7 +27,7 @@ ListExplode = data_slice_path_lib.ListExplode
 GetAttr = data_slice_path_lib.GetAttr
 
 
-class DataSlicePathTest(absltest.TestCase):
+class DataSlicePathTest(parameterized.TestCase):
 
   def test_can_be_used_with_dot_syntax_in_data_slice_path_string(self):
     for attr_name in [
@@ -669,6 +670,24 @@ class DataSlicePathTest(absltest.TestCase):
           repr(dsp),
           f"DataSlicePath('{data_slice_path_string}')",
       )
+
+  @parameterized.parameters(
+      ('', 0),
+      ('.foo', 1),
+      ('.foo.bar', 2),
+      ('.foo[:][:].bar.get_values().get_keys().zoo', 7),
+      ('.foo[:]', 2),
+      ('.foo[:][:]', 3),
+      ('.get_attr("")', 1),
+      ('.get_attr("Zm9vLmJhciQjJCAoKQ==")', 1),
+      (
+          '[:].get_keys().get_attr("Zm9vLmJhciQjJCAoKQ==").get_values().zoo',
+          5,
+      ),
+  )
+  def test_depth(self, data_slice_path_string, expected_depth):
+    path = DataSlicePath.parse_from_string(data_slice_path_string)
+    self.assertEqual(path.depth, expected_depth)
 
 
 if __name__ == '__main__':

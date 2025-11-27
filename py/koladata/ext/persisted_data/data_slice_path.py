@@ -482,6 +482,16 @@ class DataSlicePath:
       result = action.evaluate(result)
     return result
 
+  @property
+  def depth(self) -> int:
+    """Returns the depth of this data slice path from the root.
+
+    That is the same as the number of actions in the path. The root is at the
+    empty path, which has depth 0. A path ".foo" has depth 1, ".foo[:]" has
+    depth 2, ".foo[:].bar" has depth 3, etc.
+    """
+    return len(self.actions)
+
 
 def generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
     schema: kd.types.DataItem, max_depth: int
