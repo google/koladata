@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import dataclasses
+import types
 from absl.testing import absltest
 from koladata.base.py_conversions import dataclasses_util
 
@@ -57,6 +58,13 @@ class DataclassesPyUtilTest(absltest.TestCase):
     self.assertEqual(
         dataclasses_util.fields_names_and_values(obj),
         [('x', 1), ('y', 2.0), ('z', 'abc')],
+    )
+
+  def test_fields_names_and_values_simple_namespace(self):
+    ns = types.SimpleNamespace(x=1, y=2)
+    self.assertEqual(
+        dataclasses_util.fields_names_and_values(ns),
+        [('x', 1), ('y', 2)],
     )
 
   def test_fields_names_and_values_non_dataclass(self):

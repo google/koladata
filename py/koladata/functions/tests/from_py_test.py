@@ -17,6 +17,7 @@ import enum
 import gc
 import re
 import sys
+import types
 from typing import Any
 from unittest import mock
 
@@ -1101,6 +1102,34 @@ assigned schema: ENTITY(x=INT32)'''
     testing.assert_equal(b.x.no_bag(), ds('abc'))
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
     self.assertFalse(b.is_dict())
+
+  @parameterized.named_parameters(
+      (
+          'no_schema',
+          None,
+      ),
+      (
+          'obj_schema',
+          schema_constants.OBJECT,
+      ),
+      (
+          'with_schema',
+          kde.schema.new_schema(
+              a=kde.schema.new_schema(
+                  x=schema_constants.INT32, y=schema_constants.FLOAT32
+              ),
+              b=schema_constants.INT32,
+          ).eval(),
+      ),
+  )
+  def test_simple_namespace(self, schema):
+    ns1 = types.SimpleNamespace(x=1, y=3.14)
+    ns2 = types.SimpleNamespace(a=ns1, b=2)
+    obj = from_py_fn(ns2, schema=schema)
+    inner_obj = obj.a
+    testing.assert_equal(inner_obj.x.no_bag(), ds(1))
+    testing.assert_equal(inner_obj.y.no_bag(), ds(3.14))
+    testing.assert_equal(obj.b.no_bag(), ds(2))
 
   def test_dataclasses_with_schema(self):
 

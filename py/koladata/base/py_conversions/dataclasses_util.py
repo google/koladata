@@ -15,6 +15,7 @@
 """Module for creating dataclasses from the list of attribute names."""
 
 import dataclasses
+import types
 from typing import Any
 
 
@@ -39,10 +40,12 @@ def make_dataclass(attr_names):
 
 
 def fields_names_and_values(py_obj):
-  """Returns list of (attribute name, value) for a dataclass."""
-  if not dataclasses.is_dataclass(py_obj):
-    return None
-  return [
-      (field.name, getattr(py_obj, field.name))
-      for field in dataclasses.fields(py_obj)
-  ]
+  """Returns list of (attribute name, value) for a dataclass/SimpleNamespace."""
+  if dataclasses.is_dataclass(py_obj):
+    return [
+        (field.name, getattr(py_obj, field.name))
+        for field in dataclasses.fields(py_obj)
+    ]
+  if isinstance(py_obj, types.SimpleNamespace):
+    return list(py_obj.__dict__.items())
+  return None
