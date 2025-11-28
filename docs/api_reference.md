@@ -4906,6 +4906,24 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true iff the impl of `this_op` equals the impl of `that_op`.</code></pre>
 
+### `kd.optools.fix_non_deterministic_tokens(expr: Expr, *, param: Expr = L._koladata_non_deterministic_token_leaf) -> Expr` {#kd.optools.fix_non_deterministic_tokens}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an expression with derandomized non-deterministic tokens.
+
+Its primary application is derandomizing expressions within operator
+declarations, making operator definitions more reproducible.
+
+This function only targets non-deterministic tokens; the rest of the
+expression is left unchanged. Therefore, if other parts contain embedded
+&#34;random&#34; values, the overall expression will remain &#34;random&#34;.
+
+Importantly, derandomized expressions must not be directly combined with
+each other, as this can easily cause seed collisions.
+
+Args:
+  expr: The expression to fix.
+  param: The parameter to replace NON_DETERMINISTIC_TOKEN_LEAF with.</code></pre>
+
 ### `kd.optools.make_operators_container(*namespaces: str) -> OperatorsContainer` {#kd.optools.make_operators_container}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an OperatorsContainer for the given namespaces.

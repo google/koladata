@@ -41,12 +41,12 @@ py_library(
     deps = [
         ":traversing_test_utils_py",
         "//py:python_path",
+        "//py/koladata/operators:optools",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:ellipsis",
         "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

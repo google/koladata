@@ -26,7 +26,6 @@ from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
 from koladata.testing import testing
-from koladata.types import data_item as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
@@ -39,7 +38,7 @@ from koladata.types import qtypes
 with optools.building_cc_operator_package():
   from koladata.operators import comparison as _
   from koladata.operators import jagged_shape
-  from koladata.operators import koda_internal as _
+  from koladata.operators import koda_internal
   from koladata.operators import math
   from koladata.operators import tuple as _
 # pylint: enable=g-import-not-at-top
@@ -608,6 +607,40 @@ class OptoolsTest(parameterized.TestCase):
     # Not attached to op2 since it has a different qualname.
     self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
 
+  def test_fix_non_deterministic_tokens(self):
+    non_deterministic_op = arolla.abc.lookup_operator(
+        'koda_internal.non_deterministic'
+    )
+    expr = arolla.M.core.make_tuple(
+        non_deterministic_op(py_boxing.NON_DETERMINISTIC_TOKEN_LEAF, 57),
+        non_deterministic_op(
+            non_deterministic_op(I.x, 1),
+            42,
+        ),
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        optools.fix_non_deterministic_tokens(expr),
+        arolla.M.core.make_tuple(
+            non_deterministic_op(
+                py_boxing.NON_DETERMINISTIC_TOKEN_LEAF, arolla.int64(1)
+            ),
+            non_deterministic_op(
+                non_deterministic_op(I.x, arolla.int64(2)),
+                arolla.int64(3),
+            ),
+        ),
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        optools.fix_non_deterministic_tokens(expr, param=I.y),
+        arolla.M.core.make_tuple(
+            non_deterministic_op(I.y, arolla.int64(1)),
+            non_deterministic_op(
+                non_deterministic_op(I.x, arolla.int64(2)),
+                arolla.int64(3),
+            ),
+        ),
+    )
+
   def test_as_unified_backend_operator_properties(self):
     @optools.as_backend_operator(
         'my_op_name',
@@ -768,6 +801,14 @@ class OptoolsTest(parameterized.TestCase):
       @optools.as_lambda_operator('op2', deterministic=True)
       def op2():  # pylint: disable=unused-variable
         return op1()
+
+  def test_as_lambda_operator_reproductible(self):
+    def fn(a):
+      return koda_internal.non_deterministic_identity(a)
+
+    op1 = optools.as_lambda_operator('op')(fn)
+    op2 = optools.as_lambda_operator('op')(fn)
+    self.assertEqual(op1, op2)
 
   def test_as_py_function_operator_basic_eval(self):
 

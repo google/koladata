@@ -544,13 +544,8 @@ def shuffle(x, /, ndim=arolla.unspecified(), seed=arolla.unspecified()):
           P.x,
           condition=P.ndim == arolla.UNSPECIFIED,
       ),
-      default=arolla.abc.sub_by_fingerprint(
-          lists.implode(core.no_bag(P.x), P.ndim),
-          {
-              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  P.non_determinism_token
-              )
-          },
+      default=optools.fix_non_deterministic_tokens(
+          lists.implode(core.no_bag(P.x), P.ndim), param=P.non_determinism_token
       ),
   )(x, ndim, py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
   x_shuffled_lists = slices.sort(

@@ -127,6 +127,9 @@ optools.add_to_registry_as_overloadable = (
 optools.equiv_to_op = _optools.equiv_to_op
 optools.as_qvalue = _py_boxing.as_qvalue
 optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
+optools.fix_non_deterministic_tokens = (
+    _optools.fix_non_deterministic_tokens
+)
 optools.make_operators_container = _optools.make_operators_container
 optools.unified_non_deterministic_arg = _optools.unified_non_deterministic_arg
 optools.unified_non_deterministic_kwarg = (

@@ -639,7 +639,7 @@ def while_(
           condition=(P.yields != arolla.UNSPECIFIED),
       ),
       yields_interleaved_case=arolla.types.DispatchCase(
-          arolla.abc.sub_by_fingerprint(
+          optools.fix_non_deterministic_tokens(
               koda_internal_iterables.from_sequence(
                   koda_internal_iterables.sequence_interleave(
                       arolla.M.seq.map(
@@ -647,11 +647,7 @@ def while_(
                       ),
                   )
               ),
-              {
-                  py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                      P.non_determinism_token
-                  )
-              },
+              param=P.non_determinism_token,
           ),
           condition=(P.yields_interleaved != arolla.UNSPECIFIED),
       ),
@@ -664,9 +660,7 @@ def while_(
   )
 
 
-@optools.as_lambda_operator(
-    'kd.functor._reduce_op',
-)
+@optools.as_lambda_operator('kd.functor._reduce_op', deterministic=True)
 def _reduce_op(tuple_fn_x, y):
   """Helper operator for kd.functor.reduce to apply a functor.
 
@@ -689,13 +683,8 @@ def _reduce_op(tuple_fn_x, y):
   non_deterministic_token = M.core.get_nth(tuple_fn_x, 2)
   return M.core.make_tuple(
       fn,
-      arolla.abc.sub_by_fingerprint(
-          call(fn, x, y, return_type_as=x),
-          {
-              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  non_deterministic_token
-              )
-          },
+      optools.fix_non_deterministic_tokens(
+          call(fn, x, y, return_type_as=x), param=non_deterministic_token
       ),
       non_deterministic_token,
   )

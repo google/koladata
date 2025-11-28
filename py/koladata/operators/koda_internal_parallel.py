@@ -65,13 +65,8 @@ EMPTY_TUPLE = arolla.make_tuple_qtype()
 
 def _replace_non_deterministic_leaf_with_param(expr):
   """Replaces non-deterministic leaf with a param, for use in DispatchOperator."""
-  return arolla.abc.sub_by_fingerprint(
-      expr,
-      {
-          py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-              P.non_deterministic_leaf
-          ),
-      },
+  return optools.fix_non_deterministic_tokens(
+      expr, param=P.non_deterministic_leaf
   )
 
 
@@ -166,8 +161,8 @@ def create_transform_config(config_src):  # pylint: disable=unused-argument
   """Creates a parallel transform config from the given config.
 
   Args:
-    config_src: A data slice with the configuration to be used. It must be
-      a scalar with structure corresponding to the ParallelTransformConfigProto.
+    config_src: A data slice with the configuration to be used. It must be a
+      scalar with structure corresponding to the ParallelTransformConfigProto.
       Attributes which are not part of ParallelTransformConfigProto will be
       ignored.
 
@@ -377,9 +372,7 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            is_stream_qtype(
-                M.qtype.get_value_qtype(P.stream_of_streams)
-            ),
+            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),
             (
                 'expected a stream of streams, got'
                 f' {constraints.name_type_msg(P.stream_of_streams)}'
@@ -422,9 +415,7 @@ def stream_chain_from_stream(stream_of_streams):
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream_of_streams),
         (
-            is_stream_qtype(
-                M.qtype.get_value_qtype(P.stream_of_streams)
-            ),
+            is_stream_qtype(M.qtype.get_value_qtype(P.stream_of_streams)),
             (
                 'expected a stream of streams, got'
                 f' {constraints.name_type_msg(P.stream_of_streams)}'

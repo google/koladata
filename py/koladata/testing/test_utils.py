@@ -17,13 +17,13 @@
 from typing import Any, Optional
 
 from arolla import arolla as _arolla
+from koladata.operators import optools as _optools
 from koladata.testing import traversing_test_utils as _traversing_test_utils
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
-from koladata.types import dict_item as _  # pylint: disable=unused-import
+from koladata.types import dict_item as _
 from koladata.types import ellipsis as _ellipsis
 from koladata.types import jagged_shape as _jagged_shape
-from koladata.types import qtypes as _qtypes
 
 _KodaVal = (
     _data_bag.DataBag
@@ -90,10 +90,9 @@ def _assert_expr_not_equal_by_fingerprint(
   raise AssertionError(msg)
 
 
-def _assert_qvalue_equal_by_fingerprint(actual_value: _KodaVal,
-                                        expected_value: _KodaVal,
-                                        *,
-                                        msg: str | None = None):
+def _assert_qvalue_equal_by_fingerprint(
+    actual_value: _KodaVal, expected_value: _KodaVal, *, msg: str | None = None
+):
   """Koda specific qvalue equality check by fingerprint."""
   if not isinstance(actual_value, _arolla.QValue):
     raise TypeError('`actual_value` must be a QValue, got ', type(actual_value))
@@ -197,9 +196,7 @@ def assert_equal(
   ):
     _assert_expr_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
-  _assert_qvalue_equal_by_fingerprint(
-      actual_value, expected_value, msg=msg
-  )
+  _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 
 def assert_not_equal(
@@ -234,9 +231,7 @@ def assert_not_equal(
   ):
     _assert_expr_not_equal_by_fingerprint(actual_value, expected_value, msg=msg)
     return
-  _assert_qvalue_not_equal_by_fingerprint(
-      actual_value, expected_value, msg=msg
-  )
+  _assert_qvalue_not_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 
 def _bag_content(bag: Optional[_data_bag.DataBag]) -> str:
@@ -309,9 +304,12 @@ def assert_equivalent(
   if isinstance(actual_value, _data_slice.DataSlice) and isinstance(
       expected_value, _data_slice.DataSlice
   ):
-    if partial is None: partial = False
-    if ids_equality is None: ids_equality = False
-    if schemas_equality is None: schemas_equality = True
+    if partial is None:
+      partial = False
+    if ids_equality is None:
+      ids_equality = False
+    if schemas_equality is None:
+      schemas_equality = True
     _traversing_test_utils.assert_deep_equivalent(
         actual_value,
         expected_value,
@@ -332,9 +330,7 @@ def assert_equivalent(
   ):
     _assert_equivalent_bags(actual_value, expected_value, msg=msg)
     return
-  _assert_qvalue_equal_by_fingerprint(
-      actual_value, expected_value, msg=msg
-  )
+  _assert_qvalue_equal_by_fingerprint(actual_value, expected_value, msg=msg)
 
 
 def _as_arolla_value(ds: _data_slice.DataSlice) -> _arolla.QValue:
@@ -529,21 +525,6 @@ def assert_dicts_values_equal(
   assert_unordered_equal(dicts.get_values().no_bag(), expected_values.no_bag())
 
 
-def _replace_non_deterministic(expr: _arolla.Expr) -> _arolla.Expr:
-  """Makes all non-deterministic nodes deterministic."""
-  non_deterministic_nodes = []
-  for node in _arolla.abc.post_order(expr):
-    if node.qtype == _qtypes.NON_DETERMINISTIC_TOKEN:
-      non_deterministic_nodes.append(node.node_deps[1])
-  return _arolla.sub_by_fingerprint(
-      expr,
-      {
-          non_deterministic.fingerprint: _arolla.literal(_arolla.int64(i))
-          for i, non_deterministic in enumerate(non_deterministic_nodes)
-      },
-  )
-
-
 def assert_non_deterministic_exprs_equal(
     actual_expr: _arolla.Expr,
     expected_expr: _arolla.Expr,
@@ -558,8 +539,8 @@ def assert_non_deterministic_exprs_equal(
     AssertionError: If actual_expr and expected_expr do not represent equal Koda
       expressions modulo non-deterministic property.
   """
-  actual_expr = _replace_non_deterministic(actual_expr)
-  expected_expr = _replace_non_deterministic(expected_expr)
+  actual_expr = _optools.fix_non_deterministic_tokens(actual_expr)
+  expected_expr = _optools.fix_non_deterministic_tokens(expected_expr)
   _assert_expr_equal_by_fingerprint(actual_expr, expected_expr)
 
 
@@ -592,6 +573,10 @@ def assert_traced_non_deterministic_exprs_equal(
 ):
   """Asserts that exprs are equal, skipping non-determinism and annotations added during tracing."""
   _assert_expr_equal_by_fingerprint(
-      _remove_source_locations(_replace_non_deterministic(actual_expr)),
-      _remove_source_locations(_replace_non_deterministic(expected_expr)),
+      _remove_source_locations(
+          _optools.fix_non_deterministic_tokens(actual_expr)
+      ),
+      _remove_source_locations(
+          _optools.fix_non_deterministic_tokens(expected_expr)
+      ),
   )

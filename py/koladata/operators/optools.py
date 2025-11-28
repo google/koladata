@@ -146,9 +146,9 @@ def add_to_registry(
   Returns:
     Registered operator.
   """
-  assert not (unsafe_override and via_cc_operator_package), (
-      'unsafe_override and via_cc_operator_package cannot be both set to True.'
-  )
+  assert not (
+      unsafe_override and via_cc_operator_package
+  ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
   repr_fn = repr_fn or op_repr.default_op_repr
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
@@ -216,9 +216,9 @@ def add_to_registry_as_overloadable(
   Returns:
     An overloadable registered operator.
   """
-  assert not (unsafe_override and via_cc_operator_package), (
-      'unsafe_override and via_cc_operator_package cannot be both set to True.'
-  )
+  assert not (
+      unsafe_override and via_cc_operator_package
+  ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
   repr_fn = repr_fn or op_repr.default_op_repr
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
@@ -280,9 +280,9 @@ def add_to_registry_as_overload(
     corresponding name. Returns the original operator (unlinke the arolla
     equivalent).
   """
-  assert not (unsafe_override and via_cc_operator_package), (
-      'unsafe_override and via_cc_operator_package cannot be both set to True.'
-  )
+  assert not (
+      unsafe_override and via_cc_operator_package
+  ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.Operator:
@@ -415,6 +415,49 @@ def _build_lambda_body_from_fn(fn: types.FunctionType):
   return arolla.abc.sub_by_fingerprint(expr, unmangling)
 
 
+def fix_non_deterministic_tokens(
+    expr: arolla.Expr,
+    *,
+    param: arolla.Expr = py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
+) -> arolla.Expr:
+  """Returns an expression with derandomized non-deterministic tokens.
+
+  Its primary application is derandomizing expressions within operator
+  declarations, making operator definitions more reproducible.
+
+  This function only targets non-deterministic tokens; the rest of the
+  expression is left unchanged. Therefore, if other parts contain embedded
+  "random" values, the overall expression will remain "random".
+
+  Importantly, derandomized expressions must not be directly combined with
+  each other, as this can easily cause seed collisions.
+
+  Args:
+    expr: The expression to fix.
+    param: The parameter to replace NON_DETERMINISTIC_TOKEN_LEAF with.
+  """
+  seed = 0
+  non_deterministic_leaf_fingerprint = (
+      py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint
+  )
+  non_deterministic_op = arolla.abc.lookup_operator(
+      'koda_internal.non_deterministic'
+  )
+
+  def transform_node(node: arolla.Expr):
+    nonlocal seed
+    if node.fingerprint == non_deterministic_leaf_fingerprint:
+      return param
+    if node.op == non_deterministic_op:
+      seed += 1
+      return arolla.abc.bind_op(
+          non_deterministic_op, node.node_deps[0], arolla.int64(seed)
+      )
+    return node
+
+  return arolla.abc.transform(expr, transform_node)
+
+
 # TOOD: b/383536303 - Consider improving the error messages for "unfixed"
 # variadic `*args` and `**kwargs` during tracing.
 def as_lambda_operator(
@@ -484,14 +527,10 @@ def as_lambda_operator(
       qtype_constraints_copy.append(
           qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
       )
-      op_expr = arolla.abc.sub_by_fingerprint(
-          op_expr,
-          {
-              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  _UNIFIED_NON_DETERMINISTIC_PARAM
-              )
-          },
+      op_expr = fix_non_deterministic_tokens(
+          op_expr, param=_UNIFIED_NON_DETERMINISTIC_PARAM
       )
+
     if not suppress_unused_parameter_warning:
       unused_parameters = set(
           param.name
@@ -648,15 +687,11 @@ def as_py_function_operator(
     fn_expr = arolla.types.PyObject(fn, codec=codec)
     qtype_constraints_copy = list(qtype_constraints)
     if not deterministic:
-      fn_expr = arolla.abc.sub_by_fingerprint(
+      fn_expr = fix_non_deterministic_tokens(
           arolla.abc.aux_bind_op(
               'koda_internal.non_deterministic_identity', fn_expr
           ),
-          {
-              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
-                  _UNIFIED_NON_DETERMINISTIC_PARAM
-              )
-          },
+          param=_UNIFIED_NON_DETERMINISTIC_PARAM,
       )
       qtype_constraints_copy.append(
           qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
