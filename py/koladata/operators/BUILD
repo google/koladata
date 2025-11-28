@@ -15,14 +15,10 @@
 # Arolla Expr Operators on Koda abstractions.
 
 load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
-load(
-    "@com_google_arolla//py/arolla/optools:optools.bzl",
-    "arolla_cc_operator_package",
-    "arolla_operator_package_snapshot",
-)
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
+load("//py/koladata/operators:optools.bzl", "koladata_cc_operator_package")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -35,7 +31,7 @@ licenses(["notice"])
 # //koladata/operators and //koladata/functor:operators.
 #
 # In Python use `import kde_operators` instead.
-arolla_cc_operator_package(
+koladata_cc_operator_package(
     name = "cc_operators",
     arolla_initializer = {
         "name": "arolla_operators/koda_base",
@@ -48,7 +44,21 @@ arolla_cc_operator_package(
             "arolla_operators/koda_functor_parallel",
         ],
     },
-    snapshot = ":operator_package.pb2",
+    imports = [
+        "koladata.operators.build_cc_operators",
+    ],
+    preimports = [
+        "arolla.jagged_shape.jagged_shape",
+        "arolla.objects.objects",
+        "arolla.derived_qtype.derived_qtype",
+        "koladata.types.data_slice",
+    ],
+    tool_deps = [
+        ":build_cc_operators",
+        "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/jagged_shape",
+        "@com_google_arolla//py/arolla/objects",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//koladata/expr:init",
@@ -101,25 +111,6 @@ py_library(
         ":qtype_utils",
         "//py:python_path",
         "@com_google_arolla//py/arolla",
-    ],
-)
-
-arolla_operator_package_snapshot(
-    name = "operator_package.pb2",
-    imports = [
-        "koladata.operators.build_cc_operators",
-    ],
-    preimports = [
-        "arolla.jagged_shape.jagged_shape",
-        "arolla.objects.objects",
-        "arolla.derived_qtype.derived_qtype",
-        "koladata.types.data_slice",
-    ],
-    deps = [
-        ":build_cc_operators",
-        "@com_google_arolla//py/arolla/derived_qtype",
-        "@com_google_arolla//py/arolla/jagged_shape",
-        "@com_google_arolla//py/arolla/objects",
     ],
 )
 

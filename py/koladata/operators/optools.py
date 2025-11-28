@@ -55,7 +55,7 @@ def building_cc_operator_package():
 
   Instead of registering operators in Arolla, they will be looked up as if they
   were already registered. The goal is to allow running Python-specific operator
-  registration, while the operators are taken from arolla_cc_operator_package
+  registration, while the operators are taken from koladata_cc_operator_package
   BUILD rule.
 
   Usage example:
@@ -137,11 +137,11 @@ def add_to_registry(
     repr_fn: Optional repr function to use for the operator and its aliases. In
       case of None, a default repr function will be used.
     via_cc_operator_package: If True, the operator will be only registered
-      during arolla_cc_operator_package construction, and just looked up in the
-      global registry during normal execution. Note that this flag does not set
-      up any C++ operator package, this has to be done separately via
+      during koladata_cc_operator_package construction, and just looked up in
+      the global registry during normal execution. Note that this flag does not
+      set up any C++ operator package, this has to be done separately via
       building_cc_operator_package context manager and
-      arolla_cc_operator_package BUILD rule.
+      koladata_cc_operator_package BUILD rule.
 
   Returns:
     Registered operator.
@@ -207,11 +207,11 @@ def add_to_registry_as_overloadable(
       case of None, a default repr function will be used.
     aux_policy: Aux policy for the operator.
     via_cc_operator_package: If True, the operator will be only registered
-      during arolla_cc_operator_package construction, and just looked up in the
-      global registry during normal execution. Note that this flag does not set
-      up any C++ operator package, this has to be done separately via
+      during koladata_cc_operator_package construction, and just looked up in
+      the global registry during normal execution. Note that this flag does not
+      set up any C++ operator package, this has to be done separately via
       building_cc_operator_package context manager and
-      arolla_cc_operator_package BUILD rule.
+      koladata_cc_operator_package BUILD rule.
 
   Returns:
     An overloadable registered operator.
@@ -269,11 +269,11 @@ def add_to_registry_as_overload(
     overload_condition_expr: Condition for the overload.
     unsafe_override: Whether to override an existing operator.
     via_cc_operator_package: If True, the operator will be only registered
-      during arolla_cc_operator_package construction, and just looked up in the
-      global registry during normal execution. Note that this flag does not set
-      up any C++ operator package, this has to be done separately via
+      during koladata_cc_operator_package construction, and just looked up in
+      the global registry during normal execution. Note that this flag does not
+      set up any C++ operator package, this has to be done separately via
       building_cc_operator_package context manager and
-      arolla_cc_operator_package BUILD rule.
+      koladata_cc_operator_package BUILD rule.
 
   Returns:
     A decorator that registers an overload for the operator with the

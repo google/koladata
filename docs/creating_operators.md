@@ -26,7 +26,7 @@ There are three main types of operators:
 
 You can add an operator by name in a global registry by calling
 `kd.optools.add_to_registry`. If the operator should be available in C++ via
-`arolla_cc_operator_package` (see
+`koladata_cc_operator_package` (see
 [Making Operators Available in C++](#making-operators-available-in-c)), it must
 be registered with `via_cc_operator_package=True`.
 
@@ -392,15 +392,15 @@ with optools.building_cc_operator_package():
   from my.namespace import some_other_module as _
 ```
 
-This module will be used by `arolla_operator_package_snapshot` to collect
-operators. Additionally, the `arolla_cc_operator_package` must depend on the
-`cc_library` build targets for all relevant backend operators defined in C++ -
-in our case the one implementing `apply_mask`. See
+This module will be used by `koladata_cc_operator_package` to collect operators.
+Additionally it must depend on the `cc_library` build targets for all relevant
+backend operators defined in C++ - in our case the one implementing
+`apply_mask`. See
 [implementation](https://github.com/google/koladata/blob/main//py/koladata/operators/BUILD)
 for real examples of this. The following is a simplified example of BUILD file:
 
 ```build
-load("//py/arolla/codegen:operators.bzl", "arolla_cc_operator_package", "arolla_operator_package_snapshot")
+load("//py/koladata/operators:optools.bzl", "koladata_cc_operator_package")
 
 pytype_strict_library(
     name = "build_cc_operators",
@@ -413,30 +413,24 @@ pytype_strict_library(
     ],
 )
 
-arolla_cc_operator_package(
+koladata_cc_operator_package(
     name = "cc_operators",
     arolla_initializer = {
         "name": "arolla_operators/my_project",
         "deps": ["arolla_operators/koda_base"],
     },
-    snapshot = ":operator_package.pb2",
-    visibility = ["//visibility:public"],
-    deps = [
-      ":operators",  # Dependency on the C++ operator definition of apply_mask.
-      "//py/koladata:cc_operators",
-    ],
-)
-
-arolla_operator_package_snapshot(
-    name = "operator_package.pb2",
     imports = [
         "my.namespace.build_cc_operators",
     ],
     preimports = ["koladata.kd"],
-    visibility = ["//visibility:private"],
-    deps = [
+    tool_deps = [
         ":build_cc_operators",
         "//py/koladata:kd",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":operators",  # Dependency on the C++ operator definition of apply_mask.
+        "//py/koladata/operators:cc_operators",
     ],
 )
 
