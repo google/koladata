@@ -105,6 +105,9 @@ AllocationId Allocate(size_t size) {
             id << id_bit_count);
       };
 
+  // TODO: b/464002636 — If we decicde to force single-threaded usage, when
+  // KOLADATA_DETERMINISTIC_SEED variable is set, we have to add an assertion
+  // here as well.
   thread_local std::array<std::pair<uint64_t, uint64_t>, kMaxOffsetBits + 1>
       thread_id_per_offset_;
 

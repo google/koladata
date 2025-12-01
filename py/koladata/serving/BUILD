@@ -52,6 +52,7 @@ bzl_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_google_arolla//arolla/codegen:utils_bzl",
+        "@rules_cc//cc:core_rules",
     ],
 )
 

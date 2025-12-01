@@ -22,9 +22,17 @@
 namespace koladata::internal {
 
 // Returns a random uniformly distributed uint64.
+//
+// If KOLADATA_DETERMINISTIC_SEED environment variable is set (the changes of
+// the value in runtime are ignored), the random number generator will be
+// deterministic.
 uint64_t MaybeDeterministicRandomUint64();
 
-// Returns a random fingerprint.
+// Returns a random uniformly distributed fingerprint.
+//
+// If KOLADATA_DETERMINISTIC_SEED environment variable is set (the changes of
+// the value in runtime are ignored), the random number generator will be
+// deterministic.
 arolla::Fingerprint MaybeDeterministicRandomFingerprint();
 
 }  // namespace koladata::internal

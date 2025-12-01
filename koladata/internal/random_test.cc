@@ -14,9 +14,16 @@
 //
 #include "koladata/internal/random.h"
 
+#include <cstdint>
+#include <thread>  // NOLINT(build/c++11): only used for tests.
+#include <vector>
+
 #include "gtest/gtest.h"
 
 namespace koladata::internal {
+
+uint64_t DeterministicRandomUint64();
+
 namespace {
 
 TEST(RandomTest, MaybeDeterministicRandomUint64) {
@@ -26,6 +33,60 @@ TEST(RandomTest, MaybeDeterministicRandomUint64) {
 TEST(RandomTest, MaybeDeterministicRandomFingerprint) {
   EXPECT_NE(MaybeDeterministicRandomFingerprint(),
             MaybeDeterministicRandomFingerprint());
+}
+
+TEST(RandomTest, MaybeDeterministicRandomUint64_MultiThreaded) {
+  constexpr int kNumThreads = 10;
+  constexpr int kNumValues = 10;
+  std::vector<std::vector<uint64_t>> results(kNumThreads);
+
+  std::vector<std::thread> threads;
+  threads.reserve(kNumThreads);
+  for (int i = 0; i < kNumThreads; ++i) {
+    threads.emplace_back([&results, i] {
+      results[i].reserve(kNumValues);
+      for (int j = 0; j < kNumValues; ++j) {
+        results[i].push_back(MaybeDeterministicRandomUint64());
+      }
+    });
+  }
+
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
+  for (int i = 0; i < kNumThreads; ++i) {
+    for (int j = i + 1; j < kNumThreads; ++j) {
+      EXPECT_NE(results[i], results[j]);
+    }
+  }
+}
+
+TEST(RandomTest, DeterministicRandomUint64_MultiThreaded) {
+  constexpr int kNumThreads = 10;
+  constexpr int kNumValues = 10;
+  std::vector<std::vector<uint64_t>> results(kNumThreads);
+
+  std::vector<std::thread> threads;
+  threads.reserve(kNumThreads);
+  for (int i = 0; i < kNumThreads; ++i) {
+    threads.emplace_back([&results, i] {
+      results[i].reserve(kNumValues);
+      for (int j = 0; j < kNumValues; ++j) {
+        results[i].push_back(DeterministicRandomUint64());
+      }
+    });
+  }
+
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
+  for (int i = 0; i < kNumThreads; ++i) {
+    for (int j = i + 1; j < kNumThreads; ++j) {
+      EXPECT_NE(results[i], results[j]);
+    }
+  }
 }
 
 }  // namespace

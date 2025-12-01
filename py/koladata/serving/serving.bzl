@@ -163,8 +163,10 @@ def koladata_cc_embedded_slices(
         deps = tool_deps + ["//py/koladata/serving:serving_impl"],
     )
 
+    build_target = "//{}:{}".format(native.package_name(), name)
+    env = {"KOLADATA_DETERMINISTIC_SEED": build_target}
     context = dict(
-        build_target = "//{}:{}".format(native.package_name(), name),
+        build_target = build_target,
         namespaces = namespaces,
         function_name = cc_function_name.split("::")[-1],
         slice_names = slices.keys(),
@@ -177,6 +179,7 @@ def koladata_cc_embedded_slices(
         context = context,
         testonly = testonly,
         tags = tags,
+        env = env,
     )
     render_jinja2_template(
         name = "_{}_genrule_h".format(name),
@@ -185,6 +188,7 @@ def koladata_cc_embedded_slices(
         context = context,
         testonly = testonly,
         tags = tags,
+        env = env,
     )
     cc_library(
         name = name,

@@ -1093,9 +1093,13 @@ cc_library(
     srcs = ["random.cc"],
     hdrs = ["random.h"],
     deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/util",
     ],
 )
