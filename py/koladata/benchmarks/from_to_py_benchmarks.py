@@ -110,17 +110,22 @@ _SCHEMA_ARG = {
     0: kd.OBJECT,
     1: kd.INT32,
     2: kd.FLOAT32,
+    3: None,
 }
+
+
+def _not_none_not_object(schema):
+  return schema is not None and schema != kd.OBJECT
 
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 1]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
 def universal_converter_no_caching_flat(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT and from_dim == 0:
+  if _not_none_not_object(schema) and from_dim == 0:
     schema = kd.list_schema(schema)
   l = list(range(10000))
   while state:
@@ -129,12 +134,12 @@ def universal_converter_no_caching_flat(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 1]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
 def universal_converter_no_caching_flat_v2(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT and from_dim == 0:
+  if _not_none_not_object(schema) and from_dim == 0:
     schema = kd.list_schema(schema)
   l = list(range(10000))
   while state:
@@ -143,15 +148,15 @@ def universal_converter_no_caching_flat_v2(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 1]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
 def universal_converter_no_caching_nested(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT:
+  if _not_none_not_object(schema):
     schema = kd.list_schema(schema)
-  if schema != kd.OBJECT and from_dim == 0:
-    schema = kd.list_schema(schema)
+    if from_dim == 0:
+      schema = kd.list_schema(schema)
   nested_l = [[x, x + 1] for x in range(5000)]
   while (state):
     _ = kd.from_py(nested_l, from_dim=from_dim, schema=schema)
@@ -159,15 +164,15 @@ def universal_converter_no_caching_nested(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 1]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 1]])
 def universal_converter_no_caching_nested_v2(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT:
+  if _not_none_not_object(schema):
     schema = kd.list_schema(schema)
-  if schema != kd.OBJECT and from_dim == 0:
-    schema = kd.list_schema(schema)
+    if from_dim == 0:
+      schema = kd.list_schema(schema)
   nested_l = [[x, x + 1] for x in range(5000)]
   while state:
     _ = py_conversions._from_py_v2(nested_l, from_dim=from_dim, schema=schema)  # pylint: disable=protected-access
@@ -175,17 +180,18 @@ def universal_converter_no_caching_nested_v2(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 12]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 12]])
 def universal_converter_no_caching_deep_nesting(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT and from_dim == 0:
+  use_list_schema = _not_none_not_object(schema) and from_dim == 0
+  if use_list_schema:
     schema = kd.list_schema(schema)
   lst = list(range(4096))  # 2 ^ 12 elements
   for _ in range(11):  # 12 levels-deep
     new_lst = []
-    if schema != kd.OBJECT and from_dim == 0:
+    if use_list_schema:
       schema = kd.list_schema(schema)
     for i in range(0, len(lst), 2):
       new_lst.append([lst[i], lst[i + 1]])
@@ -196,17 +202,18 @@ def universal_converter_no_caching_deep_nesting(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema', 'from_dim'])
-@google_benchmark.option.args_product([[0, 1, 2], [0, 12]])
+@google_benchmark.option.args_product([[0, 1, 2, 3], [0, 12]])
 def universal_converter_no_caching_deep_nesting_v2(state):
   # NOTE: There is no caching of Python objects, as all of them are unique.
   schema = _SCHEMA_ARG[state.range(0)]
   from_dim = state.range(1)
-  if schema != kd.OBJECT and from_dim == 0:
+  use_list_schema = _not_none_not_object(schema) and from_dim == 0
+  if use_list_schema:
     schema = kd.list_schema(schema)
   lst = list(range(4096))  # 2 ^ 12 elements
   for _ in range(11):  # 12 levels-deep
     new_lst = []
-    if schema != kd.OBJECT and from_dim == 0:
+    if use_list_schema:
       schema = kd.list_schema(schema)
     for i in range(0, len(lst), 2):
       new_lst.append([lst[i], lst[i + 1]])
@@ -216,64 +223,86 @@ def universal_converter_no_caching_deep_nesting_v2(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])
 def deep_universal_converter(state):
+  schema = _SCHEMA_ARG[state.range(0)]
   d = {'abc': 42}
   for _ in range(1000):
     d = {12: d.copy()}
   while (state):
-    _ = kd.from_py(d)
+    _ = kd.from_py(d, schema=schema)
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])
 def deep_universal_converter_v2(state):
+  schema = _SCHEMA_ARG[state.range(0)]
   d = {'abc': 42}
   for _ in range(1000):
     d = {12: d.copy()}
   while state:
-    _ = py_conversions._from_py_v2(d)  # pylint: disable=protected-access
+    _ = py_conversions._from_py_v2(d, schema=schema)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])
 def universal_converter_list(state):
+  schema = _SCHEMA_ARG[state.range(0)]
   l = [1, 2, 3]
   for _ in range(10):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
   while (state):
-    _ = kd.from_py(l)
+    _ = kd.from_py(l, schema=schema)
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])
 def universal_converter_list_v2(state):
+  schema = _SCHEMA_ARG[state.range(0)]
   l = [1, 2, 3]
   for _ in range(10):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
   while state:
-    _ = py_conversions._from_py_v2(l)  # pylint: disable=protected-access
+    _ = py_conversions._from_py_v2(l, schema=schema)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3, 6]])
 def universal_converter_list_of_obj_primitives(state):
   l = [42] * 10000
-  s = kd.list_schema(kd.OBJECT)
+  if state.range(0) == 6:
+    schema = kd.list_schema(kd.OBJECT)
+  else:
+    schema = _SCHEMA_ARG[state.range(0)]
+
   while (state):
-    _ = kd.from_py(l, schema=s)
+    _ = kd.from_py(l, schema=schema)
 
 
 @google_benchmark.register
 def universal_converter_list_of_obj_primitives_v2(state):
   l = [42] * 10000
+
   s = kd.list_schema(kd.OBJECT)
   while state:
     _ = py_conversions._from_py_v2(l, schema=s)  # pylint: disable=protected-access
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])
 def universal_converter_itemid(state):
+  schema = _SCHEMA_ARG[state.range(0)]
   l = [1, 2, 3]
   for _ in range(10):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
   while (state):
-    _ = kd.from_py(l, itemid=kd.uuid_for_list('itemid'))
+    _ = kd.from_py(l, itemid=kd.uuid_for_list('itemid'), schema=schema)
 
 
 if __name__ == '__main__':
