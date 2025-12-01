@@ -65,6 +65,7 @@ cc_library(
     srcs = ["object_id.cc"],
     hdrs = ["object_id.h"],
     deps = [
+        ":random",
         "//koladata/internal/op_utils:base62",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -72,7 +73,6 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/numeric:bits",
         "@com_google_absl//absl/numeric:int128",
-        "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
@@ -1086,6 +1086,27 @@ cc_library(
     name = "schema_attrs",
     hdrs = ["schema_attrs.h"],
     deps = ["@com_google_absl//absl/strings:string_view"],
+)
+
+cc_library(
+    name = "random",
+    srcs = ["random.cc"],
+    hdrs = ["random.h"],
+    deps = [
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "random_test",
+    srcs = ["random_test.cc"],
+    deps = [
+        ":random",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(

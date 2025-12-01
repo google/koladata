@@ -38,6 +38,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/constants.h"
 #include "koladata/expr/expr_eval.h"
+#include "koladata/expr/non_determinism.h"
 #include "koladata/functor/parallel/get_default_executor.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/arolla_bridge.h"
@@ -68,6 +69,7 @@ using ::arolla::python::ReleasePyGIL;
 using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::UnwrapPyExpr;
 using ::arolla::python::UnwrapPyQValue;
+using ::arolla::python::WrapAsPyExpr;
 using ::arolla::python::WrapAsPyQValue;
 
 // Note: Consider a conditional guard that provides either an eager or
@@ -228,6 +230,13 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                    {.verbose_runtime_errors = true}),
       SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
+}
+
+PyObject* NewNonDeterministicToken(PyObject* /*self*/, PyObject* /*py_args*/) {
+  DCheckPyGIL();
+  ASSIGN_OR_RETURN(auto token, expr::GenNonDeterministicToken(),
+                   SetPyErrFromStatus(_));
+  return WrapAsPyExpr(std::move(token));
 }
 
 }  // namespace koladata::python

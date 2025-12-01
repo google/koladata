@@ -282,6 +282,7 @@ cc_library(
         "//koladata:data_slice_qtype",
         "//koladata/expr:constants",
         "//koladata/expr:expr_eval",
+        "//koladata/expr:non_determinism",
         "//koladata/functor/parallel:get_default_executor",
         "//koladata/internal:non_deterministic_token",
         "//koladata/operators:lib",

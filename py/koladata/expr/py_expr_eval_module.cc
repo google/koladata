@@ -42,6 +42,10 @@ PyMethodDef kPyExprEvalModule_methods[] = {
     {"eval_op", (PyCFunction)PyEvalOp, METH_FASTCALL | METH_KEYWORDS,
      ("eval_op(op, *args, **kwrgas)\n--\n\n"
       "Evaluates an operator on the provided arguments.")},
+    {"new_non_deterministic_token", (PyCFunction)NewNonDeterministicToken,
+     METH_NOARGS,
+     "Returns a new unique value for argument marked with non_deterministic "
+     "marker."},
     {nullptr} /* sentinel */
 };
 

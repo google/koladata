@@ -28,22 +28,18 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/numeric/bits.h"
-#include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "arolla/qtype/simple_qtype.h"
+#include "koladata/internal/random.h"
 
 namespace koladata::internal {
 
 namespace {
 
-uint64_t CreateAllocatorId() {
-  absl::BitGen gen;
-  return absl::uniform_int_distribution<uint64_t>(1, (1ull << 52))(gen);
-}
-
 uint64_t AllocatorId() {
-  static uint64_t kAllocatorId = CreateAllocatorId();
+  static uint64_t kAllocatorId =
+      MaybeDeterministicRandomUint64() & ((1ull << 52) - 1);
   return kAllocatorId;
 }
 

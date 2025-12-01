@@ -15,15 +15,14 @@
 #include "koladata/expr/non_determinism.h"
 
 #include <cstdint>
-#include <limits>
 #include <memory>
 
 #include "absl/base/no_destructor.h"
-#include "absl/random/random.h"
 #include "absl/status/statusor.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "koladata/internal/random.h"
 
 namespace koladata::expr {
 
@@ -36,10 +35,9 @@ absl::StatusOr<arolla::expr::ExprNodePtr> GenNonDeterministicToken() {
   static const absl::NoDestructor op(
       std::make_shared<RegisteredOperator>("koda_internal.non_deterministic"));
   static const absl::NoDestructor leaf(Leaf(kNonDeterministicTokenLeafKey));
-  thread_local absl::BitGen bitgen;
-  auto seed = absl::Uniform<int64_t>(absl::IntervalClosed, bitgen, 0,
-                                     std::numeric_limits<int64_t>::max());
-  return MakeOpNode(*op, {*leaf, Literal(seed)});
+  return MakeOpNode(*op,
+                    {*leaf, Literal(static_cast<int64_t>(
+                                internal::MaybeDeterministicRandomUint64()))});
 }
 
 }  // namespace koladata::expr

@@ -15,7 +15,6 @@
 """Utilities for advanced Python values conversion to Koda abstractions."""
 
 import functools
-import random
 import types as py_types
 from typing import Any, Callable
 
@@ -60,22 +59,7 @@ NON_DETERMINISTIC_TOKEN_LEAF = arolla.abc.leaf(
     py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY
 )
 
-
-# Isolated PRNG instance. Global to avoid overhead of repeated instantiation.
-_RANDOM = random.Random()
-
-
-def _random_int64() -> arolla.QValue:
-  return arolla.int64(_RANDOM.randint(-(2**63), 2**63 - 1))
-
-
-def new_non_deterministic_token() -> arolla.Expr:
-  """Returns a new unique value for argument marked with non_deterministic marker."""
-  return arolla.abc.bind_op(
-      'koda_internal.non_deterministic',
-      NON_DETERMINISTIC_TOKEN_LEAF,
-      _random_int64(),
-  )
+new_non_deterministic_token = py_expr_eval_py_ext.new_non_deterministic_token
 
 
 def _no_py_function_boxing_registered(

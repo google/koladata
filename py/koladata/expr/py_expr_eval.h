@@ -38,6 +38,9 @@ PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/);
 // Clears the cache of Arolla operators invoked from Koda QExpr operators.
 PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/);
 
+// Returns an Expr containing a new non-deterministic token.
+PyObject* NewNonDeterministicToken(PyObject* /*self*/, PyObject* /*py_args*/);
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
