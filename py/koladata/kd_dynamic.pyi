@@ -185,6 +185,7 @@ class entities:
   new = _operators_entities.new
   shaped = _operators_entities.shaped
   shaped_as = _operators_entities.shaped_as
+  strict_new = _operators_entities.strict_new
   uu = _operators_entities.uu
 
 
@@ -813,6 +814,7 @@ sort = _operators_slices.sort
 stack = _operators_slices.stack
 str = _operators_slices.str_
 strict_attrs = _operators_core.strict_attrs
+strict_new = _operators_entities.strict_new
 strict_with_attrs = _operators_core.strict_with_attrs
 stub = _operators_core.stub
 subslice = _operators_slices.subslice

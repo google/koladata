@@ -863,6 +863,7 @@ class KodaViewTest(parameterized.TestCase):
               'obj',
               'obj_like',
               'obj_shaped',
+              'strict_new',
               'uu',
               'uu_schema',
               'uuobj',

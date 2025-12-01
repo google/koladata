@@ -34,11 +34,21 @@ class SchemaItem(data_item.DataItem):
     """Returns a new Entity with this Schema."""
     if not self.has_bag():
       raise ValueError(
-          'only SchemaItem with DataBags can be used for creating Entities'
+          'only SchemaItems with DataBags can be used for creating Entities'
       )
     if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
       return arolla.abc.aux_bind_op('kd.new', schema=self, **attrs)
     return _eval_op('kd.new', schema=self, **attrs)
+
+  def strict_new(self, **attrs) -> data_slice.DataSlice | arolla.Expr:
+    """Returns a new Entity with this Schema, checks for missing attributes."""
+    if not self.has_bag():
+      raise ValueError(
+          'only SchemaItems with DataBags can be used for creating Entities'
+      )
+    if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
+      return arolla.abc.aux_bind_op('kd.strict_new', schema=self, **attrs)
+    return _eval_op('kd.strict_new', schema=self, **attrs)
 
 
 arolla.abc.register_qvalue_specialization(

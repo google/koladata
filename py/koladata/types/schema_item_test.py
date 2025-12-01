@@ -100,14 +100,24 @@ class SchemaItemTest(absltest.TestCase):
         entity_expr, kde.new(schema=s, a=42, b=kde.item('xyz'))
     )
 
-  def test_creating_entities_errors(self):
+  def test_creating_entities_no_bag_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'only SchemaItem with DataBags can be used for creating Entities',
+        'only SchemaItems with DataBags can be used for creating Entities',
     ):
       kde.schema.new_schema(
           a=schema_constants.INT32, b=schema_constants.STRING
       ).eval().with_bag(None).new()
+
+  def test_creating_entities_with_unknown_attr_error(self):
+    s = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    _ = s.new(a=1, b=42)  # No error.
+    with self.assertRaisesRegex(
+        ValueError,
+        "cannot create a new entity with attribute 'b' not defined in the"
+        ' schema',
+    ):
+      s.strict_new(a=1, b=42)
 
   def test_is_primitive_schema(self):
     a = ds(1)

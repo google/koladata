@@ -461,6 +461,9 @@ class KodaView(BaseKodaView):
   def new(self, **attrs) -> arolla.Expr:
     return _aux_bind_op('kd.new', schema=self, **attrs)
 
+  def strict_new(self, **attrs) -> arolla.Expr:
+    return _aux_bind_op('kd.strict_new', schema=self, **attrs)
+
   def take(self, indices: Any) -> arolla.Expr:
     return _aux_bind_op('kd.take', self, indices)
 

@@ -1788,6 +1788,25 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
+### `kd.entities.strict_new(*, schema, overwrite_schema=False, itemid=unspecified, **attrs)` {#kd.entities.strict_new}
+Aliases:
+
+- [kd.strict_new](#kd.strict_new)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities, checking that all provided attrs are in the schema.
+
+Args:
+  schema: DataSlice schema.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
+  itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    itemid will only be set when the args is not a primitive or primitive
+    DataSlice if args present.
+  **attrs: attrs to set in the returned Entity.
+
+Returns:
+  data_slice.DataSlice with the given attrs.</code></pre>
+
 ### `kd.entities.uu(seed: str | None = None, *, schema: DataSlice | None = None, overwrite_schema: bool = False, **attrs: Any) -> DataSlice` {#kd.entities.uu}
 Aliases:
 
@@ -10602,6 +10621,10 @@ Alias for [kd.slices.str](#kd.slices.str) operator.
 ### `kd.strict_attrs(x, /, **attrs)` {#kd.strict_attrs}
 
 Alias for [kd.core.strict_attrs](#kd.core.strict_attrs) operator.
+
+### `kd.strict_new(*, schema, overwrite_schema=False, itemid=unspecified, **attrs)` {#kd.strict_new}
+
+Alias for [kd.entities.strict_new](#kd.entities.strict_new) operator.
 
 ### `kd.strict_with_attrs(x, /, **attrs)` {#kd.strict_with_attrs}
 

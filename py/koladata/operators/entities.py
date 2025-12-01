@@ -26,8 +26,10 @@ constraints = arolla.optools.constraints
 
 
 @optools.as_backend_operator('kd.entities._new', deterministic=False)
-def _new(arg, schema, overwrite_schema, itemid, attrs):  # pylint: disable=unused-argument
-  """Internal implementation of kd.entities.new."""
+def _new(
+    arg, schema, overwrite_schema, allow_attrs_missing_in_schema, itemid, attrs  # pylint: disable=unused-argument
+):
+  """Internal implementation for kd.entities.new and kd.entities.strict_new."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -80,6 +82,55 @@ def new(
       arg=arg,
       schema=schema_ops.internal_maybe_named_schema(schema),
       overwrite_schema=overwrite_schema,
+      allow_attrs_missing_in_schema=True,
+      itemid=itemid,
+      attrs=attrs,
+  )
+
+
+@optools.add_to_registry(
+    aliases=['kd.strict_new'], via_cc_operator_package=True
+)
+@optools.as_lambda_operator(
+    'kd.entities.strict_new',
+    qtype_constraints=[
+        (
+            (P.schema != arolla.UNSPECIFIED),
+            'kd.strict_new requires schema to be specified.',
+        ),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.overwrite_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+)
+def strict_new(
+    *,
+    schema,
+    overwrite_schema=False,
+    itemid=arolla.unspecified(),
+    **attrs,
+):
+  """Creates Entities, checking that all provided attrs are in the schema.
+
+  Args:
+    schema: DataSlice schema.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      DataSlice if args present.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+  """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return _new(
+      arg=arolla.unspecified(),
+      schema=schema,
+      overwrite_schema=overwrite_schema,
+      allow_attrs_missing_in_schema=False,
       itemid=itemid,
       attrs=attrs,
   )

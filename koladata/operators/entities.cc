@@ -16,13 +16,13 @@
 
 #include <memory>
 #include <optional>
-#include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
@@ -30,7 +30,6 @@
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -41,6 +40,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/object_factories.h"
@@ -58,11 +58,13 @@ class NewOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return MakeBoundOperator(
-        "kd.entities.new",
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "kd.entities._new",
         [schema_slot = input_slots[1],
          overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
+         allow_attrs_missing_in_schema_slot =
+             input_slots[3].UnsafeToSlot<DataSlice>(),
+         item_id_slot = input_slots[4], named_tuple_slot = input_slots[5],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
@@ -73,12 +75,33 @@ class NewOperator final : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(bool overwrite_schema,
                            GetBoolArgument(frame.Get(overwrite_schema_slot),
                                            "overwrite_schema"));
+          ASSIGN_OR_RETURN(
+              bool allow_attrs_missing_in_schema,
+              GetBoolArgument(frame.Get(allow_attrs_missing_in_schema_slot),
+                              "allow_attrs_missing_in_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
               GetFieldNames(named_tuple_slot);
+          if (!allow_attrs_missing_in_schema) {
+            DCHECK(schema.has_value());
+            if (schema->GetSchemaImpl() == schema::kString) {
+              return absl::InvalidArgumentError(
+                  "string schema is not supported for kd.entities.strict_new");
+            }
+            RETURN_IF_ERROR(schema->VerifyIsEntitySchema());
+            ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names_set,
+                             schema->GetAttrNames());
+            for (const auto& attr_name : attr_names) {
+              if (!attr_names_set.contains(attr_name)) {
+                return absl::InvalidArgumentError(
+                    absl::StrCat("cannot create a new entity with attribute '",
+                                 attr_name, "' not defined in the schema"));
+              }
+            }
+          }
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::EmptyMutable();
@@ -247,8 +270,8 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
 absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 6) {
-    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  if (input_types.size() != 7) {
+    return absl::InvalidArgumentError("requires exactly 7 arguments");
   }
   if (!IsDataSliceOrUnspecified(input_types[1])) {
     return absl::InvalidArgumentError(
@@ -258,12 +281,16 @@ absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "requires overwrite_schema argument to be DataSlice");
   }
-  if (!IsDataSliceOrUnspecified(input_types[3])) {
+  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires allow_attrs_missing_in_schema argument to be DataSlice");
+  }
+  if (!IsDataSliceOrUnspecified(input_types[4])) {
     return absl::InvalidArgumentError(
         "requires itemid argument to be DataSlice or unspecified");
   }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
-  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[5]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[6]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewOperator>(input_types), input_types, output_type);
 }
