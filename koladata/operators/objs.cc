@@ -16,7 +16,6 @@
 
 #include <memory>
 #include <optional>
-#include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
