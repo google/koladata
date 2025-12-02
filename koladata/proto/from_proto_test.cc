@@ -687,26 +687,55 @@ TEST(FromProtoTest, ExplicitSchema) {
 }
 
 TEST(FromProtoTest, KodaOptions) {
-  testing::ExampleMessageWithKodaOptions message;
+  testing::ExampleMessageWithKodaOptions message1;
   CHECK(TextFormat::ParseFromString(R"pb(
                                       bool_field: true
                                       repeated_bool_field: [ false, true ]
                                     )pb",
-                                    &message));
+                                    &message1));
+  testing::ExampleMessageWithKodaOptions message2;
+  CHECK(TextFormat::ParseFromString(R"pb(
+                                      bool_field: false
+                                      repeated_bool_field: [ false, true ]
+                                    )pb",
+                                    &message2));
+  testing::ExampleMessageWithKodaOptions message3;
+  CHECK(TextFormat::ParseFromString(R"pb(
+                                      repeated_bool_field: [ false, true ]
+                                    )pb",
+                                    &message3));
 
-  auto db = DataBag::EmptyMutable();
-  ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message}));
+  {
+    auto db = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         FromProto(db, {&message1, &message2, &message3}));
 
-  EXPECT_THAT(result.GetAttr("bool_field"),
-              IsOkAndHolds(IsEquivalentTo(
-                  test::DataSlice<arolla::Unit>({arolla::kUnit}, db))));
-  EXPECT_THAT(result.GetAttr("repeated_bool_field")
-                  ->ExplodeList(0, std::nullopt)
-                  ->Flatten(),
-              IsEquivalentTo(test::DataSlice<arolla::Unit>(
-                  {arolla::OptionalValue<arolla::Unit>(),
-                   arolla::OptionalValue<arolla::Unit>(arolla::kUnit)},
-                  db)));
+    EXPECT_THAT(result.GetAttr("bool_field"),
+                IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                    {arolla::kUnit, std::nullopt, std::nullopt}, db))));
+    EXPECT_THAT(result.GetAttr("repeated_bool_field")
+                    ->ExplodeList(0, std::nullopt)
+                    ->Flatten(),
+                IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                    {
+                        arolla::OptionalValue<arolla::Unit>(),
+                        arolla::OptionalValue<arolla::Unit>(arolla::kUnit),
+                        arolla::OptionalValue<arolla::Unit>(),
+                        arolla::OptionalValue<arolla::Unit>(arolla::kUnit),
+                        arolla::OptionalValue<arolla::Unit>(),
+                        arolla::OptionalValue<arolla::Unit>(arolla::kUnit),
+                    },
+                    db)));
+  }
+  {
+    // Special case where bool_field is populated, but has no present values in
+    // the converted output.
+    auto db = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(auto result, FromProto(db, {&message2}));
+    EXPECT_THAT(result.GetAttr("bool_field"),
+                IsOkAndHolds(IsEquivalentTo(
+                    test::DataSlice<arolla::Unit>({std::nullopt}, db))));
+  }
 }
 
 TEST(FromProtoTest, Uint64Overflow) {
@@ -1259,7 +1288,7 @@ TEST(FromProtoTest, SchemaFromProtoNoExtensions_NoBagOverload) {
   ASSERT_OK_AND_ASSIGN(auto schema_with_bag,
                        SchemaFromProto(DataBag::EmptyMutable(),
                                        testing::ExampleMessage::descriptor()));
-  EXPECT_EQ(schema.item(), schema_with_bag.item());;
+  EXPECT_EQ(schema.item(), schema_with_bag.item());
 }
 
 TEST(FromProtoTest, SchemaFromProtoWithExtensions) {

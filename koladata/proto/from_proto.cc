@@ -1088,7 +1088,6 @@ absl::Status FromProtoMessage(
     std::vector<DataSlice> values;
     for (auto& field_vars : vars->fields) {
       if (field_vars.value.has_value()) {
-        DCHECK(!field_vars.value->IsEmpty());
         values.push_back(*std::move(field_vars.value));
         value_attr_names.push_back(field_vars.attr_name);
       }
