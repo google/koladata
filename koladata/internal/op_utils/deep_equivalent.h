@@ -16,7 +16,6 @@
 #define KOLADATA_INTERNAL_OP_UTILS_DEEP_EQUIVALENT_H_
 
 #include <cstddef>
-#include <string>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -45,11 +44,11 @@ class DeepEquivalentOp {
 
   struct DeepEquivalentParams {
     // If true, only the attributes present in the expected_value are compared.
-    bool partial;
+    bool partial = false;
     // If true, the schema ObjectIds are compared.
-    bool schemas_equality;
+    bool schemas_equality = false;
     // If true, the ObjectIds are compared.
-    bool ids_equality;
+    bool ids_equality = false;
   };
 
   explicit DeepEquivalentOp(DataBagImpl* new_databag,
@@ -70,11 +69,11 @@ class DeepEquivalentOp {
   // the comparison.
   // Returns a DataItem, that can be traversed with new_databag_.
   absl::StatusOr<DataItem> operator()(
-        const DataItem& lhs_item, const DataItem& lhs_schema,
-        const DataBagImpl& lhs_databag, DataBagImpl::FallbackSpan lhs_fallbacks,
-        const DataItem& rhs_item, const DataItem& rhs_schema,
-        const DataBagImpl& rhs_databag,
-        DataBagImpl::FallbackSpan rhs_fallbacks) const;
+      const DataItem& lhs_item, const DataItem& lhs_schema,
+      const DataBagImpl& lhs_databag, DataBagImpl::FallbackSpan lhs_fallbacks,
+      const DataItem& rhs_item, const DataItem& rhs_schema,
+      const DataBagImpl& rhs_databag,
+      DataBagImpl::FallbackSpan rhs_fallbacks) const;
 
   // For the provided slice, returns the paths in the new_databag_ that leads to
   // the diff items.
@@ -85,8 +84,7 @@ class DeepEquivalentOp {
   // For the provided item, returns the paths in the new_databag_ that leads to
   // the diff items.
   absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
-      const DataItem& item, const DataItem& schema,
-      size_t max_count = 5) const;
+      const DataItem& item, const DataItem& schema, size_t max_count = 5) const;
 
  private:
   DataBagImpl* new_databag_;
