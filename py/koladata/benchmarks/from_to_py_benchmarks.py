@@ -15,6 +15,8 @@
 """Koladata benchmarks related to from/to_py."""
 
 import copy
+import dataclasses
+from typing import Any
 
 import google_benchmark
 from koladata import kd
@@ -224,14 +226,79 @@ def universal_converter_no_caching_deep_nesting_v2(state):
 
 @google_benchmark.register
 @google_benchmark.option.arg_names(['schema'])
-@google_benchmark.option.args_product([[0, 3]])
+@google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
 def deep_universal_converter(state):
   schema = _SCHEMA_ARG[state.range(0)]
   d = {'abc': 42}
   for _ in range(1000):
     d = {12: d.copy()}
-  while (state):
+  while state:
     _ = kd.from_py(d, schema=schema)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
+def deep_universal_converter_dict_as_obj(state):
+  schema = _SCHEMA_ARG[state.range(0)]
+  d = {'abc': 42}
+  for _ in range(1000):
+    d = {'x': d.copy()}
+  while state:
+    _ = kd.from_py(d, schema=schema, dict_as_obj=True)
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['schema'])
+@google_benchmark.option.args_product([[0, 3]])  # OBJECT and None
+def universal_converter_object(state):
+  schema = _SCHEMA_ARG[state.range(0)]
+
+  @dataclasses.dataclass
+  class A:
+    x: Any | int = 123
+    y: Any | int = 456
+    z: Any | int = 789
+
+  def create_obj():
+    obj = A()
+    for _ in range(5):
+      obj = A(x=obj, y=obj, z=obj)
+    return obj
+
+  obj = [create_obj() for _ in range(1000)]
+
+  while state:
+    _ = kd.from_py(obj, schema=schema)
+
+
+@google_benchmark.register
+def universal_converter_entity(state):
+  schema = kd.schema.new_schema(x=kd.INT32, y=kd.INT32, z=kd.INT32)
+
+  @dataclasses.dataclass
+  class A:
+    x: Any | int = 123
+    y: Any | int = 456
+    z: Any | int = 789
+
+  def create_obj():
+    obj = A()
+    for _ in range(5):
+      obj = A(x=obj, y=obj, z=obj)
+    return obj
+
+  def create_schema(leaf_schema):
+    schema = leaf_schema
+    for _ in range(5):
+      schema = kd.schema.new_schema(x=schema, y=schema, z=schema)
+    schema = kd.schema.list_schema(schema)
+    return schema
+
+  obj = [create_obj() for _ in range(1000)]
+
+  while state:
+    _ = kd.from_py(obj, schema=create_schema(schema))
 
 
 @google_benchmark.register
