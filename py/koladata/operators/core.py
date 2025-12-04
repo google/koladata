@@ -665,11 +665,6 @@ def _get_item(x, key_or_index):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry_as_overload(
-    'koda_internal.view.get_item._slice',
-    overload_condition_expr=P.x == qtypes.DATA_SLICE,
-    via_cc_operator_package=True,
-)
 @optools.add_to_registry(
     'kd.core.get_item',
     aliases=[
@@ -720,6 +715,13 @@ def get_item(x, key_or_index):
       ),
       default=_get_list_item_by_slice(P.x, P.key_or_index),
   )(x, key_or_index)
+
+
+optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._slice',
+    overload_condition_expr=P.x == qtypes.DATA_SLICE,
+    via_cc_operator_package=True,
+)(get_item)
 
 
 @optools.as_backend_operator('kd.core._new_ids_like', deterministic=False)

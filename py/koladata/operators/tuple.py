@@ -67,12 +67,6 @@ def namedtuple_(**kwargs):
   return arolla.optools.fix_trace_kwargs(kwargs)
 
 
-@optools.add_to_registry_as_overload(
-    'koda_internal.view.get_item._tuple',
-    overload_condition_expr=M.qtype.is_tuple_qtype(P.x)
-    | M.qtype.is_slice_qtype(P.x),
-    via_cc_operator_package=True,
-)
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.tuples.get_nth',
@@ -92,11 +86,14 @@ def get_nth(x, n):
   return M.core.get_nth(x, n)
 
 
-@optools.add_to_registry_as_overload(
-    'koda_internal.view.get_item._namedtuple',
-    overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),
+optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._tuple',
+    overload_condition_expr=M.qtype.is_tuple_qtype(P.x)
+    | M.qtype.is_slice_qtype(P.x),
     via_cc_operator_package=True,
-)
+)(get_nth)
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.tuples.get_namedtuple_field',
@@ -114,3 +111,10 @@ def get_namedtuple_field(namedtuple, field_name):
   """
   field_name = arolla_bridge.to_arolla_text(field_name)
   return M.namedtuple.get_field(namedtuple, field_name)
+
+
+optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._namedtuple',
+    overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),
+    via_cc_operator_package=True,
+)(get_namedtuple_field)

@@ -462,16 +462,29 @@ class OptoolsTest(parameterized.TestCase):
         )(overload_1)
 
     with optools.building_cc_operator_package():
-      optools.add_to_registry_as_overload(
+      registered_overload_1 = optools.add_to_registry_as_overload(
           overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
           via_cc_operator_package=True,
       )(overload_1)
 
+    self.assertIsInstance(
+        registered_overload_1, arolla.types.RegisteredOperator
+    )
+    self.assertIsInstance(
+        arolla.abc.decay_registered_operator(registered_overload_1),
+        arolla.types.GenericOperatorOverload,
+    )
+
     # No registration error, the operator is just looked up.
-    optools.add_to_registry_as_overload(
+    second_registered_overload_1 = optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
         via_cc_operator_package=True,
     )(overload_1)
+    testing.assert_equal(registered_overload_1, second_registered_overload_1)
+
+    # And a manual lookup returns the same operator.
+    lookedup_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')
+    testing.assert_equal(registered_overload_1, lookedup_overload_1)
 
     @optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
@@ -489,17 +502,6 @@ class OptoolsTest(parameterized.TestCase):
       optools.add_to_registry_as_overload(
           overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
       )(overload_2)
-
-    # Is registered as an overload.
-    reg_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')
-    self.assertIsInstance(reg_overload_1, arolla.types.RegisteredOperator)
-    self.assertIsInstance(
-        arolla.abc.decay_registered_operator(reg_overload_1),
-        arolla.types.GenericOperatorOverload,
-    )
-    # But the returned decorator is _not_ the overloaded op but the wrapped one
-    # (allowing us to chain decorators more easily).
-    self.assertIsInstance(overload_1, arolla.types.LambdaOperator)
 
     # Evaluation works as expected.
     testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))

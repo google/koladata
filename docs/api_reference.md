@@ -4809,8 +4809,7 @@ Args:
 
 Returns:
   A decorator that registers an overload for the operator with the
-  corresponding name. Returns the original operator (unlinke the arolla
-  equivalent).</code></pre>
+  corresponding name.</code></pre>
 
 ### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_default_boxing', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
 

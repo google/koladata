@@ -277,8 +277,7 @@ def add_to_registry_as_overload(
 
   Returns:
     A decorator that registers an overload for the operator with the
-    corresponding name. Returns the original operator (unlinke the arolla
-    equivalent).
+    corresponding name.
   """
   assert not (
       unsafe_override and via_cc_operator_package
@@ -291,23 +290,20 @@ def add_to_registry_as_overload(
     op_name = name or op.display_name
     name_ns, _, name_suffix = op_name.rpartition('.')
     canonical_name = arolla.abc.decay_registered_operator(name_ns).display_name
-
+    overload_name = canonical_name + '.' + name_suffix
     if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
-      pass
+      return arolla.abc.lookup_operator(overload_name)
     elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
       raise ValueError(
           'operators included to cc_operator_package must be registered with'
           ' via_cc_operator_package=True'
       )
     else:
-      arolla.optools.add_to_registry_as_overload(
-          canonical_name + '.' + name_suffix,
+      return arolla.optools.add_to_registry_as_overload(
+          overload_name,
           if_present=if_present,
           overload_condition_expr=overload_condition_expr,
       )(op)
-    # TODO: b/454825280 - The operator should not return the original operator
-    # but a new registered one (or the one it overloads?).
-    return op
 
   return impl
 
