@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -45,7 +46,6 @@
 #include "arolla/util/text.h"
 #include "arolla/util/traceme.h"
 #include "arolla/util/unit.h"
-#include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -100,13 +100,16 @@ struct QueuedSlice {
 
 class CopyingProcessor {
  public:
-  CopyingProcessor(
-      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl* absl_nullable schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks,
-      const DataBagImplPtr& new_databag, bool is_shallow_clone,
-      bool cast_primitives, int max_depth = -1,
-      const std::optional<LeafCallback>& leaf_callback = std::nullopt)
+  CopyingProcessor(const DataBagImpl& databag,
+                   DataBagImpl::FallbackSpan fallbacks,
+                   const DataBagImpl* absl_nullable schema_databag,
+                   DataBagImpl::FallbackSpan schema_fallbacks,
+                   const DataBagImplPtr& new_databag, bool is_shallow_clone,
+                   int max_depth = -1,
+                   const std::optional<CastingCallback>& casting_callback
+                       ABSL_ATTRIBUTE_LIFETIME_BOUND = std::nullopt,
+                   const std::optional<LeafCallback>& leaf_callback
+                       ABSL_ATTRIBUTE_LIFETIME_BOUND = std::nullopt)
       : group_by_(),
         queued_slices_(),
         databag_(databag),
@@ -116,8 +119,8 @@ class CopyingProcessor {
         new_databag_(new_databag),
         objects_tracker_(DataBagImpl::CreateEmptyDatabag()),
         is_shallow_clone_(is_shallow_clone),
-        cast_primitives_(cast_primitives),
         max_depth_(max_depth),
+        casting_callback_(casting_callback),
         leaf_callback_(leaf_callback) {}
 
   absl::Status ExtractSlice(const QueuedSlice& slice) {
@@ -141,14 +144,6 @@ class CopyingProcessor {
       slice.depth++;
       queued_slices_.push_back(std::move(slice));
     }
-  }
-
-  absl::StatusOr<DataSliceImpl> CastSliceTo(const DataSliceImpl& ds,
-                                            const DataItem& schema) {
-    if (!schema.is_struct_schema() && !ds.is_empty_and_unknown()) {
-      return schema::CastDataTo(ds, schema);
-    }
-    return ds;
   }
 
   absl::Status ValidatePrimitiveTypes(const QueuedSlice& slice,
@@ -375,8 +370,8 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(auto attr_ds, databag_.GetAttrWithRemoved(
                                        old_ds, attr_name, fallbacks_));
-    if (cast_primitives_) {
-      ASSIGN_OR_RETURN(attr_ds, CastSliceTo(attr_ds, attr_schema));
+    if (casting_callback_.has_value()) {
+      ASSIGN_OR_RETURN(attr_ds, (*casting_callback_)(attr_ds, attr_schema));
     }
     if (max_depth_ == -1 || slice.depth < max_depth_) {
       RETURN_IF_ERROR(
@@ -426,11 +421,10 @@ class CopyingProcessor {
       ASSIGN_OR_RETURN(values_ds, databag_.GetFromDict(dict_expanded_ds,
                                                        keys_ds, fallbacks_));
     }
-    if (cast_primitives_) {
-      ASSIGN_OR_RETURN(keys_ds, CastSliceTo(keys_ds, keys_schema));
-    }
-    if (cast_primitives_) {
-      ASSIGN_OR_RETURN(values_ds, CastSliceTo(values_ds, values_schema));
+    if (casting_callback_.has_value()) {
+      ASSIGN_OR_RETURN(keys_ds, (*casting_callback_)(keys_ds, keys_schema));
+      ASSIGN_OR_RETURN(values_ds,
+                       (*casting_callback_)(values_ds, values_schema));
     }
     if (max_depth_ == -1 || slice.depth < max_depth_) {
       RETURN_IF_ERROR(
@@ -473,8 +467,9 @@ class CopyingProcessor {
         auto list_items,
         databag_.ExplodeLists(old_ds, DataBagImpl::ListRange(), fallbacks_));
     auto& [list_items_ds, list_items_edge] = list_items;
-    if (cast_primitives_) {
-      ASSIGN_OR_RETURN(list_items_ds, CastSliceTo(list_items_ds, attr_schema));
+    if (casting_callback_.has_value()) {
+      ASSIGN_OR_RETURN(list_items_ds,
+                       (*casting_callback_)(list_items_ds, attr_schema));
     }
     if (max_depth_ == -1 || slice.depth < max_depth_) {
       RETURN_IF_ERROR(
@@ -1083,7 +1078,7 @@ class CopyingProcessor {
       } else if (slice.schema.holds_value<schema::DType>()) {
         if (slice.schema == schema::kObject) {
           // Object schema.
-          if (cast_primitives_) {
+          if (casting_callback_.has_value()) {
             return absl::InvalidArgumentError(
                 "casting to OBJECT is not supported during the deep casting");
           }
@@ -1110,8 +1105,8 @@ class CopyingProcessor {
   const DataBagImplPtr new_databag_;
   const DataBagImplPtr objects_tracker_;
   const bool is_shallow_clone_;
-  const bool cast_primitives_;
   const int max_depth_;
+  const std::optional<CastingCallback>& casting_callback_;
   const std::optional<LeafCallback>& leaf_callback_;
 };
 
@@ -1186,8 +1181,9 @@ absl::Status ExtractOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks,
     const DataBagImpl* absl_nullable schema_databag,
-    DataBagImpl::FallbackSpan schema_fallbacks, bool cast_primitives,
-    int max_depth, const std::optional<LeafCallback>& leaf_callback) const {
+    DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
+    const std::optional<CastingCallback>& casting_callback,
+    const std::optional<LeafCallback>& leaf_callback) const {
   arolla::profiling::TraceMe traceme("::koladata::internal::ExtractOp");
   SchemaSource schema_source = schema_databag == nullptr
                                    ? SchemaSource::kDataDatabag
@@ -1196,14 +1192,14 @@ absl::Status ExtractOp::operator()(
                            .schema = schema,
                            .schema_source = schema_source,
                            .depth = -1};
-  if (cast_primitives && !slice.schema.is_struct_schema()) {
+  if (casting_callback.has_value() && !slice.schema.is_struct_schema()) {
     return absl::InvalidArgumentError(
         "Only casting to struct schema is supported by ExtractOp.");
   }
   auto processor = CopyingProcessor(
       databag, std::move(fallbacks), schema_databag,
       std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_),
-      /*is_shallow_clone=*/false, cast_primitives, max_depth, leaf_callback);
+      /*is_shallow_clone=*/false, max_depth, casting_callback, leaf_callback);
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   return absl::OkStatus();
 }
@@ -1212,14 +1208,15 @@ absl::Status ExtractOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks,
     const DataBagImpl* absl_nullable schema_databag,
-    DataBagImpl::FallbackSpan schema_fallbacks, bool cast_primitives,
-    int max_depth, const std::optional<LeafCallback>& leaf_callback) const {
+    DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
+    const std::optional<CastingCallback>& casting_callback,
+    const std::optional<LeafCallback>& leaf_callback) const {
   if (!item.holds_value<ObjectId>() && !schema.holds_value<ObjectId>()) {
     return absl::OkStatus();  // performance optimization
   }
   return (*this)(DataSliceImpl::Create(/*size=*/1, item), schema, databag,
                  std::move(fallbacks), schema_databag,
-                 std::move(schema_fallbacks), cast_primitives, max_depth,
+                 std::move(schema_fallbacks), max_depth, casting_callback,
                  leaf_callback);
 }
 
@@ -1236,10 +1233,14 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
   }
   ASSIGN_OR_RETURN(auto filtered_itemid,
                    ValidateCompatibilityAndFilterItemid(ds, itemid));
-  auto processor = CopyingProcessor(
-      databag, std::move(fallbacks), schema_databag,
-      std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_),
-      /*is_shallow_clone=*/true, /*cast_primitives=*/false);
+  std::optional<CastingCallback> no_casting_callback = std::nullopt;
+  std::optional<LeafCallback> no_leaf_callback = std::nullopt;
+  auto processor = CopyingProcessor(databag, std::move(fallbacks),
+                                    schema_databag, std::move(schema_fallbacks),
+                                    DataBagImplPtr::NewRef(new_databag_),
+                                    /*is_shallow_clone=*/true,
+                                    /*max_depth=*/-1, no_casting_callback,
+                                    no_leaf_callback);
   RETURN_IF_ERROR(processor.SetMappingToInitialIds(filtered_itemid, ds));
   if (schema.holds_value<ObjectId>()) {
     RETURN_IF_ERROR(processor.SetMappingToInitialIds(schema, schema));

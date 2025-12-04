@@ -40,7 +40,7 @@ TEST(ExtractionUtilsTest, ExtractWholeKeepBagTheSame) {
   {
     ASSERT_OK_AND_ASSIGN(
         auto ds_extracted,
-        extract_utils_internal::ExtractWithSchema(ds, ds.GetSchema(), false));
+        extract_utils_internal::ExtractWithSchema(ds, ds.GetSchema()));
     EXPECT_EQ(ds.GetBag().get(), ds_extracted.GetBag().get());
     EXPECT_TRUE(ds_extracted.IsWhole());
   }

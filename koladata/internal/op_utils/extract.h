@@ -31,6 +31,9 @@ namespace koladata::internal {
 using LeafCallback = std::function<absl::Status(const DataSliceImpl& item,
                                                 const DataItem& schema)>;
 
+using CastingCallback = std::function<absl::StatusOr<DataSliceImpl>(
+    const DataSliceImpl&, const DataItem&)>;
+
 // Extracts DataSliceImpl / DataItem.
 class ExtractOp {
  public:
@@ -40,16 +43,18 @@ class ExtractOp {
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       const DataBagImpl* absl_nullable schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks, bool cast_primitives = false,
+      DataBagImpl::FallbackSpan schema_fallbacks,
       int max_depth = -1,
+      const std::optional<CastingCallback>& casting_callback = std::nullopt,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
   absl::Status operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks,
       const DataBagImpl* absl_nullable schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks, bool cast_primitives = false,
+      DataBagImpl::FallbackSpan schema_fallbacks,
       int max_depth = -1,
+      const std::optional<CastingCallback>& casting_callback = std::nullopt,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
  private:

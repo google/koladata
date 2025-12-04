@@ -29,8 +29,9 @@
 namespace koladata::extract_utils_internal {
 
 absl::StatusOr<DataSlice> ExtractWithSchema(
-    const DataSlice& ds, const DataSlice& schema, bool cast_primitives,
-    int max_depth, const std::optional<internal::LeafCallback>& leaf_callback) {
+    const DataSlice& ds, const DataSlice& schema, int max_depth,
+    const std::optional<internal::CastingCallback>& casting_callback,
+    const std::optional<internal::LeafCallback>& leaf_callback) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot extract without a DataBag");
@@ -52,14 +53,14 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
       auto schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
       RETURN_IF_ERROR(extract_op(
           impl, schema_impl, db->GetImpl(), std::move(fallbacks_span),
-          &(schema_db->GetImpl()), std::move(schema_fallbacks), cast_primitives,
-          max_depth, leaf_callback));
+          &(schema_db->GetImpl()), std::move(schema_fallbacks), max_depth,
+          casting_callback, leaf_callback));
     } else {
       RETURN_IF_ERROR(extract_op(
           impl, schema_impl, db->GetImpl(), std::move(fallbacks_span),
           /*schema_databag=*/nullptr,
-          /*schema_fallbacks=*/internal::DataBagImpl::FallbackSpan(),
-          cast_primitives, max_depth, leaf_callback));
+          /*schema_fallbacks=*/internal::DataBagImpl::FallbackSpan(), max_depth,
+          casting_callback, leaf_callback));
     }
     result_db->UnsafeMakeImmutable();
     return DataSlice::Create(impl, ds.GetShape(), schema_impl,
@@ -72,7 +73,7 @@ absl::StatusOr<DataSlice> Extract(const DataSlice& ds) {
   if (ds.IsWhole()) {
     return ds;
   }
-  return ExtractWithSchema(ds, ds.GetSchema(), /*cast_primitives=*/false);
+  return ExtractWithSchema(ds, ds.GetSchema());
 }
 
 }  // namespace koladata::extract_utils_internal
