@@ -287,11 +287,12 @@ def assert_equivalent(
   Args:
     actual_value: DataSlice, DataBag or JaggedShape.
     expected_value: DataSlice, DataBag or JaggedShape.
-    partial: Whether to check only the attributes present in the expected_value
-      (affects only DataSlice case).
-    ids_equality: Whether to check ids equality (affects only DataSlice case).
-    schemas_equality: Whether to check schema ids equality (affects only
+    partial: (default: False) Whether to check only the attributes present in
+      the expected_value (affects only DataSlice case).
+    ids_equality: (default: False) Whether to check ids equality (affects only
       DataSlice case).
+    schemas_equality: (default: True) Whether to check schema ids equality
+      (affects only DataSlice case).
     msg: A custom error message.
 
   Raises:
