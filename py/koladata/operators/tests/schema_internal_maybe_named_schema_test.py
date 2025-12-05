@@ -49,11 +49,11 @@ class KodaInternalMaybeNamedSchemaTest(absltest.TestCase):
   def test_named_schema(self):
     res = kde.schema.internal_maybe_named_schema('name').eval()
     testing.assert_equal(
-        res, kde.named_schema('name').eval().with_bag(res.get_bag())
+        res.no_bag(), kde.named_schema('name').eval().no_bag()
     )
     res = kde.schema.internal_maybe_named_schema(ds('name')).eval()
     testing.assert_equal(
-        res, kde.named_schema('name').eval().with_bag(res.get_bag())
+        res.no_bag(), kde.named_schema('name').eval().no_bag()
     )
 
   def test_errors(self):

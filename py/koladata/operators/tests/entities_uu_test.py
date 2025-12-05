@@ -86,7 +86,7 @@ class EntitiesUuTest(parameterized.TestCase):
           getattr(rhs, attr_name),
           ds(val).expand_to(rhs).with_bag(rhs.get_bag()),
       )
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
     self.assertFalse(lhs.is_mutable())
     self.assertFalse(rhs.is_mutable())
 
@@ -167,12 +167,12 @@ class EntitiesUuTest(parameterized.TestCase):
   def test_default_seed(self):
     lhs = kd.entities.uu(a=ds(1), b=ds(2))
     rhs = kd.entities.uu('', a=ds(1), b=ds(2))
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_no_args(self):
     lhs = kd.entities.uu()
     rhs = kd.entities.uu('')
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(

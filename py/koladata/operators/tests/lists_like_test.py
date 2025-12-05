@@ -122,7 +122,7 @@ class ListLikeTest(parameterized.TestCase):
     with self.subTest('present DataItem and present itemid'):
       x = kd.lists.like(ds(1), input_arg, itemid=itemid)
       testing.assert_equal(
-          x, itemid.with_schema(x.get_schema()).with_bag(x.get_bag())
+          x.no_bag(), itemid.with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest('missing DataItem and missing itemid'):
@@ -148,8 +148,8 @@ class ListLikeTest(parameterized.TestCase):
     with self.subTest('full DataSlice and full itemid'):
       x = kd.lists.like(ds([1, 1, 1]), input_arg, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
-          x,
-          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+          x.no_bag(),
+          ds([id1, id2, id3]).with_schema(x.get_schema()).no_bag(),
       )
 
     with self.subTest('full DataSlice and sparse itemid'):
@@ -169,10 +169,7 @@ class ListLikeTest(parameterized.TestCase):
           ds([1, None, 1]), input_arg, itemid=ds([id1, None, id3])
       )
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest(
@@ -189,10 +186,7 @@ class ListLikeTest(parameterized.TestCase):
     with self.subTest('sparse DataSlice and full itemid'):
       x = kd.lists.like(ds([1, None, 1]), input_arg, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
@@ -208,10 +202,7 @@ class ListLikeTest(parameterized.TestCase):
     ):
       x = kd.lists.like(ds([1, None, 1]), input_arg, itemid=ds([id1, id1, id3]))
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
 
   def test_itemid_from_different_bag(self):

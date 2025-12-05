@@ -67,7 +67,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
       testing.assert_equal(
           getattr(rhs, attr_name), ds(val).with_bag(rhs.get_bag())
       )
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
     self.assertFalse(lhs.is_mutable())
 
   @parameterized.parameters(
@@ -108,12 +108,12 @@ class KodaUuSchemaTest(parameterized.TestCase):
             '', a=schema_constants.INT32, b=schema_constants.FLOAT32
         )
     )
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_no_args(self):
     lhs = expr_eval.eval(kde.schema.uu_schema())
     rhs = expr_eval.eval(kde.schema.uu_schema(''))
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_seed_works_as_kwarg(self):
     lhs = expr_eval.eval(
@@ -128,7 +128,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
             seed=ds('seed'),
         )
     )
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_bag_adoption(self):
     a = expr_eval.eval(kde.schema.uu_schema(a=schema_constants.INT32))

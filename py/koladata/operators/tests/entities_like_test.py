@@ -114,9 +114,7 @@ class EntitiesLikeTest(absltest.TestCase):
     x = kde.entities.like(shape_and_mask_from, schema='name', a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
-    testing.assert_equal(
-        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
-    )
+    testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_str_slice_as_schema_arg(self):
@@ -124,9 +122,7 @@ class EntitiesLikeTest(absltest.TestCase):
     x = kde.entities.like(shape_and_mask_from, schema=ds('name'), a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
-    testing.assert_equal(
-        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
-    )
+    testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_schema_arg_errors(self):
@@ -148,8 +144,7 @@ class EntitiesLikeTest(absltest.TestCase):
     with self.subTest('present DataItem and present itemid'):
       x = expr_eval.eval(kde.entities.like(ds(1), a=42, itemid=itemid))
       testing.assert_equal(
-          x,
-          itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
+          x.no_bag(), itemid.with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest('missing DataItem and missing itemid'):
@@ -182,8 +177,7 @@ class EntitiesLikeTest(absltest.TestCase):
           kde.entities.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
       )
       testing.assert_equal(
-          x,
-          ds([id1, id2, id3]).with_schema(x.get_schema()).with_bag(x.get_bag()),
+          x.no_bag(), ds([id1, id2, id3]).with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest('empty DataSlice and empty itemid'):
@@ -216,10 +210,8 @@ class EntitiesLikeTest(absltest.TestCase):
           kde.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
       )
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(),
+          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
       )
 
     with self.subTest(
@@ -241,10 +233,8 @@ class EntitiesLikeTest(absltest.TestCase):
           kde.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
       )
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(),
+          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
       )
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
@@ -265,10 +255,8 @@ class EntitiesLikeTest(absltest.TestCase):
           kde.entities.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
       )
       testing.assert_equal(
-          x,
-          ds([id1, None, id3])
-          .with_schema(x.get_schema())
-          .with_bag(x.get_bag()),
+          x.no_bag(),
+          ds([id1, None, id3]).with_schema(x.get_schema()).no_bag(),
       )
 
   def test_itemid_from_different_bag(self):

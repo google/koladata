@@ -117,9 +117,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
     x = kde.entities.shaped_as(shape_from, schema='name', a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
-    testing.assert_equal(
-        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
-    )
+    testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_str_slice_as_schema_arg(self):
@@ -127,9 +125,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
     x = kde.entities.shaped_as(shape_from, schema=ds('name'), a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
-    testing.assert_equal(
-        x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
-    )
+    testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_schema_arg_errors(self):

@@ -47,7 +47,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
   def test_equal(self, lhs_name, rhs_name):
     lhs = expr_eval.eval(kde.schema.named_schema(I.x), x=lhs_name)
     rhs = expr_eval.eval(kde.schema.named_schema(I.x), x=rhs_name)
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
+    testing.assert_equal(lhs.no_bag(), rhs.no_bag())
     self.assertFalse(lhs.is_mutable())
     self.assertCountEqual(lhs.get_attr_names(intersection=True), [])
 
@@ -83,7 +83,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     testing.assert_equal(
         schema.a, schema_constants.FLOAT32.with_bag(schema.get_bag())
     )
-    testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+    testing.assert_equal(schema.no_bag(), schema2.no_bag())
 
   def test_name_works_as_attribute_name(self):
     schema = expr_eval.eval(
@@ -93,7 +93,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     testing.assert_equal(
         schema.name, schema_constants.STRING.with_bag(schema.get_bag())
     )
-    testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+    testing.assert_equal(schema.no_bag(), schema2.no_bag())
     testing.assert_equal(
         schema.get_attr('__schema_name__').no_bag(), ds('Person')
     )
