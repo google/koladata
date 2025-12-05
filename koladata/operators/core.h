@@ -140,6 +140,11 @@ absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds);
 // koda_internal.create_metadata
 absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds);
 
+class WithTimestampOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
 
 }  // namespace koladata::ops
 

@@ -151,6 +151,7 @@ class core:
   with_merged_bag = _operators_core.with_merged_bag
   with_metadata = _operators_core.with_metadata
   with_print = _operators_core.with_print
+  with_timestamp = _operators_core.with_timestamp
 
 
 @_dataclass
@@ -858,6 +859,7 @@ with_name = _operators_annotation.with_name
 with_print = _operators_core.with_print
 with_schema = _operators_schema.with_schema
 with_schema_from_obj = _operators_schema.with_schema_from_obj
+with_timestamp = _operators_core.with_timestamp
 xor = _operators_masking.xor
 zip = _operators_slices._zip
 

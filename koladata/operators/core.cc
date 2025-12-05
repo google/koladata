@@ -28,12 +28,15 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -293,6 +296,30 @@ class AttrsImplOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(auto result,
                            Attrs(slice, overwrite_schema, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
+        });
+  }
+};
+
+class WithTimestampOperator final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    ASSIGN_OR_RETURN(arolla::FrameLayout::Slot<DataSlice> timestamp_slot,
+                     output_slot.SubSlot(1).ToSlot<DataSlice>());
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0], output_slot = output_slot,
+         timestamp_slot = timestamp_slot](arolla::EvaluationContext*,
+                                          arolla::FramePtr frame) {
+          input_slot.CopyTo(frame, output_slot.SubSlot(0), frame);
+          absl::Time now = absl::Now();
+          absl::Duration since_epoch = now - absl::UnixEpoch();
+          double unix_timestamp_double = absl::ToDoubleSeconds(since_epoch);
+          DataSlice timestamp_ds =
+              DataSlice::CreatePrimitive(unix_timestamp_double);
+          frame.Set(timestamp_slot, std::move(timestamp_ds));
           return absl::OkStatus();
         });
   }
@@ -837,6 +864,16 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
     return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
                              schema_impl, std::move(result_db));
   });
+}
+
+absl::StatusOr<arolla::OperatorPtr> WithTimestampOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires 2 argument");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[1]));
+  return std::make_shared<WithTimestampOperator>(input_types, output_type);
 }
 
 }  // namespace koladata::ops

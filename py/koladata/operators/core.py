@@ -1362,3 +1362,23 @@ def with_print(x, *args, sep=' ', end='\n'):  # pylint: disable=unused-argument,
     end: End string to use after the last DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kd.with_timestamp'], via_cc_operator_package=True
+)
+@optools.as_backend_operator(
+    'kd.core.with_timestamp',
+    qtype_inference_expr=M.qtype.make_tuple_qtype(P.x, qtypes.DATA_SLICE),
+    deterministic=False,
+)
+def with_timestamp(x):  # pylint: disable=unused-argument,redefined-outer-name
+  """Returns a tuple of `x` and a timestamp from the operator execution.
+
+  Args:
+    x: Value to propagate (unchanged).
+  Returns:
+    A tuple of `x` and a FLOAT64 DataSlice containing the timestamp in seconds
+    since the Unix epoch.
+  """
+  raise NotImplementedError('implemented in the backend')

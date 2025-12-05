@@ -1278,6 +1278,19 @@ Args:
   sep: Separator to use between DataSlice(s).
   end: End string to use after the last DataSlice.</code></pre>
 
+### `kd.core.with_timestamp(x)` {#kd.core.with_timestamp}
+Aliases:
+
+- [kd.with_timestamp](#kd.with_timestamp)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a tuple of `x` and a timestamp from the operator execution.
+
+Args:
+  x: Value to propagate (unchanged).
+Returns:
+  A tuple of `x` and a FLOAT64 DataSlice containing the timestamp in seconds
+  since the Unix epoch.</code></pre>
+
 </section>
 
 ### kd.curves {#kd.curves}
@@ -10856,6 +10869,10 @@ Alias for [kd.schema.with_schema](#kd.schema.with_schema) operator.
 ### `kd.with_schema_from_obj(x)` {#kd.with_schema_from_obj}
 
 Alias for [kd.schema.with_schema_from_obj](#kd.schema.with_schema_from_obj) operator.
+
+### `kd.with_timestamp(x)` {#kd.with_timestamp}
+
+Alias for [kd.core.with_timestamp](#kd.core.with_timestamp) operator.
 
 ### `kd.xor(x, y)` {#kd.xor}
 

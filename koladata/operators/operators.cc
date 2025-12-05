@@ -128,6 +128,8 @@ OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 OPERATOR_FAMILY("kd.core.with_print",
                 std::make_unique<WithPrintOperatorFamily>());
+OPERATOR_FAMILY("kd.core.with_timestamp",
+                std::make_unique<WithTimestampOperatorFamily>());
 //
 OPERATOR("kd.curves.log_p1_pwl_curve", LogP1PwlCurve);
 OPERATOR("kd.curves.log_pwl_curve", LogPwlCurve);
