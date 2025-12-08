@@ -44,6 +44,7 @@ void MarkReinitialized(T&) {}
 TEST(FutureTest, Basic) {
   auto [future, writer] = MakeFuture(arolla::GetQType<int>());
   EXPECT_EQ(future->value_qtype(), arolla::GetQType<int>());
+  EXPECT_EQ(writer.value_qtype(), arolla::GetQType<int>());
   EXPECT_EQ(arolla::Repr(future), "future[INT32]");
   EXPECT_THAT(
       future->GetValueForTesting(),

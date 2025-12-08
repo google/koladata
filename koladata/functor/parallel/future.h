@@ -109,6 +109,9 @@ class FutureWriter {
   // "orphaned" error to the future.
   ~FutureWriter();
 
+  // Returns the qtype of the value of the future.
+  arolla::QTypePtr value_qtype() const { return future_->value_qtype(); }
+
   // Allow move but not copy.
   FutureWriter(FutureWriter&&) = default;
   FutureWriter& operator=(FutureWriter&&) = default;
