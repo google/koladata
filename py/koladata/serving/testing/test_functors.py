@@ -43,7 +43,4 @@ def non_deterministic_functor(x, y) -> kd.types.DataSlice:
   return kd.obj(args=XYSchema.new(x=x, y=y), literal=literal)
 
 
-non_deterministic_functor_with_different_name = non_deterministic_functor
-
-
 TEST_DS = kd.slice([1, 2, 3])

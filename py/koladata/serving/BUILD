@@ -82,8 +82,8 @@ py_library(
     srcs = ["serving_impl.py"],
     visibility = ["//visibility:public"],
     deps = [
-        ":determinism",
         ":serving_impl_clib",
+        ":simplify_functor",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/type_checking",
@@ -92,8 +92,8 @@ py_library(
 )
 
 py_library(
-    name = "determinism",
-    srcs = ["determinism.py"],
+    name = "simplify_functor",
+    srcs = ["simplify_functor.py"],
     visibility = [
         "//koladata:internal",
     ],
@@ -105,13 +105,12 @@ py_library(
 )
 
 py_test(
-    name = "determinism_test",
-    srcs = ["determinism_test.py"],
+    name = "simplify_functor_test",
+    srcs = ["simplify_functor_test.py"],
     deps = [
-        ":determinism",
+        ":simplify_functor",
         "//py:python_path",
         "//py/koladata:kd",
-        "//py/koladata/operators:kde_operators",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",

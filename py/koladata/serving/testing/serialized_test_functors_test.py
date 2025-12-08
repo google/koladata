@@ -71,21 +71,28 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
         'other_serialized_test_functors_for_determinism_test_'
         'non_deterministic_functor'
     )
-    kd.testing.assert_equal(
-        non_deterministic_functor_1.no_bag(),
-        non_deterministic_functor_2.no_bag(),
-    )
-    kd.testing.assert_equivalent(
+    # Functors are coming from different build rules, so the deterministic seeds
+    # are different.
+    kd.testing.assert_not_equal(
         non_deterministic_functor_1,
         non_deterministic_functor_2,
-        schemas_equality=False,
+    )
+    # But the content is the same.
+    kd.testing.assert_non_deterministic_exprs_equal(
+        kd.expr.unpack_expr(non_deterministic_functor_1.returns),
+        kd.expr.unpack_expr(non_deterministic_functor_2.returns),
     )
 
     non_deterministic_functor_3 = self.load_functor(
         'other_serialized_test_functors_for_determinism_test_'
-        'non_deterministic_functor_with_different_name'
+        'simplified_non_deterministic_functor'
     )
-    # Functor 3 is not equivalent to 1 and 2 due to a different hash seed used.
+    # Functor 3 has source locations stripped, but otherwise the exprs are
+    # equal.
+    kd.testing.assert_traced_non_deterministic_exprs_equal(
+        kd.expr.unpack_expr(non_deterministic_functor_3.returns),
+        kd.expr.unpack_expr(non_deterministic_functor_1.returns),
+    )
 
     expected_result = kd.obj(
         args=test_functors.XYSchema.new(x=1, y=2),
@@ -107,23 +114,6 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
         expected_result,
         schemas_equality=True,
     )
-
-  def test_serialization_determinism(self):
-    functor_1_bytes = self.load_functor_bytes(
-        'serialized_test_functors_non_deterministic_functor'
-    )
-    functor_2_bytes = self.load_functor_bytes(
-        'other_serialized_test_functors_for_determinism_test_'
-        'non_deterministic_functor'
-    )
-    self.assertEqual(functor_1_bytes, functor_2_bytes)
-
-    functor_3_bytes = self.load_functor_bytes(
-        'other_serialized_test_functors_for_determinism_test_'
-        'non_deterministic_functor_with_different_name'
-    )
-    # Functor 3 is not identical to 1 and 2 due to a different hash seed used.
-    self.assertNotEqual(functor_1_bytes, functor_3_bytes)
 
 
 if __name__ == '__main__':

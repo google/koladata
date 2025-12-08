@@ -12,7 +12,7 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 def koladata_trace_py_fn(
         function,
         deps = [],
-        experimental_deterministic_mode = False):
+        experimental_simplify = False):
     """Constructs call_python_function spec for tracing a Python function as a Koda functor.
 
     Pass the result to koladata_serialized_functors or koladata_cc_embedded_slices BUILD rules.
@@ -21,14 +21,15 @@ def koladata_trace_py_fn(
     Args:
       function: fully qualified Python function name to trace.
       deps: Dependencies for the function, e.g. the python library defining it.
-      experimental_deterministic_mode: (Best-effort) try to freeze the generated functor to make the
-          build deterministic.
-          The logic is experimental and currently does not support functors with non-scalar
-          literals, non-uu schema literals, dict literals with non-primitive keys, etc.
+      experimental_simplify: Remove source locations from the traced functor. Use this when you
+        check-in the serialized functor with a golden test. This makes the serialization result less
+        sensitive to changes in the surrounding code and so reduces the number of times when the
+        serialized functor needs to be updated. The downside is losing source location context from
+        the error messages.
     """
     return call_python_function(
         "koladata.serving.serving_impl.trace_py_fn",
-        args = [function, experimental_deterministic_mode],
+        args = [function, experimental_simplify],
         deps = deps + ["//py/koladata/serving:serving_impl"],
     )
 
@@ -91,9 +92,16 @@ def koladata_serialized_slices(
           additional dependencies are added based on the `deps` inside `slices` argument.
       testonly: Whether the build target is testonly.
       **kwargs: Extra arguments passed directly to the final genrule.
+
+    NOTE: The rule runs Koda in a special "deterministic" mode. The random bit generator used for
+    various random ids (item ids, hidden seeds, DataBag fingerprints) is seeded using the build
+    target name. This increases the probability that the build is deterministic. However it is not
+    100% bulletproof as the user code can cause non-determinism e.g. by spawning multiple threads
+    that call Koda concurrently, or using non-deterministic data structures like Python's `set`.
     """
     filename_to_slice = {"{}_{}.kd".format(name, k): s for k, s in slices.items()}
 
+    env = {"KOLADATA_DETERMINISTIC_SEED": "//{}:{}".format(native.package_name(), name)}
     python_function_call_genrule(
         name = name,
         function = call_python_function(
@@ -103,6 +111,7 @@ def koladata_serialized_slices(
         ),
         outs = filename_to_slice.keys(),
         testonly = testonly,
+        env = env,
         **kwargs
     )
 
@@ -153,6 +162,12 @@ def koladata_cc_embedded_slices(
           additional dependencies are added based on the `deps` inside `slices` argument.
       testonly: Whether the build target is testonly.
       **kwargs: Extra arguments passed directly to the final cc_library.
+
+    NOTE: The rule runs Koda in a special "deterministic" mode. The random bit generator used for
+    various random ids (item ids, hidden seeds, DataBag fingerprints) is seeded using the build
+    target name. This increases the probability that the build is deterministic. However it is not
+    100% bulletproof as the user code can cause non-determinism e.g. by spawning multiple threads
+    that call Koda concurrently, or using non-deterministic data structures like Python's `set`.
     """
     tags = list(kwargs.pop("tags", []))
 
