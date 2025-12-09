@@ -173,7 +173,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       x: schema_constants.INT32
       y: schema_constants.INT32 = 2
 
-    def fake_fn(x: schema_constants.INT32, y: schema_constants.INT32 = 2):
+    def fake_fn(x, y=2):  # NOTE: No type annotations.
       del x, y
 
     sig = inspect.signature(MyExtensionWithDefaults)

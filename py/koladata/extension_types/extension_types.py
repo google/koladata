@@ -502,9 +502,14 @@ def _make_dispatch_fn(
     return value
 
   cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
+  # The annotation is stripped to avoid polluting documentation and
+  # auto-completion with potentially large schemas.
+  parameters = [cls_p] + [
+      p.replace(annotation=inspect.Parameter.empty)
+      for p in class_meta.signature.parameters.values()
+  ]
   dispatching_new.__signature__ = class_meta.signature.replace(
-      parameters=[cls_p] + list(class_meta.signature.parameters.values()),
-      return_annotation=inspect.Parameter.empty,
+      parameters=parameters, return_annotation=inspect.Parameter.empty
   )
   return dispatching_new
 
