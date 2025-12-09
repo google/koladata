@@ -90,12 +90,16 @@ class ListSlicingHelper:
 # TODO: Remove this once we have proper support for tuple size
 # detection.
 _OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING = frozenset([
-    'kd.slices.align',
+    # go/keep-sorted start
     'kd.align',
-    'kd.tuples.tuple',
-    'kd.tuples.slice',
+    'kd.core.with_timestamp',
+    'kd.slices.align',
     'kd.tuple',
+    'kd.tuples.slice',
+    'kd.tuples.tuple',
+    'kd.with_timestamp',
     'test_make_tuple',
+    # go/keep-sorted end
 ])
 
 

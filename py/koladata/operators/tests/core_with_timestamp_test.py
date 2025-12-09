@@ -74,10 +74,14 @@ class CoreWithTimestampTest(parameterized.TestCase):
     self.assertGreater(timestamp.to_py(), later_timestamp - 5)
 
   def test_view(self):
-    self.assertTrue(
-        view.has_koda_view(
-            kde.core.with_timestamp(I.x)
-        )
+    expr = kde.core.with_timestamp(I.x)
+    self.assertTrue(view.has_koda_view(expr))
+
+    # Tuple unpacking is supported.
+    x, timestamp = expr
+    testing.assert_equal(x.eval(x=ds(1)), ds(1))
+    testing.assert_equal(
+        timestamp.eval(x=ds(1)).get_schema(), schema_constants.FLOAT64
     )
 
   def test_alias(self):
