@@ -19,13 +19,10 @@
 namespace {{n}} {
 {%- endfor %}
 
-// The map contains slices:
+// Available slices:
 {%- for name in slice_names %}
 // *     "{{name}}"
 {%- endfor %}
-const absl::StatusOr<absl::flat_hash_map<std::string, ::koladata::DataSlice>>&
-{{function_name}}();
-
 absl::StatusOr<::koladata::DataSlice>
 {{function_name}}(absl::string_view name);
 

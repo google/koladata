@@ -38,18 +38,11 @@ using ::absl_testing::IsOkAndHolds;
 using ::arolla::testing::QValueWith;
 using ::koladata::test::DataSlice;
 using ::koladata::testing::IsEquivalentTo;
-using ::testing::_;
-using ::testing::Pair;
 using ::testing::Pointee;
-using ::testing::UnorderedElementsAre;
 
 TEST(TestFunctorsTest, PlusOne) {
   ASSERT_OK_AND_ASSIGN(auto plus_one, TestFunctors_plus_one());
   EXPECT_THAT(TestFunctors("plus_one"), IsOkAndHolds(IsEquivalentTo(plus_one)));
-  EXPECT_THAT(TestFunctors(),
-              IsOkAndHolds(UnorderedElementsAre(
-                  Pair("plus_one", IsEquivalentTo(plus_one)),
-                  Pair("ask_about_serving", _), Pair("TEST_DS", _))));
   auto input = DataSlice<int64_t>({1, 2, 3});
   EXPECT_THAT(koladata::functor::CallFunctorWithCompilationCache(
                   plus_one, {arolla::TypedRef::FromValue(input)}, {}),

@@ -19,6 +19,8 @@
 namespace {{n}} {
 {%- endfor %}
 
+namespace {
+
 const absl::StatusOr<
     absl::flat_hash_map<std::string, ::koladata::DataSlice>>&
 {{function_name}}() {
@@ -29,6 +31,8 @@ const absl::StatusOr<
       ::koladata::serving::ParseSerializedSlices(data));
   return *result;
 }
+
+}  // namespace
 
 absl::StatusOr<::koladata::DataSlice>
 {{function_name}}(absl::string_view name) {

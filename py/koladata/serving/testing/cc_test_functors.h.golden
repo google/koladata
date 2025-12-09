@@ -16,13 +16,10 @@
 
 namespace koladata_serving_test {
 
-// The map contains slices:
+// Available slices:
 // *     "plus_one"
 // *     "ask_about_serving"
 // *     "TEST_DS"
-const absl::StatusOr<absl::flat_hash_map<std::string, ::koladata::DataSlice>>&
-TestFunctors();
-
 absl::StatusOr<::koladata::DataSlice>
 TestFunctors(absl::string_view name);
 
