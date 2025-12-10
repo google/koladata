@@ -33,6 +33,18 @@ def koladata_trace_py_fn(
         deps = deps + ["//py/koladata/serving:serving_impl"],
     )
 
+def koladata_parallel_transform(fn_spec):
+    """Constructs call_python_function spec for applying kd.parallel.transform to the given functor.
+
+    Args:
+      fn_spec: call_python_function spec for the functor to transform (see koladata_trace_py_fn).
+    """
+    return call_python_function(
+        "koladata.serving.serving_impl.parallel_transform",
+        args = [fn_spec],
+        deps = ["//py/koladata/serving:serving_impl"],
+    )
+
 def koladata_export_dataslice(
         qualname,
         deps = []):

@@ -19,6 +19,7 @@ load(
     "//py/koladata/serving:serving.bzl",
     "koladata_cc_embedded_slices",
     "koladata_export_dataslice",
+    "koladata_parallel_transform",
     "koladata_serialized_slices",
     "koladata_trace_py_fn",
 )
@@ -79,6 +80,9 @@ koladata_cc_embedded_slices(
     cc_function_name = "koladata_serving_test::TestFunctors",
     slices = {
         "plus_one": koladata_trace_py_fn("koladata.serving.testing.test_functors.plus_one"),
+        "parallel_plus_one": koladata_parallel_transform(koladata_trace_py_fn(
+            "koladata.serving.testing.test_functors.plus_one",
+        )),
         "ask_about_serving": koladata_trace_py_fn("koladata.serving.testing.test_functors.ask_about_serving"),
         "TEST_DS": koladata_export_dataslice("koladata.serving.testing.test_functors.TEST_DS"),
     },
@@ -96,6 +100,9 @@ cc_test(
         "//koladata:test_utils",
         "//koladata/functor:call",
         "//koladata/functor:cpp_function_bridge",
+        "//koladata/functor/parallel:eager_executor",
+        "//koladata/functor/parallel:future",
+        "//koladata/functor/parallel:parallel_call_utils",
         "//koladata/serving:slice_registry",
         "//koladata/testing:matchers",
         "//py/koladata/serving:serialized_slices",

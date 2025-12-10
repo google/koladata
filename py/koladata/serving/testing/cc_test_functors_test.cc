@@ -26,6 +26,9 @@
 #include "koladata/data_slice.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/cpp_function_bridge.h"
+#include "koladata/functor/parallel/eager_executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/parallel_call_utils.h"
 #include "koladata/serving/slice_registry.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -39,6 +42,7 @@ using ::arolla::testing::QValueWith;
 using ::koladata::test::DataSlice;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::Pointee;
+using ::testing::ResultOf;
 
 TEST(TestFunctorsTest, PlusOne) {
   ASSERT_OK_AND_ASSIGN(auto plus_one, TestFunctors_plus_one());
@@ -48,6 +52,29 @@ TEST(TestFunctorsTest, PlusOne) {
                   plus_one, {arolla::TypedRef::FromValue(input)}, {}),
               IsOkAndHolds(QValueWith<koladata::DataSlice>(
                   IsEquivalentTo(DataSlice<int64_t>({2, 3, 4})))));
+}
+
+TEST(TestFunctorsTest, ParallelPlusOne) {
+  ASSERT_OK_AND_ASSIGN(auto parallel_plus_one,
+                       TestFunctors_parallel_plus_one());
+  EXPECT_THAT(TestFunctors("parallel_plus_one"),
+              IsOkAndHolds(IsEquivalentTo(parallel_plus_one)));
+  ASSERT_OK_AND_ASSIGN(
+      auto input,
+      koladata::functor::parallel::AsParallel(
+          arolla::TypedRef::FromValue(DataSlice<int64_t>({1, 2, 3}))));
+  ASSERT_OK_AND_ASSIGN(
+      auto output, koladata::functor::CallFunctorWithCompilationCache(
+                       parallel_plus_one,
+                       {arolla::TypedRef::FromValue(
+                            koladata::functor::parallel::GetEagerExecutor()),
+                        input.AsRef()},
+                       {}));
+  EXPECT_THAT(output.As<koladata::functor::parallel::FuturePtr>(),
+              IsOkAndHolds(ResultOf(
+                  [](auto future) { return future->GetValueForTesting(); },
+                  IsOkAndHolds(QValueWith<koladata::DataSlice>(
+                      IsEquivalentTo(DataSlice<int64_t>({2, 3, 4})))))));
 }
 
 TEST(TestFunctorsTest, AskAboutServing) {

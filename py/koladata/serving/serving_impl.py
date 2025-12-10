@@ -48,6 +48,11 @@ def trace_py_fn(
   return fn
 
 
+def parallel_transform(fn: kd.types.DataItem) -> kd.types.DataItem:
+  """Applies kd.parallel.transform to the given functor."""
+  return kd.parallel.transform(fn)
+
+
 def serialize_slices(slices: Mapping[str, kd.types.DataSlice]):
   """Serializes Koda slices into bytes."""
   names = kd.slice(list(slices.keys()))
