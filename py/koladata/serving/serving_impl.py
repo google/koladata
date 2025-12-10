@@ -20,8 +20,8 @@ from typing import Any
 
 from arolla import arolla
 from koladata import kd
+from koladata.serving import determinism
 from koladata.serving import serving_impl_clib
-from koladata.serving import simplify_functor
 from koladata.type_checking import type_checking
 
 
@@ -37,14 +37,17 @@ def _import_object(path: str) -> Any:
 
 
 def trace_py_fn(
-    function_path: str, simplify: bool = False
+    function_path: str, experimental_deterministic_mode: bool = False
 ) -> kd.types.DataSlice:
   """Traces a Python function into a Koda functor."""
   with type_checking.disable_traced_type_checking():
     fn = _import_object(function_path)
     fn = kd.fn(fn)
-    if simplify:
-      fn = simplify_functor.strip_source_locations(fn)
+
+    if experimental_deterministic_mode:
+      fn = determinism.Determinizer(
+          seed=function_path, strip_source_locations=True
+      ).make_deterministic(fn)
   return fn
 
 
@@ -60,7 +63,9 @@ def serialize_slices(slices: Mapping[str, kd.types.DataSlice]):
   return serving_impl_clib.cleanup_bag_id(data)
 
 
-def serialize_slices_into(path_to_slice: Mapping[str, kd.types.DataSlice]):
+def serialize_slices_into(
+    path_to_slice: Mapping[str, kd.types.DataSlice]
+):
   """Serializes Koda slices into the given files."""
   for path, ds in path_to_slice.items():
     serialized = arolla.s11n.riegeli_dumps_many([ds], [])
