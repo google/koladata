@@ -12,29 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_INTERNAL_RANDOM_H_
-#define KOLADATA_INTERNAL_RANDOM_H_
+#include "koladata/internal/pseudo_random.h"
 
 #include <cstdint>
 
+#include "absl/base/attributes.h"
+#include "absl/numeric/int128.h"
+#include "absl/random/random.h"
 #include "arolla/util/fingerprint.h"
+
+// Note: Implement the function as a weak symbol so that this implementation can
+// be overridden by a build dependency or via LD_PRELOAD.
+extern "C" ABSL_ATTRIBUTE_WEAK uint64_t KoladataInternalPseudoRandomUint64() {
+  static thread_local absl::BitGen bitgen;
+  return absl::Uniform<uint64_t>(bitgen);
+}
 
 namespace koladata::internal {
 
-// Returns a random uniformly distributed uint64.
-//
-// If KOLADATA_DETERMINISTIC_SEED environment variable is set (the changes of
-// the value in runtime are ignored), the random number generator will be
-// deterministic.
-uint64_t MaybeDeterministicRandomUint64();
-
-// Returns a random uniformly distributed fingerprint.
-//
-// If KOLADATA_DETERMINISTIC_SEED environment variable is set (the changes of
-// the value in runtime are ignored), the random number generator will be
-// deterministic.
-arolla::Fingerprint MaybeDeterministicRandomFingerprint();
+arolla::Fingerprint PseudoRandomFingerprint() {
+  return arolla::Fingerprint(
+      absl::MakeUint128(KoladataInternalPseudoRandomUint64(),
+                        KoladataInternalPseudoRandomUint64()));
+}
 
 }  // namespace koladata::internal
-
-#endif  // KOLADATA_INTERNAL_RANDOM_H_

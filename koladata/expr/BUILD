@@ -129,7 +129,7 @@ cc_library(
     hdrs = ["non_determinism.h"],
     deps = [
         ":init",
-        "//koladata/internal:random",
+        "//koladata/internal:pseudo_random",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
