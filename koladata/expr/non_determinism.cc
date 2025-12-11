@@ -22,7 +22,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/registered_expr_operator.h"
-#include "koladata/internal/pseudo_random.h"
+#include "koladata/internal/random.h"
 
 namespace koladata::expr {
 
@@ -35,9 +35,9 @@ absl::StatusOr<arolla::expr::ExprNodePtr> GenNonDeterministicToken() {
   static const absl::NoDestructor op(
       std::make_shared<RegisteredOperator>("koda_internal.non_deterministic"));
   static const absl::NoDestructor leaf(Leaf(kNonDeterministicTokenLeafKey));
-  return MakeOpNode(
-      *op,
-      {*leaf, Literal(static_cast<int64_t>(internal::PseudoRandomUint64()))});
+  return MakeOpNode(*op,
+                    {*leaf, Literal(static_cast<int64_t>(
+                                internal::MaybeDeterministicRandomUint64()))});
 }
 
 }  // namespace koladata::expr

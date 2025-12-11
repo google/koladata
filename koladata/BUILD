@@ -88,7 +88,7 @@ cc_library(
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:object_id",
-        "//koladata/internal:pseudo_random",
+        "//koladata/internal:random",
         "//koladata/internal:schema_attrs",
         "//koladata/internal:triples",
         "@com_google_absl//absl/base:core_headers",

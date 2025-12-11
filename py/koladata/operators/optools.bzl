@@ -41,6 +41,7 @@ def koladata_cc_operator_package(
         imports = imports,
         deps = tool_deps,
         tags = tags,
+        env = {"KOLADATA_DETERMINISTIC_SEED": "{}:{}".format(native.package_name(), name)},
         testonly = testonly,
         visibility = ["//visibility:private"],
     )

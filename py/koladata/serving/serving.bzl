@@ -111,9 +111,7 @@ def koladata_serialized_slices(
         function = call_python_function(
             "koladata.serving.serving_impl.serialize_slices_into",
             args = [{"$(execpath {})".format(f): s for f, s in filename_to_slice.items()}],
-            deps = list(tool_deps) + [
-                "//py/koladata/serving:serving_impl",
-            ],
+            deps = tool_deps + ["//py/koladata/serving:serving_impl"],
         ),
         outs = filename_to_slice.keys(),
         testonly = testonly,
@@ -174,13 +172,13 @@ def koladata_cc_embedded_slices(
     serialized_slices = call_python_function(
         "koladata.serving.serving_impl.serialize_slices",
         args = [slices],
-        deps = list(tool_deps) + [
-            "//py/koladata/serving:serving_impl",
-        ],
+        deps = tool_deps + ["//py/koladata/serving:serving_impl"],
     )
 
+    build_target = "//{}:{}".format(native.package_name(), name)
+    env = {"KOLADATA_DETERMINISTIC_SEED": build_target}
     context = dict(
-        build_target = "//{}:{}".format(native.package_name(), name),
+        build_target = build_target,
         namespaces = namespaces,
         function_name = cc_function_name.split("::")[-1],
         slice_names = slices.keys(),
@@ -193,6 +191,7 @@ def koladata_cc_embedded_slices(
         context = context,
         testonly = testonly,
         tags = tags,
+        env = env,
     )
     render_jinja2_template(
         name = "_{}_genrule_h".format(name),
@@ -201,6 +200,7 @@ def koladata_cc_embedded_slices(
         context = context,
         testonly = testonly,
         tags = tags,
+        env = env,
     )
     cc_library(
         name = name,
