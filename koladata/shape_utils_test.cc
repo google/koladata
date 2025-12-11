@@ -238,9 +238,9 @@ TEST(ShapeUtilsTest, AlignNonScalars) {
   }
 }
 
-TEST(ShapeBuilderTest, BuildWithSimpleParentShape) {
+TEST(Shape2DBuilderTest, BuildSimpleShape) {
   DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ShapeBuilder builder(prev_shape);
+  Shape2DBuilder builder(3);
   builder.Add(1);
   builder.Add(4);
   builder.Add(7);
@@ -252,37 +252,8 @@ TEST(ShapeBuilderTest, BuildWithSimpleParentShape) {
   EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
 }
 
-TEST(ShapeBuilderTest, Build) {
-  DataSlice::JaggedShape prev_shape =
-      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
-  ShapeBuilder builder(prev_shape);
-  builder.Add(1);
-  builder.Add(7);
-  builder.Add(4);
-  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
-                       std::move(builder).Build());
-
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice::JaggedShape expected_shape,
-      prev_shape.AddDims({test::EdgeFromSplitPoints({0, 1, 8, 12})}));
-
-  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
-}
-
-TEST(ShapeBuilderTest, BuildWithEmptyParentShape) {
-  DataSlice::JaggedShape prev_shape;
-  ShapeBuilder builder(prev_shape);
-  builder.Add(4);
-  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
-                       std::move(builder).Build());
-  DataSlice::JaggedShape expected_shape =
-      DataSlice::JaggedShape::FlatFromSize(4);
-  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
-}
-
-TEST(ShapeBuilderTest, NotEnoughGroupsFails) {
-  DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ShapeBuilder builder(prev_shape);
+TEST(Shape2DBuilderTest, BuildWithNotEnoughGroupsFails) {
+  Shape2DBuilder builder(3);
   builder.Add(1);
   builder.Add(2);
   EXPECT_THAT(std::move(builder).Build(),
@@ -290,9 +261,8 @@ TEST(ShapeBuilderTest, NotEnoughGroupsFails) {
                        HasSubstr("split points must be full")));
 }
 
-TEST(ShapeBuilderTest, NegativeGroupSizeFails) {
-  DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ShapeBuilder builder(prev_shape);
+TEST(Shape2DBuilderTest, BuildWithNegativeGroupSizeFails) {
+  Shape2DBuilder builder(3);
   builder.Add(1);
   builder.Add(2);
   builder.Add(-3);

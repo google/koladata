@@ -49,34 +49,30 @@ inline absl::StatusOr<std::vector<DataSlice>> Align(
 absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShape>>
 AlignNonScalars(std::vector<DataSlice> slices);
 
-// Helper class for building a DataSlice::JaggedShape by adding an edge from
-// group sizes to the previous shape.
+// Helper class for building a new 2D shape DataSlice::JaggedShape from number
+// of groups to the number of elements in each group.
 //
-// Example usage:
-//   ShapeBuilder builder(JaggedShape::FlatFromSize(3));
-//   builder.Add(1);
-//   builder.Add(5);
-//   builder.Add(7);
-//   builder.Build(); // returns a shape with 3 edges: (0, 3) and (0, 1, 8, 12).
 // Fails if:
 //   - Some group sizes are negative.
 //   - Number of groups added is not equal to the number of groups provided in
 //     the constructor.
-class ShapeBuilder {
+class Shape2DBuilder {
  public:
-  explicit ShapeBuilder(const DataSlice::JaggedShape& shape)
-      : edge_builder_(shape.size() + 1), prev_shape_(shape) {
+  explicit Shape2DBuilder(int64_t num_groups) : edge_builder_(num_groups + 1) {
     edge_builder_.Add(0, 0);
     ++i_next_;
   }
 
-  void Add(int64_t group_size);
+  void Add(int64_t group_size) {
+    last_split_ += group_size;
+    edge_builder_.Add(i_next_, last_split_);
+    ++i_next_;
+  }
 
   absl::StatusOr<DataSlice::JaggedShape> Build() &&;
 
  private:
   arolla::DenseArrayBuilder<int64_t> edge_builder_;
-  const DataSlice::JaggedShape& prev_shape_;
   int64_t i_next_ = 0;
   int64_t last_split_ = 0;
 };

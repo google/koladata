@@ -390,9 +390,7 @@ absl::Status ListFromProtoRepeatedMessageField(
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
       parent_messages.size());
-  DataSlice::JaggedShape parent_shape =
-      DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
-  shape::ShapeBuilder shape_builder(parent_shape);
+  shape::Shape2DBuilder shape_builder(parent_messages.size());
   std::vector<const Message* absl_nonnull> flat_child_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];
@@ -488,9 +486,7 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
     arolla::DenseArrayBuilder<T> flat_items_builder(num_items);
     arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
         parent_messages.size());
-    DataSlice::JaggedShape parent_shape =
-        DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
-    shape::ShapeBuilder shape_builder(parent_shape);
+    shape::Shape2DBuilder shape_builder(parent_messages.size());
     int64_t i_next_flat_item = 0;
     for (int64_t i = 0; i < parent_messages.size(); ++i) {
       const auto& parent_message = *parent_messages[i];
@@ -807,9 +803,7 @@ absl::Status DictFromProtoMapField(
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> dicts_mask_builder(
       parent_messages.size());
-  DataSlice::JaggedShape parent_shape =
-      DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
-  shape::ShapeBuilder shape_builder(parent_shape);
+  shape::Shape2DBuilder shape_builder(parent_messages.size());
   std::vector<const Message* absl_nonnull> flat_item_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];
