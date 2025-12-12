@@ -31,30 +31,32 @@ class NpkdTest(parameterized.TestCase):
       ('text ds', kd.slice(['a', 'b', 'c', None])),
       ('byte ds', kd.slice([b'a', b'b', b'c', None])),
       ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),
-      # TODO: Ensure this works.
-      # ('mixed primitive ds', kd.slice([1, 'abc'])),
-      # ('mixed numeric ds', kd.slice([1, 2.0], kd.OBJECT)),
+      ('mixed primitive ds', kd.slice([1, 'abc'])),
+      ('mixed numeric ds', kd.slice([1, 2.0])),
       ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
       ('multi-dim uniform ds', kd.slice([[1, 2, 3], [4, 5, 6]])),
       ('scalar int ds', kd.slice(123)),
       ('scalar float ds', kd.slice(3.14)),
   )
-  def test_numpy_roundtrip(self, ds):
+  def test_numpy_roundtrip(self, ds, schema=None):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
-    kd.testing.assert_equal(res_ds, ds)
+    if schema is not None:
+      expected_ds = res_ds.with_schema(schema)
+    else:
+      expected_ds = res_ds
+    kd.testing.assert_equal(res_ds, expected_ds)
 
   @parameterized.named_parameters(
       ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),
       ('dict ds', kd.slice([kd.dict(), kd.dict(), kd.dict()])),
       ('entity ds', kd.new(x=kd.slice([1, 2, 3, None]))),
+      ('text ds', kd.slice(['a', 'b', 'c', None])),
   )
   def test_numpy_roundtrip_entity(self, ds):
     res_np = npkd.to_array(ds)
     res_ds = npkd.from_array(res_np)
-    kd.testing.assert_equal(
-        res_ds, ds.with_schema(kd.OBJECT).with_bag(res_ds.get_bag())
-    )
+    kd.testing.assert_equal(res_ds, ds.with_bag(res_ds.get_bag()))
 
   def test_numpy_multi_dim(self):
     s = kd.slice([[1, 2], [3, 4], [5, 6]])
@@ -161,17 +163,24 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('Python list'):
       res_ds = npkd.from_array(np.array([[1, 2], [3]], dtype=object))
-      kd.testing.assert_equal(
-          res_ds[:].no_bag(), kd.slice([[1, 2], [3]], schema=kd.OBJECT)
-      )
+      kd.testing.assert_equal(res_ds[:].no_bag(), kd.slice([[1, 2], [3]]))
 
     with self.subTest('Python dict'):
       res_ds = npkd.from_array(np.array([{1: 2}, {3: 4}], dtype=object))
+      kd.testing.assert_equal(res_ds.get_keys().no_bag(), kd.slice([[1], [3]]))
       kd.testing.assert_equal(
-          res_ds.get_keys().no_bag(), kd.slice([[1], [3]], schema=kd.OBJECT)
+          res_ds.get_values().no_bag(), kd.slice([[2], [4]])
+      )
+
+    with self.subTest('Python mixed dict'):
+      res_ds = npkd.from_array(np.array([{'a': 324, 'b': 42}, {42: 3.14}]))
+      kd.testing.assert_equal(
+          res_ds.get_keys().no_bag(),
+          kd.slice([['a', 'b'], [42]], schema=kd.OBJECT),
       )
       kd.testing.assert_equal(
-          res_ds.get_values().no_bag(), kd.slice([[2], [4]], schema=kd.OBJECT)
+          res_ds.get_values().no_bag(),
+          kd.slice([[324, 42], [3.14]]),
       )
 
     with self.subTest('Python dataclass'):

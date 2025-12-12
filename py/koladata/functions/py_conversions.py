@@ -30,7 +30,7 @@ def from_py(
     *,
     dict_as_obj: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    schema: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | None = schema_constants.OBJECT,
     from_dim: int = 0,
 ) -> data_slice.DataSlice:
   """Converts Python object into DataSlice.
@@ -58,6 +58,7 @@ def from_py(
     A DataItem with the converted data.
   """
   return base_clib._from_py_v2(py_obj, schema, from_dim, dict_as_obj, itemid)  # pylint: disable=protected-access
+
 
 # TODO(b/379122942) remove this alias when V2 is the default version.
 _from_py_v2 = from_py

@@ -58,20 +58,18 @@ def to_array(ds: kd.types.DataSlice) -> np.ndarray:
 def from_array(arr: np.ndarray) -> kd.types.DataSlice:
   """Converts a numpy array to a DataSlice."""
 
-  # Convert to Python list for objects/strings/bytes as it can handle objects.
+  # TODO: treat string/bytes in the same way as other primitives.
   if (
       arr.dtype == np.object_
       or np.issubdtype(arr.dtype, np.str_)
       or np.issubdtype(arr.dtype, np.bytes_)
   ):
-    return kdi.from_py(list(arr), from_dim=1)
-
+    return kdi.from_py(list(arr), from_dim=1, schema=None)
   else:
     # NOTE: Converting Numpy Array of integers to signed version as Arolla might
     # not support unsigned integer in the long-term.
-    if (
-        np.issubdtype(arr.dtype, np.integer) and
-        not np.issubdtype(arr.dtype, np.signedinteger)
+    if np.issubdtype(arr.dtype, np.integer) and not np.issubdtype(
+        arr.dtype, np.signedinteger
     ):
       if np.isdtype(arr.dtype, np.uint8) or np.isdtype(arr.dtype, np.uint16):
         arr = arr.astype(np.int32)

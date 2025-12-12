@@ -9819,7 +9819,7 @@ Alias for [kd.proto.from_proto_bytes](#kd.proto.from_proto_bytes) operator.
 
 Alias for [kd.proto.from_proto_json](#kd.proto.from_proto_json) operator.
 
-### `kd.from_py(py_obj: Any, *, dict_as_obj: bool = False, itemid: DataSlice | None = None, schema: DataSlice | None = None, from_dim: int = 0) -> DataSlice` {#kd.from_py}
+### `kd.from_py(py_obj: Any, *, dict_as_obj: bool = False, itemid: DataSlice | None = None, schema: DataSlice | None = OBJECT, from_dim: int = 0) -> DataSlice` {#kd.from_py}
 Aliases:
 
 - [kd.from_pytree](#kd.from_pytree)
@@ -9848,7 +9848,7 @@ Args:
 Returns:
   A DataItem with the converted data.</code></pre>
 
-### `kd.from_pytree(py_obj: Any, *, dict_as_obj: bool = False, itemid: DataSlice | None = None, schema: DataSlice | None = None, from_dim: int = 0) -> DataSlice` {#kd.from_pytree}
+### `kd.from_pytree(py_obj: Any, *, dict_as_obj: bool = False, itemid: DataSlice | None = None, schema: DataSlice | None = OBJECT, from_dim: int = 0) -> DataSlice` {#kd.from_pytree}
 
 Alias for [kd.from_py](#kd.from_py) operator.
 
