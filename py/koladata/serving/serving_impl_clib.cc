@@ -14,6 +14,8 @@
 //
 #include <Python.h>
 
+#include <string>
+
 #include "arolla/serialization_base/base.pb.h"
 #include "koladata/s11n/codec.pb.h"
 #include "py/arolla/abc/pybind11_utils.h"
