@@ -38,7 +38,7 @@
 #include "arolla/util/repr.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/random.h"
+#include "koladata/internal/pseudo_random.h"
 
 namespace koladata {
 
@@ -225,7 +225,7 @@ class DataBag : public arolla::RefcountedBase {
         has_mutable_fallbacks_(false),
         // NOTE: consider lazy initialization of the fingerprint if it becomes
         // expensive to compute.
-        fingerprint_(internal::MaybeDeterministicRandomFingerprint()) {}
+        fingerprint_(internal::PseudoRandomFingerprint()) {}
 
   // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
   static DataBagPtr FromImpl(internal::DataBagImplPtr impl);
