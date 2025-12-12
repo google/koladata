@@ -222,6 +222,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
 
   def test_literal_preserving_argument(self):
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.initial_decode',
+    )
+    def initial_decode(x):
+      return arolla.M.strings.decode(x)
+
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode',
@@ -230,10 +238,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       return kde_internal.parallel.as_future(arolla.M.strings.static_decode(x))
 
     self._test_eval_on_futures(
-        functor_factories.expr_fn(arolla.M.strings.decode(b'123')),
+        functor_factories.expr_fn(initial_decode(arolla.bytes(b'123'))),
         replacements=[
             fns.obj(
-                from_op='strings.decode',
+                from_op='koda_internal.parallel.transform_test.initial_decode',
                 to_op='koda_internal.parallel.transform_test.my_decode',
                 argument_transformation=fns.obj(
                     keep_literal_argument_indices=[0],
@@ -247,6 +255,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
   def test_literal_preserving_argument_non_literal(self):
     @optools.add_to_registry()
     @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.initial_decode2',
+    )
+    def initial_decode2(x):
+      return arolla.M.strings.decode(x)
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode2',
     )
     def my_decode2(x):
@@ -258,11 +273,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     ):
       self._test_eval_on_futures(
           functor_factories.expr_fn(
-              arolla.M.strings.decode(arolla.M.strings.join(b'123', b'456'))
+              initial_decode2(arolla.M.strings.join(b'123', b'456'))
           ),
           replacements=[
               fns.obj(
-                  from_op='strings.decode',
+                  from_op=(
+                      'koda_internal.parallel.transform_test.initial_decode2'
+                  ),
                   to_op='koda_internal.parallel.transform_test.my_decode2',
                   argument_transformation=fns.obj(
                       keep_literal_argument_indices=[0],
