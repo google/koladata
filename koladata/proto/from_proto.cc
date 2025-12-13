@@ -284,6 +284,20 @@ absl::StatusOr<std::optional<DataSlice>> MakeFlatChildIndexItemUuids(
   return std::move(flat_child_itemids);
 }
 
+bool IsIntegerField(const FieldDescriptor& field_descriptor) {
+  switch (field_descriptor.cpp_type()) {
+    case FieldDescriptor::CPPTYPE_INT32:
+    case FieldDescriptor::CPPTYPE_INT64:
+    case FieldDescriptor::CPPTYPE_UINT32:
+    case FieldDescriptor::CPPTYPE_UINT64:
+    // Consider enum an integer type, because Koda handles enum fields as int32.
+    case FieldDescriptor::CPPTYPE_ENUM:
+      return true;
+    default:
+      return false;
+  }
+}
+
 absl::StatusOr<std::optional<internal::DataItem>>
 SchemaItemFromPrimitiveFieldKodaOptions(
     const FieldDescriptor& field_descriptor) {
@@ -291,24 +305,37 @@ SchemaItemFromPrimitiveFieldKodaOptions(
   const auto& koda_field_options =
       field_descriptor.options().GetExtension(koladata::options);
   if (koda_field_options.has_schema()) {
-    if (field_descriptor.has_default_value()) {
-      return absl::InvalidArgumentError(
-          "koda field schema override cannot be used on fields with a "
-          "custom default value");
-    }
     switch (koda_field_options.schema()) {
       case KodaOptions::SCHEMA_UNSPECIFIED:
         return absl::InvalidArgumentError(
             absl::StrFormat("invalid koda field schema override enum value: %d",
                             koda_field_options.schema()));
       case KodaOptions::SCHEMA_MASK:
-        if (field_descriptor.cpp_type() !=
-            google::protobuf::FieldDescriptor::CPPTYPE_BOOL) {
+        if (field_descriptor.has_default_value()) {
+          return absl::InvalidArgumentError(
+              "koda MASK field schema override cannot be used on fields with a "
+              "custom default value");
+        }
+        if (field_descriptor.cpp_type() != FieldDescriptor::CPPTYPE_BOOL) {
           return absl::InvalidArgumentError(
               "MASK koda field schema override can only be used on bool "
               "fields");
         }
         return internal::DataItem(schema::kMask);
+     case KodaOptions::SCHEMA_INT32:
+        if (!IsIntegerField(field_descriptor)) {
+          return absl::InvalidArgumentError(
+              "INT32 koda field schema override can only be used on integer "
+              "and enum fields");
+        }
+        return internal::DataItem(schema::kInt32);
+     case KodaOptions::SCHEMA_INT64:
+        if (!IsIntegerField(field_descriptor)) {
+          return absl::InvalidArgumentError(
+              "INT64 koda field schema override can only be used on integer "
+              "and enum fields");
+        }
+        return internal::DataItem(schema::kInt64);
     }
   }
   return std::nullopt;

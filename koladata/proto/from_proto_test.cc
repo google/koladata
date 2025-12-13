@@ -1344,24 +1344,61 @@ TEST(FromProtoTest, SchemaFromProtoWithKodaOptions) {
                 ->GetAttr(schema::kListItemsSchemaAttr)
                 ->item(),
             internal::DataItem(schema::kMask));
+  EXPECT_EQ(schema.GetAttr("int32_field_as_int64")->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("repeated_int32_field_as_int64")
+                ->GetAttr(schema::kListItemsSchemaAttr)
+                ->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("int64_field_as_int32")->item(),
+            internal::DataItem(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("repeated_int64_field_as_int32")
+                ->GetAttr(schema::kListItemsSchemaAttr)
+                ->item(),
+            internal::DataItem(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("enum_field_as_int64")->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("repeated_enum_field_as_int64")
+                ->GetAttr(schema::kListItemsSchemaAttr)
+                ->item(),
+            internal::DataItem(schema::kInt64));
 }
 
-TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsWrongType) {
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsWrongTypeMask) {
   EXPECT_THAT(
       SchemaFromProto(DataBag::EmptyMutable(),
-                      testing::ExampleMessageWrongType::descriptor()),
+                      testing::ExampleMessageWrongTypeMask::descriptor()),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "MASK koda field schema override can only be used on bool fields"));
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsWrongTypeInt32) {
+  EXPECT_THAT(
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessageWrongTypeInt32::descriptor()),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "INT32 koda field schema override can only be used on integer "
+               "and enum fields"));
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsWrongTypeInt64) {
+  EXPECT_THAT(
+      SchemaFromProto(DataBag::EmptyMutable(),
+                      testing::ExampleMessageWrongTypeInt64::descriptor()),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "INT64 koda field schema override can only be used on integer "
+               "and enum fields"));
 }
 
 TEST(FromProtoTest, SchemaFromProtoWithKodaOptionsConflictAnnotation) {
   EXPECT_THAT(
       SchemaFromProto(DataBag::EmptyMutable(),
                       testing::ExampleMessageConflictAnnotation::descriptor()),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "koda field schema override cannot be used on fields with a "
-               "custom default value"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "koda MASK field schema override cannot be used on fields with a "
+          "custom default value"));
 }
 
 }  // namespace

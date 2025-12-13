@@ -32,6 +32,12 @@ message KodaOptions {
     // * kd.missing will be converted to unset when converting to a proto.
     // * this annotation conflicts with default_value.
     SCHEMA_MASK = 5;
+
+    // Koda will treat the annotated field as INT32.
+    SCHEMA_INT32 = 2;
+
+    // Koda will treat the annotated field as INT64.
+    SCHEMA_INT64 = 3;
   }
   optional Schema schema = 1;
 }
