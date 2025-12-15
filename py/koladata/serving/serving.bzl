@@ -5,6 +5,7 @@ load(
     "call_python_function",
     "python_function_call_genrule",
     "render_jinja2_template",
+    "write_file_function",
 )
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
@@ -166,6 +167,10 @@ def koladata_cc_embedded_slices(
       tool_deps: Build time dependencies, e.g. the python library defining the slices. Note that the
           additional dependencies are added based on the `deps` inside `slices` argument.
       testonly: Whether the build target is testonly.
+      BEGIN-GOOGLE-INTERNAL
+      _DEBUG_ONLY_dynamic_reload: Whether the data should be reloaded from a file every time rather
+          than be embed to the binary.
+      END-GOOGLE-INTERNAL
       **kwargs: Extra arguments passed directly to the final cc_library.
     """
     tags = list(kwargs.pop("tags", []))
@@ -185,6 +190,7 @@ def koladata_cc_embedded_slices(
         function_name = cc_function_name.split("::")[-1],
         slice_names = slices.keys(),
         serialized_slices = serialized_slices,
+        dynamic_reload = False,
     )
     render_jinja2_template(
         name = "_{}_genrule_cc".format(name),

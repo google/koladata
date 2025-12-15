@@ -15,6 +15,7 @@
 #include "py/koladata/serving/serialized_slices.h"
 
 #include <cstdint>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"

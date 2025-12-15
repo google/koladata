@@ -19,30 +19,33 @@
 namespace {{n}} {
 {%- endfor %}
 
-namespace {
-
-const absl::StatusOr<
-    absl::flat_hash_map<std::string, ::koladata::DataSlice>>&
-{{function_name}}() {
+absl::StatusOr<::koladata::DataSlice>
+{{function_name}}(absl::string_view name) {
+{%- if dynamic_reload %}
+  static absl::NoDestructor<::koladata::serving::RunfilesSliceLoader>
+      loader(/*filename=*/"{{ serialized_slices }}");
+  return loader->GetOrReloadSliceByName(name);
+{%- else %}
   constexpr absl::string_view data(
       "{{ serialized_slices | cescape }}",  // golden_test:ignore
       {{ serialized_slices | count }});  // golden_test:ignore
-  static const absl::NoDestructor result(
-      ::koladata::serving::ParseSerializedSlices(data));
-  return *result;
+  using SliceMapOrStatus =
+      absl::StatusOr<absl::flat_hash_map<std::string, ::koladata::DataSlice>>;
+  static const absl::NoDestructor slices([data]() -> SliceMapOrStatus {
+    ASSIGN_OR_RETURN(
+        auto slices, ::koladata::serving::ParseSerializedSlices(data));
+    for (const auto& [k, v] : slices) {
+      RETURN_IF_ERROR(::koladata::serving::RegisterSlice(
+          absl::StrCat("{{ build_target }}@", k), v));
+    }
+    return slices;
+  }());
+  RETURN_IF_ERROR(slices->status());
+  return ::koladata::serving::GetSliceByName(**slices, name);
+{%- endif %}
 }
 
-}  // namespace
-
-absl::StatusOr<::koladata::DataSlice>
-{{function_name}}(absl::string_view name) {
-  const auto& slices = {{function_name}}();
-  if (!slices.ok()) {
-    return slices.status();
-  }
-  return ::koladata::serving::GetSliceByName(*slices, name);
-}
-
+{%- if not dynamic_reload and slice_names %}
 AROLLA_INITIALIZER(
     .name = "{{build_target}}",
     .deps = {
@@ -50,13 +53,10 @@ AROLLA_INITIALIZER(
         ::arolla::initializer_dep::kS11n,
     },
     .init_fn = []() -> absl::Status {
-      ASSIGN_OR_RETURN(const auto& slices, {{function_name}}());
-      for (const auto& [k, v] : slices) {
-        RETURN_IF_ERROR(::koladata::serving::RegisterSlice(
-            absl::StrCat("{{ build_target }}@", k), v));
-      }
-      return absl::OkStatus();
+      // Trigger initialization and ::koladata::serving::RegisterSlice
+      return {{function_name}}("{{ slice_names[0] }}").status();
     });
+{%- endif %}
 
 {%- for n in namespaces %}
 }  // namespace {{n}}
