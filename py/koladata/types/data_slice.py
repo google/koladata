@@ -318,6 +318,18 @@ def _deep_clone(
   )
 
 
+@add_method(DataSlice, 'clone_as_full', docstring_from='kd.clone_as_full')
+def _clone_as_full(
+    self,
+    *,
+    itemid: Any = arolla.unspecified(),
+    **overrides: Any,
+) -> DataSlice:
+  return _py_expr_eval_py_ext.eval_op(
+      'kd.clone_as_full', self, itemid=itemid, **overrides
+  )
+
+
 @add_method(DataSlice, 'deep_uuid', docstring_from='kd.deep_uuid')
 def _deep_uuid(
     self,

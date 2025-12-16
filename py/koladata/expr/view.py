@@ -353,6 +353,11 @@ class KodaView(BaseKodaView):
         'kd.clone', self, itemid=itemid, schema=schema, **overrides
     )
 
+  def clone_as_full(
+      self, *, itemid: Any = arolla.unspecified(), **overrides: Any
+  ) -> arolla.Expr:
+    return _aux_bind_op('kd.clone_as_full', self, itemid=itemid, **overrides)
+
   def shallow_clone(
       self,
       *,

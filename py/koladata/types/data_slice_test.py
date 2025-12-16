@@ -3594,6 +3594,20 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     x = bag().obj(a=1)
     self.assertNotEqual(x.deep_clone(), x.deep_clone())
 
+  def test_clone_as_full(self):
+    x = bag().new(a=ds([1, 2])) & ds([present, None])
+    cloned = x.clone_as_full(b=ds([3, 4]))
+    testing.assert_equal(
+        cloned.get_present_count(), ds(2, schema=schema_constants.INT64)
+    )
+    testing.assert_equal(cloned.a.no_bag(), ds([1, None]))
+    testing.assert_equal(cloned.b.no_bag(), ds([3, 4]))
+    testing.assert_equivalent(
+        cloned.get_schema(),
+        x.get_schema().with_attrs(b=schema_constants.INT32),
+        ids_equality=True,
+    )
+
   @parameterized.product(
       pass_schema=[True, False],
   )

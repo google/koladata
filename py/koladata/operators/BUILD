@@ -447,6 +447,7 @@ py_library(
         ":arolla_bridge",
         ":assertion",
         ":bags",
+        ":entities",
         ":masking",
         ":op_repr",
         ":optools",

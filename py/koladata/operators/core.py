@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Core DataSlice operators."""
+
 from typing import Any
 
 from arolla import arolla
@@ -20,6 +21,7 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import bags
+from koladata.operators import entities
 from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
@@ -888,6 +890,72 @@ def clone(
       ),
       default=_clone(P.x, P.itemid, P.schema, P.non_deterministic),
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
+
+
+@optools.add_to_registry(
+    aliases=['kd.clone_as_full'], via_cc_operator_package=True
+)
+@optools.as_lambda_operator(
+    'kd.core.clone_as_full',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.itemid),
+        qtype_utils.expect_data_slice_kwargs(P.overrides),
+    ],
+)
+def clone_as_full(
+    x,
+    /,
+    *,
+    itemid=arolla.unspecified(),
+    **overrides,
+):
+  """Clones the DataSlice, filling missing items with new empty entities.
+
+  Equivalent to:
+    x = x | kd.new_shaped(x.get_shape(), schema=x.get_schema())
+    return kd.clone(x, itemid=itemid, **overrides)
+
+  This operator can be used to fill missing items in a DataSlice attribute. For
+  example, consider the following two snippets:
+
+  x.updated(kd.attrs(x.maybe_missing_attr,
+      must_be_present_attr=...
+  ))
+
+  x.updated(kd.attrs(x,
+      maybe_missing_attr=kd.clone_as_full(
+          x.maybe_missing_attr,
+          must_be_present_attr=...
+      ),
+  ))
+
+  In the first snippet the values of `must_be_present_attr` will be skipped when
+  `maybe_missing_attr` is missing. In the second snippet the whole
+  `maybe_missing_attr` will be overwritten as full (keeping all the pre-existing
+  attributes) and so all the values of `must_be_present_attr` will be preserved.
+
+  Args:
+    x: The DataSlice to copy. It must have an entity schema.
+    itemid: The ItemId to assign to cloned entities. If not specified, new
+      ItemIds will be allocated.
+    **overrides: attribute overrides.
+
+  Returns:
+    A copy of the entities where entities themselves are cloned (new ItemIds)
+    and all of the rest extracted. Missing items in `x` are replaced by new
+    empty entities.
+  """
+  overrides = arolla.optools.fix_trace_kwargs(overrides)
+  x_full = x | entities.shaped(x.get_shape(), schema=x.get_schema())
+  return arolla.abc.bind_op(
+      clone,
+      x_full,
+      itemid,
+      arolla.unspecified(),
+      overrides,
+      optools.unified_non_deterministic_arg(),
+  )
 
 
 @optools.as_backend_operator('kd.core._deep_clone')

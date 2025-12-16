@@ -115,6 +115,7 @@ class core:
   attr = _operators_core._attr
   attrs = _operators_core.attrs
   clone = _operators_core.clone
+  clone_as_full = _operators_core.clone_as_full
   deep_clone = _operators_core.deep_clone
   enriched = _operators_core.enriched
   extract = _operators_core.extract
@@ -631,6 +632,7 @@ call = _operators_functor.call
 cast_to = _operators_schema.cast_to
 cityhash = _operators_random.cityhash
 clone = _operators_core.clone
+clone_as_full = _operators_core.clone_as_full
 coalesce = _operators_masking.coalesce
 collapse = _operators_slices.collapse
 concat = _operators_slices.concat

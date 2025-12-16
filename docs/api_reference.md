@@ -632,6 +632,47 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
+### `kd.core.clone_as_full(x, /, *, itemid=unspecified, **overrides)` {#kd.core.clone_as_full}
+Aliases:
+
+- [kd.clone_as_full](#kd.clone_as_full)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Clones the DataSlice, filling missing items with new empty entities.
+
+Equivalent to:
+  x = x | kd.new_shaped(x.get_shape(), schema=x.get_schema())
+  return kd.clone(x, itemid=itemid, **overrides)
+
+This operator can be used to fill missing items in a DataSlice attribute. For
+example, consider the following two snippets:
+
+x.updated(kd.attrs(x.maybe_missing_attr,
+    must_be_present_attr=...
+))
+
+x.updated(kd.attrs(x,
+    maybe_missing_attr=kd.clone_as_full(
+        x.maybe_missing_attr,
+        must_be_present_attr=...
+    ),
+))
+
+In the first snippet the values of `must_be_present_attr` will be skipped when
+`maybe_missing_attr` is missing. In the second snippet the whole
+`maybe_missing_attr` will be overwritten as full (keeping all the pre-existing
+attributes) and so all the values of `must_be_present_attr` will be preserved.
+
+Args:
+  x: The DataSlice to copy. It must have an entity schema.
+  itemid: The ItemId to assign to cloned entities. If not specified, new
+    ItemIds will be allocated.
+  **overrides: attribute overrides.
+
+Returns:
+  A copy of the entities where entities themselves are cloned (new ItemIds)
+  and all of the rest extracted. Missing items in `x` are replaced by new
+  empty entities.</code></pre>
+
 ### `kd.core.deep_clone(x, /, schema=unspecified, **overrides)` {#kd.core.deep_clone}
 Aliases:
 
@@ -9421,6 +9462,10 @@ Alias for [kd.random.cityhash](#kd.random.cityhash) operator.
 
 Alias for [kd.core.clone](#kd.core.clone) operator.
 
+### `kd.clone_as_full(x, /, *, itemid=unspecified, **overrides)` {#kd.clone_as_full}
+
+Alias for [kd.core.clone_as_full](#kd.core.clone_as_full) operator.
+
 ### `kd.coalesce(x, y)` {#kd.coalesce}
 
 Alias for [kd.masking.coalesce](#kd.masking.coalesce) operator.
@@ -12619,6 +12664,47 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
+### `DataSlice.clone_as_full(self, *, itemid: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.clone_as_full}
+Aliases:
+
+- [DataItem.clone_as_full](#DataItem.clone_as_full)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Clones the DataSlice, filling missing items with new empty entities.
+
+Equivalent to:
+  x = x | kd.new_shaped(x.get_shape(), schema=x.get_schema())
+  return kd.clone(x, itemid=itemid, **overrides)
+
+This operator can be used to fill missing items in a DataSlice attribute. For
+example, consider the following two snippets:
+
+x.updated(kd.attrs(x.maybe_missing_attr,
+    must_be_present_attr=...
+))
+
+x.updated(kd.attrs(x,
+    maybe_missing_attr=kd.clone_as_full(
+        x.maybe_missing_attr,
+        must_be_present_attr=...
+    ),
+))
+
+In the first snippet the values of `must_be_present_attr` will be skipped when
+`maybe_missing_attr` is missing. In the second snippet the whole
+`maybe_missing_attr` will be overwritten as full (keeping all the pre-existing
+attributes) and so all the values of `must_be_present_attr` will be preserved.
+
+Args:
+  x: The DataSlice to copy. It must have an entity schema.
+  itemid: The ItemId to assign to cloned entities. If not specified, new
+    ItemIds will be allocated.
+  **overrides: attribute overrides.
+
+Returns:
+  A copy of the entities where entities themselves are cloned (new ItemIds)
+  and all of the rest extracted. Missing items in `x` are replaced by new
+  empty entities.</code></pre>
+
 ### `DataSlice.deep_clone(self, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.deep_clone}
 Aliases:
 
@@ -14481,6 +14567,10 @@ Alias for [DataSlice.clear](#DataSlice.clear) operator.
 ### `DataItem.clone(self, *, itemid: Any = unspecified, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataItem.clone}
 
 Alias for [DataSlice.clone](#DataSlice.clone) operator.
+
+### `DataItem.clone_as_full(self, *, itemid: Any = unspecified, **overrides: Any) -> DataSlice` {#DataItem.clone_as_full}
+
+Alias for [DataSlice.clone_as_full](#DataSlice.clone_as_full) operator.
 
 ### `DataItem.deep_clone(self, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataItem.deep_clone}
 
