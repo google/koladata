@@ -2060,11 +2060,6 @@ def unsafe_blocking_wait(stream):
   operator will eventually cause deadlocks, requiring a non-trivial refactoring
   of your computation.
 
-  BEGIN-GOOGLE-INTERNAL
-  Note: While this operator is relatively safe to use with fibers, it's still
-  NOT recommended for permanent use.
-  END-GOOGLE-INTERNAL
-
   Args:
     stream: A single-item input stream.
 

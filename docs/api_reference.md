@@ -9075,11 +9075,6 @@ While seemingly acceptable initially, prolonged or widespread use of this
 operator will eventually cause deadlocks, requiring a non-trivial refactoring
 of your computation.
 
-BEGIN-GOOGLE-INTERNAL
-Note: While this operator is relatively safe to use with fibers, it&#39;s still
-NOT recommended for permanent use.
-END-GOOGLE-INTERNAL
-
 Args:
   stream: A single-item input stream.
 
@@ -11479,10 +11474,6 @@ why the is_view_valid() method is not simply called is_valid() or valid().</code
 ### `kd_ext.persisted_data.DataSlicePath(actions: tuple[DataSliceAction, ...])` {#kd_ext.persisted_data.DataSlicePath}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A data slice path.</code></pre>
-
-### `kd_ext.persisted_data.FileSystemInteraction(options: Options | None = None)` {#kd_ext.persisted_data.FileSystemInteraction}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Interactions with Google-internal file systems such as CNS.</code></pre>
 
 ### `kd_ext.persisted_data.PersistedIncrementalDataBagManager(persistence_dir: str, *, fs: FileSystemInterface | None = None)` {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
 
