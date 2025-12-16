@@ -24,10 +24,6 @@ load(
     "koladata_trace_py_fn",
 )
 
-package(default_visibility = [
-    "//koladata:internal",
-])
-
 licenses(["notice"])
 
 py_library(
