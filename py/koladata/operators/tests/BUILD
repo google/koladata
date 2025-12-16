@@ -7478,13 +7478,12 @@ koda_operator_coverage_test(
     koda_op = "strings.encode",
 )
 
-# TODO: Do not skip tests once Koladata also supports `errors` argument.
-koda_operator_coverage_test(
-    name = "kd_strings_decode_covers_strings_decode_test",
-    arolla_op = "strings.decode",
-    koda_op = "strings.decode",
-    skip_test_patterns = ["StringsDecodeTest\\.test_eval_with.*"],
-)
+# TODO: Re-enable tests once Koladata also supports `errors` argument.
+# koda_operator_coverage_test(
+#     name = "kd_strings_decode_covers_strings_decode_test",
+#     arolla_op = "strings.decode",
+#     koda_op = "strings.decode",
+# )
 
 koda_operator_coverage_test(
     name = "kd_strings_length_covers_strings_length_test",
