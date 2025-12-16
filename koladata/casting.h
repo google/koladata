@@ -179,6 +179,22 @@ struct SchemaAlignedSlices {
 // If a common schema cannot be computed, an error is returned.
 absl::StatusOr<SchemaAlignedSlices> AlignSchemas(std::vector<DataSlice> slices);
 
+namespace casting_internal {
+// Returns true if the data stored with the `from_schema` can be explicitly
+// casted to the `to_schema`.
+//
+// Requires that `from_schema` and `to_schema` are schemas.
+//
+// If both schemas are entities, returns true. Validation should be done by
+// traversing the attributes.
+//
+// Note: returns false, if to_schema is `kObject`.
+// Note: this method if internal for ToEntity, and is exposed here only for
+// testing purposes.
+bool IsProbablyCastableTo(const internal::DataItem& from_schema,
+               const internal::DataItem& to_schema);
+
+}  // namespace casting_internal
 }  // namespace koladata
 
 #endif  // KOLADATA_CASTING_H_

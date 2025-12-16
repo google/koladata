@@ -140,6 +140,12 @@ TEST_P(CastingToInt32Test, Casting) {
   EXPECT_THAT(int32_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToInt32Test, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kInt32)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToInt32TestSuite, CastingToInt32Test, ::testing::ValuesIn([] {
       arolla::InitArolla();
@@ -193,6 +199,14 @@ INSTANTIATE_TEST_SUITE_P(
       return test_cases;
     }()));
 
+TEST(CanCastTo, Int32Negative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kInt32)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kInt32)));
+}
+
 TEST(Casting, Int32Errors) {
   EXPECT_THAT(
       ToInt32(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
@@ -231,6 +245,12 @@ TEST_P(CastingToInt64Test, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto int64_slice, ToInt64(input));
   EXPECT_THAT(int64_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToInt64Test, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kInt64)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -285,6 +305,14 @@ INSTANTIATE_TEST_SUITE_P(
       return test_cases;
     }()));
 
+TEST(CanCastTo, Int64Negative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kInt64)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kInt64)));
+}
+
 TEST(Casting, Int64Errors) {
   EXPECT_THAT(
       ToInt64(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
@@ -315,6 +343,12 @@ TEST_P(CastingToFloat32Test, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto float32_slice, ToFloat32(input));
   EXPECT_THAT(float32_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToFloat32Test, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kFloat32)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -370,6 +404,14 @@ INSTANTIATE_TEST_SUITE_P(
       return test_cases;
     }()));
 
+TEST(CanCastTo, Float32Negative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kFloat32)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kFloat32)));
+}
+
 TEST(Casting, Float32Errors) {
   EXPECT_THAT(
       ToFloat32(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
@@ -402,6 +444,12 @@ TEST_P(CastingToFloat64Test, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto float64_slice, ToFloat64(input));
   EXPECT_THAT(float64_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToFloat64Test, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kFloat64)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -456,6 +504,14 @@ INSTANTIATE_TEST_SUITE_P(
       return test_cases;
     }()));
 
+TEST(CanCastTo, Float64Negative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kFloat64)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kFloat64)));
+}
+
 TEST(Casting, Float64Errors) {
   EXPECT_THAT(
       ToFloat64(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
@@ -488,6 +544,12 @@ TEST_P(CastingToNoneTest, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto none_slice, ToNone(input));
   EXPECT_THAT(none_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToNoneTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kNone)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -549,6 +611,12 @@ TEST_P(CastingToExprTest, Casting) {
   EXPECT_THAT(expr_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToExprTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kExpr)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToExprTestSuite, CastingToExprTest, ::testing::ValuesIn([] {
       auto x = arolla::expr::ExprQuote(arolla::expr::Leaf("x"));
@@ -572,6 +640,18 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kExpr, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, ExprNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kExpr)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), internal::DataItem(schema::kExpr)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32), internal::DataItem(schema::kExpr)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kExpr)));
+}
 
 TEST(Casting, ExprErrors) {
   auto x = arolla::expr::ExprQuote(arolla::expr::Leaf("x"));
@@ -602,6 +682,12 @@ TEST_P(CastingToStrTest, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto text_slice, ToStr(input));
   EXPECT_THAT(text_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToStrTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kString)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -667,6 +753,15 @@ INSTANTIATE_TEST_SUITE_P(
       return test_cases;
     }()));
 
+TEST(CanCastTo, StrNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kString)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kItemId),
+      internal::DataItem(schema::kString)));
+}
+
 TEST(Casting, TextErrors) {
   EXPECT_THAT(
       ToStr(test::DataSlice<internal::ObjectId>({std::nullopt, std::nullopt},
@@ -698,6 +793,12 @@ TEST_P(CastingToBytesTest, Casting) {
   EXPECT_THAT(text_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToBytesTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kBytes)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToBytesTestSuite, CastingToBytesTest, ::testing::ValuesIn([] {
       auto bytes_slice = test::DataSlice<arolla::Bytes>(
@@ -721,6 +822,23 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kBytes, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, BytesNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(internal::AllocateExplicitSchema()),
+      internal::DataItem(schema::kBytes)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kItemId), internal::DataItem(schema::kBytes)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), internal::DataItem(schema::kBytes)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32),
+      internal::DataItem(schema::kBytes)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kBytes)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString), internal::DataItem(schema::kBytes)));
+}
 
 TEST(Casting, BytesErrors) {
   EXPECT_THAT(
@@ -880,6 +998,12 @@ TEST_P(CastingToMaskTest, Casting) {
   EXPECT_THAT(mask_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToMaskTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kMask)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToMaskTestSuite, CastingToMaskTest, ::testing::ValuesIn([] {
       auto mask_slice = test::DataSlice<arolla::Unit>(
@@ -903,6 +1027,19 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kMask, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, MaskNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), internal::DataItem(schema::kMask)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32), internal::DataItem(schema::kMask)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString), internal::DataItem(schema::kMask)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBool), internal::DataItem(schema::kMask)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBytes), internal::DataItem(schema::kMask)));
+}
 
 TEST(Casting, MaskErrors) {
   EXPECT_THAT(
@@ -930,6 +1067,12 @@ TEST_P(CastingToBoolTest, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto bool_slice, ToBool(input));
   EXPECT_THAT(bool_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToBoolTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kBool)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -971,6 +1114,15 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kBool, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, BoolNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString), internal::DataItem(schema::kBool)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kBool)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBytes), internal::DataItem(schema::kBool)));
+}
 
 TEST(Casting, BoolErrors) {
   EXPECT_THAT(ToBool(test::DataSlice<arolla::Text>({"foo", std::nullopt},
@@ -1018,6 +1170,12 @@ TEST_P(CastingToItemIdTest, Casting) {
   EXPECT_THAT(item_id_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToItemIdTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kItemId)));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToItemIdTestSuite, CastingToItemIdTest, ::testing::ValuesIn([] {
       auto empty_objects = internal::DataSliceImpl::AllocateEmptyObjects(3);
@@ -1047,6 +1205,12 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataSlice<internal::ObjectId>(
                {explicit_schema, std::nullopt, explicit_schema},
                schema::kItemId)},
+          {*DataSlice::Create(empty_objects,
+                              DataSlice::JaggedShape::FlatFromSize(3),
+                              internal::DataItem(explicit_schema)),
+           *DataSlice::Create(empty_objects,
+                              DataSlice::JaggedShape::FlatFromSize(3),
+                              internal::DataItem(schema::kItemId))},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kItemId)},
@@ -1062,6 +1226,23 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kItemId, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, ItemIdNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBool), internal::DataItem(schema::kItemId)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kItemId)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), internal::DataItem(schema::kItemId)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32),
+      internal::DataItem(schema::kItemId)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString),
+      internal::DataItem(schema::kItemId)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBytes), internal::DataItem(schema::kItemId)));
+}
 
 TEST(Casting, ItemIdErrors) {
   EXPECT_THAT(
@@ -1095,6 +1276,12 @@ TEST_P(CastingToSchemaTest, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto schema_slice, ToSchema(input));
   EXPECT_THAT(schema_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToSchemaTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kSchema)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1135,6 +1322,23 @@ INSTANTIATE_TEST_SUITE_P(
       AssertLowerBoundDTypesAreTested(schema::kSchema, test_cases);
       return test_cases;
     }()));
+
+TEST(CanCastTo, SchemaNegative) {
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBool), internal::DataItem(schema::kSchema)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), internal::DataItem(schema::kSchema)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), internal::DataItem(schema::kSchema)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32),
+      internal::DataItem(schema::kSchema)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString),
+      internal::DataItem(schema::kSchema)));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBytes), internal::DataItem(schema::kSchema)));
+}
 
 TEST(Casting, SchemaErrors) {
   auto obj_id = internal::AllocateSingleObject();
@@ -1179,6 +1383,15 @@ TEST_P(CastingToEntityTest, Casting) {
   EXPECT_THAT(item_id_slice, IsEquivalentTo(output));
 }
 
+TEST_P(CastingToEntityTest, CanCastTo) {
+  const auto& input = GetParam().input;
+  const auto& output = GetParam().output;
+  const auto& entity_schema = output.GetSchemaImpl();
+  ASSERT_TRUE(entity_schema.is_struct_schema());
+  EXPECT_TRUE(casting_internal::IsProbablyCastableTo(input.GetSchemaImpl(),
+                                                     entity_schema));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     CastingToEntityTestSuite, CastingToEntityTest, ::testing::ValuesIn([] {
       auto obj = internal::AllocateSingleObject();
@@ -1218,6 +1431,24 @@ INSTANTIATE_TEST_SUITE_P(
       };
       return test_cases;
     }()));
+
+TEST(CanCastTo, EntityNegative) {
+  auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kInt32), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kFloat32), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBool), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kMask), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kString), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kBytes), entity_schema));
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      internal::DataItem(schema::kSchema), entity_schema));
+}
 
 TEST(Casting, EntityErrors) {
   auto obj = internal::AllocateSingleObject();
@@ -1322,6 +1553,12 @@ TEST_P(CastingToObjectTest, Casting) {
   const auto& output = GetParam().output;
   ASSERT_OK_AND_ASSIGN(auto obj_slice, ToObject(input));
   EXPECT_THAT(obj_slice, IsEquivalentTo(output));
+}
+
+TEST_P(CastingToObjectTest, CanCastToNegative) {
+  const auto& input = GetParam().input;
+  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
+      input.GetSchemaImpl(), internal::DataItem(schema::kObject)));
 }
 
 INSTANTIATE_TEST_SUITE_P(
