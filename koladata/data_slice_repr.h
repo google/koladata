@@ -16,7 +16,6 @@
 #define KOLADATA_DATA_SLICE_REPR_H_
 
 #include <cstddef>
-#include <cstdint>
 #include <string>
 
 #include "absl/base/nullability.h"
@@ -58,6 +57,9 @@ struct ReprOption {
   bool show_schema = true;
   // When true, the repr will show the itemids for objects.
   bool show_item_id = false;
+  // When true, the repr will show the size and present count of the slice. Only
+  // shown for DataSlices.
+  bool show_present_count = false;
 };
 // LINT.ThenChange(//py/koladata/operators/slices.py)
 

@@ -1728,8 +1728,8 @@ TEST(DataSliceReprTest, DataSliceRepr) {
   {
     // DataSlice repr without db.
     auto ds = test::DataSlice<int>({1});
-    EXPECT_THAT(DataSliceRepr(ds), Eq("DataSlice([1], schema: INT32, "
-                                      "shape: JaggedShape(1))"));
+    EXPECT_THAT(DataSliceRepr(ds),
+                Eq("DataSlice([1], schema: INT32, shape: JaggedShape(1))"));
   }
   {
     // DataSlice repr with db.
@@ -1765,11 +1765,12 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
   ASSERT_OK_AND_ASSIGN(DataSlice entity_2,
                        EntityCreator::FromAttrs(db, {"b"}, {entity}));
 
-  EXPECT_THAT(DataSliceRepr(entity_2, {.show_attributes = true,
-                                       .show_databag_id = false,
-                                       .show_shape = false}),
-              Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], "
-                 "schema: ENTITY(b=ENTITY(a=INT32)))"));
+  EXPECT_THAT(
+      DataSliceRepr(entity_2, {.show_attributes = true,
+                               .show_databag_id = false,
+                               .show_shape = false}),
+      Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], schema: "
+         "ENTITY(b=ENTITY(a=INT32)))"));
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_NoSchemaDataBagOrShape) {
@@ -1785,8 +1786,52 @@ TEST(DataSliceReprTest, DataSliceRepr_NoSchemaDataBagOrShape) {
                                 .show_databag_id = false,
                                 .show_shape = false,
                                 .show_schema = false,
+                                .show_present_count = false,
                             }),
               Eq("[Entity(b=Entity(a=1)), Entity(b=Entity(a=2))]"));
+}
+
+TEST(DataSliceReprTest, DataSliceRepr_ShowPresentCount) {
+  {
+    // DataSlice - default behavior.
+    auto slice = test::DataSlice<int>({1, 2, std::nullopt});
+    EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
+                                      .show_schema = false}),
+                Eq("DataSlice([1, 2, None])"));
+  }
+  {
+    // DataSlice - enabled.
+    auto slice = test::DataSlice<int>({1, 2, std::nullopt});
+    EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
+                                      .show_schema = false,
+                                      .show_present_count = true}),
+                Eq("DataSlice([1, 2, None], present: 2/3)"));
+  }
+  {
+    // DataSlice - disabled.
+    auto slice = test::DataSlice<int>({1, 2, std::nullopt});
+    EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
+                                      .show_schema = false,
+                                      .show_present_count = false}),
+                Eq("DataSlice([1, 2, None])"));
+  }
+  {
+    // DataSlice - with truncation.
+    auto slice = test::DataSlice<int>({1, 2, std::nullopt});
+    EXPECT_THAT(DataSliceRepr(slice, {.item_limit = 2,
+                                      .show_shape = false,
+                                      .show_schema = false,
+                                      .show_present_count = true}),
+                Eq("DataSlice([1, 2, ...], present: 2/3)"));
+  }
+  {
+    // DataItem - always disabled.
+    auto slice = test::DataItem<int>(1);
+    EXPECT_THAT(DataSliceRepr(slice, {.show_shape = false,
+                                      .show_schema = false,
+                                      .show_present_count = true}),
+                Eq("DataItem(1)"));
+  }
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
@@ -1802,7 +1847,8 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
                                .item_limit_per_dimension = 2,
                                .show_attributes = true,
                                .show_databag_id = false,
-                               .show_shape = false}),
+                               .show_shape = false,
+                               .show_present_count = false}),
         Eq("DataSlice(attrs: [a, b], schema: ENTITY(a=INT32, b=INT32))"));
   }
   {
@@ -1816,7 +1862,8 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
                                     .item_limit_per_dimension = 2,
                                     .show_attributes = true,
                                     .show_databag_id = false,
-                                    .show_shape = false}),
+                                    .show_shape = false,
+                                    .show_present_count = false}),
                 Eq("DataSlice(attrs: [a, b], schema: OBJECT)"));
   }
 }
@@ -1830,7 +1877,8 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
                                      .item_limit_per_dimension = 2,
                                      .show_attributes = true,
                                      .show_databag_id = false,
-                                     .show_shape = false}),
+                                     .show_shape = false,
+                                     .show_present_count = false}),
                 Eq("DataSlice([1, 2, ...], schema: INT32)"));
   }
   {
@@ -1848,7 +1896,8 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
                                          .item_limit_per_dimension = 2,
                                          .show_attributes = true,
                                          .show_databag_id = false,
-                                         .show_shape = false}),
+                                         .show_shape = false,
+                                         .show_present_count = false}),
                 Eq("DataSlice([42, Obj(a=1, b=1), ...], schema: OBJECT)"));
   }
 }
@@ -1866,7 +1915,8 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
   EXPECT_THAT(
       DataSliceRepr(entity, {.show_attributes = true,
                              .show_databag_id = false,
-                             .show_shape = false}),
+                             .show_shape = false,
+                             .show_present_count = false}),
       Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64))"));
 }
 
@@ -1882,6 +1932,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowItemId) {
                         .show_databag_id = false,
                         .show_shape = false,
                         .show_item_id = true,
+                        .show_present_count = false,
                     }),
       MatchesRegex(
           R"regexp(DataItem\(Entity\(a=1\), schema: ENTITY\(a=INT32\), item_id: Entity:\$[0-9a-zA-Z]{22}\))regexp"));

@@ -932,9 +932,9 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
       ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
   // Wrap in DataItem/DataSlice only if we have need to print something other
   // than the DataSlice literal.
-  bool wrap_repr =
-      (option.show_databag_id || option.show_shape || option.show_schema ||
-       option.show_item_id || only_print_attr_names);
+  bool wrap_repr = (option.show_databag_id || option.show_shape ||
+                    option.show_schema || option.show_item_id ||
+                    option.show_present_count || only_print_attr_names);
   if (wrap_repr) {
     absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
   }
@@ -955,6 +955,9 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
     } else {
       absl::StrAppend(&result, ds.GetSchemaImpl());
     }
+  }
+  if (option.show_present_count && !ds.is_item()) {
+    absl::StrAppend(&result, ", present: ", ds.present_count(), "/", ds.size());
   }
   if (!ds.is_item() && option.show_shape) {
     absl::StrAppend(&result, ", shape: ", arolla::Repr(ds.GetShape()));

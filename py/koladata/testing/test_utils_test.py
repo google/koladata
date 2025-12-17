@@ -435,9 +435,10 @@ class TestUtilsTest(parameterized.TestCase):
     with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises
         AssertionError,
         re.escape(
-            'Unordered DataSlice DataSlice([[1, 2], [3]], schema: INT32, shape:'
-            ' JaggedShape(2, [2, 1])) != DataSlice([[1, 3], [2]], schema:'
-            ' INT32, shape: JaggedShape(2, [2, 1]))'
+            'Unordered DataSlice DataSlice([[1, 2], [3]], schema: INT32,'
+            ' present: 3/3, shape: JaggedShape(2, [2, 1])) != DataSlice([[1,'
+            ' 3], [2]], schema: INT32, present: 3/3, shape: JaggedShape(2, [2,'
+            ' 1]))'
         ),
     ):
       test_utils.assert_unordered_equal(ds([[1, 2], [3]]), ds([[1, 3], [2]]))

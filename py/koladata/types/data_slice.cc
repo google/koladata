@@ -1008,7 +1008,8 @@ PyObject* absl_nullable PyDataSlice_debug_repr(PyObject* self) {
   arolla::python::PyCancellationScope cancellation_scope;
   std::string debug_repr =
       DataSliceRepr(UnsafeDataSliceRef(self),
-                    ReprOption{.max_expr_quote_len = static_cast<size_t>(-1)});
+                    ReprOption{.max_expr_quote_len = static_cast<size_t>(-1),
+                               .show_present_count = true});
   return PyUnicode_FromStringAndSize(
       debug_repr.c_str(), static_cast<Py_ssize_t>(debug_repr.size()));
 }

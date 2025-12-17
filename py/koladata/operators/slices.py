@@ -2156,6 +2156,7 @@ def str_(x):
   return schema_ops.to_str(x)
 
 
+# pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kd.get_repr'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.get_repr',
@@ -2178,7 +2179,8 @@ def get_repr(
     show_shape=False,
     show_schema=False,
     show_item_id=False,
-):  # pylint: disable=unused-argument
+    show_present_count=False,
+):
   """Returns a string representation of the DataSlice `x`.
 
   Args:
@@ -2203,12 +2205,16 @@ def get_repr(
     show_shape: When true, the repr will show the shape.
     show_schema: When true, the repr will show the schema.
     show_item_id: When true, the repr will show the itemids for objects.
+    show_present_count: When true, the repr will show the size and present_count
+      for DataSlices.
 
   Returns:
     A string representation of the DataSlice `x`.
   """
   raise NotImplementedError('implemented in the backend')
 
+
+# pylint: enable=unused-argument
 
 arolla.abc.register_adhoc_aux_binding_policy(
     str_,

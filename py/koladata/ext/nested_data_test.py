@@ -445,9 +445,9 @@ class NestedDataTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError,
         'the selection_ds DataSlice([[present, missing, missing], [missing,'
-        ' missing, missing]], schema: MASK, shape: JaggedShape(2, 3)) does not'
-        " match the shape of the slice at ['q', 'o']: JaggedShape(2, 3) !="
-        ' JaggedShape(2)',
+        ' missing, missing]], schema: MASK, present: 1/6, shape:'
+        " JaggedShape(2, 3)) does not match the shape of the slice at ['q',"
+        " 'o']: JaggedShape(2, 3) != JaggedShape(2)",
     ):
       nested_data.selected_path_update(
           in_ds, ['q', 'o'], in_ds.q[:].qt[:].qtid == 0

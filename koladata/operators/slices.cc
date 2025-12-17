@@ -1082,7 +1082,8 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                                   const DataSlice& show_databag_id,
                                   const DataSlice& show_shape,
                                   const DataSlice& show_schema,
-                                  const DataSlice& show_item_id) {
+                                  const DataSlice& show_item_id,
+                                  const DataSlice& show_present_count) {
   ASSIGN_OR_RETURN(int64_t depth_int, GetIntegerArgument(depth, "depth"));
   ASSIGN_OR_RETURN(int64_t item_limit_int,
                    GetIntegerArgument(item_limit, "item_limit"));
@@ -1107,6 +1108,8 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
                    GetBoolArgument(show_schema, "show_schema"));
   ASSIGN_OR_RETURN(bool show_item_id_bool,
                    GetBoolArgument(show_schema, "show_item_id"));
+  ASSIGN_OR_RETURN(bool show_present_count_bool,
+                   GetBoolArgument(show_present_count, "show_present_count"));
   auto repr = DataSliceRepr(
       x, ReprOption{
              .depth = static_cast<size_t>(depth_int),
@@ -1121,6 +1124,7 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
              .show_shape = show_shape_bool,
              .show_schema = show_schema_bool,
              .show_item_id = show_item_id_bool,
+             .show_present_count = show_present_count_bool,
          });
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));

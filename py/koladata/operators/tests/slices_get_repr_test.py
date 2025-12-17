@@ -203,6 +203,16 @@ class SlicesGetReprTest(parameterized.TestCase):
         r' Schema:\$.{22}\)',
     )
 
+  def test_show_present_count(self):
+    res = eval_op(
+        'kd.slices.get_repr',
+        ds([[1, 2], [None, 4]]),
+        show_present_count=True,
+    )
+    testing.assert_equal(
+        res, ds('DataSlice([[1, 2], [None, 4]], present: 3/4)')
+    )
+
   def test_functor_itemid(self):
     fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()
     res = eval_op(
