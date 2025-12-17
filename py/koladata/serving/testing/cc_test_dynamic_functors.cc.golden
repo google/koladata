@@ -20,7 +20,7 @@ namespace koladata_serving_test {
 absl::StatusOr<::koladata::DataSlice>
 TestDynamicFunctors(absl::string_view name) {
   static absl::NoDestructor<::koladata::serving::RunfilesSliceLoader>
-      loader(/*filename=*/"py/koladata/serving/testing/_cc_test_dynamic_functors_genrule_data.bin");
+      loader(/*filename=*/"py/koladata/serving/testing/cc_test_dynamic_functors_genrule_data.bin");
   return loader->GetOrReloadSliceByName(name);
 }
 }  // namespace koladata_serving_test
