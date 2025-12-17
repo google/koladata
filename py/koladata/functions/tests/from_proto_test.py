@@ -237,6 +237,18 @@ class FromProtoTest(absltest.TestCase):
     ):
       proto_conversions.from_proto([[m1, m2], m3])
 
+  def test_nested_container_input(self):
+    m1 = test_pb2.MessageA(some_text='1')
+    m2 = test_pb2.MessageA(some_text='2')
+    m3 = test_pb2.MessageA(some_text='3')
+
+    # Mixture of lists and tuples.
+    x = proto_conversions.from_proto([(m1, None, m2), [], (), [m3]])
+    self.assertEqual(x.get_ndim(), 2)
+    self.assertEqual(
+        x.get_shape(), ds([[None, None, None], [], [], [None]]).get_shape()
+    )
+
   def test_extensions(self):
     m = test_pb2.MessageA(
         some_text='thing 1',

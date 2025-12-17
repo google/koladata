@@ -33,18 +33,24 @@ _NestedNoneList: TypeAlias = list['_NestedNoneList'] | None
 _NestedMessageList: TypeAlias = (
     message.Message | list['_NestedMessageList'] | None
 )
+_NestedMessageContainer: TypeAlias = (
+    message.Message
+    | list['_NestedMessageContainer']
+    | tuple['_NestedMessageContainer', ...]
+    | None
+)
 
 
-def _to_nested_list_of_none(x: _NestedMessageList) -> _NestedNoneList:
-  """Gets the "shape" of a nested list as a nested list with None leaves."""
-  if not isinstance(x, list):
+def _to_nested_list_of_none(x: _NestedMessageContainer) -> _NestedNoneList:
+  """Gets the "shape" of a nested container as a nested list with None leaves."""
+  if not isinstance(x, (list, tuple)):
     return None
   return [_to_nested_list_of_none(item) for item in x]
 
 
-def _flatten(x: _NestedMessageList) -> Iterator[message.Message | None]:
-  """Iterates over the leaves of a nested list."""
-  if isinstance(x, list):
+def _flatten(x: _NestedMessageContainer) -> Iterator[message.Message | None]:
+  """Iterates over the leaves of a nested container."""
+  if isinstance(x, (list, tuple)):
     for item in x:
       yield from _flatten(item)
   else:
@@ -59,7 +65,7 @@ def _unflatten(shape: _NestedNoneList, it: Iterator[_T]) -> list[_T]:
 
 
 def from_proto(
-    messages: _NestedMessageList,
+    messages: _NestedMessageContainer,
     /,
     *,
     extensions: list[str] | None = None,
@@ -109,8 +115,8 @@ def from_proto(
   list of proto Messages, the result is an 1D DataSlice.
 
   Args:
-    messages: Message or nested list of Message of the same type. Any of the
-      messages may be None, which will produce missing items in the result.
+    messages: Message or nested list/tuple of Message of the same type. Any of
+      the messages may be None, which will produce missing items in the result.
     extensions: List of proto extension paths.
     itemid: The ItemId(s) to use for the root object(s). If not specified, will
       allocate new id(s). If specified, will also infer the ItemIds for all
