@@ -25,10 +25,12 @@ using ::koladata::testing::IsDeepEquivalentTo;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::Not;
 
-// Note: Reproducibility for items A and B is tested using the corresponding
-// golden tests:
-//  * py/koladata/serving/testing:reproducible_item_a_cc_golden_test
-//  * py/koladata/serving/testing:reproducible_item_b_cc_golden_test
+// Note: Here we test that the items are internally equivalent but distinct
+// (i.e., IsDeepEquivalentTo returns true, but IsEquivalentTo returns false).
+//
+// The tracing reproducibility is tested using TAP, see:
+// 'third_party.koladata.check_determinism' in
+// koladata/third_party.koladata.blueprint
 
 TEST(ReproducibilityTest, ItemsAreEquivalentButDifferent) {
   ASSERT_OK_AND_ASSIGN(auto item_a, ReproducibleItemA("item"));
