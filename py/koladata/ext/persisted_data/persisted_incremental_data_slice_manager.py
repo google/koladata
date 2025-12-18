@@ -23,7 +23,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import os
-from typing import Collection, Generator
+from typing import Collection, Generator, cast
 import uuid
 
 from google.protobuf import timestamp
@@ -334,9 +334,14 @@ class PersistedIncrementalDataSliceManager(
             schema_bag_manager.get_minimal_bag(schema_bag_names)
         )
     )
-    initial_schema_node_name_to_data_bag_names = fs_util.read_slice_from_file(
-        fs,
-        _get_initial_schema_node_name_to_bag_names_filepath(persistence_dir),
+    initial_schema_node_name_to_data_bag_names = cast(
+        kd.types.DictItem,
+        fs_util.read_slice_from_file(
+            fs,
+            _get_initial_schema_node_name_to_bag_names_filepath(
+                persistence_dir
+            ),
+        ),
     )
     schema_node_name_to_data_bags_updates_manager = (
         dbm.PersistedIncrementalDataBagManager(
@@ -373,7 +378,7 @@ class PersistedIncrementalDataSliceManager(
       data_bag_manager: dbm.PersistedIncrementalDataBagManager,
       schema_bag_manager: dbm.PersistedIncrementalDataBagManager,
       schema_helper: schema_helper_lib.SchemaHelper,
-      initial_schema_node_name_to_data_bag_names: kd.types.DataSlice,
+      initial_schema_node_name_to_data_bag_names: kd.types.DictItem,
       schema_node_name_to_data_bags_updates_manager: (
           dbm.PersistedIncrementalDataBagManager
       ),
@@ -423,7 +428,7 @@ class PersistedIncrementalDataSliceManager(
     )
     self._metadata = metadata
 
-  def get_schema(self) -> kd.types.DataSlice:
+  def get_schema(self) -> kd.types.SchemaItem:
     """Returns the schema of the entire DataSlice managed by this manager."""
     schema_bag_names = set()
     for revision in self._metadata.revision_history:

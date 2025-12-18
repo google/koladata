@@ -23,7 +23,7 @@ For example:
 The functions in this module help answer these questions. Not only for
 DataItems, but also for DataSlices.
 """
-
+from typing import cast
 from koladata import kd
 
 # Sentinel values that are present for various schemas. We will rely on sentinel
@@ -50,17 +50,20 @@ _PRESENT_SENTINELS_LIST = [
 _PRESENT_SENTINELS = {str(schema): v for schema, v in _PRESENT_SENTINELS_LIST}
 
 
-def _get_present_sentinel_value(schema: kd.types.DataItem) -> kd.types.DataItem:
+def _get_present_sentinel_value(
+    schema: kd.types.DataSlice,
+) -> kd.types.DataItem:
+  """Returns a present sentinel value for the given schema."""
   # OBJECT schemas are not supported in persisted incremental data slices:
   assert schema != kd.OBJECT
   # NONE schema is not inhabited by any present value:
   assert schema != kd.NONE
   if schema.is_entity_schema():
-    return schema.new()
+    return cast(kd.types.DataItem, schema.new())
   if schema.is_list_schema():
-    return kd.list(schema=schema)
+    return cast(kd.types.DataItem, kd.list(schema=schema))
   if schema.is_dict_schema():
-    return kd.dict(schema=schema)
+    return cast(kd.types.DataItem, kd.dict(schema=schema))
   return _PRESENT_SENTINELS[str(schema)]
 
 

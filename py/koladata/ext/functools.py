@@ -24,9 +24,7 @@ from koladata import kd
 kdf = kd.functor
 
 
-def MaybeEval(
-    x: Any, root: kd.types.DataSlice | None = None
-) -> kd.types.DataSlice:
+def MaybeEval(x: Any, root: kd.types.DataSlice | None = None) -> Any:
   """Evaluates x on root/dh if it's evaluable otherwise returns x."""
   if isinstance(x, list):
     return [MaybeEval(y, root=root) for y in x]

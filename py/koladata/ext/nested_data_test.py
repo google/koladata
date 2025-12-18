@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from typing import Any, Literal, overload
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -24,6 +25,20 @@ kdf = kd.functor
 kdi = kd.eager
 I = kd.I
 S = kd.S
+
+
+@overload
+def create_test_dataset(
+    entity_mode: Literal[True], sparse: bool
+) -> kd.types.DataSlice:
+  ...
+
+
+@overload
+def create_test_dataset(
+    entity_mode: Literal[False], sparse: bool
+) -> dict[str, Any]:
+  ...
 
 
 def create_test_dataset(entity_mode: bool, sparse: bool) -> kd.types.DataSlice:
@@ -90,11 +105,11 @@ def create_test_dataset(entity_mode: bool, sparse: bool) -> kd.types.DataSlice:
   return kd.from_py(data, dict_as_obj=True, schema=r_schema)
 
 
-def create_test_dataset_entity_mode(sparse: bool = False) -> kd.types.DataSlice:
+def create_test_dataset_entity_mode(sparse: bool = False) -> Any:
   return create_test_dataset(entity_mode=True, sparse=sparse)
 
 
-def create_test_dataset_obj_mode(sparse: bool = False) -> kd.types.DataSlice:
+def create_test_dataset_obj_mode(sparse: bool = False) -> Any:
   return create_test_dataset(entity_mode=False, sparse=sparse)
 
 

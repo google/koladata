@@ -623,7 +623,7 @@ class SchemaHelper:
   * Provide easy access to queries about the same schema / schema graph.
   """
 
-  def __init__(self, schema: kd.types.DataSlice):
+  def __init__(self, schema: kd.types.DataItem):
     _check_is_schema_item(schema)
     self._schema = schema
     artifacts = _analyze_schema(self._schema)
@@ -694,7 +694,7 @@ class SchemaHelper:
       *,
       at_schema_node_name: str,
       attr_name: str,
-      attr_value_schema: kd.types.DataSlice,
+      attr_value_schema: kd.types.DataItem,
   ) -> AbstractSet[str]:
     r"""Returns the existing and new schema node names affected by a data update.
 
@@ -752,7 +752,7 @@ class SchemaHelper:
         ).schema_graph.keys()
     )
 
-  def get_subschema_at(self, schema_node_name: str) -> kd.types.DataSlice:
+  def get_subschema_at(self, schema_node_name: str) -> kd.types.DataItem:
     """Returns the Koda schema, e.g. kd.INT32, at `schema_node_name`."""
     self._check_is_valid_schema_node_name(schema_node_name)
     return self._schema_node_name_to_schema[schema_node_name]

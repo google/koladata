@@ -15,7 +15,7 @@
 """Initial data that is a given empty entity or kd.new() if not provided."""
 
 import os
-from typing import AbstractSet, Collection
+from typing import AbstractSet, Collection, cast
 
 from koladata import kd
 from koladata.ext.persisted_data import fs_interface
@@ -93,7 +93,9 @@ class BareRootInitialDataManager(
         raise ValueError(f'persistence_dir not found: {persistence_dir}')
       raise ValueError(f'file not found: {filepath}')
     return BareRootInitialDataManager(
-        root_item=fs_util.read_slice_from_file(fs, filepath)
+        root_item=cast(
+            kd.types.DataItem, fs_util.read_slice_from_file(fs, filepath)
+        )
     )
 
   def get_schema(self) -> kd.types.SchemaItem:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os.path
+from typing import cast
 
 from absl import flags
 from absl.testing import absltest
@@ -26,7 +27,7 @@ FLAGS = flags.FLAGS
 
 class SerializedTestFunctorsTest(parameterized.TestCase):
 
-  def load_functor_bytes(self, functor_name: str) -> kd.types.DataSlice:
+  def load_functor_bytes(self, functor_name: str) -> bytes:
     filename = os.path.join(
         FLAGS.test_srcdir,
         f'py/koladata/serving/testing/{functor_name}.kd',
@@ -43,7 +44,7 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
     self.assertEmpty(exprs)
     self.assertIsInstance(slices[0], kd.types.DataSlice)
 
-    return slices[0]
+    return cast(kd.types.DataSlice, slices[0])
 
   def test_serialized_ask_about_serving(self):
     ask_about_serving = self.load_functor(

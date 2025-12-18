@@ -100,7 +100,7 @@ def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
   )
 
 
-def get_loaded_schema(manager: DataSliceManager) -> kd.types.DataSlice:
+def get_loaded_schema(manager: DataSliceManager) -> kd.types.DataItem:
   """Returns the schema of the loaded part of the DataSlice."""
   return get_loaded_root_dataslice(manager).get_schema()
 
