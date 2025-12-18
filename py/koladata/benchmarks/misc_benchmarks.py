@@ -281,6 +281,40 @@ def map_py(state):
 
 
 @google_benchmark.register
+def map_py_str(state):
+  """Benchmark for strings in kd.map_py."""
+  s = kd.slice([' a' + str(i) + 'b ' for i in range(10000)])
+  fn = lambda x: str(x).strip()
+  while state:
+    _ = kd.map_py(fn, s)
+
+
+@google_benchmark.register
+def map_py_lists(state):
+  """Benchmark for lists in kd.map_py."""
+  sizes = kd.random.randint_shaped_as(kd.range(1000)) % 10
+  fn = lambda x: [1] * x
+  while state:
+    _ = kd.map_py(fn, sizes)
+
+
+@google_benchmark.register
+def map_py_dicts(state):
+  """Benchmark for dicts in kd.map_py."""
+  shape = kd.shapes.new(1000, kd.random.randint_shaped_as(kd.range(1000)) % 10)
+  size = kd.sum(kd.shapes.dim_sizes(shape, dim=1))
+  keys = kd.slice([f'key_{i}' for i in range(size.to_py())]).reshape(shape)
+  dicts = kd.dict(
+      keys,
+      kd.random.randint_shaped_as(keys) % 10
+  ).to_py()
+  indices = kd.range(1000)
+  fn = lambda i: dicts[i]
+  while state:
+    _ = kd.map_py(fn, indices)
+
+
+@google_benchmark.register
 def map_with_traced_fn(state):
   """Benchmark for kd.map with a traced fn inside."""
   x = kd.range(int(1e3))
