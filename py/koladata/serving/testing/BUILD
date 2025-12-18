@@ -56,22 +56,6 @@ koladata_serialized_slices(
     tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
 )
 
-koladata_serialized_slices(
-    name = "other_serialized_test_functors_for_determinism_test",
-    testonly = True,
-    slices = {
-        "non_deterministic_functor": koladata_trace_py_fn(
-            "koladata.serving.testing.test_functors.non_deterministic_functor",
-            experimental_deterministic_mode = True,
-        ),
-        "non_deterministic_functor_with_different_name": koladata_trace_py_fn(
-            "koladata.serving.testing.test_functors.non_deterministic_functor_with_different_name",
-            experimental_deterministic_mode = True,
-        ),
-    },
-    tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
-)
-
 koladata_cc_embedded_slices(
     name = "cc_test_functors",
     testonly = True,
