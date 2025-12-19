@@ -27,6 +27,7 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/bytes.h"
@@ -36,12 +37,14 @@
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -59,6 +62,14 @@ using ::testing::ContainsRegex;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
+
+using internal::testing::deep_op_utils::DeepOpTest;
+using internal::testing::deep_op_utils::test_param_values;
+
+class DeepCastingTest : public DeepOpTest {};
+
+INSTANTIATE_TEST_SUITE_P(MainOrFallback, DeepCastingTest,
+                         ::testing::ValuesIn(test_param_values));
 
 // Returns the set of DTypes that implicitly casts to `dtype`.
 const absl::flat_hash_set<schema::DType>& GetDTypesCastableTo(
@@ -1380,7 +1391,7 @@ TEST_P(CastingToEntityTest, Casting) {
   const auto& entity_schema = output.GetSchemaImpl();
   ASSERT_TRUE(entity_schema.is_struct_schema());
   ASSERT_OK_AND_ASSIGN(auto item_id_slice, ToEntity(input, entity_schema));
-  EXPECT_THAT(item_id_slice, IsEquivalentTo(output));
+  EXPECT_THAT(item_id_slice, testing::IsDeepEquivalentTo(output));
 }
 
 TEST_P(CastingToEntityTest, CanCastTo) {
@@ -1471,45 +1482,43 @@ TEST(Casting, EntityErrors) {
       ToEntity(test::EmptyDataSlice(3, schema::kNone), internal::DataItem(1)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "expected an entity schema, got: 1"));
-  // Even when the bag is not attached, the error is fine.
-  EXPECT_THAT(
-      ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                             schema::kMask),
-               internal::DataItem(entity_schema)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr(absl::StrFormat("(deep) casting from MASK to entity "
-                                         "schema %v is currently not supported",
-                                         internal::DataItem(entity_schema)))));
+  // If the bag is missing, the error is about the missing bag.
+  EXPECT_THAT(ToEntity(test::DataSlice<arolla::Unit>(
+                           {arolla::kUnit, std::nullopt}, schema::kMask),
+                       internal::DataItem(entity_schema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr(absl::StrFormat(
+                           "(deep) casting from MASK to entity schema %v is "
+                           "currently not supported",
+                           internal::DataItem(entity_schema)))));
   // If the "wrong" bag is attached, the error is still fine (it will be the
   // empty schema).
-  EXPECT_THAT(
-      ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                             schema::kMask, db2),
-               internal::DataItem(entity_schema)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr(absl::StrFormat(
-                   "(deep) casting from MASK to entity "
-                   "schema ENTITY() with id %v is currently not supported",
-                   internal::DataItem(entity_schema)))));
-  // When the bag is attached, the error is even better.
-  EXPECT_THAT(
-      ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                             schema::kMask, db),
-               internal::DataItem(entity_schema)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr(absl::StrFormat(
-                   "(deep) casting from MASK to entity "
-                   "schema ENTITY() with id %v is currently not supported",
-                   internal::DataItem(entity_schema)))));
+  EXPECT_THAT(ToEntity(test::DataSlice<arolla::Unit>(
+                           {arolla::kUnit, std::nullopt}, schema::kMask, db2),
+                       internal::DataItem(entity_schema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr(absl::StrFormat(
+                           "(deep) casting from MASK to entity schema "
+                           "ENTITY() with id %v is currently not supported",
+                           internal::DataItem(entity_schema)))));
+  // When the bag is attached, the error is the same.
+  EXPECT_THAT(ToEntity(test::DataSlice<arolla::Unit>(
+                           {arolla::kUnit, std::nullopt}, schema::kMask, db),
+                       internal::DataItem(entity_schema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr(absl::StrFormat(
+                           "(deep) casting from MASK to entity schema ENTITY() "
+                           "with id %v is currently not supported",
+                           internal::DataItem(entity_schema)))));
   EXPECT_THAT(
       ToEntity(test::DataSlice<ObjectId>({obj, std::nullopt}, entity_schema),
                internal::DataItem(entity_schema_2)),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          HasSubstr(absl::StrFormat("(deep) casting from %v to entity "
-                                    "schema %v is currently not supported",
-                                    internal::DataItem(entity_schema),
-                                    internal::DataItem(entity_schema_2)))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr(absl::StrFormat(
+                   "(deep) casting from entity schema %v to entity schema %v "
+                   "without DataBag is currently not supported",
+                   internal::DataItem(entity_schema),
+                   internal::DataItem(entity_schema_2)))));
   // OBJECT -> Entity errors.
   // No bag.
   EXPECT_THAT(ToEntity(test::DataItem(internal::AllocateSingleObject(),
@@ -1542,9 +1551,10 @@ TEST(Casting, EntityErrors) {
           internal::DataItem(entity_schema)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr(absl::StrFormat(
-                   "(deep) casting from OBJECT with "
-                   "common __schema__ FLOAT32 to entity "
-                   "schema ENTITY() with id %v is currently not supported",
+                   "DataSlice with an Entity schema must hold Entities or "
+                   "Objects.; when (deep) casting slice DataSlice([1, 2.0], "
+                   "schema: OBJECT, shape: JaggedShape(2)) to "
+                   "entity schema ENTITY() with id %v",
                    internal::DataItem(entity_schema)))));
 }
 
@@ -1868,6 +1878,12 @@ TEST(Casting, CastToExplicit) {
                        internal::DataItem(schema::kInt32)),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(1, schema::kInt32))));
     // But it can also fail if the explicit cast is not allowed.
+    EXPECT_THAT(
+        CastToExplicit(test::DataItem(1, schema::kInt32),
+                       internal::DataItem(schema::kExpr)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr(absl::StrFormat("casting a DataSlice with schema "
+                                           "INT32 to EXPR is not supported"))));
     auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
     EXPECT_THAT(
         CastToExplicit(test::DataItem(1, schema::kInt32), entity_schema),
@@ -1876,6 +1892,14 @@ TEST(Casting, CastToExplicit) {
             HasSubstr(absl::StrFormat("(deep) casting from INT32 to entity "
                                       "schema %v is currently not supported",
                                       entity_schema))));
+    EXPECT_THAT(CastToExplicit(
+                    test::DataItem(1, schema::kInt32, DataBag::EmptyMutable()),
+                    entity_schema),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr(absl::StrFormat(
+                             "(deep) casting from INT32 to entity schema "
+                             "ENTITY() with id %v is currently not supported",
+                             entity_schema))));
   }
   {
     // Casting to OBJECT with embedding.
@@ -1906,6 +1930,174 @@ TEST(Casting, CastToExplicit) {
     ASSERT_OK(expected_db_impl.SetAttr(obj, schema::kSchemaAttr, schema_2));
     EXPECT_THAT(db->GetImpl(), DataBagEqual(expected_db_impl));
   }
+}
+
+TEST_P(DeepCastingTest, CastToExplicit_Nested) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  auto schema_b_updated = AllocateSchema();
+  auto schema_a_updated = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(
+              arolla::CreateDenseArray<internal::DataItem>({a0, a1, a2})),
+          DataSlice::JaggedShape::FlatFromSize(3), schema_a, db_ptr));
+
+  TriplesT data_triples = {
+      {a0, {{"self", a0}, {"b", b0}}},
+      {a1, {{"self", a1}, {"b", b1}}},
+      {a2, {{"self", a2}, {"b", b2}}},
+      {b0, {{"x", internal::DataItem(0)}, {"y", internal::DataItem(10)}}},
+      {b1, {{"x", internal::DataItem(1)}, {"y", internal::DataItem(11)}}},
+      {b2, {{"x", internal::DataItem(2)}, {"y", internal::DataItem(12)}}}};
+  TriplesT schema_triples = {
+      {schema_a, {{"self", schema_a}, {"b", schema_b}}},
+      {schema_b,
+       {{"x", internal::DataItem(schema::kInt32)},
+        {"y", internal::DataItem(schema::kInt32)}}},
+      {schema_a_updated, {{"self", schema_a_updated}, {"b", schema_b_updated}}},
+      {schema_b_updated, {{"y", internal::DataItem(schema::kFloat32)}}}};
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyObjects(3);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result, CastToExplicit(ds, schema_a_updated));
+
+  TriplesT expected_data_triples = {
+      {a0, {{"self", a0}, {"b", b0}}},
+      {a1, {{"self", a1}, {"b", b1}}},
+      {a2, {{"self", a2}, {"b", b2}}},
+      {b0, {{"y", internal::DataItem(10.)}}},
+      {b1, {{"y", internal::DataItem(11.)}}},
+      {b2, {{"y", internal::DataItem(12.)}}}};
+  TriplesT expected_schema_triples = {
+      {schema_a_updated, {{"self", schema_a_updated}, {"b", schema_b_updated}}},
+      {schema_b_updated, {{"y", internal::DataItem(schema::kFloat32)}}}};
+
+  const auto& result_db = result.GetBag()->GetImpl();
+  auto expected_db = internal::DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
+
+TEST_P(DeepCastingTest, CastToExplicit_DeepListsSlice) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto lists = AllocateEmptyLists(3);
+  auto values = AllocateEmptyObjects(7);
+  auto edge = test::EdgeFromSplitPoints({0, 3, 5, 7});
+  ASSERT_OK(db.ExtendLists(lists, values, edge));
+  auto item_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto item_schema_updated = AllocateSchema();
+  auto list_schema_updated = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(lists, DataSlice::JaggedShape::FlatFromSize(3),
+                                 list_schema, db_ptr));
+
+  TriplesT data_triples = {{values[0], {{"x", internal::DataItem(1)}}},
+                           {values[1], {{"x", internal::DataItem(2)}}},
+                           {values[2], {{"x", internal::DataItem(3)}}},
+                           {values[3], {{"x", internal::DataItem(4)}}},
+                           {values[4], {{"x", internal::DataItem(5)}}},
+                           {values[5], {{"x", internal::DataItem(6)}}},
+                           {values[6], {{"x", internal::DataItem(7)}}}};
+  TriplesT schema_triples = {
+      {list_schema, {{schema::kListItemsSchemaAttr, item_schema}}},
+      {item_schema, {{"x", internal::DataItem(schema::kInt32)}}},
+      {list_schema_updated,
+       {{schema::kListItemsSchemaAttr, item_schema_updated}}},
+      {item_schema_updated, {{"x", internal::DataItem(schema::kFloat32)}}},
+  };
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyLists(3);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result, CastToExplicit(ds, list_schema_updated));
+
+  auto expected_db = internal::DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {values[0], {{"x", internal::DataItem(1.)}}},
+      {values[1], {{"x", internal::DataItem(2.)}}},
+      {values[2], {{"x", internal::DataItem(3.)}}},
+      {values[3], {{"x", internal::DataItem(4.)}}},
+      {values[4], {{"x", internal::DataItem(5.)}}},
+      {values[5], {{"x", internal::DataItem(6.)}}},
+      {values[6], {{"x", internal::DataItem(7.)}}}};
+  TriplesT expected_schema_triples = {
+      {list_schema_updated,
+       {{schema::kListItemsSchemaAttr, item_schema_updated}}},
+      {item_schema_updated, {{"x", internal::DataItem(schema::kFloat32)}}},
+  };
+
+  const auto& result_db = result.GetBag()->GetImpl();
+  ASSERT_OK(expected_db->ExtendLists(lists, values, edge));
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
+TEST_P(DeepCastingTest, CastToExplicit_DeepListsSlice_Error) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto lists = AllocateEmptyLists(3);
+  auto values = AllocateEmptyObjects(7);
+  auto edge = test::EdgeFromSplitPoints({0, 3, 5, 7});
+  ASSERT_OK(db.ExtendLists(lists, values, edge));
+  auto item_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto item_schema_updated = AllocateSchema();
+  auto list_schema_updated = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(lists, DataSlice::JaggedShape::FlatFromSize(3),
+                                 list_schema, db_ptr));
+
+  TriplesT data_triples = {{values[0], {{"x", internal::DataItem(1)}}},
+                           {values[1], {{"x", internal::DataItem(2)}}},
+                           {values[2], {{"x", internal::DataItem(3)}}},
+                           {values[3], {{"x", internal::DataItem(4)}}},
+                           {values[4], {{"x", internal::DataItem(5)}}},
+                           {values[5], {{"x", internal::DataItem(6)}}},
+                           {values[6], {{"x", internal::DataItem(7)}}}};
+  TriplesT schema_triples = {
+      {list_schema, {{schema::kListItemsSchemaAttr, item_schema}}},
+      {item_schema, {{"x", internal::DataItem(schema::kInt32)}}},
+      {list_schema_updated,
+       {{schema::kListItemsSchemaAttr, item_schema_updated}}},
+      {item_schema_updated, {{"x", internal::DataItem(schema::kExpr)}}},
+  };
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyLists(3);
+
+  EXPECT_THAT(
+      CastToExplicit(ds, list_schema_updated),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(absl::StrFormat(
+              "DataSlice with schema LIST[ENTITY(x=INT32)] with id %v cannot "
+              "be cast to entity schema LIST[ENTITY(x=EXPR)] with id %v",
+              list_schema, list_schema_updated))));
 }
 
 TEST(Casting, CastToExplicit_CoversAllDTypes) {

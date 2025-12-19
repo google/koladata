@@ -165,6 +165,9 @@ def cast_to_implicit(x, schema):  # pylint: disable=unused-argument
   Note that `schema` must be the common schema of `schema` and `x.get_schema()`
   according to go/koda-type-promotion.
 
+  Note that `x` must be correctly typed with its schema. Thus, if provided
+  `schema` is equal to `x.get_schema()`, operator does nothing.
+
   Args:
     x: DataSlice to cast.
     schema: Schema to cast to. Must be a scalar.
@@ -185,6 +188,9 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
 
   Dispatches to the relevant `kd.to_...` operator. Performs permissive casting,
   e.g. allowing FLOAT32 -> INT32 casting through `kd.cast_to(slice, INT32)`.
+
+  Note that `x` must be correctly typed with its schema. Thus, if provided
+  `schema` is equal to `x.get_schema()`, operator does nothing.
 
   Args:
     x: DataSlice to cast.
@@ -207,6 +213,9 @@ def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   Allows for schema narrowing, where OBJECT types can be casted to primitive
   schemas as long as the data is implicitly castable to the schema. Follows the
   casting rules of `kd.cast_to_implicit` for the narrowed schema.
+
+  Note that `x` must be correctly typed with its schema. Thus, if provided
+  `schema` is equal to `x.get_schema()`, operator does nothing.
 
   Args:
     x: DataSlice to cast.

@@ -52,10 +52,42 @@ class SchemaCastToTest(parameterized.TestCase):
       ),
       (ENTITY, ENTITY.get_schema(), ENTITY),
       (ENTITY.embed_schema(), ENTITY.get_schema(), ENTITY),
+      (
+          kd.list([1, 2, 3], item_schema=schema_constants.INT64),
+          kd.schema.list_schema(schema_constants.FLOAT32),
+          kd.list([1.0, 2.0, 3.0], item_schema=schema_constants.FLOAT32),
+      ),
+      (
+          kd.new(x=1, y=2),
+          kd.uu_schema(x=schema_constants.FLOAT32, y=schema_constants.INT64),
+          kd.uu_schema(
+              x=schema_constants.FLOAT32,
+              y=schema_constants.INT64,
+          ).new(x=1, y=2),
+      ),
+      (  # cast primitives
+          kd.new(x=1.0, y=2.0),
+          kd.uu_schema(x=schema_constants.INT32, y=schema_constants.INT64),
+          kd.uu_schema(x=schema_constants.INT32, y=schema_constants.INT64).new(
+              x=1, y=2
+          ),
+      ),
+      (  # cast primitives deep and filter attributes
+          kd.new(x=1.0, y=kd.new(a=1.0, b=2.0)),
+          kd.uu_schema(
+              x=schema_constants.INT32, y=kd.uu_schema(a=schema_constants.INT32)
+          ),
+          kd.uu_schema(
+              x=schema_constants.INT32, y=kd.uu_schema(a=schema_constants.INT32)
+          ).new(
+              x=1,
+              y=kd.schema.uu_schema(a=schema_constants.INT32).new(a=1),
+          ),
+      ),
   )
   def test_eval(self, x, schema, expected):
     res = kd.schema.cast_to(x, schema)
-    testing.assert_equal(res, expected)
+    testing.assert_equivalent(res, expected)
 
   def test_adoption(self):
     bag1 = data_bag.DataBag.empty_mutable()
@@ -73,21 +105,20 @@ class SchemaCastToTest(parameterized.TestCase):
         result.x.get_bag().fingerprint, schema.get_bag().fingerprint
     )
 
-  def test_casting_conflict(self):
+  def test_same_schema_id_is_noop(self):
     bag1 = data_bag.DataBag.empty_mutable()
     bag2 = data_bag.DataBag.empty_mutable()
     entity = bag1.new(x=1)
     schema = entity.get_schema().with_bag(bag2)
     schema.x = schema_constants.FLOAT32
     result = kd.schema.cast_to(entity, schema)
-    with self.assertRaisesWithPredicateMatch(
-        AttributeError,
-        arolla.testing.any_cause_message_regex(
-            'FLOAT32 schema can only be assigned to a DataSlice that contains'
-            ' only primitives of FLOAT32'
-        ),
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.core.extract: during extract/clone, while processing the attribute'
+        " 'x', got a slice with primitive type FLOAT32 while the actual content"
+        ' has type INT32',
     ):
-      _ = result.x
+      _ = kd.extract(result)
 
   @parameterized.parameters(*itertools.product([True, False], repeat=3))
   def test_entity_to_object_casting(self, freeze, fork, fallback):
@@ -116,18 +147,26 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'DataSlice cannot have an implicit schema as its schema'
     ):
-      kd.schema.cast_to(obj, obj.get_obj_schema())
+      kd.schema.cast_to(obj, db.obj(x=1).get_obj_schema())
+
+  def test_object_to_entity_casting(self):
+    db = data_bag.DataBag.empty_mutable()
+    obj = db.new(x=1).embed_schema()
+    expected = db.new(x=1)
+    result = kd.schema.cast_to(obj, expected.get_schema())
+    testing.assert_equivalent(result, expected)
 
   def test_object_to_entity_casting_incompatible_schema_error(self):
     db = data_bag.DataBag.empty_mutable()
     obj = db.new(x=1).embed_schema()
+    schema = kd.schema.new_schema(y=schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
-        r'casting from OBJECT with common __schema__ ENTITY\(x=INT32\) with id'
-        r' Schema:.*to entity schema ENTITY\(x=INT32\) with id Schema:.*is'
-        r' currently not supported',
+        r'DataSlice with schema ENTITY\(x=INT32\) with id Schema:\$[a-zA-Z0-9]*'
+        r' cannot be cast to entity schema ENTITY\(y=INT32\) with id'
+        r' Schema:\$[a-zA-Z0-9]*',
     ):
-      kd.schema.cast_to(obj, db.new(x=1).get_schema())
+      _ = kd.schema.cast_to(obj, schema)
 
   def test_object_to_entity_casting_no_common_schema_error(self):
     db = data_bag.DataBag.empty_mutable()
@@ -135,10 +174,18 @@ class SchemaCastToTest(parameterized.TestCase):
     x = ds([1, entity.embed_schema()])
     with self.assertRaisesRegex(
         ValueError,
-        '(?s)cannot find a common schema.*INT32.*ENTITY.*when validating'
-        ' equivalence of existing __schema__',
+        'cannot find a common schema',
     ):
       kd.schema.cast_to(x, entity.get_schema())
+
+  def test_entity_attributes_error(self):
+    db = data_bag.DataBag.empty_mutable()
+    x = db.new(x='bar')
+    with self.assertRaisesRegex(
+        ValueError,
+        "unable to parse INT32: 'bar'",
+    ):
+      kd.schema.cast_to(x, kd.schema.new_schema(x=schema_constants.INT32))
 
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
@@ -146,16 +193,28 @@ class SchemaCastToTest(parameterized.TestCase):
     ):
       kd.schema.cast_to(ds(1), ds(1))
 
-  def test_unsupported_schema_error(self):
+  def test_unsupported_schema_deep_error(self):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1)
-    e2_schema = db.new(x=1).get_schema()
+    e2_schema = kd.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
     with self.assertRaisesRegex(
         ValueError,
-        r'casting from ENTITY\(x=INT32\) with id Schema:.*to entity schema'
-        r' ENTITY\(x=INT32\) with id Schema:.*is currently not supported',
+        r'kd.schema.cast_to: DataSlice with schema ENTITY\(x=INT32\) with id '
+        r'Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
+        r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*',
     ):
-      kd.schema.cast_to(e1, e2_schema)
+      _ = kd.schema.cast_to(e1, e2_schema)
+
+  def test_unsupported_schema_error(self):
+    e1 = kd.slice([1, 2, 3])
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.schema.cast_to: casting a DataSlice with schema INT32 to EXPR is'
+        ' not supported',
+    ):
+      _ = kd.schema.cast_to(e1, schema_constants.EXPR)
 
   def test_multidim_schema_error(self):
     with self.assertRaisesRegex(

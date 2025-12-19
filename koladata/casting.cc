@@ -31,11 +31,14 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/error_repr_utils.h"
+#include "koladata/extract_utils.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/deep_schema_compatible.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -50,16 +53,17 @@ constexpr DTypeMask GetDTypeMask(DTypes... dtypes) {
   return ((DTypeMask{1} << dtypes.type_id()) | ...);
 }
 
-absl::StatusOr<std::string> SchemaImplToStr(const internal::DataItem& schema,
+std::string SchemaImplToStr(const internal::DataItem& schema,
                                             absl_nullable DataBagPtr db) {
   if (!schema.is_struct_schema() || db == nullptr) {
     return absl::StrCat(schema);
   }
-  ASSIGN_OR_RETURN(
-      auto from_schema_slice,
-      DataSlice::Create(schema, internal::DataItem(schema::kSchema),
-                        std::move(db)));
-  return absl::StrFormat("%s with id %v", SchemaToStr(from_schema_slice),
+  auto from_schema_slice_or = DataSlice::Create(
+      schema, internal::DataItem(schema::kSchema), std::move(db));
+  if (!from_schema_slice_or.ok()) {
+    return absl::StrCat(schema);
+  }
+  return absl::StrFormat("%s with id %v", SchemaToStr(*from_schema_slice_or),
                          schema);
 }
 
@@ -205,6 +209,82 @@ bool IsProbablyCastableTo(const internal::DataItem& from_schema,
   }
   ABSL_UNREACHABLE();
 }
+
+absl::Status AssertSchemasCompatible(
+    const DataSlice& from_schema, const internal::DataItem& to_schema_impl,
+    internal::DeepSchemaCompatibleOp::CompatibleCallback
+        schemas_compatibility_callback) {
+  const auto& from_schema_impl = from_schema.impl<internal::DataItem>();
+  if (from_schema_impl == to_schema_impl) {
+    return absl::OkStatus();
+  }
+  if (!from_schema_impl.holds_value<internal::ObjectId>() ||
+      !to_schema_impl.holds_value<internal::ObjectId>()) {
+    if (!schemas_compatibility_callback(from_schema_impl, to_schema_impl)) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "(deep) casting from %v to entity schema %v is currently not "
+          "supported",
+          SchemaImplToStr(from_schema_impl, from_schema.GetBag()),
+          SchemaImplToStr(to_schema_impl, from_schema.GetBag())));
+    }
+    return absl::OkStatus();
+  }
+  const auto& db = from_schema.GetBag();
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("(deep) casting from entity schema %v to entity schema "
+                        "%v without DataBag is currently not supported",
+                        from_schema_impl, to_schema_impl));
+  }
+  FlattenFallbackFinder fb_finder(*db);
+  auto fallbacks_span = fb_finder.GetFlattenFallbacks();
+  DataBagPtr new_databag = DataBag::EmptyMutable();
+  ASSIGN_OR_RETURN(auto& new_databag_impl, new_databag->GetMutableImpl());
+  internal::DeepSchemaCompatibleOp deep_schema_compatible_op(
+      &new_databag_impl, {}, schemas_compatibility_callback);
+  ASSIGN_OR_RETURN(
+      (auto [are_compatible, diff_item]),
+      deep_schema_compatible_op(from_schema_impl, db->GetImpl(), fallbacks_span,
+                                to_schema_impl, db->GetImpl(), fallbacks_span));
+  if (are_compatible) {
+    return absl::OkStatus();
+  }
+  // TODO: improve the error message.
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "DataSlice with schema %v cannot be cast to entity schema %v",
+      SchemaImplToStr(from_schema_impl, db),
+      SchemaImplToStr(to_schema_impl, db)));
+}
+
+absl::StatusOr<DataSlice> CastByExtracting(
+    const DataSlice& x, const internal::DataItem& schema_item) {
+  if (!schema_item.is_struct_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "casting by extracting is only supported for entity schemas, got %v",
+        schema_item));
+  }
+  RETURN_IF_ERROR(AssertSchemasCompatible(x.GetSchema(), schema_item,
+                                          IsProbablyCastableTo));
+  auto error_suffix = [&] {
+    auto to_schema_str = SchemaImplToStr(schema_item, x.GetBag());
+    return absl::StrFormat("when (deep) casting slice %s to entity schema %s",
+                           DataSliceRepr(x, {.show_databag_id = false}),
+                           to_schema_str);
+  };
+  ASSIGN_OR_RETURN(auto x_with_schema, x.WithSchema(schema_item),
+                   _ << error_suffix());
+  auto cast_data_callback =
+      static_cast<absl::StatusOr<internal::DataSliceImpl> (*)(
+          const internal::DataSliceImpl&, const internal::DataItem&)>(
+          schema::CastDataTo);
+  ASSIGN_OR_RETURN(auto result,
+                   extract_utils_internal::ExtractWithSchema(
+                       x_with_schema, x_with_schema.GetSchema(),
+                       /*max_depth=*/-1, cast_data_callback),
+                   _ << error_suffix());
+  return result;
+}
+
 }  // namespace casting_internal
 
 absl::StatusOr<DataSlice> ToInt32(const DataSlice& slice) {
@@ -345,6 +425,7 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
   }
   internal::DataItem from_schema = slice.GetSchemaImpl();
+  DataSlice slice_with_schema = slice;
   if (from_schema == schema::kObject) {
     // In case of OBJECT, we validate that the existing __schema__ attributes
     // correspond to `entity_schema` and raise otherwise since we can end up
@@ -369,31 +450,25 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
                                         : internal::DataItem(schema::kNone);
             }),
         _ << error_suffix());
-  }
-  // TODO: Support deep casting to entity schema.
-  if (!schema::IsImplicitlyCastableTo(from_schema, entity_schema)) {
-    ASSIGN_OR_RETURN(std::string from_schema_str,
-                     SchemaImplToStr(from_schema, slice.GetBag()));
-    if (slice.GetSchemaImpl() == schema::kObject) {
-      from_schema_str =
-          absl::StrFormat("%v with common __schema__ %s",
-                          schema::kObject.name(), from_schema_str);
+    if (from_schema.is_struct_schema()) {
+      // TODO: this is a temporary tradeoff to have some checks
+      // when casting Object to Entity. We should consider proper fix, where we
+      // validate the object schemas recursively (not only on the top level).
+      ASSIGN_OR_RETURN(slice_with_schema, slice.WithSchema(from_schema),
+                       _ << error_suffix());
     }
-    // NOTE: We assume that the `entity_schema` is already part of the bag. If
-    // it's not, we still end up with an OK error message so this is a best
-    // effort that covers most practical scenarios.
-    ASSIGN_OR_RETURN(std::string entity_schema_str,
-                     SchemaImplToStr(entity_schema, slice.GetBag()));
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "(deep) casting from %s to entity schema %s is currently not supported "
-        "- please cast each attribute separately or use `kd.with_schema` if "
-        "you are certain it is safe to do so",
-        from_schema_str, entity_schema_str));
   }
-  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    return DataSlice::Create(impl, slice.GetShape(), entity_schema,
-                             slice.GetBag());
-  });
+  if (from_schema == schema::kNone) {
+    return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+      return DataSlice::Create(impl, slice.GetShape(), entity_schema,
+                               slice.GetBag());
+    });
+  }
+  if (from_schema == entity_schema) {
+    return slice.WithSchema(entity_schema);
+  }
+  return casting_internal::CastByExtracting(slice_with_schema,
+                                            entity_schema);
 }
 
 absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
