@@ -310,11 +310,6 @@ TEST(DataBagTest, SetSchemaAttrErrors_Item) {
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("schema expected")));
 
-  EXPECT_THAT(db->SetSchemaAttr(schema, "a", DataItem()),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("only schemas can be assigned as attributes of"
-                                 " schemas, got: None")));
-
   EXPECT_THAT(db->SetSchemaAttr(schema, "a", DataItem(42)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("only schemas can be assigned as attributes of"
@@ -432,12 +427,25 @@ TEST(DataBagTest, DelSchemaAttr_Item) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'b' is missing")));
 
+  // "Set to empty" is equivalent to DelSchemaAttr
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", GetIntSchema()));
+  EXPECT_THAT(db->GetSchemaAttr(schema, "b"), IsOkAndHolds(GetIntSchema()));
+  ASSERT_OK(db->SetSchemaAttr(schema, "b", DataItem()));
+  EXPECT_THAT(db->GetSchemaAttrAllowMissingWithRemoved(schema, "b"),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->GetSchemaAttr(schema, "b"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'b' is missing")));
+  EXPECT_THAT(db->GetSchemaAttrAllowMissingWithRemoved(schema, "c"),
+              IsOkAndHolds(std::nullopt));
+
   ASSERT_OK(db->DelSchemaAttr(schema, "a"));
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
   EXPECT_THAT(db->GetSchemaAttrs(schema),
-              IsOkAndHolds(ElementsAre(DataItem(arolla::Text("a")))));
+              IsOkAndHolds(UnorderedElementsAre(DataItem(arolla::Text("a")),
+                                                DataItem(arolla::Text("b")))));
 
   // Deleting on an empty object is a no-op.
   ASSERT_OK(db->DelSchemaAttr(DataItem(), "a"));

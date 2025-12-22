@@ -2688,17 +2688,15 @@ TEST(DataSliceTest, SetGetSchemaSlice) {
   auto db = DataBag::EmptyMutable();
   auto fallback_db = DataBag::EmptyMutable();
 
-  auto schema_ds = test::DataSlice<ObjectId>(
-      {internal::AllocateExplicitSchema(), internal::AllocateExplicitSchema()},
-      schema::kSchema, db);
+  auto schema1 = internal::AllocateExplicitSchema();
+  auto schema2 = internal::AllocateExplicitSchema();
+  auto schema_ds =
+      test::DataSlice<ObjectId>({schema1, schema2}, schema::kSchema, db);
 
-  auto schema_a_part_1 = test::DataSlice<schema::DType>(
-      {schema::kInt32, std::nullopt}, schema::kSchema);
-  ASSERT_OK(schema_ds.SetAttr("a", schema_a_part_1));
-
-  auto schema_a_part_2 = test::DataSlice<schema::DType>(
-      {std::nullopt, schema::kFloat32}, schema::kSchema);
-  ASSERT_OK(schema_ds.WithBag(fallback_db).SetAttr("a", schema_a_part_2));
+  ASSERT_OK(test::DataItem(schema1, schema::kSchema, db)
+                .SetAttr("a", test::DataItem(schema::kInt32)));
+  ASSERT_OK(test::DataItem(schema2, schema::kSchema, fallback_db)
+                .SetAttr("a", test::DataItem(schema::kFloat32)));
 
   schema_ds = schema_ds.WithBag(
       DataBag::ImmutableEmptyWithFallbacks({db, fallback_db}));

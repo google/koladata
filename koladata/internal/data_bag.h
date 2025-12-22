@@ -50,6 +50,7 @@
 #include "koladata/internal/dict.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/sparse_source.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 
@@ -526,11 +527,22 @@ class DataBagImpl : public arolla::RefcountedBase {
                                          FallbackSpan fallbacks = {}) const;
 
   // Returns a DataItem that represents schema of an attribute `attr` in the
-  // given `schema_item`. In case the attribute is missing, an empty DataItem is
-  // returned.
-  absl::StatusOr<DataItem> GetSchemaAttrAllowMissing(
+  // given `schema_item`.
+  // Returns DataItem if value is set or removed.
+  // Returns std::nullopt if value is not set.
+  absl::StatusOr<std::optional<DataItem>> GetSchemaAttrAllowMissingWithRemoved(
       const DataItem& schema_item, absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
+
+  // Same as GetSchemaAttrAllowMissingWithRemoved, but doesn't distinguish
+  // unset and removed.
+  absl::StatusOr<DataItem> GetSchemaAttrAllowMissing(
+      const DataItem& schema_item, absl::string_view attr,
+      FallbackSpan fallbacks = {}) const {
+    ASSIGN_OR_RETURN(auto res, GetSchemaAttrAllowMissingWithRemoved(
+                                   schema_item, attr, fallbacks));
+    return res.value_or(DataItem());
+  }
 
   // Returns a DataSliceImpl that represents schema of an attribute `attr` in
   // the given `schema_slice` slice. In case the attribute is missing
@@ -543,7 +555,10 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Returns a DataSliceImpl that represents schema of an attribute `attr` in
   // the given `schema_slice` slice. The attribute is returned as is, even if
   // some elements are missing where schema contains a valid schema ObjectId.
-  // E.g.
+  // Resulting DataSliceImpl contains types_buffer to distinguish
+  // removed and unset values. If types_buffer is empty, then all values are
+  // removed.
+  // Example:
   //
   // [schema_id_0, None, schema_id_2].GetSchemAttrAllowMissing("a")
   // Returns: [INT32, None, None]
@@ -889,11 +904,15 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Lower level utility to lookup in Dict by provided ObjectId.
   // This function bypass verification and support custom key.
+  // Nullopt result means that the dict doesn't have the requested key (i.e.
+  // that value vas never set). Empty DataItem means REMOVED value (i.e.
+  // explicitly assigned to empty DataItem).
   template <typename Key>
-  DataItem GetFromDictObject(ObjectId dict_id, const Key& key) const;
+  std::optional<DataItem> GetFromDictObject(ObjectId dict_id,
+                                            const Key& key) const;
   template <typename Key>
-  DataItem GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
-                                          FallbackSpan fallbacks) const;
+  std::optional<DataItem> GetFromDictObjectWithFallbacks(
+      ObjectId dict_id, const Key& key, FallbackSpan fallbacks) const;
 
   // Create (if not yet created) and return DictVector for given `alloc_id`
   // in `this->dicts_`. Uses a corresponding DictVector from

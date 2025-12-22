@@ -1712,11 +1712,21 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
         db.new(x=db.new()).x = ds(None, schema_constants.ITEMID)
 
     with self.subTest('schema'):
+      s = bag().new().get_schema()
+      s.x = schema_constants.INT32
+      s.x = None
       with self.assertRaisesRegex(
-          ValueError,
-          'only schemas can be assigned as attributes of schemas, got: None',
+          AttributeError,
+          r'the attribute \'x\' is missing on the schema',
       ):
-        bag().new().get_schema().x = None
+        _ = s.x
+
+  def test_clone_schema_with_removed_attr(self):
+    sc1 = bag().new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
+    sc2 = sc1.fork_bag()
+    del sc2.x
+    sc3 = sc2.clone()
+    testing.assert_equal(sc3.y.no_bag(), schema_constants.INT32)
 
   def test_setattr_assignment_rhs_scalar(self):
     x = bag().obj(a=1)

@@ -2979,6 +2979,64 @@ TEST_P(ExtractTest, ObjectSchemaAllMissing) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, SchemaWithRemovedAttribute) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {
+      {schema,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt64)}}}};
+  TriplesT data_triples = {{obj_ids[2],
+                            {{schema::kSchemaAttr, schema},
+                             {"x", DataItem(1)},
+                             {"y", DataItem(2ll)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  {
+    ASSERT_OK_AND_ASSIGN(
+        std::optional<DataItem> x_before,
+        db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
+    EXPECT_EQ(x_before, DataItem(schema::kInt32));
+    ASSERT_OK(db->DelSchemaAttr(schema, "x"));
+    ASSERT_OK_AND_ASSIGN(
+        std::optional<DataItem> x_after,
+        db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
+    EXPECT_EQ(x_after, DataItem());
+  }
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_schema_triples = {
+      {schema, {{"x", DataItem()}, {"y", DataItem(schema::kInt64)}}}};
+  TriplesT expected_data_triples = {
+      {obj_ids[2], {{schema::kSchemaAttr, schema}, {"y", DataItem(2ll)}}}};
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  SetDataTriples(*expected_db, expected_data_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+
+  ASSERT_OK_AND_ASSIGN(
+      std::optional<DataItem> sx,
+      result_db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
+  ASSERT_OK_AND_ASSIGN(
+      std::optional<DataItem> sy,
+      result_db->GetSchemaAttrAllowMissingWithRemoved(schema, "y"));
+  ASSERT_OK_AND_ASSIGN(
+      std::optional<DataItem> sz,
+      result_db->GetSchemaAttrAllowMissingWithRemoved(schema, "z"));
+  EXPECT_EQ(sx, DataItem());  // "removed" value is extracted from `db`
+  EXPECT_EQ(sy, DataItem(schema::kInt64));
+  EXPECT_EQ(sz, std::nullopt);  // unset
+}
+
 TEST_P(ExtractTest, InvalidSchemaType) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);

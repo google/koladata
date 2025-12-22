@@ -120,9 +120,7 @@ cc_library(
     srcs = ["extract.cc"],
     hdrs = ["extract.h"],
     deps = [
-        ":equal",
         ":group_by_utils",
-        ":has",
         ":presence_and",
         ":presence_or",
         "//koladata/internal:data_bag",
