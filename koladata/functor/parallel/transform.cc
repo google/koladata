@@ -853,7 +853,7 @@ absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
   }
   ASSIGN_OR_RETURN(DataSlice fns, std::move(functors).As<DataSlice>());
   ASSIGN_OR_RETURN(DataSlice unique_fns,
-                   ops::Unique(std::move(fns).Flatten(),
+                   ops::Unique(fns.Flatten(),
                                /*sort=*/DataSlice::CreatePrimitive(false)));
   std::vector<DataSlice> unique_transformed_fns_vec;
   unique_transformed_fns_vec.reserve(unique_fns.size());
