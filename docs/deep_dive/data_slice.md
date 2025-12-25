@@ -387,7 +387,7 @@ entity.get_bag().contents_repr()
 # $7IuxbXOk7p4FXg61l8TiuV.b => STRING
 ```
 
-See [Technical Deep Dive: DataBag](databag.md) for more details on how this is
+See [Technical Deep Dive: DataBag](data_bag.md) for more details on how this is
 represented inside of a DataBag, how attribute access works and more.
 
 #### Schemas
