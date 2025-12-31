@@ -22,7 +22,7 @@ namespace {{n}} {
 absl::StatusOr<::koladata::DataSlice>
 {{function_name}}(absl::string_view name) {
 {%- if dynamic_reload %}
-  static absl::NoDestructor<::koladata::serving::RunfilesSliceLoader>
+  static absl::NoDestructor<::koladata::serving::serving_internal::RunfilesSliceLoader>
       loader(/*filename=*/"{{ serialized_slices }}");
   return loader->GetOrReloadSliceByName(name);
 {%- else %}
@@ -33,7 +33,8 @@ absl::StatusOr<::koladata::DataSlice>
       absl::StatusOr<absl::flat_hash_map<std::string, ::koladata::DataSlice>>;
   static const absl::NoDestructor slices([data]() -> SliceMapOrStatus {
     ASSIGN_OR_RETURN(
-        auto slices, ::koladata::serving::ParseSerializedSlices(data));
+        auto slices,
+        ::koladata::serving::serving_internal::ParseSerializedSlices(data));
     for (const auto& [k, v] : slices) {
       RETURN_IF_ERROR(::koladata::serving::RegisterSlice(
           absl::StrCat("{{ build_target }}@", k), v));
@@ -41,7 +42,7 @@ absl::StatusOr<::koladata::DataSlice>
     return slices;
   }());
   RETURN_IF_ERROR(slices->status());
-  return ::koladata::serving::GetSliceByName(**slices, name);
+  return ::koladata::serving::serving_internal::GetSliceByName(**slices, name);
 {%- endif %}
 }
 

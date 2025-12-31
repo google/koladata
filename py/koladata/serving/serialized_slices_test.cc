@@ -71,7 +71,8 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
            arolla::TypedValue::FromValue(CreateConstantFunctor(42))},
           {},
           /*riegeli_options=*/"snappy"));
-  ASSERT_OK_AND_ASSIGN(auto functors, ParseSerializedSlices(data));
+  ASSERT_OK_AND_ASSIGN(auto functors,
+                       serving_internal::ParseSerializedSlices(data));
   ASSERT_THAT(functors, UnorderedElementsAre(Pair("f57", _), Pair("f42", _)));
   EXPECT_THAT(
       functor::CallFunctorWithCompilationCache(functors.at("f57"), {}, {}),
@@ -80,13 +81,13 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
 }
 
 TEST(ParseEmbeddedSlicesTest, CorruptData) {
-  EXPECT_THAT(ParseSerializedSlices("\x08\x96"),
+  EXPECT_THAT(serving_internal::ParseSerializedSlices("\x08\x96"),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("invalid embedded data")));
 }
 
 TEST(ParseEmbeddedSlicesTest, EmptyData) {
-  EXPECT_THAT(ParseSerializedSlices(""),
+  EXPECT_THAT(serving_internal::ParseSerializedSlices(""),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("invalid embedded data")));
 }
@@ -104,7 +105,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             {},
             /*riegeli_options=*/"zstd"));
     EXPECT_THAT(
-        ParseSerializedSlices(data),
+        serving_internal::ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
                  HasSubstr("names must be a full data slice of rank 1")));
   }
@@ -119,7 +120,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             },
             {},
             /*riegeli_options=*/"brotli"));
-    EXPECT_THAT(ParseSerializedSlices(data),
+    EXPECT_THAT(serving_internal::ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a full data slice")));
   }
@@ -135,7 +136,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             },
             {},
             /*riegeli_options=*/""));
-    EXPECT_THAT(ParseSerializedSlices(data),
+    EXPECT_THAT(serving_internal::ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a slice of strings")));
   }
@@ -151,22 +152,22 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             {},
             /*riegeli_options=*/"uncompressed"));
     EXPECT_THAT(
-        ParseSerializedSlices(data),
+        serving_internal::ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
                  HasSubstr("number of names must match number of slices")));
   }
 }
 
 TEST(GetEmbeddedSlice, Trival) {
-  SliceMap functors;
+  serving_internal::SliceMap functors;
   ASSERT_OK_AND_ASSIGN(functors["add"], functor::CreateFunctorFromFunction(
                                             &ops::Add, "add", "x, y"));
   ASSERT_OK_AND_ASSIGN(
       functors["multiply"],
       functor::CreateFunctorFromFunction(&ops::Multiply, "multiply", "x, y"));
-  EXPECT_THAT(GetSliceByName(functors, "add"),
+  EXPECT_THAT(serving_internal::GetSliceByName(functors, "add"),
               IsOkAndHolds(IsEquivalentTo(functors.at("add"))));
-  EXPECT_THAT(GetSliceByName(functors, "divide"),
+  EXPECT_THAT(serving_internal::GetSliceByName(functors, "divide"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "embedded slice not found: divide"));
 }

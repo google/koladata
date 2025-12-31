@@ -28,7 +28,7 @@ namespace koladata::serving {
 // koladata_serialized_slices build rule.
 absl::StatusOr<DataSlice> ParseSerializedSlice(absl::string_view data);
 
-// TODO: b/432324816 - Make the functions below private.
+namespace serving_internal {
 
 using SliceMap = absl::flat_hash_map<std::string, koladata::DataSlice>;
 
@@ -39,6 +39,7 @@ absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data);
 absl::StatusOr<koladata::DataSlice> GetSliceByName(const SliceMap& slices,
                                                    absl::string_view name);
 
+}  // namespace serving_internal
 }  // namespace koladata::serving
 
 #endif  // THIRD_PARTY_PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_

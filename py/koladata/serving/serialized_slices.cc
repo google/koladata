@@ -49,7 +49,10 @@ absl::StatusOr<DataSlice> ParseSerializedSlice(absl::string_view data) {
   return decode_result.values[0].As<DataSlice>();
 }
 
-absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
+namespace serving_internal {
+
+absl::StatusOr<serving_internal::SliceMap> ParseSerializedSlices(
+    absl::string_view data) {
   ASSIGN_OR_RETURN(arolla::serialization::DecodeResult decode_result,
                    arolla::serialization::DecodeFromRiegeliData(data),
                    [](absl::Status status) {
@@ -79,7 +82,7 @@ absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
   if (names_array.size() != decode_result.values.size() - 1) {
     return absl::InternalError("number of names must match number of slices");
   }
-  SliceMap result;
+  serving_internal::SliceMap result;
   result.reserve(names_array.size());
   for (int64_t i = 0; i < names_array.size(); ++i) {
     absl::string_view name = names_array[i].value;
@@ -90,8 +93,8 @@ absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
   return result;
 }
 
-absl::StatusOr<DataSlice> GetSliceByName(const SliceMap& slices,
-                                         absl::string_view name) {
+absl::StatusOr<DataSlice> GetSliceByName(
+    const serving_internal::SliceMap& slices, absl::string_view name) {
   auto it = slices.find(name);
   if (it == slices.end()) {
     return absl::InvalidArgumentError(
@@ -100,4 +103,5 @@ absl::StatusOr<DataSlice> GetSliceByName(const SliceMap& slices,
   return it->second;
 }
 
+}  // namespace serving_internal
 }  // namespace koladata::serving
