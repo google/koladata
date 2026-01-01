@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -70,8 +71,7 @@ constexpr absl::string_view kListSchemaSeed = "__list_schema__";
 constexpr absl::string_view kDictSchemaSeed = "__dict_schema__";
 
 absl::Status VerifyNoSchemaArg(absl::Span<const absl::string_view> attr_names) {
-  if (std::find(attr_names.begin(), attr_names.end(), "schema") !=
-      attr_names.end()) {
+  if (absl::c_find(attr_names, "schema") != attr_names.end()) {
     return absl::InvalidArgumentError(
         "please use new_...() instead of obj_...() to create items with a given"
         " schema");
