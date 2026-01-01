@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
@@ -575,8 +576,8 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
 
   auto get_fallback_db = [&slices] {
     std::vector<DataBagPtr> ret(slices.size());
-    std::transform(slices.begin(), slices.end(), ret.begin(),
-                   [](const DataSlice& ds) { return ds.GetBag(); });
+    absl::c_transform(slices, ret.begin(),
+                      [](const DataSlice& ds) { return ds.GetBag(); });
     return ret;
   };
   ASSIGN_OR_RETURN(
