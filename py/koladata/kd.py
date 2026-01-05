@@ -18,7 +18,7 @@ import sys as _sys
 import types as _py_types
 import typing as _typing
 
-from arolla import arolla as _arolla
+from koladata import kd_types as _kd_types
 from koladata.base import init as _
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
@@ -42,26 +42,17 @@ from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
 from koladata.functor import functor_factories as _functor_factories
 from koladata.functor import tracing_decorator as _tracing_decorator
-from koladata.functor.parallel import clib as _functor_parallel_clib
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
 from koladata.operators import qtype_utils as _qtype_utils
 from koladata.testing import testing as _testing
 from koladata.type_checking import type_checking as _type_checking
-from koladata.types import data_bag as _data_bag
-from koladata.types import data_item as _data_item
-from koladata.types import data_slice as _data_slice
-from koladata.types import dict_item as _dict_item
-from koladata.types import iterable_qvalue as _iterable_qvalue
-from koladata.types import jagged_shape as _jagged_shape
-from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
 from koladata.types import mask_constants as _mask_constants
 from koladata.types import py_boxing as _py_boxing
 from koladata.types import qtypes as _qtypes
 from koladata.types import schema_constants as _schema_constants
-from koladata.types import schema_item as _schema_item
 
 
 _HAS_DYNAMIC_ATTRIBUTES = True
@@ -89,22 +80,8 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
     _tracing_config, obj
 )
 
-
-### Used as type annotations in user's code.
-types = _same_when_tracing(_py_types.SimpleNamespace())
-types.DataBag = _data_bag.DataBag
-types.DataItem = _data_item.DataItem
-types.DataSlice = _data_slice.DataSlice
-types.DictItem = _dict_item.DictItem
-types.Executor = _functor_parallel_clib.Executor
-types.Expr = _arolla.Expr
-types.Iterable = _iterable_qvalue.Iterable
-types.JaggedShape = _jagged_shape.JaggedShape
-types.ListItem = _list_item.ListItem
-types.SchemaItem = _schema_item.SchemaItem
-types.Stream = _functor_parallel_clib.Stream
-types.StreamReader = _functor_parallel_clib.StreamReader
-types.StreamWriter = _functor_parallel_clib.StreamWriter
+### Used as type annotations in users' code.
+types = _same_when_tracing(_kd_types)
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.SimpleNamespace())

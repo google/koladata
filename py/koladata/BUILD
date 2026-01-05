@@ -37,6 +37,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":kd_dynamic",
+        ":kd_types",
         "//py:python_path",
         "//py/koladata/base:init",
         "//py/koladata/expr:expr_eval",
@@ -61,27 +62,17 @@ py_library(
         "//py/koladata/functor:functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
-        "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/operators:qtype_utils",
         "//py/koladata/testing",
         "//py/koladata/type_checking",
-        "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_item",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:dict_item",
-        "//py/koladata/types:iterable_qvalue",
-        "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:list_item",
         "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
-        "//py/koladata/types:schema_item",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -127,6 +118,24 @@ py_library(
     name = "kd_dynamic",
     srcs = ["kd_dynamic.py"],
     deps = ["//py:python_path"],
+)
+
+py_library(
+    name = "kd_types",
+    srcs = ["kd_types.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:dict_item",
+        "//py/koladata/types:iterable_qvalue",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_item",
+        "@com_google_arolla//py/arolla",
+    ],
 )
 
 py_test(

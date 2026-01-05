@@ -323,6 +323,7 @@ py_test(
 py_library(
     name = "schema_item",
     srcs = ["schema_item.py"],
+    pyi_srcs = ["schema_item.pyi"],
     deps = [
         ":data_item",
         ":data_slice",
