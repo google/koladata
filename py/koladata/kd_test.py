@@ -596,7 +596,7 @@ class KdTest(absltest.TestCase):
     self.assertIsInstance(bag, kd.types.DataBag)
 
   def test_to_py_sub_functor_regression(self):
-    f = kd.fn(lambda x: kd.eager.V.g(x) + 2).with_attrs(g=kd.fn(lambda x: x))
+    f = kd.fn(lambda x: kd.V.g(x) + 2).with_attrs(g=kd.fn(lambda x: x))
     _ = kd.list([f]).to_py(max_depth=1)  # no error
 
   def test_tracing_schema_new(self):
