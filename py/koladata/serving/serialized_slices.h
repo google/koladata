@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_
-#define THIRD_PARTY_PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_
+#ifndef PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_
+#define PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_
 
 #include <string>
 
@@ -42,4 +42,4 @@ absl::StatusOr<koladata::DataSlice> GetSliceByName(const SliceMap& slices,
 }  // namespace serving_internal
 }  // namespace koladata::serving
 
-#endif  // THIRD_PARTY_PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_
+#endif  // PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_

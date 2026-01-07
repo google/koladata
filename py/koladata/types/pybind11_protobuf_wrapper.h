@@ -18,8 +18,8 @@
 // uses C++ exceptions, so the cc file needs to be compiled with -fexceptions,
 // so the header needs to be ODR-safe for both -fexceptions and -fno-exceptions.
 
-#ifndef THIRD_PARTY_PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
-#define THIRD_PARTY_PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
+#ifndef PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
+#define PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
 
 #include <Python.h>
 
@@ -71,4 +71,4 @@ arolla::python::PyObjectPtr WrapProtoMessage(
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
+#endif  // PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_

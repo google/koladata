@@ -72,8 +72,8 @@
 //                   First parameter uses the first boxing function ┘
 //                   (Remaining parameters use the default boxing)
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
-#define THIRD_PARTY_PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
+#ifndef PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
+#define PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
 
 #include "absl/strings/string_view.h"
 
@@ -96,4 +96,4 @@ bool RegisterUnifiedBindingPolicy();
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
+#endif  // PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_

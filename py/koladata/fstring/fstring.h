@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_H_
-#define THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_H_
+#ifndef PY_KOLADATA_FSTRING_FSTRING_H_
+#define PY_KOLADATA_FSTRING_FSTRING_H_
 
 #include <Python.h>
 
@@ -33,4 +33,4 @@ PyObject* absl_nullable PyCreateFstrExpr(PyObject* /*module*/, PyObject* arg);
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_H_
+#endif  // PY_KOLADATA_FSTRING_FSTRING_H_

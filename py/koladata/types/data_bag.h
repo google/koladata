@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_TYPES_DATA_BAG_H_
-#define THIRD_PARTY_PY_KOLADATA_TYPES_DATA_BAG_H_
+#ifndef PY_KOLADATA_TYPES_DATA_BAG_H_
+#define PY_KOLADATA_TYPES_DATA_BAG_H_
 
 #include <Python.h>
 
@@ -31,4 +31,4 @@ PyObject* absl_nullable PyDataBagModule_exactly_equal(
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TYPES_DATA_BAG_H_
+#endif  // PY_KOLADATA_TYPES_DATA_BAG_H_

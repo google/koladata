@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_
-#define THIRD_PARTY_PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_
+#ifndef PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_
+#define PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_
 
 #include <Python.h>
 
@@ -32,4 +32,4 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_
+#endif  // PY_KOLADATA_TESTING_TRAVERSING_TEST_UTILS_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_
-#define THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_
+#ifndef PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_
+#define PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_
 
 #include <string>
 
@@ -52,4 +52,4 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateFStringExpr(
 
 }  // namespace koladata::python::fstring
 
-#endif  // THIRD_PARTY_PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_
+#endif  // PY_KOLADATA_FSTRING_FSTRING_PROCESSOR_H_

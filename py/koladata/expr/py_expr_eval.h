@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
-#define THIRD_PARTY_PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
+#ifndef PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
+#define PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
 
 #include <Python.h>
 
@@ -43,4 +43,4 @@ PyObject* NewNonDeterministicToken(PyObject* /*self*/, PyObject* /*py_args*/);
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_
+#endif  // PY_KOLADATA_EXPR_PY_EXPR_EVAL_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_
+#define KOLADATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_
 
 #include <cstddef>
 
@@ -30,4 +30,4 @@ ExecutorPtr absl_nonnull MakeAsioExecutor(size_t num_threads = 0) noexcept;
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_ASIO_EXECUTOR_H_

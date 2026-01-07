@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_CHECK_FROZEN_H_
-#define THIRD_PARTY_KOLA_DATA_CHECK_FROZEN_H_
+#ifndef KOLADATA_CHECK_FROZEN_H_
+#define KOLADATA_CHECK_FROZEN_H_
 
 #include "absl/status/status.h"
 #include "arolla/qtype/typed_ref.h"
@@ -31,4 +31,4 @@ absl::Status CheckFrozen(arolla::TypedRef value);
 
 }  // namespace koladata
 
-#endif  // THIRD_PARTY_KOLA_DATA_CHECK_FROZEN_H_
+#endif  // KOLADATA_CHECK_FROZEN_H_

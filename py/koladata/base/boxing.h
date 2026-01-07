@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_
-#define THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_
+#ifndef PY_KOLADATA_BASE_BOXING_H_
+#define PY_KOLADATA_BASE_BOXING_H_
 
 #include <Python.h>
 
@@ -144,4 +144,4 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key);
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_
+#endif  // PY_KOLADATA_BASE_BOXING_H_

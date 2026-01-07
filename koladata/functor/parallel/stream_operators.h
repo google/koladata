@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
+#define KOLADATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -167,4 +167,4 @@ class UnsafeBlockingWaitOperatorFamily final : public arolla::OperatorFamily {
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_

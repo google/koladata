@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_
+#define KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_
 
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
@@ -40,4 +40,4 @@ StreamPtr absl_nonnull StreamReduce(
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_H_

@@ -14,8 +14,8 @@
 //
 // Utilities for wrapping / unwrapping QValue specializations defined by Koda.
 
-#ifndef THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_
-#define THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_
+#ifndef PY_KOLADATA_BASE_WRAP_UTILS_H_
+#define PY_KOLADATA_BASE_WRAP_UTILS_H_
 
 #include <Python.h>
 
@@ -85,4 +85,4 @@ PyObject* absl_nullable WrapPyJaggedShape(DataSlice::JaggedShape shape);
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_
+#endif  // PY_KOLADATA_BASE_WRAP_UTILS_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
+#define KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
 
 #include <cstdint>
 
@@ -53,4 +53,4 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamReduceStack(
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_

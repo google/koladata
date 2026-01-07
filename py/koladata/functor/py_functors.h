@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_
-#define THIRD_PARTY_PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_
+#ifndef PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_
+#define PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_
 
 #include <Python.h>
 
@@ -26,4 +26,4 @@ PyObject* absl_nullable PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_
+#endif  // PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_

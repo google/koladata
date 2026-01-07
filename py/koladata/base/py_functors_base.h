@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_
-#define THIRD_PARTY_PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_
+#ifndef PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_
+#define PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_
 
 #include <Python.h>
 
@@ -45,4 +45,4 @@ extern const PyMethodDef kDefPyIsFn;
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_
+#endif  // PY_KOLADATA_BASE_PY_FUNCTORS_BASE_H_

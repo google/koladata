@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_EXT_VIEW_CLIB_H_
-#define THIRD_PARTY_PY_KOLADATA_EXT_VIEW_CLIB_H_
+#ifndef PY_KOLADATA_EXT_VIEW_CLIB_H_
+#define PY_KOLADATA_EXT_VIEW_CLIB_H_
 
 #include <Python.h>
 
@@ -23,4 +23,4 @@ extern const PyMethodDef kDefMapStructures;
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_EXT_VIEW_CLIB_H_
+#endif  // PY_KOLADATA_EXT_VIEW_CLIB_H_
