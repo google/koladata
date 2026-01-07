@@ -40,6 +40,10 @@ python.toolchain(
     ignore_root_user_error = True,
     python_version = "3.12",
 )
+python.toolchain(
+    ignore_root_user_error = True,
+    python_version = "3.13",
+)
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip", dev_dependency = True)
 pip.parse(
@@ -50,6 +54,11 @@ pip.parse(
 pip.parse(
     hub_name = "koladata_pip_deps",
     python_version = "3.12",
+    requirements_lock = "//:requirements_lock.txt",
+)
+pip.parse(
+    hub_name = "koladata_pip_deps",
+    python_version = "3.13",
     requirements_lock = "//:requirements_lock.txt",
 )
 use_repo(pip, pip_deps = "koladata_pip_deps")
