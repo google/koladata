@@ -100,7 +100,8 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError("requires exactly 6 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError("requires 1st argument to be DataSlice");
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected a functor DATA_SLICE, got fn: %s", input_types[0]->name()));
   }
   if (!arolla::IsTupleQType(input_types[1])) {
     return absl::InvalidArgumentError("requires 2nd argument to be Tuple");

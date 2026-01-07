@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -22,6 +23,7 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import qtypes
 
 
 I = input_container.InputContainer('I')
@@ -75,6 +77,16 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
         )
     )
     testing.assert_equal(res, obj1.get_bag())
+
+  def test_qtype_deduction_without_fn(self):
+    testing.assert_equal(
+        kde.call(I.fn, x=I.u, y=I.v).qtype,
+        qtypes.DATA_SLICE,
+    )
+    testing.assert_equal(
+        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,
+        arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
+    )
 
   def test_view(self):
     self.assertTrue(

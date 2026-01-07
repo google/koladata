@@ -48,13 +48,12 @@ M = arolla.M
 @optools.as_backend_operator(
     'kd.functor.call',
     qtype_inference_expr=P.return_type_as,
-    qtype_constraints=[(
-        P.fn == qtypes.DATA_SLICE,
-        (
-            'expected a functor DATA_SLICE, got'
-            f' {arolla.optools.constraints.name_type_msg(P.fn)}'
-        ),
-    )],
+    # NOTE: b/474061602 - We don't add a qtype_constraint for `fn` because this
+    # will delay QType deduction in the situations when `fn` is not known, and
+    # so will brake tracing code that relies on the QType information, i.e.
+    # tuple unpacking.
+    # In case of incorrect QType of `fn`, the error will be raised by the
+    # backend implementation instead.
     deterministic=False,
 )
 def call(

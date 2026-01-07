@@ -29,6 +29,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import qtypes
 from koladata.types import signature_utils
 
 I = input_container.InputContainer('I')
@@ -251,6 +252,16 @@ class FunctorCallTest(parameterized.TestCase):
         ds(5),
     )
 
+  def test_qtype_deduction_without_fn(self):
+    testing.assert_equal(
+        kde.call(I.fn, x=I.u, y=I.v).qtype,
+        qtypes.DATA_SLICE,
+    )
+    testing.assert_equal(
+        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,
+        arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
+    )
+
   def test_non_determinism(self):
     fn = functor_factories.fn(kde.new(a=42, schema='new'))
 
@@ -280,7 +291,7 @@ class FunctorCallTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
     ):
-      kde.functor.call(arolla.int32(1))
+      kde.functor.call(arolla.int32(1)).eval()
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.call(I.fn)))
