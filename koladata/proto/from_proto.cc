@@ -392,7 +392,7 @@ absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(
       DCHECK(false);
       return absl::InvalidArgumentError(
           absl::StrFormat("expected primitive proto field, got %v",
-                          field_descriptor.DebugString()));
+                          field_descriptor.full_name()));
   }
 }
 
@@ -1287,7 +1287,7 @@ absl::StatusOr<DataSlice> SchemaFromProtoPrimitiveField(
         DCHECK(false);
         return absl::InvalidArgumentError(
             absl::StrFormat("expected primitive proto field, got %v",
-                            field_descriptor.DebugString()));
+                            field_descriptor.full_name()));
     }
   }
   return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema));
