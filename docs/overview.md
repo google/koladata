@@ -159,7 +159,7 @@ kd.unique(ds)  # the same as above
 # Group_by can be used to swap dimensions, which can be used to transpose the
 # final dimension of a slice.
 ds = kd.slice([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-kd.group_by(ds.flatten(-2), kd.index(kd.val_shaped_as(ds, kd.present)).flatten(-2))  # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
+kd.group_by(ds.flatten(-2), kd.index(kd.present_shaped_as(ds)).flatten(-2))  # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
 ```
 
 ## Primitives
