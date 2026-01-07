@@ -187,26 +187,22 @@ TEST_CASES = (
             lambda x: {'x': x, 'y': x + 1},
             (ds([[1, 2, None, 4], [None, None], [7, 8, 9]]),),
             {},
-            fns.obj(
-                fns.dict_like(
-                    ds([[1, 2, None, 4], [None, None], [7, 8, 9]]),
-                    ds(
-                        [
-                            [['x', 'y'], ['x', 'y'], [], ['x', 'y']],
-                            [[], []],
-                            [['x', 'y'], ['x', 'y'], ['x', 'y']],
-                        ],
-                        schema_constants.OBJECT,
-                    ),
-                    ds(
-                        [
-                            [[1, 2], [2, 3], [], [4, 5]],
-                            [[], []],
-                            [[7, 8], [8, 9], [9, 10]],
-                        ],
-                        schema_constants.OBJECT,
-                    ),
-                )
+            fns.dict_like(
+                ds([[1, 2, None, 4], [None, None], [7, 8, 9]]),
+                ds(
+                    [
+                        [['x', 'y'], ['x', 'y'], [], ['x', 'y']],
+                        [[], []],
+                        [['x', 'y'], ['x', 'y'], ['x', 'y']],
+                    ],
+                ),
+                ds(
+                    [
+                        [[1, 2], [2, 3], [], [4, 5]],
+                        [[], []],
+                        [[7, 8], [8, 9], [9, 10]],
+                    ],
+                ),
             ),
         ),
         (
@@ -275,14 +271,11 @@ TEST_CASES = (
             lambda x: list(range(x)),
             (ds([[1, 2, None], [4, 5]]),),
             {},
-            fns.obj(
-                fns.list_like(
-                    ds([[1, 2, None], [4, 5]]),
-                    ds(
-                        [[[0], [0, 1], []], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]],
-                        schema_constants.OBJECT,
-                    ),
-                )
+            fns.list_like(
+                ds([[1, 2, None], [4, 5]]),
+                ds(
+                    [[[0], [0, 1], []], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]],
+                ),
             ),
         ),
         (
@@ -290,21 +283,16 @@ TEST_CASES = (
             lambda x: [[x, -1]],
             (ds([[1, 2, None], [4, 5]]),),
             {},
-            fns.obj(
-                fns.list_like(
-                    ds([[1, 2, None], [4, 5]]),
-                    fns.obj(
-                        fns.implode(
-                            ds(
-                                [
-                                    [[[1, -1]], [[2, -1]], []],
-                                    [[[4, -1]], [[5, -1]]],
-                                ],
-                                schema_constants.OBJECT,
-                            )
-                        )
-                    ),
-                )
+            fns.list_like(
+                ds([[1, 2, None], [4, 5]]),
+                fns.implode(
+                    ds(
+                        [
+                            [[[1, -1]], [[2, -1]], []],
+                            [[[4, -1]], [[5, -1]]],
+                        ],
+                    )
+                ),
             ),
         ),
         (
@@ -312,20 +300,16 @@ TEST_CASES = (
             lambda x: [sum(y for y in x if y is not None), -1],
             (ds([[1, 2, None], [4, 5]]),),
             dict(ndim=1),
-            fns.obj(
-                fns.implode(ds([[3, -1], [9, -1]], schema_constants.OBJECT))
-            ),
+            fns.implode(ds([[3, -1], [9, -1]])),
         ),
         (
             'expand_sparse',
             lambda x: [x] if x is not None else None,
             (ds([[1, 2, None], [4, 5]]),),
             dict(include_missing=True),
-            fns.obj(
-                fns.list_like(
-                    ds([[1, 2, None], [4, 5]]),
-                    ds([[[1], [2], []], [[4], [5]]], schema_constants.OBJECT),
-                )
+            fns.list_like(
+                ds([[1, 2, None], [4, 5]]),
+                ds([[[1], [2], []], [[4], [5]]]),
             ),
         ),
         (

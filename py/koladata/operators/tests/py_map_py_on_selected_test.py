@@ -92,7 +92,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
-      self.assertFalse(res.get_bag().is_mutable())
+      self.assertFalse(res.has_bag())
 
   def test_map_py_all_missing_input(self):
     def my_fn(x):
@@ -124,7 +124,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
           )
       )
       testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
-      self.assertFalse(res.get_bag().is_mutable())
+      self.assertFalse(res.has_bag())
 
   def test_error_non_mask_cond(self):
     fn = lambda _: None

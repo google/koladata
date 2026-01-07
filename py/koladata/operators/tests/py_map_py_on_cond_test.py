@@ -101,7 +101,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         )
     )
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertTrue(res.has_bag())
+    self.assertFalse(res.has_bag())
 
     val = ds([1, 2, 3])
     cond = ds(
@@ -127,7 +127,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     testing.assert_equal(
         res.no_bag(), ds([None, None, None], schema_constants.OBJECT)
     )
-    self.assertTrue(res.has_bag())
+    self.assertFalse(res.has_bag())
 
   def test_error_non_mask_cond(self):
     fn = lambda _: None

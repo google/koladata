@@ -42,14 +42,12 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/error_repr_utils.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/internal/schema_attrs.h"
-#include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "koladata/uuid_utils.h"
@@ -1024,7 +1022,8 @@ class FromPyConverter {
     std::optional<arolla::bitmap::AlmostFullBuilder> bitmap_builder;
 
     for (int obj_index = 0; obj_index < py_objects.size(); ++obj_index) {
-      if (py_objects[obj_index] == Py_None) {
+      PyObject* py_obj = py_objects[obj_index];
+      if (py_obj == Py_None) {
         if (!bitmap_builder.has_value()) {
           bitmap_builder.emplace(py_objects.size());
         }
@@ -1034,12 +1033,14 @@ class FromPyConverter {
 
       ASSIGN_OR_RETURN(
           std::optional<DataClassesUtil::AttrResult> attr_names_and_values,
-          dataclasses_util_.GetAttrNamesAndValues(py_objects[obj_index]));
+          dataclasses_util_.GetAttrNamesAndValues(py_obj));
       if (!attr_names_and_values.has_value()) {
-        // This should not normally happen, since all the types we support are
-        // checked above.
-        return absl::InvalidArgumentError(
-            "could not parse object as a dataclass");
+        // NOTE: If we could've parsed primitives, they would already be parsed
+        // upstream. Here, we are
+        // just re-using the same error message as `kd.slice`.
+        auto error = DataSliceFromPyValue(py_obj, adoption_queue_);
+        DCHECK(!error.ok());
+        return error.status();
       }
       for (int attr_index = 0;
            attr_index < attr_names_and_values->attr_names.size();

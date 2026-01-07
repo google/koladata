@@ -588,6 +588,7 @@ py_library(
         ":schema",
         ":slices",
         "//py:python_path",
+        "//py/koladata/base/py_conversions:clib",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

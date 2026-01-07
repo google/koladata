@@ -20,6 +20,7 @@ import itertools
 from typing import Any, Callable, Iterable
 
 from arolla import arolla
+from koladata.base.py_conversions import clib as base_clib
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -279,12 +280,12 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
 
 
 def _from_py(py_obj, *, schema, from_dim):
-  return data_slice.DataSlice._from_py_impl(  # pylint: disable=protected-access
+  return base_clib._from_py_v2(  # pylint: disable=protected-access
       py_obj,
-      False,  # dict_as_obj=
-      None,  # itemid=
       schema,
       from_dim,
+      False,  # dict_as_obj=
+      None,  # itemid=
   )
 
 
