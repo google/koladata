@@ -840,8 +840,14 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
 absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     internal::NonDeterministicToken) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  const auto& schema_impl = schema.impl<DataItem>();
   const auto& db = ds.GetBag();
   if (db == nullptr) {
+    if (ds.IsEmpty() || schema_impl.is_primitive_schema() ||
+        ds.IsPrimitiveSchema()) {
+      return ds.WithSchema(schema);
+    }
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
   const auto& schema_db = schema.GetBag();
@@ -849,8 +855,6 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
     ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
     return DeepClone(extracted_ds, schema.WithBag(extracted_ds.GetBag()));
   }
-  RETURN_IF_ERROR(schema.VerifyIsSchema());
-  const auto& schema_impl = schema.impl<DataItem>();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks_span = fb_finder.GetFlattenFallbacks();
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {

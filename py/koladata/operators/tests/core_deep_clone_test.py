@@ -41,9 +41,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     res = kd.core.deep_clone(x)
     testing.assert_equal(res.y.no_bag(), x.y.no_bag())
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_obj(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
@@ -65,9 +63,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
         result.b.a.get_schema().no_bag(), o.b.a.get_schema().no_bag()
     )
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_obj_list(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
@@ -89,9 +85,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
         o[:].b.a.get_schema().no_bag(),
     )
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_obj_dict(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
@@ -121,9 +115,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     )
     self.assertTrue(result.get_schema().is_dict_schema())
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_entity(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))
@@ -147,9 +139,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     )
     testing.assert_not_equal(result.ref(), o.ref())
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_named_schema(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     schema = db.named_schema('foo', x=schema_constants.INT32)
@@ -161,9 +151,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     testing.assert_equal(result.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(result.x.no_bag(), ds([1, 2, 3]))
 
-  @parameterized.product(
-      pass_schema=[True, False],
-  )
+  @parameterized.parameters(True, False)
   def test_clone_only_reachable(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     fb = data_bag.DataBag.empty_mutable()
@@ -359,6 +347,56 @@ class CoreDeepCloneTest(parameterized.TestCase):
         a.a.no_bag(),
         kd.core.get_metadata(a.get_obj_schema()).a.no_bag(),
     )
+
+  def test_empty_slice(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.named_schema('foo', x=schema_constants.INT32)
+    schema2 = db.named_schema('bar', x=schema_constants.FLOAT32)
+    o = ds([None, None, None], schema=schema)
+    result = kd.deep_clone(o.no_bag(), schema)
+    testing.assert_equivalent(result, o)
+
+    result2 = kd.deep_clone(o.no_bag(), schema2)
+    testing.assert_equivalent(result2, ds([None, None, None], schema=schema2))
+
+  @parameterized.parameters(True, False)
+  def test_no_bag_primitive_schema(self, pass_schema):
+    schema = schema_constants.INT32
+    o = ds([1, 2, None], schema=schema)
+    if pass_schema:
+      result = kd.deep_clone(o.no_bag(), o.get_schema())
+    else:
+      result = kd.deep_clone(o.no_bag())
+    testing.assert_equivalent(result, o)
+
+  @parameterized.parameters(True, False)
+  def test_clone_primitive_schema(self, pass_schema):
+    o = ds(schema_constants.INT32, schema=schema_constants.SCHEMA)
+    if pass_schema:
+      result = kd.deep_clone(o.no_bag(), o.get_schema())
+    else:
+      result = kd.deep_clone(o.no_bag())
+    testing.assert_equivalent(result, o)
+
+  def test_raises_primitive_schema_mismatch(self):
+    o = ds([1, 2, None], schema=schema_constants.INT32)
+    with self.assertRaisesRegex(
+        ValueError,
+        'FLOAT32 schema can only be assigned to a DataSlice that contains only'
+        ' primitives of FLOAT32',
+    ):
+      kd.deep_clone(o.no_bag(), schema_constants.FLOAT32)
+
+  @parameterized.parameters(True, False)
+  def test_raises_on_missing_databag(self, pass_schema):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.named_schema('foo', x=schema_constants.INT32)
+    o = schema.new(foo=ds([1, 2, None]))
+    with self.assertRaisesRegex(ValueError, 'cannot clone without a DataBag'):
+      if pass_schema:
+        kd.deep_clone(o.no_bag(), o.get_schema())
+      else:
+        kd.deep_clone(o.no_bag())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
