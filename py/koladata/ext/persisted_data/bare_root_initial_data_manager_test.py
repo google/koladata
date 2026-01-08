@@ -48,7 +48,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
           ).get_all_schema_node_names(),
       )
       kd.testing.assert_equivalent(
-          manager.get_data_slice(schema_node_names=set()),
+          manager.get_data_slice_for_schema_node_names(schema_node_names=set()),
           root_item,
           ids_equality=True,
       )
@@ -67,7 +67,9 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
           new_manager.get_schema(), root_item.get_schema(), ids_equality=True
       )
       kd.testing.assert_equivalent(
-          new_manager.get_data_slice(schema_node_names=set()),
+          new_manager.get_data_slice_for_schema_node_names(
+              schema_node_names=set()
+          ),
           root_item,
           ids_equality=True,
       )
@@ -79,7 +81,9 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
       kd.testing.assert_equivalent(
           manager.get_schema(), item.get_schema(), ids_equality=True
       )
-      root = manager.get_data_slice(schema_node_names=set())
+      root = manager.get_data_slice_for_schema_node_names(
+          schema_node_names=set()
+      )
       kd.testing.assert_equivalent(
           root,
           item,
@@ -127,7 +131,9 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ValueError,
         re.escape("schema_node_names contains invalid entries: {'hohoho!'}"),
     ):
-      BareRootInitialDataManager().get_data_slice(schema_node_names=['hohoho!'])
+      BareRootInitialDataManager().get_data_slice_for_schema_node_names(
+          schema_node_names=['hohoho!']
+      )
 
   def test_serialization_with_non_empty_dir_raises_error(self):
     manager = BareRootInitialDataManager()
@@ -191,7 +197,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     # is no data associated with s3's itemid:
     expected_root = s3.with_bag(kd.bag())
     kd.testing.assert_equivalent(
-        manager.get_data_slice(schema_node_names=set()),
+        manager.get_data_slice_for_schema_node_names(schema_node_names=set()),
         expected_root,
         ids_equality=True,
     )
@@ -207,9 +213,11 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
 
   def test_clear_cache_is_noop(self):
     manager = BareRootInitialDataManager()
-    root = manager.get_data_slice(schema_node_names=set())
+    root = manager.get_data_slice_for_schema_node_names(schema_node_names=set())
     manager.clear_cache()
-    root_after_clear_cache = manager.get_data_slice(schema_node_names=set())
+    root_after_clear_cache = manager.get_data_slice_for_schema_node_names(
+        schema_node_names=set()
+    )
     kd.testing.assert_equivalent(
         root, root_after_clear_cache, ids_equality=True
     )

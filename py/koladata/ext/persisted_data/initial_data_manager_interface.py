@@ -78,7 +78,7 @@ class InitialDataManagerInterface:
     """
     raise NotImplementedError(type(self))
 
-  def get_data_slice(
+  def get_data_slice_for_schema_node_names(
       self, schema_node_names: Collection[str]
   ) -> kd.types.DataSlice:
     """Returns the root data slice populated only with the requested data.

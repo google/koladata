@@ -92,7 +92,7 @@ def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
   # ignores the schema node names.
   ignored_schema_node_names = set()
   return (
-      manager._initial_data_manager.get_data_slice(
+      manager._initial_data_manager.get_data_slice_for_schema_node_names(
           schema_node_names=ignored_schema_node_names
       )
       .updated(manager._data_bag_manager.get_loaded_bag())

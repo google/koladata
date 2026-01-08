@@ -544,7 +544,7 @@ class PersistedIncrementalDataSliceManager(
     )
 
     return (
-        self._initial_data_manager.get_data_slice(
+        self._initial_data_manager.get_data_slice_for_schema_node_names(
             needed_schema_node_names
             & self._initial_data_manager.get_all_schema_node_names()
         )
