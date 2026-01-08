@@ -15,7 +15,11 @@
 #ifndef KOLADATA_PROTO_FROM_PROTO_H_
 #define KOLADATA_PROTO_FROM_PROTO_H_
 
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <type_traits>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
@@ -101,6 +105,42 @@ absl::StatusOr<DataSlice> FromProto(
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
     std::optional<DataSlice> schema = std::nullopt);
+
+// Same as above, but accepts a span of concrete message classes.
+template <typename MessageT>
+  requires(std::is_base_of_v<::google::protobuf::Message, MessageT>)
+absl::StatusOr<DataSlice> FromProto(
+    absl::Span<const MessageT> messages,
+    absl::Span<const std::string_view> extensions = {},
+    const std::optional<DataSlice>& itemids = std::nullopt,
+    std::optional<DataSlice> schema = std::nullopt) {
+  std::vector<const ::google::protobuf::Message* absl_nonnull> message_ptrs;
+  message_ptrs.reserve(messages.size());
+  for (size_t i = 0; i < messages.size(); ++i) {
+    message_ptrs.emplace_back(&messages[i]);
+  }
+  return FromProto(message_ptrs, extensions, itemids, schema);
+}
+
+// Same as above, but accepts a span of pointers (or pointer-like instances) to
+// messages.
+template <typename MessagePtrT>
+  requires(std::is_base_of_v<
+               ::google::protobuf::Message,
+               typename std::pointer_traits<MessagePtrT>::element_type> &&
+           !std::is_same_v<MessagePtrT, const ::google::protobuf::Message*>)
+absl::StatusOr<DataSlice> FromProto(
+    absl::Span<const MessagePtrT> messages,
+    absl::Span<const std::string_view> extensions = {},
+    const std::optional<DataSlice>& itemids = std::nullopt,
+    std::optional<DataSlice> schema = std::nullopt) {
+  std::vector<const ::google::protobuf::Message* absl_nonnull> message_ptrs;
+  message_ptrs.reserve(messages.size());
+  for (size_t i = 0; i < messages.size(); ++i) {
+    message_ptrs.emplace_back(&*messages[i]);
+  }
+  return FromProto(message_ptrs, extensions, itemids, schema);
+}
 
 // Converts a proto descriptor to an entity schema.
 //

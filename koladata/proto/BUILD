@@ -97,6 +97,7 @@ cc_test(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/jagged_shape/testing",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",

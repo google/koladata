@@ -15,13 +15,16 @@
 #include "koladata/proto/from_proto.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/types/span.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
@@ -1190,6 +1193,35 @@ TEST(FromProtoTest, InvalidExtensionPath) {
                                    DataBag::EmptyMutable())),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "extension not found: \"b.c\""));
+}
+
+TEST(FromProtoTest, TemplateFromProtoWithVectorOfMessages) {
+  std::vector<testing::ExampleMessage> messages;
+  messages.push_back(GetExampleMessageAllFieldsNoExtensions());
+  messages.push_back(testing::ExampleMessage());
+
+  ASSERT_OK_AND_ASSIGN(auto result, FromProto(absl::MakeConstSpan(messages)));
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_FALSE(result.GetBag()->IsMutable());
+
+  // Spot check a field.
+  EXPECT_THAT(result.GetAttr("int32_field")->WithBag(nullptr),
+              IsEquivalentTo(test::DataSlice<int32_t>({10, std::nullopt})));
+}
+
+TEST(FromProtoTest, TemplateFromProtoWithVectorOfUniquePtrs) {
+  std::vector<std::unique_ptr<testing::ExampleMessage>> messages;
+  messages.push_back(std::make_unique<testing::ExampleMessage>(
+      GetExampleMessageAllFieldsNoExtensions()));
+  messages.push_back(std::make_unique<testing::ExampleMessage>());
+
+  ASSERT_OK_AND_ASSIGN(auto result, FromProto(absl::MakeConstSpan(messages)));
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_FALSE(result.GetBag()->IsMutable());
+
+  // Spot check a field.
+  EXPECT_THAT(result.GetAttr("int32_field")->WithBag(nullptr),
+              IsEquivalentTo(test::DataSlice<int32_t>({10, std::nullopt})));
 }
 
 TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
