@@ -12,22 +12,33 @@ This guide covers a comprehensive list of useful recipes for common tasks.
 [`kd.from_py`](api_reference.md#kd.from_py) can be used as a universal convertor
 to create all types of objects including primitives, entities, lists and dicts.
 
-When inputs are Python primitives, `kd.from_py` works the same as
-[`kd.item`](api_reference.md#kd.slices.item) and creates corresponding Koda
-items. When inputs are lists, dicts or dataclass instances, `kd.from_py` works
-similar to [`kd.list`](api_reference.md#kd.list),
+When inputs are Python primitives, `kd.from_py` by default creates corresponding
+Koda items with `OBJECT` schema (unless it is `schema=None` or the actual
+explicit schema).
+When inputs are lists, dicts or dataclasses, `kd.from_py` works similar to
+[`kd.list`](api_reference.md#kd.list),
 [`kd.dict`](api_reference.md#kd.dicts.new) or
 [`kd.new`](api_reference.md#kd.entities.new) but creates objects.
 
 ```py
-# TODO: update this when from_py returns OBJECT schema by default
-# Note the schema is INT32 rather than OBJECT
-kd.from_py(1)  # DataItem(1, schema: INT32)
-kd.from_py(1.2)  # DataItem(1.2, schema: FLOAT32)
-kd.from_py('a')  # DataItem('a', schema: STRING)
-kd.from_py(True)  # DataItem(True, schema: BOOLEAN)
 
-kd.from_py(a=1, b='2')  # DataItem(Obj(a=1, b='2'), schema: OBJECT)
+kd.from_py(1)  # DataItem(1, schema: OBJECT)
+kd.from_py(1.2)  # DataItem(1.2, schema: OBJECT)
+kd.from_py('a')  # DataItem('a', schema: OBJECT)
+kd.from_py(True)  # DataItem(True, schema: OBJECT)
+
+# Use `schema=None` to get the actual primitive types.
+# Explicit schema can be also provided (see examples here and below)
+
+kd.from_py(1, schema=None)  # DataItem(1, schema: INT32)
+kd.from_py(1, schema=kd.INT32)  # DataItem(1, schema: INT32)
+kd.from_py(1.2, schema=None)  # DataItem(1.2, schema: FLOAT32)
+kd.from_py(1.2, schema=kd.FLOAT32)  # DataItem(1.2, schema: FLOAT32)
+kd.from_py('a', schema=None)  # DataItem('a', schema: STRING)
+kd.from_py('a', schema=kd.STRING)  # DataItem('a', schema: STRING)
+kd.from_py(True, schema=None)  # DataItem(True, schema: BOOLEAN)
+kd.from_py(True, schema=kd.BOOLEAN)  # DataItem(True, schema: BOOLEAN)
+
 kd.from_py([1, 2, 3])  # DataItem(List[1, 2, 3], schema: OBJECT)
 kd.from_py({'a': 1, 'b': 2})  # DataItem(Dict{'a'=1, 'b'=2}, schema: OBJECT)
 
@@ -39,6 +50,11 @@ class PyObj:
   y: float
 
 kd.from_py(PyObj(x=1, y=2.0))  # DataItem(Obj(x=1, y=2.0), schema: OBJECT)
+
+# Use `schema=None` or the actual explicit schema to create entities:
+kd.from_py(PyObj(x=1, y=2.0), schema=None)  # DataItem(Obj(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32))
+# Or the actual schema:
+kd.from_py(PyObj(x=1, y=2.0), schema=kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT32))  # DataItem(Obj(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32))
 ```
 
 When inputs are Koda entities, lists or dicts, `kd.from_py` embeds DataSlice
@@ -48,6 +64,10 @@ schemas into entities, lists or dicts to create corresponding objects.
 kd.from_py(kd.new(a=1, b='2'))  # DataItem(Obj(a=1, b='2'), schema: OBJECT)
 kd.from_py(kd.list([1, 2, 3]))  # DataItem(List[1, 2, 3], schema: OBJECT)
 kd.from_py(kd.dict({'a': 1, 'b': 2}))  # DataItem(Dict{'a'=1, 'b'=2}, schema: OBJECT)
+
+# Compared to `schema=None` or `schema=`explicit_schema`:
+kd.from_py(kd.list([1, 2, 3]), schema=None)  # DataItem(List[1, 2, 3], schema: LIST[INT32])
+kd.from_py(kd.list([1, 2, 3]), schema=kd.list_schema(kd.INT32))  # DataItem(List[1, 2, 3], schema: LIST[INT32])
 ```
 
 NOTE: Objects created through the schema embedding share the same schema whereas
@@ -64,7 +84,8 @@ kd.from_py(obj)  # no-op, just returns obj
 
 `kd.from_py` even accepts inputs with mixed primitives, lists, dicts, entities,
 as long as each item can be converted to an object. All intermediate items are
-converted to objects.
+converted to objects (unless `schema=None` is used, when they are converted to
+the corresponding primitive types).
 
 ```py
 obj1 = kd.from_py([1, [1, 2]])
