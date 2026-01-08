@@ -25,7 +25,8 @@
 
 namespace koladata::python {
 
-// New version of GenericFromPyObject; it will eventually replace the old one.
+// Converts Python objects into DataSlices and converts them into appropriate
+// Koda Objects / Entities depending on schema. The conversion is deep.
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
                                     size_t from_dim, bool dict_as_obj,

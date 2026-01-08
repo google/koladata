@@ -41,15 +41,6 @@ class DataSlice(arolla.QValue):
     @classmethod
     def from_vals(cls, x: Any, /, schema: DataSlice | None = None) -> Self: ...
     @classmethod
-    def _from_py_impl(
-        cls,
-        py_obj: Any,
-        dict_as_obj: bool,
-        itemid: DataSlice | None,
-        schema: DataSlice | None,
-        from_dim: int,
-    ) -> DataSlice: ...
-    @classmethod
     def _unspecified(cls) -> DataSlice: ...
 
     def get_bag(self) -> DataBag: ...
