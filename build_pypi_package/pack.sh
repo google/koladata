@@ -52,6 +52,7 @@ setup(
     packages=find_packages(include=["koladata", "koladata.*"]),
     install_requires=[
         'arolla=={PACKAGE_VERSION}',
+        'bidict',
         'cloudpickle',
         'numpy',
         'pandas',

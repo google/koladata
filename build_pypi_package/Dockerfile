@@ -20,7 +20,7 @@
 #     docker buildx build . \
 #         --output=. \
 #         --build-arg PACKAGE_VERSION=<version> \
-#         --build-arg PYTHON_VERSION=<3.11|3.12>
+#         --build-arg PYTHON_VERSION=<3.11|3.12|3.13>
 #
 # Uploading (after build):
 #
