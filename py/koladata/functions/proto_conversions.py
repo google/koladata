@@ -137,22 +137,30 @@ def from_proto(
   ).get_shape()
   messages_list = list(_flatten(messages))
 
+  def _ellipsize_repr(x, max_length: int = 200) -> str:
+    s = repr(x)
+    if len(s) < max_length:
+      return s
+    return f'{s[:max_length//2]}...{s[-max_length//2+3:]}'
+
   for i, m in enumerate(messages_list):
     if m is not None and not isinstance(m, message.Message):
       if messages_shape.rank() == 0:
         raise ValueError(
             'messages must be Message or nested list of Message, got'
-            f' type {type(m)} with value {m}'
+            f' type {type(m)} with value {_ellipsize_repr(m)}'
         )
       elif messages_shape.rank() == 1:
         raise ValueError(
-            'messages must be Message or nested list of Message, got list '
-            f'containing type {type(m)} at index {i} with value {m}'
+            'messages must be Message or nested list of Message, got list'
+            f' containing type {type(m)} at index {i} with value'
+            f' {_ellipsize_repr(m)}'
         )
       else:
         raise ValueError(
             'messages must be Message or nested list of Message, got nested'
-            f' list containing type {type(m)} at leaf index {i} with value {m}'
+            f' list containing type {type(m)} at leaf index {i} with value'
+            f' {_ellipsize_repr(m)}'
         )
 
   if itemid is not None:

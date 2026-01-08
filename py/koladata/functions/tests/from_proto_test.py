@@ -60,6 +60,23 @@ class FromProtoTest(absltest.TestCase):
     ):
       proto_conversions.from_proto([1])  # pytype: disable=wrong-arg-types
 
+  def test_invalid_input_long_repr(self):
+    class LongRepr:
+
+      def __repr__(self):
+        return 'a' + 'b' * 500 + 'c' * 500 + 'd'
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'messages must be Message or nested list of Message, got type <class'
+        " '__main__.FromProtoTest.test_invalid_input_long_repr.<locals>.LongRepr'>"
+        ' with value '
+        + 'a' + 'b' * 99
+        + '...'
+        + 'c' * 96 + 'd',
+    ):
+      proto_conversions.from_proto(LongRepr())  # pytype: disable=wrong-arg-types
+
   def test_invalid_different_types(self):
     with self.assertRaisesRegex(
         ValueError,
