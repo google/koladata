@@ -3242,24 +3242,28 @@ TEST_P(ExtractTest, CastErrorToPrimitive) {
                "Only casting to struct schema is supported by ExtractOp."));
 }
 
-TEST_P(ExtractTest, CastErrorToObject) {
+TEST_P(ExtractTest, CastObjectToObject) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(2);
   auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
 
   TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kObject)}}}};
-  TriplesT data_triples = {{a0, {{"x", DataItem("foo")}}}};
+  TriplesT data_triples = {
+      {a0, {{"x", a1}}},
+      {a1, {{schema::kSchemaAttr, schema}, {"x", DataItem(1)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_THAT(
-      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}, nullptr, {},
-                                 /*max_depth=*/-1,
-                                 /*casting_callback=*/CastSliceTo),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "casting to OBJECT is not supported during the deep casting"));
+  ASSERT_OK(ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {},
+                                       /*max_depth=*/-1,
+                                       /*casting_callback=*/CastSliceTo));
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, data_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
 TEST_P(ExtractTest, CastObjectToEntity) {

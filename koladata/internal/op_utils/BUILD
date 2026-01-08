@@ -1262,8 +1262,12 @@ cc_test(
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal:schema_utils",
+        "//koladata/internal:uuid_object",
         "//koladata/internal/testing:deep_op_utils",
+        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )

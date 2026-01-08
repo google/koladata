@@ -19,12 +19,16 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/deep_op_utils.h"
+#include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
 namespace {
@@ -258,6 +262,99 @@ TEST_P(DeepSchemaCompatibleTest, LhsOnly) {
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".x", ".y"));
+}
+
+TEST_P(DeepSchemaCompatibleTest, NamedSchema)
+{
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  TriplesT schema_triples = {
+      {s1, {{"a", DataItem(schema::kInt32)}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kFloat32)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      deep_schema_compatible_op(s1, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, s2,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_TRUE(is_compatible);
+}
+
+TEST_P(DeepSchemaCompatibleTest, NamedSchemaToNamedSchema)
+{
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  TriplesT schema_triples = {
+      {s1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))},
+        {"a", DataItem(schema::kInt32)}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kFloat32)}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      deep_schema_compatible_op(s1, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, s2,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_TRUE(is_compatible);
+}
+
+TEST_P(DeepSchemaCompatibleTest, ToSchemaWithMetadata) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = DataItem(AllocateSchema());
+  auto schema = DataItem(AllocateSchema());
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  auto a1 = DataItem(AllocateSingleObject());
+  TriplesT schema_triples = {
+      {s1, {{"x", DataItem(schema::kInt32)}}},
+      {schema,
+       {{"x", DataItem(schema::kFloat32)},
+        {schema::kSchemaMetadataAttr, metadata}}},
+      {metadata_schema, {{"name", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {
+      {a1, {{"x", DataItem(2)}}},
+      {metadata,
+       {{schema::kSchemaAttr, metadata_schema},
+        {"name", DataItem(arolla::Text("object with metadata"))}}}};
+
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      deep_schema_compatible_op(s1, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, schema,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_TRUE(is_compatible);
 }
 
 TEST_P(DeepSchemaCompatibleTest, RhsOnly) {

@@ -85,6 +85,10 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status RhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& rhs) override {
+    if (!rhs.item.is_schema()) {
+      // We should ignore schema names and metadata when comparing schemas.
+      return absl::OkStatus();
+    }
     diff_found_ = true;
     return result_.RhsOnlyAttribute(token, key, rhs);
   }
@@ -93,6 +97,10 @@ class SchemaCompatibleComparator : public AbstractComparator {
                               const TraverseHelper::Transition& lhs,
                               const TraverseHelper::Transition& rhs) override {
     if (params_.partial && !rhs.item.has_value()) {
+      return absl::OkStatus();
+    }
+    if (!lhs.item.is_schema() && !rhs.item.is_schema()) {
+      // We should ignore schema names and metadata when comparing schemas.
       return absl::OkStatus();
     }
     diff_found_ = true;
@@ -118,6 +126,11 @@ class SchemaCompatibleComparator : public AbstractComparator {
              const TraverseHelper::Transition& rhs) override {
     DataItem from_schema = lhs.item;
     DataItem to_schema = rhs.item;
+    if (!from_schema.is_schema() || !to_schema.is_schema()) {
+      // We should ignore schema names and metadata when comparing schemas. And
+      // not compare metadata deeply.
+      return false;
+    }
     return schema_compatible_callback_(from_schema, to_schema);
   }
   bool HasDiff() const { return diff_found_; }

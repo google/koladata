@@ -1072,10 +1072,6 @@ class CopyingProcessor {
       } else if (slice.schema.holds_value<schema::DType>()) {
         if (slice.schema == schema::kObject) {
           // Object schema.
-          if (casting_callback_.has_value()) {
-            return absl::InvalidArgumentError(
-                "casting to OBJECT is not supported during the deep casting");
-          }
           RETURN_IF_ERROR(ProcessObjectSlice(slice));
         } else if (slice.schema == schema::kSchema) {
           RETURN_IF_ERROR(ProcessSchemaSlice(slice));
