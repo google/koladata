@@ -5841,7 +5841,7 @@ Note that `x` must be correctly typed with its schema. Thus, if provided
 
 Args:
   x: DataSlice to cast.
-  schema: Schema to cast to. Must be a scalar.</code></pre>
+  schema: Schema to cast to.</code></pre>
 
 ### `kd.schema.cast_to_implicit(x, schema)` {#kd.schema.cast_to_implicit}
 
@@ -5880,6 +5880,17 @@ The &#34;common schema&#34; is defined according to go/koda-type-promotion.
 
 Args:
   x: DataSlice of schemas.</code></pre>
+
+### `kd.schema.deep_cast_to(x, schema)` {#kd.schema.deep_cast_to}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to provided `schema` using explicit casting rules.
+
+In contrast to `kd.cast_to`, this operator always performs deep casting - even
+when x.get_schema().get_itemid() == schema.get_itemid().
+
+Args:
+  x: DataSlice to cast.
+  schema: Schema to cast to.</code></pre>
 
 ### `kd.schema.dict_schema(key_schema, value_schema)` {#kd.schema.dict_schema}
 Aliases:

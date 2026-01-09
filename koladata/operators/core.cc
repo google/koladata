@@ -71,6 +71,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/predicates.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
@@ -844,8 +845,8 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
   const auto& schema_impl = schema.impl<DataItem>();
   const auto& db = ds.GetBag();
   if (db == nullptr) {
-    if (ds.IsEmpty() || schema_impl.is_primitive_schema() ||
-        ds.IsPrimitiveSchema()) {
+    ASSIGN_OR_RETURN(auto is_primitive, IsPrimitive(ds));
+    if (ds.IsEmpty() || is_primitive.present_count()) {
       return ds.WithSchema(schema);
     }
     return absl::InvalidArgumentError("cannot clone without a DataBag");

@@ -1016,6 +1016,21 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   )(x, schema, overrides, optools.unified_non_deterministic_arg())
 
 
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator('kd.schema.deep_cast_to')
+def deep_cast_to(x, schema):
+  """Returns `x` casted to provided `schema` using explicit casting rules.
+
+  In contrast to `kd.cast_to`, this operator always performs deep casting - even
+  when x.get_schema().get_itemid() == schema.get_itemid().
+
+  Args:
+    x: DataSlice to cast.
+    schema: Schema to cast to.
+  """
+  return schema_ops.cast_to(x, deep_clone(schema)).with_schema(schema)
+
+
 @optools.as_backend_operator('kd.core._flatten_cyclic_references')
 def _flatten_cyclic_references(x, max_recursion_depth, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with tree-like copy of the input DataSlice."""

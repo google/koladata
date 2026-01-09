@@ -413,6 +413,7 @@ class schema:
   cast_to_implicit = _operators_schema.cast_to_implicit
   cast_to_narrow = _operators_schema.cast_to_narrow
   common_schema = _operators_schema.common_schema
+  deep_cast_to = _operators_core.deep_cast_to
   dict_schema = _operators_schema.dict_schema
   get_dtype = _operators_schema.get_primitive_schema
   get_item_schema = _operators_schema.get_item_schema

@@ -194,7 +194,7 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
 
   Args:
     x: DataSlice to cast.
-    schema: Schema to cast to. Must be a scalar.
+    schema: Schema to cast to.
   """
   raise NotImplementedError('implemented in the backend')
 
