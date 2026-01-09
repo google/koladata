@@ -425,21 +425,6 @@ def _is_primitive(self) -> DataSlice:
   return _eval_op('kd.is_primitive', self)
 
 
-@add_method(DataSlice, 'get_item_schema', docstring_from='kd.get_item_schema')
-def _get_item_schema(self) -> DataSlice:
-  return _eval_op('kd.get_item_schema', self)
-
-
-@add_method(DataSlice, 'get_key_schema', docstring_from='kd.get_key_schema')
-def _get_key_schema(self) -> DataSlice:
-  return _eval_op('kd.get_key_schema', self)
-
-
-@add_method(DataSlice, 'get_value_schema', docstring_from='kd.get_value_schema')
-def _get_value_schema(self) -> DataSlice:
-  return _eval_op('kd.get_value_schema', self)
-
-
 @add_method(DataSlice, 'stub', docstring_from='kd.stub')
 def _stub(self, attrs: DataSlice = DataSlice.from_vals([])) -> DataSlice:
   return _eval_op('kd.stub', self, attrs=attrs)

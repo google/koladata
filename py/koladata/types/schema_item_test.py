@@ -143,5 +143,17 @@ class SchemaItemTest(absltest.TestCase):
       self.assertFalse(a.get_schema().internal_is_itemid_schema())
       self.assertTrue(a.get_itemid().get_schema().internal_is_itemid_schema())
 
+  def test_get_item_schema(self):
+    db = bag()
+    x = db.list_schema(schema_constants.INT32)
+    testing.assert_equal(x.get_item_schema().no_bag(), schema_constants.INT32)
+
+  def test_get_key_value_schema(self):
+    db = bag()
+    x = db.dict_schema(schema_constants.INT64, schema_constants.INT32)
+    testing.assert_equal(x.get_key_schema().no_bag(), schema_constants.INT64)
+    testing.assert_equal(x.get_value_schema().no_bag(), schema_constants.INT32)
+
+
 if __name__ == '__main__':
   absltest.main()

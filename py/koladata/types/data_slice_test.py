@@ -3495,17 +3495,6 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     ])
     testing.assert_equal(x.get_obj_schema(), expected)
 
-  def test_get_item_schema(self):
-    db = bag()
-    x = db.list_schema(schema_constants.INT32)
-    testing.assert_equal(x.get_item_schema().no_bag(), schema_constants.INT32)
-
-  def test_get_key_value_schema(self):
-    db = bag()
-    x = db.dict_schema(schema_constants.INT64, schema_constants.INT32)
-    testing.assert_equal(x.get_key_schema().no_bag(), schema_constants.INT64)
-    testing.assert_equal(x.get_value_schema().no_bag(), schema_constants.INT32)
-
   def test_with_schema_from_obj(self):
     entity = bag().new(x=1)
     obj = entity.embed_schema()

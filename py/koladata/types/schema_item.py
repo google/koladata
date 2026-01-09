@@ -50,6 +50,18 @@ class SchemaItem(data_item.DataItem):
       return arolla.abc.aux_bind_op('kd.strict_new', schema=self, **attrs)
     return _eval_op('kd.strict_new', schema=self, **attrs)
 
+  def get_item_schema(self) -> 'SchemaItem':
+    """Returns the item schema of a List schema`."""
+    return _eval_op('kd.get_item_schema', self)
+
+  def get_key_schema(self) -> 'SchemaItem':
+    """Returns the key schema of a Dict schema`."""
+    return _eval_op('kd.get_key_schema', self)
+
+  def get_value_schema(self) -> 'SchemaItem':
+    """Returns the value schema of a Dict schema`."""
+    return _eval_op('kd.get_value_schema', self)
+
 
 arolla.abc.register_qvalue_specialization(
     '::koladata::python::SchemaItem', SchemaItem
