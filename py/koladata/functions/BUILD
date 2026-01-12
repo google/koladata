@@ -96,9 +96,12 @@ py_library(
     srcs = ["proto_conversions.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
+        "//py/koladata/types:schema_constants",
         "//py/koladata/types:schema_item",
         "@com_google_protobuf//:protobuf_python",
     ],

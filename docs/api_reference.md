@@ -9872,6 +9872,38 @@ Args:
 Returns:
   A DataSlice representing the proto data.</code></pre>
 
+### `kd.from_proto_any(messages: Any | list[_NestedAnyMessageContainer] | tuple[_NestedAnyMessageContainer, ...] | None, /, *, extensions: list[str] | None = None, itemid: DataSlice | None = None, schema: DataSlice | None = None, message_type: type[Message] | None = None, descriptor_pool: DescriptorPool | None = None) -> DataSlice` {#kd.from_proto_any}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice converted from a nested list of proto Any messages.
+
+This function is similar to `from_proto`, but it first unpacks the Any
+messages before converting them. Only the top-level Any message is unpacked:
+if there are Any fields inside of the unpacked message, they are treated the
+same as in `from_proto`.
+
+If `message_type` is provided, all Any messages are unpacked into this type.
+Otherwise, the type is inferred from the type URL in each Any message, and
+the messages are looked up in the `descriptor_pool`. If `descriptor_pool` is
+not provided, the default descriptor pool is used.
+
+If `schema` is not explicitly provided, the resulting DataSlice will have an
+OBJECT schema so that inputs with differing message types can be represented.
+
+Args:
+  messages: google.protobuf.Any message or nested list/tuple of
+    google.protobuf.Any messages. Any of the messages may be None, which will
+    produce missing items in the result.
+  extensions: See `from_proto` for more details.
+  itemid: See `from_proto` for more details.
+  schema: See `from_proto` for more details.
+  message_type: The type to unpack the Any messages into. If None, the type is
+    inferred from the Any messages.
+  descriptor_pool: The descriptor pool to use for looking up message types. If
+    None, the default descriptor pool is used.
+
+Returns:
+  A DataSlice representing the unpacked and converted proto data.</code></pre>
+
 ### `kd.from_proto_bytes(x, proto_path, /, *, extensions=unspecified, itemids=unspecified, schema=unspecified, on_invalid=unspecified)` {#kd.from_proto_bytes}
 
 Alias for [kd.proto.from_proto_bytes](#kd.proto.from_proto_bytes) operator.

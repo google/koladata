@@ -17,11 +17,19 @@
 from collections.abc import Iterator
 from typing import Type, TypeAlias, TypeVar, cast
 
+from google.protobuf import any as protobuf_any
+from google.protobuf import descriptor_pool as protobuf_descriptor_pool
 from google.protobuf import message
+from google.protobuf import message_factory as protobuf_message_factory
+from koladata.expr import expr_eval
+from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
+from koladata.types import schema_constants
 from koladata.types import schema_item
+
+from google.protobuf import any_pb2
 
 
 _T = TypeVar('_T')
@@ -37,6 +45,12 @@ _NestedMessageContainer: TypeAlias = (
     message.Message
     | list['_NestedMessageContainer']
     | tuple['_NestedMessageContainer', ...]
+    | None
+)
+_NestedAnyMessageContainer: TypeAlias = (
+    any_pb2.Any
+    | list['_NestedAnyMessageContainer']
+    | tuple['_NestedAnyMessageContainer', ...]
     | None
 )
 
@@ -189,6 +203,101 @@ def from_proto(
 
   result = result.reshape(messages_shape)
   return result.freeze_bag()
+
+
+def from_proto_any(
+    messages: _NestedAnyMessageContainer,
+    /,
+    *,
+    extensions: list[str] | None = None,
+    itemid: data_slice.DataSlice | None = None,
+    schema: data_slice.DataSlice | None = None,
+    message_type: type[message.Message] | None = None,
+    descriptor_pool: protobuf_descriptor_pool.DescriptorPool | None = None,
+) -> data_slice.DataSlice:
+  """Returns a DataSlice converted from a nested list of proto Any messages.
+
+  This function is similar to `from_proto`, but it first unpacks the Any
+  messages before converting them. Only the top-level Any message is unpacked:
+  if there are Any fields inside of the unpacked message, they are treated the
+  same as in `from_proto`.
+
+  If `message_type` is provided, all Any messages are unpacked into this type.
+  Otherwise, the type is inferred from the type URL in each Any message, and
+  the messages are looked up in the `descriptor_pool`. If `descriptor_pool` is
+  not provided, the default descriptor pool is used.
+
+  If `schema` is not explicitly provided, the resulting DataSlice will have an
+  OBJECT schema so that inputs with differing message types can be represented.
+
+  Args:
+    messages: google.protobuf.Any message or nested list/tuple of
+      google.protobuf.Any messages. Any of the messages may be None, which will
+      produce missing items in the result.
+    extensions: See `from_proto` for more details.
+    itemid: See `from_proto` for more details.
+    schema: See `from_proto` for more details.
+    message_type: The type to unpack the Any messages into. If None, the type is
+      inferred from the Any messages.
+    descriptor_pool: The descriptor pool to use for looking up message types. If
+      None, the default descriptor pool is used.
+
+  Returns:
+    A DataSlice representing the unpacked and converted proto data.
+  """
+  if descriptor_pool is None and message_type is None:
+    descriptor_pool = protobuf_descriptor_pool.Default()
+
+  messages_list = _flatten(messages)
+  shape = data_slice.DataSlice.from_vals(
+      _to_nested_list_of_none(messages)
+  ).get_shape()
+
+  unpacked_message_items: list[data_slice.DataSlice | None] = []
+  for m in messages_list:
+    if isinstance(m, any_pb2.Any):
+      if message_type is None:
+        full_name = protobuf_any.type_name(m).split('/')[-1]
+        descriptor = descriptor_pool.FindMessageTypeByName(full_name)
+        message_cls = protobuf_message_factory.GetMessageClass(descriptor)
+        unpacked_message = message_cls()
+      else:
+        unpacked_message = message_type()
+      if not protobuf_any.unpack(m, unpacked_message):
+        raise ValueError(f'failed to unpack into message type {message_type}')
+      item = from_proto(
+          unpacked_message,
+          extensions=extensions,
+          itemid=itemid,
+          schema=schema,
+      )
+      if schema is None:
+        item = expr_eval.eval(kde_operators.kde.obj(item))
+      unpacked_message_items.append(item)
+    elif m is None:
+      item = None
+      if schema is None:
+        item = expr_eval.eval(kde_operators.kde.obj(item))
+      unpacked_message_items.append(item)
+    else:
+      raise ValueError(
+          'from_proto_any expects a nested container of google.protobuf.Any'
+          f' messages, got {repr(type(m))}'
+      )
+
+  if not unpacked_message_items:
+    return expr_eval.eval(
+        kde_operators.kde.empty_shaped(
+            shape,
+            schema=schema if schema is not None else schema_constants.OBJECT,
+        )
+    )
+
+  return expr_eval.eval(
+      kde_operators.kde.reshape(
+          kde_operators.kde.stack(*unpacked_message_items), shape
+      )
+  )
 
 
 def schema_from_proto(
