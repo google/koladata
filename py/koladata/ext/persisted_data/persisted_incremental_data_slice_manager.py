@@ -496,36 +496,10 @@ class PersistedIncrementalDataSliceManager(
     Returns:
       The root dataslice populated with data for the requested data slice paths.
     """
-    populate = set(populate or [])
-    populate_including_descendants = set(populate_including_descendants or [])
-    for path in populate:
-      if not self.exists(path):
-        raise ValueError(
-            f"data slice path '{path}' passed in argument 'populate' is invalid"
-        )
-    for path in populate_including_descendants:
-      if not self.exists(path):
-        raise ValueError(
-            f"data slice path '{path}' passed in argument"
-            " 'populate_including_descendants' is invalid"
-        )
-
-    needed_schema_node_names = {
-        self._schema_helper.get_schema_node_name_for_data_slice_path(path)
-        for path in populate_including_descendants
-    }
-    needed_schema_node_names.update(
-        self._schema_helper.get_descendant_schema_node_names(
-            needed_schema_node_names
-        )
-    )
-    needed_schema_node_names.update({
-        self._schema_helper.get_schema_node_name_for_data_slice_path(path)
-        for path in populate
-    })
-    needed_schema_node_names.update(
-        self._schema_helper.get_ancestor_schema_node_names(
-            needed_schema_node_names
+    needed_schema_node_names = (
+        self._schema_helper.get_schema_node_names_needed_to(
+            populate=populate,
+            populate_including_descendants=populate_including_descendants,
         )
     )
 

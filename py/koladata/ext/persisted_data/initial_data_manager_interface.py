@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import AbstractSet, Collection
 
 from koladata import kd
+from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 
 
@@ -99,6 +100,43 @@ class InitialDataManagerInterface:
         updated in the meantime, then the extra data will be outdated because
         PersistedIncrementalDataSliceManager will not apply the updates before
         returning the data to the user.
+    """
+
+    raise NotImplementedError(type(self))
+
+  def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
+    """Returns whether the given data slice path exists for this manager."""
+    raise NotImplementedError(type(self))
+
+  def get_data_slice(
+      self,
+      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          Collection[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
+  ) -> kd.types.DataSlice:
+    """Returns the dataslice with data for the requested data slice paths.
+
+    The DataBags of the returned DataSlices are guaranteed to be compatible with
+    each other. For example,
+    manager.get_data_slice({p1}).updated(manager.get_data_slice({p2}).get_bag())
+    will be a DataSlice populated with data for paths p1 and p2, and will be
+    equivalent to manager.get_data_slice({p1, p2}).
+
+    The result might contain more data than requested. All the data in the
+    result is guaranteed to be valid and up-to-date.
+
+    Args:
+      populate: The set of paths whose data must be populated in the result.
+        Each path must be valid, i.e. self.exists(path) must be True.
+      populate_including_descendants: A set of paths whose data must be
+        populated in the result; the data of all their descendant paths must
+        also be populated. Descendants are computed with respect to the schema,
+        i.e. self.get_schema(). Each path must be valid, i.e. self.exists(path)
+        must be True.
+
+    Returns:
+      The root dataslice populated with data for the requested data slice paths.
     """
     raise NotImplementedError(type(self))
 

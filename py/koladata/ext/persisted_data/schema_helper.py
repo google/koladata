@@ -207,7 +207,7 @@ are no missing bits.
 
 import collections
 import dataclasses
-from typing import AbstractSet, Generator
+from typing import AbstractSet, Collection, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -791,6 +791,45 @@ class SchemaHelper:
     return _get_schema_node_name_for_data_slice_path(
         self._schema, data_slice_path
     )
+
+  def get_schema_node_names_needed_to(
+      self,
+      *,
+      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          Collection[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
+  ) -> AbstractSet[str]:
+    """Returns the schema node names that are needed to populate the given data slice paths."""
+    populate = set(populate or [])
+    populate_including_descendants = set(populate_including_descendants or [])
+    for path in populate:
+      if not self.is_valid_data_slice_path(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument 'populate' is invalid"
+        )
+    for path in populate_including_descendants:
+      if not self.is_valid_data_slice_path(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument"
+            " 'populate_including_descendants' is invalid"
+        )
+
+    needed_schema_node_names = {
+        self.get_schema_node_name_for_data_slice_path(path)
+        for path in populate_including_descendants
+    }
+    needed_schema_node_names.update(
+        self.get_descendant_schema_node_names(needed_schema_node_names)
+    )
+    needed_schema_node_names.update({
+        self.get_schema_node_name_for_data_slice_path(path) for path in populate
+    })
+    needed_schema_node_names.update(
+        self.get_ancestor_schema_node_names(needed_schema_node_names)
+    )
+
+    return needed_schema_node_names
 
   def get_schema_bag(
       self, schema_node_names: AbstractSet[str]

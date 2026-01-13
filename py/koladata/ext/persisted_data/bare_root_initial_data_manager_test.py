@@ -18,6 +18,7 @@ import re
 from absl.testing import absltest
 from koladata import kd
 from koladata.ext.persisted_data import bare_root_initial_data_manager
+from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import schema_helper
 
@@ -225,6 +226,63 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
   def test_get_description(self):
     manager = BareRootInitialDataManager()
     self.assertEqual(manager.get_description(), 'an empty root')
+
+  def test_exists(self):
+    manager = BareRootInitialDataManager()
+    self.assertTrue(
+        manager.exists(data_slice_path_lib.DataSlicePath.parse_from_string(''))
+    )
+    self.assertFalse(
+        manager.exists(
+            data_slice_path_lib.DataSlicePath.parse_from_string('.foo')
+        )
+    )
+
+  def test_get_data_slice(self):
+    manager = BareRootInitialDataManager()
+    root = manager.get_data_slice(
+        populate=[
+            data_slice_path_lib.DataSlicePath.parse_from_string(''),
+        ],
+        populate_including_descendants=[
+            data_slice_path_lib.DataSlicePath.parse_from_string(''),
+        ],
+    )
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+
+    with self.subTest('with_invalid_path_to_populate'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument 'populate' is"
+              ' invalid'
+          ),
+      ):
+        manager.get_data_slice(
+            populate=[
+                data_slice_path_lib.DataSlicePath.parse_from_string('.abcde'),
+            ],
+            populate_including_descendants=[
+                data_slice_path_lib.DataSlicePath.parse_from_string(''),
+            ],
+        )
+
+    with self.subTest('with_invalid_path_to_populate_including_descendants'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument"
+              " 'populate_including_descendants' is invalid"
+          ),
+      ):
+        manager.get_data_slice(
+            populate=[
+                data_slice_path_lib.DataSlicePath.parse_from_string(''),
+            ],
+            populate_including_descendants=[
+                data_slice_path_lib.DataSlicePath.parse_from_string('.abcde'),
+            ],
+        )
 
 
 if __name__ == '__main__':

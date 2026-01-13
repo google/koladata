@@ -18,6 +18,7 @@ import os
 from typing import AbstractSet, Collection, cast
 
 from koladata import kd
+from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import initial_data_manager_interface
@@ -116,6 +117,23 @@ class BareRootInitialDataManager(
           f' {invalid_schema_node_names}'
       )
     return self._root_item
+
+  def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
+    return self._schema_helper.is_valid_data_slice_path(path)
+
+  def get_data_slice(
+      self,
+      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          Collection[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
+  ) -> kd.types.DataSlice:
+    return self.get_data_slice_for_schema_node_names(
+        self._schema_helper.get_schema_node_names_needed_to(
+            populate=populate,
+            populate_including_descendants=populate_including_descendants,
+        )
+    )
 
   def clear_cache(self):
     pass

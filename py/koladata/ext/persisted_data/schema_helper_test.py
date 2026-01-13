@@ -1343,7 +1343,7 @@ class SchemaHelperTest(absltest.TestCase):
         kd.attrs(
             kd.schema.named_schema('SomeSchema'),
             bar=kd.schema.named_schema('InnerSchema'),
-            bar2=kd.schema.named_schema('InnerSchema')
+            bar2=kd.schema.named_schema('InnerSchema'),
         ),
     )
 
@@ -1375,6 +1375,127 @@ class SchemaHelperTest(absltest.TestCase):
           parent_schema_node_name=schema_node_name(schema),
           child_schema_node_name='abcde',
       )
+
+  def test_get_schema_node_names_needed_to_populate(self):
+    inner_schema = kd.schema.named_schema('InnerSchema', zoo=kd.INT32)
+    schema = kd.schema.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=inner_schema,
+        baz=kd.list_schema(inner_schema),
+        jazz=kd.schema.new_schema(
+            sax=kd.INT32,
+            jax=kd.list_schema(kd.INT32),
+        ),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+
+    self.assertEqual(
+        helper.get_schema_node_names_needed_to(
+            populate=[
+                DataSlicePath.parse_from_string('.foo'),
+                DataSlicePath.parse_from_string('.jazz.jax'),
+            ],
+        ),
+        to_same_len_set([
+            schema_node_name(schema, action=GetAttr('foo')),
+            schema_node_name(schema.jazz.jax),
+            schema_node_name(schema.jazz),
+            schema_node_name(schema),
+        ]),
+    )
+    self.assertEqual(
+        helper.get_schema_node_names_needed_to(
+            populate_including_descendants=[
+                DataSlicePath.parse_from_string('.foo'),
+                DataSlicePath.parse_from_string('.jazz.jax'),
+            ],
+        ),
+        to_same_len_set([
+            schema_node_name(schema, action=GetAttr('foo')),
+            schema_node_name(schema.jazz.jax, action=ListExplode()),
+            schema_node_name(schema.jazz.jax),
+            schema_node_name(schema.jazz),
+            schema_node_name(schema),
+        ]),
+    )
+
+    self.assertEqual(
+        helper.get_schema_node_names_needed_to(
+            populate=[
+                DataSlicePath.parse_from_string('.bar'),
+            ],
+        ),
+        to_same_len_set([
+            schema_node_name(schema.bar),
+            # '.bar' points to inner_schema, which also has an ancestor 'baz' in
+            # the schema graph:
+            schema_node_name(schema.baz),
+            schema_node_name(schema),
+        ]),
+    )
+    self.assertEqual(
+        helper.get_schema_node_names_needed_to(
+            populate_including_descendants=[
+                DataSlicePath.parse_from_string('.bar'),
+            ],
+        ),
+        to_same_len_set([
+            schema_node_name(schema.bar, action=GetAttr('zoo')),
+            schema_node_name(schema.bar),
+            schema_node_name(schema.baz),
+            schema_node_name(schema),
+        ]),
+    )
+
+    self.assertEqual(
+        helper.get_schema_node_names_needed_to(
+            populate=[
+                DataSlicePath.parse_from_string('.foo'),
+                DataSlicePath.parse_from_string('.jazz.jax'),
+            ],
+            populate_including_descendants=[
+                DataSlicePath.parse_from_string('.bar'),
+            ],
+        ),
+        to_same_len_set([
+            schema_node_name(schema, action=GetAttr('foo')),
+            schema_node_name(schema.jazz.jax),
+            schema_node_name(schema.jazz),
+            schema_node_name(schema),
+            schema_node_name(schema.bar, action=GetAttr('zoo')),
+            schema_node_name(schema.bar),
+            schema_node_name(schema.baz),
+        ]),
+    )
+
+    with self.subTest('invalid_path_to_populate'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument 'populate' is"
+              ' invalid'
+          ),
+      ):
+        helper.get_schema_node_names_needed_to(
+            populate=[
+                DataSlicePath.parse_from_string('.abcde'),
+            ],
+        )
+
+    with self.subTest('invalid_path_to_populate_including_descendants'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument"
+              " 'populate_including_descendants' is invalid"
+          ),
+      ):
+        helper.get_schema_node_names_needed_to(
+            populate_including_descendants=[
+                DataSlicePath.parse_from_string('.abcde'),
+            ],
+        )
 
 
 if __name__ == '__main__':
