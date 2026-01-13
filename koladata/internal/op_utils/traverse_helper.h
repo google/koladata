@@ -354,13 +354,14 @@ class TraverseHelper {
   absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
                      const TransitionsSet& transitions_set, Fn&& fn) {
     static_assert(std::is_same_v<decltype(fn(arolla::view_type_t<DataItem>{},
-                                             arolla::view_type_t<DataItem>())),
+                                             arolla::view_type_t<DataItem>(),
+                                             absl::string_view{})),
                                  void>,
                   "Callback shouldn't return value");
     if (schema == schema::kObject) {
       ASSIGN_OR_RETURN(DataItem object_schema, GetObjectSchema(item));
       if (object_schema.holds_value<ObjectId>()) {
-        fn(item, object_schema);
+        fn(item, object_schema, std::nullopt);
       }
     } else if (transitions_set.is_list()) {
       ForEachListItemObject(transitions_set, fn);
@@ -448,7 +449,7 @@ class TraverseHelper {
     for (int64_t i = 0; i < list_items.size(); ++i) {
       const DataItem& item = list_items[i];
       if (item.holds_value<ObjectId>()) {
-        fn(item, item_schema);
+        fn(item, item_schema, schema::kListItemsSchemaAttr);
       }
     }
   }
@@ -461,7 +462,8 @@ class TraverseHelper {
       for (int64_t i = 0; i < dict_keys.size(); ++i) {
         const DataItem& key = dict_keys[i];
         if (key.holds_value<ObjectId>()) {
-          fn(key, transitions_set.dict_keys_schema());
+          fn(key, transitions_set.dict_keys_schema(),
+             schema::kDictKeysSchemaAttr);
         }
       }
     }
@@ -470,7 +472,8 @@ class TraverseHelper {
       for (int64_t i = 0; i < dict_values.size(); ++i) {
         const DataItem& value = dict_values[i];
         if (value.holds_value<ObjectId>()) {
-          fn(value, transitions_set.dict_values_schema());
+          fn(value, transitions_set.dict_values_schema(),
+             schema::kDictValuesSchemaAttr);
         }
       }
     }
@@ -489,7 +492,7 @@ class TraverseHelper {
             return;
           }
           if (transition_or->item.holds_value<ObjectId>()) {
-            fn(transition_or->item, transition_or->schema);
+            fn(transition_or->item, transition_or->schema, std::nullopt);
           }
         });
     return status;
@@ -514,7 +517,7 @@ class TraverseHelper {
             return;
           }
           if (transition_or->item.holds_value<ObjectId>()) {
-            fn(transition_or->item, transition_or->schema);
+            fn(transition_or->item, transition_or->schema, attr_name);
           }
         });
     return status;

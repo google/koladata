@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -26,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -53,10 +55,10 @@ class DeepCloneVisitor : AbstractVisitor {
         allocations_with_metadata_(),
         explicit_schemas_() {}
 
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) override {
     if (schema == schema::kObject && from_schema == schema::kSchema) {
       // The `item` is schema_metadata for `from_item`.
       RETURN_IF_ERROR(PrevisitSchemaMetadata(from_item, item));

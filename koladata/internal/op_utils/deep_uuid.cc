@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -53,10 +54,10 @@ class DeepUuidVisitor : AbstractVisitor {
   explicit DeepUuidVisitor(absl::string_view seed)
       : self_reference_(arolla::Text(kSelfReference)), seed_(seed) {}
 
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) override {
     return true;
   }
 

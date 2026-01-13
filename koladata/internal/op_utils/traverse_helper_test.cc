@@ -16,11 +16,14 @@
 
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -587,13 +590,19 @@ TEST_P(TraverseHelperTest, ForEachObject) {
 
   std::vector<DataItem> result_items;
   std::vector<DataItem> result_schemas;
+  std::vector<std::string> result_paths;
   EXPECT_OK(traverse_helper.ForEachObject(
       a0, schema, transition_set,
-      [&](const DataItem& item, const DataItem& schema) {
+      [&](const DataItem& item, const DataItem& schema,
+          std::optional<absl::string_view> from_item_attr_name) {
         result_items.push_back(item);
         result_schemas.push_back(schema);
+        if (from_item_attr_name.has_value()) {
+          result_paths.push_back(std::string(from_item_attr_name.value()));
+        }
       }));
   EXPECT_THAT(result_items, UnorderedElementsAre(a1, a2));
+  EXPECT_THAT(result_paths, UnorderedElementsAre("x", "y"));
   EXPECT_THAT(result_schemas, ElementsAre(schema, schema));
 }
 

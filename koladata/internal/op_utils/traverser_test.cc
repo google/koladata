@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -30,6 +31,7 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
@@ -77,10 +79,10 @@ class NoOpVisitor : AbstractVisitor {
   explicit NoOpVisitor(std::vector<std::pair<DataItem, DataItem>> skip = {})
       : previsited_(), skip_(skip), value_item_(DataItem("get value result")) {}
 
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
           absl::StrFormat("%v is not a schema", schema));
@@ -171,10 +173,10 @@ class ObjectVisitor : AbstractVisitor {
  public:
   explicit ObjectVisitor() = default;
 
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) override {
     if (!item.holds_value<ObjectId>()) {
       return false;
     }
@@ -246,10 +248,10 @@ class SaveParentVisitor : AbstractVisitor {
  public:
   explicit SaveParentVisitor() : previsited_(), previsited_parents_() {}
 
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
           absl::StrFormat("%v is not a schema", schema));

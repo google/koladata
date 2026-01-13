@@ -132,10 +132,10 @@ class ToPyVisitor : internal::AbstractVisitor {
   //
   // Returns false if the item should not be converted. Visit* methods will not
   // be called for this item. And the item would not be traversed further.
-  absl::StatusOr<bool> Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) final {
+  absl::StatusOr<bool> Previsit(
+      const DataItem& from_item, const DataItem& from_schema,
+      const std::optional<absl::string_view>& from_item_attr_name,
+      const DataItem& item, const DataItem& schema) final {
     if (!item.holds_value<ObjectId>()) {
       return true;
     }
