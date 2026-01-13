@@ -142,6 +142,8 @@ inline void BM_DisjointChainsObjects(benchmark::State& state,
   internal::DataItem kObjectSchema(schema::kObject);
   auto kObjectSchemaSlice =
       DataSliceImpl::Create(/*size=*/ds_size, kObjectSchema);
+  auto kItemIdSchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, DataItem(schema::kItemId));
   for (int64_t i = 0; i < schema_depth; ++i) {
     ASSERT_OK_AND_ASSIGN(
         auto schemas,
@@ -149,7 +151,11 @@ inline void BM_DisjointChainsObjects(benchmark::State& state,
             ds, schema::kImplicitSchemaSeed));
     CHECK_OK(db->SetAttr(ds, schema::kSchemaAttr, schemas));
     auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
-    CHECK_OK(db->SetSchemaAttr(schemas, "child", kObjectSchemaSlice));
+    if (i + 1 < schema_depth) {
+      CHECK_OK(db->SetSchemaAttr(schemas, "child", kObjectSchemaSlice));
+    } else {
+      CHECK_OK(db->SetSchemaAttr(schemas, "child", kItemIdSchemaSlice));
+    }
     CHECK_OK(db->SetAttr(ds, "child", child_ds));
     ds = std::move(child_ds);
   }
@@ -200,6 +206,8 @@ inline void BM_DAGObjects(benchmark::State& state, RunBenchmarksFn run_fn) {
   internal::DataItem kObjectSchema(schema::kObject);
   auto kObjectSchemaSlice =
       DataSliceImpl::Create(/*size=*/ds_size, kObjectSchema);
+  auto kItemIdSchemaSlice =
+      DataSliceImpl::Create(/*size=*/ds_size, DataItem(schema::kItemId));
   for (int64_t i = 0; i < schema_depth; ++i) {
     ASSERT_OK_AND_ASSIGN(
         auto schemas,
@@ -209,7 +217,11 @@ inline void BM_DAGObjects(benchmark::State& state, RunBenchmarksFn run_fn) {
     auto child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
     for (int64_t j = 0; j < attr_count; ++j) {
       std::string attr_name = absl::StrCat("layer_", i, "_child_", j);
-      CHECK_OK(db->SetSchemaAttr(schemas, attr_name, kObjectSchemaSlice));
+      if (i + 1 < schema_depth) {
+        CHECK_OK(db->SetSchemaAttr(schemas, attr_name, kObjectSchemaSlice));
+      } else {
+        CHECK_OK(db->SetSchemaAttr(schemas, attr_name, kItemIdSchemaSlice));
+      }
       CHECK_OK(db->SetAttr(ds, attr_name,
                            ApplyRandomMask(ShuffleObjectsSlice(child_ds, gen),
                                            presence_rate, gen)));
