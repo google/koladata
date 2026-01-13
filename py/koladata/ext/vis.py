@@ -311,7 +311,7 @@ def _create_data_slice_table_data(
       )
   )
   message = (
-      f'size: {ds.get_size()}, ndims: {ds.get_ndim()}, '
+      f'present: {kdi.count(ds)}/{ds.get_size()}, ndims: {ds.get_ndim()}, '
       f'schema: <span {AccessType.GET_SCHEMA.value}="">{schema_html}</span>')
 
   sizes = (
