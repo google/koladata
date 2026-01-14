@@ -49,10 +49,13 @@ export class MultiIndexFlag extends NanoElement {
   }
 
   static get observedAttributes() {
-    return ['data-index'];
+    return ['data-index', 'compact'];
   }
 
   get index(): string[] {
+    if (this.hasAttribute('compact')) {
+      return [this.dataset['index'] ?? ''];
+    }
     return this.dataset['index']?.split(',') ?? [];
   }
 

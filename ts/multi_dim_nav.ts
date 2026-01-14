@@ -235,7 +235,9 @@ export interface ChangeCurrentDetail {
  *
  * Additional attributes:
  * - data-layout: If this is set to 'small', flags for current and cursor
- *    positions will be smaller.
+ *      positions will be smaller.
+ * - compact: If this is set, the data-row-height is interpreted as the total
+ *      height instead of the height of a single dimension.
  */
 export class MultiDimNav extends NanoElement {
   // Element that creates all space necessary for items. Flags and slotted
@@ -319,7 +321,7 @@ export class MultiDimNav extends NanoElement {
   }
 
   static get observedAttributes() {
-    return ['data-sizes', 'data-layout'];
+    return ['data-sizes', 'data-layout', 'compact'];
   }
 
   get numDims() {
@@ -331,7 +333,11 @@ export class MultiDimNav extends NanoElement {
   }
 
   get rowHeight() {
-    return Number(this.dataset['rowHeight'] ?? 30);
+    const rowHeight = Number(this.dataset['rowHeight'] ?? 30);
+    if (this.hasAttribute('compact')) {
+      return rowHeight / (this.node.depth + 1);
+    }
+    return rowHeight;
   }
 
   /**
@@ -365,6 +371,7 @@ export class MultiDimNav extends NanoElement {
     );
     this.currentFlag = html.tag('kd-multi-index-flag', flagClasses);
     this.cursorFlag = html.tag('kd-multi-index-flag', flagClasses);
+    this.syncCompact();
 
     this.currentFlag.setAttribute('current', '');
     this.cursorFlag.setAttribute('cursor', '');
@@ -421,6 +428,17 @@ export class MultiDimNav extends NanoElement {
     new ResizeObserver(boundRender).observe(this);
 
     this.render();
+  }
+
+  private syncCompact() {
+    const compact = this.hasAttribute('compact');
+    if (compact) {
+      this.currentFlag?.setAttribute('compact', '');
+      this.cursorFlag?.setAttribute('compact', '');
+    } else {
+      this.currentFlag?.removeAttribute('compact');
+      this.cursorFlag?.removeAttribute('compact');
+    }
   }
 
   private repositionSlottedElement(target: HTMLElement) {
@@ -492,6 +510,8 @@ export class MultiDimNav extends NanoElement {
         0,
       );
       super.attributeChangedCallback(name, oldValue, newValue);
+    } else if (name === 'compact') {
+      this.syncCompact();
     }
   }
 
