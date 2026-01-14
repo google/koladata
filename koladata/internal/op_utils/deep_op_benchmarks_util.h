@@ -15,8 +15,10 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_DEEP_OP_BENCHMARKS_UTIL_H_
 #define KOLADATA_INTERNAL_OP_UTILS_DEEP_OP_BENCHMARKS_UTIL_H_
 
+#include <cmath>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,6 +29,7 @@
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
@@ -71,9 +74,31 @@ constexpr auto kLayersBenchmarkFn = [](auto* b) {
       ->Args({20, 100, 10, 10});
 };
 
+constexpr auto kTreesBenchmarkFn = [](auto* b) {
+  // Number of layers, number of non-leaf childs per object, number of leaves
+  // per object, size of the slice.
+  b->Args({2, 10, 10, 1})
+      ->Args({2, 10, 10, 10})
+      ->Args({2, 10, 10, 100})
+      ->Args({2, 1000, 1000, 1})
+      ->Args({2, 1000, 1000, 10})
+      ->Args({5, 10, 10, 1})
+      ->Args({5, 10, 10, 10})
+      ->Args({5, 10, 10, 100})
+      ->Args({18, 2, 2, 1})
+      ->Args({18, 2, 2, 10})
+      ->Args({18, 2, 2, 100});
+};
+
 using RunBenchmarksFn =
     std::function<void(benchmark::State&, DataSliceImpl&, DataItem&,
                        DataBagImplPtr&, DataBagImpl::FallbackSpan)>;
+
+using RunCastingBenchmarksFn = std::function<void(
+    benchmark::State&, DataSliceImpl& ds_impl, DataItem& ds_schema,
+    DataBagImplPtr& ds_databag, const DataBagImpl::FallbackSpan ds_fallbacks,
+    DataItem& new_schema, DataBagImplPtr& new_schema_databag,
+    const DataBagImpl::FallbackSpan new_schema_fallbacks)>;
 
 inline DataSliceImpl ShuffleObjectsSlice(const DataSliceImpl& ds,
                                          absl::BitGen& gen) {
@@ -108,7 +133,8 @@ inline DataSliceImpl ApplyRandomMask(const DataSliceImpl& ds,
   return result;
 }
 
-inline void BM_DisjointChains(benchmark::State& state, RunBenchmarksFn run_fn) {
+inline void BM_DisjointChains(benchmark::State& state,
+                              const RunBenchmarksFn& run_fn) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
@@ -131,7 +157,7 @@ inline void BM_DisjointChains(benchmark::State& state, RunBenchmarksFn run_fn) {
 }
 
 inline void BM_DisjointChainsObjects(benchmark::State& state,
-                                     RunBenchmarksFn run_fn) {
+                                     const RunBenchmarksFn& run_fn) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
@@ -162,7 +188,7 @@ inline void BM_DisjointChainsObjects(benchmark::State& state,
   run_fn(state, root_ds, kObjectSchema, db, {});
 }
 
-inline void BM_DAG(benchmark::State& state, RunBenchmarksFn run_fn) {
+inline void BM_DAG(benchmark::State& state, const RunBenchmarksFn& run_fn) {
   int64_t schema_depth = state.range(0);
   int64_t attr_count = state.range(1);
   int64_t presence_rate = state.range(2);
@@ -191,7 +217,8 @@ inline void BM_DAG(benchmark::State& state, RunBenchmarksFn run_fn) {
   run_fn(state, root_ds, root_schema, db, {});
 }
 
-inline void BM_DAGObjects(benchmark::State& state, RunBenchmarksFn run_fn) {
+inline void BM_DAGObjects(benchmark::State& state,
+                          const RunBenchmarksFn& run_fn) {
   int64_t schema_depth = state.range(0);
   int64_t attr_count = state.range(1);
   int64_t presence_rate = state.range(2);
@@ -229,6 +256,73 @@ inline void BM_DAGObjects(benchmark::State& state, RunBenchmarksFn run_fn) {
     ds = std::move(child_ds);
   }
   run_fn(state, root_ds, kObjectSchema, db, {});
+}
+
+inline void BM_TreeShapedIntToFloat(benchmark::State& state,
+                                    const RunCastingBenchmarksFn& run_fn) {
+  int64_t schema_depth = state.range(0);
+  int64_t schema_attr_count = state.range(1);
+  int64_t primitive_attr_count = state.range(2);
+  int64_t ds_size = state.range(3);
+  int64_t num_leaves =
+      static_cast<int64_t>(std::pow(schema_attr_count, schema_depth - 1)) *
+      primitive_attr_count * ds_size;
+  state.SetLabel(absl::StrFormat(
+      "ds_size=%d; depth=%d; attrs_per_node=%d+%d; total_leaves=%d", ds_size,
+      schema_depth, schema_attr_count, primitive_attr_count, num_leaves));
+
+  CancellationContext::ScopeGuard cancellation_scope;
+  auto db_a = DataBagImpl::CreateEmptyDatabag();
+  auto db_b = DataBagImpl::CreateEmptyDatabag();
+  auto root_schema_a = DataItem(internal::AllocateExplicitSchema());
+  auto root_schema_b = DataItem(internal::AllocateExplicitSchema());
+  auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+  std::vector<DataItem> schemas_a({root_schema_a});
+  std::vector<DataItem> schemas_b({root_schema_b});
+  std::vector<DataSliceImpl> ds({root_ds});
+  int value = 0;
+  for (int64_t i = 0; i < schema_depth; ++i) {
+    std::vector<DataItem> child_schemas_a;
+    std::vector<DataItem> child_schemas_b;
+    std::vector<DataSliceImpl> child_ds;
+    for (uint64_t id = 0; id < schemas_a.size(); ++id) {
+      auto schema_a = schemas_a[id];
+      auto schema_b = schemas_b[id];
+      auto cur_ds = ds[id];
+      for (int64_t j = 0; j < schema_attr_count; ++j)
+      {
+        std::string attr_name = absl::StrCat("layer_", i, "_child_", j);
+        auto child_schema_a = DataItem(internal::AllocateExplicitSchema());
+        auto child_schema_b = DataItem(internal::AllocateExplicitSchema());
+        auto cur_child_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
+        CHECK_OK(db_a->SetSchemaAttr(schema_a, attr_name, child_schema_a));
+        CHECK_OK(db_b->SetSchemaAttr(schema_b, attr_name, child_schema_b));
+        CHECK_OK(db_a->SetAttr(cur_ds, attr_name, cur_child_ds));
+        child_ds.push_back(std::move(cur_child_ds));
+        child_schemas_a.push_back(std::move(child_schema_a));
+        child_schemas_b.push_back(std::move(child_schema_b));
+      }
+      for (int64_t j = 0; j < primitive_attr_count; ++j)
+      {
+        std::string attr_name = absl::StrCat("layer_", i, "_primitive_", j);
+        auto child_schema_a = DataItem(schema::kInt32);
+        auto child_schema_b = DataItem(schema::kFloat32);
+        std::vector<std::optional<int>> values(ds_size);
+        for (int64_t h = 0; h < ds_size; ++h) {
+          values[h] = ++value;
+        }
+        DataSliceImpl::Create(
+            arolla::CreateDenseArray<int>(values.begin(), values.end()));
+        CHECK_OK(db_a->SetSchemaAttr(schema_a, attr_name, child_schema_a));
+        CHECK_OK(db_b->SetSchemaAttr(schema_b, attr_name, child_schema_b));
+      }
+    }
+    std::swap(ds, child_ds);
+    std::swap(schemas_a, child_schemas_a);
+    std::swap(schemas_b, child_schemas_b);
+  }
+  run_fn(state, root_ds, root_schema_a, db_a, {}, root_schema_b, db_b,
+                          {});
 }
 
 }  // namespace benchmarks_utils

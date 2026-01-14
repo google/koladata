@@ -14,7 +14,9 @@
 //
 #include "benchmark/benchmark.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "arolla/qtype/base_types.h"
+#include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -42,6 +44,32 @@ void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem& schema,
   }
 }
 
+void RunCastingBenchmarks(benchmark::State& state, DataSliceImpl& ds,
+                          DataItem& schema, DataBagImplPtr& databag,
+                          DataBagImpl::FallbackSpan fallbacks,
+                          DataItem& new_schema, DataBagImplPtr& schema_databag,
+                          DataBagImpl::FallbackSpan schema_fallbacks) {
+  auto cast_data_callback =
+      static_cast<absl::StatusOr<internal::DataSliceImpl> (*)(
+          const internal::DataSliceImpl&, const internal::DataItem&)>(
+          schema::CastDataTo);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(ds);
+    benchmark::DoNotOptimize(schema);
+    benchmark::DoNotOptimize(databag);
+    benchmark::DoNotOptimize(fallbacks);
+    benchmark::DoNotOptimize(new_schema);
+    benchmark::DoNotOptimize(schema_databag);
+    benchmark::DoNotOptimize(schema_fallbacks);
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    ExtractOp(result_db.get())(ds, new_schema, *databag, fallbacks,
+                               &*schema_databag, schema_fallbacks,
+                               /*max_depth=*/-1, cast_data_callback)
+        .IgnoreError();
+    benchmark::DoNotOptimize(result_db);
+  }
+}
+
 void BM_DisjointChains(benchmark::State& state) {
   benchmarks_utils::BM_DisjointChains(state, RunBenchmarks);
 }
@@ -62,6 +90,11 @@ void BM_DAGObjects(benchmark::State& state) {
 }
 BENCHMARK(BM_DAGObjects)->Apply(benchmarks_utils::kLayersBenchmarkFn);
 
+void BM_TreeShapedIntToFloat(benchmark::State& state) {
+  benchmarks_utils::BM_TreeShapedIntToFloat(state, RunCastingBenchmarks);
+}
+BENCHMARK(BM_TreeShapedIntToFloat)->Apply(benchmarks_utils::kTreesBenchmarkFn);
+
 inline void BM_ScalarPrimitive(benchmark::State& state) {
   auto input_db = DataBagImpl::CreateEmptyDatabag();
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -77,7 +110,6 @@ inline void BM_ScalarPrimitive(benchmark::State& state) {
     benchmark::DoNotOptimize(result_db);
   }
 }
-
 BENCHMARK(BM_ScalarPrimitive);
 
 }  // namespace
