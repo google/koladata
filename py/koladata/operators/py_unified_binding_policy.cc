@@ -89,14 +89,13 @@ using ::arolla::python::UnsafeUnwrapPyQValue;
 bool ExtractUnifiedPolicyOpts(const ExprOperatorSignature& signature,
                               absl::string_view& result_binding_options,
                               absl::string_view& result_boxing_options) {
-  absl::string_view string = signature.aux_policy;
-  if (!absl::ConsumePrefix(&string, kUnifiedPolicy) ||
-      !absl::ConsumePrefix(&string, ":")) {
+  if (signature.aux_policy_name != kUnifiedPolicy) {
     return PyErr_Format(
         PyExc_RuntimeError,
         "UnifiedBindingPolicy: unexpected binding policy name: %s",
-        absl::Utf8SafeCHexEscape(signature.aux_policy).c_str());
+        absl::Utf8SafeCHexEscape(signature.aux_policy_name).c_str());
   }
+  absl::string_view string = signature.aux_policy_options;
   const auto idx = string.find(':');
   if (idx != absl::string_view::npos) {
     result_binding_options = string.substr(0, idx);
