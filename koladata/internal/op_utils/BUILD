@@ -395,6 +395,7 @@ cc_test(
     srcs = ["deep_clone_test.cc"],
     deps = [
         ":deep_clone",
+        ":presence_and",
         "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
@@ -405,8 +406,10 @@ cc_test(
         "//koladata/internal:uuid_object",
         "//koladata/internal/testing:deep_op_utils",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
@@ -726,6 +729,23 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
         "@com_google_arolla//arolla/dense_array/testing",
+    ],
+)
+
+cc_test(
+    name = "deep_clone_benchmarks",
+    srcs = ["deep_clone_benchmarks.cc"],
+    deps = [
+        ":deep_clone",
+        ":deep_op_benchmarks_util",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 
