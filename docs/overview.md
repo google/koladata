@@ -107,7 +107,7 @@ kd.item(1, schema=kd.FLOAT32).to_py()  # python 1.
 kd.list([10, 20, 30, 40])[2]  # 30
 kd.dict({1: 'a', 2: 'b'})[2]  # 'b'
 kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
-kd.to_py(kd.dict({'a': [1, 2, 3], 'b': [4, 5, 6]})) # {'a': [1, 2, 3], 'b': [4, 5, 6]}
+kd.to_py(kd.from_py({'a': [1, 2, 3], 'b': [4, 5, 6]})) # {'a': [1, 2, 3], 'b': [4, 5, 6]}
 
 kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # DataSlice of lists
 kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # DataSlice of dicts
