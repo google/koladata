@@ -261,7 +261,7 @@ class DeepCloneVisitor : AbstractVisitor {
 
   absl::StatusOr<DataItem> GetValueImpl(const DataItem& item,
                                         const DataItem& schema) {
-    if (!item.holds_value<ObjectId>()) {
+    if (!item.holds_value<ObjectId>() || schema == schema::kItemId) {
       return item;
     }
     if (item.is_schema() && !is_schema_slice_ && !item.is_implicit_schema()) {

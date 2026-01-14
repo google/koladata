@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -1078,6 +1079,64 @@ TEST_P(DeepCloneTest, SchemaMetadata_SchemaSlice) {
   SetSchemaTriples(*expected_db, expected_schema_triples);
 
   ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(DeepCloneTest, SparseSliceWithItemIds) {
+  const int64_t ds_size = 4;
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds2 = DataSliceImpl::AllocateEmptyObjects(ds_size);
+  auto ds3 = DataSliceImpl::AllocateEmptyObjects(ds_size);
+  ASSERT_OK_AND_ASSIGN(
+        auto schemas2,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            ds2, schema::kImplicitSchemaSeed));
+  ASSERT_OK(db->SetAttr(ds2, schema::kSchemaAttr, schemas2));
+
+  ASSERT_OK(db->SetSchemaAttr(schemas2, "a", DataItem(schema::kItemId)));
+  ASSERT_OK(db->SetSchemaAttr(schemas2, "b", DataItem(schema::kItemId)));
+  ASSERT_OK(db->SetAttr(ds2[2], "a", ds3[0]));
+  ASSERT_OK(db->SetAttr(ds2[3], "a", ds3[1]));
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      DeepCloneOp(result_db.get())(ds2, DataItem(schema::kObject),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  EXPECT_EQ(result.present_count(), 4);
+  EXPECT_TRUE(result.dtype() == arolla::GetQType<ObjectId>());
+  ASSERT_OK_AND_ASSIGN(auto result_inner0, result_db->GetAttr(result[2], "a"));
+  ASSERT_OK_AND_ASSIGN(auto result_inner1, result_db->GetAttr(result[3], "a"));
+  ASSERT_OK_AND_ASSIGN(
+        auto result_schemas,
+        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+            result, schema::kImplicitSchemaSeed));
+  EXPECT_EQ(result_schemas.present_count(), 4);
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(expected_db->SetAttr(result, schema::kSchemaAttr, result_schemas));
+  TriplesT expected_data_triples = {
+      {result[0], {{"a", DataItem()}, {"b", DataItem()}}},
+      {result[1], {{"a", DataItem()}, {"b", DataItem()}}},
+      {result[2], {{"a", result_inner0}, {"b", DataItem()}}},
+      {result[3], {{"a", result_inner1}, {"b", DataItem()}}},
+  };
+  TriplesT expected_schema_triples = {
+      {result_schemas[0],
+       {{"a", DataItem(schema::kItemId)}, {"b", DataItem(schema::kItemId)}}},
+      {result_schemas[1],
+       {{"a", DataItem(schema::kItemId)}, {"b", DataItem(schema::kItemId)}}},
+      {result_schemas[2],
+       {{"a", DataItem(schema::kItemId)}, {"b", DataItem(schema::kItemId)}}},
+      {result_schemas[3],
+       {{"a", DataItem(schema::kItemId)}, {"b", DataItem(schema::kItemId)}}},
+  };
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 

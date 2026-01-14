@@ -407,6 +407,7 @@ cc_test(
         "//koladata/internal/testing:matchers",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
