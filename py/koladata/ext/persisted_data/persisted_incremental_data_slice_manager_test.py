@@ -136,7 +136,7 @@ def is_loaded_data_slice_path(
   """Returns whether the given data slice path is loaded."""
   return schema_helper_lib.SchemaHelper(
       get_loaded_schema(manager)
-  ).is_valid_data_slice_path(path)
+  ).exists(path)
 
 
 class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):

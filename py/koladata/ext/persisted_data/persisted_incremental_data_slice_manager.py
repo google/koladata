@@ -463,7 +463,7 @@ class PersistedIncrementalDataSliceManager(
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
     """Returns whether the given data slice path exists for this manager."""
-    return self._schema_helper.is_valid_data_slice_path(path)
+    return self._schema_helper.exists(path)
 
   def get_data_slice(
       self,

@@ -685,7 +685,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
     for data_path in helper.generate_available_data_slice_paths(max_depth=7):
-      self.assertTrue(helper.is_valid_data_slice_path(data_path))
+      self.assertTrue(helper.exists(data_path))
 
   def test_generate_available_data_paths_for_dict_schema(self):
     dict_schema = kd.dict_schema(kd.STRING, kd.STRING)
@@ -700,7 +700,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
     for data_path in helper.generate_available_data_slice_paths(max_depth=7):
-      self.assertTrue(helper.is_valid_data_slice_path(data_path))
+      self.assertTrue(helper.exists(data_path))
 
   def test_get_affected_schema_node_names(self):
     root = kd.new()
@@ -947,32 +947,32 @@ class SchemaHelperTest(absltest.TestCase):
     helper = schema_helper.SchemaHelper(schema)
 
     self.assertTrue(
-        helper.is_valid_data_slice_path(DataSlicePath.from_actions([]))
+        helper.exists(DataSlicePath.from_actions([]))
     )
     self.assertTrue(
-        helper.is_valid_data_slice_path(
+        helper.exists(
             DataSlicePath.from_actions([GetAttr('foo')])
         )
     )
     self.assertTrue(
-        helper.is_valid_data_slice_path(
+        helper.exists(
             DataSlicePath.from_actions([GetAttr('bar')])
         )
     )
     self.assertTrue(
-        helper.is_valid_data_slice_path(
+        helper.exists(
             DataSlicePath.from_actions([GetAttr('bar'), ListExplode()])
         )
     )
 
     # These are not valid data slice paths for the schema.
     self.assertFalse(
-        helper.is_valid_data_slice_path(
+        helper.exists(
             DataSlicePath.from_actions([GetAttr('foo'), ListExplode()])
         )
     )
     self.assertFalse(
-        helper.is_valid_data_slice_path(
+        helper.exists(
             DataSlicePath.from_actions(
                 [GetAttr('bar'), ListExplode(), DictGetKeys()]
             )

@@ -50,7 +50,7 @@ class SimpleInMemoryDataSliceManager(
     )
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
-    return self._schema_helper().is_valid_data_slice_path(path)
+    return self._schema_helper().exists(path)
 
   def get_data_slice(
       self,

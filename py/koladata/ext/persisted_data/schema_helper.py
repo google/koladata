@@ -776,9 +776,7 @@ class SchemaHelper:
         self._schema, max_depth=max_depth
     )
 
-  def is_valid_data_slice_path(
-      self, data_slice_path: data_slice_path_lib.DataSlicePath
-  ) -> bool:
+  def exists(self, data_slice_path: data_slice_path_lib.DataSlicePath) -> bool:
     try:
       self.get_schema_node_name_for_data_slice_path(data_slice_path)
       return True
@@ -804,12 +802,12 @@ class SchemaHelper:
     populate = set(populate or [])
     populate_including_descendants = set(populate_including_descendants or [])
     for path in populate:
-      if not self.is_valid_data_slice_path(path):
+      if not self.exists(path):
         raise ValueError(
             f"data slice path '{path}' passed in argument 'populate' is invalid"
         )
     for path in populate_including_descendants:
-      if not self.is_valid_data_slice_path(path):
+      if not self.exists(path):
         raise ValueError(
             f"data slice path '{path}' passed in argument"
             " 'populate_including_descendants' is invalid"
