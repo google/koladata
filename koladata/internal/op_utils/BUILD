@@ -730,6 +730,24 @@ cc_library(
 )
 
 cc_test(
+    name = "deep_schema_compatible_benchmarks",
+    srcs = ["deep_schema_compatible_benchmarks.cc"],
+    deps = [
+        ":deep_op_benchmarks_util",
+        ":deep_schema_compatible",
+        "//koladata:data_slice",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "@com_google_absl//absl/log:check",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "deep_clone_benchmarks",
     srcs = ["deep_clone_benchmarks.cc"],
     deps = [
