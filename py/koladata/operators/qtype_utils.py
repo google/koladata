@@ -59,8 +59,8 @@ def expect_data_slice_args(param) -> constraints.QTypeConstraint:
           )
       ),
       (
-          'expected all arguments to be DATA_SLICE, got'
-          f' {constraints.name_type_msg(param)}'
+          'expected all arguments to be DATA_SLICEs, got'
+          f' {constraints.variadic_name_type_msg(param)}'
       ),
   )
 

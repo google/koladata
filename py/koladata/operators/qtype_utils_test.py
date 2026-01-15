@@ -175,8 +175,10 @@ class KodaQTypesTest(absltest.TestCase):
     with self.subTest('failure'):
       with self.assertRaisesRegex(
           ValueError,
-          'expected all arguments to be DATA_SLICE, got x:'
-          ' tuple<DATA_SLICE,INT32>',
+          re.escape(
+              'expected all arguments to be DATA_SLICEs, got *x: (DATA_SLICE,'
+              ' INT32)'
+          ),
       ):
         _op(data_slice.DataSlice.from_vals(1), arolla.int32(1))
 

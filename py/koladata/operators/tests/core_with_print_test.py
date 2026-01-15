@@ -165,8 +165,8 @@ class CoreWithPrintTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected all arguments to be DATA_SLICE, got'
-            ' args: tuple<DATA_SLICE,DATA_BAG>'
+            'expected all arguments to be DATA_SLICEs, got'
+            ' *args: (DATA_SLICE, DATA_BAG)'
         ),
     ):
       kde.core.with_print(
