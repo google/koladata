@@ -32,6 +32,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -51,6 +52,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/objs.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/slices.h"
 #include "koladata/proto/from_proto.h"
@@ -60,6 +62,7 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_args.h"
+#include "py/koladata/base/py_conversions/from_py.h"
 #include "py/koladata/base/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
@@ -261,9 +264,26 @@ struct ObjectCreatorHelper {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
+
+    if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
+      const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
+      if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
+        const DataSlice& res = typed_value.UnsafeAs<DataSlice>();
+        return ops::ConvertWithAdoption(db, res);
+      } else {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "only DataSlice QValues are supported as objects; got: %s.",
+            typed_value.GetType()->name()));
+      }
+    }
+
+    ASSIGN_OR_RETURN(DataSlice schema,
+                     DataSlice::Create(internal::DataItem(schema::kObject),
+                                       internal::DataItem(schema::kSchema)));
     ASSIGN_OR_RETURN(DataSlice res,
-                     ObjectsFromPyObject(py_obj, itemid, db, adoption_queue));
-    return res.WithBag(db).WithSchema(internal::DataItem(schema::kObject));
+                     FromPy_V2(py_obj, std::move(schema), /*from_dim=*/0,
+                               /*dict_as_obj=*/false, itemid));
+    return ops::ConvertWithAdoption(db, res);
   }
 };
 

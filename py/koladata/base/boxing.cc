@@ -1374,17 +1374,4 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
       .Convert(py_obj, schema, /*from_dim=*/0, itemid);
 }
 
-absl::StatusOr<DataSlice> ObjectsFromPyObject(
-    PyObject* py_obj, const std::optional<DataSlice>& itemid,
-    const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-  // NOTE: UniversalConverter does not allow converting multi-dimensional
-  // DataSlices, so we are processing it before invoking the UniversalConverter.
-  if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
-    ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(py_obj, adoption_queue));
-    return ObjectCreator::ConvertWithoutAdopt(db, res);
-  }
-  return UniversalConverter<ObjectCreator>(db, adoption_queue)
-      .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0, itemid);
-}
-
 }  // namespace koladata::python

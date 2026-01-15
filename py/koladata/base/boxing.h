@@ -105,18 +105,6 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
     const std::optional<DataSlice>& itemid, const DataBagPtr& db,
     AdoptionQueue& adoption_queue);
 
-// Converts Python objects into DataSlices and converts them into appropriate
-// Koda Objects. The conversion is deep, such that all nested structures (e.g.
-// dicts) are also Koda Objects (including Koda Lists and Dicts) or primitive
-// DataSlices (which are casted using OBJECT schemas).
-//
-// `py_obj` is the true input argument that is being converted, while `db` is
-// used to create all Koda objects into. `adoption_queue` is used to collect
-// DataBag(s) of DataSlice(s) from nested `py_obj`.
-absl::StatusOr<DataSlice> ObjectsFromPyObject(
-    PyObject* py_obj, const std::optional<DataSlice>& itemid,
-    const DataBagPtr& db, AdoptionQueue& adoption_queue);
-
 // Returns an Error from provided status with incompatible schema information
 // during narrow casting.
 absl::Status CreateIncompatibleSchemaErrorFromStatus(

@@ -138,15 +138,21 @@ class ObjTest(absltest.TestCase):
   def test_universal_converter_with_itemid(self):
     itemid = kde.uuid_for_list('obj').eval()
     res = fns.obj([{'a': 42, 'b': 17}, {'c': 12}], itemid=itemid)
-    child_itemid = kde.uuid_for_dict(
-        '__from_py_child__', parent=itemid,
-        list_item_index=ds([0, 1], schema_constants.INT64)
+    child_itemid = kde.uuid(
+        '__from_py_child__',
+        parent=itemid,
+        list_item_index=ds([0, 1], schema_constants.INT64),
+    ).eval()
+
+    dict_item_id = kde.uuid_for_dict(
+        '',
+        base_itemid=child_itemid,
     ).eval()
     testing.assert_equal(res.no_bag().get_itemid(), itemid)
     testing.assert_dicts_keys_equal(
         res[:], ds([['a', 'b'], ['c']], schema_constants.OBJECT)
     )
-    testing.assert_equal(res[:].no_bag().get_itemid(), child_itemid)
+    testing.assert_equal(res[:].no_bag().get_itemid(), dict_item_id)
 
     with self.assertRaisesRegex(
         ValueError, 'itemid argument to list creation, requires List ItemIds'
@@ -237,8 +243,6 @@ class ObjTest(absltest.TestCase):
   def test_universal_converter_object(self):
     obj = fns.obj(a=42, b='abc')
     new_obj = fns.obj(obj)
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(obj.get_bag(), new_obj.get_bag())
     testing.assert_equivalent(new_obj, obj)
 
   def test_nested_universal_converter(self):

@@ -19,6 +19,8 @@
 #include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ops {
 
@@ -50,6 +52,13 @@ class UuObjOperatorFamily : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
+
+// If `slice` does not have a DataBag, creates a new DataBag and adopts `slice`
+// into it. Otherwise calls `ObjectCreator::ConvertWithoutAdopt` for it and
+// attaches the `db` to the result.
+// TODO(b/475760871) Move this to object_factories.
+absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
+                                              const DataSlice& value);
 
 }  // namespace koladata::ops
 
