@@ -377,11 +377,23 @@ py_library(
     name = "bare_root_initial_data_manager",
     srcs = ["bare_root_initial_data_manager.py"],
     deps = [
-        ":data_slice_path",
         ":fs_interface",
         ":fs_util",
-        ":initial_data_manager_interface",
         ":initial_data_manager_registry",
+        ":initial_data_manager_with_schema_helper",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "initial_data_manager_with_schema_helper",
+    srcs = ["initial_data_manager_with_schema_helper.py"],
+    deps = [
+        ":data_slice_path",
+        ":fs_interface",
+        ":initial_data_manager_interface",
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",

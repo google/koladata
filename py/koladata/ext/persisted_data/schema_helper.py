@@ -376,7 +376,7 @@ class _AnalyzeSchemaResult:
   schema_graph: dict[str, set[str]]
   # The node name to schema map is a mapping from schema node names to the
   # corresponding Koda subschema items.
-  schema_node_name_to_schema: dict[str, kd.types.DataItem]
+  schema_node_name_to_schema: dict[str, kd.types.SchemaItem]
   # A map associating a pair of the form
   # (parent_schema_node_name or _NO_PARENT_MARKER, child_schema_node_name) with
   # its minimal schema bag.
@@ -384,8 +384,8 @@ class _AnalyzeSchemaResult:
 
 
 def _analyze_schema(
-    schema: kd.types.DataItem,
-    parent_schema: kd.types.DataItem | None = None,
+    schema: kd.types.SchemaItem,
+    parent_schema: kd.types.SchemaItem | None = None,
     action: data_slice_path_lib.DataSliceAction | None = None,
     only_compute_schema_graph: bool = False,
 ) -> _AnalyzeSchemaResult:
@@ -406,12 +406,12 @@ def _analyze_schema(
 
   @dataclasses.dataclass(frozen=True)
   class _ExpandOneStepItem:
-    parent_schema: kd.types.DataItem
+    parent_schema: kd.types.SchemaItem
     action: data_slice_path_lib.DataSliceAction
-    child_schema: kd.types.DataItem
+    child_schema: kd.types.SchemaItem
 
   def expand_one_step(
-      schema_item: kd.types.DataItem,
+      schema_item: kd.types.SchemaItem,
   ) -> list[_ExpandOneStepItem]:
     item_id = _get_item_id(schema_item)
     if item_id is None:
@@ -447,7 +447,7 @@ def _analyze_schema(
     ]
 
   schema_graph: dict[str, set[str]] = dict()
-  schema_node_name_to_schema: dict[str, kd.types.DataItem] = dict()
+  schema_node_name_to_schema: dict[str, kd.types.SchemaItem] = dict()
   parent_and_child_to_schema_bag: dict[tuple[str, str], kd.types.DataBag] = (
       dict()
   )
@@ -623,7 +623,7 @@ class SchemaHelper:
   * Provide easy access to queries about the same schema / schema graph.
   """
 
-  def __init__(self, schema: kd.types.DataItem):
+  def __init__(self, schema: kd.types.SchemaItem):
     _check_is_schema_item(schema)
     self._schema = schema
     artifacts = _analyze_schema(self._schema)
@@ -634,7 +634,7 @@ class SchemaHelper:
     )
     self._child_to_parent_graph = _get_converse_relation(artifacts.schema_graph)
 
-  def get_schema(self) -> kd.types.DataItem:
+  def get_schema(self) -> kd.types.SchemaItem:
     return self._schema
 
   def get_all_schema_node_names(self) -> AbstractSet[str]:
@@ -694,7 +694,7 @@ class SchemaHelper:
       *,
       at_schema_node_name: str,
       attr_name: str,
-      attr_value_schema: kd.types.DataItem,
+      attr_value_schema: kd.types.SchemaItem,
   ) -> AbstractSet[str]:
     r"""Returns the existing and new schema node names affected by a data update.
 
@@ -752,7 +752,7 @@ class SchemaHelper:
         ).schema_graph.keys()
     )
 
-  def get_subschema_at(self, schema_node_name: str) -> kd.types.DataItem:
+  def get_subschema_at(self, schema_node_name: str) -> kd.types.SchemaItem:
     """Returns the Koda schema, e.g. kd.INT32, at `schema_node_name`."""
     self._check_is_valid_schema_node_name(schema_node_name)
     return self._schema_node_name_to_schema[schema_node_name]

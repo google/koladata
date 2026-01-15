@@ -87,7 +87,7 @@ class DataSliceManagerView:
 
   # Methods for accessing/updating the underlying DataSlice and its schema.
 
-  def get_schema(self) -> kd.types.DataItem:
+  def get_schema(self) -> kd.types.SchemaItem:
     """Returns the schema of the DataSlice at the view path.
 
     The view path must be valid, i.e. self.is_view_valid() must be True.

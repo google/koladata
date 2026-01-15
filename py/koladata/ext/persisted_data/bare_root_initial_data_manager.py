@@ -14,20 +14,21 @@
 
 """Initial data that is a given empty entity or kd.new() if not provided."""
 
+from __future__ import annotations
+
 import os
-from typing import AbstractSet, Collection, cast
+from typing import Collection, cast
 
 from koladata import kd
-from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
-from koladata.ext.persisted_data import initial_data_manager_interface
 from koladata.ext.persisted_data import initial_data_manager_registry
+from koladata.ext.persisted_data import initial_data_manager_with_schema_helper
 from koladata.ext.persisted_data import schema_helper
 
 
 class BareRootInitialDataManager(
-    initial_data_manager_interface.InitialDataManagerInterface
+    initial_data_manager_with_schema_helper.InitialDataManagerWithSchemaHelper
 ):
   """Initial data that is a given empty entity or kd.new() if not provided."""
 
@@ -69,6 +70,9 @@ class BareRootInitialDataManager(
     # non-primitive metadata attributes:
     self._schema_helper = schema_helper.SchemaHelper(root_schema)
 
+  def _get_schema_helper(self) -> schema_helper.SchemaHelper:
+    return self._schema_helper
+
   def serialize(
       self, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
   ):
@@ -87,7 +91,7 @@ class BareRootInitialDataManager(
   @classmethod
   def deserialize(
       cls, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
-  ) -> initial_data_manager_interface.InitialDataManagerInterface:
+  ) -> BareRootInitialDataManager:
     filepath = _get_root_dataslice_filepath(persistence_dir)
     if not fs.exists(filepath):
       if not fs.exists(persistence_dir):
@@ -98,12 +102,6 @@ class BareRootInitialDataManager(
             kd.types.DataItem, fs_util.read_slice_from_file(fs, filepath)
         )
     )
-
-  def get_schema(self) -> kd.types.SchemaItem:
-    return self._root_item.get_schema()
-
-  def get_all_schema_node_names(self) -> AbstractSet[str]:
-    return self._schema_helper.get_all_schema_node_names()
 
   def get_data_slice_for_schema_node_names(
       self, schema_node_names: Collection[str]
@@ -117,23 +115,6 @@ class BareRootInitialDataManager(
           f' {invalid_schema_node_names}'
       )
     return self._root_item
-
-  def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
-    return self._schema_helper.exists(path)
-
-  def get_data_slice(
-      self,
-      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
-      populate_including_descendants: (
-          Collection[data_slice_path_lib.DataSlicePath] | None
-      ) = None,
-  ) -> kd.types.DataSlice:
-    return self.get_data_slice_for_schema_node_names(
-        self._schema_helper.get_schema_node_names_needed_to(
-            populate=populate,
-            populate_including_descendants=populate_including_descendants,
-        )
-    )
 
   def clear_cache(self):
     pass
