@@ -76,6 +76,23 @@ class InitialDataManagerWithSchemaHelper(
         )
     )
 
+  def get_data_slice_at(
+      self,
+      path: data_slice_path_lib.DataSlicePath,
+      with_all_descendants: bool = False,
+  ) -> kd.types.DataSlice:
+    if with_all_descendants:
+      populate = None
+      populate_including_descendants = {path}
+    else:
+      populate = {path}
+      populate_including_descendants = None
+    ds = self.get_data_slice(
+        populate=populate,
+        populate_including_descendants=populate_including_descendants,
+    )
+    return path.evaluate(ds)
+
   def get_data_slice_for_schema_node_names(
       self, schema_node_names: Collection[str]
   ) -> kd.types.DataSlice:

@@ -284,6 +284,44 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
             ],
         )
 
+  def test_get_data_slice_at(self):
+    manager = BareRootInitialDataManager()
+    root = manager.get_data_slice_at(
+        data_slice_path_lib.DataSlicePath.parse_from_string(''),
+    )
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+
+    root = manager.get_data_slice_at(
+        data_slice_path_lib.DataSlicePath.parse_from_string(''),
+        with_all_descendants=True,
+    )
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+
+    with self.subTest('with_invalid_path'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument 'populate' is"
+              ' invalid'
+          ),
+      ):
+        manager.get_data_slice_at(
+            data_slice_path_lib.DataSlicePath.parse_from_string('.abcde'),
+        )
+
+    with self.subTest('with_invalid_path_with_all_descendants'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "data slice path '.abcde' passed in argument"
+              " 'populate_including_descendants' is invalid"
+          ),
+      ):
+        manager.get_data_slice_at(
+            data_slice_path_lib.DataSlicePath.parse_from_string('.abcde'),
+            with_all_descendants=True,
+        )
+
 
 if __name__ == '__main__':
   absltest.main()

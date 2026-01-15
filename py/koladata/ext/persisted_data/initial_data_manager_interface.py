@@ -140,6 +140,24 @@ class InitialDataManagerInterface:
     """
     raise NotImplementedError(type(self))
 
+  def get_data_slice_at(
+      self,
+      path: data_slice_path_lib.DataSlicePath,
+      with_all_descendants: bool = False,
+  ) -> kd.types.DataSlice:
+    """Returns the data slice managed by this manager at the given path.
+
+    Args:
+      path: The path for which the data slice is requested. It must be valid:
+        self.exists(path) must be True.
+      with_all_descendants: If True, then the result will also include the data
+        of all the descendant paths of `path`.
+
+    Returns:
+      The data slice managed by this manager at the given path.
+    """
+    raise NotImplementedError(type(self))
+
   def clear_cache(self):
     """Clears the cache of loaded data (if applicable) to release memory.
 
