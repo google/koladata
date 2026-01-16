@@ -280,18 +280,21 @@ def _is_clickable(ds: kd.types.DataSlice) -> bool:
   )
 
 
-def _focus_data_cell(context: _Any, instance_id: str):
+def _focus_data_cell(
+    context: _Any, instance_id: str, row: int = 0, col: int = 0):
   """Focuses the data cell of the table.
 
   Args:
     context: The Colab JS context. This is Any because we can not directly
         depend on the Colab JS library.
     instance_id: The id of the table.
+    row: The row to focus.
+    col: The column to focus.
   """
   table_elem = context.document.querySelector(
       f'#{instance_id} kd-multi-dim-table')
   # This is run in a setTimeout to allow the table to render.
-  context.setTimeout(table_elem.focusDataCell.bind(table_elem, 0, 0), 0)
+  context.setTimeout(table_elem.focusDataCell.bind(table_elem, row, col), 0)
 
 
 def _create_data_slice_table_data(
@@ -343,7 +346,15 @@ def _create_data_slice_table_data(
     ds = kdi.at(ds.flatten(), kdi.range(items_begin, items_end))
 
     if attrs_to_show:
-      headers = ','.join(attrs_to_show)
+      headers = ','.join(['[itemid]', *attrs_to_show])
+
+      # Add special row to show item ids.
+      data_items = []
+      for v in ds.get_itemid().L:
+        data_items.append(_format_data_item(v, [], options=options))
+      all_data.append(''.join(data_items))
+
+      # Render all attribute rows.
       for header in attrs_to_show:
         ds_attr = kdi.maybe(ds, header)
         attr_access = f'{AccessType.SCHEMA_ATTR.value}={html.escape(header)}'

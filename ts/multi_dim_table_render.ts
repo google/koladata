@@ -111,6 +111,7 @@ export function dataRegionParts(dataset: DOMStringMap, maxFolds: number) {
       'kd-multi-dim-nav', html.data('sizes', dataset['sizes']),
       html.data('rowHeight', '20'), html.data('layout', 'small'), viewElement,
       shadeBefore, shadeAfter);
+  dimNav.setAttribute('compact', '');
 
   const compactTable = dataCompactTable(
       dataset,
