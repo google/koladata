@@ -97,14 +97,14 @@ def from_proto(
   objects match the field names in the proto definition. See below for methods
   to convert proto extensions to attributes alongside regular fields.
 
-  Messages, primitive fields, repeated fields, and maps are converted to
-  equivalent Koda structures. Enums are converted to ints.
+  If schema is not specified or schema is kd.OBJECT, only present fields in
+  `messages` are loaded and included in the converted schema. To get a schema
+  that contains all fields independent of the data, use `kd.schema_from_proto`.
 
-  Only present values in `messages` are added. Default and missing values are
-  not used.
+  Proto extensions are ignored by default unless `extensions` is specified, or
+  if an explicit entity schema with parenthesized attr names is specified. If
+  both are specified, we use the union of the two extension sets.
 
-  Proto extensions are ignored by default unless `extensions` is specified (or
-  if an explicit entity schema with parenthesized attrs is used).
   The format of each extension specified in `extensions` is a dot-separated
   sequence of field names and/or extension names, where extension names are
   fully-qualified extension paths surrounded by parentheses. This sequence of
@@ -115,6 +115,9 @@ def from_proto(
     "path.to.repeated_field.(package_name.some_extension)"
     "path.to.map_field.values.(package_name.some_extension)"
     "path.(package_name.some_extension).(package_name2.nested_extension)"
+
+  If an explicit entity schema attr name starts with "(" and ends with ")" it is
+  also interpreted as an extension name.
 
   Extensions are looked up using the C++ generated descriptor pool, using
   `DescriptorPool::FindExtensionByName`, which requires that all extensions are
@@ -129,7 +132,8 @@ def from_proto(
     ds.optional_field.get_attr('(package_name.DefExtension.def_extension)')
 
   If `messages` is a single proto Message, the result is a DataItem. If it is a
-  list of proto Messages, the result is an 1D DataSlice.
+  nested list of proto Messages, the result is a DataSlice with the same number
+  of dimensions as the nesting level.
 
   Args:
     messages: Message or nested list/tuple of Message of the same type. Any of

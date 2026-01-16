@@ -398,6 +398,59 @@ class FromProtoTest(absltest.TestCase):
         'koladata.functions.testing.MessageAExtension',
     )
 
+  def test_extensions_from_arg_and_schema(self):
+    m = test_pb2.MessageA(
+        some_text='thing 1',
+    )
+
+    m.message_set_extensions.Extensions[
+        test_pb2.MessageAExtension.message_set_extension
+    ].extra = 1
+    m.Extensions[test_pb2.MessageAExtension.message_a_extension].extra = 2
+
+    s = proto_conversions.schema_from_proto(
+        test_pb2.MessageA,
+        extensions=[
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        ],
+    )
+    x = proto_conversions.from_proto(
+        m,
+        schema=s,
+        extensions=[
+            'message_set_extensions.(koladata.functions.testing.MessageAExtension.message_set_extension)'
+        ],
+    )
+
+    self.assertCountEqual(
+        x.get_attr_names(intersection=True),
+        [
+            'some_text',
+            'some_float',
+            'message_b_list',
+            'message_set_extensions',
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)',
+        ],
+    )
+    self.assertEqual(
+        x.get_attr(
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        ).extra,
+        2,
+    )
+    self.assertCountEqual(
+        x.message_set_extensions.get_attr_names(intersection=True),
+        [
+            '(koladata.functions.testing.MessageAExtension.message_set_extension)'
+        ],
+    )
+    self.assertEqual(
+        x.message_set_extensions.get_attr(
+            '(koladata.functions.testing.MessageAExtension.message_set_extension)'
+        ).extra,
+        1,
+    )
+
   def test_extension_on_wrong_message_error(self):
     with self.assertRaisesRegex(
         ValueError,

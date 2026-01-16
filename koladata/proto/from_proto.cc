@@ -1007,6 +1007,8 @@ absl::Status FromProtoMessage(
   struct FieldVars {
     const FieldDescriptor* absl_nonnull field_descriptor;
     absl::string_view attr_name;
+    // Whether this is an extension field that is not on the requested schema.
+    bool is_non_schema_extension = false;
     std::optional<DataSlice> value;
   };
 
@@ -1033,7 +1035,11 @@ absl::Status FromProtoMessage(
     // For explicit entity schemas, use the schema attr names as the list of
     // fields and extensions to convert.
     ASSIGN_OR_RETURN(vars->schema_attr_names, schema->GetAttrNames());
-    vars->fields.reserve(vars->schema_attr_names.size());
+    const int64_t max_num_fields =
+        vars->schema_attr_names.size() +
+        ((extension_map != nullptr) ? extension_map->extension_fields.size()
+                                    : 0);
+    vars->fields.reserve(max_num_fields);
     for (const auto& attr_name : vars->schema_attr_names) {
       if (attr_name.starts_with('(') && attr_name.ends_with(')')) {
         // Interpret attrs with parentheses as fully-qualified extension paths.
@@ -1053,11 +1059,11 @@ absl::Status FromProtoMessage(
               field->full_name(), message_descriptor.full_name(),
               field->containing_type()->full_name()));
         }
-        vars->fields.emplace_back(field, attr_name);
+        vars->fields.emplace_back(field, attr_name, false);
       } else {
         const auto* field = message_descriptor.FindFieldByName(attr_name);
         if (field != nullptr) {
-          vars->fields.emplace_back(field, attr_name);
+          vars->fields.emplace_back(field, attr_name, false);
         }
       }
     }
@@ -1071,19 +1077,23 @@ absl::Status FromProtoMessage(
     for (int i_field = 0; i_field < message_descriptor.field_count();
          ++i_field) {
       const auto* field = message_descriptor.field(i_field);
-      vars->fields.emplace_back(field, field->name());
+      vars->fields.emplace_back(field, field->name(), false);
     }
-    if (extension_map != nullptr) {
-      for (const auto& [attr_name, field] : extension_map->extension_fields) {
-        if (field->containing_type() != &message_descriptor) {
-          return absl::InvalidArgumentError(absl::StrFormat(
-              "extension \"%s\" exists, but isn't an extension "
-              "on target message type \"%s\", expected \"%s\"",
-              field->full_name(), message_descriptor.full_name(),
-              field->containing_type()->full_name()));
-        }
-        vars->fields.emplace_back(field, attr_name);
+  }
+  if (extension_map != nullptr) {
+    for (const auto& [attr_name, field] : extension_map->extension_fields) {
+      if (vars->schema_attr_names.contains(attr_name)) {
+        // Already handled by the schema.
+        continue;
       }
+      if (field->containing_type() != &message_descriptor) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "extension \"%s\" exists, but isn't an extension "
+            "on target message type \"%s\", expected \"%s\"",
+            field->full_name(), message_descriptor.full_name(),
+            field->containing_type()->full_name()));
+      }
+      vars->fields.emplace_back(field, attr_name, true);
     }
   }
 
@@ -1098,7 +1108,8 @@ absl::Status FromProtoMessage(
   for (auto& field_vars : vars->fields) {
     RETURN_IF_ERROR(FromProtoField(
         db, field_vars.attr_name, field_vars.attr_name,
-        *field_vars.field_descriptor, messages, itemid, schema,
+        *field_vars.field_descriptor, messages, itemid,
+        field_vars.is_non_schema_extension ? std::nullopt : schema,
         allocated_schema_metadata, extension_map,
         /*ignore_field_presence=*/false, executor, field_vars.value));
   }
@@ -1107,10 +1118,12 @@ absl::Status FromProtoMessage(
                     &result]() -> absl::Status {
     std::vector<absl::string_view> value_attr_names;
     std::vector<DataSlice> values;
+    bool has_non_schema_extensions = false;
     for (auto& field_vars : vars->fields) {
       if (field_vars.value.has_value()) {
         values.push_back(*std::move(field_vars.value));
         value_attr_names.push_back(field_vars.attr_name);
+        has_non_schema_extensions |= field_vars.is_non_schema_extension;
       }
     }
 
@@ -1126,13 +1139,13 @@ absl::Status FromProtoMessage(
                                      /*itemid=*/vars->itemid));
       } else {  // schema != OBJECT
         ASSIGN_OR_RETURN(
-            result,
-            EntityCreator::Shaped(db, std::move(result_shape),
-                                  /*attr_names=*/std::move(value_attr_names),
-                                  /*values=*/std::move(values),
-                                  /*schema=*/std::move(vars->requested_schema),
-                                  /*overwrite_schema=*/false,
-                                  /*itemid=*/vars->itemid));
+            result, EntityCreator::Shaped(
+                        db, std::move(result_shape),
+                        /*attr_names=*/std::move(value_attr_names),
+                        /*values=*/std::move(values),
+                        /*schema=*/std::move(vars->requested_schema),
+                        /*overwrite_schema=*/has_non_schema_extensions,
+                        /*itemid=*/vars->itemid));
       }
     } else {  // schema == nullopt
       ASSIGN_OR_RETURN(result, EntityCreator::Shaped(

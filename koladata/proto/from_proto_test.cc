@@ -1148,6 +1148,56 @@ TEST(FromProtoTest, ExtensionViaSchema) {
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({true}, db))));
 }
 
+TEST(FromProtoTest, ExtensionViaSchemaExtensionsAndExtensionsListUnion) {
+  testing::ExampleMessage2 message;
+  message.SetExtension(koladata::testing::m2_bool_extension_field, false);
+  message.MutableExtension(koladata::testing::m2_message2_extension_field)
+      ->SetExtension(koladata::testing::m2_bool_extension_field, true);
+
+  auto db = DataBag::EmptyMutable();
+  auto schema = test::EntitySchema(
+      {
+          "(koladata.testing.m2_message2_extension_field)",
+      },
+      {
+          test::EntitySchema(
+              {
+                  "(koladata.testing.m2_bool_extension_field)",
+              },
+              {
+                  test::Schema(schema::kBool),
+              },
+              db),
+      },
+      db);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result, FromProto(db, {&message},
+                             {
+                                 "(koladata.testing.m2_bool_extension_field)",
+                             },
+                             std::nullopt, schema));
+
+  EXPECT_THAT(result.GetAttrNames(),
+              IsOkAndHolds(UnorderedElementsAreArray({
+                  "(koladata.testing.m2_bool_extension_field)",
+                  "(koladata.testing.m2_message2_extension_field)",
+              })));
+  EXPECT_THAT(result.GetAttr("(koladata.testing.m2_bool_extension_field)"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({false}, db))));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto message_ext_field,
+      result.GetAttr("(koladata.testing.m2_message2_extension_field)"));
+  EXPECT_THAT(message_ext_field.GetAttrNames(),
+              IsOkAndHolds(UnorderedElementsAreArray({
+                  "(koladata.testing.m2_bool_extension_field)",
+              })));
+  EXPECT_THAT(
+      message_ext_field.GetAttr("(koladata.testing.m2_bool_extension_field)"),
+      IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({true}, db))));
+}
+
 TEST(FromProtoTest, InvalidExtensionPath) {
   testing::ExampleMessage message;
 

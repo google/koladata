@@ -59,9 +59,9 @@ namespace koladata {
 // `schema` were nullopt, but converted to OBJECT recursively.
 //
 // If `schema` is an entity schema, the set of attr names on that schema is the
-// set of fields and extensions that are converted, overriding the default
-// behavior and ignoring `extensions`. Attr names that start with '(' and end
-// with ')' are interpreted as fully-qualified extension names and cause the
+// set of fields and extensions that are converted, in addition to the
+// extensions in `extensions`. Attr names that start with '(' and end with ')'
+// are interpreted as fully-qualified extension names and cause the
 // corresponding extension to be converted if present on the message. If a
 // sub-schema of this schema is OBJECT, the corresponding sub-messages are
 // converted using the OBJECT rules above.
