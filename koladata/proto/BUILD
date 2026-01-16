@@ -28,6 +28,10 @@ licenses(["notice"])
 proto_library(
     name = "annotations_proto",
     srcs = ["annotations.proto"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         "@com_google_protobuf//:descriptor_proto",
     ],
@@ -35,6 +39,10 @@ proto_library(
 
 cc_proto_library(
     name = "annotations_cc_proto",
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [":annotations_proto"],
 )
 
