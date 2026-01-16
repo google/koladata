@@ -304,7 +304,11 @@ absl::StatusOr<DataSlice> GetProtoFullName(const DataSlice& x) {
     // appropriate all-missing slice, we can reuse it as the return value.
     return x;
   } else {
-    ASSIGN_OR_RETURN(schema, ExpandToShape(x.GetSchema(), x.GetShape(), 0));
+    // schema = x.get_schema() & kd.has(x)
+    schema = x.GetSchema();
+    ASSIGN_OR_RETURN(auto has_x, ops::Has(x));
+    ASSIGN_OR_RETURN(schema,
+                     ops::ApplyMask(std::move(schema), std::move(has_x)));
   }
 
   ASSIGN_OR_RETURN(auto schema_metadata,

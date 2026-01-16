@@ -15,7 +15,7 @@
 """Koda functions for converting to and from protocol buffers."""
 
 from collections.abc import Iterator
-from typing import Type, TypeAlias, TypeVar, cast
+from typing import Any, Type, TypeAlias, TypeVar, cast
 
 from google.protobuf import any as protobuf_any
 from google.protobuf import descriptor_pool as protobuf_descriptor_pool
@@ -47,6 +47,9 @@ _NestedMessageContainer: TypeAlias = (
     | tuple['_NestedMessageContainer', ...]
     | None
 )
+_NestedAnyMessageList: TypeAlias = (
+    any_pb2.Any | list['_NestedAnyMessageList'] | None
+)
 _NestedAnyMessageContainer: TypeAlias = (
     any_pb2.Any
     | list['_NestedAnyMessageContainer']
@@ -73,7 +76,7 @@ def _flatten(x: _NestedMessageContainer) -> Iterator[message.Message | None]:
 
 # Note: could use `tree.unflatten_as`, but it's not worth adding an additional
 # third-party dependency just for this.
-def _unflatten(shape: _NestedNoneList, it: Iterator[_T]) -> list[_T]:
+def _unflatten(shape: _NestedNoneList, it: Iterator[Any]) -> Any:
   """Unflattens an iterator into a shape given by a nested list with None leaves."""
   return [_unflatten(x, it) for x in shape] if shape is not None else next(it)
 
@@ -372,3 +375,58 @@ def to_proto(
   x_shape = (x & mask_constants.missing).to_py()
   results_flat = x.flatten()._to_proto(message_class)  # pylint: disable=protected-access
   return _unflatten(x_shape, iter(results_flat))
+
+
+def to_proto_any(
+    x: data_slice.DataSlice,
+    *,
+    descriptor_pool: protobuf_descriptor_pool.DescriptorPool | None = None,
+    deterministic: bool = False,
+) -> _NestedAnyMessageList:
+  """Converts a DataSlice or DataItem to proto Any messages.
+
+  The schemas of all present values in `x` must have been derived from a proto
+  schema using `from_proto` or `schema_from_proto`, so that the original names
+  of the message types are embedded in the schema. Otherwise, this will fail.
+
+  Args:
+    x: DataSlice to convert.
+    descriptor_pool: Overrides the descriptor pool used to look up python proto
+      message classes based on proto message type full name. If None, the
+      default descriptor pool is used.
+    deterministic: Passed to Any.Pack.
+
+  Returns:
+    A proto Any message or nested list of proto Any messages with the same
+    shape as the input. Missing elements in the input are None in the output.
+  """
+  if descriptor_pool is None:
+    descriptor_pool = protobuf_descriptor_pool.Default()
+
+  x_shape = (x & mask_constants.missing).to_py()
+  x_flat = x.flatten()
+  full_names = expr_eval.eval(
+      kde_operators.kde.proto.get_proto_full_name(x_flat)
+  ).to_py()
+  results = []
+  for i, full_name in enumerate(full_names):
+    x_item = x_flat.S[i]
+    if full_name is None:
+      if not x_item.is_empty():
+        raise ValueError(
+            'to_proto_any expects entities converted from proto messages, got'
+            f' {x_item}'
+        )
+      else:
+        results.append(None)
+    else:
+      message_descriptor = descriptor_pool.FindMessageTypeByName(full_name)
+      message_type = protobuf_message_factory.GetMessageClass(
+          message_descriptor
+      )
+      m = to_proto(x_item, message_type)
+      result = any_pb2.Any()
+      result.Pack(m, deterministic=deterministic)
+      results.append(result)
+
+  return _unflatten(x_shape, iter(results))

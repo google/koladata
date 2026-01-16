@@ -114,6 +114,7 @@ annotation = _py_types.SimpleNamespace(
 get_attr_names = _attrs.get_attr_names
 # TODO: b/435124266 - Add to_proto explicitly to kd.py.
 to_proto = _proto_conversions.to_proto
+to_proto_any = _proto_conversions.to_proto_any
 
 slice = _data_slice.DataSlice.from_vals  # pylint: disable=redefined-builtin
 item = _data_item.DataItem.from_vals

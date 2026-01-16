@@ -10804,6 +10804,25 @@ Args:
 Returns:
   A converted proto message or list of converted proto messages.</code></pre>
 
+### `kd.to_proto_any(x: DataSlice, *, descriptor_pool: DescriptorPool | None = None, deterministic: bool = False) -> Any | list[_NestedAnyMessageList] | None` {#kd.to_proto_any}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice or DataItem to proto Any messages.
+
+The schemas of all present values in `x` must have been derived from a proto
+schema using `from_proto` or `schema_from_proto`, so that the original names
+of the message types are embedded in the schema. Otherwise, this will fail.
+
+Args:
+  x: DataSlice to convert.
+  descriptor_pool: Overrides the descriptor pool used to look up python proto
+    message classes based on proto message type full name. If None, the
+    default descriptor pool is used.
+  deterministic: Passed to Any.Pack.
+
+Returns:
+  A proto Any message or nested list of proto Any messages with the same
+  shape as the input. Missing elements in the input are None in the output.</code></pre>
+
 ### `kd.to_proto_bytes(x, proto_path, /)` {#kd.to_proto_bytes}
 
 Alias for [kd.proto.to_proto_bytes](#kd.proto.to_proto_bytes) operator.

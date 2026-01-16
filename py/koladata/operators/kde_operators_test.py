@@ -38,6 +38,7 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     'from_pytree',
     'py_reference',
     'to_proto',
+    'to_proto_any',
     'to_py',
     'to_pylist',
     'to_pytree',

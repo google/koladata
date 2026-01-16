@@ -54,12 +54,13 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_from_proto_slice(self):
     m = test_pb2.MessageA(some_text='hello')
-    kd_m = proto_conversions.from_proto([m, m])
+    kd_m = proto_conversions.from_proto([m, None, m])
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
     testing.assert_equal(
         result.no_bag(),
         ds([
             'koladata.functions.testing.MessageA',
+            None,
             'koladata.functions.testing.MessageA',
         ]),
     )
@@ -69,6 +70,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
     m2 = test_pb2.MessageB(text='bar')
     kd_m = ds([
         fns.obj(proto_conversions.from_proto(m1)),
+        None,
         fns.obj(proto_conversions.from_proto(m2)),
     ])
     result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
@@ -76,6 +78,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
         result.no_bag(),
         ds([
             'koladata.functions.testing.MessageA',
+            None,
             'koladata.functions.testing.MessageB',
         ]),
     )

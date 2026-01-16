@@ -986,6 +986,20 @@ py_test(
     ],
 )
 
+py_test(
+    name = "to_proto_any_test",
+    srcs = ["to_proto_any_test.py"],
+    deps = [
+        ":test_py_pb2",
+        "//py:python_path",
+        "//py/koladata/functions:proto_conversions",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_protobuf//:protobuf_python",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

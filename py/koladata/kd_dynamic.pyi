@@ -831,6 +831,7 @@ to_json = _operators_json.to_json
 to_none = _operators_schema.to_none
 to_object = _operators_schema.to_object
 to_proto = _functions_proto_conversions.to_proto
+to_proto_any = _functions_proto_conversions.to_proto_any
 to_proto_bytes = _operators_proto.to_proto_bytes
 to_proto_json = _operators_proto.to_proto_json
 to_schema = _operators_schema.to_schema
