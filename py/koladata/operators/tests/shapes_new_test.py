@@ -68,7 +68,9 @@ class ShapesNewTest(parameterized.TestCase):
         kde.shapes.new([1]),
         arolla.abc.bind_op(
             kde.shapes.new,
-            literal_operator.literal(data_slice.DataSlice.from_vals([1])),
+            literal_operator.literal(
+                arolla.tuple(data_slice.DataSlice.from_vals([1]))
+            ),
         ),
     )
 
@@ -76,8 +78,8 @@ class ShapesNewTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'all arguments must be DataSlices or Edges, got: *dimensions:'
-            ' (FLOAT32)'
+            'expected all arguments to be data slices or edges, got'
+            ' *dimensions: (FLOAT32)'
         ),
     ):
       kde.shapes.new(arolla.float32(1.0))

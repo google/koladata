@@ -44,10 +44,6 @@ literal = literal_operator.literal
 # already-created DataSlices).
 DEFAULT_BOXING_POLICY = 'koladata_default_boxing'
 
-# The same as DEFAULT_BOXING_POLICY, but also implicitly wraps list/tuples into
-# DataSlices.
-LIST_TO_SLICE_BOXING_POLICY = 'koladata_list_to_slice_boxing'
-
 # NOTE: Recreating this object invalidates all existing references. Thus after
 # reloading this module, any Exprs using this codec must be recreated.
 # If this causes issues, we'll need to find a workaround.
@@ -231,11 +227,6 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     as_qvalue_or_expr,
     make_literal_fn=literal,
 )
-arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
-    LIST_TO_SLICE_BOXING_POLICY,
-    as_qvalue_or_expr_with_list_to_slice_support,
-    make_literal_fn=literal,
-)
 
 # Constants for custom boxing policies.
 #
@@ -251,3 +242,5 @@ WITH_PY_FUNCTION_TO_PY_OBJECT = (
 )
 
 WITH_AROLLA_BOXING = '_arolla_as_qvalue_or_expr'
+
+WITH_LIST_TO_SLICE_SUPPORT = 'as_qvalue_or_expr_with_list_to_slice_support'

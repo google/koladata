@@ -35,6 +35,7 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/util/repr.h"
 #include "koladata/arolla_utils.h"
@@ -102,25 +103,22 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
 // `i`. Only rank-0 or rank-1 int DataSlices are supported.
 class JaggedShapeCreateOperator : public arolla::QExprOperator {
  public:
-  explicit JaggedShapeCreateOperator(absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(types, koladata::GetJaggedShapeQType()) {
-    for (const auto& input_type : types) {
-      DCHECK(input_type == arolla::GetQType<DataSlice>() ||
-             input_type == arolla::GetQType<DataSlice::JaggedShape::Edge>());
-    }
-  }
+  using QExprOperator::QExprOperator;
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
-    Slot<DataSlice::JaggedShape> shape_slot =
-        output_slot.UnsafeToSlot<DataSlice::JaggedShape>();
+    int64_t edge_or_slice_count = input_slots[0].SubSlotCount();
+    std::vector<arolla::TypedSlot> edge_or_slice_slots;
+    edge_or_slice_slots.reserve(edge_or_slice_count);
+    for (int64_t i = 0; i < edge_or_slice_count; ++i) {
+      edge_or_slice_slots.emplace_back(input_slots[0].SubSlot(i));
+    }
     return MakeBoundOperator(
         "kd.shapes.new",
-        [edge_or_slice_slots =
-             std::vector(input_slots.begin(), input_slots.end()),
-         shape_slot = std::move(shape_slot)](
+        [edge_or_slice_slots = std::move(edge_or_slice_slots),
+         shape_slot = output_slot.UnsafeToSlot<DataSlice::JaggedShape>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
           DataSlice::JaggedShape::EdgeVec edges;
@@ -284,16 +282,27 @@ absl::StatusOr<arolla::OperatorPtr>
 JaggedShapeCreateOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  for (const auto& input_type : input_types) {
-    if (input_type != arolla::GetQType<DataSlice>() &&
-        input_type != arolla::GetQType<DataSlice::JaggedShape::Edge>()) {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected exactly one input, got: ", input_types.size()));
+  }
+  if (!arolla::IsTupleQType(input_types[0])) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("unsupported input type: ", input_types[0]->name()));
+  }
+  for (const auto& type_field : input_types[0]->type_fields()) {
+    if (type_field.GetType() != arolla::GetQType<DataSlice>() &&
+        type_field.GetType() !=
+            arolla::GetQType<DataSlice::JaggedShape::Edge>()) {
       return absl::InvalidArgumentError(
-          absl::StrCat("unsupported input type: ", input_type->name()));
+          absl::StrCat("unsupported input type: ", input_types[0]->name()));
     }
   }
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<JaggedShapeCreateOperator>(input_types), input_types,
-      output_type);
+  if (output_type != koladata::GetJaggedShapeQType()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "expected output type JaggedShape, got: ", output_type->name()));
+  }
+  return std::make_shared<JaggedShapeCreateOperator>(input_types, output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr>

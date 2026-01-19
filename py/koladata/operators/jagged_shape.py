@@ -34,26 +34,31 @@ constraints = arolla.optools.constraints
 _reshape = arolla_bridge._reshape  # pylint: disable=protected-access
 
 
-def _expect_slices_or_edges(value):
-  """Constrains `value` to be a tuple of DataSlices or Edges."""
-  is_slice_or_edge = arolla.LambdaOperator(
+def _expect_data_slice_or_edge_args(param):
+  """Constrains `param` to be a tuple of DataSlices or Edges."""
+  is_data_slice_or_edge = arolla.LambdaOperator(
       'x', (P.x == qtypes.DATA_SLICE) | (P.x == arolla.DENSE_ARRAY_EDGE)
   )
   return (
-      M.seq.all(M.seq.map(is_slice_or_edge, M.qtype.get_field_qtypes(value))),
+      M.qtype.is_tuple_qtype(param)
+      & M.seq.all(
+          M.seq.map(is_data_slice_or_edge, M.qtype.get_field_qtypes(param))
+      ),
       (
-          'all arguments must be DataSlices or Edges, got:'
-          f' {constraints.variadic_name_type_msg(value)}'
+          'expected all arguments to be data slices or edges, got'
+          f' {constraints.variadic_name_type_msg(param)}'
       ),
   )
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'kd.shapes.new',
-    qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
+    qtype_constraints=[_expect_data_slice_or_edge_args(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
-    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
+    custom_boxing_fn_name_per_parameter={
+        'dimensions': py_boxing.WITH_LIST_TO_SLICE_SUPPORT,
+    },
 )
 def new(*dimensions):  # pylint: disable=unused-argument
   """Returns a JaggedShape from the provided dimensions.
@@ -88,34 +93,13 @@ def new(*dimensions):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'kd.shapes._new_with_size',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.result_size),
-        _expect_slices_or_edges(P.dimensions),
-    ],
+    qtype_constraints=[_expect_data_slice_or_edge_args(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
-    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
 )
 def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
-  """Returns a JaggedShape from the provided dimensions and size.
-
-  It supports a single placeholder dimension argument denoted as `-1`, for which
-  its true value is inferred from the provided `size` argument and remaining
-  `dimensions`. The resulting dimension must be a uniform dimension, i.e. all
-  parent elements must have the same child size.
-
-  Args:
-    result_size: The size of the resulting JaggedShape.
-    *dimensions: A combination of Edges and DataSlices representing the
-      dimensions of the JaggedShape. Edges are used as is, while DataSlices are
-      treated as sizes. DataItems (of ints) are interpreted as uniform
-      dimensions which have the same child size for all parent elements.
-      DataSlices (of ints) are interpreted as a list of sizes, where `ds[i]` is
-      the child size of parent `i`. Only rank-0 or rank-1 int DataSlices are
-      supported.
-  """
+  """(internal) Returns a JaggedShape from the provided dimensions and size."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -143,7 +127,19 @@ def get_shape(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kd.reshape'], via_cc_operator_package=True)
-@optools.as_lambda_operator('kd.shapes.reshape')
+@optools.as_lambda_operator(
+    'kd.shapes.reshape',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        (
+            M.qtype.is_tuple_qtype(P.shape) | (P.shape == qtypes.JAGGED_SHAPE),
+            (
+                'expected a tuple or a shape, got:'
+                f' {constraints.name_type_msg(P.shape)}'
+            ),
+        ),
+    ],
+)
 def reshape(x, shape):
   """Returns a DataSlice with the provided shape.
 

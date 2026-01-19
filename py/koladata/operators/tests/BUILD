@@ -6641,25 +6641,6 @@ py_test(
 )
 
 py_test(
-    name = "shapes_new_with_size_test",
-    srcs = ["shapes_new_with_size_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:literal_operator",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
     name = "schema_is_dict_schema_test",
     srcs = ["schema_is_dict_schema_test.py"],
     deps = [

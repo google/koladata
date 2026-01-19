@@ -150,8 +150,8 @@ class ShapesReshapeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'all arguments must be DataSlices or Edges, got: *dimensions:'
-            ' (DATA_SLICE, tuple<DATA_SLICE,DATA_SLICE>)'
+            'expected all arguments to be data slices or edges, got'
+            ' *dimensions: (DATA_SLICE, tuple<DATA_SLICE,DATA_SLICE>)'
         ),
     ):
       kde.shapes.reshape(ds([1, 2, 3]), (2, (1, 2)))

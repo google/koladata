@@ -65,6 +65,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "//py/koladata/util:kd_functools",

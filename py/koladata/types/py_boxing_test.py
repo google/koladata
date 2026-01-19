@@ -45,14 +45,6 @@ def op_with_default_boxing(x, y):
   return (x, y)
 
 
-@arolla.optools.as_lambda_operator(
-    'op_with_list_boxing',
-    experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
-)
-def op_with_list_boxing(x, y, z):
-  return (x, y, z)
-
-
 class PyBoxingTest(parameterized.TestCase):
 
   def setUp(self):
@@ -364,27 +356,6 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
   def test_default_boxing_list_unsupported(self):
     with self.assertRaisesRegex(ValueError, re.escape('list')):
       op_with_default_boxing(1, [2, 3, 4])
-
-
-class ListBoxingPolicyTest(absltest.TestCase):
-
-  def test_list_boxing(self):
-    expr = op_with_list_boxing(42, [1, 2, 3], ...)
-    testing.assert_equal(
-        expr,
-        arolla.abc.bind_op(
-            op_with_list_boxing,
-            literal_operator.literal(ds(42)),
-            literal_operator.literal(ds([1, 2, 3])),
-            literal_operator.literal(ellipsis.ellipsis()),
-        ),
-    )
-
-  def test_list_boxing_missing_inputs(self):
-    with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing 2 required positional arguments: 'y' and 'z'"
-    ):
-      op_with_list_boxing(1)
 
 
 if __name__ == '__main__':
