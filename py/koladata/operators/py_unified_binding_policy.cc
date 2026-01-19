@@ -734,7 +734,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   // (See the base class.)
   ExprNodePtr absl_nullable MakeLiteral(TypedValue&& value) const final {
     ASSIGN_OR_RETURN(auto result, koladata::expr::MakeLiteral(std::move(value)),
-                     (SetPyErrFromStatus(_), nullptr));
+                     SetPyErrFromStatus(_));
     return result;
   }
 };
