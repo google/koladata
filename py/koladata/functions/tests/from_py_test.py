@@ -27,7 +27,9 @@ from absl.testing import parameterized
 from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.functions import object_factories
+from koladata.functions import proto_conversions
 from koladata.functions import py_conversions
+from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -244,6 +246,47 @@ def get_sparse_kd_object():
           None,
       ])
   )
+
+
+def _create_test_proto():
+  return test_pb2.MessageA(
+      some_text='thing 1',
+      some_float=1.0,
+      message_b_list=[
+          test_pb2.MessageB(text='a'),
+          test_pb2.MessageB(text='b'),
+          test_pb2.MessageB(text='c'),
+      ],
+  )
+
+
+@dataclasses.dataclass
+class LikeProtoClass:
+  some_text: str
+  some_float: float
+  message_b_list: list[test_pb2.MessageB]
+
+
+def _create_obj_like_proto():
+  return LikeProtoClass(
+      some_text='thing 2',
+      some_float=2.0,
+      message_b_list=[
+          test_pb2.MessageB(text='a'),
+          test_pb2.MessageB(text='b'),
+          test_pb2.MessageB(text='c'),
+      ],
+  )
+
+
+def _get_schema_like_proto():
+  return kde.schema.new_schema(
+      some_text=schema_constants.STRING,
+      some_float=schema_constants.FLOAT32,
+      message_b_list=kde.list_schema(
+          kde.schema.new_schema(text=schema_constants.STRING)
+      ).eval(),
+  ).eval()
 
 
 class FromPyTest(parameterized.TestCase):
@@ -1480,6 +1523,272 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       ):
         from_py_fn(TestKlassInternals(42, 3.14))
 
+  @parameterized.named_parameters(
+      ('auto_schema', None),
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema',
+          _get_schema_like_proto(),
+      ),
+      (
+          'with_schema_from_proto',
+          proto_conversions.schema_from_proto(test_pb2.MessageA),
+      ),
+  )
+  def test_single_empty_proto_message(self, schema):
+    x = from_py_fn(test_pb2.MessageA(), schema=schema)
+    self.assertEqual(x.get_ndim(), 0)
+    self.assertFalse(x.get_bag().is_mutable())
+
+  @parameterized.named_parameters(
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema',
+          _get_schema_like_proto(),
+      ),
+      (
+          'with_schema_from_proto',
+          proto_conversions.schema_from_proto(test_pb2.MessageA),
+      ),
+  )
+  def test_single_proto(self, schema):
+    x = from_py_fn(_create_test_proto(), schema=schema)
+    self.assertFalse(x.get_bag().is_mutable())
+    self.assertEqual(x.get_ndim(), 0)
+
+    self.assertEqual(x.some_text, 'thing 1')
+    self.assertEqual(x.some_float, 1.0)
+    testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
+    testing.assert_equivalent(x.get_schema(), schema)
+
+  def test_single_proto_auto_schema(self):
+    x = from_py_fn(_create_test_proto(), schema=None)
+    self.assertFalse(x.get_bag().is_mutable())
+    self.assertEqual(x.get_ndim(), 0)
+
+    self.assertEqual(x.some_text, 'thing 1')
+    self.assertEqual(x.some_float, 1.0)
+    testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
+
+  @parameterized.named_parameters(
+      ('auto_schema', None),
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema_from_proto',
+          proto_conversions.schema_from_proto(test_pb2.MessageA),
+      ),
+  )
+  def test_single_proto_extensions_ignored(self, schema):
+    m = _create_test_proto()
+    m.message_set_extensions.Extensions[
+        test_pb2.MessageAExtension.message_set_extension
+    ].extra = 1
+    m.Extensions[test_pb2.MessageAExtension.message_a_extension].extra = 2
+    x = from_py_fn(m, schema=schema)
+    self.assertFalse(x.get_bag().is_mutable())
+    self.assertEqual(x.get_ndim(), 0)
+
+    self.assertEqual(x.some_text, 'thing 1')
+    self.assertEqual(x.some_float, 1.0)
+    testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
+    self.assertCountEqual(
+        x.get_attr_names(intersection=True),
+        [
+            'some_text',
+            'some_float',
+            'message_b_list',
+            'message_set_extensions',
+        ],
+    )
+
+  @parameterized.named_parameters(
+      ('auto_schema', None),
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema',
+          kde.list_schema(_get_schema_like_proto()).eval(),
+      ),
+      (
+          'with_schema_from_proto',
+          kde.list_schema(
+              proto_conversions.schema_from_proto(test_pb2.MessageA)
+          ).eval(),
+      ),
+  )
+  def test_list_of_protos(self, schema):
+    x = from_py_fn([_create_test_proto(), _create_test_proto()], schema=schema)
+    x = x[:]
+    self.assertEqual(x.S[0].some_text, 'thing 1')
+    self.assertEqual(x.S[1].some_text, 'thing 1')
+    self.assertEqual(x.S[0].some_float, 1.0)
+    self.assertEqual(x.S[1].some_float, 1.0)
+    testing.assert_equal(
+        x.S[:].message_b_list[:].text.no_bag(),
+        ds([['a', 'b', 'c'], ['a', 'b', 'c']]),
+    )
+
+  def test_list_of_different_protos_with_object_schema(self):
+    proto1 = test_pb2.MessageA(
+        some_text='thing 1',
+        some_float=1.0,
+        message_b_list=[
+            test_pb2.MessageB(text='a'),
+            test_pb2.MessageB(text='b'),
+            test_pb2.MessageB(text='c'),
+        ],
+    )
+    proto2 = test_pb2.MessageB(text='a')
+
+    x = from_py_fn([proto1, proto2], schema=schema_constants.OBJECT)
+    x = x[:]
+    self.assertEqual(x.S[0].some_text, 'thing 1')
+    self.assertEqual(x.S[1].text, 'a')
+    self.assertEqual(x.S[0].some_float, 1.0)
+    testing.assert_equal(
+        x.S[0].message_b_list[:].text.no_bag(),
+        ds(['a', 'b', 'c']),
+    )
+
+  def test_list_of_different_protos_with_superset_schema(self):
+    schema = kde.list_schema(
+        proto_conversions.schema_from_proto(test_pb2.MessageA2)
+    ).eval()
+
+    proto1 = test_pb2.MessageA(
+        some_text='thing 1',
+        some_float=1.0,
+        message_b_list=[
+            test_pb2.MessageB(text='a'),
+            test_pb2.MessageB(text='b'),
+            test_pb2.MessageB(text='c'),
+        ],
+    )
+    proto2 = test_pb2.MessageA2(
+        some_text='thing 12',
+        some_float=2.0,
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'expected all messages to have the same type'
+    ):
+      _ = from_py_fn([proto1, proto2], schema=schema)
+
+  def test_sparse_list_of_protos_with_schema(self):
+    schema = kde.list_schema(_get_schema_like_proto()).eval()
+    x = from_py_fn([_create_test_proto(), None], schema=schema)
+    testing.assert_equivalent(x[:].some_text, ds(['thing 1', None]))
+    x = from_py_fn([None, _create_test_proto()], schema=schema)
+    testing.assert_equivalent(x[:].some_text, ds([None, 'thing 1']))
+
+  def test_sparse_list_of_protos_with_object_schema(self):
+    x = from_py_fn([_create_test_proto(), None], schema=schema_constants.OBJECT)
+    y = from_py_fn([None, _create_test_proto()], schema=schema_constants.OBJECT)
+    testing.assert_equivalent(x[:].S[0], y[:].S[1])
+
+  def test_list_of_proto_mixed_with_dataclasses(self):
+    x = from_py_fn([_create_test_proto(), _create_obj_like_proto()])
+    x = x[:]
+    self.assertEqual(x.S[0].some_text, 'thing 1')
+    self.assertEqual(x.S[1].some_text, 'thing 2')
+    self.assertEqual(x.S[0].some_float, 1.0)
+    self.assertEqual(x.S[1].some_float, 2.0)
+    testing.assert_equal(
+        x.S[:].message_b_list[:].text.no_bag(),
+        ds([['a', 'b', 'c'], ['a', 'b', 'c']]),
+    )
+
+  @parameterized.named_parameters(
+      ('auto_schema', None),
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema',
+          kde.dict_schema(
+              schema_constants.STRING,
+              _get_schema_like_proto(),
+          ).eval(),
+      ),
+      (
+          'with_schema_from_proto',
+          kde.dict_schema(
+              schema_constants.STRING,
+              proto_conversions.schema_from_proto(test_pb2.MessageA),
+          ).eval(),
+      ),
+  )
+  def test_dict_of_protos(self, schema):
+    x = from_py_fn(
+        {'a': _create_test_proto(), 'b': _create_test_proto()}, schema=schema
+    )
+    self.assertEqual(x['a'].some_text, 'thing 1')
+    self.assertEqual(x['b'].some_text, 'thing 1')
+    self.assertEqual(x['a'].some_float, 1.0)
+    self.assertEqual(x['b'].some_float, 1.0)
+    testing.assert_equal(
+        x['a'].message_b_list[:].text.no_bag(), ds(['a', 'b', 'c'])
+    )
+
+  def test_dict_of_protos_mixed_with_dataclasses(self):
+    x = from_py_fn({'a': _create_test_proto(), 'b': _create_obj_like_proto()})
+    self.assertEqual(x['a'].some_text, 'thing 1')
+    self.assertEqual(x['b'].some_text, 'thing 2')
+    self.assertEqual(x['a'].some_float, 1.0)
+    self.assertEqual(x['b'].some_float, 2.0)
+    testing.assert_equal(
+        x['a'].message_b_list[:].text.no_bag(), ds(['a', 'b', 'c'])
+    )
+
+  @parameterized.named_parameters(
+      ('auto_schema', None),
+      ('object_schema', schema_constants.OBJECT),
+      (
+          'with_schema',
+          kde.schema.new_schema(
+              a=_get_schema_like_proto(),
+              b=_get_schema_like_proto(),
+          ).eval(),
+      ),
+      (
+          'with_schema_from_proto',
+          kde.schema.new_schema(
+              a=proto_conversions.schema_from_proto(test_pb2.MessageA),
+              b=proto_conversions.schema_from_proto(test_pb2.MessageA),
+          ).eval(),
+      ),
+  )
+  def test_obj_with_protos(self, schema):
+    @dataclasses.dataclass
+    class Test:
+      a: test_pb2.MessageA
+      b: test_pb2.MessageA
+
+    obj = Test(_create_test_proto(), _create_test_proto())
+
+    x = from_py_fn(obj, schema=schema)
+    self.assertEqual(x.a.some_text, 'thing 1')
+    self.assertEqual(x.b.some_text, 'thing 1')
+    self.assertEqual(x.a.some_float, 1.0)
+    self.assertEqual(x.b.some_float, 1.0)
+    testing.assert_equal(
+        x.a.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c'])
+    )
+
+  def test_protos_cannot_be_mixed_with_other_types_with_schema(self):
+    schema = kde.list_schema(_get_schema_like_proto()).eval()
+    with self.assertRaisesRegex(
+        ValueError,
+        r'message cast from python to C.. failed, got type LikeProtoClass',
+    ):
+      _ = from_py_fn(
+          [_create_test_proto(), _create_obj_like_proto()], schema=schema
+      )
+
+    # Repeated proto fields are not lists.
+    with self.assertRaisesRegex(
+        ValueError, 'schema mismatch: expected list/tuple'
+    ):
+      _ = from_py_fn(
+          [_create_obj_like_proto(), _create_test_proto()], schema=schema
+      )
+
   def test_item_id(self):
     with self.subTest('list'):
       l1 = from_py_fn([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
@@ -1753,6 +2062,20 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
       d1 = from_py_fn({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())
       self.assertNotEqual(d1['a'].fingerprint, d1['b'].fingerprint)
+
+    with self.subTest('proto'):
+      parent_itemid = kde.uuid_for_list('1').eval()
+      child_entity_itemid = _get_child_entity_item_id(
+          parent_itemid,
+          list_item_index=ds(0, schema_constants.INT64),
+      )
+
+      p = _create_test_proto()
+      x = from_py_fn([p], itemid=parent_itemid)
+      self.assertEqual(x.get_itemid(), parent_itemid)
+      testing.assert_equal(x[:].S[0].no_bag().get_itemid(), child_entity_itemid)
+      y = proto_conversions.from_proto(p, itemid=child_entity_itemid)
+      self.assertEqual(x[:].S[0].get_itemid(), y.get_itemid())
 
   def test_item_id_errors(self):
     with self.assertRaisesRegex(

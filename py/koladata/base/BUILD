@@ -227,6 +227,31 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "py_proto_utils",
+    srcs = ["py_proto_utils.cc"],
+    hdrs = ["py_proto_utils.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/operators:lib",
+        "//koladata/proto:from_proto",
+        "//py/koladata/types:pybind11_protobuf_wrapper",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@com_google_protobuf//:protobuf",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
+)
+
 koladata_py_extension(
     name = "py_functors_base_py_ext",
     srcs = ["py_functors_base_module.cc"],

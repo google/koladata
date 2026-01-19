@@ -38,6 +38,11 @@ message MessageA {
   [verification = UNVERIFIED];
 }
 
+message MessageA2 {
+  string some_text = 1 [default = 'aaa'];
+  float some_float = 2 [default = 123.4];
+}
+
 message MessageAExtension {
   extend MessageA {
     MessageAExtension message_a_extension = 1000;

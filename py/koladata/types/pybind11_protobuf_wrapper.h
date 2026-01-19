@@ -32,6 +32,7 @@
 #include "google/protobuf/message.h"
 #include "py/arolla/py_utils/py_utils.h"
 
+// TODO: move this file to /base.
 namespace koladata::python {
 
 // Calls ::pybind11_protobuf::ImportNativeProtoCasters().
@@ -50,6 +51,10 @@ void ImportNativeProtoCasters();
 // deleted.
 absl::StatusOr<std::tuple<const ::google::protobuf::Message* absl_nonnull, std::any>>
 UnwrapPyProtoMessage(PyObject* absl_nonnull py_object);
+
+// Returns true if the given python object is a proto message.
+// Raises an error if could not load `google.protobuf.message` module.
+absl::StatusOr<bool> IsPyProtoMessage(PyObject* absl_nonnull py_object);
 
 // Returns true if the given python object is a fast C++ proto.
 bool IsFastCppPyProtoMessage(PyObject* absl_nonnull py_object);

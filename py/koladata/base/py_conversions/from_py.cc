@@ -53,6 +53,8 @@
 #include "koladata/uuid_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
+#include "py/koladata/base/py_proto_utils.h"
+#include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -224,6 +226,21 @@ class FromPyConverter {
       if (!Py_IsNone(py_obj)) {
         return false;
       }
+    }
+    return false;
+  }
+
+  // Returns true if the given Python objects should be treated as a proto.
+  // Checks the first non-None object.
+  absl::StatusOr<bool> IsProto(const std::vector<PyObject*>& py_objects) {
+    if (py_objects.empty()) {
+      return false;
+    }
+    for (PyObject* py_obj : py_objects) {
+      if (Py_IsNone(py_obj)) {
+        continue;
+      }
+      return IsPyProtoMessage(py_obj);
     }
     return false;
   }
@@ -510,6 +527,12 @@ class FromPyConverter {
     if (IsDict(py_objects, schema)) {
       return ConvertDicts(py_objects, std::move(cur_shape), schema, itemid,
                           cur_depth, executor, result);
+    }
+
+    ASSIGN_OR_RETURN(bool is_proto, IsProto(py_objects));
+    if (is_proto) {
+      return ConvertProto(py_objects, std::move(cur_shape), schema,
+                          std::move(itemid), result);
     }
 
     if (IsEntity(py_objects, schema)) {
@@ -999,6 +1022,23 @@ class FromPyConverter {
 
           return absl::OkStatus();
         });
+    return absl::OkStatus();
+  }
+
+  absl::Status ConvertProto(const std::vector<PyObject*>& py_objects,
+                            DataSlice::JaggedShape cur_shape,
+                            std::optional<DataSlice> schema,
+                            std::optional<DataSlice> itemid,
+                            std::optional<DataSlice>& result) {
+    if (itemid.has_value()) {
+      itemid = itemid->Flatten();
+    }
+
+    ASSIGN_OR_RETURN(DataSlice proto_slice,
+                     FromProtoObjects(GetBag(), py_objects, /*extensions=*/{},
+                                      /*itemid=*/itemid, /*schema=*/schema));
+
+    ASSIGN_OR_RETURN(result, proto_slice.Reshape(std::move(cur_shape)));
     return absl::OkStatus();
   }
 

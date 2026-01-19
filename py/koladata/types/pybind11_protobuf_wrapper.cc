@@ -17,11 +17,14 @@
 #include <Python.h>
 
 #include <any>
+#include <exception>
 #include <memory>
 #include <tuple>
 #include <utility>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -61,16 +64,41 @@ UnwrapPyProtoMessage(PyObject* absl_nonnull py_object) {
                           Py_TYPE(py_object)->tp_name));
     }
     return std::make_tuple(message_ptr, std::move(caster));
-  } catch (const pybind11::builtin_exception& e) {
+  } catch (const std::exception& e) {
     // These caster methods don't appear to throw exceptions, but we should
     // catch here for safety, since the caller is expected to have exceptions
     // disabled.
-    e.set_error();
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
-        absl::StrFormat("message cast from python to C++ failed, got type %s",
-                        Py_TYPE(py_object)->tp_name));
+        absl::StrFormat(
+            "message cast from python to C++ failed, got type %s. Error: %s",
+            Py_TYPE(py_object)->tp_name, e.what()));
   }
+}
+
+absl::StatusOr<bool> IsPyProtoMessage(PyObject* absl_nonnull py_object) {
+  arolla::python::DCheckPyGIL();
+  try {
+    static absl::NoDestructor<pybind11::object> proto_base_class([] {
+      return pybind11::module_::import("google.protobuf.message")
+          .attr("Message");
+    }());
+    // Impossible to happen in practice - an exception would have been raised
+    // above.
+    DCHECK(!proto_base_class->is_none());
+
+    static PyTypeObject* proto_type_ptr =
+        reinterpret_cast<PyTypeObject*>(proto_base_class->ptr());
+
+    return PyObject_TypeCheck(py_object, proto_type_ptr);
+  } catch (const std::exception& e) {
+    return arolla::python::StatusWithRawPyErr(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrFormat("failed to check if python object is a proto message, "
+                        "got type %s. Error: %s",
+                        Py_TYPE(py_object)->tp_name, e.what()));
+  }
+  return false;
 }
 
 bool IsFastCppPyProtoMessage(PyObject* absl_nonnull py_object) {

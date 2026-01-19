@@ -565,10 +565,12 @@ py_test(
     name = "from_py_test",
     srcs = ["from_py_test.py"],
     deps = [
+        ":test_py_pb2",
         "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:object_factories",
+        "//py/koladata/functions:proto_conversions",
         "//py/koladata/functions:py_conversions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
