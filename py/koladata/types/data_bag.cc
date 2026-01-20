@@ -278,8 +278,8 @@ struct ObjectCreatorHelper {
                      DataSlice::Create(internal::DataItem(schema::kObject),
                                        internal::DataItem(schema::kSchema)));
     ASSIGN_OR_RETURN(DataSlice res,
-                     FromPy_V2(py_obj, std::move(schema), /*from_dim=*/0,
-                               /*dict_as_obj=*/false, itemid));
+                     FromPy(py_obj, std::move(schema), /*from_dim=*/0,
+                            /*dict_as_obj=*/false, itemid));
     return ops::ConvertWithAdoption(db, res);
   }
 };

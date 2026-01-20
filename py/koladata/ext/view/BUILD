@@ -37,7 +37,6 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata:kd_ext",
-        "//py/koladata/functions:py_conversions",
         requirement("google-benchmark"),
     ],
 )

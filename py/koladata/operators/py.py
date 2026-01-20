@@ -280,7 +280,7 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
 
 
 def _from_py(py_obj, *, schema, from_dim):
-  return base_clib._from_py_v2(  # pylint: disable=protected-access
+  return base_clib._from_py(  # pylint: disable=protected-access
       py_obj,
       schema,
       from_dim,

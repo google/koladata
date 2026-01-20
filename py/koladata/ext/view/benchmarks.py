@@ -30,7 +30,6 @@ import dataclasses
 import google_benchmark
 from koladata import kd
 from koladata import kd_ext
-from koladata.functions import py_conversions
 
 kv = kd_ext.kv
 
@@ -201,7 +200,7 @@ def _example_computation_kd_no_py_vectorized(
 
 def _example_computation_kd_vectorized(datas: list[Data]) -> list[list[Group]]:
   """An example vectorized computation in Koda with to/from py conversions."""
-  datas = py_conversions._from_py_v2(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  datas = kd.from_py(datas, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   item_groups = _example_computation_kd_no_py_vectorized(datas)
   return item_groups.to_py(max_depth=-1)
 
@@ -617,7 +616,7 @@ def example_computation_kd_no_py_vectorized(state):
   ds = dataset_fn()
   expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
   expected_output = expected_output_fn()
-  kd_ds = py_conversions._from_py_v2(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
   output = _example_computation_kd_no_py_vectorized(kd_ds).to_py(max_depth=-1)
   assert output == expected_output, output
@@ -634,7 +633,7 @@ def example_computation_kd_no_py_traced_vectorized(state):
   ds = dataset_fn()
   expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
   expected_output = expected_output_fn()
-  kd_ds = py_conversions._from_py_v2(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
   output = _example_computation_kd_no_py_traced_vectorized(kd_ds).to_py(
       max_depth=-1
@@ -653,7 +652,7 @@ def example_computation_kd_no_py_single_bag_vectorized(state):
   ds = dataset_fn()
   expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
   expected_output = expected_output_fn()
-  kd_ds = py_conversions._from_py_v2(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check
   output = _example_computation_kd_no_py_single_bag_vectorized(kd_ds).to_py(
       max_depth=-1
@@ -689,7 +688,7 @@ def example_computation_kd_no_py_single_bag_pointwise(state):
   ds = dataset_fn()
   expected_output_fn = _DATASET_EXPECTED_OUTPUT_CHOICES[state.range(0)]
   expected_output = expected_output_fn()
-  kd_ds = py_conversions._from_py_v2(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
+  kd_ds = kd.from_py(ds, schema=DATAS_SCHEMA)  # pylint: disable=protected-access
   # Sanity check. We return tuples instead of lists, so we need to convert
   # for exact equality comparison.
   output = _example_computation_kd_no_py_single_bag_pointwise(kd_ds).to_py(

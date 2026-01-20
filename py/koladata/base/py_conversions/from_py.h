@@ -27,10 +27,10 @@ namespace koladata::python {
 
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda Objects / Entities depending on schema. The conversion is deep.
-absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
-                                    const std::optional<DataSlice>& schema,
-                                    size_t from_dim, bool dict_as_obj,
-                                    const std::optional<DataSlice>& itemid);
+absl::StatusOr<DataSlice> FromPy(PyObject* py_obj,
+                                 const std::optional<DataSlice>& schema,
+                                 size_t from_dim, bool dict_as_obj,
+                                 const std::optional<DataSlice>& itemid);
 
 }  // namespace koladata::python
 

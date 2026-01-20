@@ -1201,10 +1201,10 @@ class FromPyConverter {
 
 }  // namespace
 
-absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
-                                    const std::optional<DataSlice>& schema,
-                                    size_t from_dim, bool dict_as_obj,
-                                    const std::optional<DataSlice>& itemid) {
+absl::StatusOr<DataSlice> FromPy(PyObject* py_obj,
+                                 const std::optional<DataSlice>& schema,
+                                 size_t from_dim, bool dict_as_obj,
+                                 const std::optional<DataSlice>& itemid) {
   AdoptionQueue adoption_queue;
   DataItem schema_item;
   if (schema) {
