@@ -35,7 +35,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/strings/strip.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -89,12 +88,6 @@ using ::arolla::python::UnsafeUnwrapPyQValue;
 bool ExtractUnifiedPolicyOpts(const ExprOperatorSignature& signature,
                               absl::string_view& result_binding_options,
                               absl::string_view& result_boxing_options) {
-  if (signature.aux_policy_name != kUnifiedPolicy) {
-    return PyErr_Format(
-        PyExc_RuntimeError,
-        "UnifiedBindingPolicy: unexpected binding policy name: %s",
-        absl::Utf8SafeCHexEscape(signature.aux_policy_name).c_str());
-  }
   absl::string_view string = signature.aux_policy_options;
   const auto idx = string.find(':');
   if (idx != absl::string_view::npos) {
@@ -741,8 +734,8 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
 
 }  // namespace
 
-bool RegisterUnifiedBindingPolicy() {
-  return RegisterAuxBindingPolicy(kUnifiedPolicy,
+bool RegisterUnifiedBindingPolicy(absl::string_view aux_policy_name) {
+  return RegisterAuxBindingPolicy(aux_policy_name,
                                   std::make_shared<UnifiedBindingPolicy>());
 }
 

@@ -4864,7 +4864,7 @@ Returns:
   A decorator that registers an overload for the operator with the
   corresponding name.</code></pre>
 
-### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_default_boxing', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
+### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_classic_aux_policy', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overloadable.
 

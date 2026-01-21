@@ -16,10 +16,10 @@
 
 from arolla import arolla as _arolla
 from arolla.jagged_shape import jagged_shape as _jagged_shape
+from koladata.operators import aux_policies as _aux_policies
 from koladata.operators import optools as _optools
 from koladata.operators import qtype_utils as _qtype_utils
 from koladata.operators import view_overloads as _
-from koladata.types import py_boxing as _py_boxing
 from koladata.types import qtypes as _qtypes
 from koladata.types import schema_constants as _schema_constants
 
@@ -62,7 +62,7 @@ def is_null_bag(bag):  # pylint: disable=unused-argument
         _qtype_utils.expect_data_bag_args(_P.bags),
     ],
     qtype_inference_expr=_qtypes.DATA_BAG,
-    experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
 )
 def enriched(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag enriched by `bags`.
@@ -93,7 +93,7 @@ def enriched(*bags):  # pylint: disable=unused-argument
         _qtype_utils.expect_data_bag_args(_P.bags),
     ],
     qtype_inference_expr=_qtypes.DATA_BAG,
-    experimental_aux_policy=_py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
 )
 def updated(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag updated by `bags`.

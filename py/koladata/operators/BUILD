@@ -15,9 +15,10 @@
 # Arolla Expr Operators on Koda abstractions.
 
 load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 load("//py/koladata/operators:optools.bzl", "koladata_cc_operator_package")
 
 package(default_visibility = ["//visibility:private"])
@@ -164,13 +165,21 @@ py_library(
     ],
 )
 
-koladata_py_extension(
-    name = "py_optools_py_ext",
-    srcs = [
-        "py_optools_module.cc",
-        "py_unified_binding_policy.cc",
-        "py_unified_binding_policy.h",
+koladata_pybind_extension(
+    name = "clib",
+    srcs = ["clib.cc"],
+    deps = [
+        ":py_unified_binding_policy",
+        "//koladata/expr:non_determinism",
+        "@com_google_absl//absl/strings:string_view",
+        "@pybind11_abseil//pybind11_abseil:absl_casters",
     ],
+)
+
+cc_library(
+    name = "py_unified_binding_policy",
+    srcs = ["py_unified_binding_policy.cc"],
+    hdrs = ["py_unified_binding_policy.h"],
     deps = [
         "//koladata/expr:expr_operators",
         "//koladata/expr:non_determinism",
@@ -179,7 +188,6 @@ koladata_py_extension(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
@@ -189,7 +197,7 @@ koladata_py_extension(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
-        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
@@ -197,7 +205,8 @@ py_library(
     name = "unified_binding_policy",
     srcs = ["unified_binding_policy.py"],
     deps = [
-        ":py_optools_py_ext",
+        ":aux_policies",
+        ":clib",
         "//py:python_path",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
@@ -208,6 +217,7 @@ py_test(
     name = "unified_binding_policy_test",
     srcs = ["unified_binding_policy_test.py"],
     deps = [
+        ":aux_policies",
         ":op_repr",
         ":unified_binding_policy",
         "//py:python_path",
@@ -221,11 +231,29 @@ py_test(
     ],
 )
 
+py_test(
+    name = "classic_binding_policy_test",
+    srcs = ["classic_binding_policy_test.py"],
+    deps = [
+        ":aux_policies",
+        ":kde_operators",
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:ellipsis",
+        "//py/koladata/types:literal_operator",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 py_library(
     name = "optools",
     srcs = ["optools.py"],
     visibility = ["//koladata:internal"],
     deps = [
+        ":aux_policies",
         ":op_repr",
         ":qtype_utils",
         ":unified_binding_policy",
@@ -407,6 +435,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":aux_policies",
         ":jagged_shape",
         ":masking",
         ":optools",
@@ -429,11 +458,11 @@ py_library(
     srcs = ["tuple.py"],
     deps = [
         ":arolla_bridge",
+        ":aux_policies",
         ":optools",
         ":qtype_utils",
         ":view_overloads",
         "//py:python_path",
-        "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -446,6 +475,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":aux_policies",
         ":bags",
         ":entities",
         ":masking",
@@ -605,6 +635,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":aux_policies",
         ":comparison",
         ":jagged_shape",
         ":masking",
@@ -667,6 +698,7 @@ py_library(
     name = "op_repr",
     srcs = ["op_repr.py"],
     deps = [
+        ":aux_policies",
         ":unified_binding_policy",
         "//py:python_path",
         "//py/koladata/types:data_slice",
@@ -795,11 +827,11 @@ py_library(
     name = "bags",
     srcs = ["bags.py"],
     deps = [
+        ":aux_policies",
         ":optools",
         ":qtype_utils",
         ":view_overloads",
         "//py:python_path",
-        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
@@ -929,6 +961,17 @@ py_library(
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",
         "@com_google_arolla//py/arolla/objects",
+    ],
+)
+
+py_library(
+    name = "aux_policies",
+    srcs = ["aux_policies.py"],
+    deps = [
+        ":clib",
+        "//py:python_path",
+        "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

@@ -17,32 +17,23 @@
 import inspect
 
 from arolla import arolla
-from koladata.operators import py_optools_py_ext
+from koladata.operators import aux_policies
+from koladata.operators import clib
 from koladata.types import py_boxing
 
 
-UNIFIED_POLICY_PREFIX = f'{py_optools_py_ext.UNIFIED_POLICY}:'
-
 # Name of the hidden parameter used to indicate non-deterministic input.
-NON_DETERMINISTIC_PARAM_NAME = py_optools_py_ext.NON_DETERMINISTIC_PARAM_NAME
+NON_DETERMINISTIC_PARAM_NAME = clib.NON_DETERMINISTIC_PARAM_NAME
 
 # Note: The options must match the C++ implementation.
 #
-_OPT_CHR_POSITIONAL_ONLY = py_optools_py_ext.UNIFIED_POLICY_OPT_POSITIONAL_ONLY
-_OPT_CHR_POSITIONAL_OR_KEYWORD = (
-    py_optools_py_ext.UNIFIED_POLICY_OPT_POSITIONAL_OR_KEYWORD
-)
-_OPT_CHR_VAR_POSITIONAL = py_optools_py_ext.UNIFIED_POLICY_OPT_VAR_POSITIONAL
-_OPT_CHR_REQUIRED_KEYWORD_ONLY = (
-    py_optools_py_ext.UNIFIED_POLICY_OPT_REQUIRED_KEYWORD_ONLY
-)
-_OPT_CHR_OPTIONAL_KEYWORD_ONLY = (
-    py_optools_py_ext.UNIFIED_POLICY_OPT_OPTIONAL_KEYWORD_ONLY
-)
-_OPT_CHR_VAR_KEYWORD = py_optools_py_ext.UNIFIED_POLICY_OPT_VAR_KEYWORD
-_OPT_CHR_NON_DETERMINISTIC = (
-    py_optools_py_ext.UNIFIED_POLICY_OPT_NON_DETERMINISTIC
-)
+_OPT_CHR_POSITIONAL_ONLY = clib.UNIFIED_POLICY_OPT_POSITIONAL_ONLY
+_OPT_CHR_POSITIONAL_OR_KEYWORD = clib.UNIFIED_POLICY_OPT_POSITIONAL_OR_KEYWORD
+_OPT_CHR_VAR_POSITIONAL = clib.UNIFIED_POLICY_OPT_VAR_POSITIONAL
+_OPT_CHR_REQUIRED_KEYWORD_ONLY = clib.UNIFIED_POLICY_OPT_REQUIRED_KEYWORD_ONLY
+_OPT_CHR_OPTIONAL_KEYWORD_ONLY = clib.UNIFIED_POLICY_OPT_OPTIONAL_KEYWORD_ONLY
+_OPT_CHR_VAR_KEYWORD = clib.UNIFIED_POLICY_OPT_VAR_KEYWORD
+_OPT_CHR_NON_DETERMINISTIC = clib.UNIFIED_POLICY_OPT_NON_DETERMINISTIC
 
 
 _DEFAULT_BOXING_FN_NAME = 'as_qvalue_or_expr'
@@ -194,7 +185,7 @@ def make_unified_signature(
   if aux_boxing_options:
     aux_options += ':' + aux_boxing_options
   return arolla.abc.make_operator_signature((  # pytype: disable=bad-return-type
-      ','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_options}',
+      ','.join(sig_spec) + f'|{aux_policies.UNIFIED_AUX_POLICY}:{aux_options}',
       *sig_vals,
   ))
 
@@ -256,7 +247,7 @@ def unified_op_repr(
     tokens: arolla.abc.NodeTokenView,
 ) -> arolla.abc.ReprToken:
   """Repr function for Koda operators with UNIFIED_BINDING_POLICY aux policy."""
-  opts = node_op_signature.aux_policy.removeprefix(UNIFIED_POLICY_PREFIX)
+  opts = node_op_signature.aux_policy.partition(':')[-1]
   node_deps = node.node_deps
   node_dep_reprs = []
   for i, param in enumerate(node_op_signature.parameters):

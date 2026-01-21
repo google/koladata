@@ -18,7 +18,6 @@ from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import input_container
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -33,16 +32,7 @@ from koladata.types import schema_item
 
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
-I = input_container.InputContainer('I')
 kde = kde_operators.kde
-
-
-@arolla.optools.as_lambda_operator(
-    'op_with_default_boxing',
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
-)
-def op_with_default_boxing(x, y):
-  return (x, y)
 
 
 class PyBoxingTest(parameterized.TestCase):
@@ -310,52 +300,6 @@ class PyBoxingTest(parameterized.TestCase):
     self.assertTrue(db.is_mutable())
     with self.assertRaisesRegex(ValueError, re.escape('DataBag is not frozen')):
       _ = py_boxing.as_expr(db)
-
-
-class DefaultBoxingPolicyTest(absltest.TestCase):
-
-  def test_default_boxing(self):
-    expr = op_with_default_boxing(1, 2)
-    testing.assert_equal(
-        expr,
-        arolla.abc.bind_op(
-            op_with_default_boxing,
-            literal_operator.literal(ds(1)),
-            literal_operator.literal(ds(2)),
-        ),
-    )
-
-  def test_default_boxing_with_slice(self):
-    expr = op_with_default_boxing(1, slice(1, None, 2))
-    testing.assert_equal(
-        expr,
-        arolla.abc.bind_op(
-            op_with_default_boxing,
-            literal_operator.literal(ds(1)),
-            literal_operator.literal(arolla.types.Slice(ds(1), None, ds(2))),
-        ),
-    )
-
-  def test_default_boxing_with_ellipsis(self):
-    expr = op_with_default_boxing(1, ...)
-    testing.assert_equal(
-        expr,
-        arolla.abc.bind_op(
-            op_with_default_boxing,
-            literal_operator.literal(ds(1)),
-            literal_operator.literal(ellipsis.ellipsis()),
-        ),
-    )
-
-  def test_default_boxing_missing_inputs(self):
-    with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing 1 required positional argument: 'y'"
-    ):
-      op_with_default_boxing(1)
-
-  def test_default_boxing_list_unsupported(self):
-    with self.assertRaisesRegex(ValueError, re.escape('list')):
-      op_with_default_boxing(1, [2, 3, 4])
 
 
 if __name__ == '__main__':

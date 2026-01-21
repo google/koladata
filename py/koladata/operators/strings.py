@@ -19,6 +19,7 @@ from arolla.jagged_shape import jagged_shape
 from koladata.fstring import fstring as _fstring
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import aux_policies
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
@@ -169,7 +170,7 @@ def find(
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def printf(fmt, *args):  # pylint: disable=unused-argument
   """Formats strings according to printf-style (C++) format strings.
@@ -328,7 +329,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-argument
   """Test only wrapper for format with Arolla signature."""
@@ -346,7 +347,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def join(*args):  # pylint: disable=unused-argument
   """Concatenates the given strings.

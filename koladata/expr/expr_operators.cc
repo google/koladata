@@ -161,7 +161,7 @@ ToArollaInt64Operator::ToArollaInt64Operator()
     : ToArollaValueOperator(
           "koda_internal.to_arolla_int64",
           arolla::expr::ExprOperatorSignature({{"x"}},
-                                              "koladata_default_boxing"),
+                                              "koladata_classic_aux_policy"),
           "Returns `x` converted into an arolla int64 value.\n"
           "\n"
           "Note that `x` must adhere to the following requirements:\n"
@@ -180,7 +180,7 @@ ToArollaTextOperator::ToArollaTextOperator()
     : ToArollaValueOperator(
           "koda_internal.to_arolla_text",
           arolla::expr::ExprOperatorSignature({{"x"}},
-                                              "koladata_default_boxing"),
+                                              "koladata_classic_aux_policy"),
           "Returns `x` converted into an arolla text value.\n"
           "\n"
           "Note that `x` must adhere to the following requirements:\n"

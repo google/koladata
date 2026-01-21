@@ -25,6 +25,7 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import tracing_mode
 from koladata.expr import view as view_lib
+from koladata.operators import aux_policies
 from koladata.operators import op_repr
 from koladata.operators import qtype_utils
 from koladata.operators import unified_binding_policy
@@ -191,7 +192,7 @@ def add_to_registry_as_overloadable(
     unsafe_override: bool = False,
     view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn | None = None,
-    aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
+    aux_policy: str = aux_policies.CLASSIC_AUX_POLICY,
     via_cc_operator_package: bool = False,
 ):
   """Koda wrapper around Arolla's add_to_registry_as_overloadable.

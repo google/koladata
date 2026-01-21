@@ -18,6 +18,7 @@ import typing
 from typing import Callable
 
 from arolla import arolla
+from koladata.operators import aux_policies
 from koladata.operators import unified_binding_policy
 from koladata.types import data_slice
 from koladata.types import literal_operator
@@ -37,9 +38,7 @@ def default_op_repr(
   op = node.op
   assert op is not None
   signature = arolla.abc.get_operator_signature(op)
-  if signature.aux_policy.startswith(
-      unified_binding_policy.UNIFIED_POLICY_PREFIX
-  ):
+  if signature.aux_policy.startswith(aux_policies.UNIFIED_AUX_POLICY):
     return unified_binding_policy.unified_op_repr(node, op, signature, tokens)
   res = ReprToken()
   dep_txt = ', '.join(tokens[node].text for node in node.node_deps)
@@ -112,10 +111,9 @@ def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
   if args.op == arolla.M.core.make_tuple:
     # make_tuple node
     args_repr = ', '.join([tokens[arg].text for arg in args.node_deps])
-  elif (
-      not isinstance(args.op, literal_operator.LiteralOperator)
-      or not isinstance(arolla.eval(args), arolla.types.Tuple)
-  ):
+  elif not isinstance(
+      args.op, literal_operator.LiteralOperator
+  ) or not isinstance(arolla.eval(args), arolla.types.Tuple):
     # Fall back to the default repr.
     return default_op_repr(node, tokens)
   else:

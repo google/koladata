@@ -29,20 +29,7 @@ from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import schema_item
 
-
 literal = literal_operator.literal
-
-
-# Binding policies should be implemented in such a way that all operators are
-# bound in a same way and make sure behavior of binding does not alter between
-# literal wrapping Python values and passing those Python values to kd.eval as a
-# dict of values.
-
-
-# Default boxing policy wraps various values (other than lists and tuples) into
-# DataItems. QValues remain unchanged (useful for DataBags, JaggedShapes and
-# already-created DataSlices).
-DEFAULT_BOXING_POLICY = 'koladata_default_boxing'
 
 # NOTE: Recreating this object invalidates all existing references. Thus after
 # reloading this module, any Exprs using this codec must be recreated.
@@ -219,14 +206,6 @@ def as_expr(arg: Any) -> arolla.Expr:
     return literal(qvalue_or_expr)
   return qvalue_or_expr
 
-
-##### Kola Data policy registrations #####
-
-arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
-    DEFAULT_BOXING_POLICY,
-    as_qvalue_or_expr,
-    make_literal_fn=literal,
-)
 
 # Constants for custom boxing policies.
 #

@@ -20,7 +20,7 @@
 // It encodes additional information about parameters in signature.aux_policy
 // using the following format:
 //
-//    koladata_unified_binding_policy:<binding_options>[:<boxing_options>]
+//    <policy_name>:<binding_options>[:<boxing_options>]
 //
 // Each character in '<binding_options>' represents a parameter and encodes its
 // kind:
@@ -58,7 +58,7 @@
 //  The resulting `aux_options` (excluding the common prefix) would be:
 //
 //     ┌ First parameter is positional-or-keyword
-//     │┌ Second paramter is variadic-positional
+//     │┌ Second parameter is variadic-positional
 //     ││┌ Third parameter is keyword-only, with default
 //     │││┌ Fourth parameter is variadic-keyword
 //     ││││
@@ -79,20 +79,17 @@
 
 namespace koladata::python {
 
-inline constexpr absl::string_view kUnifiedPolicy =
-    "koladata_unified_binding_policy";
-
-inline constexpr char kUnifiedPolicyOptPositionalOnly = '_';
-inline constexpr char kUnifiedPolicyOptPositionalOrKeyword = 'p';
-inline constexpr char kUnifiedPolicyOptVarPositional = 'P';
-inline constexpr char kUnifiedPolicyOptRequiredKeywordOnly = 'k';
-inline constexpr char kUnifiedPolicyOptOptionalKeywordOnly = 'd';
-inline constexpr char kUnifiedPolicyOptVarKeyword = 'K';
-inline constexpr char kUnifiedPolicyOptNonDeterministic = 'H';
+constexpr char kUnifiedPolicyOptPositionalOnly = '_';
+constexpr char kUnifiedPolicyOptPositionalOrKeyword = 'p';
+constexpr char kUnifiedPolicyOptVarPositional = 'P';
+constexpr char kUnifiedPolicyOptRequiredKeywordOnly = 'k';
+constexpr char kUnifiedPolicyOptOptionalKeywordOnly = 'd';
+constexpr char kUnifiedPolicyOptVarKeyword = 'K';
+constexpr char kUnifiedPolicyOptNonDeterministic = 'H';
 
 // Registers the unified binding policy. If the function fails, it returns
 // `false` and sets a Python exception.
-bool RegisterUnifiedBindingPolicy();
+bool RegisterUnifiedBindingPolicy(absl::string_view aux_policy_name);
 
 }  // namespace koladata::python
 

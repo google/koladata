@@ -17,10 +17,10 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
+from koladata.operators import aux_policies
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import view_overloads as _
-from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 M = arolla.M | jagged_shape.M
@@ -34,7 +34,7 @@ constraints = arolla.optools.constraints
 @optools.add_to_registry(aliases=['kd.tuple'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.tuples.tuple',
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def tuple_(*args):
   """Returns a tuple-like object containing the given `*args`."""
