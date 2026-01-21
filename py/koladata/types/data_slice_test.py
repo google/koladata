@@ -826,7 +826,7 @@ class DataSliceTest(parameterized.TestCase):
   def test_get_attr_with_default_extraction(self):
     # Regression test for b/408434629.
     db = bag()
-    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])]))
+    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])])).freeze_bag()
     updated_lists = (
         entities.x & ds([None, arolla.present()])
     ).with_list_append_update(8)
@@ -903,21 +903,9 @@ class DataSliceTest(parameterized.TestCase):
     self.assertIsNot(x1.get_bag(), x1.get_bag())
     self.assertFalse(x1.get_bag().is_mutable())
 
-  def test_freeze_on_db_with_fallbacks(self):
-    fallback = bag()
-    x = ds([1, 2, 3]).enriched(fallback)
-    frozen_x = x.freeze_bag()
-
-    self.assertTrue(fallback.is_mutable())
-    self.assertFalse(x.get_bag().is_mutable())
-    self.assertFalse(frozen_x.get_bag().is_mutable())
-    # frozen_x should have a forked databag, because while x's bag was
-    # immutable, the fallback was not.
-    self.assertNotEqual(x.fingerprint, frozen_x.fingerprint)
-
   def test_with_merged_bag(self):
     db1 = bag()
-    x = db1.new(a=1)
+    x = db1.new(a=1).freeze_bag()
     db2 = bag()
     y = x.with_bag(db2)
     y.set_attr('a', 2)
@@ -937,7 +925,7 @@ class DataSliceTest(parameterized.TestCase):
     schema = db1.new_schema(a=schema_constants.INT32)
     x = db1.new(a=1, schema=schema)
 
-    db2 = bag()
+    db2 = data_bag.DataBag.empty()
     x = x.with_bag(db2)
 
     x = x.enriched(db1)
@@ -955,7 +943,7 @@ class DataSliceTest(parameterized.TestCase):
 
     db1 = bag()
     db1.merge_inplace(schema.get_bag())
-    x = db1.new(a=1, schema=schema)
+    x = db1.new(a=1, schema=schema).freeze_bag()
 
     db2 = bag()
     db2.merge_inplace(schema.get_bag())
@@ -966,7 +954,7 @@ class DataSliceTest(parameterized.TestCase):
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
     testing.assert_equivalent(x.a, ds(2))
 
-    x = x.with_bag(db1).updated(db2, db2)
+    x = x.with_bag(db1).freeze_bag().updated(db2, db2)
     self.assertNotEqual(x.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(x.get_bag().fingerprint, db2.fingerprint)
     testing.assert_equivalent(x.a, ds(2))
@@ -1040,6 +1028,7 @@ class DataSliceTest(parameterized.TestCase):
     db = bag()
     fb = bag()
     x = db.new(a=1, b='abc')
+    db = db.freeze()
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     self.assertEqual(ds([x]).get_attr_names(intersection=True), ['a', 'b'])
     x.with_bag(fb).set_attr('c', 42)
@@ -2564,7 +2553,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
 
   # More comprehensive tests are in dicts_with_dict_update_test.py.
   def test_with_dict_update(self):
-    x1 = bag().dict(ds([1, 2]), ds([3, 4]))
+    x1 = bag().dict(ds([1, 2]), ds([3, 4])).freeze_bag()
     testing.assert_equivalent(
         x1.with_dict_update(fns.dict({1: 5, 3: 6})),
         bag().dict(ds([1, 2, 3]), ds([5, 4, 6])),
@@ -3643,7 +3632,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     testing.assert_equal(cloned.b.no_bag(), ds([3, 4]))
     testing.assert_equivalent(
         cloned.get_schema(),
-        x.get_schema().with_attrs(b=schema_constants.INT32),
+        x.get_schema().freeze_bag().with_attrs(b=schema_constants.INT32),
         ids_equality=True,
     )
 
@@ -3870,7 +3859,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db = bag()
     x = db.new(q=1)
     x.get_schema().w = schema_constants.INT32
-    x_fb = x.enriched(db)
+    x_fb = x.freeze_bag().enriched(db)
     with self.assertRaisesRegex(ValueError, 'immutable'):
       x_fb.get_schema().w = schema_constants.INT32
       x_fb.w = x_fb.q + 1
@@ -3879,7 +3868,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db = bag()
     x = db.new(q=1)
     x.get_schema().w = schema_constants.INT32
-    x_fb = x.enriched(db)
+    x_fb = x.freeze_bag().enriched(db)
     db2 = bag()
     x2 = db2.new(q=1)
     with self.assertRaisesRegex(ValueError, 'immutable'):
@@ -3907,7 +3896,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_x.get_schema().xyz = schema_constants.FLOAT64
     fb_x.xyz = ds([None, 14.5])
 
-    merged_x = x.enriched(fb_bag)
+    merged_x = x.freeze_bag().enriched(fb_bag)
 
     testing.assert_allclose(
         merged_x.abc, ds([3.14, None]).with_bag(merged_x.get_bag())
@@ -3922,7 +3911,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     new_x = x.with_bag(new_bag)
     new_x.xyz = ds([None, 3.14], schema_constants.FLOAT64)
     # Note: new_x.S[0].xyz is REMOVED
-    merged_x = new_x.enriched(db, fb_bag)
+    merged_x = new_x.freeze_bag().enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x.xyz,
         ds([None, 3.14], schema_constants.FLOAT64)
@@ -3951,7 +3940,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_x.abc = ds([None, '2.71'])
     fb_x.xyz = ds([None, '3.17'])
 
-    merged_x = x.enriched(fb_bag)
+    merged_x = x.freeze_bag().enriched(fb_bag)
 
     testing.assert_equal(
         merged_x.abc,
@@ -3972,7 +3961,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
         fb_x = x.with_bag(fb_bag)
         fb_x.abc = ds(list(range(size)), schema_constants.INT32)
 
-        merged_x = x.enriched(fb_bag)
+        merged_x = x.freeze_bag().enriched(fb_bag)
 
         testing.assert_equal(
             merged_x.abc,
@@ -3999,7 +3988,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     fb_x['qwe'] = ds([None, 'pi'])
     fb_x['asd'] = ds(['e', None])
 
-    merged_x = x.enriched(fb_bag)
+    merged_x = x.freeze_bag().enriched(fb_bag)
 
     testing.assert_dicts_keys_equal(
         merged_x,
@@ -4030,7 +4019,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
         '__values__', x.get_schema().get_attr('__values__')
     )
     merged_x['xyz'] = ds([None, 3.14])
-    merged_x = merged_x.enriched(db, fb_bag)
+    merged_x = merged_x.freeze_bag().enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x['xyz'],
         ds([None, 3.14], schema_constants.OBJECT).with_bag(merged_x.get_bag()),
@@ -4053,7 +4042,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
       dct.with_bag(db)[f'd{i}'] = i
       setattr(obj.get_schema().with_bag(db), f'a{i}', schema_constants.INT32)
       setattr(obj.with_bag(db), f'a{i}', -i)
-      merged_bag = dct.with_bag(merged_bag).enriched(db).get_bag()
+      merged_bag = dct.with_bag(merged_bag).freeze_bag().enriched(db).get_bag()
 
     dct = dct.with_bag(merged_bag)
     testing.assert_dicts_keys_equal(
@@ -4131,7 +4120,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
   # More comprehensive tests are in the core_with_attrs_test.py.
   def test_with_attrs(self):
     obj1 = bag().obj(x=1, y=2)
-    obj2 = obj1.with_attrs(x=3, z=4)
+    obj2 = obj1.freeze_bag().with_attrs(x=3, z=4)
     testing.assert_equal(obj2.x.no_bag(), ds(3))
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
@@ -4139,7 +4128,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
   # More comprehensive tests are in the core_strict_with_attrs_test.py.
   def test_strict_with_attrs(self):
     e1 = bag().new(x=1, y=2)
-    e2 = e1.strict_with_attrs(x=3, y=4)
+    e2 = e1.freeze_bag().strict_with_attrs(x=3, y=4)
     testing.assert_equal(e2.x.no_bag(), ds(3))
     testing.assert_equal(e2.y.no_bag(), ds(4))
 
@@ -4152,7 +4141,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
   # More comprehensive tests are in the core_with_attr_test.py.
   def test_with_attr(self):
     obj1 = bag().obj(x=1, y=2)
-    obj2 = obj1.with_attr('x', 3).with_attr('z', 4)
+    obj2 = obj1.freeze_bag().with_attr('x', 3).with_attr('z', 4)
     testing.assert_equal(obj2.x.no_bag(), ds(3))
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))

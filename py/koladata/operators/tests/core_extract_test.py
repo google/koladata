@@ -68,9 +68,9 @@ class CoreExtractTest(parameterized.TestCase):
     fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db, fb).get_bag())
     else:
-      o_fb = o.enriched(fb, fb_noise)
+      o_fb = o.freeze_bag().enriched(fb, fb_noise)
 
     if pass_schema:
       result = kd.extract(o_fb, o_fb.get_schema())
@@ -78,7 +78,7 @@ class CoreExtractTest(parameterized.TestCase):
       result = kd.extract(o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
-    expected_bag = o.enriched(fb).get_bag().merge_fallbacks()
+    expected_bag = o.freeze_bag().enriched(fb).get_bag().merge_fallbacks()
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   @parameterized.product(
@@ -99,16 +99,16 @@ class CoreExtractTest(parameterized.TestCase):
         a=a_slice,
         b=b_list,
         c=c_dict,
-    )
+    ).freeze_bag()
     fb = data_bag.DataBag.empty_mutable()
     o.a.with_bag(fb).set_attr('__schema__', o.a.get_attr('__schema__').no_bag())
     o.a.with_bag(fb).set_attr('d', ds([1, 2, 3]))
     fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db, fb).get_bag())
     else:
-      o_fb = o.enriched(fb, fb_noise)
+      o_fb = o.freeze_bag().enriched(fb, fb_noise)
 
     if pass_schema:
       result = kd.extract(o_fb, o_fb.get_schema())
@@ -168,9 +168,9 @@ class CoreExtractTest(parameterized.TestCase):
     fb_noise = data_bag.DataBag.empty_mutable()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.enriched(fb_noise)
+      o_fb = o.freeze_bag().enriched(fb_noise)
     else:
-      o_fb = o.with_bag(noise.enriched(db).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db).get_bag())
 
     result = kd.extract(o_fb, schema)
 
@@ -200,7 +200,7 @@ class CoreExtractTest(parameterized.TestCase):
         'd', fb_d.get_schema().no_bag()
     )
     o.a.with_bag(fb).set_attr('d', fb_d)
-    o_fb = o.enriched(fb)
+    o_fb = o.freeze_bag().enriched(fb)
 
     result = kd.extract(o_fb)
 
@@ -222,7 +222,7 @@ class CoreExtractTest(parameterized.TestCase):
     del list_slice.S[2][:]
     fb_lists = list_slice.with_bag(fb).with_schema(list_slice.get_schema())
     fb_update = kd.list_append_update(fb_lists, 1)
-    enriched_lists = kd.enriched(list_slice, fb_update)
+    enriched_lists = kd.enriched(list_slice.freeze_bag(), fb_update)
     enriched_list_sizes = kd.list_size(enriched_lists)
     testing.assert_equal(
         enriched_list_sizes.no_bag(),

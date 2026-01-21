@@ -91,11 +91,11 @@ class DictsGetKeysTest(parameterized.TestCase):
     )
     del d2[1]
 
-    d3 = d1.enriched(d2.get_bag())
+    d3 = d1.freeze_bag().enriched(d2.get_bag())
     result = eval_op('kd.get_keys', d3)
     testing.assert_unordered_equal(result, ds([1, 3, 5]).with_bag(d3.get_bag()))
 
-    d4 = d2.enriched(d1.get_bag())
+    d4 = d2.freeze_bag().enriched(d1.get_bag())
     result = eval_op('kd.get_keys', d4)
     testing.assert_unordered_equal(result, ds([1, 3, 5]).with_bag(d4.get_bag()))
 

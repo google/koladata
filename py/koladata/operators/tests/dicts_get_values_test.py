@@ -131,11 +131,11 @@ class DictsGetValuesTest(parameterized.TestCase):
     )
     del d2[1]
 
-    d3 = d1.enriched(d2.get_bag())
+    d3 = d1.freeze_bag().enriched(d2.get_bag())
     result = eval_op('kd.get_values', d3)
     testing.assert_unordered_equal(result, ds([2, 4, 6]).with_bag(d3.get_bag()))
 
-    d4 = d2.enriched(d1.get_bag())
+    d4 = d2.freeze_bag().enriched(d1.get_bag())
     result = eval_op('kd.get_values', d4)
     testing.assert_unordered_equal(
         result, ds([None, 3, 6]).with_bag(d4.get_bag())

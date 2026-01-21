@@ -291,7 +291,7 @@ def set_get_multiple_attrs_entity_via_fallback(state):
     update_ds = ds.with_bag(kd.mutable_bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val)
-    updates.append((arg_name, update_ds))
+    updates.append((arg_name, update_ds.freeze_bag()))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except AttributeError:
@@ -410,7 +410,7 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
     update_ds = ds.with_bag(kd.mutable_bag())
     arg_name = 'abc' if state.range(1) else f'abc{i}'
     update_ds.set_attr(arg_name, val)
-    updates.append((arg_name, update_ds))
+    updates.append((arg_name, update_ds.freeze_bag()))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
   except AttributeError:

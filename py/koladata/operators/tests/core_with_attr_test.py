@@ -53,7 +53,7 @@ class CoreWithAttrTest(parameterized.TestCase):
   )
   def test_eval(self, db, attr_name, value):
     x = db.new_shaped(ds(value).get_shape())
-    res = kd.core.with_attr(x, attr_name, value)
+    res = kd.core.with_attr(x.freeze_bag(), attr_name, value)
     if isinstance(attr_name, data_slice.DataSlice):
       attr_name = attr_name.to_py()
     x.set_attr(attr_name, value)
@@ -86,14 +86,14 @@ class CoreWithAttrTest(parameterized.TestCase):
   def test_attr_update_with_ds_attr(self):
     with self.subTest('object'):
       db = bag()
-      ds1 = kd.stack(db.obj(x=1), db.obj(y=2))
+      ds1 = kd.stack(db.obj(x=1), db.obj(y=2)).freeze_bag()
       ds2 = kd.core.with_attr(ds1, ds(['x', 'y']), 42)
       testing.assert_equal(ds2.maybe('x').no_bag(), ds([42, None]))
       testing.assert_equal(ds2.maybe('y').no_bag(), ds([None, 42]))
 
     with self.subTest('entity'):
       db = bag()
-      ds1 = db.new(x=ds([1, 3]), y=ds([2, 4]))
+      ds1 = db.new(x=ds([1, 3]), y=ds([2, 4])).freeze_bag()
       ds2 = kd.core.with_attr(ds1, ds(['x', 'y']), 42)
       testing.assert_equal(ds2.x.no_bag(), ds([42, 3]))
       testing.assert_equal(ds2.y.no_bag(), ds([2, 42]))
@@ -175,7 +175,7 @@ class CoreWithAttrTest(parameterized.TestCase):
       _ = kd.core.with_attr(o, 'x', 1)
 
   def test_schema_works(self):
-    o = bag().new_schema()
+    o = bag().new_schema().freeze_bag()
     o1 = kd.core.with_attr(o, 'x', schema_constants.INT32)
     self.assertEqual(o1.x.no_bag(), schema_constants.INT32)
     o2 = kd.core.with_attr(

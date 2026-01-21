@@ -86,7 +86,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db2 = kd.mutable_bag()
     obj.with_bag(db2).set_attr('d', kd.dict({'a': 'b', 'c': kd.obj(l1)}))
 
-    slice_with_fallback = db2.new(a=5, b=7).enriched(db1)
+    slice_with_fallback = db2.new(a=5, b=7).freeze_bag().enriched(db1)
 
     data = arolla.s11n.dumps_many([db1, db2, slice_with_fallback], [])
     values, _ = arolla.s11n.loads_many(data)
@@ -117,8 +117,8 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
         [-39, None, -57, -43, None, -17, None, -9, -77] * 10
     )
 
-    obj_single_with_fb = obj_single.enriched(fb)
-    obj_dense_with_fb = obj_dense.enriched(fb)
+    obj_single_with_fb = obj_single.freeze_bag().enriched(fb)
+    obj_dense_with_fb = obj_dense.freeze_bag().enriched(fb)
 
     data = arolla.s11n.dumps_many(
         [db, fb, obj_single_with_fb, obj_dense_with_fb], []
@@ -156,7 +156,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     fb_d['b'] = 97
     fb_d['d'] = 57
 
-    d = d.enriched(fb)
+    d = d.freeze_bag().enriched(fb)
 
     data = kd.dumps(d)
     actual_d = kd.loads(data)
@@ -187,12 +187,16 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     l2.with_bag(fb).append(4)
     l3.with_bag(fb).append(5)
 
-    self.assertEqual(lists.with_bag(db).enriched(fb).to_py(), [[1], [], [5]])
+    self.assertEqual(
+        lists.with_bag(db.freeze()).enriched(fb).to_py(), [[1], [], [5]]
+    )
 
     data = kd.dumps(db)
     db2 = kd.loads(data)
 
-    self.assertEqual(lists.with_bag(db2).enriched(fb).to_py(), [[1], [], [5]])
+    self.assertEqual(
+        lists.with_bag(db2.freeze()).enriched(fb).to_py(), [[1], [], [5]]
+    )
 
   def test_obj_with_databag(self):
     v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))

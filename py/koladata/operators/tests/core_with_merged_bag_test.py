@@ -42,7 +42,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
 
   def test_eval(self):
     db1 = bag()
-    x = db1.new(a=1)
+    x = db1.new(a=1).freeze_bag()
     db2 = bag()
     y = x.with_bag(db2)
     y.set_attr('a', 2)

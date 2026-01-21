@@ -54,7 +54,7 @@ class CoreEnrichedTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_same_bag(self):
-    db1 = bag()
+    db1 = data_bag.DataBag.empty()
     x = ds([1, 2, 3]).with_bag(db1)
     result = eager.core.enriched(x, db1)
     testing.assert_equal(x.no_bag(), result.no_bag())
@@ -73,7 +73,7 @@ class CoreEnrichedTest(parameterized.TestCase):
     obj1.with_bag(db2).b = 6
     db3 = schema.get_bag().fork()
     obj1.with_bag(db3).a = 7
-    x = ds([obj1, obj2]).with_bag(db3)
+    x = ds([obj1, obj2]).with_bag(db3).freeze_bag()
 
     result = eager.core.enriched(x, db2, db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)

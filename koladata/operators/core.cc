@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -366,27 +367,39 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
+    absl::string_view op_name =
+        is_enriched_operator_ ? "kd.core.enriched" : "kd.core.updated";
     return MakeBoundOperator(
-        is_enriched_operator_ ? "kd.core.enriched" : "kd.core.updated",
+        std::string(op_name),
         [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
                                                       input_slots.end()),
          output_slot = output_slot.UnsafeToSlot<DataSlice>(),
-         is_enriched_operator = is_enriched_operator_](
+         is_enriched_operator = is_enriched_operator_, op_name](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
           const DataSlice& ds =
               frame.Get(input_slots[0].UnsafeToSlot<DataSlice>());
+          if (ds.GetBag() != nullptr && ds.GetBag()->IsMutable()) {
+            return absl::InvalidArgumentError(
+                absl::StrCat(op_name,
+                             " requires the original DataBag to be immutable; "
+                             "either freeze it, or use mutable API"));
+          }
           std::vector<DataBagPtr> db_list;
           db_list.reserve(input_slots.size());
           if (is_enriched_operator) {
             db_list.push_back(ds.GetBag());
             for (size_t i = 1; i < input_slots.size(); ++i) {
+              const auto& bag =
+                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
               db_list.push_back(
-                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
+                  bag != nullptr && bag->IsMutable() ? bag->Freeze() : bag);
             }
           } else {
             for (size_t i = input_slots.size() - 1; i >= 1; --i) {
+              const auto& bag =
+                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
               db_list.push_back(
-                  frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>()));
+                  bag != nullptr && bag->IsMutable() ? bag->Freeze() : bag);
             }
             db_list.push_back(ds.GetBag());
           }

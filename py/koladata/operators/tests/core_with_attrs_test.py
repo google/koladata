@@ -90,7 +90,7 @@ class CoreWithAttrsTest(absltest.TestCase):
       _ = kd.core.with_attrs(o, x=1)
 
   def test_none_works(self):
-    x = ds(None).with_bag(bag())
+    x = ds(None).with_bag(data_bag.DataBag.empty())
     x = kd.core.with_attrs(x, x=1)
     testing.assert_equal(x.no_bag(), ds(None))
 

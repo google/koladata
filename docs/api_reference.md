@@ -708,7 +708,9 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with a additional fallback DataBag(s).
 
 Values in the original DataBag of `ds` take precedence over the ones in
-`*bag`.
+`*bag`. The original DataBag (if present) must be immutable. If the original
+DataBag is mutable, either freeze `ds` first, or add updates inplace using
+mutable API.
 
 The DataBag attached to the result is a new immutable DataBag that falls back
 to the DataBag of `ds` if present and then to `*bag`.
@@ -1188,7 +1190,9 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with DataBag(s) of updates applied.
 
 Values in `*bag` take precedence over the ones in the original DataBag of
-`ds`.
+`ds`. The original DataBag (if present) must be immutable. If the original
+DataBag is mutable, either freeze `ds` first, or add updates inplace using
+mutable API.
 
 The DataBag attached to the result is a new immutable DataBag that falls back
 to the DataBag of `ds` if present and then to `*bag`.
@@ -12832,7 +12836,9 @@ Args:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with a additional fallback DataBag(s).
 
 Values in the original DataBag of `ds` take precedence over the ones in
-`*bag`.
+`*bag`. The original DataBag (if present) must be immutable. If the original
+DataBag is mutable, either freeze `ds` first, or add updates inplace using
+mutable API.
 
 The DataBag attached to the result is a new immutable DataBag that falls back
 to the DataBag of `ds` if present and then to `*bag`.
@@ -13646,7 +13652,9 @@ Args:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with DataBag(s) of updates applied.
 
 Values in `*bag` take precedence over the ones in the original DataBag of
-`ds`.
+`ds`. The original DataBag (if present) must be immutable. If the original
+DataBag is mutable, either freeze `ds` first, or add updates inplace using
+mutable API.
 
 The DataBag attached to the result is a new immutable DataBag that falls back
 to the DataBag of `ds` if present and then to `*bag`.

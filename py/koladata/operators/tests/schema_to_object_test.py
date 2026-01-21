@@ -66,7 +66,7 @@ class SchemaToObjectTest(parameterized.TestCase):
     if fork:
       e1 = e1.fork_bag()
     if fallback:
-      e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
+      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
     res = kd.schema.to_object(e1)

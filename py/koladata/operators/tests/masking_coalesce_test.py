@@ -67,7 +67,7 @@ class MaskingCoalesceTest(parameterized.TestCase):
   def test_extraction(self):
     # Regression test for b/408434629.
     db = data_bag.DataBag.empty_mutable()
-    lists = ds([db.list([1, 2]), db.list([3, 4])])
+    lists = ds([db.list([1, 2]), db.list([3, 4])]).freeze_bag()
     l1 = (lists & ds([mask_constants.present, None])).with_list_append_update(8)
     l2 = (lists & ds([None, mask_constants.present])).with_list_append_update(9)
     res = kd.masking.coalesce(l1, l2)

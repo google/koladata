@@ -148,7 +148,11 @@ Top attrs:""",
       ),
       (
           'fallback',
-          bag().new(a=1).enriched(bag().list([1, 2]).get_bag()).get_bag(),
+          bag()
+          .new(a=1)
+          .freeze_bag()
+          .enriched(bag().list([1, 2]).get_bag())
+          .get_bag(),
           r"""^DataBag \$[0-9a-f]{4}:
   1 Entities/Objects with 1 values in 1 attrs
   1 non empty Lists with 2 items
@@ -161,7 +165,7 @@ Top attrs:
       (
           'multiple_fallbacks',
           bag()
-          .new(a=ds([1, 2, 3]), b=ds([1, 2, 3]))
+          .new(a=ds([1, 2, 3]), b=ds([1, 2, 3])).freeze_bag()
           .enriched(bag().list([1, 2]).get_bag())
           .enriched(bag().new(c=ds([3, 4, 5]), a=ds([4, 5, 6])).get_bag())
           .enriched(bag().dict({'a': 42}).get_bag())
@@ -309,7 +313,7 @@ $""",
   def test_contents_repr_list_schema_with_fallbacks(self):
     db1 = bag()
     l1 = db1.list([db1.list([1, 2, 3])])
-    l2 = bag().list([l1.no_bag()]).enriched(db1)
+    l2 = bag().list([l1.no_bag()]).freeze_bag().enriched(db1)
 
     db_repr = repr(l2.get_bag().contents_repr())
 
@@ -370,7 +374,7 @@ $""",
   def test_contents_repr_fallback(self):
     db = bag()
     entity = db.new(x=1)
-    ds2 = entity.with_bag(bag()).enriched(db)
+    ds2 = entity.with_bag(data_bag.DataBag.empty()).enriched(db.freeze())
     db_repr = repr(ds2.get_bag().contents_repr())
     expected_repr = r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.x => 1
@@ -386,8 +390,10 @@ $"""
       entity = db.new(x=1)
       db2 = bag()
       db2.new(y=2)
-      entity2 = entity.with_bag(db2).enriched(db)
-      entity3 = entity2.with_bag(bag()).enriched(entity2.get_bag())
+      entity2 = entity.with_bag(db2.freeze()).enriched(db.freeze())
+      entity3 = entity2.with_bag(data_bag.DataBag.empty()).enriched(
+          entity2.get_bag()
+      )
       db_repr = repr(entity3.get_bag().contents_repr())
       expected_repr = r"""^DataBag \$[0-9a-f]{4}:
 \$[0-9a-zA-Z]{22}\.y => 2
@@ -1452,18 +1458,22 @@ Assigned schema for keys: INT32""",
   def test_list_fallback(self):
     db1 = bag()
     db2 = bag()
-    l = db2.list([1, 2, 3]).with_bag(db1).enriched(db2)
+    l2 = db2.list([1, 2, 3])
+    l1 = l2.with_bag(db1)
+    l = l1.freeze_bag().enriched(db2)
     testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
 
     db1.adopt(l)
-    l.with_bag(db1).append(4)
+    l1.append(4)
+    l = l1.freeze_bag().enriched(db2)
     testing.assert_equal(l[:].no_bag(), ds([1, 2, 3, 4]))
 
     for _ in range(4):
-      l.with_bag(db1).pop(0)
+      l1.pop(0)
 
+    l = l1.freeze_bag().enriched(db2)
     testing.assert_equal(l[:].no_bag(), ds([], schema=schema_constants.INT32))
-    testing.assert_equal(l.with_bag(db2)[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(l2[:].no_bag(), ds([1, 2, 3]))
 
   def test_list_errors(self):
     db = bag()
@@ -1604,8 +1614,8 @@ Assigned schema for keys: INT32""",
     self.assertFalse(data_bag.exactly_equal(db1, data_bag.null_bag()))
 
   def test_exactly_equal_impl_fallbacks(self):
-    db1 = bag()
-    db2 = bag()
+    db1 = data_bag.DataBag.empty()
+    db2 = data_bag.DataBag.empty()
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     ds12 = x.with_bag(db1).enriched(db2)
     ds1 = x.with_bag(db1)
@@ -1613,9 +1623,6 @@ Assigned schema for keys: INT32""",
 
     ds21 = x.with_bag(db2).enriched(db1)
     self.assertTrue(data_bag.exactly_equal(ds12.get_bag(), ds21.get_bag()))
-
-    _ = db1.obj(x=1)
-    self.assertFalse(data_bag.exactly_equal(ds12.get_bag(), ds21.get_bag()))
 
   def test_merge_inplace(self):
     db1 = bag()
@@ -1959,6 +1966,10 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     db3 = bag()
     o3 = db3.obj(itemid=kde.uuid(x=1).eval())
     o3.y = 4
+    o1 = o1.freeze_bag()
+    db1 = db1.freeze()
+    db2 = db2.freeze()
+    db3 = db3.freeze()
     o4 = o1.with_bag(db1 << db2 << db3)
     self.assertEqual(o4.x.no_bag(), ds(2))
     self.assertEqual(o4.y.no_bag(), ds(4))
@@ -1993,6 +2004,10 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     o3 = db3.uuobj(x=1)
     o3.x = 2
     o3.y = 4
+    o1 = o1.freeze_bag()
+    db1 = db1.freeze()
+    db2 = db2.freeze()
+    db3 = db3.freeze()
     o3 = o1.with_bag(db1 >> db2 >> db3)
     testing.assert_equal(o3.x.no_bag(), ds(1))
     self.assertEqual(o3.y.no_bag(), ds(3))
@@ -2030,7 +2045,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
   def test_merge_fallbacks(self):
     db1 = bag()
     x1 = db1.new(a=1)
-    x2 = x1.with_bag(bag()).enriched(db1)
+    x2 = x1.with_bag(data_bag.DataBag.empty()).enriched(db1.freeze())
     db2 = x2.get_bag()
 
     db3 = db2.merge_fallbacks()

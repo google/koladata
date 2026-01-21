@@ -127,7 +127,7 @@ class SchemaCastToTest(parameterized.TestCase):
     if fork:
       e1 = e1.fork_bag()
     if fallback:
-      e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
+      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
     res = kd.schema.cast_to(e1, schema_constants.OBJECT)
@@ -184,7 +184,7 @@ class SchemaCastToTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1, y=2)
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
-    schema = kd.with_metadata(schema, source='test')
+    schema = kd.with_metadata(schema.freeze_bag(), source='test')
     result = kd.schema.cast_to(e1, schema)
     testing.assert_equivalent(result, schema.new(x=1.), schemas_equality=True)
     testing.assert_equivalent(
@@ -194,11 +194,13 @@ class SchemaCastToTest(parameterized.TestCase):
   def test_casting_to_schema_with_different_metadata(self):
     db = data_bag.DataBag.empty_mutable()
     schema1 = db.new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
-    schema1 = kd.with_metadata(schema1, foo=schema_constants.ITEMID)
+    schema1 = kd.with_metadata(
+        schema1.freeze_bag(), foo=schema_constants.ITEMID
+    )
     e1 = schema1.new(x=1, y=2)
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
     schema = kd.with_metadata(
-        schema, source='test', foo=schema_constants.FLOAT64
+        schema.freeze_bag(), source='test', foo=schema_constants.FLOAT64
     )
     result = kd.schema.cast_to(e1, schema)
     testing.assert_equivalent(result, schema.new(x=1.0), schemas_equality=True)

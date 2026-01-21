@@ -158,8 +158,8 @@ class LiteralOperatorTest(parameterized.TestCase):
     x = (
         data_bag.DataBag.empty_mutable()
         .new(x=1)
-        .enriched(data_bag.DataBag.empty_mutable())
         .freeze_bag()
+        .enriched(data_bag.DataBag.empty())
     )
     l = literal_operator.literal(x)
     self.assertEqual(

@@ -625,7 +625,7 @@ class SchemaHelper:
 
   def __init__(self, schema: kd.types.SchemaItem):
     _check_is_schema_item(schema)
-    self._schema = schema
+    self._schema = schema.freeze_bag()
     artifacts = _analyze_schema(self._schema)
     self._parent_to_child_graph = artifacts.schema_graph
     self._schema_node_name_to_schema = artifacts.schema_node_name_to_schema

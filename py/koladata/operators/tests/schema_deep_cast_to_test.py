@@ -192,7 +192,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
     e1 = kd.extract(schema.new(x=1, y=2))
-    schema = kd.with_metadata(schema, source='test')
+    schema = kd.with_metadata(schema.freeze_bag(), source='test')
     result = kd.schema.deep_cast_to(e1, schema)
     testing.assert_equivalent(result, schema.new(x=1.))
     testing.assert_equivalent(
@@ -202,12 +202,12 @@ class SchemaDeepCastToTest(parameterized.TestCase):
   def test_casting_to_schema_with_different_metadata(self):
     db = data_bag.DataBag.empty_mutable()
     schema = db.new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
-    schema1 = kd.with_metadata(schema, foo=schema_constants.ITEMID)
+    schema1 = kd.with_metadata(schema.freeze_bag(), foo=schema_constants.ITEMID)
     e1 = schema1.new(x=1, y=2)
     schema2 = kd.with_metadata(
-        schema, source='test', foo=schema_constants.FLOAT64
+        schema.freeze_bag(), source='test', foo=schema_constants.FLOAT64
     )
-    schema2 = kd.with_attr(schema2, 'x', schema_constants.FLOAT32)
+    schema2 = kd.with_attr(schema2.freeze_bag(), 'x', schema_constants.FLOAT32)
     result = kd.schema.deep_cast_to(e1, schema2)
     testing.assert_equivalent(
         result, schema2.new(x=1.0, y=2), schemas_equality=True
@@ -223,7 +223,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     if fork:
       e1 = e1.fork_bag()
     if fallback:
-      e1 = e1.with_bag(data_bag.DataBag.empty_mutable()).enriched(e1.get_bag())
+      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
     if freeze:
       e1 = e1.freeze_bag()
     res = kd.schema.deep_cast_to(e1, schema_constants.OBJECT)

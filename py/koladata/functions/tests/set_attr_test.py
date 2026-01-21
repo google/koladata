@@ -165,16 +165,12 @@ Assigned schema for 'xyz': STRING"""),
     testing.assert_equal(x.xyz.a, ds([5, 4]).with_bag(db))
 
   def test_merging_with_fallbacks(self):
-    db = kd.mutable_bag()
-    x = db.obj()
-    db2 = kd.mutable_bag()
-    y = db2.new(bar='foo')
-    db3 = kd.mutable_bag()
-    y.with_bag(db3).set_attr('bar', 2)
-    y.with_bag(db3).set_attr('baz', 5)
-    x.foo = y.enriched(db3)
-    testing.assert_equal(x.foo.bar, ds('foo').with_bag(db))
-    testing.assert_equal(x.foo.baz, ds(5).with_bag(db))
+    x = kd.mutable_bag().obj()
+    y = kd.new(bar='foo')
+    z = y.with_bag(kd.bag()).with_attrs(bar=2, baz=5)
+    x.foo = y.enriched(z.get_bag())
+    testing.assert_equal(x.foo.bar.no_bag(), ds('foo'))
+    testing.assert_equal(x.foo.baz.no_bag(), ds(5))
 
   def test_assignment_rhs_error(self):
     x = kd.mutable_bag().obj(x=ds([1, 2]))

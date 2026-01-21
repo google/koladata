@@ -148,7 +148,7 @@ class EntitiesNewTest(absltest.TestCase):
     schema = bag().new_schema(a=schema_constants.INT32)
     fallback_bag = bag()
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
-    schema = schema.enriched(fallback_bag)
+    schema = schema.freeze_bag().enriched(fallback_bag)
     x = kd.entities.new(a=42, b='xyz', schema=schema)
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))

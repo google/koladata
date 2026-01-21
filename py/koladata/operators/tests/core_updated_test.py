@@ -54,7 +54,7 @@ class CoreUpdatedTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_same_bag(self):
-    db1 = bag()
+    db1 = data_bag.DataBag.empty()
     x = ds([1, 2, 3]).with_bag(db1)
     result = eager.core.updated(x, db1)
     testing.assert_equal(x.no_bag(), result.no_bag())
@@ -68,7 +68,7 @@ class CoreUpdatedTest(parameterized.TestCase):
     db1 = bag()
     obj1 = db1.new(a=1, b=2, schema=schema)
     obj2 = db1.new(a=3, b=4, schema=schema)
-    x = ds([obj1, obj2])
+    x = ds([obj1, obj2]).freeze_bag()
 
     db2 = schema.get_bag().fork()
     obj1.with_bag(db2).a = 5

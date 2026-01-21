@@ -116,7 +116,7 @@ class CoreCloneTest(parameterized.TestCase):
   )
   def test_clone_only_reachable(self, pass_schema):
     a_slice = bag().new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    o = bag().new(a=a_slice)
+    o = kd.new(a=a_slice)
     fb = bag().new(a=a_slice.no_bag(), c=ds([1, None, 2]))
     o = o.enriched(fb.get_bag())
     if pass_schema:
@@ -155,9 +155,9 @@ class CoreCloneTest(parameterized.TestCase):
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_bag(noise.enriched(db).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db).get_bag())
     else:
-      o_fb = o.enriched(fb_noise)
+      o_fb = o.freeze_bag().enriched(fb_noise)
 
     if pass_schema:
       result = kd.core.clone(o_fb, schema=o_fb.get_schema())

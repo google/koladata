@@ -51,7 +51,7 @@ class CoreMetadataTest(absltest.TestCase):
     db = object_factories.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
-    x = ds([s1, s2])
+    x = ds([s1, s2]).freeze_bag()
     metadata_update = kd.core.metadata(x, text=ds(['foo', 1]))
     updated_x = x.updated(metadata_update)
 
@@ -62,7 +62,7 @@ class CoreMetadataTest(absltest.TestCase):
     db = object_factories.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
-    x = ds([s1, s2])
+    x = ds([s1, s2]).freeze_bag()
     metadata_update = kd.core.metadata(x, text=ds(['foo', 1]))
     x = x.updated(metadata_update)
 

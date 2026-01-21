@@ -43,7 +43,7 @@ class CoreGetMetadataTest(absltest.TestCase):
     db = object_factories.mutable_bag()
     s1 = db.new_schema(x=schema_constants.INT32)
     s2 = db.new_schema(x=schema_constants.OBJECT)
-    x = ds([s1, s2])
+    x = ds([s1, s2]).freeze_bag()
     updated_x = kd.core.with_metadata(x, text=ds(['foo', 1]))
 
     values = kd.core.get_metadata(updated_x)

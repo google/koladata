@@ -80,6 +80,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, append, expected):
+    x = x.freeze_bag()
     update = kd.lists.list_append_update(x, append)
     self.assertFalse(update.is_mutable())
     testing.assert_equivalent(x.updated(update), expected)
@@ -91,7 +92,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
     db2 = bag()
     e2 = db2.obj(a=2)
     update = kd.lists.list_append_update(x, e2)
-    result = x.updated(update)
+    result = x.freeze_bag().updated(update)
 
     testing.assert_equal(result[0].a, ds(1).with_bag(result.get_bag()))
     testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))
@@ -137,7 +138,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
       _ = kd.lists.list_append_update(x, append)
 
   def test_merge_overwrite(self):
-    lst = bag().list([bag().uu(a=1)])
+    lst = bag().list([bag().uu(a=1)]).freeze_bag()
     e = bag().uu(a=1)
     e.set_attr('a', 2)
     update = kd.lists.list_append_update(lst, e)

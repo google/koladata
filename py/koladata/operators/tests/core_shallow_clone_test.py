@@ -89,10 +89,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
     fb = bag()
     o.get_schema().with_bag(fb).set_attr('d', schema_constants.INT32)
     o.with_bag(fb).set_attr('d', ds([1, 2, 3]))
+    o = o.freeze_bag()
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_bag(noise.enriched(db, fb).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db, fb).get_bag())
     else:
       o_fb = o.enriched(fb, fb_noise)
 
@@ -120,7 +121,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
         d=ds([1, 2, 3]),
         schema=o_fb.get_schema().no_bag(),
         itemid=result.get_itemid(),
-    )
+    ).freeze_bag()
     testing.assert_equivalent(
         result.enriched(schema_fb),
         expected.enriched(schema_fb),
@@ -145,11 +146,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
         a=a_slice,
         b=b_list,
         c=c_dict,
-    )
+    ).freeze_bag()
     fb_noise = bag()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
-      o_fb = o.with_bag(noise.enriched(db).get_bag())
+      o_fb = o.with_bag(noise.freeze_bag().enriched(db).get_bag())
     else:
       o_fb = o.enriched(fb_noise)
 
@@ -177,7 +178,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
         c=c_dict.no_bag(),
         schema=o_fb.get_schema().no_bag(),
         itemid=result.get_itemid(),
-    )
+    ).freeze_bag()
     testing.assert_equivalent(
         result.enriched(schema_fb),
         expected.enriched(schema_fb),
@@ -202,7 +203,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     )
 
   def test_with_empty_fallback(self):
-    o = bag().new(a=ds([None]))
+    o = bag().new(a=ds([None])).freeze_bag()
     o = o.enriched(bag())
     _ = kd.core.shallow_clone(o, schema=o.get_schema())
 

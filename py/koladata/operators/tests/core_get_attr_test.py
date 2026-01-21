@@ -213,7 +213,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_with_default_extraction(self):
     # Regression test for b/408434629.
     db = data_bag.DataBag.empty_mutable()
-    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])]))
+    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])])).freeze_bag()
     updated_lists = (
         entities.x & ds([None, arolla.present()])
     ).with_list_append_update(8)

@@ -153,11 +153,9 @@ class CoreDeepCloneTest(parameterized.TestCase):
 
   @parameterized.parameters(True, False)
   def test_clone_only_reachable(self, pass_schema):
-    db = data_bag.DataBag.empty_mutable()
-    fb = data_bag.DataBag.empty_mutable()
-    a_slice = db.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
-    _ = fb.new(a=a_slice.no_bag(), c=ds([1, None, 2]))
-    o = db.new(a=a_slice)
+    a_slice = kd.new(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
+    fb = kd.new(a=a_slice.no_bag(), c=ds([1, None, 2])).get_bag()
+    o = kd.new(a=a_slice)
     merged_bag = o.enriched(fb).get_bag().merge_fallbacks()
     o = o.with_bag(merged_bag)
     if pass_schema:
@@ -257,8 +255,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
     kd.core.with_metadata(a.get_obj_schema(), attrs='xy')
 
   def test_metadata_chains(self):
-    db = bag()
-    ds_root = db.new(a=db.obj(x=1, y=2), b=db.obj(foo='bar'))
+    ds_root = kd.new(a=kd.obj(x=1, y=2), b=kd.obj(foo='bar'))
     ds_a = ds_root.a
     for i in range(10):
       schema = kd.core.with_metadata(ds_a.get_obj_schema(), data=f'a_depth_{i}')

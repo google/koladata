@@ -85,15 +85,13 @@ class CoreAttrTest(parameterized.TestCase):
 
   def test_attr_update_with_ds_attr(self):
     with self.subTest('object'):
-      db = bag()
-      ds1 = kd.stack(db.obj(x=1), db.obj(y=2))
+      ds1 = kd.stack(kd.obj(x=1), kd.obj(y=2))
       db = kd.core.attr(ds1, ds(['x', 'y']), 42)
       testing.assert_equal(ds1.updated(db).maybe('x').no_bag(), ds([42, None]))
       testing.assert_equal(ds1.updated(db).maybe('y').no_bag(), ds([None, 42]))
 
     with self.subTest('entity'):
-      db = bag()
-      ds1 = db.new(x=ds([1, 3]), y=ds([2, 4]))
+      ds1 = kd.new(x=ds([1, 3]), y=ds([2, 4]))
       db = kd.core.attr(ds1, ds(['x', 'y']), 42)
       testing.assert_equal(ds1.updated(db).x.no_bag(), ds([42, 3]))
       testing.assert_equal(ds1.updated(db).y.no_bag(), ds([2, 42]))

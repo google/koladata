@@ -81,13 +81,13 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
   )
   def test_eval(self, x, append, expected):
     testing.assert_equivalent(
-        eager.with_list_append_update(x, append), expected
+        eager.with_list_append_update(x.freeze_bag(), append), expected
     )
 
   def test_db_adoption(self):
     db1 = bag()
     e1 = db1.obj(a=1)
-    x = db1.list([e1])
+    x = db1.list([e1]).freeze_bag()
     db2 = bag()
     e2 = db2.obj(a=2)
     result = eager.lists.with_list_append_update(x, e2)
@@ -139,7 +139,7 @@ class KodaListWithAppendUpdateTest(parameterized.TestCase):
       _ = eager.with_list_append_update(x, append)
 
   def test_merge_overwrite(self):
-    lst = bag().list([bag().uu(a=1)])
+    lst = bag().list([bag().uu(a=1)]).freeze_bag()
     e = bag().uu(a=1)
     e.set_attr('a', 2)
     result = eager.lists.with_list_append_update(lst, e)

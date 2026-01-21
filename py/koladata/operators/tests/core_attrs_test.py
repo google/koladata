@@ -83,7 +83,7 @@ class CoreAttrsTest(absltest.TestCase):
     )
 
   def test_multi_attr_overwrite_object_schema(self):
-    o = bag().obj(x=1, y=10)
+    o = kd.obj(x=1, y=10)
     db2 = kd.core.attrs(o, x='2', a=1, b='p', c=bag().list([1, 2]))
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
