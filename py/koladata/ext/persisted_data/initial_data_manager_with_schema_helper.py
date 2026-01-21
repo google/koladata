@@ -23,10 +23,12 @@ from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import initial_data_manager_interface
 from koladata.ext.persisted_data import schema_helper
+from koladata.ext.persisted_data import schema_helper_mixin
 
 
 class InitialDataManagerWithSchemaHelper(
-    initial_data_manager_interface.InitialDataManagerInterface
+    schema_helper_mixin.SchemaHelperMixin,
+    initial_data_manager_interface.InitialDataManagerInterface,
 ):
   """InitialDataManager that provides common functionality via a SchemaHelper.
 
@@ -53,14 +55,8 @@ class InitialDataManagerWithSchemaHelper(
   def _get_schema_helper(self) -> schema_helper.SchemaHelper:
     raise NotImplementedError(type(self))
 
-  def get_schema(self) -> kd.types.SchemaItem:
-    return self._get_schema_helper().get_schema()
-
   def get_all_schema_node_names(self) -> AbstractSet[str]:
     return self._get_schema_helper().get_all_schema_node_names()
-
-  def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
-    return self._get_schema_helper().exists(path)
 
   def get_data_slice(
       self,
@@ -75,23 +71,6 @@ class InitialDataManagerWithSchemaHelper(
             populate_including_descendants=populate_including_descendants,
         )
     )
-
-  def get_data_slice_at(
-      self,
-      path: data_slice_path_lib.DataSlicePath,
-      with_all_descendants: bool = False,
-  ) -> kd.types.DataSlice:
-    if with_all_descendants:
-      populate = None
-      populate_including_descendants = {path}
-    else:
-      populate = {path}
-      populate_including_descendants = None
-    ds = self.get_data_slice(
-        populate=populate,
-        populate_including_descendants=populate_including_descendants,
-    )
-    return path.evaluate(ds)
 
   def get_data_slice_for_schema_node_names(
       self, schema_node_names: Collection[str]

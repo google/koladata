@@ -38,6 +38,7 @@ from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as dbm
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
+from koladata.ext.persisted_data import schema_helper_mixin
 from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
 
 
@@ -111,7 +112,8 @@ _INTERNAL_CALL = object()
 
 
 class PersistedIncrementalDataSliceManager(
-    data_slice_manager_interface.DataSliceManagerInterface
+    schema_helper_mixin.SchemaHelperMixin,
+    data_slice_manager_interface.DataSliceManagerInterface,
 ):
   """Manager of a DataSlice that is assembled from multiple smaller data slices.
 
@@ -427,14 +429,12 @@ class PersistedIncrementalDataSliceManager(
     )
     self._metadata = metadata
 
+  def _get_schema_helper(self) -> schema_helper_lib.SchemaHelper:
+    return self._schema_helper
+
   def get_schema(self) -> kd.types.SchemaItem:
     """Returns the schema of the entire DataSlice managed by this manager."""
-    schema_bag_names = set()
-    for revision in self._metadata.revision_history:
-      schema_bag_names.update(revision.added_schema_bag_names)
-    return self._initial_data_manager.get_schema().updated(
-        self._schema_bag_manager.get_minimal_bag(schema_bag_names)
-    )
+    return schema_helper_mixin.SchemaHelperMixin.get_schema(self)
 
   def generate_paths(
       self, *, max_depth: int
@@ -462,7 +462,7 @@ class PersistedIncrementalDataSliceManager(
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
     """Returns whether the given data slice path exists for this manager."""
-    return self._schema_helper.exists(path)
+    return schema_helper_mixin.SchemaHelperMixin.exists(self, path)
 
   def get_data_slice(
       self,
@@ -473,7 +473,7 @@ class PersistedIncrementalDataSliceManager(
   ) -> kd.types.DataSlice:
     """Returns the dataslice with data for the requested data slice paths.
 
-    If this method is called muliple times without intervening calls to
+    If this method is called multiple times without intervening calls to
     update(), then the DataBags of the returned DataSlices are guaranteed to
     be compatible with each other. For example,
     manager.get_data_slice({p1}).updated(manager.get_data_slice({p2}).get_bag())
@@ -541,17 +541,9 @@ class PersistedIncrementalDataSliceManager(
     Returns:
       The data slice managed by this manager at the given path.
     """
-    if with_all_descendants:
-      populate = None
-      populate_including_descendants = {path}
-    else:
-      populate = {path}
-      populate_including_descendants = None
-    ds = self.get_data_slice(
-        populate=populate,
-        populate_including_descendants=populate_including_descendants,
+    return schema_helper_mixin.SchemaHelperMixin.get_data_slice_at(
+        self, path, with_all_descendants
     )
-    return path.evaluate(ds)
 
   def get_revision_history(
       self,

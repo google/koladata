@@ -65,6 +65,7 @@ py_library(
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":schema_helper",
+        ":schema_helper_mixin",
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
@@ -324,6 +325,7 @@ py_library(
         ":data_slice_manager_interface",
         ":data_slice_path",
         ":schema_helper",
+        ":schema_helper_mixin",
         "//py:python_path",
         "//py/koladata:kd",
     ],
@@ -394,6 +396,18 @@ py_library(
         ":data_slice_path",
         ":fs_interface",
         ":initial_data_manager_interface",
+        ":schema_helper",
+        ":schema_helper_mixin",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "schema_helper_mixin",
+    srcs = ["schema_helper_mixin.py"],
+    deps = [
+        ":data_slice_path",
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",

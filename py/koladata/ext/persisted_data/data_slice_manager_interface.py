@@ -14,7 +14,7 @@
 
 """Interface for data slice managers."""
 
-from typing import AbstractSet, Generator
+from typing import Collection, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -55,14 +55,14 @@ class DataSliceManagerInterface:
 
   def get_data_slice(
       self,
-      populate: AbstractSet[data_slice_path_lib.DataSlicePath] | None = None,
+      populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
       populate_including_descendants: (
-          AbstractSet[data_slice_path_lib.DataSlicePath] | None
+          Collection[data_slice_path_lib.DataSlicePath] | None
       ) = None,
   ) -> kd.types.DataSlice:
     """Returns the dataslice with data for the requested data slice paths.
 
-    If this method is called muliple times without intervening calls to
+    If this method is called multiple times without intervening calls to
     update(), then the DataBags of the returned DataSlices are guaranteed to
     be compatible with each other. For example,
     manager.get_data_slice({p1}).updated(manager.get_data_slice({p2}).get_bag())
