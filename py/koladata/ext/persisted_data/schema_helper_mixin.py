@@ -18,7 +18,7 @@ from typing import Collection
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import schema_helper
+from koladata.ext.persisted_data import schema_helper as schema_helper_lib
 
 
 class SchemaHelperMixin:
@@ -31,7 +31,7 @@ class SchemaHelperMixin:
   get_data_slice_at(), exists() and get_schema() methods.
   """
 
-  def _get_schema_helper(self) -> schema_helper.SchemaHelper:
+  def _get_schema_helper(self) -> schema_helper_lib.SchemaHelper:
     raise NotImplementedError(type(self))
 
   def get_data_slice(
@@ -45,6 +45,15 @@ class SchemaHelperMixin:
 
   def get_schema(self) -> kd.types.SchemaItem:
     return self._get_schema_helper().get_schema()
+
+  def get_schema_at(
+      self, path: data_slice_path_lib.DataSlicePath
+  ) -> kd.types.SchemaItem:
+    """Returns the schema of the DataSlice at the given path."""
+    schema_helper = self._get_schema_helper()
+    return schema_helper.get_subschema_at(
+        schema_helper.get_schema_node_name_for_data_slice_path(path)
+    )
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
     return self._get_schema_helper().exists(path)

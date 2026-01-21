@@ -333,6 +333,25 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     self.assertIs(copy._root_item, manager._root_item)
     self.assertIs(copy._schema_helper, manager._schema_helper)
 
+  def test_get_schema_at(self):
+    root_schema = kd.named_schema('root_schema')
+    manager = BareRootInitialDataManager.create_new(root_schema.new())
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(
+            data_slice_path_lib.DataSlicePath.parse_from_string('')
+        ),
+        root_schema,
+        ids_equality=True,
+    )
+
+    manager = BareRootInitialDataManager.create_new()
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(
+            data_slice_path_lib.DataSlicePath.parse_from_string('')
+        ),
+        kd.schema.new_schema(),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -93,14 +93,7 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
     """
     self._check_path_from_root_is_valid()
-    schema_helper = schema_helper_lib.SchemaHelper(
-        self._data_slice_manager.get_schema()
-    )
-    return schema_helper.get_subschema_at(
-        schema_helper.get_schema_node_name_for_data_slice_path(
-            self._path_from_root
-        )
-    )
+    return self._data_slice_manager.get_schema_at(self._path_from_root)
 
   def get_data_slice(
       self, *, with_ancestors: bool = False, with_descendants: bool = False

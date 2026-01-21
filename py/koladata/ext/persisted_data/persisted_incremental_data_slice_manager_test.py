@@ -4620,6 +4620,57 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ['Some bespoke description'],
     )
 
+  def test_get_schema_at(self):
+    persistence_dir = os.path.join(
+        self.create_tempdir().full_path, 'persisted_dataslice'
+    )
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
+    query_schema = kd.named_schema('query')
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(query_id='q1'),
+            query_schema.new(query_id='q2'),
+        ]),
+    )
+    doc_schema = kd.named_schema('doc')
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        ]),
+    )
+
+    full_schema = manager.get_schema()
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(parse_dsp('')),
+        full_schema,
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(parse_dsp('.query[:]')),
+        full_schema.query.get_item_schema(),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(parse_dsp('.query[:].query_id')),
+        kd.STRING,
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(parse_dsp('.query[:].doc[:]')),
+        full_schema.query.get_item_schema().doc.get_item_schema(),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        manager.get_schema_at(parse_dsp('.query[:].doc[:].doc_id')),
+        kd.INT32,
+        ids_equality=True,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

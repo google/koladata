@@ -69,6 +69,12 @@ class InitialDataManagerInterface:
     """
     raise NotImplementedError(type(self))
 
+  def get_schema_at(
+      self, path: data_slice_path_lib.DataSlicePath
+  ) -> kd.types.SchemaItem:
+    """Returns the schema of the DataSlice at the given path."""
+    raise NotImplementedError(type(self))
+
   def get_all_schema_node_names(self) -> AbstractSet[str]:
     """Returns all the schema node names of self.get_schema().
 

@@ -27,6 +27,12 @@ class DataSliceManagerInterface:
     """Returns the schema of the entire DataSlice managed by this manager."""
     raise NotImplementedError(type(self))
 
+  def get_schema_at(
+      self, path: data_slice_path_lib.DataSlicePath
+  ) -> kd.types.SchemaItem:
+    """Returns the schema of the DataSlice at the given path."""
+    raise NotImplementedError(type(self))
+
   def generate_paths(
       self, *, max_depth: int
   ) -> Generator[data_slice_path_lib.DataSlicePath, None, None]:
