@@ -3534,7 +3534,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def test_clear_cache_also_clears_initial_data_manager_cache(self):
     initial_data_manager_mock = mock.Mock(
-        wraps=bare_root_initial_data_manager.BareRootInitialDataManager()
+        wraps=bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
     )
     manager = PersistedIncrementalDataSliceManager.create_new(
         self.create_tempdir().full_path,
@@ -4475,7 +4475,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       persistence_dir = self.create_tempdir().full_path
       manager = PersistedIncrementalDataSliceManager.create_new(
           persistence_dir,
-          initial_data_manager=bare_root_initial_data_manager.BareRootInitialDataManager(
+          initial_data_manager=bare_root_initial_data_manager.BareRootInitialDataManager.create_new(
               root_item
           ),
       )

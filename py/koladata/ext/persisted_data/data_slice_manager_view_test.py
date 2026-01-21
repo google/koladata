@@ -913,7 +913,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     persistence_dir = self.create_tempdir().full_path
     trunk_initial_data_manager = (
-        bare_root_initial_data_manager.BareRootInitialDataManager()
+        bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
     )
     trunk_manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
         persistence_dir, initial_data_manager=trunk_initial_data_manager

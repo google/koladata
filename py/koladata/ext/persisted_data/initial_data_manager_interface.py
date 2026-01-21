@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import AbstractSet, Collection
+from typing import AbstractSet, Collection, Self
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -181,5 +181,17 @@ class InitialDataManagerInterface:
     PersistedIncrementalDataSliceManager, then the manager will craft a
     description of the form
     f'Initial state with {initial_data_manager.get_description()}'.
+    """
+    raise NotImplementedError(type(self))
+
+  def copy(self) -> Self:
+    """Returns a copy of this manager.
+
+    It should be faster to create a copy than to serialize+deserialize this
+    manager.
+
+    It should be possible to use the copy in another thread. If there is
+    internal mutable state, such as caches, that are shared between this
+    instance and the copy, then that state must be properly synchronized.
     """
     raise NotImplementedError(type(self))

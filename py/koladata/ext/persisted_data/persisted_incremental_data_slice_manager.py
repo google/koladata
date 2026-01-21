@@ -192,9 +192,8 @@ class PersistedIncrementalDataSliceManager(
       A new manager.
     """
     fs = fs or fs_util.get_default_file_system_interaction()
-    initial_data_manager = (
-        initial_data_manager
-        or bare_root_initial_data_manager.BareRootInitialDataManager()
+    initial_data_manager = initial_data_manager or (
+        bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
     )
     if description is None:
       description = (
@@ -1113,6 +1112,7 @@ class PersistedIncrementalDataSliceManager(
     self._initial_data_manager.serialize(
         os.path.join(output_dir, 'initial_data'), fs=branch_fs
     )
+    branch_initial_data_manager = self._initial_data_manager.copy()
     fs_util.write_slice_to_file(
         branch_fs,
         self._initial_schema_node_name_to_data_bag_names,
@@ -1120,32 +1120,58 @@ class PersistedIncrementalDataSliceManager(
             output_dir
         ),
     )
+    branch_initial_schema_node_name_to_data_bag_names = (
+        self._initial_schema_node_name_to_data_bag_names
+    )
 
-    data_bag_names = set()
-    schema_bag_names = set()
+    branch_data_bag_names = set()
+    branch_schema_bag_names = set()
     snn_to_data_bags_update_bag_names = set()
     for index in range(revision_history_index + 1):
       revision = self._metadata.revision_history[index]
-      data_bag_names.update(revision.added_data_bag_names)
-      schema_bag_names.update(revision.added_schema_bag_names)
+      branch_data_bag_names.update(revision.added_data_bag_names)
+      branch_schema_bag_names.update(revision.added_schema_bag_names)
       snn_to_data_bags_update_bag_names.update(
           revision.added_snn_to_data_bags_update_bag_names
       )
 
+    branch_data_bag_manager_dir = os.path.join(output_dir, 'data_bags')
     self._data_bag_manager.create_branch(
-        data_bag_names,
-        output_dir=os.path.join(output_dir, 'data_bags'),
+        branch_data_bag_names,
+        output_dir=branch_data_bag_manager_dir,
         fs=branch_fs,
     )
+    branch_data_bag_manager = dbm.PersistedIncrementalDataBagManager(
+        branch_data_bag_manager_dir, fs=branch_fs
+    )
+    branch_schema_bag_manager_dir = os.path.join(output_dir, 'schema_bags')
     self._schema_bag_manager.create_branch(
-        schema_bag_names,
-        output_dir=os.path.join(output_dir, 'schema_bags'),
+        branch_schema_bag_names,
+        output_dir=branch_schema_bag_manager_dir,
         fs=branch_fs,
+    )
+    branch_schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
+        branch_schema_bag_manager_dir, fs=branch_fs
+    )
+    branch_schema_node_name_to_data_bags_updates_manager_dir = os.path.join(
+        output_dir, 'snn_to_data_bags_updates'
     )
     self._schema_node_name_to_data_bags_updates_manager.create_branch(
         snn_to_data_bags_update_bag_names,
-        output_dir=os.path.join(output_dir, 'snn_to_data_bags_updates'),
+        output_dir=branch_schema_node_name_to_data_bags_updates_manager_dir,
         fs=branch_fs,
+    )
+    branch_schema_node_name_to_data_bags_updates_manager = (
+        dbm.PersistedIncrementalDataBagManager(
+            branch_schema_node_name_to_data_bags_updates_manager_dir,
+            fs=branch_fs,
+        )
+    )
+
+    branch_schema_helper = schema_helper_lib.SchemaHelper(
+        branch_initial_data_manager.get_schema().updated(
+            branch_schema_bag_manager.get_minimal_bag(branch_schema_bag_names)
+        )
     )
 
     branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
@@ -1156,8 +1182,8 @@ class PersistedIncrementalDataSliceManager(
             metadata_pb2.RevisionMetadata(
                 timestamp=timestamp.from_current_time(),
                 description=description,
-                added_data_bag_names=sorted(data_bag_names),
-                added_schema_bag_names=sorted(schema_bag_names),
+                added_data_bag_names=sorted(branch_data_bag_names),
+                added_schema_bag_names=sorted(branch_schema_bag_names),
                 added_snn_to_data_bags_update_bag_names=sorted(
                     snn_to_data_bags_update_bag_names
                 ),
@@ -1170,8 +1196,17 @@ class PersistedIncrementalDataSliceManager(
     )
     _persist_metadata(branch_fs, output_dir, branch_metadata)
 
-    return PersistedIncrementalDataSliceManager.create_from_dir(
-        output_dir, fs=branch_fs
+    return PersistedIncrementalDataSliceManager(
+        internal_call=_INTERNAL_CALL,
+        persistence_dir=output_dir,
+        fs=branch_fs,
+        initial_data_manager=branch_initial_data_manager,
+        data_bag_manager=branch_data_bag_manager,
+        schema_bag_manager=branch_schema_bag_manager,
+        schema_helper=branch_schema_helper,
+        initial_schema_node_name_to_data_bag_names=branch_initial_schema_node_name_to_data_bag_names,
+        schema_node_name_to_data_bags_updates_manager=branch_schema_node_name_to_data_bags_updates_manager,
+        metadata=branch_metadata,
     )
 
   def clear_cache(self):

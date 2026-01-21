@@ -37,7 +37,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
 
   def test_serialization_and_deserialization_roundtrip(self):
     for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
-      manager = BareRootInitialDataManager(root_item)
+      manager = BareRootInitialDataManager.create_new(root_item)
       kd.testing.assert_equivalent(
           manager.get_schema(), root_item.get_schema(), ids_equality=True
       )
@@ -78,7 +78,9 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
   def test_superfluous_data_is_removed_from_provided_root_item(self):
     superfluous_data = kd.new(x=1, y=2).get_bag()
     for item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
-      manager = BareRootInitialDataManager(item.enriched(superfluous_data))
+      manager = BareRootInitialDataManager.create_new(
+          item.enriched(superfluous_data)
+      )
       kd.testing.assert_equivalent(
           manager.get_schema(), item.get_schema(), ids_equality=True
       )
@@ -98,25 +100,27 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ValueError,
         re.escape('the root must be a scalar, i.e. a DataItem. Got: [1, 2, 3]'),
     ):
-      BareRootInitialDataManager(kd.slice([1, 2, 3]))
+      BareRootInitialDataManager.create_new(kd.slice([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must be present. Got: None'),
     ):
-      BareRootInitialDataManager(kd.item(None, schema=kd.schema.new_schema()))
+      BareRootInitialDataManager.create_new(
+          kd.item(None, schema=kd.schema.new_schema())
+      )
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must have an entity schema. Got: List[1, 2, 3]'),
     ):
-      BareRootInitialDataManager(kd.list([1, 2, 3]))
+      BareRootInitialDataManager.create_new(kd.list([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must not have any attributes. Got: Entity(x=2)'),
     ):
-      BareRootInitialDataManager(kd.new(x=2))
+      BareRootInitialDataManager.create_new(kd.new(x=2))
 
     root = kd.new()
     root_schema = kd.with_metadata(root.get_schema(), foo=kd.list([1, 2, 3]))
@@ -125,19 +129,19 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ValueError,
         'schema .* has metadata attributes that are not primitives',
     ):
-      BareRootInitialDataManager(root)
+      BareRootInitialDataManager.create_new(root)
 
   def test_get_data_slice_with_invalid_schema_node_names_raises_error(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape("schema_node_names contains invalid entries: {'hohoho!'}"),
     ):
-      BareRootInitialDataManager().get_data_slice_for_schema_node_names(
+      BareRootInitialDataManager.create_new().get_data_slice_for_schema_node_names(
           schema_node_names=['hohoho!']
       )
 
   def test_serialization_with_non_empty_dir_raises_error(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
 
     persistence_dir = self.create_tempdir().full_path
     with open(os.path.join(persistence_dir, 'some_file'), 'w') as f:
@@ -192,7 +196,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     self.assertEmpty(kd.dir(s3))
 
     # Every entity with no attributes can be passed as a bare root item.
-    manager = BareRootInitialDataManager(s3)
+    manager = BareRootInitialDataManager.create_new(s3)
     # The BareRootInitialDataManager should call s3.extract() to remove the
     # unreferenced data from the bag. The resulting bag is empty, because there
     # is no data associated with s3's itemid:
@@ -213,7 +217,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     )
 
   def test_clear_cache_is_noop(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
     root = manager.get_data_slice_for_schema_node_names(schema_node_names=set())
     manager.clear_cache()
     root_after_clear_cache = manager.get_data_slice_for_schema_node_names(
@@ -224,11 +228,11 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     )
 
   def test_get_description(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
     self.assertEqual(manager.get_description(), 'an empty root')
 
   def test_exists(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
     self.assertTrue(
         manager.exists(data_slice_path_lib.DataSlicePath.parse_from_string(''))
     )
@@ -239,7 +243,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     )
 
   def test_get_data_slice(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
     root = manager.get_data_slice(
         populate=[
             data_slice_path_lib.DataSlicePath.parse_from_string(''),
@@ -285,7 +289,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         )
 
   def test_get_data_slice_at(self):
-    manager = BareRootInitialDataManager()
+    manager = BareRootInitialDataManager.create_new()
     root = manager.get_data_slice_at(
         data_slice_path_lib.DataSlicePath.parse_from_string(''),
     )
@@ -321,6 +325,13 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
             data_slice_path_lib.DataSlicePath.parse_from_string('.abcde'),
             with_all_descendants=True,
         )
+
+  def test_copy(self):
+    manager = BareRootInitialDataManager.create_new()
+    copy = manager.copy()
+    # The _root_item is shared. It's immutable.
+    self.assertIs(copy._root_item, manager._root_item)
+    self.assertIs(copy._schema_helper, manager._schema_helper)
 
 
 if __name__ == '__main__':

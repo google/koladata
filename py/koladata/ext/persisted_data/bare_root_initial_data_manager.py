@@ -17,14 +17,17 @@
 from __future__ import annotations
 
 import os
-from typing import Collection, cast
+from typing import Collection, Self, cast
 
 from koladata import kd
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import initial_data_manager_with_schema_helper
-from koladata.ext.persisted_data import schema_helper
+from koladata.ext.persisted_data import schema_helper as schema_helper_lib
+
+
+_INTERNAL_CALL = object()
 
 
 class BareRootInitialDataManager(
@@ -32,11 +35,15 @@ class BareRootInitialDataManager(
 ):
   """Initial data that is a given empty entity or kd.new() if not provided."""
 
+  _root_item: kd.types.DataItem
+  _schema_helper: schema_helper_lib.SchemaHelper
+
   @classmethod
   def get_id(cls) -> str:
     return 'BareRootInitialDataManager'
 
-  def __init__(self, root_item: kd.types.DataItem | None = None):
+  @classmethod
+  def create_new(cls, root_item: kd.types.DataItem | None = None) -> Self:
     if root_item is None:
       root_item = kd.new()
 
@@ -49,28 +56,45 @@ class BareRootInitialDataManager(
       # bag means no extra unreferenced data, so all is fine.
       pass
 
-    self._root_item = root_item
-    del root_item  # Forces the use of the attribute henceforth.
-    if not kd.is_item(self._root_item):
+    if not kd.is_item(root_item):
       raise ValueError(
-          f'the root must be a scalar, i.e. a DataItem. Got: {self._root_item}'
+          f'the root must be a scalar, i.e. a DataItem. Got: {root_item}'
       )
-    if not kd.has(self._root_item):
-      raise ValueError(f'the root must be present. Got: {self._root_item}')
-    root_schema = self._root_item.get_schema()
+    if not kd.has(root_item):
+      raise ValueError(f'the root must be present. Got: {root_item}')
+    root_schema = root_item.get_schema()
     if not root_schema.is_entity_schema():
-      raise ValueError(
-          f'the root must have an entity schema. Got: {self._root_item}'
-      )
+      raise ValueError(f'the root must have an entity schema. Got: {root_item}')
     if kd.dir(root_schema):
       raise ValueError(
-          f'the root must not have any attributes. Got: {self._root_item}'
+          f'the root must not have any attributes. Got: {root_item}'
       )
     # Checks that the root schema is acceptable, e.g. that it does not contain
     # non-primitive metadata attributes:
-    self._schema_helper = schema_helper.SchemaHelper(root_schema)
+    schema_helper = schema_helper_lib.SchemaHelper(root_schema)
+    return BareRootInitialDataManager(
+        internal_call=_INTERNAL_CALL,
+        root_item=root_item,
+        schema_helper=schema_helper,
+    )
 
-  def _get_schema_helper(self) -> schema_helper.SchemaHelper:
+  def __init__(
+      self,
+      *,
+      internal_call: object,
+      root_item: kd.types.DataItem,
+      schema_helper: schema_helper_lib.SchemaHelper,
+  ):
+    if internal_call is not _INTERNAL_CALL:
+      raise ValueError(
+          'please do not call the BareRootInitialDataManager constructor'
+          ' directly; use the class factory methods create_new() or'
+          ' deserialize() instead'
+      )
+    self._root_item = root_item
+    self._schema_helper = schema_helper
+
+  def _get_schema_helper(self) -> schema_helper_lib.SchemaHelper:
     return self._schema_helper
 
   def serialize(
@@ -97,10 +121,13 @@ class BareRootInitialDataManager(
       if not fs.exists(persistence_dir):
         raise ValueError(f'persistence_dir not found: {persistence_dir}')
       raise ValueError(f'file not found: {filepath}')
+    root_item = cast(
+        kd.types.DataItem, fs_util.read_slice_from_file(fs, filepath)
+    )
     return BareRootInitialDataManager(
-        root_item=cast(
-            kd.types.DataItem, fs_util.read_slice_from_file(fs, filepath)
-        )
+        internal_call=_INTERNAL_CALL,
+        root_item=root_item,
+        schema_helper=schema_helper_lib.SchemaHelper(root_item.get_schema()),
     )
 
   def get_data_slice_for_schema_node_names(
@@ -121,6 +148,13 @@ class BareRootInitialDataManager(
 
   def get_description(self) -> str:
     return 'an empty root'
+
+  def copy(self) -> BareRootInitialDataManager:
+    return BareRootInitialDataManager(
+        internal_call=_INTERNAL_CALL,
+        root_item=self._root_item,
+        schema_helper=self._schema_helper,
+    )
 
 
 def _get_root_dataslice_filepath(persistence_dir: str) -> str:
