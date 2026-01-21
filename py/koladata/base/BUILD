@@ -214,6 +214,7 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
+        "//py/koladata/base/py_conversions:from_py",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

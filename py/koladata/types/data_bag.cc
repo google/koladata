@@ -195,10 +195,12 @@ struct EntityCreatorHelper {
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
       const std::optional<DataSlice>& itemid, const DataBagPtr& db,
       AdoptionQueue& adoption_queue) {
-    ASSIGN_OR_RETURN(
-        DataSlice res,
-        EntitiesFromPyObject(py_obj, schema_arg, itemid, db, adoption_queue));
-    return res.WithBag(db);
+    if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
+      return DataSliceFromPyValue(py_obj, adoption_queue, schema_arg);
+    }
+
+    return FromPy(py_obj, schema_arg, /*from_dim=*/0,
+                  /*dict_as_obj=*/false, itemid);
   }
 };
 

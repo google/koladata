@@ -33,6 +33,7 @@
 #include "koladata/object_factories.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/koladata/base/boxing.h"
+#include "py/koladata/base/py_conversions/from_py.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -76,7 +77,25 @@ absl::StatusOr<DataSlice> AssignmentRhsFromPyValue(
           " the slice, or kd.dict_like() to create multiple"
           " dictionary instances");
     }
-    return EntitiesFromPyObject(rhs, db, adoption_queue);
+
+    if (arolla::python::IsPyQValueInstance(rhs)) {
+      const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(rhs);
+      if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
+        return typed_value.UnsafeAs<DataSlice>();
+      } else {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "only DataSlice QValues are supported as objects; got: %s.",
+            typed_value.GetType()->name()));
+      }
+    }
+
+    ASSIGN_OR_RETURN(DataSlice res,
+                     FromPy(rhs, std::nullopt, /*from_dim=*/0,
+                            /*dict_as_obj=*/false, /*itemid=*/std::nullopt));
+
+    adoption_queue.Add(res);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+    return res.WithBag(db);
   }
   ASSIGN_OR_RETURN(auto res, DataSliceFromPyValue(rhs, adoption_queue));
   if (res.GetShape().rank() > 0) {

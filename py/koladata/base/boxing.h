@@ -26,7 +26,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/adoption_utils.h"
-#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 
@@ -85,25 +84,6 @@ inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
 // In case of unsupported types , appropriate Status error is returned.
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt);
-
-// Converts Python objects into DataSlices and converts them into appropriate
-// Koda Entities. The conversion is deep, such that all nested structures (e.g.
-// dicts) are also Entities (including Koda Lists and Dicts) or primitive
-// DataSlices.
-//
-// `db` and `adoption_queue` are side outputs. `db` is used to create Koda
-// objects found under `py_obj`, while `adoption_queue` is used to collect
-// DataBag(s) of DataSlice(s) from nested `py_obj`.
-absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
-                                               const DataBagPtr& db,
-                                               AdoptionQueue& adoption_queue);
-
-// Same as above, but allows specifying the schemas of Lists / Dicts. When
-// schema == OBJECT, the behavior is the same as `ObjectFromPyObject`.
-absl::StatusOr<DataSlice> EntitiesFromPyObject(
-    PyObject* py_obj, const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& itemid, const DataBagPtr& db,
-    AdoptionQueue& adoption_queue);
 
 // Returns an Error from provided status with incompatible schema information
 // during narrow casting.

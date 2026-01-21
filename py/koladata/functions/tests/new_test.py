@@ -203,12 +203,9 @@ class NewTest(absltest.TestCase):
     list_schema = kde.list_schema(item_schema=schema_constants.FLOAT32).eval()
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'Python Dict can be converted to either Entity or Dict, got schema:'
-            ' DataItem(LIST[FLOAT32]'
-        ),
+        re.escape('schema mismatch: expected list/tuple'),
     ):
-      fns.new({'a': [1, 2, 3], 'b': [4, 5]}, schema=list_schema)
+      _ = fns.new({'a': [1, 2, 3], 'b': [4, 5]}, schema=list_schema)
 
   def test_schema_arg_schema_with_fallback(self):
     schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
@@ -514,12 +511,14 @@ assigned schema: MASK"""),
     )
 
   def test_universal_converter_list_of_different_primitive_lists(self):
-    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
-      fns.new([[1, 2], [3.14]])
-    fns.new(
+    x = fns.new([[1, 2], [3.14]])
+    y = fns.new(
         [[1, 2], [3.14]],
-        schema=kde.list_schema(kde.list_schema(schema_constants.FLOAT32)).eval()
+        schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT32)
+        ).eval(),
     )
+    testing.assert_equivalent(x, y)
 
   def test_universal_converter_container_contains_multi_dim_data_slice(self):
     with self.assertRaisesRegex(
@@ -596,12 +595,12 @@ assigned schema: STRING'''),
     with self.subTest('item'):
       entity = fns.new(a=42, b='abc')
       new_entity = fns.new(entity)
-      testing.assert_not_equal(entity.get_bag(), new_entity.get_bag())
+      testing.assert_equal(entity.get_bag(), new_entity.get_bag())
       testing.assert_equivalent(new_entity, entity)
     with self.subTest('slice'):
       entity = fns.new(a=ds([1, 2]), b='abc')
       new_entity = fns.new(entity)
-      testing.assert_not_equal(entity.get_bag(), new_entity.get_bag())
+      testing.assert_equal(entity.get_bag(), new_entity.get_bag())
       testing.assert_equivalent(new_entity, entity)
 
   def test_universal_converter_adopt_bag_data(self):
@@ -624,19 +623,29 @@ assigned schema: STRING'''),
     d2 = {'b': 37}
     d1['d'] = d2
     d = {'d1': d1, 'd2': d2}
-    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not parse list of primitives / data items: object with'
+        ' unsupported type: dict',
+    ):
       fns.new(d)
 
   def test_universal_converter_with_itemid(self):
     itemid = kde.uuid_for_list('new').eval()
     res = fns.new([{'a': 42, 'b': 17}, {'c': 12}], itemid=itemid)
-    child_itemid = kde.uuid_for_dict(
-        '__from_py_child__', parent=itemid,
-        list_item_index=ds([0, 1], schema_constants.INT64)
+    child_itemid = kde.uuid(
+        '__from_py_child__',
+        parent=itemid,
+        list_item_index=ds([0, 1], schema_constants.INT64),
     ).eval()
+    child_dict_item_id = kde.uuid_for_dict(
+        '',
+        base_itemid=child_itemid,
+    ).eval()
+
     testing.assert_equal(res.no_bag().get_itemid(), itemid)
     testing.assert_dicts_keys_equal(res[:], ds([['a', 'b'], ['c']]))
-    testing.assert_equal(res[:].no_bag().get_itemid(), child_itemid)
+    testing.assert_equal(res[:].no_bag().get_itemid(), child_dict_item_id)
 
     with self.assertRaisesRegex(
         ValueError, 'itemid argument to list creation, requires List ItemIds'
@@ -650,12 +659,18 @@ assigned schema: STRING'''),
 
   def test_universal_converter_recursive_object_error(self):
     d = {'a': 42}
-    d['self'] = d
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+    d['a'] = d
+    with self.assertRaisesRegex(
+        ValueError,
+        'recursive Python object cannot be converted',
+    ):
       fns.new(d)
     # Deeper recursion:
     d2 = {'a': {'b': d}}
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'recursive Python object cannot be converted',
+    ):
       fns.new(d2)
     # Longer cycle:
     d = {'a': 42}
@@ -665,12 +680,17 @@ assigned schema: STRING'''),
     level_1_d = d
     d = {'top': d}
     bottom_d['cycle'] = level_1_d
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'recursive Python object cannot be converted',
+    ):
       fns.new(d2)
     # Cycle in list:
-    l = [[1, 2], 3]
+    l = [[1, 2], (3)]
     l[0].append(l)
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
+    with self.assertRaisesRegex(
+        ValueError, 'schema mismatch: expected list/tuple'
+    ):
       fns.new(l)
 
   def test_universal_converter_with_attrs(self):
