@@ -22,7 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/adoption_utils.h"
@@ -84,12 +83,6 @@ inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
 // In case of unsupported types , appropriate Status error is returned.
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt);
-
-// Returns an Error from provided status with incompatible schema information
-// during narrow casting.
-absl::Status CreateIncompatibleSchemaErrorFromStatus(
-    absl::Status status, const DataSlice& item_schema,
-    const DataSlice& input_schema);
 
 // Returns true if the given object is a scalar Python object or a QValue.
 bool IsPyScalarOrQValueObject(PyObject* py_obj);
