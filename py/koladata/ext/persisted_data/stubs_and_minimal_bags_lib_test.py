@@ -255,6 +255,16 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           list_ds.extract_update(),
       )
 
+    with self.subTest('works_for_shared_lists_in_deep_dimensions'):
+      shared_list = kd.list([1, 2])
+      list_ds = kd.slice([[[shared_list], [shared_list]]])
+      kd.testing.assert_equivalent(
+          stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
+              list_ds
+          ),
+          shared_list.extract_update(),
+      )
+
     with self.subTest('with_items_that_are_unsupported_schemas'):
       schema_item = kd.named_schema('foo', bar=kd.INT32)
       schema_item = kd.with_metadata(schema_item, my_bad=kd.new(z='gotcha!'))
@@ -323,6 +333,22 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           ),
           kd.dicts.dict_update(
               standard_dict,
+              kd.slice(['key1', 'key2']),
+              kd.slice([value1.no_bag(), value2.no_bag()]),
+          ),
+      )
+
+    with self.subTest('works_for_shared_dicts_in_deep_dimensions'):
+      value1 = kd.new(x=1, schema='foo')
+      value2 = kd.new(y=2, schema='foo')
+      shared_dict = kd.dict({'key1': value1, 'key2': value2})
+      dict_ds = kd.slice([[[shared_dict], [shared_dict]]])
+      kd.testing.assert_equivalent(
+          stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
+              dict_ds
+          ),
+          kd.dicts.dict_update(
+              shared_dict,
               kd.slice(['key1', 'key2']),
               kd.slice([value1.no_bag(), value2.no_bag()]),
           ),

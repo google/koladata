@@ -164,7 +164,9 @@ def minimal_bag_associating_list_with_its_items(
   """
   # Dedup list itemids here with kd.unique() so that the call to
   # items_stub.implode(itemid=...) below won't complain about duplicate itemids.
-  list_ds = kd.unique(list_ds.no_bag()).with_bag(list_ds.get_bag())
+  # Since kd.unique() operates only on the last dimension, we need to flatten
+  # the itemids before calling kd.unique().
+  list_ds = kd.unique(list_ds.flatten())
   mask = value_presence_util.has_info_about_list_items(list_ds)
   if mask.is_empty():
     return None
@@ -187,7 +189,9 @@ def minimal_bag_associating_dict_with_its_keys_and_values(
   """
   # Dedup dict itemids here with kd.unique() so that the call to
   # kd.dict(..., itemid=...) below won't complain about duplicate itemids.
-  dict_ds = kd.unique(dict_ds.no_bag()).with_bag(dict_ds.get_bag())
+  # Since kd.unique() operates only on the last dimension, we need to flatten
+  # the itemids before calling kd.unique().
+  dict_ds = kd.unique(dict_ds.flatten())
   keys = dict_ds.get_keys()
   if keys.is_empty():
     return None  # No keys means there is no key-value data.
