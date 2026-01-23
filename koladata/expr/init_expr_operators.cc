@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include <memory>
-
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -32,6 +30,7 @@ namespace koladata::expr {
 
 AROLLA_INITIALIZER(
         .name = "arolla_operators/koda_internal",
+        .deps = {"arolla_operators/standard"},
         .reverse_deps = {arolla::initializer_dep::kOperators},
         .init_fn = []() -> absl::Status {
           RETURN_IF_ERROR(arolla::expr::RegisterOperator<InputOperator>(
@@ -44,26 +43,25 @@ AROLLA_INITIALIZER(
                                    arolla::expr::Literal(internal::Ellipsis{})))
                   .status());
           RETURN_IF_ERROR(
-              arolla::expr::RegisterOperator(
-                  "koda_internal.with_name",
-                  std::make_shared<arolla::expr::NameAnnotation>(
-                      /*aux_policy=*/"_koladata_annotation_with_name"))
+              arolla::expr::RegisterOperator("koda_internal.with_name",
+                                             MakeNameAnnotationOperator())
                   .status());
-          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
-                              "koda_internal.to_arolla_int64",
-                              std::make_shared<ToArollaInt64Operator>())
-                              .status());
-          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
-                              "koda_internal.to_arolla_text",
-                              std::make_shared<ToArollaTextOperator>())
-                              .status());
+          RETURN_IF_ERROR(
+              arolla::expr::RegisterOperator("koda_internal.to_arolla_int64",
+                                             MakeToArollaInt64Operator())
+                  .status());
+          RETURN_IF_ERROR(
+              arolla::expr::RegisterOperator("koda_internal.to_arolla_text",
+                                             MakeToArollaTextOperator())
+                  .status());
           RETURN_IF_ERROR(
               arolla::expr::RegisterOperator<NonDeterministicOperator>(
-                  "koda_internal.non_deterministic").status());
-          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
-                              "kd.annotation.source_location",
-                              arolla::expr::SourceLocationAnnotation::Make())
-                              .status());
+                  "koda_internal.non_deterministic")
+                  .status());
+          RETURN_IF_ERROR(
+              arolla::expr::RegisterOperatorAlias(
+                  "kd.annotation.source_location", "annotation.source_location")
+                  .status());
           return absl::OkStatus();
         })
 

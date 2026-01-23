@@ -26,6 +26,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
@@ -68,6 +69,48 @@ absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
   return absl::OkStatus();
 }
 
+// Basic implementation of non-lowerable operators that convert a DataSlice to
+// an Arolla type T. Supports compile-time evaluation if the provided input is
+// a literal.
+class ToArollaValueOperator final
+    : public arolla::expr::BackendExprOperatorTag,
+      public arolla::expr::ExprOperatorWithFixedSignature {
+ public:
+  ToArollaValueOperator(absl::string_view name, absl::string_view doc,
+                        arolla::QTypePtr output_qtype)
+      : ExprOperatorWithFixedSignature(
+            name,
+            arolla::expr::ExprOperatorSignature({{"x"}},
+                                                "koladata_classic_aux_policy"),
+            doc,
+            arolla::FingerprintHasher("::koladata::expr::ToArollaValueOperator")
+                .Combine(name, doc, output_qtype)
+                .Finish()),
+        output_qtype_(output_qtype) {}
+
+  absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
+      absl::Span<const arolla::expr::ExprAttributes> inputs) const final {
+    RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
+    if (auto* x_qtype = inputs[0].qtype()) {
+      if (x_qtype != arolla::GetQType<DataSlice>()) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("expected DATA_SLICE, got x: %s", x_qtype->name()));
+      }
+    } else {
+      return arolla::expr::ExprAttributes{};  // Not ready.
+    }
+    if (const auto& x = inputs[0].qvalue()) {
+      ASSIGN_OR_RETURN(auto result, arolla::InvokeOperator(display_name(), {*x},
+                                                           output_qtype_));
+      return arolla::expr::ExprAttributes{std::move(result)};
+    }
+    return arolla::expr::ExprAttributes{output_qtype_};  // Can not evaluated.
+  }
+
+ private:
+  arolla::QTypePtr output_qtype_;
+};
+
 }  // namespace
 
 InputOperator::InputOperator()
@@ -98,11 +141,14 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
   return arolla::expr::ExprAttributes{};
 }
 
-absl::StatusOr<arolla::expr::ExprNodePtr> MakeLiteral(
-    arolla::TypedValue value) {
-  ASSIGN_OR_RETURN(auto op, expr::LiteralOperator::Make(value));
-  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
-      std::move(op), {}, arolla::expr::ExprAttributes(std::move(value)));
+bool IsInput(const arolla::expr::ExprNodePtr& node) {
+  if (!node->is_op()) {
+    return false;
+  }
+  return nullptr != arolla::fast_dynamic_downcast_final<const InputOperator*>(
+                        arolla::expr::DecayRegisteredOperator(node->op())
+                            .value_or(nullptr)
+                            .get());
 }
 
 absl::StatusOr<std::shared_ptr<LiteralOperator>> LiteralOperator::Make(
@@ -132,68 +178,18 @@ absl::string_view LiteralOperator::py_qvalue_specialization_key() const {
   return "::koladata::expr::LiteralOperator";
 }
 
-const arolla::TypedValue& LiteralOperator::value() const { return value_; }
-
-absl::StatusOr<arolla::expr::ExprAttributes>
-ToArollaValueOperator::InferAttributes(
-    absl::Span<const arolla::expr::ExprAttributes> inputs) const {
-  RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
-  if (!inputs[0].qtype()) {
-    return arolla::expr::ExprAttributes{};  // Not ready yet.
-  }
-  if (inputs[0].qtype() != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected DATA_SLICE, got x: %s", inputs[0].qtype()->name()));
-  }
-  // Eval if possible.
-  if (inputs[0].qvalue()) {
-    ASSIGN_OR_RETURN(
-        auto casted_value,
-        arolla::InvokeOperator(backend_operator_name_, {*inputs[0].qvalue()},
-                               output_qtype_));
-    return arolla::expr::ExprAttributes{std::move(casted_value)};
-  }
-  // Otherwise, return the output qtype.
-  return arolla::expr::ExprAttributes{output_qtype_};
+absl::StatusOr<arolla::expr::ExprNodePtr> MakeLiteral(
+    arolla::TypedValue value) {
+  ASSIGN_OR_RETURN(auto op, expr::LiteralOperator::Make(value));
+  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
+      std::move(op), {}, arolla::expr::ExprAttributes(std::move(value)));
 }
 
-ToArollaInt64Operator::ToArollaInt64Operator()
-    : ToArollaValueOperator(
-          "koda_internal.to_arolla_int64",
-          arolla::expr::ExprOperatorSignature({{"x"}},
-                                              "koladata_classic_aux_policy"),
-          "Returns `x` converted into an arolla int64 value.\n"
-          "\n"
-          "Note that `x` must adhere to the following requirements:\n"
-          "* `rank = 0`.\n"
-          "* Have one of the following schemas: NONE, INT32, INT64, OBJECT.\n"
-          "* Have a present value with type INT32 or INT64.\n"
-          "\n"
-          "In all other cases, an exception is raised.\n\n"
-          "Args:\n"
-          "  x: A DataItem to be converted into an arolla int64 value.",
-          arolla::FingerprintHasher("::koladata::expr::ToArollaInt64Operator")
-              .Finish(),
-          "koda_internal.to_arolla_int64", arolla::GetQType<int64_t>()) {}
-
-ToArollaTextOperator::ToArollaTextOperator()
-    : ToArollaValueOperator(
-          "koda_internal.to_arolla_text",
-          arolla::expr::ExprOperatorSignature({{"x"}},
-                                              "koladata_classic_aux_policy"),
-          "Returns `x` converted into an arolla text value.\n"
-          "\n"
-          "Note that `x` must adhere to the following requirements:\n"
-          "* `rank = 0`.\n"
-          "* Have one of the following schemas: NONE, STRING, OBJECT, ANY.\n"
-          "* Have a present value with type TEXT.\n"
-          "\n"
-          "In all other cases, an exception is raised.\n\n"
-          "Args:\n"
-          "  x: A DataItem to be converted into an arolla text value.",
-          arolla::FingerprintHasher("::koladata::expr::ToArollaTextOperator")
-              .Finish(),
-          "koda_internal.to_arolla_text", arolla::GetQType<arolla::Text>()) {}
+bool IsLiteral(const arolla::expr::ExprNodePtr& node) {
+  return node->is_literal() ||
+         (arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
+              node->op().get()) != nullptr);
+}
 
 NonDeterministicOperator::NonDeterministicOperator()
     : arolla::expr::ExprOperatorWithFixedSignature(
@@ -211,20 +207,42 @@ NonDeterministicOperator::InferAttributes(
       arolla::GetQType<internal::NonDeterministicToken>());
 }
 
-bool IsInput(const arolla::expr::ExprNodePtr& node) {
-  if (!node->is_op()) {
-    return false;
-  }
-  return nullptr != arolla::fast_dynamic_downcast_final<const InputOperator*>(
-                        arolla::expr::DecayRegisteredOperator(node->op())
-                            .value_or(nullptr)
-                            .get());
+arolla::expr::ExprOperatorPtr MakeToArollaInt64Operator() {
+  return std::make_shared<ToArollaValueOperator>(
+      "koda_internal.to_arolla_int64",
+      "Returns `x` converted into an arolla int64 value.\n"
+      "\n"
+      "Note that `x` must adhere to the following requirements:\n"
+      "* `rank = 0`.\n"
+      "* Have one of the following schemas: NONE, INT32, INT64, OBJECT.\n"
+      "* Have a present value with type INT32 or INT64.\n"
+      "\n"
+      "In all other cases, an exception is raised.\n\n"
+      "Args:\n"
+      "  x: A DataItem to be converted into an arolla int64 value.",
+      arolla::GetQType<int64_t>());
 }
 
-bool IsLiteral(const arolla::expr::ExprNodePtr& node) {
-  return node->is_literal() ||
-         (arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
-              node->op().get()) != nullptr);
+arolla::expr::ExprOperatorPtr MakeToArollaTextOperator() {
+  return std::make_shared<ToArollaValueOperator>(
+      "koda_internal.to_arolla_text",
+      "Returns `x` converted into an arolla text value.\n"
+      "\n"
+      "Note that `x` must adhere to the following requirements:\n"
+      "* `rank = 0`.\n"
+      "* Have one of the following schemas: NONE, STRING, OBJECT, ANY.\n"
+      "* Have a present value with type TEXT.\n"
+      "\n"
+      "In all other cases, an exception is raised.\n\n"
+      "Args:\n"
+      "  x: A DataItem to be converted into an arolla text value.",
+      arolla::GetQType<arolla::Text>());
+}
+
+arolla::expr::ExprOperatorPtr MakeNameAnnotationOperator() {
+  // Use aux-policy with arolla boxing rules for the second parameter.
+  return std::make_shared<arolla::expr::NameAnnotation>(
+      "koladata_unified_aux_policy:_p:_arolla_as_qvalue_or_expr;01");
 }
 
 absl::StatusOr<InputContainer> InputContainer::Create(

@@ -747,7 +747,6 @@ py_library(
     deps = [
         ":optools",
         "//py:python_path",
-        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )

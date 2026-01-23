@@ -28,10 +28,7 @@
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator.h"
-#include "arolla/expr/expr_operator_signature.h"
-#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/fingerprint.h"
 
 namespace koladata::expr {
 
@@ -47,6 +44,9 @@ class InputOperator final
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
 };
+
+// Returns true if `node` is an operator node with InputOperator.
+bool IsInput(const arolla::expr::ExprNodePtr& node);
 
 // Non-lowerable stateful operator `koda_internal.literal()` that wraps a
 // TypedValue. This operator allows us to attach a view to non-DataSlice
@@ -66,56 +66,18 @@ class LiteralOperator final
 
   absl::string_view py_qvalue_specialization_key() const final;
 
-  const arolla::TypedValue& value() const;
+  const arolla::TypedValue& value() const { return value_; }
 
  private:
   arolla::TypedValue value_;
 };
 
-// Base class for non-lowerable operators that converts a DataSlice to an Arolla
-// type T. Supports evaluation at operator binding time if the provided input is
-// a literal. Dispatches the actual conversion to a corresponding
-// backend-operator.
-class ToArollaValueOperator
-    : public arolla::expr::BackendExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
- public:
-  ToArollaValueOperator(absl::string_view name,
-                        arolla::expr::ExprOperatorSignature signature,
-                        absl::string_view doc, arolla::Fingerprint fingerprint,
-                        std::string backend_operator_name,
-                        arolla::QTypePtr output_qtype)
-      : ExprOperatorWithFixedSignature(name, std::move(signature), doc,
-                                       fingerprint),
-        backend_operator_name_(std::move(backend_operator_name)),
-        output_qtype_(output_qtype) {}
-
-  absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
-      absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
-
- private:
-  std::string backend_operator_name_;
-  arolla::QTypePtr output_qtype_;
-};
-
-// Non-lowerable operator `koda_internal.to_arolla_int64(x)` that converts
-// DataSlice to int64_t. Supports evaluation at operator binding time if the
-// provided input is a literal.
-class ToArollaInt64Operator final : public ToArollaValueOperator {
- public:
-  ToArollaInt64Operator();
-};
-
-// Non-lowerable operator `koda_internal.to_arolla_text(x)` that converts
-// DataSlice to Text. Supports evaluation at operator binding time if the
-// provided input is a literal.
-class ToArollaTextOperator final : public ToArollaValueOperator {
- public:
-  ToArollaTextOperator();
-};
-
 // Return a literal Expr node.
 absl::StatusOr<arolla::expr::ExprNodePtr> MakeLiteral(arolla::TypedValue value);
+
+// Returns true if `node` is either an arolla literal or an operator node with
+// LiteralOperator.
+bool IsLiteral(const arolla::expr::ExprNodePtr& node);
 
 // Non-lowerable operator
 // ```
@@ -136,12 +98,18 @@ class NonDeterministicOperator final
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
 };
 
-// Returns true if `node` is an operator node with InputOperator.
-bool IsInput(const arolla::expr::ExprNodePtr& node);
+// Non-lowerable operator `koda_internal.to_arolla_int64(x)` that converts
+// DataSlice to int64_t. Supports evaluation at operator binding time if the
+// provided input is a literal.
+arolla::expr::ExprOperatorPtr MakeToArollaInt64Operator();
 
-// Returns true if `node` is either an arolla literal or an operator node with
-// LiteralOperator.
-bool IsLiteral(const arolla::expr::ExprNodePtr& node);
+// Non-lowerable operator `koda_internal.to_arolla_text(x)` that converts
+// DataSlice to Text. Supports evaluation at operator binding time if the
+// provided input is a literal.
+arolla::expr::ExprOperatorPtr MakeToArollaTextOperator();
+
+// Non-lowerable operator `kd.annotation.with_name(x, name)`.
+arolla::expr::ExprOperatorPtr MakeNameAnnotationOperator();
 
 // Helper container to create Koda specific inputs
 class InputContainer {

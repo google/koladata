@@ -40,7 +40,9 @@ class AnnotationWithNameTest(absltest.TestCase):
     self.assertEqual(expr.eval(), 1)
 
   def test_error_name_type(self):
-    with self.assertRaisesWithLiteralMatch(ValueError, 'Name must be a string'):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'expected a TEXT literal, got name: BYTES'
+    ):
       kde.annotation.with_name(1, b'bar')
 
   def test_view(self):
