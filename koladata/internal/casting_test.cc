@@ -616,50 +616,76 @@ TEST(CastingTest, ToBytes_DataSlice) {
 
 TEST(CastingTest, Decode_DataItem) {
   auto decode = schema::Decode();
-  EXPECT_THAT(decode(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
-  EXPECT_THAT(decode(DataItem(arolla::Text("foo"))),
+  EXPECT_THAT(decode(DataItem(), "strict"),
+              IsOkAndHolds(IsEquivalentTo(DataItem())));
+  EXPECT_THAT(decode(DataItem(arolla::Text("foo")), "strict"),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("foo")))));
-  EXPECT_THAT(decode(DataItem(arolla::Bytes("foo"))),
+  EXPECT_THAT(decode(DataItem(arolla::Bytes("foo")), "strict"),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("foo")))));
-  EXPECT_THAT(decode(DataItem(arolla::Bytes("te\0xt"))),
+  EXPECT_THAT(decode(DataItem(arolla::Bytes("te\0xt")), "strict"),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("te\0xt")))));
   EXPECT_THAT(
-      decode(DataItem(arolla::Bytes("\xEF\xBF\xBD"))),
+      decode(DataItem(arolla::Bytes("\xEF\xBF\xBD")), "strict"),
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("\xEF\xBF\xBD")))));
-  EXPECT_THAT(decode(DataItem(arolla::Bytes("te\xC0\0xt"))),
+  EXPECT_THAT(decode(DataItem(arolla::Bytes("te\xC0\0xt")), "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid UTF-8 sequence at position 2"));
-  EXPECT_THAT(decode(DataItem(arolla::kUnit)),
+  EXPECT_THAT(
+      decode(DataItem(arolla::Bytes("te\xC0\0xt")), "ignore"),
+      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("te")))));
+  EXPECT_THAT(
+      decode(DataItem(arolla::Bytes("te\xC0\0xt")), "replace"),
+      IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("te\uFFFD")))));
+  EXPECT_THAT(decode(DataItem(arolla::kUnit), "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "casting data of type MASK to STRING is not supported"));
 }
 
 TEST(CastingTest, Decode_DataSlice) {
   auto decode = schema::Decode();
-  EXPECT_THAT(decode(DataSliceImpl::CreateEmptyAndUnknownType(3)),
+  EXPECT_THAT(decode(DataSliceImpl::CreateEmptyAndUnknownType(3), "strict"),
               IsOkAndHolds(
                   IsEquivalentTo(DataSliceImpl::CreateEmptyAndUnknownType(3))));
+  EXPECT_THAT(
+      decode(DataSliceImpl::Create({DataItem(arolla::Text("foo")), DataItem()}),
+             "strict"),
+      IsOkAndHolds(IsEquivalentTo(
+          DataSliceImpl::Create({DataItem(arolla::Text("foo")), DataItem()}))));
   EXPECT_THAT(decode(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("foo")), DataItem()})),
-              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("foo")), DataItem()}))));
-  EXPECT_THAT(decode(DataSliceImpl::Create(
-                  {DataItem(arolla::Bytes("te\0xt")), DataItem()})),
+                         {DataItem(arolla::Bytes("te\0xt")), DataItem()}),
+                     "strict"),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("te\0xt")), DataItem()}))));
   EXPECT_THAT(decode(DataSliceImpl::Create({DataItem(arolla::Text("foo")),
                                             DataItem(arolla::Bytes("te\0xt")),
-                                            DataItem()})),
+                                            DataItem()}),
+                     "strict"),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")),
                    DataItem(arolla::Text("te\0xt")), DataItem()}))));
   EXPECT_THAT(decode(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("foo")),
-                   DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()})),
+                         {DataItem(arolla::Text("foo")),
+                          DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()}),
+                     "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid UTF-8 sequence at position 2"));
+  EXPECT_THAT(decode(DataSliceImpl::Create(
+                         {DataItem(arolla::Text("foo")),
+                          DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()}),
+                     "ignore"),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("foo")),
+                   DataItem(arolla::Text("te")), DataItem()}))));
+  EXPECT_THAT(decode(DataSliceImpl::Create(
+                         {DataItem(arolla::Text("foo")),
+                          DataItem(arolla::Bytes("te\xC0\0xt")), DataItem()}),
+                     "replace"),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("foo")),
+                   DataItem(arolla::Text("te\uFFFD")), DataItem()}))));
   EXPECT_THAT(
-      decode(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
+      decode(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()}),
+             "strict"),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "casting data of type MASK to STRING is not supported"));
 }

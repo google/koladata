@@ -572,4 +572,11 @@ absl::StatusOr<DataSlice> Upper(const DataSlice& x) {
   return UnaryOpEval<arolla::UpperOp>(x, StringArg("x"), schema::kString);
 }
 
+absl::StatusOr<DataSlice> Decode(const DataSlice& x,
+                                 const DataSlice& errors) {
+  RETURN_IF_ERROR(ExpectPresentScalar("errors", errors, schema::kString));
+  absl::string_view errors_str = errors.item().value<arolla::Text>().view();
+  return Decode(x, errors_str);
+}
+
 }  // namespace koladata::ops

@@ -876,7 +876,7 @@ TEST(Casting, BytesErrors) {
 TEST_P(CastingDecodeTest, Casting) {
   const auto& input = GetParam().input;
   const auto& output = GetParam().output;
-  ASSERT_OK_AND_ASSIGN(auto text_slice, Decode(input));
+  ASSERT_OK_AND_ASSIGN(auto text_slice, Decode(input, "strict"));
   EXPECT_THAT(text_slice, IsEquivalentTo(output));
 }
 
@@ -914,32 +914,47 @@ INSTANTIATE_TEST_SUITE_P(
 TEST(Casting, DecodeErrors) {
   EXPECT_THAT(
       Decode(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                           schema::kMask)),
+                                           schema::kMask),
+             "strict"),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "casting a DataSlice with schema MASK to STRING is not supported"));
   EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
                   {"foo", std::nullopt, std::nullopt},
-                  {std::nullopt, arolla::kUnit, std::nullopt})),
+                  {std::nullopt, arolla::kUnit, std::nullopt}),
+                  "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "casting data of type MASK to STRING is not supported"));
   EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                   {"foo", std::nullopt, std::nullopt},
-                  {std::nullopt, "te\xC0\0xt", std::nullopt})),
+                  {std::nullopt, "te\xC0\0xt", std::nullopt}),
+                  "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "invalid UTF-8 sequence at position 2"));
   EXPECT_THAT(
-      Decode(test::DataItem(arolla::kUnit, schema::kMask)),
+      Decode(test::DataItem(arolla::kUnit, schema::kMask), "strict"),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "casting a DataSlice with schema MASK to STRING is not supported"));
-  EXPECT_THAT(Decode(test::DataItem(arolla::kUnit, schema::kObject)),
+  EXPECT_THAT(Decode(test::DataItem(arolla::kUnit, schema::kObject), "strict"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "casting data of type MASK to STRING is not supported"));
   EXPECT_THAT(
-      Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes)),
+      Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes),
+             "strict"),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "invalid UTF-8 sequence at position 2"));
+
+  EXPECT_THAT(
+      Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes),
+             "ignore"),
+      IsOkAndHolds(
+          IsEquivalentTo(test::DataItem("te", schema::kString))));
+  EXPECT_THAT(
+      Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes),
+             "replace"),
+      IsOkAndHolds(
+          IsEquivalentTo(test::DataItem("te\uFFFD", schema::kString))));
 }
 
 TEST_P(CastingEncodeTest, Casting) {

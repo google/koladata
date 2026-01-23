@@ -25,6 +25,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qexpr/operators/core/cast_operator.h"
@@ -94,10 +95,11 @@ struct ToSelf {
 // data conversion using `CastOp`. The provided data is expected to be
 // empty-and-unknown or hold (potentially mixed) values of the types listed in
 // `SRCs`.
-template <typename CastOp, typename DST, typename SRCs>
+template <typename CastOp, typename DST, typename SRCs, typename ...CastArgs>
 struct ToDST {
   absl::StatusOr<internal::DataItem> operator()(
-      const internal::DataItem& item) const {
+      const internal::DataItem& item,
+      CastArgs&&... cast_args) const {
     if (!item.has_value() || item.holds_value<DST>()) {
       return item;
     }
@@ -107,7 +109,7 @@ struct ToDST {
           if constexpr (std::is_same_v<DST, T>) {
             return DST(value);
           } else if constexpr (arolla::meta::contains_v<SRCs, T>) {
-            return CastOp()(value);
+            return CastOp()(value, cast_args...);
           } else {
             return MakeCastError<T>(item.dtype(), schema::GetDType<DST>());
           }
@@ -116,7 +118,8 @@ struct ToDST {
   }
 
   absl::StatusOr<internal::DataSliceImpl> operator()(
-      const internal::DataSliceImpl& slice) const {
+      const internal::DataSliceImpl& slice,
+      CastArgs&&... cast_args) const {
     // NOTE: We may wish to create an empty DenseArray when it's empty and
     // unknown to enforce the type.
     if (slice.is_empty_and_unknown() ||
@@ -133,9 +136,9 @@ struct ToDST {
               if constexpr (std::is_same_v<DST, T>) {
                 bldr.Set(id, v);
               } else if constexpr (std::is_same_v<decltype(cast_op(v)), DST>) {
-                bldr.Set(id, cast_op(v));
+                bldr.Set(id, cast_op(v, cast_args...));
               } else {
-                auto res = cast_op(v);
+                auto res = cast_op(v, cast_args...);
                 if (!res.ok()) {
                   status = res.status();
                   return;
@@ -289,9 +292,9 @@ struct ToBytes : schema_internal::ToSelf<arolla::Bytes> {};
 // - STRING -> STRING.
 // - BYTES -> STRING, using UTF-8 decoding.
 // - Empty -> empty.
-struct Decode : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
-                                       schema_internal::kStrings> {};
-
+struct Decode
+    : schema_internal::ToDST<arolla::DecodeOp, arolla::Text,
+                             schema_internal::kStrings, absl::string_view> {};
 // Encodes the given item/slice to Text.
 //
 // The following cases are supported:

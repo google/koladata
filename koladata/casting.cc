@@ -28,6 +28,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -344,11 +345,12 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice) {
   });
 }
 
-absl::StatusOr<DataSlice> Decode(const DataSlice& slice) {
+absl::StatusOr<DataSlice> Decode(const DataSlice& slice,
+                                 absl::string_view errors) {
   RETURN_IF_ERROR(
       VerifyCompatibleSchema(slice, kAllowedSchemasDecode, schema::kString));
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto impl_res, schema::Decode()(impl));
+    ASSIGN_OR_RETURN(auto impl_res, schema::Decode()(impl, std::move(errors)));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),
                              internal::DataItem(schema::kString),
                              slice.GetBag());

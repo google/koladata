@@ -80,12 +80,37 @@ class StringsDecodeTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.strings.decode(x))
 
+  def test_non_scalar_errors(self):
+    x = ds(b'foo')
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'kd.strings.decode: argument `errors` must be an item holding STRING,'
+        ' got a slice of rank 1 > 0',
+    ):
+      expr_eval.eval(kde.strings.decode(x, ds(['strict', 'ignore'])))
+
   def test_boxing(self):
     testing.assert_equal(
         kde.strings.decode(b'foo'),
         arolla.abc.bind_op(
-            kde.strings.decode, literal_operator.literal(ds(b'foo'))
+            kde.strings.decode,
+            literal_operator.literal(ds(b'foo')),
+            literal_operator.literal(ds('strict')),
         ),
+    )
+
+  def test_ignore_errors(self):
+    x = ds(b'foo\xffbar')
+    testing.assert_equal(
+        expr_eval.eval(kde.strings.decode(x, 'ignore')),
+        ds('foobar'),
+    )
+
+  def test_replace_errors(self):
+    x = ds(b'foo\xffbar')
+    testing.assert_equal(
+        expr_eval.eval(kde.strings.decode(x, 'replace')),
+        ds('foo\uFFFDbar'),
     )
 
   def test_qtype_signatures(self):
@@ -94,7 +119,9 @@ class StringsDecodeTest(parameterized.TestCase):
             kde.strings.decode,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
-        ((DATA_SLICE, DATA_SLICE),),
+        ((DATA_SLICE, DATA_SLICE),
+         (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+        ),
     )
 
   def test_view(self):

@@ -8097,9 +8097,19 @@ Args:
 Returns:
   The DataSlice of INT32 counts.</code></pre>
 
-### `kd.strings.decode(x)` {#kd.strings.decode}
+### `kd.strings.decode(x, errors='strict')` {#kd.strings.decode}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Decodes `x` as STRING using UTF-8 decoding.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Decodes bytes to string element-wise (using utf-8 coding).
+
+Args:
+  x: DataSlice of BYTES.
+  errors: DataSlice of STRING, signalling how to treat utf-8 decode errors.
+    Supported options are &#39;strict&#39;: raise an error on any invalid byte,
+    &#39;ignore&#39;: omit invalid bytes in the result without raising, &#39;replace&#39;:
+    replace invalid bytes with U+FFFD.
+
+Returns:
+  Decoded STRING DataSlice, same dimensionality as `x`.</code></pre>
 
 ### `kd.strings.decode_base64(x, /, *, on_invalid=unspecified)` {#kd.strings.decode_base64}
 

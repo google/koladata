@@ -54,6 +54,10 @@ absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
 // kd.strings.count.
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr);
 //
+// kd.strings.decode.
+absl::StatusOr<DataSlice> Decode(const DataSlice& x,
+                                 const DataSlice& errors);
+//
 // kd.strings._decode_base64
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
                                        bool missing_if_invalid);

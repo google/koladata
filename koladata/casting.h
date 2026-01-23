@@ -19,6 +19,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 
@@ -84,7 +85,8 @@ absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 // The following schemas are supported: {NONE, STRING, BYTES, OBJECT}.
 // Slices with non-primitive schemas are required to only contain the previously
 // listed values.
-absl::StatusOr<DataSlice> Decode(const DataSlice& slice);
+absl::StatusOr<DataSlice> Decode(const DataSlice& slice,
+                                 absl::string_view errors);
 
 // Converts the given slice to BYTES using UTF-8 encoding.
 //

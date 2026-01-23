@@ -933,10 +933,25 @@ def upper(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
-    'kd.strings.decode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.decode',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.errors),
+    ],
 )
-def decode(x):  # pylint: disable=unused-argument
-  """Decodes `x` as STRING using UTF-8 decoding."""
+def decode(x, errors='strict'):  # pylint: disable=unused-argument
+  """Decodes bytes to string element-wise (using utf-8 coding).
+
+  Args:
+    x: DataSlice of BYTES.
+    errors: DataSlice of STRING, signalling how to treat utf-8 decode errors.
+      Supported options are 'strict': raise an error on any invalid byte,
+      'ignore': omit invalid bytes in the result without raising, 'replace':
+      replace invalid bytes with U+FFFD.
+
+  Returns:
+    Decoded STRING DataSlice, same dimensionality as `x`.
+  """
   raise NotImplementedError('implemented in the backend')
 
 
