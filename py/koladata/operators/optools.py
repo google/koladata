@@ -316,16 +316,6 @@ def add_to_registry_as_overload(
   return impl
 
 
-def _build_operator_signature_from_fn(
-    fn: types.FunctionType, aux_policy: str
-) -> arolla.abc.Signature:
-  """Builds an operator signature from a python function."""
-  signature = arolla.abc.make_operator_signature(
-      inspect.signature(fn), as_qvalue=py_boxing.as_qvalue
-  )
-  return arolla.abc.Signature((signature.parameters, aux_policy))
-
-
 UNIFIED_NON_DETERMINISTIC_PARAM_NAME = (
     unified_binding_policy.NON_DETERMINISTIC_PARAM_NAME
 )
