@@ -105,10 +105,6 @@ class LiteralOperatorTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    # Arbitrary literal.
-    x = literal_operator.literal(arolla.int32(1))
-    self.assertTrue(view.has_koda_view(x))
-
     # DataSlice.
     x = literal_operator.literal(ds(1))
     self.assertTrue(view.has_koda_view(x))
@@ -117,10 +113,11 @@ class LiteralOperatorTest(parameterized.TestCase):
     x = literal_operator.literal(data_bag.DataBag.empty())
     self.assertTrue(view.has_koda_view(x))
 
-    # Arolla values also have a KodaView, which is suboptimal, but we want e.g.
+    # Arolla values also have a BaseKodaView, because convenient methods like
     # the `eval` method to work on them as well.
     x = literal_operator.literal(arolla.int32(1))
-    self.assertTrue(view.has_koda_view(x))
+    self.assertFalse(view.has_koda_view(x))
+    self.assertTrue(view.has_base_koda_view(x))
 
   @parameterized.parameters(
       (arolla.L.x,),

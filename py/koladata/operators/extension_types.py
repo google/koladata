@@ -46,7 +46,7 @@ def _wrap(obj, qtype):
 # Lambda operator without qtype_constraints to support `M.annotation.qtype` to
 # propagate even `obj` is symbolic.
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.wrap')
 def wrap(obj, qtype):
@@ -71,7 +71,7 @@ def unwrap(ext):
 
 
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.dynamic_cast')
 def dynamic_cast(ext, qtype):
@@ -80,7 +80,7 @@ def dynamic_cast(ext, qtype):
 
 
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.make')
 def make(qtype, prototype=arolla.unspecified(), /, **attrs):
@@ -97,7 +97,7 @@ def make(qtype, prototype=arolla.unspecified(), /, **attrs):
 
 
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.with_attrs')
 def with_attrs(ext, /, **attrs):
@@ -116,7 +116,7 @@ def with_attrs(ext, /, **attrs):
 # Consider asserting that `ext` is not null. Note that this adds ~50ns overhead
 # compared to the existing total time of ~80ns.
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.get_attr')
 def get_attr(ext, attr, qtype):
@@ -136,7 +136,7 @@ def has_attr(ext, attr):
 
 
 @optools.add_to_registry(
-    view=None, via_cc_operator_package=True
+    view=view.BaseKodaView, via_cc_operator_package=True
 )  # Provided by the QType.
 @optools.as_lambda_operator('kd.extension_types.make_null')
 def make_null(qtype):

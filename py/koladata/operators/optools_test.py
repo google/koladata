@@ -179,7 +179,8 @@ class OptoolsTest(parameterized.TestCase):
 
     with self.subTest('no_view'):
       op_2 = optools.add_to_registry(
-          'test_add_to_registry_with_view.op_2', view=None
+          'test_add_to_registry_with_view.op_2',
+          view=arolla.expr.DefaultExprView,
       )(op)
       self.assertFalse(view.has_koda_view(op_2(1)))
 
@@ -281,19 +282,6 @@ class OptoolsTest(parameterized.TestCase):
         'test.op_3_alias(42)',
     )
 
-  def test_add_to_registry_repr_fn_none(self):
-
-    @optools.add_to_registry(aliases=['test.op_none_repr_alias'], repr_fn=None)
-    @arolla.optools.as_lambda_operator('test.op_none_repr')
-    def op_none_repr(x):
-      return x
-
-    self.assertEqual(repr(op_none_repr(42)), 'test.op_none_repr(42)')
-    self.assertEqual(
-        repr(arolla.abc.lookup_operator('test.op_none_repr_alias')(42)),
-        'test.op_none_repr_alias(42)',
-    )
-
   def test_add_to_registry_with_repr_fn(self):
     @optools.add_to_registry(aliases=['test.op_4_alias'], repr_fn=repr_fn)
     @arolla.optools.as_lambda_operator('test.op_4')
@@ -317,7 +305,7 @@ class OptoolsTest(parameterized.TestCase):
         aliases=['test.op_5_alias_1'], repr_fn=repr_fn
     )(op)
     op_original_no_view = optools.add_to_registry(
-        'test.op_5_no_view', view=None, repr_fn=repr_fn
+        'test.op_5_no_view', view=arolla.expr.DefaultExprView, repr_fn=repr_fn
     )(op)
 
     optools.add_alias('test.op_5', 'test.op_5_alias_2')
@@ -340,6 +328,36 @@ class OptoolsTest(parameterized.TestCase):
       self.assertEqual(
           repr(op_alias_no_view(42)), 'MY_CUSTOM_M.test.op_5_alias_no_view'
       )
+
+  def test_add_alias_override(self):
+    @optools.add_to_registry()
+    @arolla.optools.as_lambda_operator('test_add_alias_override.op_1')
+    def op_1(x):
+      return x
+
+    @optools.add_to_registry()
+    @arolla.optools.as_lambda_operator('test_add_alias_override.op_2')
+    def op_2(x, y):
+      return x + y
+
+    optools.add_alias(
+        'test_add_alias_override.op_1', 'test_add_alias_override.op'
+    )
+    self.assertTrue(optools.equiv_to_op('test_add_alias_override.op', op_1))
+    with self.assertRaisesRegex(
+        ValueError,
+        "operator 'test_add_alias_override.op' is already registered",
+    ):
+      optools.add_alias(
+          'test_add_alias_override.op_2', 'test_add_alias_override.op'
+      )
+    self.assertTrue(optools.equiv_to_op('test_add_alias_override.op', op_1))
+    optools.add_alias(
+        'test_add_alias_override.op_2',
+        'test_add_alias_override.op',
+        unsafe_override=True,
+    )
+    self.assertTrue(optools.equiv_to_op('test_add_alias_override.op', op_2))
 
   def test_add_to_registry_as_overloadable_defaults(self):
 
@@ -414,7 +432,7 @@ class OptoolsTest(parameterized.TestCase):
     @optools.add_to_registry_as_overloadable(
         'test.op_7',
         unsafe_override=True,
-        view=None,
+        view=arolla.expr.DefaultExprView,
         repr_fn=repr_fn,
         aux_policy='',  # Uses the default Arolla binding policy.
     )
@@ -993,14 +1011,6 @@ class OptoolsTest(parameterized.TestCase):
           'test.op', suppress_unused_parameter_warning=True
       )(fn)
       # ok if no errors
-
-  def test_manually_added_ops_to_registry(self):
-    reg_op = optools._REGISTERED_OPS['kd.annotation.source_location']
-    self.assertIsNone(reg_op.repr_fn)  # C++ impl.
-    testing.assert_equal(
-        reg_op.op, arolla.abc.lookup_operator('kd.annotation.source_location')
-    )
-    self.assertIs(reg_op.view, view.KodaView)
 
 
 if __name__ == '__main__':

@@ -892,7 +892,7 @@ class KodaViewTest(parameterized.TestCase):
   def test_annotation_source_location_view(self):
     src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     self.assertTrue(
-        view.has_koda_view(src_op(1, 'foo', 'test.py', 123, 456, '  x + 1'))
+        view.has_koda_view(src_op(C.x, 'foo', 'test.py', 123, 456, '  x + 1'))
     )
 
 

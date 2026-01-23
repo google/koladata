@@ -4819,10 +4819,11 @@ Operator definition and registration tooling.
 
 **Operators**
 
-### `kd.optools.add_alias(name: str, alias: str, via_cc_operator_package: bool = False)` {#kd.optools.add_alias}
-*No description*
+### `kd.optools.add_alias(name: str, alias: str, unsafe_override: bool = False, via_cc_operator_package: bool = False)` {#kd.optools.add_alias}
 
-### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry}
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Adds an alias for an operator.</code></pre>
+
+### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, view: type[ExprView] = <class 'koladata.expr.view.KodaView'>, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wrapper around Arolla&#39;s add_to_registry with Koda functionality.
 
@@ -4830,10 +4831,8 @@ Args:
   name: Optional name of the operator. Otherwise, inferred from the op.
   aliases: Optional aliases for the operator.
   unsafe_override: Whether to override an existing operator.
-  view: Optional view to use for the operator. If None, the default arolla
-    ExprView will be used.
-  repr_fn: Optional repr function to use for the operator and its aliases. In
-    case of None, a default repr function will be used.
+  view: View for the operator and its aliases.
+  repr_fn: Repr function for the operator and its aliases.
   via_cc_operator_package: If True, the operator will be only registered
     during koladata_cc_operator_package construction, and just looked up in
     the global registry during normal execution. Note that this flag does not
@@ -4868,7 +4867,7 @@ Returns:
   A decorator that registers an overload for the operator with the
   corresponding name.</code></pre>
 
-### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] | None = <class 'koladata.expr.view.KodaView'>, repr_fn: Union[Callable[[Expr, NodeTokenView], ReprToken], None] = None, aux_policy: str = 'koladata_classic_aux_policy', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
+### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] = <class 'koladata.expr.view.KodaView'>, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, aux_policy: str = 'koladata_classic_aux_policy', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overloadable.
 
@@ -4878,9 +4877,8 @@ repr function.
 Args:
   name: Name of the operator.
   unsafe_override: Whether to override an existing operator.
-  view: Optional view to use for the operator.
-  repr_fn: Optional repr function to use for the operator and its aliases. In
-    case of None, a default repr function will be used.
+  view: View for the operator and its aliases.
+  repr_fn: Repr function for the operator and its aliases.
   aux_policy: Aux policy for the operator.
   via_cc_operator_package: If True, the operator will be only registered
     during koladata_cc_operator_package construction, and just looked up in

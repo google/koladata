@@ -1338,7 +1338,7 @@ def rshift(y, x):
   return lshift(x, y)
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator('koda_internal.create_metadata')
 def create_metadata(x):  # pylint: disable=unused-argument
   """Returns a DataSlice with metadata for the given DataSlice."""

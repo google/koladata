@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from koladata.expr import view
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import qtypes
@@ -26,7 +27,14 @@ constraints = arolla.optools.constraints
 
 # NOTE: Implemented in C++ to allow bind-time literal evaluation.
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
+arolla.abc.set_expr_view_for_registered_operator(
+    'koda_internal.to_arolla_int64', view.ArollaView
+)
+
 to_arolla_text = arolla.abc.lookup_operator('koda_internal.to_arolla_text')
+arolla.abc.set_expr_view_for_registered_operator(
+    'koda_internal.to_arolla_text', view.ArollaView
+)
 
 
 # Implemented here to avoid a dependency cycle between jagged_shape and here.
@@ -43,7 +51,7 @@ def _reshape(x, shape):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_float64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -65,7 +73,7 @@ def to_arolla_float64(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_boolean',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -87,7 +95,7 @@ def to_arolla_boolean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_optional_unit',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -109,7 +117,7 @@ def to_arolla_optional_unit(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_int64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -132,7 +140,7 @@ def to_arolla_dense_array_int64(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_unit',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -155,7 +163,7 @@ def to_arolla_dense_array_unit(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.to_arolla_dense_array_text',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
@@ -244,7 +252,7 @@ def from_arolla_jagged_shape(shape):
   return M.derived_qtype.downcast(qtypes.JAGGED_SHAPE, shape)
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.to_arolla_jagged_shape',
     qtype_constraints=[

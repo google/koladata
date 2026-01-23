@@ -21,6 +21,7 @@ from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import py_expr_eval_py_ext
+from koladata.expr import view
 from koladata.operators import assertion
 from koladata.operators import core
 from koladata.operators import functor
@@ -70,7 +71,7 @@ def _replace_non_deterministic_leaf_with_param(expr):
   )
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_future_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -81,7 +82,7 @@ def is_future_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.is_stream_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -92,7 +93,7 @@ def is_stream_qtype(qtype):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel.get_transform_config_qtype',
     qtype_inference_expr=arolla.QTYPE,
@@ -172,7 +173,7 @@ def create_transform_config(config_src):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_qtype',
     qtype_inference_expr=arolla.QTYPE,
@@ -258,7 +259,7 @@ def unwrap_future_to_stream(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_stream_qtype',
     qtype_inference_expr=arolla.QTYPE,

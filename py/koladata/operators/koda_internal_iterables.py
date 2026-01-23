@@ -21,6 +21,7 @@ evaluation.
 
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import jagged_shape
 from koladata.operators import math
@@ -42,7 +43,7 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @arolla.optools.as_backend_operator(
     'koda_internal.iterables.is_iterable_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
@@ -70,7 +71,7 @@ def from_sequence(x):
   )
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.to_sequence',
     qtype_constraints=[
@@ -82,7 +83,7 @@ def to_sequence(x):
   return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_from_1d_slice',
     qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
@@ -152,7 +153,7 @@ def shuffle(x):
   return from_sequence(shuffled_seq)
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_chain',
     qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.sequences),
@@ -171,7 +172,7 @@ def sequence_chain(sequences):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None, via_cc_operator_package=True)
+@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.sequence_interleave',
     qtype_constraints=[

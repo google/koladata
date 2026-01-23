@@ -35,16 +35,6 @@ from koladata.types import qtypes
 SRC_PIN = op_repr.SRC_PIN
 
 
-@dataclasses.dataclass(frozen=True)
-class _RegisteredOp:
-  op: arolla.types.Operator
-  view: type[arolla.abc.ExprView] | None
-  repr_fn: op_repr.OperatorReprFn | None
-
-
-_REGISTERED_OPS: dict[str, _RegisteredOp] = {}
-
-
 # False means that Arolla operators are already registered, and will be looked
 # up by name instead of registration.
 _BUILDING_OPERATOR_PACKAGE = False
@@ -91,31 +81,72 @@ def building_cc_operator_package():
     _BUILDING_OPERATOR_PACKAGE = previous_value
 
 
-def _clear_registered_ops():
-  _REGISTERED_OPS.clear()
-  # Manually added public operators that are defined in C++ and are therefore
-  # not registered through add_to_registry().
-  _REGISTERED_OPS['kd.annotation.source_location'] = _RegisteredOp(
-      arolla.abc.lookup_operator('kd.annotation.source_location'),
-      view_lib.KodaView,
-      None,
+@dataclasses.dataclass(frozen=True)
+class _RegisteredOpProperties:
+  """Additional properties of a registered operator."""
+
+  view: type[arolla.abc.ExprView]
+  repr_fn: op_repr.OperatorReprFn
+
+
+_REGISTERED_OP_PROPERTIES: dict[str, _RegisteredOpProperties] = {}
+
+
+def _register_operator(
+    name: str,
+    op: arolla.types.Operator,
+    *,
+    unsafe_override: bool,
+    via_cc_operator_package: bool,
+    properties: _RegisteredOpProperties,
+) -> arolla.types.RegisteredOperator:
+  """Registers an operator."""
+  if not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
+    raise ValueError(
+        'operators included to cc_operator_package must be registered with'
+        ' via_cc_operator_package=True'
+    )
+  if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
+    result = arolla.abc.lookup_operator(name)
+  else:
+    result = arolla.abc.register_operator(
+        name, op, if_present='unsafe_override' if unsafe_override else 'raise'
+    )
+  arolla.abc.set_expr_view_for_registered_operator(name, properties.view)
+  arolla.abc.register_op_repr_fn_by_registration_name(name, properties.repr_fn)
+  _REGISTERED_OP_PROPERTIES[name] = properties
+  return result
+
+
+def add_alias(
+    name: str,
+    alias: str,
+    unsafe_override: bool = False,
+    via_cc_operator_package: bool = False,
+):
+  """Adds an alias for an operator."""
+  properties = _REGISTERED_OP_PROPERTIES.get(name)
+  if properties is None:
+    raise ValueError(f'Operator {name} is not registered.')
+  op = arolla.abc.lookup_operator(name)
+  _register_operator(
+      alias,
+      op,
+      unsafe_override=unsafe_override,
+      via_cc_operator_package=via_cc_operator_package,
+      properties=properties,
   )
 
 
-arolla.abc.cache_clear_callbacks.add(_clear_registered_ops)
-_clear_registered_ops()
+class _DefaultOpRepr:
+  """A wrapper for `op_repr.default_op_repr` with a deterministic `__repr__`."""
+
+  __slots__ = ()
+  __call__ = staticmethod(op_repr.default_op_repr)
+  __repr__ = staticmethod(lambda: '<default_op_repr>')
 
 
-def add_alias(name: str, alias: str, via_cc_operator_package: bool = False):
-  registered_op = _REGISTERED_OPS.get(name)
-  if registered_op is None:
-    raise ValueError(f'Operator {name} is not registered.')
-  add_to_registry(
-      alias,
-      view=registered_op.view,
-      repr_fn=registered_op.repr_fn,
-      via_cc_operator_package=via_cc_operator_package,
-  )(registered_op.op)
+_default_op_repr = _DefaultOpRepr()
 
 
 def add_to_registry(
@@ -123,8 +154,8 @@ def add_to_registry(
     *,
     aliases: Collection[str] = (),
     unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
-    repr_fn: op_repr.OperatorReprFn | None = None,
+    view: type[arolla.abc.ExprView] = view_lib.KodaView,
+    repr_fn: op_repr.OperatorReprFn = _default_op_repr,
     via_cc_operator_package: bool = False,
 ):
   """Wrapper around Arolla's add_to_registry with Koda functionality.
@@ -133,10 +164,8 @@ def add_to_registry(
     name: Optional name of the operator. Otherwise, inferred from the op.
     aliases: Optional aliases for the operator.
     unsafe_override: Whether to override an existing operator.
-    view: Optional view to use for the operator. If None, the default arolla
-      ExprView will be used.
-    repr_fn: Optional repr function to use for the operator and its aliases. In
-      case of None, a default repr function will be used.
+    view: View for the operator and its aliases.
+    repr_fn: Repr function for the operator and its aliases.
     via_cc_operator_package: If True, the operator will be only registered
       during koladata_cc_operator_package construction, and just looked up in
       the global registry during normal execution. Note that this flag does not
@@ -150,38 +179,25 @@ def add_to_registry(
   assert not (
       unsafe_override and via_cc_operator_package
   ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
-  repr_fn = repr_fn or op_repr.default_op_repr
-  if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
-    def _register_op(op, name):
-      if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
-        registered_op = arolla.abc.lookup_operator(name or op.display_name)
-      elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
-        raise ValueError(
-            'operators included to cc_operator_package must be registered with'
-            ' via_cc_operator_package=True'
-        )
-      else:
-        registered_op = arolla.optools.add_to_registry(
-            name, if_present=if_present
-        )(op)
-      arolla.abc.set_expr_view_for_registered_operator(
-          registered_op.display_name, view
-      )
-      arolla.abc.register_op_repr_fn_by_registration_name(
-          registered_op.display_name, repr_fn
-      )
-      return registered_op
-
-    op = _register_op(op, name)
-
-    op_name = name or op.display_name
-    _REGISTERED_OPS[op_name] = _RegisteredOp(op, view, repr_fn)
-
+    properties = _RegisteredOpProperties(view, repr_fn)
+    result = _register_operator(
+        name or op.display_name,
+        op,
+        unsafe_override=unsafe_override,
+        via_cc_operator_package=via_cc_operator_package,
+        properties=properties,
+    )
     for alias in aliases:
-      add_alias(op_name, alias, via_cc_operator_package=via_cc_operator_package)
-    return op
+      _register_operator(
+          alias,
+          result,
+          unsafe_override=unsafe_override,
+          via_cc_operator_package=via_cc_operator_package,
+          properties=properties,
+      )
+    return result
 
   return impl
 
@@ -190,8 +206,8 @@ def add_to_registry_as_overloadable(
     name: str,
     *,
     unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
-    repr_fn: op_repr.OperatorReprFn | None = None,
+    view: type[arolla.abc.ExprView] = view_lib.KodaView,
+    repr_fn: op_repr.OperatorReprFn = _default_op_repr,
     aux_policy: str = aux_policies.CLASSIC_AUX_POLICY,
     via_cc_operator_package: bool = False,
 ):
@@ -203,9 +219,8 @@ def add_to_registry_as_overloadable(
   Args:
     name: Name of the operator.
     unsafe_override: Whether to override an existing operator.
-    view: Optional view to use for the operator.
-    repr_fn: Optional repr function to use for the operator and its aliases. In
-      case of None, a default repr function will be used.
+    view: View for the operator and its aliases.
+    repr_fn: Repr function for the operator and its aliases.
     aux_policy: Aux policy for the operator.
     via_cc_operator_package: If True, the operator will be only registered
       during koladata_cc_operator_package construction, and just looked up in
@@ -220,8 +235,6 @@ def add_to_registry_as_overloadable(
   assert not (
       unsafe_override and via_cc_operator_package
   ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
-  repr_fn = repr_fn or op_repr.default_op_repr
-  if_present = 'unsafe_override' if unsafe_override else 'raise'
 
   def impl(fn) -> arolla.types.RegisteredOperator:
     if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
@@ -234,18 +247,12 @@ def add_to_registry_as_overloadable(
     else:
       overloadable_op = arolla.optools.add_to_registry_as_overloadable(
           name,
-          if_present=if_present,
+          if_present='unsafe_override' if unsafe_override else 'raise',
           experimental_aux_policy=aux_policy,
       )(fn)
-    arolla.abc.set_expr_view_for_registered_operator(
-        overloadable_op.display_name, view
-    )
-    arolla.abc.register_op_repr_fn_by_registration_name(
-        overloadable_op.display_name, repr_fn
-    )
-    _REGISTERED_OPS[overloadable_op.display_name] = _RegisteredOp(
-        overloadable_op, view, repr_fn
-    )
+    arolla.abc.set_expr_view_for_registered_operator(name, view)
+    arolla.abc.register_op_repr_fn_by_registration_name(name, repr_fn)
+    _REGISTERED_OP_PROPERTIES[name] = _RegisteredOpProperties(view, repr_fn)
     return overloadable_op
 
   return impl
@@ -735,16 +742,14 @@ def reload_operator_view(view: type[arolla.abc.ExprView]) -> None:
   Args:
     view: The view to use for the operators.
   """
-  for registered_op in _REGISTERED_OPS.values():
-    old_view = registered_op.view
+  for name, properties in _REGISTERED_OP_PROPERTIES.items():
+    old_view = properties.view
     if (
         old_view is not None
         and old_view.__module__ == view.__module__
         and old_view.__qualname__ == view.__qualname__
     ):
-      arolla.abc.set_expr_view_for_registered_operator(
-          registered_op.op.display_name, view
-      )
+      arolla.abc.set_expr_view_for_registered_operator(name, view)
 
 
 def make_operators_container(*namespaces: str) -> arolla.OperatorsContainer:
