@@ -71,7 +71,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     restricted_query_schema = kd.named_schema('query', query_id=kd.INT32)
     kd.testing.assert_equivalent(
-        queries.query_id.get(with_ancestors=True),
+        root.get(populate=[queries.query_id]),
         kd.new(
             query=kd.list([
                 restricted_query_schema.new(query_id=0),
@@ -1800,19 +1800,17 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     kd.testing.assert_equivalent(
         doc_view.doc_id.get(
-            # By default, with_ancestors=False. Since the query text is not a
-            # descendant of the doc_id, only the doc_id will be visible in the
-            # result.
+            # Since the query text is not a descendant of the doc_id, only the
+            # doc_id will be visible in the result.
             populate=[query_view.text],
         ),
         query_list[:].doc[:].doc_id,
     )
     kd.testing.assert_equivalent(
-        doc_view.doc_id.get(
+        root_view.get(
             # This time we request the result to start from the root, so the
             # query text will be visible in the result.
-            with_ancestors=True,
-            populate=[query_view.text],
+            populate=[query_view.text, doc_view.doc_id],
         ),
         kd.new(
             query=kd.list([
@@ -1865,22 +1863,20 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ids_equality=True,
     )
     kd.testing.assert_equivalent(
-        doc_view.get(
-            with_ancestors=True, populate_including_descendants=[query_view]
+        root_view.get(
+            populate=[doc_view], populate_including_descendants=[query_view]
         ),
         root_view.get(with_descendants=True),
         ids_equality=True,
     )
     kd.testing.assert_equivalent(
-        query_view.query_id.get(
-            with_ancestors=True,
-            populate=[query_view.text],
+        root_view.get(
+            populate=[query_view.text, query_view.query_id],
             populate_including_descendants=[doc_view],
         ),
-        doc_view.get(
-            with_ancestors=True,
-            with_descendants=True,
+        root_view.get(
             populate=[query_view.text, query_view.query_id],
+            populate_including_descendants=[doc_view],
         ),
         ids_equality=True,
     )

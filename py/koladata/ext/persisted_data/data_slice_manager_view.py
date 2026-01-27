@@ -98,7 +98,6 @@ class DataSliceManagerView:
   def get_data_slice(
       self,
       *,
-      with_ancestors: bool = False,
       with_descendants: bool = False,
       populate: Collection[DataSliceManagerView] | None = None,
       populate_including_descendants: (
@@ -110,20 +109,13 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
 
     Args:
-      with_ancestors: If True, then the DataSlice will include the data of all
-        the ancestors of the view path up to the root. Otherwise, the returned
-        DataSlice will be start at this view path, and only its data and the
-        data of its requested descendants (if any) will be accessible in the
-        result.
       with_descendants: If True, then the DataSlice will include the data of all
         the descendants of the view path.
-      populate: Additional views whose DataSlicePaths will be populated. If
-        these paths are not descendants of this view's path, then you have to
-        pass with_ancestors=True to see the data in the returned DataSlice.
+      populate: Additional views whose DataSlicePaths will be populated. Their
+        paths must be descendants of this view's path for you to see their data
+        in the returned DataSlice.
       populate_including_descendants: Additional views whose DataSlicePaths and
-        all their descendants will be populated. If these paths are not
-        descendants of this view's path, then you have to pass
-        with_ancestors=True to see the data in the returned DataSlice.
+        all their descendants will be populated.
     """
     self._check_path_from_root_is_valid()
     populate = {v.get_path_from_root() for v in populate or []}
@@ -138,14 +130,11 @@ class DataSliceManagerView:
         populate=populate,
         populate_including_descendants=populate_including_descendants,
     )
-    if with_ancestors:
-      return ds
     return self._path_from_root.evaluate(ds)
 
   def get(
       self,
       *,
-      with_ancestors: bool = False,
       with_descendants: bool = False,
       populate: Collection[DataSliceManagerView] | None = None,
       populate_including_descendants: (
@@ -157,23 +146,15 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
 
     Args:
-      with_ancestors: If True, then the DataSlice will include the data of all
-        the ancestors of the view path up to the root. Otherwise, the returned
-        DataSlice will be start at this view path, and only its data and the
-        data of its requested descendants (if any) will be accessible in the
-        result.
       with_descendants: If True, then the DataSlice will include the data of all
         the descendants of the view path.
-      populate: Additional views whose DataSlicePaths will be populated. If
-        these paths are not descendants of this view's path, then you have to
-        pass with_ancestors=True to see the data in the returned DataSlice.
+      populate: Additional views whose DataSlicePaths will be populated. Their
+        paths must be descendants of this view's path for you to see their data
+        in the returned DataSlice.
       populate_including_descendants: Additional views whose DataSlicePaths and
-        all their descendants will be populated. If these paths are not
-        descendants of this view's path, then you have to pass
-        with_ancestors=True to see the data in the returned DataSlice.
+        all their descendants will be populated.
     """
     return self.get_data_slice(
-        with_ancestors=with_ancestors,
         with_descendants=with_descendants,
         populate=populate,
         populate_including_descendants=populate_including_descendants,
