@@ -33,14 +33,14 @@ absl::Status KodaErrorCausedByMissingCollectionItemSchemaError(
 
 // Clarifies the error if it is caused by incompatible schema. Otherwise,
 // returns the status unchanged.
-absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
-                                                    const DataBagPtr& lhs_bag,
-                                                    const DataBagPtr& rhs_bag,
-                                                    const DataSlice& ds);
+absl::Status KodaErrorCausedByIncompatibleSchemaError(absl::Status status,
+                                                      const DataBagPtr& lhs_bag,
+                                                      const DataBagPtr& rhs_bag,
+                                                      const DataSlice& ds);
 
 // Clarifies the error if it is caused by incompatible schema. Otherwise,
 // returns the status unchanged.
-absl::Status KodaErrorCausedByIncompableSchemaError(
+absl::Status KodaErrorCausedByIncompatibleSchemaError(
     absl::Status status, const DataBagPtr& lhs_bag,
     absl::Span<const DataSlice> slices, const DataSlice& ds);
 

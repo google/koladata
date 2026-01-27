@@ -183,8 +183,8 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
       auto result,
       CreateListLike(result_db, x, std::move(list_items), x.GetSchema()));
   RETURN_IF_ERROR(result.AppendToList(append)).With([&](absl::Status status) {
-    return KodaErrorCausedByIncompableSchemaError(std::move(status), x.GetBag(),
-                                                  append.GetBag(), x);
+    return KodaErrorCausedByIncompatibleSchemaError(
+        std::move(status), x.GetBag(), append.GetBag(), x);
   });
   return result.UnsafeMakeWholeOnImmutableDb();
 }
@@ -206,7 +206,7 @@ absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,
   RETURN_IF_ERROR(AdoptStub(result_db, x));
   RETURN_IF_ERROR(x.WithBag(result_db).AppendToList(append))
       .With([&](absl::Status status) {
-        return KodaErrorCausedByIncompableSchemaError(
+        return KodaErrorCausedByIncompatibleSchemaError(
             std::move(status), x.GetBag(), append.GetBag(), x);
       });
   result_db->UnsafeMakeImmutable();

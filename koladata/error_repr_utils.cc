@@ -411,10 +411,10 @@ absl::StatusOr<std::string> FormatMissingCollectionItemSchemaError(
 }
 }  // namespace
 
-absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
-                                                    const DataBagPtr& lhs_bag,
-                                                    const DataBagPtr& rhs_bag,
-                                                    const DataSlice& ds) {
+absl::Status KodaErrorCausedByIncompatibleSchemaError(absl::Status status,
+                                                      const DataBagPtr& lhs_bag,
+                                                      const DataBagPtr& rhs_bag,
+                                                      const DataSlice& ds) {
   if (const internal::IncompatibleSchemaError* incompatible_schema_error =
           arolla::GetPayload<internal::IncompatibleSchemaError>(status);
       incompatible_schema_error != nullptr) {
@@ -428,13 +428,13 @@ absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
   return status;
 }
 
-absl::Status KodaErrorCausedByIncompableSchemaError(
+absl::Status KodaErrorCausedByIncompatibleSchemaError(
     absl::Status status, const DataBagPtr& lhs_bag,
     absl::Span<const DataSlice> rhs_slices, const DataSlice& ds) {
   std::vector<DataBagPtr> dbs(rhs_slices.size());
   absl::c_transform(rhs_slices, dbs.begin(),
                     [](const DataSlice& ds) { return ds.GetBag(); });
-  return KodaErrorCausedByIncompableSchemaError(
+  return KodaErrorCausedByIncompatibleSchemaError(
       std::move(status), lhs_bag, DataBag::ImmutableEmptyWithFallbacks(dbs),
       ds);
 }

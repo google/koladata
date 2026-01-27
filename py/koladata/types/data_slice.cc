@@ -407,7 +407,7 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
     status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
-    arolla::python::SetPyErrFromStatus(KodaErrorCausedByIncompableSchemaError(
+    arolla::python::SetPyErrFromStatus(KodaErrorCausedByIncompatibleSchemaError(
         std::move(status), self_ds.GetBag(), value_ds.GetBag(), self_ds));
     return -1;
   }
@@ -455,7 +455,7 @@ PyObject* absl_nullable PyDataSlice_set_attr(PyObject* self,
     RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, overwrite_schema))
         .With([&](absl::Status status) {
           return arolla::python::SetPyErrFromStatus(
-              KodaErrorCausedByIncompableSchemaError(
+              KodaErrorCausedByIncompatibleSchemaError(
                   std::move(status), self_ds.GetBag(), value_ds.GetBag(),
                   self_ds));
         });
@@ -468,7 +468,7 @@ PyObject* absl_nullable PyDataSlice_set_attr(PyObject* self,
     RETURN_IF_ERROR(self_ds.SetAttr(*attr_name, value_ds, overwrite_schema))
         .With([&](absl::Status status) {
           return arolla::python::SetPyErrFromStatus(
-              KodaErrorCausedByIncompableSchemaError(
+              KodaErrorCausedByIncompatibleSchemaError(
                   std::move(status), self_ds.GetBag(), value_ds.GetBag(),
                   self_ds));
         });
@@ -506,7 +506,7 @@ PyObject* absl_nullable PyDataSlice_set_attrs(PyObject* self,
       .With([&](absl::Status status) {
         // TODO: b/361573497 - Move both adoption and error handling to SetAttr.
         return arolla::python::SetPyErrFromStatus(
-            KodaErrorCausedByIncompableSchemaError(
+            KodaErrorCausedByIncompatibleSchemaError(
                 std::move(status), self_ds.GetBag(), values, self_ds));
       });
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
@@ -710,7 +710,7 @@ PyObject* absl_nullable PyDataSlice_append(PyObject* self,
   RETURN_IF_ERROR(self_ds.AppendToList(items.WithBag(self_ds.GetBag())))
       .With([&](absl::Status status) {
         return arolla::python::SetPyErrFromStatus(
-            KodaErrorCausedByIncompableSchemaError(
+            KodaErrorCausedByIncompatibleSchemaError(
                 std::move(status), self_ds.GetBag(), items.GetBag(), self_ds));
       });
   Py_RETURN_NONE;

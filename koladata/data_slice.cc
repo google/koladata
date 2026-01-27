@@ -403,11 +403,11 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
   return result.value_or(DataSlice::AttrNamesSet());
 }
 
-auto KodaErrorCausedByIncompableSchemaError(const DataBagPtr& lhs_bag,
-                                            const DataBagPtr& rhs_bag,
-                                            const DataSlice& ds) {
+auto KodaErrorCausedByIncompatibleSchemaError(const DataBagPtr& lhs_bag,
+                                              const DataBagPtr& rhs_bag,
+                                              const DataSlice& ds) {
   return [&](auto&& status_like) {
-    RETURN_IF_ERROR(KodaErrorCausedByIncompableSchemaError(
+    RETURN_IF_ERROR(KodaErrorCausedByIncompatibleSchemaError(
         std::forward<decltype(status_like)>(status_like), lhs_bag, rhs_bag,
         ds));
     ABSL_UNREACHABLE();
@@ -1749,8 +1749,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetBag()->GetImpl(),
                                              fb_finder.GetFlattenFallbacks()))
-      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), keys.GetBag(),
-                                                   *this))
+      .With(KodaErrorCausedByIncompatibleSchemaError(GetBag(), keys.GetBag(),
+                                                     *this))
       .With(KodaErrorCausedByMissingCollectionItemSchemaError(GetBag()));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
                      return GetResultSchema(GetBag()->GetImpl(), impl,
@@ -1800,16 +1800,16 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}))
-      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), keys.GetBag(),
-                                                   *this))
+      .With(KodaErrorCausedByIncompatibleSchemaError(GetBag(), keys.GetBag(),
+                                                     *this))
       .With(KodaErrorCausedByMissingCollectionItemSchemaError(GetBag()));
   RhsHandler</*is_readonly=*/false> values_handler(
       RhsHandlerContext::kDict, expanded_values, schema::kDictValuesSchemaAttr,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
                                                /*fallbacks=*/{}))
-      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
-                                                   *this))
+      .With(KodaErrorCausedByIncompatibleSchemaError(GetBag(), values.GetBag(),
+                                                     *this))
       .With(KodaErrorCausedByMissingCollectionItemSchemaError(GetBag()));
 
   adoption_queue.Add(keys);
@@ -2104,8 +2104,8 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                                                  /*overwrite_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}))
-      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
-                                                   *this))
+      .With(KodaErrorCausedByIncompatibleSchemaError(GetBag(), values.GetBag(),
+                                                     *this))
       .With(KodaErrorCausedByNoCommonSchemaError(GetBag()));
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
@@ -2156,8 +2156,8 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
                                              /*fallbacks=*/{}))
-      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
-                                                   *this))
+      .With(KodaErrorCausedByIncompatibleSchemaError(GetBag(), values.GetBag(),
+                                                     *this))
       .With(KodaErrorCausedByMissingCollectionItemSchemaError(GetBag()));
 
   internal::DataBagImpl::ListRange list_range(start, stop);

@@ -90,7 +90,7 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
       .assigned_schema = schema_2.item(),
   };
 
-  absl::Status status = KodaErrorCausedByIncompableSchemaError(
+  absl::Status status = KodaErrorCausedByIncompatibleSchemaError(
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       bag, bag, schema_1);
@@ -121,7 +121,7 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
       .assigned_schema = schema_2.item(),
   };
 
-  absl::Status status = KodaErrorCausedByIncompableSchemaError(
+  absl::Status status = KodaErrorCausedByIncompatibleSchemaError(
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       bag, bag, schema_1);

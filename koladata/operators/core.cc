@@ -210,7 +210,7 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
   RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
                                                   overwrite_schema))
       .With([&](absl::Status status) {
-        return KodaErrorCausedByIncompableSchemaError(
+        return KodaErrorCausedByIncompatibleSchemaError(
             std::move(status), obj.GetBag(), result_db, obj);
       });
   result_db->UnsafeMakeImmutable();
@@ -243,7 +243,7 @@ absl::StatusOr<DataBagPtr> AttrsForAttrNameSlice(const DataSlice& obj,
   RETURN_IF_ERROR(
       obj.WithBag(result_db).SetAttr(attr_names, attr_values, overwrite_schema))
       .With([&](absl::Status status) {
-        return KodaErrorCausedByIncompableSchemaError(
+        return KodaErrorCausedByIncompatibleSchemaError(
             std::move(status), obj.GetBag(), result_db, obj);
       });
   result_db->UnsafeMakeImmutable();
