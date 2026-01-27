@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Collection, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -96,7 +96,14 @@ class DataSliceManagerView:
     return self._data_slice_manager.get_schema_at(self._path_from_root)
 
   def get_data_slice(
-      self, *, with_ancestors: bool = False, with_descendants: bool = False
+      self,
+      *,
+      with_ancestors: bool = False,
+      with_descendants: bool = False,
+      populate: Collection[DataSliceManagerView] | None = None,
+      populate_including_descendants: (
+          Collection[DataSliceManagerView] | None
+      ) = None,
   ) -> kd.types.DataSlice:
     """Returns the DataSlice at the view path.
 
@@ -104,17 +111,29 @@ class DataSliceManagerView:
 
     Args:
       with_ancestors: If True, then the DataSlice will include the data of all
-        the ancestors of the view path.
+        the ancestors of the view path up to the root. Otherwise, the returned
+        DataSlice will be start at this view path, and only its data and the
+        data of its requested descendants (if any) will be accessible in the
+        result.
       with_descendants: If True, then the DataSlice will include the data of all
         the descendants of the view path.
+      populate: Additional views whose DataSlicePaths will be populated. If
+        these paths are not descendants of this view's path, then you have to
+        pass with_ancestors=True to see the data in the returned DataSlice.
+      populate_including_descendants: Additional views whose DataSlicePaths and
+        all their descendants will be populated. If these paths are not
+        descendants of this view's path, then you have to pass
+        with_ancestors=True to see the data in the returned DataSlice.
     """
     self._check_path_from_root_is_valid()
-    if not with_descendants:
-      populate = {self._path_from_root}
-      populate_including_descendants = None
+    populate = {v.get_path_from_root() for v in populate or []}
+    populate_including_descendants = {
+        v.get_path_from_root() for v in populate_including_descendants or []
+    }
+    if with_descendants:
+      populate_including_descendants.add(self._path_from_root)
     else:
-      populate = None
-      populate_including_descendants = {self._path_from_root}
+      populate.add(self._path_from_root)
     ds = self._data_slice_manager.get_data_slice(
         populate=populate,
         populate_including_descendants=populate_including_descendants,
@@ -124,7 +143,14 @@ class DataSliceManagerView:
     return self._path_from_root.evaluate(ds)
 
   def get(
-      self, *, with_ancestors: bool = False, with_descendants: bool = False
+      self,
+      *,
+      with_ancestors: bool = False,
+      with_descendants: bool = False,
+      populate: Collection[DataSliceManagerView] | None = None,
+      populate_including_descendants: (
+          Collection[DataSliceManagerView] | None
+      ) = None,
   ) -> kd.types.DataSlice:
     """Returns the DataSlice at the view path. Sugar for get_data_slice().
 
@@ -132,12 +158,25 @@ class DataSliceManagerView:
 
     Args:
       with_ancestors: If True, then the DataSlice will include the data of all
-        the ancestors of the view path.
+        the ancestors of the view path up to the root. Otherwise, the returned
+        DataSlice will be start at this view path, and only its data and the
+        data of its requested descendants (if any) will be accessible in the
+        result.
       with_descendants: If True, then the DataSlice will include the data of all
         the descendants of the view path.
+      populate: Additional views whose DataSlicePaths will be populated. If
+        these paths are not descendants of this view's path, then you have to
+        pass with_ancestors=True to see the data in the returned DataSlice.
+      populate_including_descendants: Additional views whose DataSlicePaths and
+        all their descendants will be populated. If these paths are not
+        descendants of this view's path, then you have to pass
+        with_ancestors=True to see the data in the returned DataSlice.
     """
     return self.get_data_slice(
-        with_ancestors=with_ancestors, with_descendants=with_descendants
+        with_ancestors=with_ancestors,
+        with_descendants=with_descendants,
+        populate=populate,
+        populate_including_descendants=populate_including_descendants,
     )
 
   def update(

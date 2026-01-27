@@ -1717,6 +1717,174 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     )
 
+  def test_get_with_populate_arguments(self):
+    token_info_schema = kd.schema.new_schema(is_noun=kd.BOOLEAN)
+    doc_schema = kd.schema.new_schema(
+        doc_id=kd.INT32,
+        title=kd.STRING,
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),
+    )
+    query_metadata_schema = kd.schema.new_schema(
+        locale=kd.STRING,
+    )
+    query_schema = kd.schema.new_schema(
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+        metadata=query_metadata_schema,
+    )
+    query_list = kd.list([
+        query_schema.new(
+            query_id=0,
+            text='How tall is Obama',
+            doc=kd.list([
+                doc_schema.new(doc_id=0, title='Barack Obama'),
+                doc_schema.new(doc_id=1, title='Michelle Obama'),
+                doc_schema.new(doc_id=2, title='George W. Bush'),
+            ]),
+        ),
+        query_schema.new(
+            query_id=1,
+            text='How high is the Eiffel tower',
+            doc=kd.list([
+                doc_schema.new(
+                    doc_id=3,
+                    title='Eiffel tower',
+                    tokens=kd.dict({
+                        'How': token_info_schema.new(is_noun=False),
+                        'Eiffel tower': token_info_schema.new(is_noun=True),
+                    }),
+                ),
+                doc_schema.new(doc_id=4, title='Tower of London'),
+            ]),
+            metadata=query_metadata_schema.new(locale='en-GB'),
+        ),
+        query_schema.new(
+            query_id=2,
+            text='How old is Bush?',
+            doc=kd.list([
+                doc_schema.new(
+                    doc_id=5,
+                    title='George W. Bush hands over the baton',
+                    tokens=kd.dict({
+                        'George W. Bush': token_info_schema.new(is_noun=True),
+                        'hands': token_info_schema.new(is_noun=False),
+                    }),
+                ),
+                doc_schema.new(doc_id=6, title='The oldest bushes'),
+                doc_schema.new(doc_id=7, title='Ancient bushes'),
+            ]),
+            metadata=query_metadata_schema.new(locale='en-US'),
+        ),
+    ])
+
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+        self.create_tempdir().full_path
+    )
+    root_view = DataSliceManagerView(manager)
+    root_view.query = query_list, 'Added queries populated with data'
+    query_view = root_view.query[:]
+    doc_view = query_view.doc[:]
+
+    kd.testing.assert_equivalent(
+        # This is a simple case where we want queries with selected query
+        # features populated in the result.
+        query_view.get(
+            populate=[query_view.query_id, query_view.text],
+        ),
+        query_list[:]
+        .with_bag(kd.bag())
+        .with_attrs(query_id=query_list[:].query_id, text=query_list[:].text),
+        ids_equality=True,
+    )
+
+    kd.testing.assert_equivalent(
+        doc_view.doc_id.get(
+            # By default, with_ancestors=False. Since the query text is not a
+            # descendant of the doc_id, only the doc_id will be visible in the
+            # result.
+            populate=[query_view.text],
+        ),
+        query_list[:].doc[:].doc_id,
+    )
+    kd.testing.assert_equivalent(
+        doc_view.doc_id.get(
+            # This time we request the result to start from the root, so the
+            # query text will be visible in the result.
+            with_ancestors=True,
+            populate=[query_view.text],
+        ),
+        kd.new(
+            query=kd.list([
+                query_schema.new(
+                    text='How tall is Obama',
+                    doc=kd.list([
+                        doc_schema.new(doc_id=0),
+                        doc_schema.new(doc_id=1),
+                        doc_schema.new(doc_id=2),
+                    ]),
+                ),
+                query_schema.new(
+                    text='How high is the Eiffel tower',
+                    doc=kd.list([
+                        doc_schema.new(doc_id=3),
+                        doc_schema.new(doc_id=4),
+                    ]),
+                ),
+                query_schema.new(
+                    text='How old is Bush?',
+                    doc=kd.list([
+                        doc_schema.new(doc_id=5),
+                        doc_schema.new(doc_id=6),
+                        doc_schema.new(doc_id=7),
+                    ]),
+                ),
+            ])
+        ),
+        schemas_equality=False,
+    )
+
+    kd.testing.assert_equivalent(
+        doc_view.get(populate_including_descendants=[doc_view]),
+        doc_view.get(with_descendants=True),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        query_view.get(populate_including_descendants=[query_view]),
+        query_view.get(with_descendants=True),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        doc_view.get(populate_including_descendants=[query_view]),
+        doc_view.get(with_descendants=True),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        doc_view.get(populate=[query_view]),
+        doc_view.get(),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        doc_view.get(
+            with_ancestors=True, populate_including_descendants=[query_view]
+        ),
+        root_view.get(with_descendants=True),
+        ids_equality=True,
+    )
+    kd.testing.assert_equivalent(
+        query_view.query_id.get(
+            with_ancestors=True,
+            populate=[query_view.text],
+            populate_including_descendants=[doc_view],
+        ),
+        doc_view.get(
+            with_ancestors=True,
+            with_descendants=True,
+            populate=[query_view.text, query_view.query_id],
+        ),
+        ids_equality=True,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
