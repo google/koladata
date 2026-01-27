@@ -3824,8 +3824,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_latest_metadata(
-            fs_implementation.FileSystemInteraction(), persistence_dir
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(),
+            persistence_dir,
+            at_revision_history_index=None,
         ),
         manager._metadata,
     )
@@ -3873,8 +3875,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_latest_metadata(
-            fs_implementation.FileSystemInteraction(), persistence_dir
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(),
+            persistence_dir,
+            at_revision_history_index=None,
         ),
         manager._metadata,
     )
@@ -3915,8 +3919,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_latest_metadata(
-            fs_implementation.FileSystemInteraction(), branch_dir
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(),
+            branch_dir,
+            at_revision_history_index=None,
         ),
         branch_manager._metadata,
     )
@@ -3967,8 +3973,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Metadata is written to disk:
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_latest_metadata(
-            fs_implementation.FileSystemInteraction(), branch_dir
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(),
+            branch_dir,
+            at_revision_history_index=None,
         ),
         branch_manager._metadata,
     )
@@ -3987,8 +3995,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(manager._metadata.revision_history[0], revision_0)
     self.assertEqual(manager._metadata.revision_history[1], revision_1)
     self.assertEqual(
-        persisted_incremental_data_slice_manager._read_latest_metadata(
-            fs_implementation.FileSystemInteraction(), persistence_dir
+        persisted_incremental_data_slice_manager._read_metadata(
+            fs_implementation.FileSystemInteraction(),
+            persistence_dir,
+            at_revision_history_index=None,
         ),
         manager._metadata,
     )
@@ -4230,8 +4240,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
-              f'revision_history_index {too_small_index} is out of bounds.'
-              ' Valid values are in the range [-3, 3)'
+              f'revision_history_index value {too_small_index} is out of'
+              ' bounds. Valid values are in the range [-3, 3)'
           ),
       ):
         trunk_manager.branch(branch_dir, revision_history_index=too_small_index)
@@ -4241,8 +4251,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError,
           re.escape(
-              f'revision_history_index {too_large_index} is out of bounds.'
-              ' Valid values are in the range [-3, 3)'
+              f'revision_history_index value {too_large_index} is out of'
+              ' bounds. Valid values are in the range [-3, 3)'
           ),
       ):
         trunk_manager.branch(branch_dir, revision_history_index=too_large_index)
@@ -4670,6 +4680,90 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         kd.INT32,
         ids_equality=True,
     )
+
+  def test_create_from_dir_at_revision_history_index(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
+    ds_at_revision_0 = manager.get_data_slice(
+        populate_including_descendants={parse_dsp('')}
+    )
+
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([kd.new(query_id='q1')]),
+        description='Added queries with only query_id populated',
+    )
+    ds_at_revision_1 = manager.get_data_slice(
+        populate_including_descendants={parse_dsp('')},
+    )
+
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+        description='Added docs to queries',
+    )
+    ds_at_revision_2 = manager.get_data_slice(
+        populate_including_descendants={parse_dsp('')},
+    )
+
+    new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir, at_revision_history_index=0
+    )
+    kd.testing.assert_equivalent(
+        new_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        ds_at_revision_0,
+        ids_equality=True,
+    )
+
+    new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir, at_revision_history_index=1
+    )
+    kd.testing.assert_equivalent(
+        new_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        ds_at_revision_1,
+        ids_equality=True,
+    )
+
+    new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir, at_revision_history_index=2
+    )
+    kd.testing.assert_equivalent(
+        new_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        ds_at_revision_2,
+        ids_equality=True,
+    )
+
+    with self.subTest('negative_value'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'at_revision_history_index value -1 is out of bounds. Valid'
+              ' values are in the range [0, 2]'
+          ),
+      ):
+        PersistedIncrementalDataSliceManager.create_from_dir(
+            persistence_dir, at_revision_history_index=-1
+        )
+
+    with self.subTest('too_large_value'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'at_revision_history_index value 3 is out of bounds. Valid values'
+              ' are in the range [0, 2]'
+          ),
+      ):
+        PersistedIncrementalDataSliceManager.create_from_dir(
+            persistence_dir, at_revision_history_index=3
+        )
 
 
 if __name__ == '__main__':

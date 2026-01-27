@@ -291,6 +291,7 @@ class PersistedIncrementalDataSliceManager(
       cls,
       persistence_dir: str,
       *,
+      at_revision_history_index: int | None = None,
       fs: fs_interface.FileSystemInterface | None = None,
   ) -> PersistedIncrementalDataSliceManager:
     """Initializes a manager from an existing persistence directory.
@@ -301,6 +302,15 @@ class PersistedIncrementalDataSliceManager(
         manager should be initialized. Updates to the data and metadata will be
         persisted to this directory; call returned_manager.branch(...) if you
         want to persist updates to a different directory.
+      at_revision_history_index: The index of the revision in the revision
+        history that should be used as the basis for the resulting manager. The
+        initial state of the manager's DataSlice will be the same as it was
+        right after the revision at the given index was created. The value of
+        at_revision_history_index must be a valid non-negative index number. By
+        default, the manager is created on top of the latest revision found in
+        the persistence directory. If you have a directory and want to see which
+        revisions are available, you can simply call
+        create_from_dir(persistence_dir).get_revision_history().
       fs: All interactions with the file system will go through this instance.
         If None, then the default interaction with the file system is used.
     """
@@ -312,7 +322,7 @@ class PersistedIncrementalDataSliceManager(
           ' persisted previously by a PersistedIncrementalDataSliceManager'
       )
 
-    metadata = _read_latest_metadata(fs, persistence_dir)
+    metadata = _read_metadata(fs, persistence_dir, at_revision_history_index)
     initial_data_manager_class = (
         initial_data_manager_registry.get_initial_data_manager_class(
             metadata.initial_data_manager_id
@@ -1073,8 +1083,8 @@ class PersistedIncrementalDataSliceManager(
         < len(self._metadata.revision_history)
     ):
       raise ValueError(
-          f'revision_history_index {revision_history_index} is out of bounds.'
-          ' Valid values are in the range'
+          f'revision_history_index value {revision_history_index} is out of'
+          ' bounds. Valid values are in the range'
           f' [{-len(self._metadata.revision_history)},'
           f' {len(self._metadata.revision_history)})'
       )
@@ -1280,16 +1290,37 @@ def _get_initial_schema_node_name_to_bag_names_filepath(
   )
 
 
-def _get_metadata_filepath(persistence_dir: str) -> str:
-  return os.path.join(persistence_dir, 'metadata.pb')
-
-
 def _get_uuid() -> str:
   return str(uuid.uuid1())
 
 
 # The update number is padded to 12 digits in filenames.
 _UPDATE_NUMBER_NUM_DIGITS = 12
+
+
+def _format_update_number(update_number: int) -> str:
+  return str(update_number).zfill(_UPDATE_NUMBER_NUM_DIGITS)
+
+
+def _get_metadata_filepath(persistence_dir: str, at_version: int) -> str:
+  return os.path.join(
+      persistence_dir, f'metadata-{_format_update_number(at_version)}.pb'
+  )
+
+
+def _get_latest_metadata_version(
+    fs: fs_interface.FileSystemInterface,
+    persistence_dir: str,
+) -> int:
+  update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
+  committed_metadata_filepaths = fs.glob(
+      os.path.join(persistence_dir, f'metadata-{update_number_pattern}.pb')
+  )
+  latest_metadata_filepath = max(committed_metadata_filepaths)
+  latest_metadata_filename = os.path.basename(latest_metadata_filepath)
+  return int(
+      latest_metadata_filename.removeprefix('metadata-').removesuffix('.pb')
+  )
 
 
 def _persist_metadata(
@@ -1310,10 +1341,9 @@ def _persist_metadata(
     persistence_dir: The persistence directory of the manager.
     metadata: The metadata to persist.
   """
-  update_number = str(metadata.metadata_update_number).zfill(
-      _UPDATE_NUMBER_NUM_DIGITS
+  final_filepath = _get_metadata_filepath(
+      persistence_dir, metadata.metadata_update_number
   )
-  final_filepath = os.path.join(persistence_dir, f'metadata-{update_number}.pb')
   if fs.exists(final_filepath):
     # Fail fast if the metadata already exists. No point in writing a temporary
     # file that will end up not being used because of this error.
@@ -1329,23 +1359,46 @@ def _persist_metadata(
     )
   temp_filepath = os.path.join(
       persistence_dir,
-      f'metadata-{update_number}-{_get_uuid()}.pb',
+      f'metadata-{_format_update_number(metadata.metadata_update_number)}-{_get_uuid()}.pb',
   )
   with fs.open(temp_filepath, 'wb') as f:
     f.write(metadata.SerializeToString())
   fs.rename(temp_filepath, final_filepath, overwrite=False)
 
 
-def _read_latest_metadata(
+def _read_metadata(
     fs: fs_interface.FileSystemInterface,
     persistence_dir: str,
+    at_revision_history_index: int | None,
 ) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:
-  update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
-  committed_metadata_filepaths = fs.glob(
-      os.path.join(persistence_dir, f'metadata-{update_number_pattern}.pb')
+  """Reads the metadata from disk.
+
+  If at_revision_history_index is None, the latest metadata is read.
+
+  Args:
+    fs: The operations to use to interact with the file system.
+    persistence_dir: The persistence directory of the manager.
+    at_revision_history_index: The version of the metadata to read. If None, the
+      latest metadata is read.
+
+  Returns:
+    The metadata read from disk.
+  """
+  latest_metadata_version = _get_latest_metadata_version(fs, persistence_dir)
+  if at_revision_history_index is None:
+    at_revision_history_index = latest_metadata_version
+  else:
+    if not (0 <= at_revision_history_index <= latest_metadata_version):
+      raise ValueError(
+          f'at_revision_history_index value {at_revision_history_index} is out'
+          ' of bounds. Valid values are in the range'
+          f' [0, {latest_metadata_version}]'
+      )
+
+  metadata_filepath = _get_metadata_filepath(
+      persistence_dir, at_revision_history_index
   )
-  latest_metadata_filepath = max(committed_metadata_filepaths)
-  with fs.open(latest_metadata_filepath, 'rb') as f:
+  with fs.open(metadata_filepath, 'rb') as f:
     return metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
         f.read()
     )
