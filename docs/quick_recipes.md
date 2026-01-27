@@ -20,54 +20,98 @@ When inputs are lists, dicts or dataclasses, `kd.from_py` works similar to
 [`kd.dict`](api_reference.md#kd.dicts.new) or
 [`kd.new`](api_reference.md#kd.entities.new) but creates objects.
 
-```py
+```py {.pycon-doctest}
+>>> from koladata import kd
+>>> kd.from_py(1)
+DataItem(1, schema: OBJECT)
+```
 
-kd.from_py(1)  # DataItem(1, schema: OBJECT)
-kd.from_py(1.2)  # DataItem(1.2, schema: OBJECT)
-kd.from_py('a')  # DataItem('a', schema: OBJECT)
-kd.from_py(True)  # DataItem(True, schema: OBJECT)
+```py {.pycon-doctest}
+>>> kd.from_py(1.2)
+DataItem(1.2, schema: OBJECT)
+```
+
+```py {.pycon-doctest}
+>>> kd.from_py('a')
+DataItem('a', schema: OBJECT)
+```
+
+```py {.pycon-doctest}
+>>> kd.from_py(True)
+DataItem(True, schema: OBJECT)
 
 # Use `schema=None` to get the actual primitive types.
 # Explicit schema can be also provided (see examples here and below)
 
-kd.from_py(1, schema=None)  # DataItem(1, schema: INT32)
-kd.from_py(1, schema=kd.INT32)  # DataItem(1, schema: INT32)
-kd.from_py(1.2, schema=None)  # DataItem(1.2, schema: FLOAT32)
-kd.from_py(1.2, schema=kd.FLOAT32)  # DataItem(1.2, schema: FLOAT32)
-kd.from_py('a', schema=None)  # DataItem('a', schema: STRING)
-kd.from_py('a', schema=kd.STRING)  # DataItem('a', schema: STRING)
-kd.from_py(True, schema=None)  # DataItem(True, schema: BOOLEAN)
-kd.from_py(True, schema=kd.BOOLEAN)  # DataItem(True, schema: BOOLEAN)
+>>> kd.from_py(1, schema=None)
+DataItem(1, schema: INT32)
 
-kd.from_py([1, 2, 3])  # DataItem(List[1, 2, 3], schema: OBJECT)
-kd.from_py({'a': 1, 'b': 2})  # DataItem(Dict{'a'=1, 'b'=2}, schema: OBJECT)
+>>> kd.from_py(1, schema=kd.INT32)
+DataItem(1, schema: INT32)
 
-import dataclasses
+>>> kd.from_py(1.2, schema=None)
+DataItem(1.2, schema: FLOAT32)
 
-@dataclasses.dataclass
-class PyObj:
-  x: int
-  y: float
+>>> kd.from_py(1.2, schema=kd.FLOAT32)
+DataItem(1.2, schema: FLOAT32)
 
-kd.from_py(PyObj(x=1, y=2.0))  # DataItem(Obj(x=1, y=2.0), schema: OBJECT)
+>>> kd.from_py('a', schema=None)
+DataItem('a', schema: STRING)
+
+>>> kd.from_py('a', schema=kd.STRING)
+DataItem('a', schema: STRING)
+
+>>> kd.from_py(True, schema=None)
+DataItem(True, schema: BOOLEAN)
+
+>>> kd.from_py(True, schema=kd.BOOLEAN)
+DataItem(True, schema: BOOLEAN)
+
+>>> kd.from_py([1, 2, 3])
+DataItem(List[1, 2, 3], schema: OBJECT, bag_id: ...)
+
+>>> kd.from_py({'a': 123,})
+DataItem(Dict{'a'=123}, schema: OBJECT, bag_id: ...)
+
+>>> from dataclasses import dataclass
+
+>>> @dataclass
+... class PyObj:
+...   x: int
+...   y: float
+
+
+>>> kd.from_py(PyObj(x=1, y=2.0))
+DataItem(Obj(x=1, y=2.0), schema: OBJECT, bag_id: ...)
 
 # Use `schema=None` or the actual explicit schema to create entities:
-kd.from_py(PyObj(x=1, y=2.0), schema=None)  # DataItem(Obj(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32))
+>>> kd.from_py(PyObj(x=1, y=2.0), schema=None)
+DataItem(Entity(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32), bag_id: ...)
+
 # Or the actual schema:
-kd.from_py(PyObj(x=1, y=2.0), schema=kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT32))  # DataItem(Obj(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32))
+>>> kd.from_py(PyObj(x=1, y=2.0), schema=kd.schema.new_schema(x=kd.INT32, y=kd.FLOAT32))
+DataItem(Entity(x=1, y=2.0), schema: ENTITY(x=INT32, y=FLOAT32), bag_id: ...)
 ```
 
 When inputs are Koda entities, lists or dicts, `kd.from_py` embeds DataSlice
 schemas into entities, lists or dicts to create corresponding objects.
 
-```py
-kd.from_py(kd.new(a=1, b='2'))  # DataItem(Obj(a=1, b='2'), schema: OBJECT)
-kd.from_py(kd.list([1, 2, 3]))  # DataItem(List[1, 2, 3], schema: OBJECT)
-kd.from_py(kd.dict({'a': 1, 'b': 2}))  # DataItem(Dict{'a'=1, 'b'=2}, schema: OBJECT)
+```py {.pycon-doctest}
+>>> kd.from_py(kd.new(a=1, b='2'))
+DataItem(Obj(a=1, b='2'), schema: OBJECT, bag_id: ...)
+
+>>> kd.from_py(kd.list([1, 2, 3]))
+DataItem(List[1, 2, 3], schema: OBJECT, bag_id: ...)
+
+>>> kd.from_py(kd.dict({'a': 123}))
+DataItem(Dict{'a'=123}, schema: OBJECT, bag_id: ...)
 
 # Compared to `schema=None` or `schema=`explicit_schema`:
-kd.from_py(kd.list([1, 2, 3]), schema=None)  # DataItem(List[1, 2, 3], schema: LIST[INT32])
-kd.from_py(kd.list([1, 2, 3]), schema=kd.list_schema(kd.INT32))  # DataItem(List[1, 2, 3], schema: LIST[INT32])
+>>> kd.from_py(kd.list([1, 2, 3]), schema=None)
+DataItem(List[1, 2, 3], schema: LIST[INT32], bag_id: ...)
+
+>>> kd.from_py(kd.list([1, 2, 3]), schema=kd.list_schema(kd.INT32))
+DataItem(List[1, 2, 3], schema: LIST[INT32], bag_id: ...)
 ```
 
 NOTE: Objects created through the schema embedding share the same schema whereas
@@ -77,9 +121,10 @@ different embedded schemas. See
 
 When inputs are Koda objects, `kd.from_py` is a no-op.
 
-```py
-obj = kd.obj(a=1, b='2')
-kd.from_py(obj)  # no-op, just returns obj
+```py {.pycon-doctest}
+>>> obj = kd.obj(a=1, b='2')
+>>> kd.from_py(obj)  # no-op, just returns obj
+DataItem(Obj(a=1, b='2'), schema: OBJECT, bag_id: ...)
 ```
 
 `kd.from_py` even accepts inputs with mixed primitives, lists, dicts, entities,
@@ -87,34 +132,52 @@ as long as each item can be converted to an object. All intermediate items are
 converted to objects (unless `schema=None` is used, when they are converted to
 the corresponding primitive types).
 
-```py
-obj1 = kd.from_py([1, [1, 2]])
-obj1 # DataItem(List[1, List[1, 2]], schema: OBJECT)
-obj1[0]  # DataItem(1, schema: OBJECT)
-obj1[1]  # DataItem(List[1, 2], schema: OBJECT)
+```py {.pycon-doctest}
+>>> obj1 = kd.from_py([1, [1, 2]])
+>>> obj1
+DataItem(List[1, List[1, 2]], schema: OBJECT, bag_id: ...)
 
-obj2 = kd.from_py([kd.new(a=1), {1: 2}])
-obj2  # DataItem(List[Obj(a=1), Dict{1=2}], schema: OBJECT)
-obj2[0]  # DataItem(Obj(a=1), schema: OBJECT)
-obj2[1]  # DataItem(Dict{1=2}, schema: OBJECT)
+>>> obj1[0]
+DataItem(1, schema: OBJECT, bag_id: ...)
 
-obj3 = kd.from_py({'a': [1, 2], 'b': kd.obj(a=1)})
-obj3  # DataItem(Dict{'b'=Obj(a=1), 'a'=List[1, 2]}, schema: OBJECT)
-obj3['a']  # DataItem(List[1, 2], schema: OBJECT)
-obj3['b']  # DataItem(Obj(a=1), schema: OBJECT)
+>>> obj1[1]
+DataItem(List[1, 2], schema: OBJECT, bag_id: ...)
+
+>>> obj2 = kd.from_py([kd.new(a=1), {1: 2}])
+>>> obj2
+DataItem(List[Obj(a=1), Dict{1=2}], schema: OBJECT, bag_id: ...)
+
+>>> obj2[0]
+DataItem(Obj(a=1), schema: OBJECT, bag_id: ...)
+
+>>> obj2[1]
+DataItem(Dict{1=2}, schema: OBJECT, bag_id: ...)
+
+>>> obj3 = kd.from_py({'a': [1, 2], 'b': kd.obj(a=1)})
+
+>>> obj3['a']
+DataItem(List[1, 2], schema: OBJECT, bag_id: ...)
+
+>>> obj3['b']
+DataItem(Obj(a=1), schema: OBJECT, bag_id: ...)
 ```
 
 The most useful use case of `kd.from_py` is to convert inputs with different
 schemas into objects so that they can be mixed into one DataSlice.
 
-```py
+```py {.pycon-doctest}
 # It fails due to incomptabile schemas
-# kd.slice([kd.new(a=1), kd.list([1, 2]), kd.dict({1: 3})])
+>>> kd.slice([kd.new(a=1), kd.list([1, 2]), kd.dict({1: 3})])
+Traceback (most recent call last):
+...
+ValueError: cannot find a common schema
+...
 
 # We need to wrap everything with kd.from_py to create objects
 # We use kd.obj(a=1) rather than kd.from_py(a=1)
 # because kd.from_py does not support keyword arguments
-kd.slice([kd.obj(a=1), kd.from_py([1, 2]), kd.from_py({1: 3})])
+>>> kd.slice([kd.obj(a=1), kd.from_py([1, 2]), kd.from_py({1: 3})])
+DataSlice([Obj(a=1), List[1, 2], Dict{1=3}], schema: OBJECT, ...)
 ```
 
 ## Use `kd.from_py(py_list, from_dim=)` to convert py_list dimensions to DataSlice dimensions
@@ -130,33 +193,39 @@ converted to a jagged shape?
 that. The first `from_dim` dimensions of `py_list` get converted to DataSlice
 jagged shape while remaining dimensions get converted to Koda lists.
 
-```py
+```py {.pycon-doctest}
 # Specify from_dim
-kd.from_py([[1, 2], [3, 4]], from_dim=0)
-# DataItem(List[List[1, 2], List[3, 4]], schema: OBJECT)
+>>> kd.from_py([[1, 2], [3, 4]], from_dim=0)
+DataItem(List[List[1, 2], List[3, 4]], schema: OBJECT, bag_id: ...)
 
 # Specify both from_dim and schema
-kd.from_py([[1, 2], [3, 4]], from_dim=1, schema=kd.list_schema(kd.INT64))
-# DataSlice([List[1, 2], List[3, 4]], schema: LIST[INT64], ndims: 1, size: 2)
+>>> kd.from_py([[1, 2], [3, 4]], from_dim=1, schema=kd.list_schema(kd.INT64))
+DataSlice([List[1, 2], List[3, 4]], schema: LIST[INT64], ...)
 
-kd.from_py([[1, 2], [3, 4]], from_dim=2)
-# DataSlice([[1, 2], [3, 4]], schema: INT32, ndims: 2, size: 4)
+>>> kd.from_py([[1, 2], [3, 4]], from_dim=2)
+DataSlice([[1, 2], [3, 4]], schema: OBJECT, ...)
 ```
 
 ## Find the first present item in a DataSlice
 
 NOTE: It works no matter what shape (0D, 1D, 2D+) the DataSlice has.
 
-```py
-def first_present(x):
-  return x.flatten().select_present().S[0]
+```py {.pycon-doctest}
+>>> def first_present(x):
+...   return x.flatten().select_present().S[0]
 
-first_present(kd.slice([[1, 2, 3], [4, 5]]))  # 1
-first_present(kd.item(6))  # 6
-first_present(kd.slice([ None, None, 3, 4]))  # 3
+>>> first_present(kd.slice([[1, 2, 3], [4, 5]]))
+DataItem(1, schema: INT32)
+
+>>> first_present(kd.item(6))
+DataItem(6, schema: INT32)
+
+>>> first_present(kd.slice([ None, None, 3, 4]))
+DataItem(3, schema: INT32)
 
 # Returns missing if no present item is found
-first_present(kd.slice([1, 2, 3, 4]) & kd.missing)  # DataItem(None, schema: INT32)
+>>> first_present(kd.slice([1, 2, 3, 4]) & kd.missing)
+DataItem(None, schema: INT32)
 ```
 
 ## Convert a DataSlice with a jagged shape into one with a uniform shape
@@ -164,23 +233,23 @@ first_present(kd.slice([1, 2, 3, 4]) & kd.missing)  # DataItem(None, schema: INT
 Suppose we have the following DataSlice with a jagged shape and we want to
 convert it to a DataSlice with 3x4 uniform shape.
 
-```py
-x = kd.slice([[1, 2],
-              [3, 4, 5],
-              [6, 7, 8, 9]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2],
+...              [3, 4, 5],
+...              [6, 7, 8, 9]])
 ```
 
 A naive attempt would be `x.S[:3, :4]`. However, unfortunately, it does not work
 and returns a DataSlice which is the same as `x` because it does not **pad**
 empty spaces with missing items. A correct way would be as follows.
 
-```py
-i = kd.range(3)
-j = kd.tile(kd.range(4), kd.shapes.new(3))
-x.S[i, j]
-# [[1, 2, None, None],
-#  [3, 4, 5,    None],
-#  [6, 7, 8,    9]]
+```py {.pycon-doctest}
+>>> i = kd.range(3)
+>>> j = kd.tile(kd.range(4), kd.shapes.new(3))
+>>> x.S[i, j].to_py()
+[[1, 2, None, None],
+ [3, 4, 5,    None],
+ [6, 7, 8,    9]]
 ```
 
 If we want to pad with a default value, we can simply add `x.S[i, j] |
@@ -188,20 +257,20 @@ default_value`.
 
 We can even generalize it into a function working for any shape.
 
-```py
-def pad(x, shape, default_value=None):
-  indices = []
-  for i, dim in enumerate(shape):
-    indices.append(kd.tile(kd.range(dim), kd.shapes.new(*shape[:i])))
-  res = x.S[*indices]
-  if default_value is not None:
-    res = res | default_value
-  return res
+```py {.pycon-doctest}
+>>> def pad(x, shape, default_value=None):
+...  indices = []
+...  for i, dim in enumerate(shape):
+...    indices.append(kd.tile(kd.range(dim), kd.shapes.new(*shape[:i])))
+...  res = x.S[*indices]
+...  if default_value is not None:
+...    res = res | default_value
+...  return res
 
-pad(x, (3, 4))
-pad(x, (2, 5), 0)
-# [[1, 2, 0, 0, 0],
-#  [3, 4, 5, 0, 0]]
+... pad(x, (3, 4))
+... pad(x, (2, 5), 0)
+[[1, 2, 0, 0, 0],
+  [3, 4, 5, 0, 0]]
 ```
 
 ## Transpose a DataSlice as a matrix
@@ -209,18 +278,18 @@ pad(x, (2, 5), 0)
 Suppose we have the following DataSlice with a uniform 2D shape and we want to
 transpose it by swapping axis 0 and axis 1.
 
-```py
-x = kd.slice([[1, 2, 3, 4],
-              [5, 6, 7, 8],
-              [9, 10, 11, 12]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2, 3, 4],
+...              [5, 6, 7, 8],
+...              [9, 10, 11, 12]])
 
-i = kd.range(4)
-j = kd.tile(kd.range(3), kd.shapes.new(4))
-x.S[j, i]
-# [[1, 5, 9],
-#  [2, 6, 10],
-#  [3, 7, 11],
-#  [4, 8, 12]]
+... i = kd.range(4)
+... j = kd.tile(kd.range(3), kd.shapes.new(4))
+... x.S[j, i]
+[[1, 5, 9],
+ [2, 6, 10],
+ [3, 7, 11],
+ [4, 8, 12]]
 ```
 
 What if the DataSlice has more than two dimensions? Koda DataSlices are not
@@ -231,17 +300,20 @@ data type and related matrix operations. For now, however, it is much easier and
 potentially faster to delegate the work to other libraries (e.g. Numpy) for
 matrix operation.
 
-```py
-x = kd.range(24).reshape(kd.shapes.new(3, 4, 2))
-# [[[0, 1], [2, 3], [4, 5], [6, 7]],
-#  [[8, 9], [10, 11], [12, 13], [14, 15]],
-#  [[16, 17], [18, 19], [20, 21], [22, 23]]]
+```py {.pycon-doctest}
+>>> from koladata import kd_ext
+>>> import numpy as np
+>>> x = kd.range(24).reshape(kd.shapes.new(3, 4, 2))
+>>> x.to_py()
+[[[0, 1], [2, 3], [4, 5], [6, 7]],
+ [[8, 9], [10, 11], [12, 13], [14, 15]],
+ [[16, 17], [18, 19], [20, 21], [22, 23]]]
 
-arr = kd_ext.npkd.to_array(x)
-transposed_arr = np.transpose(arr, (2, 1, 0))
-transposed_x = kd_ext.npkd.from_array(transposed_arr)
-# [[[0, 8, 16], [2, 10, 18], [4, 12, 20], [6, 14, 22]],
-#  [[1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]]]
+>>> arr = kd_ext.npkd.to_array(x)
+>>> transposed_arr = np.transpose(arr, (2, 1, 0))
+>>> kd_ext.npkd.from_array(transposed_arr).to_py()
+[[[0, 8, 16], [2, 10, 18], [4, 12, 20], [6, 14, 22]],
+ [[1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]]]
 ```
 
 <section class='zippy'>
@@ -253,11 +325,13 @@ by `(2, 1, 0)`. That is, swap the first and third axes. The result
 `transposed_x` should satisfy the condition `transposed_x.S[k, j, i] = x.S[i, j,
 k]`. Thus we can have the following code.
 
-```py
-k = kd.range(2)
-j = kd.tile(kd.range(4), kd.shapes.new(2))
-i = kd.tile(kd.range(3), kd.shapes.new(2, 4))
-x.S[i, j, k]
+```py {.pycon-doctest}
+>>> k = kd.range(2)
+>>> j = kd.tile(kd.range(4), kd.shapes.new(2))
+>>> i = kd.tile(kd.range(3), kd.shapes.new(2, 4))
+>>> x.S[i, j, k].to_py()
+[[[0, 8, 16], [2, 10, 18], [4, 12, 20], [6, 14, 22]],
+ [[1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]]]
 ```
 
 </section>
@@ -267,43 +341,41 @@ x.S[i, j, k]
 Suppose we want to add a dimension to a DataSlice by moving a sliding window
 across the last dimension and selecting items in the window.
 
-```py
-x = kd.slice([[1, 2, 3],
-              [4, 5, 6, 7],
-              [8, 9, 10, 11, 12]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2, 3],
+...               [4, 5, 6, 7],
+...               [8, 9, 10, 11, 12]])
 
-def slide_window(x, size):
-  indices = kd.index(x)
-  return x.S[indices: indices + size]
+>>> def slide_window(x, size):
+...   indices = kd.index(x)
+...   return x.S[indices: indices + size]
 
-slide_window(x, 2)
-# [[[1, 2], [2, 3], [3]],
-#  [[4, 5], [5, 6], [6, 7], [7]],
-#  [[8, 9], [9, 10], [10, 11], [11, 12], [12]]]
+>>> slide_window(x, 2).to_py()
+[[[1, 2], [2, 3], [3]],
+ [[4, 5], [5, 6], [6, 7], [7]],
+ [[8, 9], [9, 10], [10, 11], [11, 12], [12]]]
 ```
 
 What if we want to add paddings?
 
-```py
+```py {.pycon-doctest}
 # To understand how it works, you can run the following code line by line.
-def slide_window2(x, size):
-  num_to_pad = size - 1
+>>> def slide_window2(x, size):
+...   num_to_pad = size - 1
+...   # Pad heads and tails across the last dimension with missing items
+...   padded_value = kd.item(None, x.get_schema())
+...   padded_value = kd.expand_to_shape(padded_value, x.get_shape()[:-1]).repeat(num_to_pad)
+...   padded_x = kd.concat(padded_value, x, padded_value)
+...   # Calculate the indices for subslicing
+...   full_ds_for_shape = kd.present_shaped_as(padded_x)
+...   indices = kd.index(full_ds_for_shape)
+...   indices = indices.S[:kd.agg_size(x) + num_to_pad]
+...   return padded_x.S[indices: indices + size]
 
-  # Pad heads and tails across the last dimension with missing items
-  padded_value = kd.item(None, x.get_schema())
-  padded_value = kd.expand_to_shape(padded_value, x.get_shape()[:-1]).repeat(num_to_pad)
-  padded_x = kd.concat(padded_value, x, padded_value)
-
-  # Calculate the indices for subslicing
-  full_ds_for_shape = kd.present_shaped_as(padded_x)
-  indices = kd.index(full_ds_for_shape)
-  indices = indices.S[:kd.agg_size(x) + num_to_pad]
-  return padded_x.S[indices: indices + size]
-
-slide_window2(x, 3)
-# [[[None, None, 1], [None, 1, 2], [1, 2, 3], [2, 3, None], [3, None, None]],
-#  [[None, None, 4], [None, 4, 5], [4, 5, 6], [5, 6, 7], [6, 7, None], [7, None, None]],
-#  [[None, None, 8], [None, 8, 9], [8, 9, 10], [9, 10, 11], [10, 11, 12], [11, 12, None], [12, None, None]]]
+>>> slide_window2(x, 3).to_py()
+[[[None, None, 1], [None, 1, 2], [1, 2, 3], [2, 3, None], [3, None, None]],
+ [[None, None, 4], [None, 4, 5], [4, 5, 6], [5, 6, 7], [6, 7, None], [7, None, None]],
+ [[None, None, 8], [None, 8, 9], [8, 9, 10], [9, 10, 11], [10, 11, 12], [11, 12, None], [12, None, None]]]
 ```
 
 ## Add a dimension by accumulating items up to current position
@@ -312,47 +384,54 @@ Suppose we want to add a dimension to a DataSlice and each item in the original
 DataSlice has child items as items accumulating up to its position in the new
 dimension. For example,
 
-```py
-x = kd.slice([[1, 2],
-              [3, 4, 5],
-              [6, 7, 8, 9]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2],
+...               [3, 4, 5],
+...               [6, 7, 8, 9]])
 
-indices = kd.range(kd.index(x) + 1)
-# [[[0], [0, 1]],
-#  [[0], [0, 1], [0, 1, 2]],
-#  [[0], [0, 1], [0, 1, 2], [0, 1, 2, 3]]]
+>>> indices = kd.range(kd.index(x) + 1)
+>>> indices.to_py()
+[[[0], [0, 1]],
+ [[0], [0, 1], [0, 1, 2]],
+ [[0], [0, 1], [0, 1, 2], [0, 1, 2, 3]]]
 
-x.S[indices]
-# [[[1], [1, 2]],
-#  [[3], [3, 4], [3, 4, 5]],
-#  [[6], [6, 7], [6, 7, 8], [6, 7, 8, 9]]]
+>>> x.S[indices].to_py()
+[[[1], [1, 2]],
+ [[3], [3, 4], [3, 4, 5]],
+ [[6], [6, 7], [6, 7, 8], [6, 7, 8, 9]]]
 
 # It can be even simplified as
-x.S[:kd.index(x) + 1]
+>>> x.S[:kd.index(x) + 1].to_py()
+[[[1], [1, 2]],
+ [[3], [3, 4], [3, 4, 5]],
+ [[6], [6, 7], [6, 7, 8], [6, 7, 8, 9]]]
 ```
 
 When `x` is sparse, we need to decide if child items corresponding to missing
 items in the new dimension should be empty or not.
 
-```py
-x = kd.slice([[1, 2],
-              [3, None, 5],
-              [6, None, None, 9]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2],
+...               [3, None, 5],
+...               [6, None, None, 9]])
 
-# By default, missing items reuslt in empty child dimensions
-x.S[:kd.index(x) + 1]
-# [[[1], [1, 2]],
-#  [[3], [], [3, None, 5]],
-#  [[6], [], [], [6, None, None, 9]]]
+# By default, missing items result in empty child dimensions
+>>> x.S[:kd.index(x) + 1].to_py()
+[[[1], [1, 2]],
+ [[3], [], [3, None, 5]],
+ [[6], [], [], [6, None, None, 9]]]
 
 # We need to make 'x' full by adding a default value before calling kd.index
-x.S[:kd.index(x | 0) + 1]
-# [[[1], [1, 2]],
-#  [[3], [3, None], [3, None, 5]],
-#  [[6], [6, None], [6, None, None], [6, None, None, 9]]]
+>>> x.S[:kd.index(x | 0) + 1].to_py()
+[[[1], [1, 2]],
+ [[3], [3, None], [3, None, 5]],
+ [[6], [6, None], [6, None, None], [6, None, None, 9]]]
 
 # If no good default value can be used, we can also do this
-x.S[:kd.index(kd.present_shaped_as(x)) + 1]
+>>> x.S[:kd.index(kd.present_shaped_as(x)) + 1].to_py()
+[[[1], [1, 2]],
+ [[3], [3, None], [3, None, 5]],
+ [[6], [6, None], [6, None, None], [6, None, None, 9]]]
 ```
 
 ## Implement cumulative operators using aggregational operators
@@ -372,21 +451,26 @@ to the aggregational operator.
 NOTE: Cumulative operators implemented this way has `O(N^2)` time complexity
 whereas native version has `O(N)` time complexity.
 
-```py
-x = kd.slice([[1, 2],
-              [3, None, 5],
-              [6, None, None, 9]])
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, 2],
+...               [3, None, 5],
+...               [6, None, None, 9]])
 
 # Native version
-kd.math.cum_sum(x)  # [[1, 3], [3, None, 8], [6, None, None, 15]]
+>>> kd.math.cum_sum(x).to_py()
+[[1, 3], [3, None, 8], [6, None, None, 15]]
 
 # Note the items corresponding to missing items are 0 rather than missing
-kd.agg_sum(x.S[:kd.index(x) + 1])  # [[1, 3], [3, 0, 8], [6, 0, 0, 15]]
+>>> kd.agg_sum(x.S[:kd.index(x) + 1]).to_py()
+[[1, 3], [3, 0, 8], [6, 0, 0, 15]]
+
 # We need to mask by x's presence
-kd.agg_sum(x.S[:kd.index(x) + 1]) & kd.has(x)  # [[1, 3], [3, None, 8], [6, None, None, 15]]
+>>> (kd.agg_sum(x.S[:kd.index(x) + 1]) & kd.has(x)).to_py()
+[[1, 3], [3, None, 8], [6, None, None, 15]]
 
 # We can also customize the behavior for missing items
-kd.agg_sum(x.S[:kd.index(x | 0) + 1])  # [[1, 3], [3, 3, 8], [6, 6, 6, 15]]
+>>> kd.agg_sum(x.S[:kd.index(x | 0) + 1]).to_py()
+[[1, 3], [3, 3, 8], [6, 6, 6, 15]]
 ```
 
 ## Changing the shape of DataSlices
@@ -402,22 +486,30 @@ Suppose we have a DataSlice with a given shape of ndim `R` and wish to merge `N`
 dimensions to create a DataSlice with ndim `R-N+1`, then `kd.flatten` can be
 used:
 
-```py
+```py {.pycon-doctest}
 # By default, `kd.flatten` returns a 1-dimensional DataSlice - even for scalars.
-kd.flatten(kd.slice([[1, 2], [3]]))  # [1, 2, 3]
-kd.slice([[1, 2], [3]]).flatten()  # [1, 2, 3]
-kd.item(0).flatten()  # [0]
+>>> kd.flatten(kd.slice([[1, 2], [3]]))
+DataSlice([1, 2, 3], schema: INT32, ...)
+
+>>> kd.slice([[1, 2], [3]]).flatten()
+DataSlice([1, 2, 3], schema: INT32, ...)
+
+>>> kd.item(0).flatten()
+DataSlice([0], schema: INT32, ...)
 
 # One can optionally provide `from_dim` and `to_dim` parameters to specify which
 # consecutive dimensions should be merged.
-kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(1, 3)  # [[1, 2, 3], [4, 5, 6]]
+>>> kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(1, 3).to_py()
+[[1, 2, 3], [4, 5, 6]]
 
 # Alternatively, we can use negative values to specify that that last two
 # dimension should be merged.
-kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(-2)  # [[1, 2, 3], [4, 5, 6]]
+>>> kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(-2).to_py()
+[[1, 2, 3], [4, 5, 6]]
 
 # If `from == to`, a size-1 dimension is inserted at `from_dim`.
-kd.slice([1, 2, 3]).flatten(1, 1)  # [[1], [2], [3]]
+>>> kd.slice([1, 2, 3]).flatten(1, 1).to_py()
+[[1], [2], [3]]
 
 # This ensures that:
 #   `kd.flatten(ds, from, to).get_ndim() == ds.get_ndim() - (to - from) + 1`
@@ -427,9 +519,10 @@ kd.slice([1, 2, 3]).flatten(1, 1)  # [[1], [2], [3]]
 While `kd.flatten` operates on DataSlices, it's possible to use it in
 combination with List implosions and explosions to flatten nested Lists:
 
-```py
-list_item = kd.list([[1, 2], [3]])
-list_item[:][:].flatten().implode()  # kd.list([1, 2, 3])
+```py {.pycon-doctest}
+>>> list_item = kd.list([[1, 2], [3]])
+>>> list_item[:][:].flatten().implode()
+DataItem(List[1, 2, 3], schema: LIST[INT32], bag_id: ...)
 ```
 
 Suppose instead that we have a DataSlice of size `N` (with arbitrary
@@ -437,30 +530,42 @@ dimensionality) that we wish to change the shape of, either by providing a new
 JaggedShape (with the same size), or by providing a tuple of per-dimension
 sizes. In such cases, `kd.reshape` can be used:
 
-```py
-ds = kd.slice([[1, 2], [3]])
+```py {.pycon-doctest}
+>>> ds = kd.slice([[1, 2], [3]])
 
 # Providing a shape directly.
-kd.reshape(ds), kd.shapes.new(3))  # [1, 2, 3]
-ds.reshape(kd.shapes.new(3))  # [1, 2, 3]
+>>> kd.reshape(ds, kd.shapes.new(3))
+DataSlice([1, 2, 3], schema: INT32, ...)
+
+>>> ds.reshape(kd.shapes.new(3))
+DataSlice([1, 2, 3], schema: INT32, ...)
 
 # Providing a tuple of sizes. Each dimension size can either be a scalar (each
 # row has the same number of elements), or a DataSlice if the dimension is
 # Jagged.
-ds.reshape((3,))  # [1, 2, 3]
-ds.reshape((2, kd.slice([1, 2])))  # [[1], [2, 3]]
+>>> ds.reshape((3,))
+DataSlice([1, 2, 3], schema: INT32, ...)
+
+>>> ds.reshape((2, kd.slice([1, 2])))
+DataSlice([[1], [2, 3]], schema: INT32, ...)
 
 # One of the dimensions is also allowed to be `-1`, indicating that it should
 # resolve to a uniform size (represented by a scalar) inferred from remaining
 # dimensions and the size of the input.
-ds.reshape((-1, kd.slice([1, 2])))  # [[1], [2, 3]]
-kd.slice([1, 2, 3, 4, 5, 6]).reshape((2, kd.slice([1, 2]), -1))  # [[[1, 2]], [[3, 4], [5, 6]]]
+>>> ds.reshape((-1, kd.slice([1, 2])))
+DataSlice([[1], [2, 3]], schema: INT32, ...)
+
+>>> kd.slice([1, 2, 3, 4, 5, 6]).reshape((2, kd.slice([1, 2]), -1))
+DataSlice([[[1, 2]], [[3, 4], [5, 6]]], schema: INT32, ...)
 
 # `kd.reshape_as` is a helper operator to reshape one DataSlice to the shape
 # of another.
-kd.reshape_as(ds, kd.slice([0, 0, 0]))  # [1, 2, 3]
+>>> kd.reshape_as(ds, kd.slice([0, 0, 0]))
+DataSlice([1, 2, 3], schema: INT32, ...)
+
 # This is equivalent to
-ds.reshape(kd.slice([0, 0, 0]).get_shape())  # [1, 2, 3]
+ds.reshape(kd.slice([0, 0, 0]).get_shape())
+DataSlice([1, 2, 3], schema: INT32, ...)
 ```
 
 NOTE: the old and new shapes must have the same size.
@@ -473,8 +578,9 @@ broadcasted to the shape of another if its shape is a prefix of the other shape.
 Most of the time, broadcasting is done automatically and allows e.g. the
 following to succeed without manual broadcasting:
 
-```py
-kd.slice([1, 2]) + kd.slice([[3, 4], [5]])  # [[4, 5], [7]]
+```py {.pycon-doctest}
+>>> kd.slice([1, 2]) + kd.slice([[3, 4], [5]])
+DataSlice([[4, 5], [7]], schema: INT32, ...)
 ```
 
 In some cases, it's useful to perform manual broadcasting through
@@ -482,22 +588,32 @@ In some cases, it's useful to perform manual broadcasting through
 [`kd.align`](api_reference.md#kd.slices.align) which allows for more
 fine-grained behavior:
 
-```py
+```py {.pycon-doctest}
 # Expanding to another slice using normal broadcasting rules.
-kd.slice([1, 2]).expand_to(kd.slice([[0, 0], [0]]))  # [[1, 1], [2]]
+>>> kd.slice([1, 2]).expand_to(kd.slice([[0, 0], [0]]))
+DataSlice([[1, 1], [2]], schema: INT32...)
 
 # Aligning to the "common shape"
-a, b, c = kd.align(kd.item(1), kd.slice([['a', 'b'], ['c']]), kd.slice([1.0, 2.0]))
-# a: kd.slice([[1, 1], [1]])
-# b: kd.slice([['a', 'b'], ['c']])
-# c: kd.slice([[1.0, 1.0], [2.0]])
+>>> a, b, c = kd.align(kd.item(1), kd.slice([['a', 'b'], ['c']]), kd.slice([1.0, 2.0]))
+>>> a
+DataSlice([[1, 1], [1]], schema: INT32, ...)
+
+>>> b
+DataSlice([['a', 'b'], ['c']], schema: STRING, ...)
+
+>>> c
+DataSlice([[1.0, 1.0], [2.0]], schema: FLOAT32, ...)
 
 # By providing `ndim`, we implode the last `ndim` dimensions, expand and then
 # explode again. This allows us to implement e.g. cross-products, pairs and
 # more:
-x = kd.slice([1, 2, 3])
-x_expanded = x.expand_to(x, ndim=1)  # [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
-kd.zip(x, x_expanded).flatten(0, 2)  # [[1, 1], [1, 2], ..., [3, 2], [3, 3]]
+>>> x = kd.slice([1, 2, 3])
+>>> x_expanded = x.expand_to(x, ndim=1)
+>>> x_expanded.to_py()
+[[1, 2, 3], [1, 2, 3], [1, 2, 3]]
+
+>>> kd.zip(x, x_expanded).flatten(0, 2).to_py()
+[[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3]]
 ```
 
 ## Concatenating DataSlices of different ranks
@@ -510,18 +626,18 @@ caller to ensure that this is the case.
 
 Suppose we have the following inputs:
 
-```py
-a = kd.slice([[[1, 2], [3]], [[5], [7, 8]]])
-b = kd.slice([['a', 'b'], ['c', 'd']])
+```py {.pycon-doctest}
+>>> a = kd.slice([[[1, 2], [3]], [[5], [7, 8]]])
+>>> b = kd.slice([['a', 'b'], ['c', 'd']])
 ```
 
 If we call `kd.concat(a, b)`, we may have a couple of different expectations of
 what will happen. For example:
 
 ```py
-1) -> [[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]]
-2) -> [[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]]
-3) -> [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
+1. => [[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]]
+2. => [[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]]
+3. => [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
 ```
 
 To achieve these outcomes, we mainly have two tools at our disposal:
@@ -531,30 +647,45 @@ To achieve these outcomes, we mainly have two tools at our disposal:
 
 Expected outcome (1) uses the standard Koda broadcasting rules. `b` is
 broadcasted to the shape of `a`, and data is repeated as needed. Here, we can
-either use [`kd.align`]((api_reference.md#kd.slices.align) to align all inputs,
+either use [`kd.align`](api_reference.md#kd.slices.align) to align all inputs,
 or [`kd.expand_to`](api_reference.md#kd.slices.expand_to) directly on specific
 inputs:
 
-```py
-b_expanded = b.expand_to(a)  # [[['a', 'a'], ['b']], [['c'], ['d', 'd']]]
-kd.concat(a, b_expanded)  # [[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]]
-# Same as `kd.concat(*kd.align(a, b))`
+```py {.pycon-doctest}
+>>> b_expanded = b.expand_to(a)
+>>> b_expanded
+DataSlice([[['a', 'a'], ['b']], [['c'], ['d', 'd']]], schema: STRING, ...)
+
+>>> kd.concat(a, b_expanded)
+DataSlice([[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]], schema: OBJECT, ...)
+
+# Same as
+>>> kd.concat(*kd.align(a, b))
+DataSlice([[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]], schema: OBJECT, ...)
 ```
 
 Expected outcome (2) adds a unit dimension to ensure that the ranks are the same
 without duplicating data.
 
-```py
-b_repeated = b.repeat(1)  # [[['a'], ['b']], [['c'], ['d']]]
-kd.concat(a, b_repeated)  # [[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]]
+```py {.pycon-doctest}
+>>> b_repeated = b.repeat(1)
+>>> b_repeated
+DataSlice([[['a'], ['b']], [['c'], ['d']]], schema: STRING, ...)
+
+>>> kd.concat(a, b_repeated)
+DataSlice([[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]], schema: OBJECT, ...)
 ```
 
 Expected outcome (3) repeats each inner row of `b` once per element in `b`
 before concatenating. This can be achieved through `kd.expand_to`:
 
-```py
-b_expanded = b.expand_to(b, ndim=1)  # [[['a', 'b'], ['a', 'b']], [['c', 'd'], ['c', 'd']]]
-kd.concat(a, b_expanded)  # [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
+```py {.pycon-doctest}
+>>> b_expanded = b.expand_to(b, ndim=1)
+>>> b_expanded
+DataSlice([[['a', 'b'], ['a', 'b']], [['c', 'd'], ['c', 'd']]], schema: STRING, ...)
+
+>>> kd.concat(a, b_expanded)
+DataSlice([[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]], schema: OBJECT, ...)
 ```
 
 ## Grouping by keys and computing statistics
@@ -570,29 +701,44 @@ Suppose we wish to find the unique values of a DataSlice, or to obtain a
 representative value in one DataSlice for each group of some other Dataslice.
 Then `kd.group_by` can be used:
 
-```py
+```py {.pycon-doctest}
 # Finding unique values.
-grouped = kd.group_by(kd.slice([1, 2, 3, 1, None, 2]))  # [[1, 1], [2, 2], [3]]
-grouped.S[0]  # [1, 2, 3]
+>>> grouped = kd.group_by(kd.slice([1, 2, 3, 1, None, 2]))
+>>> grouped
+DataSlice([[1, 1], [2, 2], [3]], schema: INT32, ...)
+
+>>> grouped.S[0]
+DataSlice([1, 2, 3], schema: INT32, ...)
+
 # Equivalent to:
-kd.unique(kd.slice([1, 2, 3, 1, None, 2]))  # [1, 2, 3]
+>>> kd.unique(kd.slice([1, 2, 3, 1, None, 2]))
+DataSlice([1, 2, 3], schema: INT32, ...)
 
 # Multi-dimensional DataSlices are grouped by the final dimension.
-kd.group_by(kd.slice([[1, 2, 1], [3, 1]])).S[0]  # [[1, 2], [3, 1]]
+>>> kd.group_by(kd.slice([[1, 2, 1], [3, 1]])).S[0]
+DataSlice([[1, 2], [3, 1]], schema: INT32, ...)
 
 # Finding representative values based on ids of another slice.
-values = kd.slice(['a', 'b', 'c', 'd', 'e'])
-ids = kd.slice([1, 1, 2, 3, 2])
+>>> values = kd.slice(['a', 'b', 'c', 'd', 'e'])
+>>> ids = kd.slice([1, 1, 2, 3, 2])
+
 # `values` are grouped by `ids`.
-grouped = kd.group_by(values, ids)  # [['a', 'b'], ['c', 'e'], ['d']]
-grouped.S[0]  # ['a', 'c', 'd']
+>>> grouped = kd.group_by(values, ids)
+>>> grouped
+DataSlice([['a', 'b'], ['c', 'e'], ['d']], schema: STRING, ...)
+
+>>> grouped.S[0]
+DataSlice(['a', 'c', 'd'], schema: STRING, ...)
 
 # Finding representative values based on several ids.
-values = kd.slice(['a', 'b', 'c', 'd', 'e'])
-ids_1 = kd.slice([1, 1, 2, 3, 2])
-ids_2 = kd.slice([1, 1, 3, 3, 2])
+>>> values = kd.slice(['a', 'b', 'c', 'd', 'e'])
+>>> ids_1 = kd.slice([1, 1, 2, 3, 2])
+>>> ids_2 = kd.slice([1, 1, 3, 3, 2])
+
 # `values` are grouped by pairs of `ids_1` and `ids_2`.
-grouped = kd.group_by(values, ids_1, ids_2)  # [['a', 'b'], ['c'], ['d'], ['e']]
+>>> grouped = kd.group_by(values, ids_1, ids_2)
+>>> grouped
+DataSlice([['a', 'b'], ['c'], ['d'], ['e']], schema: STRING, ...)
 ```
 
 NOTE: [`kd.unique(ds)`](api_reference.md#kd.slices.unique) is a faster and
@@ -603,29 +749,28 @@ Suppose instead we have a DataSlice of `Books` containing, among other things,
 the attributes `year` (specifying the year the book was written) and `pages`
 (specifying the number of pages in the book):
 
-```py
-Book = kd.named_schema('Book')
-books = Book(
-  year=kd.slice([1997, 2001, 1928, 1928, 2001]),
-  pages=kd.slice([212, 918, 331, 512, 331]),
-  ...
-)
+```py {.pycon-doctest}
+>>> Book = kd.named_schema('Book')
+>>> books = Book.new(
+...   year=kd.slice([1997, 2001, 1928, 1928, 2001]),
+...   pages=kd.slice([212, 918, 331, 512, 331]),
+... )
 ```
 
 `kd.group_by` allows us to compute statistics based on these attributes, or to
 create hierarchical data:
 
-```py
+```py {.pycon-doctest}
 # Group by year
-grouped_books = kd.group_by(books, books.year)
-# [
-#   [Book(pages=212, year=1997)],
-#   [Book(pages=918, year=2001), Book(pages=331, year=2001)],
-#   [Book(pages=331, year=1928), Book(pages=512, year=1928)],
-# ]
+>>> grouped_books = kd.group_by(books, books.year)
+>>> grouped_books.to_py()
+[[Obj(pages=212, year=1997)],
+  [Obj(pages=918, year=2001), Obj(pages=331, year=2001)],
+  [Obj(pages=331, year=1928), Obj(pages=512, year=1928)]]
 
 # Computing the average page count per year
-kd.math.agg_mean(grouped_books.pages)  # [212.0, 624.5, 421.5]
+>>> kd.math.agg_mean(grouped_books.pages).to_py()
+[212.0, 624.5, 421.5]
 ```
 
 ## Translating values through key-value mappings
@@ -635,15 +780,16 @@ Suppose we have two DataSlices `docs` (representing some document with `id`,
 interest), and we wish to find the visits per document.
 [`kd.translate`](api_reference.md#kd.slices.translate) can then be useful:
 
-```py
-Doc = kd.named_schema('Doc')
-docs = Doc(
-  id=kd.slice([0, 1, 2, 3, 4]),
-  visits=kd.slice([11, 212, 99, 123, 44]),
-  domain=kd.slice(['a', 'b', 'a', 'c', 'd']),
-)
-doc_ids = kd.slice([1, 9, 0])
-kd.translate(doc_ids, docs.id, docs.visits)  # [212, None, 11]
+```py {.pycon-doctest}
+>>> Doc = kd.named_schema('Doc')
+>>> docs = Doc.new(
+...   id=kd.slice([0, 1, 2, 3, 4]),
+...   visits=kd.slice([11, 212, 99, 123, 44]),
+...   domain=kd.slice(['a', 'b', 'a', 'c', 'd']),
+... )
+>>> doc_ids = kd.slice([1, 9, 0])
+>>> kd.translate(doc_ids, docs.id, docs.visits).to_py()
+[212, None, 11]
 ```
 
 Note that this requires `docs.id` to be unique within the final dimension.
@@ -654,26 +800,40 @@ visits for all documents of a selection of `domains`. Multiple documents may
 have the same domain, so `kd.translate` is not appropriate. Instead,
 [`kd.translate_group`](api_reference.md#kd.slices.translate_group) can be used:
 
-```py
-domains = kd.slice(['a', 'b', 'f'])
-visits = kd.translate_group(domains, docs.domain, docs.visits)  # [[11, 99], [212], []]
-kd.agg_sum(visits)  # [110, 212, 0]
+```py {.pycon-doctest}
+>>> domains = kd.slice(['a', 'b', 'f'])
+>>> visits = kd.translate_group(domains, docs.domain, docs.visits)
+>>> visits.to_py()
+[[11, 99], [212], []]
+
+>>> kd.agg_sum(visits).to_py()
+[110, 212, 0]
 ```
 
 `kd.translate_group` can also be mimicked through a combination of
 `kd.translate` and [`kd.group_by`](api_reference.md#kd.slices.group_by), which
 is a powerful combination that can be tweaked for more advanced transformations:
 
-```py
-groups = kd.group_by(docs, docs.domain)
-# [
-#   [Doc(domain='a', id=0, visits=11), Doc(domain='a', id=2, visits=99)],
-#   [Doc(domain='b', id=1, visits=212)],
-#   [Doc(domain='c', id=3, visits=123)],
-#   [Doc(domain='d', id=4, visits=44)],
-# ]
-keys_from = groups.S[0].domain  # ['a', 'b', 'c', 'd']
-values_from = groups.visits.implode()  # [List[11, 99], List[212], List[123], List[44]]
-visits = kd.translate(domains, keys_from, values_from)  # [List[11, 99], List[212], None]
-kd.agg_sum(visits[:])  # [110, 212, 0]
+```py {.pycon-doctest}
+>>> groups = kd.group_by(docs, docs.domain)
+>>> groups.to_py()
+[[Obj(domain='a', id=0, visits=11), Obj(domain='a', id=2, visits=99)],
+  [Obj(domain='b', id=1, visits=212)],
+  [Obj(domain='c', id=3, visits=123)],
+  [Obj(domain='d', id=4, visits=44)]]
+
+>>> keys_from = groups.S[0].domain
+>>> keys_from.to_py()
+['a', 'b', 'c', 'd']
+
+>>> values_from = groups.visits.implode()
+>>> values_from
+DataSlice([List[11, 99], List[212], List[123], List[44]], schema: LIST[INT32], ...)
+
+>>> visits = kd.translate(domains, keys_from, values_from)
+>>> visits
+DataSlice([List[11, 99], List[212], None], schema: LIST[INT32], ...)
+
+>>> kd.agg_sum(visits[:])
+DataSlice([110, 212, 0], schema: INT32, ...)
 ```
