@@ -294,7 +294,7 @@ def _new(items, item_schema, schema, itemid):  # pylint: disable=unused-argument
 )
 @arolla.optools.as_lambda_operator(
     'kd.lists.new',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.lists.new]',
+    aux_policy='koladata_adhoc_binding_policy[kd.lists.new]',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.items),
         qtype_utils.expect_data_slice_or_unspecified(P.item_schema),

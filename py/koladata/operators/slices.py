@@ -242,7 +242,7 @@ def size(x):
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=P.args,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def align(*args):  # pylint: disable=unused-argument
   """Expands all of the DataSlices in `args` to the same common shape.
@@ -1566,7 +1566,7 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
         _expect_data_slices_or_slices_or_ellipsis(P.slices),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def subslice(x, *slices):  # pylint: disable=unused-argument
   """Slices `x` across all of its dimensions based on the provided `slices`.
@@ -1914,7 +1914,7 @@ def _zip(*args):
 @optools.add_to_registry(aliases=['kd.item'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.item',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.item]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.item]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -1984,7 +1984,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.slice'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.slice',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.slice]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.slice]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -2067,7 +2067,7 @@ def _typed_slice_bind_args(x, schema):
 @optools.add_to_registry(aliases=['kd.int32'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.int32',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.int32]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.int32]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2087,7 +2087,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.int64'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.int64',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.int64]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.int64]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2107,7 +2107,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.float32'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.float32',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.float32]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.float32]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2127,7 +2127,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.float64'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.float64',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.float64]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.float64]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2147,7 +2147,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.str'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.str',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.str]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.str]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2227,7 +2227,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.bytes'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.bytes',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.bytes]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.bytes]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2247,7 +2247,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.bool'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.bool',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.bool]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.bool]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2267,7 +2267,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 @optools.add_to_registry(aliases=['kd.mask'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.mask',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.mask]',
+    aux_policy='koladata_adhoc_binding_policy[kd.slices.mask]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -2289,7 +2289,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 @arolla.optools.as_lambda_operator(
     'kd.slices.expr_quote',
-    experimental_aux_policy=(
+    aux_policy=(
         'koladata_adhoc_binding_policy[kd.slices.expr_quote]'
     ),
     qtype_constraints=[

@@ -51,7 +51,7 @@ def _shaped(
 )
 @arolla.optools.as_lambda_operator(
     'kd.dicts.new',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.dicts.new]',
+    aux_policy='koladata_adhoc_binding_policy[kd.dicts.new]',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
         qtype_utils.expect_data_slice_or_unspecified(P.values),

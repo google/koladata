@@ -170,7 +170,7 @@ def find(
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def printf(fmt, *args):  # pylint: disable=unused-argument
   """Formats strings according to printf-style (C++) format strings.
@@ -244,10 +244,8 @@ def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
 @optools.add_to_registry(aliases=['kd.fstr'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.strings.fstr',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.strings.fstr]',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.fmt),
-    ],
+    aux_policy='koladata_adhoc_binding_policy[kd.strings.fstr]',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.fmt)],
 )
 def fstr(fmt):
   """Transforms Koda f-string into an expression.
@@ -329,7 +327,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-argument
   """Test only wrapper for format with Arolla signature."""
@@ -347,7 +345,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
         qtype_utils.expect_data_slice_args(P.args),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def join(*args):  # pylint: disable=unused-argument
   """Concatenates the given strings.

@@ -343,7 +343,7 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
         qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def updated(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with DataBag(s) of updates applied.
@@ -1266,7 +1266,7 @@ def with_merged_bag(ds):  # pylint: disable=unused-argument
         qtype_utils.expect_data_bag_args(P.bag),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=aux_policies.CLASSIC_AUX_POLICY,
 )
 def enriched(ds, *bag):  # pylint: disable=unused-argument
   """Returns a copy of a DataSlice with a additional fallback DataBag(s).

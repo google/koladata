@@ -31,8 +31,7 @@ kde = kde_operators.kde
 
 
 @arolla.optools.as_lambda_operator(
-    'op_with_classic_binding_policy',
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    'op_with_classic_binding_policy', aux_policy=aux_policies.CLASSIC_AUX_POLICY
 )
 def op_with_classic_binding_policy(x, y):
   return (x, y)

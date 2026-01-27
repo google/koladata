@@ -33,8 +33,7 @@ constraints = arolla.optools.constraints
 # implemented Koladata-specific boxing rules.
 @optools.add_to_registry(aliases=['kd.tuple'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
-    'kd.tuples.tuple',
-    experimental_aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    'kd.tuples.tuple', aux_policy=aux_policies.CLASSIC_AUX_POLICY
 )
 def tuple_(*args):
   """Returns a tuple-like object containing the given `*args`."""

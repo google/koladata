@@ -62,7 +62,7 @@ def is_null_bag(bag):  # pylint: disable=unused-argument
         _qtype_utils.expect_data_bag_args(_P.bags),
     ],
     qtype_inference_expr=_qtypes.DATA_BAG,
-    experimental_aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
 )
 def enriched(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag enriched by `bags`.
@@ -93,7 +93,7 @@ def enriched(*bags):  # pylint: disable=unused-argument
         _qtype_utils.expect_data_bag_args(_P.bags),
     ],
     qtype_inference_expr=_qtypes.DATA_BAG,
-    experimental_aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
+    aux_policy=_aux_policies.CLASSIC_AUX_POLICY,
 )
 def updated(*bags):  # pylint: disable=unused-argument
   """Creates a new immutable DataBag updated by `bags`.

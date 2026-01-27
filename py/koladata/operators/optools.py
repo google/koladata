@@ -248,7 +248,7 @@ def add_to_registry_as_overloadable(
       overloadable_op = arolla.optools.add_to_registry_as_overloadable(
           name,
           if_present='unsafe_override' if unsafe_override else 'raise',
-          experimental_aux_policy=aux_policy,
+          aux_policy=aux_policy,
       )(fn)
     arolla.abc.set_expr_view_for_registered_operator(name, view)
     arolla.abc.register_op_repr_fn_by_registration_name(name, repr_fn)
