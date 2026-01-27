@@ -949,8 +949,13 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
         [&](const auto& impl) { return absl::StrAppend(&result, impl); });
   }
   if (option.show_schema) {
+    ReprOption schema_option = option;
+    if (only_print_attr_names) {
+      schema_option.depth = 1;
+    }
     absl::StrAppend(&result, ", schema: ");
-    if (auto schema = DataSliceToStr(ds.GetSchema(), option); schema.ok()) {
+    if (auto schema = DataSliceToStr(ds.GetSchema(), schema_option);
+        schema.ok()) {
       absl::StrAppend(&result, *schema);
     } else {
       absl::StrAppend(&result, ds.GetSchemaImpl());

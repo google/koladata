@@ -1838,18 +1838,21 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
   {
     // Entities with entity schema.
     auto db = DataBag::EmptyMutable();
-    auto value_1 = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+    auto value = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+    ASSERT_OK_AND_ASSIGN(DataSlice entity_1,
+                         EntityCreator::FromAttrs(db, {"a"}, {value}));
     ASSERT_OK_AND_ASSIGN(
-        DataSlice entity,
-        EntityCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
+        DataSlice entity_2,
+        EntityCreator::FromAttrs(db, {"a", "b"}, {value, entity_1}));
     EXPECT_THAT(
-        DataSliceRepr(entity, {.item_limit = 2,
-                               .item_limit_per_dimension = 2,
-                               .show_attributes = true,
-                               .show_databag_id = false,
-                               .show_shape = false,
-                               .show_present_count = false}),
-        Eq("DataSlice(attrs: [a, b], schema: ENTITY(a=INT32, b=INT32))"));
+        DataSliceRepr(entity_2, {.item_limit = 2,
+                                 .item_limit_per_dimension = 2,
+                                 .show_attributes = true,
+                                 .show_databag_id = false,
+                                 .show_shape = false,
+                                 .show_present_count = false}),
+        MatchesRegex(
+            R"regexp(DataSlice\(attrs: \[a, b\], schema: ENTITY\(a=INT32, b=\$[0-9a-zA-Z]{22}\)\))regexp"));
   }
   {
     // Entities with OBJECT schema.
