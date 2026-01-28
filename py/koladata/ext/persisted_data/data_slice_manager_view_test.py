@@ -61,7 +61,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
     )
     kd.testing.assert_equivalent(
-        queries.get(with_descendants=True),
+        queries.get(populate_including_descendants=[queries]),
         kd.slice([
             expected_query_schema.new(query_id=0, text='How tall is Obama'),
             expected_query_schema.new(
@@ -772,7 +772,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     root = DataSliceManagerView(manager)
     filtered_root = DataSliceManagerView(filtered_manager)
     kd.testing.assert_equivalent(
-        root.get_data_slice(with_descendants=True),
+        root.get_data_slice(populate_including_descendants=[root]),
         kd.new(
             query=kd.list([
                 kd.named_schema('query').new(
@@ -802,7 +802,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
     # The filtering recipe above results in one query with one doc:
     kd.testing.assert_equivalent(
-        filtered_root.get_data_slice(with_descendants=True),
+        filtered_root.get_data_slice(
+            populate_including_descendants=[filtered_root]
+        ),
         kd.new(
             query=kd.list([
                 kd.named_schema('query').new(
@@ -953,7 +955,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ),
       )
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1010,8 +1012,10 @@ class DataSliceManagerViewTest(absltest.TestCase):
             description='Filtered docs by selecting all of them',
         )
         kd.testing.assert_equivalent(
-            root.get_data_slice(with_descendants=True),
-            trunk_root.get_data_slice(with_descendants=True),
+            root.get_data_slice(populate_including_descendants=[root]),
+            trunk_root.get_data_slice(
+                populate_including_descendants=[trunk_root]
+            ),
             ids_equality=True,
         )
         branch_manager_revision_descriptions = [
@@ -1038,7 +1042,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           description='Filtered all docs',
       )
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_root.get_data_slice()
           .with_attr('query', None)
           .with_schema(trunk_root.get_schema()),
@@ -1079,7 +1083,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ),
       )
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1114,8 +1118,16 @@ class DataSliceManagerViewTest(absltest.TestCase):
           trunk_root.query[:].get_data_slice().S[1].get_itemid(),
       )
       kd.testing.assert_equivalent(
-          root.query[:].doc[:].get_data_slice(with_descendants=True).L[0],
-          trunk_root.query[:].doc[:].get_data_slice(with_descendants=True).L[1],
+          root.query[:]
+          .doc[:]
+          .get_data_slice(populate_including_descendants=[root.query[:].doc[:]])
+          .L[0],
+          trunk_root.query[:]
+          .doc[:]
+          .get_data_slice(
+              populate_including_descendants=[trunk_root.query[:].doc[:]]
+          )
+          .L[1],
           ids_equality=True,
       )
       branch_manager_revision_descriptions = [
@@ -1144,7 +1156,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           description='Filtered token keys to keep only those that are "hands"',
       )
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1182,7 +1194,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1234,7 +1246,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
       kd.testing.assert_equivalent(
-          root.get_data_slice(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1322,7 +1334,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           description='Filtered docs to keep only those with tokens',
       )
       kd.testing.assert_equivalent(
-          root.get(with_descendants=True),
+          root.get_data_slice(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1370,7 +1382,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ),
       )
       kd.testing.assert_equivalent(
-          root.get(with_descendants=True),
+          root.get(populate_including_descendants=[root]),
           trunk_initial_data_manager.get_schema().new(
               query=kd.list([
                   query_schema.new(
@@ -1435,7 +1447,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
     # IPython auto-complete should not suggest the reserved attribute names.
     self.assertEqual(
-        kd.dir(root.get_data_slice(with_descendants=True)), ['fingerprint']
+        kd.dir(root.get_data_slice(populate_including_descendants=[root])),
+        ['fingerprint'],
     )
     self.assertNotIn('fingerprint', root.__all__)
     self.assertEqual(
@@ -1843,18 +1856,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
     kd.testing.assert_equivalent(
-        doc_view.get(populate_including_descendants=[doc_view]),
-        doc_view.get(with_descendants=True),
-        ids_equality=True,
-    )
-    kd.testing.assert_equivalent(
-        query_view.get(populate_including_descendants=[query_view]),
-        query_view.get(with_descendants=True),
-        ids_equality=True,
-    )
-    kd.testing.assert_equivalent(
         doc_view.get(populate_including_descendants=[query_view]),
-        doc_view.get(with_descendants=True),
+        doc_view.get(populate_including_descendants=[doc_view]),
         ids_equality=True,
     )
     kd.testing.assert_equivalent(
@@ -1866,18 +1869,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         root_view.get(
             populate=[doc_view], populate_including_descendants=[query_view]
         ),
-        root_view.get(with_descendants=True),
-        ids_equality=True,
-    )
-    kd.testing.assert_equivalent(
-        root_view.get(
-            populate=[query_view.text, query_view.query_id],
-            populate_including_descendants=[doc_view],
-        ),
-        root_view.get(
-            populate=[query_view.text, query_view.query_id],
-            populate_including_descendants=[doc_view],
-        ),
+        root_view.get(populate_including_descendants=[root_view]),
         ids_equality=True,
     )
 

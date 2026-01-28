@@ -98,7 +98,6 @@ class DataSliceManagerView:
   def get_data_slice(
       self,
       *,
-      with_descendants: bool = False,
       populate: Collection[DataSliceManagerView] | None = None,
       populate_including_descendants: (
           Collection[DataSliceManagerView] | None
@@ -109,8 +108,6 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
 
     Args:
-      with_descendants: If True, then the DataSlice will include the data of all
-        the descendants of the view path.
       populate: Additional views whose DataSlicePaths will be populated. Their
         paths must be descendants of this view's path for you to see their data
         in the returned DataSlice.
@@ -119,13 +116,10 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     populate = {v.get_path_from_root() for v in populate or []}
+    populate.add(self._path_from_root)
     populate_including_descendants = {
         v.get_path_from_root() for v in populate_including_descendants or []
     }
-    if with_descendants:
-      populate_including_descendants.add(self._path_from_root)
-    else:
-      populate.add(self._path_from_root)
     ds = self._data_slice_manager.get_data_slice(
         populate=populate,
         populate_including_descendants=populate_including_descendants,
@@ -135,7 +129,6 @@ class DataSliceManagerView:
   def get(
       self,
       *,
-      with_descendants: bool = False,
       populate: Collection[DataSliceManagerView] | None = None,
       populate_including_descendants: (
           Collection[DataSliceManagerView] | None
@@ -146,8 +139,6 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
 
     Args:
-      with_descendants: If True, then the DataSlice will include the data of all
-        the descendants of the view path.
       populate: Additional views whose DataSlicePaths will be populated. Their
         paths must be descendants of this view's path for you to see their data
         in the returned DataSlice.
@@ -155,7 +146,6 @@ class DataSliceManagerView:
         all their descendants will be populated.
     """
     return self.get_data_slice(
-        with_descendants=with_descendants,
         populate=populate,
         populate_including_descendants=populate_including_descendants,
     )
