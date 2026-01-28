@@ -28,12 +28,12 @@ constraints = arolla.optools.constraints
 # NOTE: Implemented in C++ to allow bind-time literal evaluation.
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
 arolla.abc.set_expr_view_for_registered_operator(
-    'koda_internal.to_arolla_int64', view.ArollaView
+    to_arolla_int64, view.ArollaView
 )
 
 to_arolla_text = arolla.abc.lookup_operator('koda_internal.to_arolla_text')
 arolla.abc.set_expr_view_for_registered_operator(
-    'koda_internal.to_arolla_text', view.ArollaView
+    to_arolla_text, view.ArollaView
 )
 
 
