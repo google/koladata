@@ -121,8 +121,14 @@ class DataBag : public arolla::RefcountedBase {
   bool HasMutableFallbacks() const { return has_mutable_fallbacks_; }
 
   // Returns a newly created immutable DataBag with fallbacks.
-  static DataBagPtr ImmutableEmptyWithFallbacks(
-      absl::Span<const DataBagPtr> fallbacks);
+  // An error is returned if fallbacks are mutable.
+  static absl::StatusOr<DataBagPtr> ImmutableEmptyWithFallbacks(
+      absl::Span<const DataBagPtr absl_nullable> fallbacks);
+
+  // Deprecated. Use ImmutableEmptyWithFallbacks instead.
+  [[deprecated("Use ImmutableEmptyWithFallbacks")]]
+  static DataBagPtr ImmutableEmptyWithDeprecatedMutableFallbacks(
+      absl::Span<const DataBagPtr absl_nullable> fallbacks);
 
   // Returns a DataBag that contains all the data its input contain.
   // * If they are all the same or only 1 DataBag is non-nullptr, that DataBag

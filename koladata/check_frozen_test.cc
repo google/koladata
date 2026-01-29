@@ -43,7 +43,8 @@ TEST(CheckFrozen, Databag) {
 }
 
 TEST(CheckFrozen, DatabagWithMutableFallbacks) {
-  auto db = DataBag::ImmutableEmptyWithFallbacks({DataBag::EmptyMutable()});
+  auto db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+      {DataBag::EmptyMutable()});
   EXPECT_FALSE(db->IsMutable());
   EXPECT_THAT(CheckFrozen(arolla::TypedRef::FromValue(db)),
               StatusIs(absl::StatusCode::kInvalidArgument,

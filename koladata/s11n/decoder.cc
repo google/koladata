@@ -683,7 +683,7 @@ struct DataBagDecoder {
         ASSIGN_OR_RETURN(fallbacks.emplace_back(),
                          input_values[i].As<DataBagPtr>());
       }
-      db = DataBag::ImmutableEmptyWithFallbacks(fallbacks);
+      db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(fallbacks);
     } else {
       db = DataBag::EmptyMutable();
       ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());

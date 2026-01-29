@@ -470,8 +470,9 @@ TEST(EntityCreatorTest, SchemaArg_WithFallback) {
   auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
-  entity_schema =
-      entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+  entity_schema = entity_schema.WithBag(
+      DataBag::ImmutableEmptyWithFallbacks({db->Freeze(), fb_db->Freeze()})
+          .value());
 
   auto new_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
@@ -829,8 +830,9 @@ TEST(CreateUuTest, SchemaArg_WithFallback) {
   auto text_s = test::Schema(schema::kString);
   ASSERT_OK(entity_schema.WithBag(fb_db).SetAttr("b", text_s));
 
-  entity_schema =
-      entity_schema.WithBag(DataBag::ImmutableEmptyWithFallbacks({db, fb_db}));
+  entity_schema = entity_schema.WithBag(
+      DataBag::ImmutableEmptyWithFallbacks({db->Freeze(), fb_db->Freeze()})
+          .value());
 
   auto new_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(

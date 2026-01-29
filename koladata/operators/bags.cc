@@ -81,7 +81,9 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
           if (!is_enriched_operator) {
             std::reverse(db_list.begin(), db_list.end());
           }
-          frame.Set(output_slot, DataBag::ImmutableEmptyWithFallbacks(db_list));
+          frame.Set(
+              output_slot,
+              DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(db_list));
           return absl::OkStatus();
         });
   }

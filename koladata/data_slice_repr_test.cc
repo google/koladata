@@ -776,7 +776,8 @@ TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
   DataSlice ds_b = test::DataItem(2);
   ASSERT_OK(ds.SetAttr("b", ds_b));
 
-  db = DataBag::ImmutableEmptyWithFallbacks({db, db2});
+  ASSERT_OK_AND_ASSIGN(
+      db, DataBag::ImmutableEmptyWithFallbacks({db->Freeze(), db2->Freeze()}));
   ds = ds.WithBag(db);
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Entity(a=1, b=2)"));

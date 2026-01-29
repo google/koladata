@@ -56,7 +56,8 @@ TEST(DataBagTest, Fallbacks) {
   EXPECT_THAT(db->GetFallbacks(), ElementsAre());
   auto db_fb = DataBag::EmptyMutable();
 
-  auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb});
+  auto new_db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+      {db, nullptr, db_fb});
   EXPECT_THAT(new_db->GetFallbacks(), ElementsAre(db, db_fb));
   EXPECT_FALSE(new_db->IsMutable());
   EXPECT_TRUE(new_db->HasMutableFallbacks());
@@ -90,35 +91,35 @@ TEST(DataBagTest, MutableFallbacks) {
   EXPECT_TRUE(db_1->IsMutable());
   EXPECT_FALSE(db_1->HasMutableFallbacks());
 
-  auto db_2 = DataBag::EmptyMutable();
-  db_2->UnsafeMakeImmutable();
+  auto db_2 = DataBag::Empty();
   EXPECT_FALSE(db_2->IsMutable());
   EXPECT_FALSE(db_2->HasMutableFallbacks());
 
-  auto db_3 = DataBag::ImmutableEmptyWithFallbacks({db_2});
+  ASSERT_OK_AND_ASSIGN(auto db_3, DataBag::ImmutableEmptyWithFallbacks({db_2}));
   EXPECT_FALSE(db_3->IsMutable());
   EXPECT_FALSE(db_3->HasMutableFallbacks());
 }
 
 TEST(DataBagTest, CollectFlattenFallbacks) {
-  auto db = DataBag::EmptyMutable();
+  auto db = DataBag::Empty();
   {
     FlattenFallbackFinder fbf(*db);
     EXPECT_THAT(fbf.GetFlattenFallbacks(), ElementsAre());
   }
 
   {
-    auto db_fb = DataBag::EmptyMutable();
-    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb});
+    auto db_fb = DataBag::Empty();
+    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb}).value();
     FlattenFallbackFinder fbf(*new_db);
     EXPECT_THAT(fbf.GetFlattenFallbacks(),
                 ElementsAre(&db->GetImpl(), &db_fb->GetImpl()));
   }
 
   {
-    auto db_fb = DataBag::EmptyMutable();
-    auto db_fb2 = DataBag::EmptyMutable();
-    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb, db_fb2});
+    auto db_fb = DataBag::Empty();
+    auto db_fb2 = DataBag::Empty();
+    auto new_db =
+        DataBag::ImmutableEmptyWithFallbacks({db, db_fb, db_fb2}).value();
     FlattenFallbackFinder fbf(*new_db);
     EXPECT_THAT(
         fbf.GetFlattenFallbacks(),
@@ -126,9 +127,9 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
   }
 
   {  // chain of two
-    auto db_fb2 = DataBag::EmptyMutable();
-    auto db_fb = DataBag::ImmutableEmptyWithFallbacks({db_fb2});
-    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb});
+    auto db_fb2 = DataBag::Empty();
+    auto db_fb = DataBag::ImmutableEmptyWithFallbacks({db_fb2}).value();
+    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb}).value();
     FlattenFallbackFinder fbf(*new_db);
     EXPECT_THAT(
         fbf.GetFlattenFallbacks(),
@@ -136,10 +137,11 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
   }
 
   {  // diamond
-    auto db_fb3 = DataBag::EmptyMutable();
-    auto db_fb = DataBag::ImmutableEmptyWithFallbacks({db_fb3});
-    auto db_fb2 = DataBag::ImmutableEmptyWithFallbacks({db_fb3});
-    auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb, db_fb2});
+    auto db_fb3 = DataBag::Empty();
+    auto db_fb = DataBag::ImmutableEmptyWithFallbacks({db_fb3}).value();
+    auto db_fb2 = DataBag::ImmutableEmptyWithFallbacks({db_fb3}).value();
+    auto new_db =
+        DataBag::ImmutableEmptyWithFallbacks({db, db_fb, db_fb2}).value();
     FlattenFallbackFinder fbf(*new_db);
     EXPECT_THAT(fbf.GetFlattenFallbacks(),
                 ElementsAre(&db->GetImpl(), &db_fb->GetImpl(),
@@ -148,11 +150,11 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
 
   {  // exponential
     constexpr int kSteps = 1024;
-    auto db = DataBag::EmptyMutable();
-    auto db2 = DataBag::EmptyMutable();
+    auto db = DataBag::Empty();
+    auto db2 = DataBag::Empty();
     for (int i = 0; i < kSteps; ++i) {
-      auto dbx = DataBag::ImmutableEmptyWithFallbacks({db, db2});
-      db2 = DataBag::ImmutableEmptyWithFallbacks({db2, db});
+      auto dbx = DataBag::ImmutableEmptyWithFallbacks({db, db2}).value();
+      db2 = DataBag::ImmutableEmptyWithFallbacks({db2, db}).value();
       db = dbx;
     }
     FlattenFallbackFinder fbf(*db);
@@ -166,12 +168,13 @@ TEST(DataBagTest, FlattenFallbackFinderCopiableAndMovable) {
     std::vector<DataBagPtr> dbs;
     std::vector<const internal::DataBagImpl*> db_impls;
     for (int i = 0; i < size; ++i) {
-      dbs.push_back(DataBag::EmptyMutable());
+      dbs.push_back(DataBag::Empty());
       db_impls.push_back(&dbs.back()->GetImpl());
     }
-    auto new_db = DataBag::ImmutableEmptyWithFallbacks(dbs);
+    auto new_db = DataBag::ImmutableEmptyWithFallbacks(dbs).value();
     auto fake_db = DataBag::ImmutableEmptyWithFallbacks(
-        {DataBag::EmptyMutable(), DataBag::EmptyMutable()});
+                       {DataBag::Empty(), DataBag::Empty()})
+                       .value();
 
     auto test_fallbacks = [&](const FlattenFallbackFinder& f) {
       EXPECT_THAT(f.GetFlattenFallbacks(), ElementsAreArray(db_impls));
@@ -377,7 +380,8 @@ TEST(DataBagTest, MergeFallbacks) {
   ASSERT_OK_AND_ASSIGN(
       auto ds1, EntityCreator::FromAttrs(fallback_db, {"a"},
                                          {test::DataItem(42, fallback_db)}));
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db});
+  auto db =
+      DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({fallback_db});
   auto ds2 = ds1.WithBag(db);
 
   ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());
@@ -412,12 +416,12 @@ TEST(DataBagTest, Fork_Mutability) {
     EXPECT_FALSE(db2->IsMutable());
   }
   {
-    auto db1 = DataBag::ImmutableEmptyWithFallbacks({});
+    auto db1 = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
     EXPECT_TRUE(db2->IsMutable());
   }
   {
-    auto db1 = DataBag::ImmutableEmptyWithFallbacks({});
+    auto db1 = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork(/*immutable=*/true));
     EXPECT_FALSE(db2->IsMutable());
   }
@@ -431,9 +435,9 @@ TEST(DataBagTest, UnsafeMakeImmutable) {
 }
 
 TEST(DataBagTest, DeepFallbackChainNoStackOverflow) {
-  auto db = DataBag::EmptyMutable();
+  auto db = DataBag::Empty();
   for (int i = 0; i < 1000'000; ++i) {
-    db = DataBag::ImmutableEmptyWithFallbacks({db});
+    ASSERT_OK_AND_ASSIGN(db, DataBag::ImmutableEmptyWithFallbacks({db}));
   }
 }
 
@@ -446,8 +450,8 @@ TEST(DataBagTest, FreezeWithFallbacks) {
   auto db1 = DataBag::EmptyMutable();
   auto db2 = DataBag::EmptyMutable();
   auto db3 = DataBag::EmptyMutable();
-  auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
-  auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
+  auto db4 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db1, db2});
+  auto db5 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db4, db3});
   EXPECT_TRUE(db5->HasMutableFallbacks());
   auto frozen_db5 = db5->Freeze();
   EXPECT_FALSE(frozen_db5->HasMutableFallbacks());
@@ -466,11 +470,13 @@ TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
   //   db4  db3
   //   /  \
   // db1  db2
-  auto db1 = DataBag::EmptyMutable()->Freeze();
-  auto db2 = DataBag::EmptyMutable()->Freeze();
-  auto db3 = DataBag::EmptyMutable()->Freeze();
-  auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
-  auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
+  auto db1 = DataBag::Empty();
+  auto db2 = DataBag::Empty();
+  auto db3 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto db4,
+                       DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db5,
+                       DataBag::ImmutableEmptyWithFallbacks({db4, db3}));
   EXPECT_FALSE(db5->HasMutableFallbacks());
   auto frozen_db5 = db5->Freeze();
   EXPECT_EQ(frozen_db5, db5);
@@ -491,7 +497,7 @@ TEST(DataBagTest, MetadataCache) {
   EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id1), nullptr);
 
   // In case of mutable fallback there is no cache
-  EXPECT_EQ(DataBag::ImmutableEmptyWithFallbacks({db})
+  EXPECT_EQ(DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db})
                 ->SetCachedMetadata(id1, TestMetadata{2})
                 ->x,
             2);

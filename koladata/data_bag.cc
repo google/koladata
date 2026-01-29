@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/function_ref.h"
@@ -41,15 +42,32 @@
 
 namespace koladata {
 
-DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
-    absl::Span<const DataBagPtr> fallbacks) {
+absl::StatusOr<DataBagPtr> DataBag::ImmutableEmptyWithFallbacks(
+    absl::Span<const DataBagPtr absl_nullable> fallbacks) {
   auto res = DataBagPtr::Make(DataBag::immutable_t());
   std::vector<DataBagPtr> non_null_fallbacks;
   non_null_fallbacks.reserve(fallbacks.size());
-  for (int i = 0; i < fallbacks.size(); ++i) {
-    if (fallbacks[i] != nullptr) {
-      non_null_fallbacks.push_back(fallbacks[i]);
-      if (fallbacks[i]->IsMutable() || fallbacks[i]->HasMutableFallbacks()) {
+  for (const DataBagPtr& fb : fallbacks) {
+    if (fb != nullptr) {
+      if (fb->IsMutable() || fb->HasMutableFallbacks()) {
+        return absl::InvalidArgumentError("fallbacks must be immutable");
+      }
+      non_null_fallbacks.push_back(fb);
+    }
+  }
+  res->fallbacks_ = std::move(non_null_fallbacks);
+  return res;
+}
+
+DataBagPtr DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+    absl::Span<const DataBagPtr absl_nullable> fallbacks) {
+  auto res = DataBagPtr::Make(DataBag::immutable_t());
+  std::vector<DataBagPtr> non_null_fallbacks;
+  non_null_fallbacks.reserve(fallbacks.size());
+  for (const DataBagPtr& fb : fallbacks) {
+    if (fb != nullptr) {
+      non_null_fallbacks.push_back(fb);
+      if (fb->IsMutable() || fb->HasMutableFallbacks()) {
         res->has_mutable_fallbacks_ = true;
       }
     }
@@ -109,7 +127,11 @@ DataBagPtr DataBag::FreezeWithFallbacks() {
       }
     }
   });
-  return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks));
+  // Note: ImmutableEmptyWithFallbacks returns an error if fallbacks are
+  // mutable. Here we explicitly freeze all fallbacks, so we assume that
+  // the error can not happen.
+  return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks))
+      .value();
 }
 
 DataBagPtr DataBag::Freeze() {
@@ -146,7 +168,7 @@ DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
   if (non_null_databags.empty()) {
     return nullptr;
   }
-  return ImmutableEmptyWithFallbacks(non_null_databags);
+  return ImmutableEmptyWithDeprecatedMutableFallbacks(non_null_databags);
 }
 
 DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {

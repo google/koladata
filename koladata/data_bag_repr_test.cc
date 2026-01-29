@@ -191,7 +191,9 @@ TEST(DataBagReprTest,
           /*key_schema=*/absl::nullopt, /*value_schema=*/absl::nullopt,
           /*item_id=*/uuid));
 
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto db = DataBag::ImmutableEmptyWithFallbacks(
+                {fallback_db1->Freeze(), fallback_db2->Freeze()})
+                .value();
 
   // 'a' and 'b' from fallback_db1, and 'c' from fallback_db2.
   EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
@@ -248,7 +250,9 @@ TEST(DataBagReprTest,
                        /*item_schema=*/absl::nullopt,
                        /*item_id=*/uuid));
 
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto db = DataBag::ImmutableEmptyWithFallbacks(
+                {fallback_db1->Freeze(), fallback_db2->Freeze()})
+                .value();
 
   // 'a' and 'b' from fallback_db1, and 'c' from fallback_db2.
   EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
@@ -272,7 +276,9 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_FallbackBags) {
       auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
                                          {test::DataItem(123, fallback_db2)}));
 
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto db = DataBag::ImmutableEmptyWithFallbacks(
+                {fallback_db1->Freeze(), fallback_db2->Freeze()})
+                .value();
   auto ds3 = ds1.WithBag(db);
 
   EXPECT_THAT(
@@ -392,7 +398,9 @@ TEST(DataBagReprTest,
       auto ds2, EntityCreator::FromAttrs(fallback_db2, {"b"},
                                          {test::DataItem(123, fallback_db2)}));
 
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto db = DataBag::ImmutableEmptyWithFallbacks(
+                {fallback_db1->Freeze(), fallback_db2->Freeze()})
+                .value();
   auto ds3 = ds1.WithBag(db);
 
   EXPECT_THAT(
@@ -457,7 +465,9 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_DuplicatedFallbackBags) {
   auto fallback_db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto ds1, EntityCreator::FromAttrs(
                                      fallback_db, {"a"}, {test::DataItem(42)}));
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db});
+  fallback_db->UnsafeMakeImmutable();
+  auto db =
+      DataBag::ImmutableEmptyWithFallbacks({fallback_db, fallback_db}).value();
   EXPECT_THAT(
       DataBagToStr(db),
       IsOkAndHolds(MatchesRegex(
@@ -487,7 +497,9 @@ TEST(DataBagReprTest,
   ASSERT_OK(ds2.SetAttr("b", test::DataItem(20, fallback_db2)));
   ASSERT_OK(ds2.SetAttr("c", test::DataItem(30, fallback_db2)));
 
-  auto db = DataBag::ImmutableEmptyWithFallbacks({fallback_db1, fallback_db2});
+  auto db = DataBag::ImmutableEmptyWithFallbacks(
+                {fallback_db1->Freeze(), fallback_db2->Freeze()})
+                .value();
 
   EXPECT_THAT(DataBagToStr(db), IsOkAndHolds(MatchesRegex(
                                     R"regex(DataBag \$[0-9a-f]{4}:

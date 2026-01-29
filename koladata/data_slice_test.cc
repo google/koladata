@@ -400,7 +400,7 @@ TEST(DataSliceTest, IsWhole) {
     // Flag is true on DataSlice creation, immutable DataBag with mutable
     // fallbacks.
     auto db = DataBag::EmptyMutable();
-    auto db2 = DataBag::ImmutableEmptyWithFallbacks({db});
+    auto db2 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db});
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db2,
                                  DataSlice::Wholeness::kWhole);
@@ -414,7 +414,7 @@ TEST(DataSliceTest, IsWhole) {
     ASSERT_OK_AND_ASSIGN(
         auto obj, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
     db->UnsafeMakeImmutable();
-    auto db2 = DataBag::ImmutableEmptyWithFallbacks({db});
+    ASSERT_OK_AND_ASSIGN(auto db2, DataBag::ImmutableEmptyWithFallbacks({db}));
     auto ds = *DataSlice::Create(internal::DataItem(),
                                  internal::DataItem(schema::kInt32), db2,
                                  DataSlice::Wholeness::kWhole);
@@ -555,8 +555,9 @@ TEST(DataSliceTest, ForkErrors) {
   auto db = DataBag::EmptyMutable();
   auto ds_a = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(db, {"a"}, {ds_a}));
+  db->UnsafeMakeImmutable();
 
-  ds = ds.WithBag(DataBag::ImmutableEmptyWithFallbacks({db}));
+  ds = ds.WithBag(DataBag::ImmutableEmptyWithFallbacks({db}).value());
   EXPECT_THAT(ds.ForkBag(),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("forking with fallbacks is not supported")));
@@ -1400,7 +1401,8 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
   ASSERT_OK(
       fallback_db_impl.SetSchemaAttr(schema, "c", DataItem(schema::kFloat32)));
   ASSERT_OK(db_impl.SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
-  db = DataBag::ImmutableEmptyWithFallbacks({db, fallback_db});
+  ASSERT_OK_AND_ASSIGN(db, DataBag::ImmutableEmptyWithFallbacks(
+                               {db->Freeze(), fallback_db->Freeze()}));
   ASSERT_OK_AND_ASSIGN(
       auto ds, DataSlice::Create(DataSliceImpl::Create(
                                      {schemas_a[0], schemas_a[1], schemas_a[2],
@@ -2698,8 +2700,9 @@ TEST(DataSliceTest, SetGetSchemaSlice) {
   ASSERT_OK(test::DataItem(schema2, schema::kSchema, fallback_db)
                 .SetAttr("a", test::DataItem(schema::kFloat32)));
 
-  schema_ds = schema_ds.WithBag(
-      DataBag::ImmutableEmptyWithFallbacks({db, fallback_db}));
+  schema_ds = schema_ds.WithBag(DataBag::ImmutableEmptyWithFallbacks(
+                                    {db->Freeze(), fallback_db->Freeze()})
+                                    .value());
   ASSERT_OK_AND_ASSIGN(auto schema_a_get, schema_ds.GetAttr("a"));
   EXPECT_EQ(schema_a_get.GetSchemaImpl(), schema::kSchema);
   EXPECT_THAT(schema_a_get.slice(),
@@ -2798,7 +2801,8 @@ TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
-  db = DataBag::ImmutableEmptyWithFallbacks({db});
+  ASSERT_OK_AND_ASSIGN(db,
+                       DataBag::ImmutableEmptyWithFallbacks({db->Freeze()}));
   ds = ds.WithBag(db);
 
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
@@ -2823,7 +2827,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   ASSERT_OK(ds_x.SetAttr("a", ds_a));
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_a.GetSchema()));
   ASSERT_OK(ds_x.SetAttr("b", ds_a));
-  db1 = DataBag::ImmutableEmptyWithFallbacks({db1});
+  db1 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db1});
   // overwrite fallback
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_b.GetSchema()));
   ASSERT_OK(ds_x.SetAttr("b", ds_b));

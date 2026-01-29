@@ -119,22 +119,25 @@ absl_nonnull DataBagPtr AdoptionQueue::GetBagWithFallbacks() const {
   std::vector<DataBagPtr> fallbacks;
   fallbacks.reserve(slices_to_merge_.size() + bags_to_merge_.size());
   for (const DataBagPtr& bag : bags_to_merge_) {
-    if (visited_bags.contains(bag.get())) {
+    if (bag.get() == nullptr || visited_bags.contains(bag.get())) {
       continue;
     }
     visited_bags.insert(bag.get());
-    fallbacks.push_back(bag);
+    fallbacks.push_back(bag->Freeze());
   }
   for (const DataSlice& slice : slices_to_merge_) {
     const DataBagPtr& bag = slice.GetBag();
-    if (visited_bags.contains(bag.get())) {
+    if (bag.get() == nullptr || visited_bags.contains(bag.get())) {
       continue;
     }
     visited_bags.insert(bag.get());
-    fallbacks.push_back(bag);
+    fallbacks.push_back(bag->Freeze());
   }
 
-  return DataBag::ImmutableEmptyWithFallbacks(fallbacks);
+  // Note: ImmutableEmptyWithFallbacks returns an error if fallbacks are
+  // mutable. Here we explicitly freeze all fallbacks, so we assume that
+  // the error can not happen.
+  return *DataBag::ImmutableEmptyWithFallbacks(fallbacks);
 }
 
 absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
@@ -214,7 +217,8 @@ absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
     ASSIGN_OR_RETURN(DataSlice extracted_slice,
                      extract_utils_internal::Extract(slice));
     // NOTE: slices's bag should come first to respect its precedence.
-    return DataBag::ImmutableEmptyWithFallbacks({extracted_slice.GetBag(), db});
+    return DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+        {extracted_slice.GetBag(), db});
   }
 }
 

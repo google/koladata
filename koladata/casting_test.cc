@@ -1740,7 +1740,7 @@ TEST(Casting, ToObjectEmbedding) {
 
 TEST(Casting, ToObjectImmutableBagWithPrimitives) {
   // A primitive slice with an immutable bag should succeed.
-  auto db = DataBag::ImmutableEmptyWithFallbacks({});
+  auto db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({});
   auto slice = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32, db);
   EXPECT_THAT(ToObject(slice),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<int>(
@@ -1753,7 +1753,7 @@ TEST(Casting, ToObjectErrors) {
       3, internal::DataItem(internal::AllocateExplicitSchema()));
   {
     // Immutable bag.
-    auto db = DataBag::ImmutableEmptyWithFallbacks({});
+    auto db = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(
         auto slice,
         DataSlice::Create(object_slice, DataSlice::JaggedShape::FlatFromSize(3),

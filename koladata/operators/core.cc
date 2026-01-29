@@ -374,37 +374,47 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
         [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
                                                       input_slots.end()),
          output_slot = output_slot.UnsafeToSlot<DataSlice>(),
-         is_enriched_operator = is_enriched_operator_, op_name](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+         is_enriched_operator = is_enriched_operator_,
+         op_name](arolla::EvaluationContext* ctx,
+                  arolla::FramePtr frame) -> absl::Status {
           const DataSlice& ds =
               frame.Get(input_slots[0].UnsafeToSlot<DataSlice>());
-          if (ds.GetBag() != nullptr && ds.GetBag()->IsMutable()) {
+          auto orig_bag = ds.GetBag();
+          if (orig_bag != nullptr && orig_bag->IsMutable()) {
             return absl::InvalidArgumentError(
                 absl::StrCat(op_name,
                              " requires the original DataBag to be immutable; "
                              "either freeze it, or use mutable API"));
           }
+          if (orig_bag != nullptr && orig_bag->HasMutableFallbacks()) {
+            orig_bag = orig_bag->Freeze();
+          }
           std::vector<DataBagPtr> db_list;
           db_list.reserve(input_slots.size());
           if (is_enriched_operator) {
-            db_list.push_back(ds.GetBag());
+            db_list.push_back(std::move(orig_bag));
             for (size_t i = 1; i < input_slots.size(); ++i) {
               const auto& bag =
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
-              db_list.push_back(
-                  bag != nullptr && bag->IsMutable() ? bag->Freeze() : bag);
+              db_list.push_back(bag != nullptr && (bag->IsMutable() ||
+                                                   bag->HasMutableFallbacks())
+                                    ? bag->Freeze()
+                                    : bag);
             }
           } else {
             for (size_t i = input_slots.size() - 1; i >= 1; --i) {
               const auto& bag =
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
-              db_list.push_back(
-                  bag != nullptr && bag->IsMutable() ? bag->Freeze() : bag);
+              db_list.push_back(bag != nullptr && (bag->IsMutable() ||
+                                                   bag->HasMutableFallbacks())
+                                    ? bag->Freeze()
+                                    : bag);
             }
-            db_list.push_back(ds.GetBag());
+            db_list.push_back(std::move(orig_bag));
           }
-          frame.Set(output_slot,
-                    ds.WithBag(DataBag::ImmutableEmptyWithFallbacks(db_list)));
+          ASSIGN_OR_RETURN(DataBagPtr res_db,
+                           DataBag::ImmutableEmptyWithFallbacks(db_list));
+          frame.Set(output_slot, ds.WithBag(std::move(res_db)));
           return absl::OkStatus();
         });
   }
@@ -804,7 +814,8 @@ absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
   }
   ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, itemid, schema));
   DataSlice shallow_clone_with_fallback = shallow_clone.WithBag(
-      DataBag::ImmutableEmptyWithFallbacks({shallow_clone.GetBag(), db}));
+      DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+          {shallow_clone.GetBag(), db}));
   return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 

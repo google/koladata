@@ -50,14 +50,22 @@ TEST(DataBagComparisonTest, ExactlyEqual_Fallbacks) {
   auto db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db2_impl, db2->GetMutableImpl());
   ASSERT_OK(db2_impl.SetAttr(ds2, "other", ds1));
+  db1->UnsafeMakeImmutable();
+  db2->UnsafeMakeImmutable();
 
-  auto db_f1 = DataBag::ImmutableEmptyWithFallbacks({db1});
-  auto db_f12 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
-  auto db_f12_copy = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
-  auto db_f21 = DataBag::ImmutableEmptyWithFallbacks({db2, db1});
-  auto db_ff12 = DataBag::ImmutableEmptyWithFallbacks({db_f1, db2});
-  auto db_ff122 = DataBag::ImmutableEmptyWithFallbacks({db_f12, db2});
-  auto db_ff212 = DataBag::ImmutableEmptyWithFallbacks({db_f21, db2});
+  ASSERT_OK_AND_ASSIGN(auto db_f1, DataBag::ImmutableEmptyWithFallbacks({db1}));
+  ASSERT_OK_AND_ASSIGN(auto db_f12,
+                       DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_f12_copy,
+                       DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_f21,
+                       DataBag::ImmutableEmptyWithFallbacks({db2, db1}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff12,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f1, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff122,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f12, db2}));
+  ASSERT_OK_AND_ASSIGN(auto db_ff212,
+                       DataBag::ImmutableEmptyWithFallbacks({db_f21, db2}));
 
   EXPECT_TRUE(DataBagComparison::ExactlyEqual(db_f12, db_f12_copy));
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_f12, db_f21));

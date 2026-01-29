@@ -131,7 +131,9 @@ class ReduceUpdatedBagOperator : public arolla::QExprOperator {
             args.push_back(bag);
           }
           std::reverse(args.begin(), args.end());
-          frame.Set(output_slot, DataBag::ImmutableEmptyWithFallbacks(args));
+          frame.Set(
+              output_slot,
+              DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(args));
           return absl::OkStatus();
         });
   }

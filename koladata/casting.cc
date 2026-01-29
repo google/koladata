@@ -168,7 +168,7 @@ bool IsProbablyCastableTo(const internal::DataItem& from_schema,
 
   if (to_schema.holds_value<internal::ObjectId>()) {
     // Note: If to_schema and from_schema are both entities, they would be
-    // traversed futher. If from_schema is Object, compatibility can only be
+    // traversed further. If from_schema is Object, compatibility can only be
     // checked based on data stored.
     return from_schema.holds_value<internal::ObjectId>() ||
            from_schema == schema::kObject || from_schema == schema::kNone;
@@ -582,10 +582,10 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
                       [](const DataSlice& ds) { return ds.GetBag(); });
     return ret;
   };
-  ASSIGN_OR_RETURN(
-      auto common_schema, get_common_schema(),
-      KodaErrorCausedByNoCommonSchemaError(
-          _, DataBag::ImmutableEmptyWithFallbacks(get_fallback_db())));
+  ASSIGN_OR_RETURN(auto common_schema, get_common_schema(),
+                   KodaErrorCausedByNoCommonSchemaError(
+                       _, DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
+                              get_fallback_db())));
   for (auto& slice : slices) {
     // Since we cast to a common schema, we don't need to validate implicit
     // compatibility or validate schema (during casting to OBJECT) as no

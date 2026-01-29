@@ -150,8 +150,10 @@ TEST(AdoptionQueueTest, WithFallbacks) {
       db3->GetMutableImpl()->SetAttr(obj, "b", internal::DataItem(4.0f)));
   ASSERT_OK(db3->GetMutableImpl()->SetAttr(obj, "c", internal::DataItem(3.0f)));
 
-  DataBagPtr db_with_fallbacks =
-      DataBag::ImmutableEmptyWithFallbacks({db2, db3, schema_db});
+  ASSERT_OK_AND_ASSIGN(
+      DataBagPtr db_with_fallbacks,
+      DataBag::ImmutableEmptyWithFallbacks(
+          {db2->Freeze(), db3->Freeze(), schema_db->Freeze()}));
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice slice1,
@@ -180,9 +182,9 @@ TEST(AdoptionQueueTest, WithFallbacks) {
 }
 
 TEST(AdoptionQueueTest, TestDbVector) {
-  auto db1 = DataBag::EmptyMutable();
+  auto db1 = DataBag::Empty();
   DataBagPtr db2;
-  auto db3 = DataBag::EmptyMutable();
+  auto db3 = DataBag::Empty();
   AdoptionQueue q;
   q.Add(db1);
   q.Add(db2);
