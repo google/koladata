@@ -205,7 +205,6 @@ py_library(
     name = "unified_binding_policy",
     srcs = ["unified_binding_policy.py"],
     deps = [
-        ":aux_policies",
         ":clib",
         "//py:python_path",
         "//py/koladata/types:py_boxing",
@@ -218,6 +217,7 @@ py_test(
     srcs = ["unified_binding_policy_test.py"],
     deps = [
         ":aux_policies",
+        ":clib",
         ":op_repr",
         ":unified_binding_policy",
         "//py:python_path",
@@ -260,7 +260,6 @@ py_library(
         "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:tracing_mode",
-        "//py/koladata/expr:view",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
@@ -271,12 +270,12 @@ py_test(
     name = "optools_test",
     srcs = ["optools_test.py"],
     deps = [
+        ":aux_policies",
         ":comparison",
         ":jagged_shape",
         ":koda_internal",
         ":math",
         ":optools",
-        ":optools_test_utils",
         ":qtype_utils",
         ":tuple",
         "//py:python_path",
@@ -444,6 +443,7 @@ py_library(
         ":slices",
         "//koladata/operators",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -548,6 +548,7 @@ py_library(
         ":qtype_utils",
         "//koladata/operators",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -647,6 +648,7 @@ py_library(
         ":schema",
         ":view_overloads",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -799,6 +801,7 @@ py_library(
         ":slices",
         ":view_overloads",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -972,8 +975,21 @@ py_library(
     deps = [
         ":clib",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "aux_policies_test",
+    srcs = ["aux_policies_test.py"],
+    deps = [
+        ":aux_policies",
+        "//py:python_path",
+        "//py/koladata/expr:view",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

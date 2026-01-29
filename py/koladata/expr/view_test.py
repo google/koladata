@@ -45,13 +45,11 @@ class BaseKodaViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator(
-        'test.op', view.BaseKodaView
-    )
+    arolla.abc.set_expr_view_for_registered_operator(op, view.BaseKodaView)
 
   def tearDown(self):
     # Clear the view.
-    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
+    arolla.abc.set_expr_view_for_registered_operator(op, None)
     super().tearDown()
 
   def test_eval(self):
@@ -83,11 +81,11 @@ class KodaViewTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    arolla.abc.set_expr_view_for_registered_operator('test.op', view.KodaView)
+    arolla.abc.set_expr_view_for_registered_operator(op, view.KodaView)
 
   def tearDown(self):
     # Clear the view.
-    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
+    arolla.abc.set_expr_view_for_registered_operator(op, None)
     super().tearDown()
 
   # To be overridden by KodaViewWithTracingTest subclass below.
@@ -646,7 +644,7 @@ class KodaViewTest(parameterized.TestCase):
       return arolla.optools.fix_trace_args(args)
 
     arolla.abc.set_expr_view_for_registered_operator(
-        'test_make_tuple', view.KodaView
+        test_make_tuple, view.KodaView
     )
 
     expr = arolla.M.annotation.name(
@@ -893,6 +891,28 @@ class KodaViewTest(parameterized.TestCase):
     src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     self.assertTrue(
         view.has_koda_view(src_op(C.x, 'foo', 'test.py', 123, 456, '  x + 1'))
+    )
+
+
+class ArollaViewTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    arolla.abc.set_expr_view_for_registered_operator(op, view.ArollaView)
+
+  def tearDown(self):
+    arolla.abc.set_expr_view_for_registered_operator(op, None)
+    super().tearDown()
+
+  def test_has_arolla_view(self):
+    self.assertTrue(view.has_arolla_view(op()))
+    self.assertTrue(view.has_base_koda_view(op()))
+    self.assertFalse(view.has_koda_view(op()))
+
+  def test_less_operator(self):
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        op(C.x) < op(C.y),
+        arolla.abc.unsafe_parse_sexpr((('core.less', (op, C.x), (op, C.y)))),
     )
 
 

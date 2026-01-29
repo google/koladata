@@ -71,32 +71,35 @@ def _replace_non_deterministic_leaf_with_param(expr):
   )
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.parallel.is_future_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
     qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+    view=view.ArollaView,
 )
 def is_future_qtype(qtype):  # pylint: disable=unused-argument
   """Checks if the given qtype is a future qtype."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.parallel.is_stream_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
     qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+    view=view.ArollaView,
 )
 def is_stream_qtype(qtype):  # pylint: disable=unused-argument
   """Checks if the given qtype is a stream qtype."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.parallel.get_transform_config_qtype',
     qtype_inference_expr=arolla.QTYPE,
+    view=view.ArollaView,
 )
 def get_transform_config_qtype():
   """Returns the qtype for ParallelTransformConfig."""
@@ -173,11 +176,12 @@ def create_transform_config(config_src):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_qtype',
     qtype_inference_expr=arolla.QTYPE,
     qtype_constraints=[constraints.expect_qtype(P.value_qtype)],
+    view=view.ArollaView,
 )
 def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
   """Gets the future qtype for the given value qtype."""
@@ -259,11 +263,12 @@ def unwrap_future_to_stream(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_stream_qtype',
     qtype_inference_expr=arolla.QTYPE,
     qtype_constraints=[constraints.expect_qtype(P.value_qtype)],
+    view=view.ArollaView,
 )
 def get_stream_qtype(value_qtype):  # pylint: disable=unused-argument
   """Gets the stream qtype for the given value qtype."""
@@ -1702,7 +1707,7 @@ def stream_while(
   )
 
 
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'koda_internal.parallel._stream_for_returns',
     qtype_inference_expr=get_stream_qtype(P.initial_returns),
 )
@@ -1720,7 +1725,7 @@ def _stream_for_returns(
   raise NotImplementedError('implemented in the backend')
 
 
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'koda_internal.parallel._stream_for_yields',
     qtype_inference_expr=get_stream_qtype(P.initial_yields),
 )

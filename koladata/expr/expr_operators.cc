@@ -80,8 +80,9 @@ class ToArollaValueOperator final
                         arolla::QTypePtr output_qtype)
       : ExprOperatorWithFixedSignature(
             name,
-            arolla::expr::ExprOperatorSignature({{"x"}},
-                                                "koladata_classic_aux_policy"),
+            arolla::expr::ExprOperatorSignature(
+                // Use aux-policy with ArollaView.
+                {{"x"}}, "koladata_unified_aux_policy$arolla:_"),
             doc,
             arolla::FingerprintHasher("::koladata::expr::ToArollaValueOperator")
                 .Combine(name, doc, output_qtype)
@@ -116,8 +117,9 @@ class ToArollaValueOperator final
 InputOperator::InputOperator()
     : arolla::expr::ExprOperatorWithFixedSignature(
           kInternalInput,
-          arolla::expr::ExprOperatorSignature{{"container_name"},
-                                              {"input_key"}},
+          arolla::expr::ExprOperatorSignature(
+              {{"container_name"}, {"input_key"}},
+              "koladata_arolla_classic_aux_policy"),
           "Koda input with DATA_SLICE qtype.\n"
           "\n"
           "Note that this operator cannot be evaluated.\n"
@@ -161,7 +163,10 @@ absl::StatusOr<std::shared_ptr<LiteralOperator>> LiteralOperator::Make(
 LiteralOperator::LiteralOperator(PrivateConstructorTag,
                                  arolla::TypedValue value)
     : arolla::expr::ExprOperatorWithFixedSignature(
-          "koda_internal.literal", arolla::expr::ExprOperatorSignature{},
+          "koda_internal.literal",
+          arolla::expr::ExprOperatorSignature(
+              // Use aux-policy with BaseKodaView.
+              {}, "koladata_unified_aux_policy$base"),
           "Koda literal.",
           arolla::FingerprintHasher("::koladata::expr::LiteralOperator")
               .Combine(value.GetFingerprint())

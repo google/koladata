@@ -17,7 +17,6 @@
 import inspect
 
 from arolla import arolla
-from koladata.operators import aux_policies
 from koladata.operators import clib
 from koladata.types import py_boxing
 
@@ -113,6 +112,7 @@ def _process_boxing_options(
 def make_unified_signature(
     signature: inspect.Signature,
     *,
+    aux_policy_name: str,
     deterministic: bool,
     custom_boxing_fn_name_per_parameter: dict[str, str],
 ) -> arolla.abc.Signature:
@@ -121,6 +121,7 @@ def make_unified_signature(
   Args:
     signature: An `inspect.Signature` object representing the expected python
       signature.
+    aux_policy_name: Name of the aux policy to use for the operator.
     deterministic: If set to False, a hidden parameter (with the name
       `NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the signature. This
       parameter receives special handling by the binding policy implementation.
@@ -133,6 +134,7 @@ def make_unified_signature(
     arolla.abc.Signature: An operator signature with the unified binding
     policy applied.
   """
+  assert ':' not in aux_policy_name
   signature, aux_boxing_options = _process_boxing_options(
       signature, custom_boxing_fn_name_per_parameter
   )
@@ -185,7 +187,7 @@ def make_unified_signature(
   if aux_boxing_options:
     aux_options += ':' + aux_boxing_options
   return arolla.abc.make_operator_signature((  # pytype: disable=bad-return-type
-      ','.join(sig_spec) + f'|{aux_policies.UNIFIED_AUX_POLICY}:{aux_options}',
+      ','.join(sig_spec) + f'|{aux_policy_name}:{aux_options}',
       *sig_vals,
   ))
 

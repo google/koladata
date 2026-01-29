@@ -21,6 +21,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.operators import aux_policies
+from koladata.operators import clib
 from koladata.operators import op_repr
 from koladata.operators import unified_binding_policy
 from koladata.testing import testing
@@ -34,24 +35,17 @@ P = arolla.P
 
 class MakeUnifiedSignatureTest(parameterized.TestCase):
 
-  def test_policy_name(self):
-    sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(lambda: None),
-        deterministic=True,
-        custom_boxing_fn_name_per_parameter={},
-    )
-    self.assertEqual(sig.aux_policy, aux_policies.UNIFIED_AUX_POLICY)
-
   def test_positional_only_parameters(self):
     def op(x, y=arolla.unit(), /):
       del x, y
 
     sig = unified_binding_policy.make_unified_signature(
         inspect.signature(op),
+        aux_policy_name='my_aux_policy',
         deterministic=True,
         custom_boxing_fn_name_per_parameter={},
     )
-    self.assertEqual(sig.aux_policy, 'koladata_unified_aux_policy:__')
+    self.assertEqual(sig.aux_policy, 'my_aux_policy:__')
     self.assertLen(sig.parameters, 2)
 
     self.assertEqual(sig.parameters[0].name, 'x')
@@ -71,10 +65,11 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
 
     sig = unified_binding_policy.make_unified_signature(
         inspect.signature(op),
+        aux_policy_name='my_aux_policy',
         deterministic=True,
         custom_boxing_fn_name_per_parameter={},
     )
-    self.assertEqual(sig.aux_policy, 'koladata_unified_aux_policy:ppP')
+    self.assertEqual(sig.aux_policy, 'my_aux_policy:ppP')
     self.assertLen(sig.parameters, 3)
 
     self.assertEqual(sig.parameters[0].name, 'x')
@@ -100,10 +95,11 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
 
     sig = unified_binding_policy.make_unified_signature(
         inspect.signature(op),
+        aux_policy_name='my_aux_policy',
         deterministic=False,
         custom_boxing_fn_name_per_parameter={},
     )
-    self.assertEqual(sig.aux_policy, 'koladata_unified_aux_policy:dkKH')
+    self.assertEqual(sig.aux_policy, 'my_aux_policy:dkKH')
     self.assertLen(sig.parameters, 4)
 
     self.assertEqual(sig.parameters[0].name, 'x')
@@ -141,6 +137,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     mock_boxing_fn.return_value = arolla.int32(1)
     sig = unified_binding_policy.make_unified_signature(
         inspect.signature(op),
+        aux_policy_name='my_aux_policy',
         deterministic=False,
         custom_boxing_fn_name_per_parameter=dict(
             a1='custom_as_qvalue_or_expr',
@@ -151,7 +148,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     mock_boxing_fn.assert_called_with(1)
     self.assertEqual(
         sig.aux_policy,
-        'koladata_unified_aux_policy:_pdKH:custom_as_qvalue_or_expr;011',
+        'my_aux_policy:_pdKH:custom_as_qvalue_or_expr;011',
     )
     self.assertLen(sig.parameters, 5)
     arolla.testing.assert_qvalue_equal_by_fingerprint(
@@ -167,6 +164,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     ):
       _ = unified_binding_policy.make_unified_signature(
           inspect.signature(op),
+          aux_policy_name='my_aux_policy',
           deterministic=False,
           custom_boxing_fn_name_per_parameter=dict(a5='as_qvalue_or_expr'),
       )
@@ -179,6 +177,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       mock_boxing_fn.return_value = arolla.L.a3
       _ = unified_binding_policy.make_unified_signature(
           inspect.signature(op),
+          aux_policy_name='my_aux_policy',
           deterministic=False,
           custom_boxing_fn_name_per_parameter=dict(
               a2='custom_as_qvalue_or_expr'
@@ -203,6 +202,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     ):
       sig = unified_binding_policy.make_unified_signature(
           inspect.signature(op),
+          aux_policy_name='my_aux_policy',
           deterministic=True,
           custom_boxing_fn_name_per_parameter=dict(
               a1='boxing_fn_1',
@@ -218,7 +218,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       )
       self.assertEqual(
           sig.aux_policy,
-          'koladata_unified_aux_policy:pppppppppp:'
+          'my_aux_policy:pppppppppp:'
           'boxing_fn_1;boxing_fn_2;boxing_fn_3;boxing_fn_4;boxing_fn_5;'
           'boxing_fn_6;boxing_fn_7;boxing_fn_8;boxing_fn_9;123456789',
       )
@@ -229,6 +229,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       ):
         _ = unified_binding_policy.make_unified_signature(
             inspect.signature(op),
+            aux_policy_name='my_aux_policy',
             deterministic=True,
             custom_boxing_fn_name_per_parameter=dict(
                 a1='boxing_fn_1',
@@ -251,11 +252,14 @@ def _make_python_signature(sig: str | arolla.abc.Signature):
   )
 
 
+clib.register_unified_aux_binding_policy('unified_binding_aux_policy_test')
+
+
 class MakePythonSignatureTest(parameterized.TestCase):
 
   def test_positional_only_parameters(self):
     sig = arolla.abc.make_operator_signature(
-        ('x, y=|koladata_unified_aux_policy:__', arolla.unit())
+        ('x, y=|unified_binding_aux_policy_test:__', arolla.unit())
     )
     self.assertEqual(
         _make_python_signature(sig),
@@ -264,7 +268,7 @@ class MakePythonSignatureTest(parameterized.TestCase):
 
   def test_positional_parameters(self):
     sig = arolla.abc.make_operator_signature((
-        'x, y=, z=|koladata_unified_aux_policy:ppP',
+        'x, y=, z=|unified_binding_aux_policy_test:ppP',
         arolla.unit(),
         arolla.tuple(),
     ))
@@ -275,7 +279,7 @@ class MakePythonSignatureTest(parameterized.TestCase):
 
   def test_keyword_parameters(self):
     sig = arolla.abc.make_operator_signature((
-        'x=, y=, z=, h=|koladata_unified_aux_policy:dkKH',
+        'x=, y=, z=, h=|unified_binding_aux_policy_test:dkKH',
         arolla.unit(),
         arolla.unspecified(),
         arolla.unspecified(),
@@ -288,14 +292,14 @@ class MakePythonSignatureTest(parameterized.TestCase):
 
   def test_error_mismatch_of_options_and_parameters(self):
     try:
-      _ = _make_python_signature('x|koladata_unified_aux_policy:__')
+      _ = _make_python_signature('x|unified_binding_aux_policy_test:__')
       self.fail('expected a RuntimeError')
     except RuntimeError as ex:
       outer_ex = ex
     self.assertEqual(
         str(outer_ex),
         'arolla.abc.aux_make_python_signature() auxiliary binding policy has'
-        " failed: 'koladata_unified_aux_policy:__'",
+        " failed: 'unified_binding_aux_policy_test:__'",
     )
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
@@ -305,7 +309,9 @@ class MakePythonSignatureTest(parameterized.TestCase):
     )
 
   def test_error_unexpected_option(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:U')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:U'
+    )
     try:
       _ = _make_python_signature(sig)
       self.fail('expected a RuntimeError')
@@ -326,7 +332,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_positional_only_parameters(self):
     sig = arolla.abc.make_operator_signature(
-        ('x, y=|koladata_unified_aux_policy:__', arolla.unit())
+        ('x, y=|unified_binding_aux_policy_test:__', arolla.unit())
     )
     self.assertEqual(
         repr(arolla.abc.aux_bind_arguments(sig, arolla.int32(0))), '(0, unit)'
@@ -340,7 +346,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_positional_parameters(self):
     sig = arolla.abc.make_operator_signature((
-        'x, y=, z=|koladata_unified_aux_policy:ppP',
+        'x, y=, z=|unified_binding_aux_policy_test:ppP',
         arolla.unit(),
         arolla.tuple(),
     ))
@@ -379,7 +385,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_keyword_parameters(self):
     sig = arolla.abc.make_operator_signature((
-        'x=, y=, z=|koladata_unified_aux_policy:dkK',
+        'x=, y=, z=|unified_binding_aux_policy_test:dkK',
         arolla.unit(),
         arolla.unspecified(),
         arolla.unspecified(),
@@ -409,7 +415,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_non_deterministic_parameter(self):
     sig = arolla.abc.make_operator_signature(
-        ('H=|koladata_unified_aux_policy:H', arolla.unspecified())
+        ('H=|unified_binding_aux_policy_test:H', arolla.unspecified())
     )
     (expr_1,) = arolla.abc.aux_bind_arguments(sig)
     (expr_2,) = arolla.abc.aux_bind_arguments(sig)
@@ -418,7 +424,9 @@ class BindArgumentsTest(parameterized.TestCase):
     self.assertEqual(expr_2.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
 
   def test_error_mismatch_of_options_and_parameters(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:__')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:__'
+    )
     try:
       _ = arolla.abc.aux_bind_arguments(sig)
       self.fail('expected a RuntimeError')
@@ -427,7 +435,7 @@ class BindArgumentsTest(parameterized.TestCase):
     self.assertEqual(
         str(outer_ex),
         'arolla.abc.aux_bind_arguments() auxiliary binding policy has failed:'
-        " 'koladata_unified_aux_policy:__'",
+        " 'unified_binding_aux_policy_test:__'",
     )
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
@@ -438,7 +446,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_error_missing_positional_parameters(self):
     sig = arolla.abc.make_operator_signature(
-        'x, y, z|koladata_unified_aux_policy:_pp'
+        'x, y, z|unified_binding_aux_policy_test:_pp'
     )
     with self.assertRaisesWithLiteralMatch(
         TypeError, "missing 3 required positional arguments: 'x', 'y' and 'z'"
@@ -459,7 +467,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_error_missing_keyword_only_parameters(self):
     sig = arolla.abc.make_operator_signature((
-        'x=, y=, z=|koladata_unified_aux_policy:kkk',
+        'x=, y=, z=|unified_binding_aux_policy_test:kkk',
         arolla.unit(),
         arolla.unspecified(),
         arolla.unspecified(),
@@ -481,7 +489,9 @@ class BindArgumentsTest(parameterized.TestCase):
 
     # Gracefully handle the case where an optional keyword-only parameter lacks
     # a default value.
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:d')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:d'
+    )
     with self.assertRaisesWithLiteralMatch(
         TypeError, "missing 1 required keyword-only argument: 'x'"
     ):
@@ -490,7 +500,7 @@ class BindArgumentsTest(parameterized.TestCase):
   def test_error_too_many_positional_arguments(self):
     with self.subTest('x'):
       sig = arolla.abc.make_operator_signature(
-          'x|koladata_unified_aux_policy:_'
+          'x|unified_binding_aux_policy_test:_'
       )
       with self.assertRaisesWithLiteralMatch(
           TypeError, 'takes 1 positional argument but 3 were given'
@@ -500,7 +510,7 @@ class BindArgumentsTest(parameterized.TestCase):
         )
     with self.subTest('x, y'):
       sig = arolla.abc.make_operator_signature(
-          'x, y|koladata_unified_aux_policy:_p'
+          'x, y|unified_binding_aux_policy_test:_p'
       )
       with self.assertRaisesWithLiteralMatch(
           TypeError, 'takes 2 positional arguments but 3 were given'
@@ -510,7 +520,7 @@ class BindArgumentsTest(parameterized.TestCase):
         )
     with self.subTest('x, y='):
       sig = arolla.abc.make_operator_signature(
-          ('x, y=|koladata_unified_aux_policy:_p', arolla.unit())
+          ('x, y=|unified_binding_aux_policy_test:_p', arolla.unit())
       )
       with self.assertRaisesWithLiteralMatch(
           TypeError, 'takes from 1 to 2 positional arguments but 3 were given'
@@ -521,7 +531,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_error_unexpected_keyword_argument(self):
     sig = arolla.abc.make_operator_signature((
-        'x=, y=|koladata_unified_aux_policy:kk',
+        'x=, y=|unified_binding_aux_policy_test:kk',
         arolla.unit(),
         arolla.unspecified(),
     ))
@@ -537,7 +547,9 @@ class BindArgumentsTest(parameterized.TestCase):
       )
 
   def test_error_unexpected_option(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:U')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:U'
+    )
     try:
       _ = arolla.abc.aux_bind_arguments(sig)
       self.fail('expected a RuntimeError')
@@ -569,7 +581,9 @@ class BindArgumentsTest(parameterized.TestCase):
     )
 
   def test_boxing_as_qvalue_or_expr(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:_')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:_'
+    )
     with self.subTest('qvalue'):
       with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
         m.return_value = arolla.unit()
@@ -610,7 +624,9 @@ class BindArgumentsTest(parameterized.TestCase):
         )
 
   def test_boxing_as_qvalue_or_expr_arg(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:_')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:_'
+    )
     (x,) = arolla.abc.aux_bind_arguments(sig, 1)
     testing.assert_equal(x, py_boxing.as_qvalue(1))
     (x,) = arolla.abc.aux_bind_arguments(sig, P.a)
@@ -627,7 +643,9 @@ class BindArgumentsTest(parameterized.TestCase):
       )
 
   def test_boxing_as_qvalue_or_expr_var_args(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:P')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:P'
+    )
     (x,) = arolla.abc.aux_bind_arguments(sig)
     testing.assert_equal(x, arolla.tuple())
     (x,) = arolla.abc.aux_bind_arguments(sig, 0, 1)
@@ -649,7 +667,9 @@ class BindArgumentsTest(parameterized.TestCase):
       )
 
   def test_boxing_as_qvalue_or_expr_var_kwargs(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:K')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:K'
+    )
     (x,) = arolla.abc.aux_bind_arguments(sig)
     testing.assert_equal(x, arolla.namedtuple())
     (x,) = arolla.abc.aux_bind_arguments(sig, a=0, b=1)
@@ -672,7 +692,7 @@ class BindArgumentsTest(parameterized.TestCase):
 
   def test_custom_boxing_options(self):
     sig = arolla.abc.make_operator_signature(
-        'x,y|koladata_unified_aux_policy:pp:box_fn_1;box_fn_2;12'
+        'x,y|unified_binding_aux_policy_test:pp:box_fn_1;box_fn_2;12'
     )
     with (
         mock.patch.object(py_boxing, 'box_fn_1', create=True) as mock_fn_1,
@@ -689,13 +709,13 @@ class BindArgumentsTest(parameterized.TestCase):
   def test_error_invalid_boxing_options(self):
     with self.subTest('illegal boxing_option'):
       sig = arolla.abc.make_operator_signature(
-          'x|koladata_unified_aux_policy:p:'
+          'x|unified_binding_aux_policy_test:p:'
           + ':'  # use `:` which is the character after '9' in ASCII
       )
       with self.assertRaisesWithLiteralMatch(
           RuntimeError,
           'arolla.abc.aux_bind_arguments() auxiliary binding policy has'
-          " failed: 'koladata_unified_aux_policy:p::'",
+          " failed: 'unified_binding_aux_policy_test:p::'",
       ) as cm:
         _ = arolla.abc.aux_bind_arguments(sig, 1)
       self.assertIsInstance(cm.exception.__cause__, RuntimeError)
@@ -705,12 +725,12 @@ class BindArgumentsTest(parameterized.TestCase):
       )
     with self.subTest('boxing_fn index out of range'):
       sig = arolla.abc.make_operator_signature(
-          'x|koladata_unified_aux_policy:p:5'
+          'x|unified_binding_aux_policy_test:p:5'
       )
       with self.assertRaisesWithLiteralMatch(
           RuntimeError,
           'arolla.abc.aux_bind_arguments() auxiliary binding policy has'
-          " failed: 'koladata_unified_aux_policy:p:5'",
+          " failed: 'unified_binding_aux_policy_test:p:5'",
       ) as cm:
         _ = arolla.abc.aux_bind_arguments(sig, 1)
       self.assertIsInstance(cm.exception.__cause__, RuntimeError)
@@ -720,7 +740,9 @@ class BindArgumentsTest(parameterized.TestCase):
       )
 
   def test_error_import_py_boxing(self):
-    sig = arolla.abc.make_operator_signature('x|koladata_unified_aux_policy:_')
+    sig = arolla.abc.make_operator_signature(
+        'x|unified_binding_aux_policy_test:_'
+    )
     assert sys.modules['koladata.types.py_boxing'] is py_boxing
     del sys.modules['koladata.types.py_boxing']
     try:
@@ -744,6 +766,7 @@ class BindArgumentsTest(parameterized.TestCase):
     op = arolla.optools.make_lambda(
         unified_binding_policy.make_unified_signature(
             inspect.signature(lambda x, *args, **kwargs: None),
+            aux_policy_name='unified_binding_aux_policy_test',
             deterministic=True,
             custom_boxing_fn_name_per_parameter={},
         ),
@@ -764,12 +787,16 @@ unified_op = arolla.abc.register_operator(
     arolla.optools.make_lambda(
         unified_binding_policy.make_unified_signature(
             inspect.signature(lambda a, /, x, *args, y, z, **kwargs: None),
+            aux_policy_name=aux_policies.UNIFIED_AUX_POLICY_PREFIX + '$my_view',
             deterministic=False,
             custom_boxing_fn_name_per_parameter={},
         ),
         (P.a, P.x, P.args, P.y, P.z, P.kwargs),
         name='unified_op',
     ),
+)
+clib.register_unified_aux_binding_policy(
+    aux_policies.UNIFIED_AUX_POLICY_PREFIX + '$my_view'
 )
 arolla.abc.register_op_repr_fn_by_registration_name(
     unified_op.display_name, op_repr.default_op_repr

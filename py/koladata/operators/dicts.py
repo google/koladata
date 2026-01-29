@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -174,18 +175,14 @@ def _new_bind_args(
   if isinstance(items_or_keys, dict):
     keys = tuple(items_or_keys)
     if not _is_unspecified(values):
-      raise ValueError(
-          'if items_or_keys is a dict, values must be unspecified'
-      )
+      raise ValueError('if items_or_keys is a dict, values must be unspecified')
     values = tuple(items_or_keys.values())
   else:
     keys = items_or_keys
 
   if not _is_unspecified(schema):
     if not isinstance(schema, arolla.Expr) and not schema.is_dict_schema():
-      raise ValueError(
-          'schema must be a dict schema, but got %s' % schema
-      )
+      raise ValueError('schema must be a dict schema, but got %s' % schema)
 
   key_schema_for_boxing = arolla.unspecified()
   if not _is_unspecified(key_schema):
@@ -218,6 +215,7 @@ def _new_bind_args(
 arolla.abc.register_adhoc_aux_binding_policy(
     new, _new_bind_args, make_literal_fn=py_boxing.literal
 )
+arolla.abc.set_expr_view_for_aux_policy(new, view.KodaView)
 
 
 @optools.add_to_registry(

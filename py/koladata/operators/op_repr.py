@@ -38,7 +38,7 @@ def default_op_repr(
   op = node.op
   assert op is not None
   signature = arolla.abc.get_operator_signature(op)
-  if signature.aux_policy.startswith(aux_policies.UNIFIED_AUX_POLICY):
+  if signature.aux_policy.startswith(aux_policies.UNIFIED_AUX_POLICY_PREFIX):
     return unified_binding_policy.unified_op_repr(node, op, signature, tokens)
   res = ReprToken()
   dep_txt = ', '.join(tokens[node].text for node in node.node_deps)

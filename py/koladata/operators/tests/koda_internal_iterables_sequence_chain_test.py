@@ -59,8 +59,7 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
 
   def test_non_sequence_arg(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'expected a sequence type, got sequences: DATA_SLICE',
+        ValueError, 'expected a sequence type, got sequences: DATA_SLICE'
     ):
       _ = expr_eval.eval(kde_internal.iterables.sequence_chain(1))
 

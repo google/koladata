@@ -15,6 +15,7 @@
 """Module with deqring auxiliary policies for Koladata."""
 
 from arolla import arolla
+from koladata.expr import view as views
 from koladata.operators import clib
 from koladata.types import py_boxing
 
@@ -52,18 +53,61 @@ from koladata.types import py_boxing
 #
 # The binding rules implementation can be found in:
 # //py/koladata/operators/py_unified_binding_policy.cc
-UNIFIED_AUX_POLICY = 'koladata_unified_aux_policy'
+UNIFIED_AUX_POLICY_PREFIX = 'koladata_unified_aux_policy'
 
 
-# The classic Arolla binding rules with Koladata-specific boxing: it wraps most
-# values into DataItems (excluding lists and tuples). QValues remain unchanged.
+def get_unified_aux_policy_name(view: str | type[arolla.abc.ExprView]) -> str:
+  """Returns the unified aux policy name for the given view."""
+  match view:
+    case '' | views.KodaView:
+      return UNIFIED_AUX_POLICY_PREFIX
+    case 'base' | views.BaseKodaView:
+      return UNIFIED_AUX_POLICY_PREFIX + '$base'
+    case 'arolla' | views.ArollaView:
+      return UNIFIED_AUX_POLICY_PREFIX + '$arolla'
+    case _:
+      # NOTE: Consider supporting arbitrary views by registering them with
+      # unified binding policy.
+      raise ValueError(
+          f'unsupported view: {view!r}, expected KodaView, BaseKodaView, or'
+          ' ArollaView'
+      )
+
+
+def register_unified_aux_policies():
+  for view in (
+      views.KodaView,
+      views.BaseKodaView,
+      views.ArollaView,
+  ):
+    aux_policy_name = get_unified_aux_policy_name(view)
+    clib.register_unified_aux_binding_policy(aux_policy_name)
+    arolla.abc.set_expr_view_for_aux_policy(aux_policy_name, view)
+
+
+register_unified_aux_policies()
+
+
+# The classic Arolla binding rules and Koladata-specific boxing: it wraps most
+# values into DataItems (excluding lists and tuples).
 CLASSIC_AUX_POLICY = 'koladata_classic_aux_policy'
-
-
-clib.register_unified_aux_binding_policy(UNIFIED_AUX_POLICY)
 
 arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     CLASSIC_AUX_POLICY,
     py_boxing.as_qvalue_or_expr,
     make_literal_fn=py_boxing.literal,
+)
+arolla.abc.set_expr_view_for_aux_policy(CLASSIC_AUX_POLICY, views.KodaView)
+
+
+# The classic Arolla binding/boxing rules, and KodaView.
+CLASSIC_AUX_POLICY_WITH_AROLLA_BOXING = 'koladata_arolla_classic_aux_policy'
+
+arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
+    CLASSIC_AUX_POLICY_WITH_AROLLA_BOXING,
+    arolla.types.as_qvalue_or_expr,
+    make_literal_fn=arolla.abc.literal,
+)
+arolla.abc.set_expr_view_for_aux_policy(
+    CLASSIC_AUX_POLICY_WITH_AROLLA_BOXING, views.KodaView
 )

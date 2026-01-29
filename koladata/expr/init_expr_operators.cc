@@ -43,7 +43,7 @@ AROLLA_INITIALIZER(
                                    arolla::expr::Literal(internal::Ellipsis{})))
                   .status());
           RETURN_IF_ERROR(
-              arolla::expr::RegisterOperator("koda_internal.with_name",
+              arolla::expr::RegisterOperator("kd.annotation.with_name",
                                              MakeNameAnnotationOperator())
                   .status());
           RETURN_IF_ERROR(

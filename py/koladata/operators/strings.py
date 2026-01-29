@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.fstring import fstring as _fstring
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
@@ -316,6 +317,7 @@ def _fstr_bind_args(fstr, /):  # pylint: disable=redefined-outer-name
 arolla.abc.register_adhoc_aux_binding_policy(
     fstr, _fstr_bind_args, make_literal_fn=py_boxing.literal
 )
+arolla.abc.set_expr_view_for_aux_policy(fstr, view.KodaView)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

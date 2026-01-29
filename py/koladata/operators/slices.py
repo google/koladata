@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import aux_policies
@@ -1979,6 +1980,7 @@ def _item_bind_args(x, schema=arolla.unspecified()):
 arolla.abc.register_adhoc_aux_binding_policy(
     item, _item_bind_args, make_literal_fn=py_boxing.literal
 )
+arolla.abc.set_expr_view_for_aux_policy(item, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.slice'], via_cc_operator_package=True)
@@ -2056,6 +2058,7 @@ def slice_bind_args(x, schema=arolla.unspecified()):
 arolla.abc.register_adhoc_aux_binding_policy(
     slice_, slice_bind_args, make_literal_fn=py_boxing.literal
 )
+arolla.abc.set_expr_view_for_aux_policy(slice_, view.KodaView)
 
 
 def _typed_slice_bind_args(x, schema):
@@ -2082,6 +2085,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.INT32),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(int32, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.int64'], via_cc_operator_package=True)
@@ -2102,6 +2106,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.INT64),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(int64, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.float32'], via_cc_operator_package=True)
@@ -2122,6 +2127,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.FLOAT32),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(float32, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.float64'], via_cc_operator_package=True)
@@ -2142,6 +2148,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.FLOAT64),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(float64, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.str'], via_cc_operator_package=True)
@@ -2157,7 +2164,14 @@ def str_(x):
   return schema_ops.to_str(x)
 
 
-# pylint: disable=unused-argument
+arolla.abc.register_adhoc_aux_binding_policy(
+    str_,
+    lambda x: _typed_slice_bind_args(x, schema_constants.STRING),
+    make_literal_fn=py_boxing.literal,
+)
+arolla.abc.set_expr_view_for_aux_policy(str_, view.KodaView)
+
+
 @optools.add_to_registry(aliases=['kd.get_repr'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.slices.get_repr',
@@ -2215,15 +2229,6 @@ def get_repr(
   raise NotImplementedError('implemented in the backend')
 
 
-# pylint: enable=unused-argument
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    str_,
-    lambda x: _typed_slice_bind_args(x, schema_constants.STRING),
-    make_literal_fn=py_boxing.literal,
-)
-
-
 @optools.add_to_registry(aliases=['kd.bytes'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.slices.bytes',
@@ -2242,6 +2247,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.BYTES),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(bytes_, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.bool'], via_cc_operator_package=True)
@@ -2262,6 +2268,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.BOOLEAN),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(bool_, view.KodaView)
 
 
 @optools.add_to_registry(aliases=['kd.mask'], via_cc_operator_package=True)
@@ -2282,6 +2289,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.MASK),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(mask, view.KodaView)
 
 
 @optools.add_to_registry(
@@ -2306,6 +2314,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.EXPR),
     make_literal_fn=py_boxing.literal,
 )
+arolla.abc.set_expr_view_for_aux_policy(expr_quote, view.KodaView)
 
 
 # There is an alternative faster implementation by implementing _concat_or_stack

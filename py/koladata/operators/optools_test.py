@@ -22,8 +22,8 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import aux_policies
 from koladata.operators import optools
-from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -169,20 +169,26 @@ class OptoolsTest(parameterized.TestCase):
 
   def test_add_to_registry_with_view(self):
 
-    @arolla.optools.as_lambda_operator('test_add_to_registry_with_view.op')
-    def op(x):
+    @optools.add_to_registry()
+    @arolla.optools.as_lambda_operator(
+        'test_add_to_registry_with_view.op1',
+        aux_policy=aux_policies.CLASSIC_AUX_POLICY,
+    )
+    def op_1(x):
       return x
 
-    with self.subTest('default_view'):
-      op_1 = optools.add_to_registry()(op)
-      self.assertTrue(view.has_koda_view(op_1(1)))
+    @optools.add_to_registry()
+    @arolla.optools.as_lambda_operator(
+        'test_add_to_registry_with_view.op_with_arolla_view'
+    )
+    def op_2(x):
+      return x
 
-    with self.subTest('no_view'):
-      op_2 = optools.add_to_registry(
-          'test_add_to_registry_with_view.op_2',
-          view=arolla.expr.DefaultExprView,
-      )(op)
-      self.assertFalse(view.has_koda_view(op_2(1)))
+    arolla.abc.set_expr_view_for_registered_operator(op_2, view.ArollaView)
+
+    self.assertTrue(view.has_koda_view(op_1(I.x)))
+    self.assertFalse(view.has_koda_view(op_2(I.x)))
+    self.assertTrue(view.has_arolla_view(op_2(I.x)))
 
   def test_building_cc_operator_package(self):
     @optools.as_py_function_operator(
@@ -295,38 +301,38 @@ class OptoolsTest(parameterized.TestCase):
     )
 
   def test_add_alias(self):
+    with self.subTest('koda_view'):
 
-    @arolla.optools.as_lambda_operator('test.op_5')
-    def op(x):
-      del x
-      return arolla.int64(1)
-
-    op_original = optools.add_to_registry(
-        aliases=['test.op_5_alias_1'], repr_fn=repr_fn
-    )(op)
-    op_original_no_view = optools.add_to_registry(
-        'test.op_5_no_view', view=arolla.expr.DefaultExprView, repr_fn=repr_fn
-    )(op)
-
-    optools.add_alias('test.op_5', 'test.op_5_alias_2')
-    optools.add_alias('test.op_5_no_view', 'test.op_5_alias_no_view')
-
-    with self.subTest('correct_aliases'):
-      op_alias_1 = arolla.abc.lookup_operator('test.op_5_alias_1')
-      op_alias_2 = arolla.abc.lookup_operator('test.op_5_alias_2')
-      op_alias_no_view = arolla.abc.lookup_operator('test.op_5_alias_no_view')
-      self.assertTrue(optools.equiv_to_op(op_alias_1, op_original))
-      self.assertTrue(optools.equiv_to_op(op_alias_2, op_original))
-      self.assertTrue(
-          optools.equiv_to_op(op_alias_no_view, op_original_no_view)
+      @optools.add_to_registry(repr_fn=repr_fn)
+      @arolla.optools.as_lambda_operator(
+          'test_add_alias.op1', aux_policy=aux_policies.CLASSIC_AUX_POLICY
       )
-      self.assertTrue(view.has_koda_view(op_alias_1(1)))
-      self.assertTrue(view.has_koda_view(op_alias_2(1)))
-      self.assertFalse(view.has_koda_view(op_alias_no_view(1)))
-      self.assertEqual(repr(op_alias_1(42)), 'MY_CUSTOM_M.test.op_5_alias_1')
-      self.assertEqual(repr(op_alias_2(42)), 'MY_CUSTOM_M.test.op_5_alias_2')
+      def op_1(x):
+        return x
+
+      optools.add_alias('test_add_alias.op1', 'test_add_alias.op1_alias')
+      op1_alias = arolla.abc.lookup_operator('test_add_alias.op1_alias')
+      self.assertTrue(optools.equiv_to_op(op_1, op1_alias))
+      self.assertTrue(view.has_koda_view(op1_alias(I.x)))
+      self.assertEqual(repr(op_1(42)), 'MY_CUSTOM_M.test_add_alias.op1')
       self.assertEqual(
-          repr(op_alias_no_view(42)), 'MY_CUSTOM_M.test.op_5_alias_no_view'
+          repr(op1_alias(42)), 'MY_CUSTOM_M.test_add_alias.op1_alias'
+      )
+
+    with self.subTest('without_koda_view'):
+
+      @optools.add_to_registry(repr_fn=repr_fn)
+      @arolla.optools.as_lambda_operator('test_add_alias.op2')
+      def op2(x):
+        return x
+
+      optools.add_alias('test_add_alias.op2', 'test_add_alias.op2_alias')
+      op2_alias = arolla.abc.lookup_operator('test_add_alias.op2_alias')
+      self.assertTrue(optools.equiv_to_op(op2, op2_alias))
+      self.assertFalse(view.has_koda_view(op2_alias(I.x)))
+      self.assertEqual(repr(op2(42)), 'MY_CUSTOM_M.test_add_alias.op2')
+      self.assertEqual(
+          repr(op2_alias(42)), 'MY_CUSTOM_M.test_add_alias.op2_alias'
       )
 
   def test_add_alias_override(self):
@@ -423,39 +429,41 @@ class OptoolsTest(parameterized.TestCase):
   def test_add_to_registry_as_overloadable_overrides(self):
 
     # Will be overridden.
-    @optools.add_to_registry_as_overloadable('test.op_7')
-    def op_fake(x):  # pylint: disable=unused-variable
+    @optools.add_to_registry_as_overloadable(
+        'test_add_to_registry_as_overloadable_overrides.op'
+    )
+    def op(x):
       del x
       raise NotImplementedError('overloadable operator')
 
     # Will override the previous one. Includes overrides for defaults.
     @optools.add_to_registry_as_overloadable(
-        'test.op_7',
+        'test_add_to_registry_as_overloadable_overrides.op',
         unsafe_override=True,
-        view=arolla.expr.DefaultExprView,
         repr_fn=repr_fn,
-        aux_policy='',  # Uses the default Arolla binding policy.
+        aux_policy=aux_policies.CLASSIC_AUX_POLICY,
     )
-    def op_actual(x, y):  # pylint: disable=unused-variable
+    def op_override(x, y):
       del x, y
       raise NotImplementedError('overloadable operator')
 
     @arolla.optools.add_to_registry_as_overload(
-        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED
+        overload_condition_expr=(arolla.P.y == arolla.UNSPECIFIED),
     )
-    @arolla.optools.as_lambda_operator('test.op_7.overload')
-    def overload(x, y):  # pylint: disable=unused-variable
+    @optools.as_lambda_operator(
+        'test_add_to_registry_as_overloadable_overrides.op.impl',
+        suppress_unused_parameter_warning=True,
+    )
+    def op_impl(x, y):
       del y
       return x + 1
 
-    op = arolla.abc.lookup_operator('test.op_7')
-    self.assertFalse(view.has_koda_view(op(1, arolla.unspecified())))
+    self.assertTrue(view.has_koda_view(op(I.x, arolla.unspecified())))
     self.assertEqual(
-        repr(op(42, arolla.unspecified())), 'MY_CUSTOM_M.test.op_7'
+        repr(op(42, arolla.unspecified())),
+        'MY_CUSTOM_M.test_add_to_registry_as_overloadable_overrides.op',
     )
-    testing.assert_equal(
-        arolla.eval(op(42, arolla.unspecified())), arolla.int32(43)
-    )
+    testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))
 
   def test_add_to_registry_as_overload(self):
 
@@ -549,84 +557,6 @@ class OptoolsTest(parameterized.TestCase):
         arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
     )
 
-  def test_reload_operator_view(self):
-
-    class OptoolsTestView(arolla.abc.ExprView):
-
-      def fn1(self):
-        return self
-
-    @optools.add_to_registry(view=OptoolsTestView)
-    @optools.as_lambda_operator('test.op_10')
-    def op(x):
-      return x
-
-    self.assertTrue(hasattr(op(arolla.L.x), 'fn1'))
-    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
-
-    # Attaching it doesn't have any effect on the operator.
-    OptoolsTestView.fn2 = lambda x: x
-    self.assertTrue(hasattr(OptoolsTestView, 'fn2'))
-    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
-
-    # After reloading, the operator will have the new method.
-    optools.reload_operator_view(OptoolsTestView)
-    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
-
-  def test_reload_operator_view_module_name(self):
-
-    class OptoolsTestView(arolla.abc.ExprView):
-      pass
-
-    @optools.add_to_registry(view=OptoolsTestView)
-    @optools.as_lambda_operator('test.op_11')
-    def op(x):
-      return x
-
-    @optools.add_to_registry(view=optools_test_utils.OptoolsTestView)
-    @optools.as_lambda_operator('test.op_12')
-    def op2(x):
-      return x
-
-    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
-    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
-
-    OptoolsTestView.fn2 = lambda x: x
-    optools.reload_operator_view(OptoolsTestView)
-    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
-    # Not attached to op2 since it's in a different module.
-    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
-
-  def test_reload_operator_view_qualname(self):
-    class A:
-
-      class OptoolsTestView(arolla.abc.ExprView):
-        pass
-
-    class B:
-
-      class OptoolsTestView(arolla.abc.ExprView):
-        pass
-
-    @optools.add_to_registry(view=A.OptoolsTestView)
-    @optools.as_lambda_operator('test.op_13')
-    def op(x):
-      return x
-
-    @optools.add_to_registry(view=B.OptoolsTestView)
-    @optools.as_lambda_operator('test.op_14')
-    def op2(x):
-      return x
-
-    self.assertFalse(hasattr(op(arolla.L.x), 'fn2'))
-    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
-
-    A.OptoolsTestView.fn2 = lambda x: x
-    optools.reload_operator_view(A.OptoolsTestView)
-    self.assertTrue(hasattr(op(arolla.L.x), 'fn2'))
-    # Not attached to op2 since it has a different qualname.
-    self.assertFalse(hasattr(op2(arolla.L.x), 'fn2'))
-
   def test_fix_non_deterministic_tokens(self):
     non_deterministic_op = arolla.abc.lookup_operator(
         'koda_internal.non_deterministic'
@@ -666,6 +596,7 @@ class OptoolsTest(parameterized.TestCase):
         'my_op_name',
         qtype_inference_expr=arolla.P.a,
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
+        view=view.BaseKodaView,
     )
     def op(a, /, b, *, c):
       """MyDocstring."""
@@ -677,6 +608,8 @@ class OptoolsTest(parameterized.TestCase):
     self.assertEqual(
         inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
     )
+    self.assertFalse(view.has_koda_view(op(I.a, I.b, c=I.c)))
+    self.assertTrue(view.has_base_koda_view(op(I.a, I.b, c=I.c)))
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):
       arolla.abc.infer_attr(op, (arolla.UNIT, None, None))
 
@@ -708,6 +641,7 @@ class OptoolsTest(parameterized.TestCase):
     @optools.as_lambda_operator(
         'my_op_name',
         qtype_constraints=[(arolla.P.a != arolla.UNIT, 'my_qtype_constraint')],
+        view=view.BaseKodaView,
     )
     def op(a, /, b, *, c):
       """MyDocstring."""
@@ -720,6 +654,8 @@ class OptoolsTest(parameterized.TestCase):
     self.assertEqual(
         inspect.signature(op), inspect.signature(lambda a, /, b, *, c: None)
     )
+    self.assertFalse(view.has_koda_view(op(I.a, I.b, c=I.c)))
+    self.assertTrue(view.has_base_koda_view(op(I.a, I.b, c=I.c)))
     src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     arolla.testing.assert_expr_equal_by_fingerprint(
         arolla.abc.to_lower_node(op(1, 2, c=3)),

@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import optools
@@ -226,7 +227,9 @@ def _flatten_last_ndim(x, ndim):
       default=P.ndim,
   )
 
-  @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.shape')
+  @optools.as_lambda_operator(
+      'koda_internal.flatten_last_ndim.shape', view=view.ArollaView
+  )
   def flatten_shape(x, ndim):
     x_upcast = arolla_bridge.to_arolla_jagged_shape(x)
     x_rank = M.jagged.rank(x_upcast)
@@ -238,7 +241,9 @@ def _flatten_last_ndim(x, ndim):
         M.jagged.flatten(x_upcast, x_rank - ndim)
     )
 
-  @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.slice')
+  @optools.as_lambda_operator(
+      'koda_internal.flatten_last_ndim.slice', view=view.ArollaView
+  )
   def flatten_slice(x, ndim):
     return reshape(x, flatten_shape(get_shape(x), ndim))
 

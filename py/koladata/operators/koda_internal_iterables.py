@@ -43,11 +43,12 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.iterables.is_iterable_qtype',
     qtype_inference_expr=arolla.OPTIONAL_UNIT,
     qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+    view=view.ArollaView,
 )
 def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
   """Checks if the given qtype is an iterable qtype."""
@@ -55,11 +56,9 @@ def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
-@arolla.optools.as_lambda_operator(
+@optools.as_lambda_operator(
     'koda_internal.iterables.from_sequence',
-    qtype_constraints=[
-        arolla.optools.constraints.expect_sequence(P.x),
-    ],
+    qtype_constraints=[arolla.optools.constraints.expect_sequence(P.x)],
 )
 def from_sequence(x):
   """Converts a sequence to an iterable."""
@@ -71,25 +70,23 @@ def from_sequence(x):
   )
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.to_sequence',
-    qtype_constraints=[
-        qtype_utils.expect_iterable(P.x),
-    ],
+    qtype_constraints=[qtype_utils.expect_iterable(P.x)],
+    view=view.ArollaView,
 )
 def to_sequence(x):
   """Converts an iterable to a sequence."""
   return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_from_1d_slice',
     qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-    ],
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+    view=view.ArollaView,
 )
 def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
   """Creates an arolla Sequence of DataItems from a 1D DataSlice."""
@@ -97,7 +94,7 @@ def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
-@arolla.optools.as_backend_operator(
+@optools.as_backend_operator(
     'koda_internal.iterables.sequence_to_1d_slice',
     qtype_inference_expr=qtypes.DATA_SLICE,
     qtype_constraints=[(
@@ -116,9 +113,7 @@ def sequence_to_1d_slice(x):  # pylint: disable=unused-argument
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.shuffle',
-    qtype_constraints=[
-        qtype_utils.expect_iterable(P.x),
-    ],
+    qtype_constraints=[qtype_utils.expect_iterable(P.x)],
 )
 def shuffle(x):
   """Shuffles the items in the iterable.
@@ -153,7 +148,7 @@ def shuffle(x):
   return from_sequence(shuffled_seq)
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_chain',
     qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.sequences),
@@ -166,13 +161,14 @@ def shuffle(x):
             'expected a sequence of sequences',
         ),
     ],
+    view=view.ArollaView,
 )
 def sequence_chain(sequences):  # pylint: disable=unused-argument
   """Chains the given sequences into one."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=view.ArollaView, via_cc_operator_package=True)
+@optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.sequence_interleave',
     qtype_constraints=[
@@ -184,6 +180,7 @@ def sequence_chain(sequences):  # pylint: disable=unused-argument
             'expected a sequence of sequences',
         ),
     ],
+    view=view.ArollaView,
 )
 def sequence_interleave(sequences):
   """Interleaves the given sequences into one randomly.
@@ -199,10 +196,7 @@ def sequence_interleave(sequences):
     An interleaved sequence.
   """
   chain_res = sequence_chain(sequences)
-  sizes_seq = arolla.M.seq.map(
-      arolla.M.seq.size,
-      sequences,
-  )
+  sizes_seq = arolla.M.seq.map(arolla.M.seq.size, sequences)
   sizes_item_seq = arolla.M.seq.map(
       # We need a lambda wrapper to always use a default value for the 'shape'
       # argument.
@@ -250,9 +244,7 @@ def sequence_interleave(sequences):
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'koda_internal.iterables.empty_as',
-    qtype_constraints=[
-        qtype_utils.expect_iterable(P.iterable),
-    ],
+    qtype_constraints=[qtype_utils.expect_iterable(P.iterable)],
 )
 def empty_as(iterable):
   """Returns an empty iterable of the same type as `iterable`."""

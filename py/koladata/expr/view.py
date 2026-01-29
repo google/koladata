@@ -753,6 +753,12 @@ class KodaView(BaseKodaView):
     _raise_eager_only_method('uuobj', 'DataBag')
 
 
+class ArollaView(BaseKodaView, arolla.expr.DefaultExprView):
+  """Arolla view with a few extra methods specific to Koda."""
+
+  _arolla_view_tag = True
+
+
 def has_koda_view(node: arolla.Expr) -> bool:
   """Returns true iff the node has the full koda view."""
   return hasattr(node, '_koda_view_tag')
@@ -763,21 +769,11 @@ def has_base_koda_view(node: arolla.Expr) -> bool:
   return hasattr(node, '_base_koda_view_tag')
 
 
-class ArollaView(BaseKodaView, arolla.expr.DefaultExprView):
-  """Arolla view with a few extra methods specific to Koda."""
-
-  pass
+def has_arolla_view(node: arolla.Expr) -> bool:
+  """Returns true iff the node has the arolla view."""
+  return hasattr(node, '_arolla_view_tag')
 
 
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, KodaView)
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, KodaView)
 arolla.abc.set_expr_view_for_qtype(qtypes.JAGGED_SHAPE, KodaView)
-arolla.abc.set_expr_view_for_registered_operator(
-    'koda_internal.input', KodaView
-)
-
-# NOTE: This attaches a BaseKodaView to all literals, including Arolla values.
-# This adds generic Koda methods (such as eval) to the expression.
-arolla.abc.set_expr_view_for_operator_family(
-    '::koladata::expr::LiteralOperator', ArollaView
-)

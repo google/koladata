@@ -24,7 +24,6 @@ import warnings
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import tracing_mode
-from koladata.expr import view as view_lib
 from koladata.operators import aux_policies
 from koladata.operators import op_repr
 from koladata.operators import qtype_utils
@@ -85,7 +84,6 @@ def building_cc_operator_package():
 class _RegisteredOpProperties:
   """Additional properties of a registered operator."""
 
-  view: type[arolla.abc.ExprView]
   repr_fn: op_repr.OperatorReprFn
 
 
@@ -112,7 +110,6 @@ def _register_operator(
     result = arolla.abc.register_operator(
         name, op, if_present='unsafe_override' if unsafe_override else 'raise'
     )
-  arolla.abc.set_expr_view_for_registered_operator(name, properties.view)
   arolla.abc.register_op_repr_fn_by_registration_name(name, properties.repr_fn)
   _REGISTERED_OP_PROPERTIES[name] = properties
   return result
@@ -154,7 +151,6 @@ def add_to_registry(
     *,
     aliases: Collection[str] = (),
     unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn = _default_op_repr,
     via_cc_operator_package: bool = False,
 ):
@@ -164,7 +160,6 @@ def add_to_registry(
     name: Optional name of the operator. Otherwise, inferred from the op.
     aliases: Optional aliases for the operator.
     unsafe_override: Whether to override an existing operator.
-    view: View for the operator and its aliases.
     repr_fn: Repr function for the operator and its aliases.
     via_cc_operator_package: If True, the operator will be only registered
       during koladata_cc_operator_package construction, and just looked up in
@@ -181,7 +176,7 @@ def add_to_registry(
   ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
 
   def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
-    properties = _RegisteredOpProperties(view, repr_fn)
+    properties = _RegisteredOpProperties(repr_fn)
     result = _register_operator(
         name or op.display_name,
         op,
@@ -206,7 +201,6 @@ def add_to_registry_as_overloadable(
     name: str,
     *,
     unsafe_override: bool = False,
-    view: type[arolla.abc.ExprView] = view_lib.KodaView,
     repr_fn: op_repr.OperatorReprFn = _default_op_repr,
     aux_policy: str = aux_policies.CLASSIC_AUX_POLICY,
     via_cc_operator_package: bool = False,
@@ -219,7 +213,6 @@ def add_to_registry_as_overloadable(
   Args:
     name: Name of the operator.
     unsafe_override: Whether to override an existing operator.
-    view: View for the operator and its aliases.
     repr_fn: Repr function for the operator and its aliases.
     aux_policy: Aux policy for the operator.
     via_cc_operator_package: If True, the operator will be only registered
@@ -250,9 +243,8 @@ def add_to_registry_as_overloadable(
           if_present='unsafe_override' if unsafe_override else 'raise',
           aux_policy=aux_policy,
       )(fn)
-    arolla.abc.set_expr_view_for_registered_operator(name, view)
     arolla.abc.register_op_repr_fn_by_registration_name(name, repr_fn)
-    _REGISTERED_OP_PROPERTIES[name] = _RegisteredOpProperties(view, repr_fn)
+    _REGISTERED_OP_PROPERTIES[name] = _RegisteredOpProperties(repr_fn)
     return overloadable_op
 
   return impl
@@ -342,6 +334,7 @@ def as_backend_operator(
     qtype_constraints: arolla.types.QTypeConstraints = (),
     deterministic: bool = True,
     custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
+    view: str | type[arolla.abc.ExprView] = '',
 ) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
   """Decorator for Koladata backend operators with a unified binding policy.
 
@@ -362,6 +355,8 @@ def as_backend_operator(
     custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
       function per parameter (constants with the boxing functions look like:
       `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+    view: The view for the for the operator, with the default being KodaView
+      (supported values: ''|KodaView, 'base'|BaseKodaView, 'arolla'|ArollaView).
 
   Returns:
     A decorator that constructs a backend operator based on the provided Python
@@ -372,6 +367,7 @@ def as_backend_operator(
     qtype_constraints_copy = list(qtype_constraints)
     op_sig = unified_binding_policy.make_unified_signature(
         inspect.signature(fn),
+        aux_policy_name=aux_policies.get_unified_aux_policy_name(view),
         deterministic=deterministic,
         custom_boxing_fn_name_per_parameter=(
             custom_boxing_fn_name_per_parameter or {}
@@ -461,6 +457,7 @@ def as_lambda_operator(
     deterministic: bool | None = None,
     custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
     suppress_unused_parameter_warning: bool = False,
+    view: str | type[arolla.abc.ExprView] = '',
 ) -> Callable[
     [types.FunctionType],
     arolla.types.LambdaOperator | arolla.types.RestrictedLambdaOperator,
@@ -484,6 +481,8 @@ def as_lambda_operator(
       `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
     suppress_unused_parameter_warning: If True, unused parameters will not cause
       a warning.
+    view: The view for the for the operator, with the default being KodaView
+      (supported values: ''|KodaView, 'base'|BaseKodaView, 'arolla'|ArollaView).
 
   Returns:
     A decorator that constructs a lambda operator by tracing a Python function.
@@ -501,6 +500,7 @@ def as_lambda_operator(
 
     op_sig = unified_binding_policy.make_unified_signature(
         inspect.signature(fn),
+        aux_policy_name=aux_policies.get_unified_aux_policy_name(view),
         deterministic=deterministic_copy,
         custom_boxing_fn_name_per_parameter=(
             custom_boxing_fn_name_per_parameter or {}
@@ -559,6 +559,7 @@ def as_py_function_operator(
     codec: bytes | None = None,
     deterministic: bool = True,
     custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
+    view: str | type[arolla.abc.ExprView] = '',
 ) -> Callable[[types.FunctionType], arolla.abc.Operator]:
   """Returns a decorator for defining Koladata-specific py-function operators.
 
@@ -583,6 +584,8 @@ def as_py_function_operator(
     custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
       function per parameter (constants with the boxing functions look like:
       `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+    view: The view for the for the operator, with the default being KodaView
+      (supported values: ''|KodaView, 'base'|BaseKodaView, 'arolla'|ArollaView).
   """
 
   def impl(fn):
@@ -692,6 +695,7 @@ def as_py_function_operator(
       )
     op_sig = unified_binding_policy.make_unified_signature(
         sig,
+        aux_policy_name=aux_policies.get_unified_aux_policy_name(view),
         deterministic=deterministic,
         custom_boxing_fn_name_per_parameter=(
             custom_boxing_fn_name_per_parameter or {}
@@ -718,28 +722,6 @@ def equiv_to_op(
   this_op = arolla.abc.decay_registered_operator(this_op)
   that_op = arolla.abc.decay_registered_operator(that_op)
   return this_op == that_op
-
-
-def reload_operator_view(view: type[arolla.abc.ExprView]) -> None:
-  """Re-registers the view for all registered operators with the same view.
-
-  Uses the fully qualified name (including module) of the view to compare the
-  new view with the existing one.
-
-  Note that only operators registered through `optools.add_to_registry` are
-  affected.
-
-  Args:
-    view: The view to use for the operators.
-  """
-  for name, properties in _REGISTERED_OP_PROPERTIES.items():
-    old_view = properties.view
-    if (
-        old_view is not None
-        and old_view.__module__ == view.__module__
-        and old_view.__qualname__ == view.__qualname__
-    ):
-      arolla.abc.set_expr_view_for_registered_operator(name, view)
 
 
 def make_operators_container(*namespaces: str) -> arolla.OperatorsContainer:

@@ -4823,7 +4823,7 @@ Operator definition and registration tooling.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Adds an alias for an operator.</code></pre>
 
-### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, view: type[ExprView] = <class 'koladata.expr.view.KodaView'>, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry}
+### `kd.optools.add_to_registry(name: str | None = None, *, aliases: Collection[str] = (), unsafe_override: bool = False, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wrapper around Arolla&#39;s add_to_registry with Koda functionality.
 
@@ -4831,7 +4831,6 @@ Args:
   name: Optional name of the operator. Otherwise, inferred from the op.
   aliases: Optional aliases for the operator.
   unsafe_override: Whether to override an existing operator.
-  view: View for the operator and its aliases.
   repr_fn: Repr function for the operator and its aliases.
   via_cc_operator_package: If True, the operator will be only registered
     during koladata_cc_operator_package construction, and just looked up in
@@ -4867,7 +4866,7 @@ Returns:
   A decorator that registers an overload for the operator with the
   corresponding name.</code></pre>
 
-### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, view: type[ExprView] = <class 'koladata.expr.view.KodaView'>, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, aux_policy: str = 'koladata_classic_aux_policy', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
+### `kd.optools.add_to_registry_as_overloadable(name: str, *, unsafe_override: bool = False, repr_fn: Callable[[Expr, NodeTokenView], ReprToken] = <default_op_repr>, aux_policy: str = 'koladata_classic_aux_policy', via_cc_operator_package: bool = False)` {#kd.optools.add_to_registry_as_overloadable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overloadable.
 
@@ -4877,7 +4876,6 @@ repr function.
 Args:
   name: Name of the operator.
   unsafe_override: Whether to override an existing operator.
-  view: View for the operator and its aliases.
   repr_fn: Repr function for the operator and its aliases.
   aux_policy: Aux policy for the operator.
   via_cc_operator_package: If True, the operator will be only registered
@@ -4890,7 +4888,7 @@ Args:
 Returns:
   An overloadable registered operator.</code></pre>
 
-### `kd.optools.as_backend_operator(name: str, *, qtype_inference_expr: Expr | QType = DATA_SLICE, qtype_constraints: Iterable[tuple[Expr, str]] = (), deterministic: bool = True, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None) -> Callable[[function], BackendOperator]` {#kd.optools.as_backend_operator}
+### `kd.optools.as_backend_operator(name: str, *, qtype_inference_expr: Expr | QType = DATA_SLICE, qtype_constraints: Iterable[tuple[Expr, str]] = (), deterministic: bool = True, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None, view: str | type[ExprView] = '') -> Callable[[function], BackendOperator]` {#kd.optools.as_backend_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator for Koladata backend operators with a unified binding policy.
 
@@ -4911,12 +4909,14 @@ Args:
   custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
     function per parameter (constants with the boxing functions look like:
     `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+  view: The view for the for the operator, with the default being KodaView
+    (supported values: &#39;&#39;|KodaView, &#39;base&#39;|BaseKodaView, &#39;arolla&#39;|ArollaView).
 
 Returns:
   A decorator that constructs a backend operator based on the provided Python
   function signature.</code></pre>
 
-### `kd.optools.as_lambda_operator(name: str, *, qtype_constraints: Iterable[tuple[Expr, str]] = (), deterministic: bool | None = None, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None, suppress_unused_parameter_warning: bool = False) -> Callable[[function], LambdaOperator | RestrictedLambdaOperator]` {#kd.optools.as_lambda_operator}
+### `kd.optools.as_lambda_operator(name: str, *, qtype_constraints: Iterable[tuple[Expr, str]] = (), deterministic: bool | None = None, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None, suppress_unused_parameter_warning: bool = False, view: str | type[ExprView] = '') -> Callable[[function], LambdaOperator | RestrictedLambdaOperator]` {#kd.optools.as_lambda_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator for Koladata lambda operators with a unified binding policy.
 
@@ -4937,11 +4937,13 @@ Args:
     `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
   suppress_unused_parameter_warning: If True, unused parameters will not cause
     a warning.
+  view: The view for the for the operator, with the default being KodaView
+    (supported values: &#39;&#39;|KodaView, &#39;base&#39;|BaseKodaView, &#39;arolla&#39;|ArollaView).
 
 Returns:
   A decorator that constructs a lambda operator by tracing a Python function.</code></pre>
 
-### `kd.optools.as_py_function_operator(name: str, *, qtype_inference_expr: Expr | QType = DATA_SLICE, qtype_constraints: Iterable[tuple[Expr, str]] = (), codec: bytes | None = None, deterministic: bool = True, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None) -> Callable[[function], Operator]` {#kd.optools.as_py_function_operator}
+### `kd.optools.as_py_function_operator(name: str, *, qtype_inference_expr: Expr | QType = DATA_SLICE, qtype_constraints: Iterable[tuple[Expr, str]] = (), codec: bytes | None = None, deterministic: bool = True, custom_boxing_fn_name_per_parameter: dict[str, str] | None = None, view: str | type[ExprView] = '') -> Callable[[function], Operator]` {#kd.optools.as_py_function_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a decorator for defining Koladata-specific py-function operators.
 
@@ -4965,7 +4967,9 @@ Args:
     (i.e., non-deterministic or has side effects).
   custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
     function per parameter (constants with the boxing functions look like:
-    `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).</code></pre>
+    `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+  view: The view for the for the operator, with the default being KodaView
+    (supported values: &#39;&#39;|KodaView, &#39;base&#39;|BaseKodaView, &#39;arolla&#39;|ArollaView).</code></pre>
 
 ### `kd.optools.as_qvalue(arg: Any) -> QValue` {#kd.optools.as_qvalue}
 

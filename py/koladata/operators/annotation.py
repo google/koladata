@@ -17,13 +17,8 @@
 from arolla import arolla
 from koladata.operators import optools
 
-
 # NOTE: Implemented in C++.
 source_location = arolla.abc.lookup_operator('kd.annotation.source_location')
+with_name = arolla.abc.lookup_operator('kd.annotation.with_name')
 
-
-with_name = optools.add_to_registry(
-    name='kd.annotation.with_name',
-    aliases=['kd.with_name'],
-    via_cc_operator_package=True,
-)(arolla.abc.lookup_operator('koda_internal.with_name'))
+optools.add_to_registry('kd.with_name', via_cc_operator_package=True)(with_name)
