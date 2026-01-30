@@ -1968,5 +1968,46 @@ TEST(DataSliceReprTest, SchemaToStr) {
               Eq("LIST[INT32]"));
 }
 
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName_SkipNone) {
+  {
+    // None values are skipped, but the schema values are not.
+    DataBagPtr bag = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice entity_with_none,
+        EntityCreator::FromAttrs(
+            bag, {"a", "b"},
+            {test::DataItem(1), test::DataItem(std::nullopt, schema::kInt32)}));
+    EXPECT_THAT(DataSliceRepr(entity_with_none,
+                              {.show_databag_id = false, .show_schema = true}),
+                "DataItem(Entity(a=1), schema: ENTITY(a=INT32, b=INT32))");
+  }
+  {
+    // None values are not skipped when show_schema is false.
+    DataBagPtr bag = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice entity_with_none,
+        EntityCreator::FromAttrs(
+            bag, {"a", "b"},
+            {test::DataItem(1), test::DataItem(std::nullopt, schema::kInt32)}));
+    EXPECT_THAT(
+        DataSliceRepr(entity_with_none,
+                      {.show_databag_id = false, .show_schema = false}),
+        "DataItem(Entity(a=1, b=None))");
+  }
+  {
+    // None values are not skipped for Objects.
+    DataBagPtr bag = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice entity_with_none,
+        ObjectCreator::FromAttrs(
+            bag, {"a", "b"},
+            {test::DataItem(1), test::DataItem(std::nullopt, schema::kInt32)}));
+    EXPECT_THAT(
+        DataSliceRepr(entity_with_none,
+                      {.show_databag_id = false, .show_schema = true}),
+        "DataItem(Obj(a=1, b=None), schema: OBJECT)");
+  }
+}
+
 }  // namespace
 }  // namespace koladata

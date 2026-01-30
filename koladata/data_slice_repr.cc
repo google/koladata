@@ -611,12 +611,17 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
       break;
     }
     ASSIGN_OR_RETURN(DataSlice value, ds.GetAttr(attr_name));
-    ASSIGN_OR_RETURN(std::string value_str,
-                     DataItemToStr(value.item(), value.GetSchemaImpl(), db,
-                                   option, wrapping));
-    parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
-        attr_name, value_str, value.item().is_list()));
-    ++item_count;
+    bool skip_none_values =
+        ds.GetSchemaImpl() != schema::kObject && option.show_schema;
+    // We skip showing attrs with the value None.
+    if (!value.IsEmpty() || !skip_none_values) {
+      ASSIGN_OR_RETURN(std::string value_str,
+                       DataItemToStr(value.item(), value.GetSchemaImpl(), db,
+                                     option, wrapping));
+      parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
+          attr_name, value_str, value.item().is_list()));
+      ++item_count;
+    }
   }
 
   return parts;
