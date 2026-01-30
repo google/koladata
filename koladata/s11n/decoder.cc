@@ -680,10 +680,14 @@ struct DataBagDecoder {
       std::vector<DataBagPtr> fallbacks;
       fallbacks.reserve(db_proto.fallback_count());
       for (int i = 0; i < db_proto.fallback_count(); ++i) {
-        ASSIGN_OR_RETURN(fallbacks.emplace_back(),
+        ASSIGN_OR_RETURN(DataBagPtr fdb,
                          input_values[i].As<DataBagPtr>());
+        if (fdb->IsMutable()) {
+          fdb = fdb->Freeze();
+        }
+        fallbacks.push_back(std::move(fdb));
       }
-      db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(fallbacks);
+      ASSIGN_OR_RETURN(db, DataBag::ImmutableEmptyWithFallbacks(fallbacks));
     } else {
       db = DataBag::EmptyMutable();
       ASSIGN_OR_RETURN(internal::DataBagImpl & impl, db->GetMutableImpl());

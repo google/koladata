@@ -66,40 +66,6 @@ TEST(DataBagTest, Fallbacks) {
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
 }
 
-TEST(DataBagTest, CommonDataBag_AllEmpty) {
-  EXPECT_EQ(DataBag::CommonDataBag({nullptr, nullptr}), nullptr);
-  EXPECT_EQ(DataBag::CommonDataBag({}), nullptr);
-}
-
-TEST(DataBagTest, CommonDataBag_1_Present) {
-  auto db = DataBag::EmptyMutable();
-  EXPECT_EQ(DataBag::CommonDataBag({nullptr, db, nullptr, db}), db);
-}
-
-TEST(DataBagTest, CommonDataBag_NewWithFallbacks) {
-  auto db_1 = DataBag::EmptyMutable();
-  auto db_2 = DataBag::EmptyMutable();
-  auto new_db =
-      DataBag::CommonDataBag({nullptr, db_1, db_1, nullptr, db_2, db_2, db_2});
-  EXPECT_THAT(new_db->GetFallbacks(), ElementsAre(db_1, db_2));
-  EXPECT_FALSE(new_db->IsMutable());
-  EXPECT_TRUE(new_db->HasMutableFallbacks());
-}
-
-TEST(DataBagTest, MutableFallbacks) {
-  auto db_1 = DataBag::EmptyMutable();
-  EXPECT_TRUE(db_1->IsMutable());
-  EXPECT_FALSE(db_1->HasMutableFallbacks());
-
-  auto db_2 = DataBag::Empty();
-  EXPECT_FALSE(db_2->IsMutable());
-  EXPECT_FALSE(db_2->HasMutableFallbacks());
-
-  ASSERT_OK_AND_ASSIGN(auto db_3, DataBag::ImmutableEmptyWithFallbacks({db_2}));
-  EXPECT_FALSE(db_3->IsMutable());
-  EXPECT_FALSE(db_3->HasMutableFallbacks());
-}
-
 TEST(DataBagTest, CollectFlattenFallbacks) {
   auto db = DataBag::Empty();
   {

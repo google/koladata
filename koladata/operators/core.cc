@@ -808,14 +808,17 @@ absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
 absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
                                 const DataSlice& schema,
                                 internal::NonDeterministicToken) {
-  const auto& db = ds.GetBag();
+  DataBagPtr db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
+  if (db->IsMutable() || db->HasMutableFallbacks()) {
+    db = db->Freeze();
+  }
   ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, itemid, schema));
-  DataSlice shallow_clone_with_fallback = shallow_clone.WithBag(
-      DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-          {shallow_clone.GetBag(), db}));
+  ASSIGN_OR_RETURN(db, DataBag::ImmutableEmptyWithFallbacks(
+                           {shallow_clone.GetBag(), std::move(db)}));
+  DataSlice shallow_clone_with_fallback = shallow_clone.WithBag(std::move(db));
   return Extract(std::move(shallow_clone_with_fallback), schema);
 }
 

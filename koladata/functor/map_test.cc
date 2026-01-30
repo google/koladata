@@ -86,7 +86,8 @@ TEST(MapTest, Basic) {
                        CreateFunctor(returns_a_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto fn_b,
                        CreateFunctor(returns_b_expr, koda_signature, {}, {}));
-  auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
+  ASSERT_OK_AND_ASSIGN(auto merged_bag, DataBag::ImmutableEmptyWithFallbacks(
+                                            {fn_a.GetBag(), fn_b.GetBag()}));
   auto fn = test::DataSlice<internal::DataItem>(
       {fn_a.item(), fn_b.item(), internal::DataItem(), fn_a.item()},
       merged_bag);
@@ -131,7 +132,8 @@ TEST(MapTest, Alignment) {
                        CreateFunctor(returns_a_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto fn_b,
                        CreateFunctor(returns_b_expr, koda_signature, {}, {}));
-  auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
+  ASSERT_OK_AND_ASSIGN(auto merged_bag, DataBag::ImmutableEmptyWithFallbacks(
+                                            {fn_a.GetBag(), fn_b.GetBag()}));
   auto fn = test::DataSlice<internal::DataItem>({fn_a.item(), fn_b.item()},
                                                 merged_bag);
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 3, 7}});

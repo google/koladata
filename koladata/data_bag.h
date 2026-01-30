@@ -130,14 +130,6 @@ class DataBag : public arolla::RefcountedBase {
   static DataBagPtr ImmutableEmptyWithDeprecatedMutableFallbacks(
       absl::Span<const DataBagPtr absl_nullable> fallbacks);
 
-  // Returns a DataBag that contains all the data its input contain.
-  // * If they are all the same or only 1 DataBag is non-nullptr, that DataBag
-  //   is returned.
-  // * Otherwise, an immutable DataBag with all the inputs as fallbacks is
-  //   created and returned.
-  // * In case of no DataBags, nullptr is returned.
-  static DataBagPtr CommonDataBag(absl::Span<const DataBagPtr> databags);
-
   // Returns a new DataBag with all the fallbacks merged.
   absl::StatusOr<DataBagPtr> MergeFallbacks();
 

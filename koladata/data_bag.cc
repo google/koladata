@@ -145,32 +145,6 @@ DataBagPtr DataBag::Freeze() {
   return DataBagPtr::NewRef(this);
 }
 
-DataBagPtr DataBag::CommonDataBag(absl::Span<const DataBagPtr> databags) {
-  if (databags.size() == 1) {
-    return databags.back();
-  }
-  if (databags.empty()) {
-    return nullptr;
-  }
-  std::vector<DataBagPtr> non_null_databags;
-  non_null_databags.reserve(databags.size());
-  absl::flat_hash_set<const DataBag*> visited_bags;
-  visited_bags.reserve(databags.size());
-  for (const auto& db : databags) {
-    if (db != nullptr && !visited_bags.contains(db.get())) {
-      visited_bags.insert(db.get());
-      non_null_databags.push_back(db);
-    }
-  }
-  if (non_null_databags.size() == 1) {
-    return std::move(non_null_databags.back());
-  }
-  if (non_null_databags.empty()) {
-    return nullptr;
-  }
-  return ImmutableEmptyWithDeprecatedMutableFallbacks(non_null_databags);
-}
-
 DataBagPtr DataBag::FromImpl(internal::DataBagImplPtr impl) {
   auto res = DataBagPtr::Make();
   res->impl_ = std::move(impl);
