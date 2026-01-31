@@ -167,12 +167,17 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
   return data_item.DataItem.from_vals(arg)
 
 
+_make_slice_op = arolla.abc.unsafe_make_registered_operator('kd.slices.slice')
+
+
 def as_qvalue_or_expr_with_list_to_slice_support(
     arg: Any,
 ) -> arolla.Expr | arolla.QValue:
-  if isinstance(arg, list):
-    return data_slice.DataSlice.from_vals(arg)
-  return as_qvalue_or_expr(arg)
+  """Converts Python values into QValues or Exprs, supporting list to slice."""
+  if not isinstance(arg, list):
+    return as_qvalue_or_expr(arg)
+  result, _ = arolla.abc.aux_bind_arguments(_make_slice_op, arg)
+  return result
 
 
 def as_qvalue_or_expr_with_py_function_to_py_object_support(

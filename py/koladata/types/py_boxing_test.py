@@ -126,6 +126,7 @@ class PyBoxingTest(parameterized.TestCase):
       (arolla.L.x, arolla.L.x),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       ([1, 2], ds([1, 2])),
+      ([[1]], ds([[1]])),
   )
   def test_as_qvalue_or_expr_with_list_to_slice_support(
       self, value, expected_res
@@ -133,6 +134,18 @@ class PyBoxingTest(parameterized.TestCase):
     testing.assert_equal(
         py_boxing.as_qvalue_or_expr_with_list_to_slice_support(value),
         expected_res,
+    )
+
+  def test_as_qvalue_or_expr_with_list_to_slice_exprs(self):
+    testing.assert_equal(
+        arolla.eval(
+            py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
+                [[1], [arolla.L.x], [arolla.L.y]]
+            ),
+            x=ds(2),
+            y=ds(3),
+        ),
+        ds([[1], [2], [3]]),
     )
 
   def test_as_qvalue_or_expr_with_py_function_to_py_object_support(self):
