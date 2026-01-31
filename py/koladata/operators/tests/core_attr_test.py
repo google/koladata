@@ -96,6 +96,19 @@ class CoreAttrTest(parameterized.TestCase):
       testing.assert_equal(ds1.updated(db).x.no_bag(), ds([42, 3]))
       testing.assert_equal(ds1.updated(db).y.no_bag(), ds([2, 42]))
 
+  def test_attr_update_with_ds_attr_scalar_obj(self):
+    with self.subTest('object'):
+      ds1 = kd.obj(x=1)
+      db = kd.core.attr(ds1, ds(['x', 'y']), ds([42, 43]))
+      testing.assert_equal(ds1.updated(db).x.no_bag(), ds(42))
+      testing.assert_equal(ds1.updated(db).y.no_bag(), ds(43))
+
+    with self.subTest('entity'):
+      ds1 = kd.new(x=1)
+      db = kd.core.attr(ds1, ds(['x', 'y']), ds([42, 43]))
+      testing.assert_equal(ds1.updated(db).x.no_bag(), ds(42))
+      testing.assert_equal(ds1.updated(db).y.no_bag(), ds(43))
+
   def test_invalid_attr_name(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(

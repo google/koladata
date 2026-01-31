@@ -113,9 +113,9 @@ absl::Status UpdateSchemaForConflictDetection(
 absl::Status UpdateSchemaForConflictDetection(const DataSlice& obj,
                                               const DataSlice& attr_names,
                                               DataBagPtr& result_db) {
-  bool object_mode = obj.GetSchemaImpl() == schema::kObject;
-  ASSIGN_OR_RETURN(DataSlice src_schema,
-                   object_mode ? obj.GetObjSchema() : obj.GetSchema());
+  ASSIGN_OR_RETURN(DataSlice src_schema, obj.GetSchemaImpl() == schema::kObject
+                                             ? obj.GetObjSchema()
+                                             : obj.GetSchema());
   DataSlice dst_schema = src_schema.WithBag(result_db);
 
   ASSIGN_OR_RETURN(auto aligned_slices,
@@ -125,9 +125,7 @@ absl::Status UpdateSchemaForConflictDetection(const DataSlice& obj,
       aligned_slices[1].impl<internal::DataSliceImpl>();
 
   absl::Status status = absl::OkStatus();
-  if (object_mode) {
-    DCHECK(!src_schema.is_item());
-    DCHECK(!dst_schema.is_item());
+  if (!src_schema.is_item()) {
     // In this case, src_schema and dst_schema are not DataItems, so we need to
     // iterate over all sub-items.
     DCHECK(aligned_obj.dtype() == arolla::GetQType<internal::ObjectId>());
