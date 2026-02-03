@@ -1510,7 +1510,7 @@ kd.sample(ds, 0.5, 123, key)
 kd.sample_n(ds, 2, 123)
 # Select one item from the first and
 # two items from the second
-kd.sample_n(ds, kd.slice([1, 2], 123))
+kd.sample_n(ds, kd.slice([1, 2]), 123)
 # Use 'key' for stability
 kd.sample_n(ds, 2, 123, key)
 
