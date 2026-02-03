@@ -80,12 +80,61 @@ def dumps(
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 
+_LOADS_ERROR_PREFIX = (
+    'expected a DataSlice, DataBag, JaggedShape, or an extension type derived'
+    ' from DataSlice'
+)
+
+
 def loads(x: bytes) -> arolla.AnyQValue:
   """Deserializes a DataSlice or a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
   if not _isinstance_of_supported_type(result):
-    raise ValueError(
-        'expected a DataSlice, DataBag, JaggedShape, '
-        f'or an extension type derived from DataSlice, got {type(result)}'
-    )
+    raise ValueError(_LOADS_ERROR_PREFIX + f', got {type(result)}')
+  return result
+
+
+_EXPERIMENTAL_SAFER_CODECS = frozenset({
+    # go/keep-sorted start
+    'arolla.serialization_codecs.DenseArrayV1Proto.extension',
+    'arolla.serialization_codecs.DerivedQTypeV1Proto.extension',
+    'arolla.serialization_codecs.DictV1Proto.extension',
+    'arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension',
+    'arolla.serialization_codecs.ObjectsV1Proto.extension',
+    'arolla.serialization_codecs.OperatorV1Proto.extension',
+    'arolla.serialization_codecs.OptionalV1Proto.extension',
+    'arolla.serialization_codecs.ScalarV1Proto.extension',
+    'arolla.serialization_codecs.SequenceV1Proto.extension',
+    'arolla.serialization_codecs.TupleV1Proto.extension',
+    'koladata.s11n',
+    # go/keep-sorted end
+})
+
+
+def experimental_safer_loads(x: bytes) -> arolla.AnyQValue:
+  """(experimental) Deserializes a DataSlice or a DataBag.
+
+  IMPORTANT: This experimental function restricts the allowed codecs to exclude
+  PICKLE_PY_OBJECT_CODEC and similar unsafe codecs. However, this restriction
+  alone does NOT make it safe for use with untrusted data.
+
+  Args:
+    x: Serialized data.
+
+  Returns:
+    Deserialized data.
+  """
+  values, exprs = arolla.s11n.experimental_riegeli_loads_many(
+      x, allowed_decoders=_EXPERIMENTAL_SAFER_CODECS
+  )
+  if len(values) != 1 or exprs:
+    suffix = []
+    if values:
+      suffix.append(f' {len(values)} value(s)')
+    if exprs:
+      suffix.append(f' {len(exprs)} expression(s)')
+    raise ValueError(_LOADS_ERROR_PREFIX + ', got' + ' and'.join(suffix))
+  result = values[0]
+  if not _isinstance_of_supported_type(result):
+    raise ValueError(_LOADS_ERROR_PREFIX + f', got {type(result)}')
   return result

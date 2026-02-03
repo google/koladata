@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -171,6 +173,105 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equal(ext_x.qtype, loaded_x.qtype)
     testing.assert_equal(ext_x.x, loaded_x.x)
     testing.assert_equal(ext_x.y, loaded_x.y)
+
+
+class ExperimentalSaferLoadsTest(parameterized.TestCase):
+
+  @parameterized.parameters(*DS_DATA)
+  def test_dumps_loads(self, input_slice):
+    dumped_bytes = s11n.dumps(input_slice)
+    loaded_slice = s11n.experimental_safer_loads(dumped_bytes)
+    testing.assert_equal(loaded_slice, input_slice)
+
+  def test_dumps_load_bag_fails_on_random_bytes(self):
+    with self.assertRaises(ValueError):
+      s11n.experimental_safer_loads(b'foo')
+
+  def test_loads_fails(self):
+    with self.subTest('expr'):
+      dumped_bytes = arolla.s11n.riegeli_dumps(L.x)
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a DataSlice, DataBag, JaggedShape, or an extension type'
+              ' derived from DataSlice, got 1 expression(s)'
+          ),
+      ):
+        s11n.experimental_safer_loads(dumped_bytes)
+    with self.subTest('multiple_values'):
+      dumped_bytes = arolla.s11n.riegeli_dumps_many(
+          values=[kd.item(1), kd.item(2)], exprs=[]
+      )
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a DataSlice, DataBag, JaggedShape, or an extension type'
+              ' derived from DataSlice, got 2 value(s)'
+          ),
+      ):
+        s11n.experimental_safer_loads(dumped_bytes)
+    with self.subTest('mixed_values_and_exprs'):
+      dumped_bytes = arolla.s11n.riegeli_dumps_many(
+          values=[kd.item(1)], exprs=[L.x]
+      )
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a DataSlice, DataBag, JaggedShape, or an extension type'
+              ' derived from DataSlice, got 1 value(s) and 1 expression(s)'
+          ),
+      ):
+        s11n.experimental_safer_loads(dumped_bytes)
+
+  @parameterized.parameters(*DS_DATA)
+  def test_dumps_loads_bag(self, input_slice):
+    input_slice_with_bag = input_slice.with_bag(db())
+    dumped_bytes = s11n.dumps(input_slice_with_bag.get_bag())
+    loaded_bag = s11n.experimental_safer_loads(dumped_bytes)
+    testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
+
+  def test_dumps_loads_named_schema(self):
+    bag = db()
+    schemas = ds(
+        [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
+    )
+    loaded = s11n.experimental_safer_loads(s11n.dumps(schemas))
+    testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
+
+  def test_dumps_loads_objects(self):
+    bag = db()
+    objs = bag.obj(a=ds([1, 2, 3] * 10))
+    loaded = s11n.experimental_safer_loads(s11n.dumps(objs))
+    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    self.assertTrue(loaded.is_mutable())
+
+  def test_dumps_loads_jagged_shape(self):
+    shape = jagged_shape.JaggedShape.from_edges(
+        arolla.types.DenseArrayEdge.from_sizes([2]),
+    )
+    dumped_bytes = s11n.dumps(shape)
+    loaded_shape = s11n.experimental_safer_loads(dumped_bytes)
+    testing.assert_equal(loaded_shape, shape)
+
+  def test_dumps_loads_extension_type(self):
+    ext_x = MyExtensionType(1, 2)
+    dumped_bytes = s11n.dumps(ext_x)
+    loaded_x = s11n.experimental_safer_loads(dumped_bytes)
+    testing.assert_equal(ext_x.qtype, loaded_x.qtype)
+    testing.assert_equal(ext_x.x, loaded_x.x)
+    testing.assert_equal(ext_x.y, loaded_x.y)
+
+  def test_experimental_riegeli_loads_py_object_codec(self):
+    x = arolla.types.PyObject(1234567, codec=arolla.s11n.PICKLE_PY_OBJECT_CODEC)
+    data = arolla.s11n.riegeli_dumps(x)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            '[FAILED_PRECONDITION] codec'
+            " 'arolla.python.PyObjectV1Proto.extension' is not allowed"
+        ),
+    ):
+      s11n.experimental_safer_loads(data)
 
 
 if __name__ == '__main__':
