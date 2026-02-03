@@ -68,16 +68,30 @@ class DataSliceManagerView:
       path_from_root: The view path. It must be a valid path for the manager,
         i.e. manager.exists(path_from_root) must be True.
     """
+    # Conceptually, this class is a frozen dataclass with two attributes:
+    # _data_slice_manager and _path_from_root. However, since we override
+    # __getattr__() and __setattr__(), we cannot use a frozen dataclass, and we
+    # use __dict__ here to avoid triggering __setattr__().
     self.__dict__['_data_slice_manager'] = manager
     self.__dict__['_path_from_root'] = path_from_root
     self._check_path_from_root_is_valid()
 
   def __eq__(self, other: Any) -> bool:
+    # A frozen dataclass would give this behavior for free. As mentioned above,
+    # we cannot use a frozen dataclass, so we implement __eq__ manually here.
     return (
         type(self) is type(other)
         and self._data_slice_manager == other._data_slice_manager
         and self._path_from_root == other._path_from_root
     )
+
+  def __hash__(self) -> int:
+    # A frozen dataclass would give this behavior for free. As mentioned above,
+    # we cannot use a frozen dataclass, so we implement __hash__ manually here
+    # to be able to use sets and dicts with DataSliceManagerView instances.
+    # Implementing __eq__ removes the default hash behavior, so we need to
+    # implement __hash__ explicitly.
+    return hash((self._data_slice_manager, self._path_from_root))
 
   def __repr__(self) -> str:
     return (

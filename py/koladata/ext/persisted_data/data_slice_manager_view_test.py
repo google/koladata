@@ -1873,6 +1873,62 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ids_equality=True,
     )
 
+  def test_views_are_hashable(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+        persistence_dir
+    )
+    root = DataSliceManagerView(manager)
+    root.query = (
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
+                query_id=1, text='How high is the Eiffel tower'
+            ),
+        ]),
+        'Added queries with query_id and text',
+    )
+    query = root.query[:]
+    query.doc = (
+        kd.list([
+            kd.named_schema('doc').new(doc_id=0, title='Barack Obama'),
+            kd.named_schema('doc').new(doc_id=1, title='Michelle Obama'),
+            kd.named_schema('doc').new(doc_id=2, title='George W. Bush'),
+        ]),
+        'Added docs with doc_id and title',
+    )
+    doc = query.doc[:]
+
+    self.assertEqual(hash(root), hash(root))
+    self.assertEqual(hash(root), hash(root.get_root()))
+    self.assertEqual(hash(root.query[:]), hash(query))
+    self.assertEqual(hash(root.query[:]), hash(root.query[:]))
+    self.assertEqual(hash(root.query[:].text), hash(query.text))
+    self.assertEqual(hash(root.query[:].text), hash(root.query[:].text))
+    self.assertEqual(hash(root.query[:].doc[:].title), hash(doc.title))
+
+    my_view_set = {root, query, doc, doc.title, root.query[:].doc[:]}
+    self.assertLen(my_view_set, 4)
+
+    another_manager = (
+        pidsm.PersistedIncrementalDataSliceManager.create_from_dir(
+            persistence_dir
+        )
+    )
+    another_root = DataSliceManagerView(another_manager)
+
+    self.assertNotEqual(hash(another_root), hash(root))
+    self.assertNotEqual(hash(another_root), hash(root.get_root()))
+    self.assertNotEqual(hash(another_root.query[:]), hash(query))
+    self.assertNotEqual(hash(another_root.query[:]), hash(root.query[:]))
+    self.assertNotEqual(hash(another_root.query[:].text), hash(query.text))
+    self.assertNotEqual(
+        hash(another_root.query[:].text), hash(root.query[:].text)
+    )
+    self.assertNotEqual(
+        hash(another_root.query[:].doc[:].title), hash(doc.title)
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
