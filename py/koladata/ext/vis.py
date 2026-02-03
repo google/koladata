@@ -18,6 +18,7 @@ import dataclasses
 import enum
 import functools
 import html
+import inspect
 import json
 import os.path
 import sys
@@ -1022,10 +1023,12 @@ def unregister_formatters():
 
   # Remove any post_run_cell back from this module.
   post_run_cell_callbacks = shell.events.callbacks['post_run_cell']
-  for callback in post_run_cell_callbacks:
-    if (hasattr(callback, '__self__')
-        and callback.__self__.__class__.__module__ == __name__):
-      post_run_cell_callbacks.remove(callback)
+  to_remove = [
+      cb for cb in post_run_cell_callbacks
+      if inspect.ismethod(cb) and cb.__self__.__class__.__module__ == __name__
+  ]
+  for callback in to_remove:
+    shell.events.unregister('post_run_cell', callback)
 
   _WATCHER = None
 

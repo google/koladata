@@ -167,6 +167,7 @@ py_test(
     deps = [
         ":vis",
         "//py:python_path",
+        requirement("ipython"),
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
