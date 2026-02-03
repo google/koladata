@@ -77,11 +77,11 @@ class SchemaWithSchemaTest(parameterized.TestCase):
       (ds([obj1, obj2]), s2),
   )
   def test_entities_and_objects(self, x, schema):
-    res = kd.schema.with_schema(x, schema)
+    res = kd.schema.with_schema(x.freeze_bag(), schema)
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_schema_from_different_bag(self):
-    entity = bag().new(a=1, b='x')
+    entity = kd.new(a=1, b='x')
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
         arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),

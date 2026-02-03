@@ -2222,6 +2222,9 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
       _ = db.new(a=1)
       db_fallback.obj(q=1)
 
+    db = db.freeze()
+    db_fallback = db_fallback.freeze()
+
     # for each object we also store a schema
     self.assertEqual(db.get_approx_size(), 2000)
     # for each object we store a schema and object has an attributed pointing

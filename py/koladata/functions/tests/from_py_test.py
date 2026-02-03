@@ -915,7 +915,7 @@ assigned schema: INT32"""),
         item.get_attr('__schema__').no_bag(), entity.get_schema().no_bag()
     )
     testing.assert_equal(
-        item.with_schema(entity.get_schema().no_bag()).no_bag(), entity.no_bag()
+        item.set_schema(entity.get_schema().no_bag()).no_bag(), entity.no_bag()
     )
 
   def test_entity_reference_auto_schema(self):

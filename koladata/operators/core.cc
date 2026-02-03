@@ -658,8 +658,14 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
     schema_res = DataItem(schema::kNone);
   }
 
-  ASSIGN_OR_RETURN(auto result_db,
-                   WithAdoptedValues(obj.GetBag(), default_value));
+  DataBagPtr result_db = obj.GetBag();
+  if (default_value.GetBag() != nullptr &&
+      default_value.GetBag() != result_db) {
+    ASSIGN_OR_RETURN(
+        result_db,
+        WithAdoptedValues(result_db == nullptr ? nullptr : result_db->Freeze(),
+                          default_value));
+  }
   return DataSlice::Create(std::move(res), aligned_slices[0].GetShape(),
                            DataItem(std::move(schema_res)),
                            std::move(result_db));

@@ -135,8 +135,11 @@ class NamedSchemaOperator : public arolla::QExprOperator {
 
 absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
                                             const DataSlice& schema) {
-  if (schema.IsStructSchema()) {
-    ASSIGN_OR_RETURN(auto res_db, WithAdoptedValues(x.GetBag(), schema));
+  if (schema.IsStructSchema() && x.GetBag() != schema.GetBag()) {
+    ASSIGN_OR_RETURN(
+        auto res_db,
+        WithAdoptedValues(
+            x.GetBag() == nullptr ? nullptr : x.GetBag()->Freeze(), schema));
     return x.WithBag(std::move(res_db));
   } else {
     return x;

@@ -926,6 +926,7 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                                          {test::DataItem(42)},
                                          entity_schema.WithBag(nullptr),
                                          /*overwrite_schema=*/true));
+    entity.GetBag()->UnsafeMakeImmutable();
     ASSERT_OK_AND_ASSIGN(res, entity.WithSchema(entity_schema));
     internal::DataItem missing;
     EXPECT_THAT(
@@ -3122,7 +3123,7 @@ TEST(DataSliceTest, SetGetError) {
                          "attribute, got INT32")));
 
   auto allocated_schema = test::Schema(internal::AllocateExplicitSchema());
-  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(allocated_schema));
+  ASSERT_OK_AND_ASSIGN(ds, ds.SetSchema(allocated_schema));
   EXPECT_THAT(ds.GetAttr("a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
@@ -3257,7 +3258,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_EntityCreator) {
   ASSERT_OK_AND_ASSIGN(auto default_val, EntityCreator::FromAttrs(
                                              DataBag::EmptyMutable(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
-                       default_val.WithSchema(test::Schema(explicit_schema)));
+                       default_val.SetSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
 
   ASSERT_OK_AND_ASSIGN(auto ds_object_get,
@@ -3332,7 +3333,7 @@ TEST(DataSliceTest, GetAttrWithDefault_ObjectsAndMerging_ObjectCreator) {
   ASSERT_OK_AND_ASSIGN(auto default_val, EntityCreator::FromAttrs(
                                              DataBag::EmptyMutable(), {}, {}));
   ASSERT_OK_AND_ASSIGN(default_val,
-                       default_val.WithSchema(test::Schema(explicit_schema)));
+                       default_val.SetSchema(test::Schema(explicit_schema)));
   ASSERT_OK(default_val.SetAttr("attr", test::DataItem(42)));
 
   ASSERT_OK_AND_ASSIGN(auto ds_object_get,
@@ -3386,7 +3387,7 @@ TEST(DataSliceTest, GetAttrWithDefault_EmptySchema) {
        std::nullopt}, explicit_schema_1, db);
   ASSERT_OK(ds.SetAttr("a", test::DataSlice<int>({1, std::nullopt, 3})));
   // Overwrite with empty schema.
-  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(explicit_schema_2)));
+  ASSERT_OK_AND_ASSIGN(ds, ds.SetSchema(test::Schema(explicit_schema_2)));
 
   // The schema is missing the attributes `a` so an empty slice is returned,
   // filled with default values.
@@ -3515,7 +3516,7 @@ TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSchema_Entity) {
   // Assign a new schema without the attr, then lookup. It should return
   // nothing.
   ASSERT_OK_AND_ASSIGN(
-      ds, ds.WithSchema(test::Schema(internal::AllocateExplicitSchema())));
+      ds, ds.SetSchema(test::Schema(internal::AllocateExplicitSchema())));
   ASSERT_OK_AND_ASSIGN(auto result, ds.GetAttrOrMissing("a"));
   EXPECT_THAT(result,
               IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
@@ -3534,7 +3535,7 @@ TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSomeSchema_Object) {
       ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {}));
   ASSERT_OK_AND_ASSIGN(
       auto obj_2_as_entity,
-      obj_2.WithSchema(test::Schema(internal::AllocateExplicitSchema())));
+      obj_2.SetSchema(test::Schema(internal::AllocateExplicitSchema())));
   ASSERT_OK(obj_2_as_entity.SetAttr(
       "a", test::DataItem(arolla::Text("abc"), schema::kString)));
 
@@ -5941,9 +5942,9 @@ TEST(DataSliceCastingTest, ToObject_EmbedSchema_Entity) {
   EXPECT_THAT(ds_a_schema.slice(), ElementsAre(val_entity.GetSchemaImpl(),
                                                val_entity.GetSchemaImpl()));
   // Trying to embed another schema for the same entity fails.
-  ASSERT_OK_AND_ASSIGN(
-      val_entity,
-      val_entity.WithSchema(test::Schema(internal::AllocateExplicitSchema())));
+  ASSERT_OK_AND_ASSIGN(val_entity,
+                       val_entity.FreezeBag().WithSchema(
+                           test::Schema(internal::AllocateExplicitSchema())));
   EXPECT_THAT(
       entity.SetAttr("a", val_entity),
       StatusIs(absl::StatusCode::kInvalidArgument,

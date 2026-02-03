@@ -220,7 +220,7 @@ class CoreExtractTest(parameterized.TestCase):
         db.list([7, 8]),
     ])
     del list_slice.S[2][:]
-    fb_lists = list_slice.with_bag(fb).with_schema(list_slice.get_schema())
+    fb_lists = list_slice.with_bag(fb).set_schema(list_slice.get_schema())
     fb_update = kd.list_append_update(fb_lists, 1)
     enriched_lists = kd.enriched(list_slice.freeze_bag(), fb_update)
     enriched_list_sizes = kd.list_size(enriched_lists)

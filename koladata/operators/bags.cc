@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -76,14 +77,21 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
           std::vector<DataBagPtr> db_list(input_slots.size());
           for (size_t i = 0; i < input_slots.size(); ++i) {
-            db_list[i] = frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
+            auto db = frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
+            if (db != nullptr &&
+                (db->IsMutable() || db->HasMutableFallbacks())) {
+              db = db->Freeze();
+            }
+            db_list[i] = std::move(db);
           }
           if (!is_enriched_operator) {
             std::reverse(db_list.begin(), db_list.end());
           }
-          frame.Set(
-              output_slot,
-              DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(db_list));
+          // Note: ImmutableEmptyWithFallbacks returns an error if fallbacks are
+          // mutable. Here we explicitly freeze all fallbacks, so we assume that
+          // the error can not happen.
+          frame.Set(output_slot,
+                    *DataBag::ImmutableEmptyWithFallbacks(db_list));
           return absl::OkStatus();
         });
   }

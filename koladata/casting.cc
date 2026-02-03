@@ -578,14 +578,16 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
 
   auto get_fallback_db = [&slices] {
     std::vector<DataBagPtr> ret(slices.size());
-    absl::c_transform(slices, ret.begin(),
-                      [](const DataSlice& ds) { return ds.GetBag(); });
+    absl::c_transform(slices, ret.begin(), [](const DataSlice& ds) {
+      const auto& db = ds.GetBag();
+      return db == nullptr ? db : db->Freeze();
+    });
     return ret;
   };
-  ASSIGN_OR_RETURN(auto common_schema, get_common_schema(),
-                   KodaErrorCausedByNoCommonSchemaError(
-                       _, DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-                              get_fallback_db())));
+  ASSIGN_OR_RETURN(
+      auto common_schema, get_common_schema(),
+      KodaErrorCausedByNoCommonSchemaError(
+          _, *DataBag::ImmutableEmptyWithFallbacks(get_fallback_db())));
   for (auto& slice : slices) {
     // Since we cast to a common schema, we don't need to validate implicit
     // compatibility or validate schema (during casting to OBJECT) as no

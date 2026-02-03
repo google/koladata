@@ -530,7 +530,7 @@ TEST(WithAdoptedValuesTest, WithAdoptedValues) {
                                           /*overwrite_schema=*/false,
                                           /*itemid=*/e1_itemid));
 
-    ASSERT_OK_AND_ASSIGN(auto result_bag, WithAdoptedValues(db2, e1));
+    ASSERT_OK_AND_ASSIGN(auto result_bag, WithAdoptedValues(db2->Freeze(), e1));
 
     auto expected_db = DataBag::EmptyMutable();
     // `e1` is extracted, so its unused value is removed. But `'x'` is included.

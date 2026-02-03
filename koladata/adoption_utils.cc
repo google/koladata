@@ -209,6 +209,11 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
 
 absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
     const absl_nullable DataBagPtr& db, const DataSlice& slice) {
+  if (db != nullptr && (db->IsMutable() || db->HasMutableFallbacks())) {
+    return absl::InvalidArgumentError(
+        "WithAdoptedValues requires the DataBag to be immutable; "
+        "either freeze it, or use inplace merge.");
+  }
   if (db == nullptr || db == slice.GetBag()) {
     return slice.GetBag();
   } else if (slice.GetBag() == nullptr) {
@@ -217,8 +222,7 @@ absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
     ASSIGN_OR_RETURN(DataSlice extracted_slice,
                      extract_utils_internal::Extract(slice));
     // NOTE: slices's bag should come first to respect its precedence.
-    return DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-        {extracted_slice.GetBag(), db});
+    return DataBag::ImmutableEmptyWithFallbacks({extracted_slice.GetBag(), db});
   }
 }
 

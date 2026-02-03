@@ -53,7 +53,7 @@ class MaskingCoalesceTest(parameterized.TestCase):
     mask = ds([arolla.present(), None])
     x = data_bag.DataBag.empty_mutable().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
-    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).with_schema(
+    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).set_schema(
         x.get_schema().no_bag()
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))

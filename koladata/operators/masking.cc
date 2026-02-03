@@ -85,7 +85,17 @@ absl::Status IntersectionErrorHandler(absl::Status status, const DataSlice& x,
 absl::StatusOr<DataSlice> DisjointCoalesce(const DataSlice& x,
                                            const DataSlice& y) {
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
-  ASSIGN_OR_RETURN(DataBagPtr res_db, WithAdoptedValues(y.GetBag(), x));
+  DataBagPtr res_db;
+  if (x.GetBag() != nullptr) {
+    if (y.GetBag() != nullptr && y.GetBag() != x.GetBag()) {
+      ASSIGN_OR_RETURN(
+          res_db, WithAdoptedValues(y.FreezeBag().GetBag(), x.FreezeBag()));
+    } else {
+      res_db = x.GetBag();
+    }
+  } else {
+    res_db = y.GetBag();
+  }
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   ASSIGN_OR_RETURN(
       auto res,

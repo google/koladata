@@ -128,7 +128,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     mask = ds([arolla.present(), None])
     x = data_bag.DataBag.empty_mutable().new(a=ds([1, 1])) & mask
     x.get_schema().a = schema_constants.OBJECT
-    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).with_schema(
+    y = data_bag.DataBag.empty_mutable().new(x=ds([1, 1])).set_schema(
         x.get_schema().no_bag()
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
@@ -142,7 +142,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
   def test_same_bag(self):
     db = data_bag.DataBag.empty_mutable()
     x = db.new()
-    y = db.new().with_schema(x.get_schema()) & ds(arolla.missing())
+    y = db.new().set_schema(x.get_schema()) & ds(arolla.missing())
     testing.assert_equal(kd.masking.disjoint_coalesce(x, y), x)
 
   def test_incompatible_schema_error(self):

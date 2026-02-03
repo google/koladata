@@ -50,7 +50,12 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
-  ASSIGN_OR_RETURN(DataBagPtr res_db, WithAdoptedValues(y.GetBag(), x));
+  DataBagPtr res_db = y.GetBag();
+  if (x.GetBag() != nullptr && x.GetBag() != res_db) {
+    ASSIGN_OR_RETURN(
+        res_db,
+        WithAdoptedValues(res_db == nullptr ? nullptr : res_db->Freeze(), x));
+  }
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   return DataSliceOp<internal::PresenceOrOp</*disjoint=*/false>>()(
       std::move(aligned_slices.slices[0]), std::move(aligned_slices.slices[1]),
