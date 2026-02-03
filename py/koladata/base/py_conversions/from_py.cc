@@ -97,7 +97,7 @@ constexpr static absl::string_view kChildDictValueAttributeName =
 absl::StatusOr<std::optional<DataSlice>> MakeChildrenItemUuids(
     const std::optional<DataSlice>& parent_itemid,
     const DataSlice::JaggedShape& items_shape,
-    std::string_view indexed_attribute_name) {
+    absl::string_view indexed_attribute_name) {
   size_t n_elements = items_shape.size();
   arolla::DenseArrayBuilder<int64_t> flat_index_builder(n_elements);
   for (int64_t i = 0; i < n_elements; ++i) {

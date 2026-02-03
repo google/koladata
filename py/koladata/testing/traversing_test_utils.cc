@@ -81,7 +81,7 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (mismatches.empty()) {
     Py_RETURN_NONE;
   }
-  std::string_view msg_view;
+  absl::string_view msg_view;
   auto msg_arg_it = args.kw_only_args.find("msg");
   if (msg_arg_it != args.kw_only_args.end() && msg_arg_it->second != Py_None) {
     if (!ParseStringOrDataItemArg(msg_arg_it->second, "msg", msg_view)) {
