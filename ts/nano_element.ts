@@ -61,7 +61,7 @@ export class NanoElement extends HTMLElement {
  * passed to this wrapper are added to the class attribute of the constructed
  * HTML element.
  */
-class ClassList {
+export class ClassList {
   classList: string[];
 
   constructor(...classList: string[]) {
@@ -72,14 +72,14 @@ class ClassList {
 /**
  * Wrapper around a string to indicate that it is an id.
  */
-class Id {
+export class Id {
   constructor(public id: string) {}
 }
 
 /**
  * Wrapper around a data attribute.
  */
-class Data {
+export class Data {
   constructor(
     public key: string,
     public value: string | undefined,
@@ -89,12 +89,14 @@ class Data {
 /**
  * Wrapper around a name attribute.
  */
-class Name {
+export class Name {
   constructor(public name: string) {}
 }
 
-// Union of types that can be used as content for a Tag.
-type Content = ClassList | string | Tag | HTMLElement | Id | Data | Name;
+/**
+ * Union of types that can be used as content for a Tag.
+ */
+export type Content = ClassList|string|Tag|HTMLElement|Id|Data|Name;
 
 /**
  * A simple builder pattern to create DOM elements.
@@ -115,7 +117,7 @@ type Content = ClassList | string | Tag | HTMLElement | Id | Data | Name;
  *   span.classList.add('emphasis');
  *   div.appendChild(span);
  */
-class Tag {
+export class Tag {
   content: Content[];
 
   constructor(
