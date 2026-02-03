@@ -11790,6 +11790,10 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Register DataSlice visualization in IPython.</code></pre>
 
+### `kd_ext.vis.unregister_formatters()` {#kd_ext.vis.unregister_formatters}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unregister DataSlice visualization in IPython.</code></pre>
+
 ### `kd_ext.vis.visualize_slice(ds: DataSlice, options: DataSliceVisOptions | None = None) -> _DataSliceViewState` {#kd_ext.vis.visualize_slice}
 Aliases:
 

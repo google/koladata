@@ -22,7 +22,7 @@ import json
 import os.path
 import sys
 import textwrap
-from typing import Any as _Any
+from typing import Any as _Any, Callable as _Callable
 import uuid
 
 from arolla import arolla
@@ -281,12 +281,11 @@ def _is_clickable(ds: kd.types.DataSlice) -> bool:
 
 
 def _focus_data_cell(
-    context: _Any, instance_id: str, row: int = 0, col: int = 0):
+    context: 'Js', instance_id: str, row: int = 0, col: int = 0):
   """Focuses the data cell of the table.
 
   Args:
-    context: The Colab JS context. This is Any because we can not directly
-        depend on the Colab JS library.
+    context: The Colab JS context.
     instance_id: The id of the table.
     row: The row to focus.
     col: The column to focus.
@@ -981,22 +980,52 @@ class _Watcher:
 # Keep private global reference to last watcher for easier testing/debugging.
 _WATCHER = None
 
+# Formatter registered before user called register_formatters.
+_OLD_FORMATTER = None
+
+
+def _set_ds_formatter(formatter: _Callable[[...], _Any]):
+  shell = IPython.get_ipython()
+  # Note that `for_type` does not modify the registered formatter if the
+  # formatter. Therefore, popping is necessary to cover the None case.
+  html_formatters = shell.display_formatter.formatters['text/html']
+  old_formatter = html_formatters.type_printers.pop(kd.types.DataSlice, None)
+  html_formatters.for_type(kd.types.DataSlice, formatter)
+  return old_formatter
+
 
 def register_formatters():
   """Register DataSlice visualization in IPython."""
-  # Avoid showing the default repr of the DataSlice.
-  shell = IPython.get_ipython()
-  formatters = shell.display_formatter.formatters
-  formatters['text/html'].for_type(kd.types.DataSlice, lambda *args: '')
+  global _WATCHER
+  if _WATCHER is not None:
+    return
 
-  # Remove any existing post_run_cell back from this module.
+  # Avoid showing the default repr of the DataSlice.
+  global _OLD_FORMATTER
+  _OLD_FORMATTER = _set_ds_formatter(lambda *args: '')
+
+  # Register a new post_run_cell back.
+  shell = IPython.get_ipython()
+  _WATCHER = _Watcher(shell)
+  shell.events.register('post_run_cell', _WATCHER.post_run_cell)
+
+
+def unregister_formatters():
+  """Unregister DataSlice visualization in IPython."""
+  global _WATCHER
+  if _WATCHER is None:
+    return
+
+  # Restore the old formatter after popping any existing one.
+  shell = IPython.get_ipython()
+  _set_ds_formatter(_OLD_FORMATTER)
+
+  # Remove any post_run_cell back from this module.
   post_run_cell_callbacks = shell.events.callbacks['post_run_cell']
   for callback in post_run_cell_callbacks:
     if (hasattr(callback, '__self__')
         and callback.__self__.__class__.__module__ == __name__):
       post_run_cell_callbacks.remove(callback)
 
-  # Register a new post_run_cell back.
-  global _WATCHER
-  _WATCHER = _Watcher(shell)
-  shell.events.register('post_run_cell', _WATCHER.post_run_cell)
+  _WATCHER = None
+
