@@ -385,8 +385,9 @@ absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
     if (slice.GetSchemaImpl() == schema::kMask) {
       RETURN_IF_ERROR(std::move(status))
           << "try `kd.cond(slice, True, False)` instead";
+    } else {
+      return status;
     }
-    return status;
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBool()(impl));
