@@ -78,8 +78,7 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
           std::vector<DataBagPtr> db_list(input_slots.size());
           for (size_t i = 0; i < input_slots.size(); ++i) {
             auto db = frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
-            if (db != nullptr &&
-                (db->IsMutable() || db->HasMutableFallbacks())) {
+            if (db != nullptr && db->IsMutable()) {
               db = db->Freeze();
             }
             db_list[i] = std::move(db);

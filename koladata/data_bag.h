@@ -114,20 +114,9 @@ class DataBag : public arolla::RefcountedBase {
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
 
-  // Returns true if any fallbacks are mutable or have any mutable fallbacks
-  // themselves (and so on recursively). If fallbacks are marked immutable at
-  // runtime using UnsafeMakeImmutable, this will have false positives, but it
-  // will never have false negatives.
-  bool HasMutableFallbacks() const { return has_mutable_fallbacks_; }
-
   // Returns a newly created immutable DataBag with fallbacks.
   // An error is returned if fallbacks are mutable.
   static absl::StatusOr<DataBagPtr> ImmutableEmptyWithFallbacks(
-      absl::Span<const DataBagPtr absl_nullable> fallbacks);
-
-  // Deprecated. Use ImmutableEmptyWithFallbacks instead.
-  [[deprecated("Use ImmutableEmptyWithFallbacks")]]
-  static DataBagPtr ImmutableEmptyWithDeprecatedMutableFallbacks(
       absl::Span<const DataBagPtr absl_nullable> fallbacks);
 
   // Returns a new DataBag with all the fallbacks merged.
@@ -197,7 +186,7 @@ class DataBag : public arolla::RefcountedBase {
   template <typename T>
   std::shared_ptr<const T> SetCachedMetadata(internal::ObjectId key,
                                              std::shared_ptr<const T> v) {
-    if (IsMutable() || HasMutableFallbacks()) {
+    if (IsMutable()) {
       return v;
     }
     absl::MutexLock lock(cache_mutex_);
@@ -220,7 +209,6 @@ class DataBag : public arolla::RefcountedBase {
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
         is_mutable_(is_mutable),
-        has_mutable_fallbacks_(false),
         // NOTE: consider lazy initialization of the fingerprint if it becomes
         // expensive to compute.
         fingerprint_(internal::PseudoRandomFingerprint()) {}
@@ -233,13 +221,9 @@ class DataBag : public arolla::RefcountedBase {
   // DataBag has no fallbacks.
   DataBagPtr FallbackFreeFork(bool immutable = false);
 
-  // Freezes a DataBag that may have fallbacks.
-  DataBagPtr FreezeWithFallbacks();
-
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;
   bool is_mutable_;
-  bool has_mutable_fallbacks_;
   arolla::Fingerprint fingerprint_;
 
   // Used to implement lazy forking for immutable DataBags.

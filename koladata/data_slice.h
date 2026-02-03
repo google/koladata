@@ -623,8 +623,7 @@ class DataSlice {
           schema(std::move(schema)),
           db(std::move(db)),
           is_whole(this->db == nullptr ||
-                   (is_whole_if_db_immutable && !this->db->IsMutable() &&
-                    !this->db->HasMutableFallbacks())) {
+                   (is_whole_if_db_immutable && !this->db->IsMutable())) {
       DCHECK(schema.has_value());
       DCHECK(!schema.is_implicit_schema())
           << "implicit schemas are not allowed to be used as a DataSlice "

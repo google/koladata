@@ -33,7 +33,7 @@ namespace koladata {
 namespace {
 
 bool IsFrozenBag(const DataBagPtr absl_nullable& bag) {
-  return bag == nullptr || (!bag->IsMutable() && !bag->HasMutableFallbacks());
+  return bag == nullptr || !bag->IsMutable();
 }
 
 absl::Status CheckFrozenBag(const DataBagPtr absl_nullable& bag) {

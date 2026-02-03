@@ -384,9 +384,6 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
                              " requires the original DataBag to be immutable; "
                              "either freeze it, or use mutable API"));
           }
-          if (orig_bag != nullptr && orig_bag->HasMutableFallbacks()) {
-            orig_bag = orig_bag->Freeze();
-          }
           std::vector<DataBagPtr> db_list;
           db_list.reserve(input_slots.size());
           if (is_enriched_operator) {
@@ -394,19 +391,13 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
             for (size_t i = 1; i < input_slots.size(); ++i) {
               const auto& bag =
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
-              db_list.push_back(bag != nullptr && (bag->IsMutable() ||
-                                                   bag->HasMutableFallbacks())
-                                    ? bag->Freeze()
-                                    : bag);
+              db_list.push_back(bag != nullptr ? bag->Freeze() : bag);
             }
           } else {
             for (size_t i = input_slots.size() - 1; i >= 1; --i) {
               const auto& bag =
                   frame.Get(input_slots[i].UnsafeToSlot<DataBagPtr>());
-              db_list.push_back(bag != nullptr && (bag->IsMutable() ||
-                                                   bag->HasMutableFallbacks())
-                                    ? bag->Freeze()
-                                    : bag);
+              db_list.push_back(bag != nullptr ? bag->Freeze() : bag);
             }
             db_list.push_back(std::move(orig_bag));
           }
@@ -816,7 +807,7 @@ absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot clone without a DataBag");
   }
-  if (db->IsMutable() || db->HasMutableFallbacks()) {
+  if (db->IsMutable()) {
     db = db->Freeze();
   }
   ASSIGN_OR_RETURN(DataSlice shallow_clone, ShallowClone(ds, itemid, schema));

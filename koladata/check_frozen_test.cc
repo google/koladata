@@ -42,15 +42,6 @@ TEST(CheckFrozen, Databag) {
                        HasSubstr("DataBag is not frozen")));
 }
 
-TEST(CheckFrozen, DatabagWithMutableFallbacks) {
-  auto db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-      {DataBag::EmptyMutable()});
-  EXPECT_FALSE(db->IsMutable());
-  EXPECT_THAT(CheckFrozen(arolla::TypedRef::FromValue(db)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("DataBag is not frozen")));
-}
-
 TEST(CheckFrozen, DataSlice) {
   auto ds = test::EntitySchema({"x"}, {test::Schema(schema::kInt32)},
                                DataBag::EmptyMutable());

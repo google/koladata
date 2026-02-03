@@ -118,7 +118,6 @@ cc_test(
     srcs = ["data_bag_test.cc"],
     deps = [
         ":data_bag",
-        ":data_bag_comparison",
         ":object_factories",
         ":test_utils",
         "//koladata/internal:data_bag",

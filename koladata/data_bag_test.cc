@@ -23,7 +23,6 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/data_bag_comparison.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
@@ -45,22 +44,30 @@ using ::testing::MatchesRegex;
 TEST(DataBagTest, Empty) {
   auto db = DataBag::Empty();
   EXPECT_FALSE(db->IsMutable());
-  EXPECT_FALSE(db->HasMutableFallbacks());
 }
 
 TEST(DataBagTest, Fallbacks) {
   auto db = DataBag::EmptyMutable();
   EXPECT_TRUE(db->IsMutable());
-  EXPECT_FALSE(db->HasMutableFallbacks());
   EXPECT_OK(db->GetMutableImpl());
   EXPECT_THAT(db->GetFallbacks(), ElementsAre());
   auto db_fb = DataBag::EmptyMutable();
 
-  auto new_db = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-      {db, nullptr, db_fb});
+  EXPECT_THAT(
+      DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
+
+  db->UnsafeMakeImmutable();
+  EXPECT_THAT(
+      DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb}),
+      StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
+
+  db_fb->UnsafeMakeImmutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto new_db, DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb}));
+
   EXPECT_THAT(new_db->GetFallbacks(), ElementsAre(db, db_fb));
   EXPECT_FALSE(new_db->IsMutable());
-  EXPECT_TRUE(new_db->HasMutableFallbacks());
   EXPECT_THAT(
       new_db->GetMutableImpl(),
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
@@ -346,8 +353,9 @@ TEST(DataBagTest, MergeFallbacks) {
   ASSERT_OK_AND_ASSIGN(
       auto ds1, EntityCreator::FromAttrs(fallback_db, {"a"},
                                          {test::DataItem(42, fallback_db)}));
-  auto db =
-      DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({fallback_db});
+  fallback_db->UnsafeMakeImmutable();
+  ASSERT_OK_AND_ASSIGN(auto db,
+                       DataBag::ImmutableEmptyWithFallbacks({fallback_db}));
   auto ds2 = ds1.WithBag(db);
 
   ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());
@@ -363,11 +371,6 @@ TEST(DataBagTest, MergeFallbacks) {
   ASSERT_OK(ds1_merged.SetAttr("a", test::DataItem(43, db_merged)));
   EXPECT_THAT(ds2.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42, db))));
-
-  // Check that modifications to the fallback db don't affect the merged one.
-  ASSERT_OK(ds1.SetAttr("a", test::DataItem(44, db_merged)));
-  EXPECT_THAT(ds1_merged.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(test::DataItem(43, db_merged))));
 }
 
 TEST(DataBagTest, Fork_Mutability) {
@@ -407,29 +410,6 @@ TEST(DataBagTest, DeepFallbackChainNoStackOverflow) {
   }
 }
 
-TEST(DataBagTest, FreezeWithFallbacks) {
-  //     db5
-  //    /  \
-  //   db4  db3
-  //   /  \
-  // db1  db2
-  auto db1 = DataBag::EmptyMutable();
-  auto db2 = DataBag::EmptyMutable();
-  auto db3 = DataBag::EmptyMutable();
-  auto db4 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db1, db2});
-  auto db5 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db4, db3});
-  EXPECT_TRUE(db5->HasMutableFallbacks());
-  auto frozen_db5 = db5->Freeze();
-  EXPECT_FALSE(frozen_db5->HasMutableFallbacks());
-  EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(3));
-  EXPECT_TRUE(
-      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[0], db1));
-  EXPECT_TRUE(
-      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[1], db2));
-  EXPECT_TRUE(
-      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[2], db3));
-}
-
 TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
   //     db5
   //    /  \
@@ -443,7 +423,6 @@ TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
                        DataBag::ImmutableEmptyWithFallbacks({db1, db2}));
   ASSERT_OK_AND_ASSIGN(auto db5,
                        DataBag::ImmutableEmptyWithFallbacks({db4, db3}));
-  EXPECT_FALSE(db5->HasMutableFallbacks());
   auto frozen_db5 = db5->Freeze();
   EXPECT_EQ(frozen_db5, db5);
   EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(2));
@@ -461,12 +440,6 @@ TEST(DataBagTest, MetadataCache) {
   // In case of mutable data bag there is no cache
   EXPECT_EQ(db->SetCachedMetadata(id1, TestMetadata{1})->x, 1);
   EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id1), nullptr);
-
-  // In case of mutable fallback there is no cache
-  EXPECT_EQ(DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db})
-                ->SetCachedMetadata(id1, TestMetadata{2})
-                ->x,
-            2);
   EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id2), nullptr);
 
   db = db->Freeze();

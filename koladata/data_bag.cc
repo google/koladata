@@ -49,27 +49,10 @@ absl::StatusOr<DataBagPtr> DataBag::ImmutableEmptyWithFallbacks(
   non_null_fallbacks.reserve(fallbacks.size());
   for (const DataBagPtr& fb : fallbacks) {
     if (fb != nullptr) {
-      if (fb->IsMutable() || fb->HasMutableFallbacks()) {
+      if (fb->IsMutable()) {
         return absl::InvalidArgumentError("fallbacks must be immutable");
       }
       non_null_fallbacks.push_back(fb);
-    }
-  }
-  res->fallbacks_ = std::move(non_null_fallbacks);
-  return res;
-}
-
-DataBagPtr DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks(
-    absl::Span<const DataBagPtr absl_nullable> fallbacks) {
-  auto res = DataBagPtr::Make(DataBag::immutable_t());
-  std::vector<DataBagPtr> non_null_fallbacks;
-  non_null_fallbacks.reserve(fallbacks.size());
-  for (const DataBagPtr& fb : fallbacks) {
-    if (fb != nullptr) {
-      non_null_fallbacks.push_back(fb);
-      if (fb->IsMutable() || fb->HasMutableFallbacks()) {
-        res->has_mutable_fallbacks_ = true;
-      }
     }
   }
   res->fallbacks_ = std::move(non_null_fallbacks);
@@ -108,39 +91,11 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
   return FallbackFreeFork(immutable);
 }
 
-DataBagPtr DataBag::FreezeWithFallbacks() {
-  DCHECK(!IsMutable()) << "DataBag with fallbacks cannot be mutable.";
-  if (!HasMutableFallbacks()) {
-    return DataBagPtr::NewRef(this);
-  }
-  std::vector<DataBagPtr> leaf_fallbacks;
-  leaf_fallbacks.reserve(GetFallbacks().size());
-  VisitFallbacks(*this, [&leaf_fallbacks](DataBagPtr fallback) {
-    if (fallback->GetFallbacks().empty()) {
-      if (fallback->IsMutable()) {
-        // Since a leaf fallback has no fallbacks by definition, we can call
-        // FallbackFreeFork on it.
-        leaf_fallbacks.push_back(
-            fallback->FallbackFreeFork(/*immutable=*/true));
-      } else {
-        leaf_fallbacks.push_back(std::move(fallback));
-      }
-    }
-  });
-  // Note: ImmutableEmptyWithFallbacks returns an error if fallbacks are
-  // mutable. Here we explicitly freeze all fallbacks, so we assume that
-  // the error can not happen.
-  return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks))
-      .value();
-}
-
 DataBagPtr DataBag::Freeze() {
-  if (IsMutable() || !GetFallbacks().empty()) {
-    if (GetFallbacks().empty()) {
-      return FallbackFreeFork(/*immutable=*/true);
-    } else {
-      return FreezeWithFallbacks();
-    }
+  if (IsMutable()) {
+    DCHECK(GetFallbacks().empty())
+        << "DataBag with fallbacks cannot be mutable.";
+    return FallbackFreeFork(/*immutable=*/true);
   }
   return DataBagPtr::NewRef(this);
 }

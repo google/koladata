@@ -397,17 +397,6 @@ TEST(DataSliceTest, IsWhole) {
   }
 
   {
-    // Flag is true on DataSlice creation, immutable DataBag with mutable
-    // fallbacks.
-    auto db = DataBag::EmptyMutable();
-    auto db2 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db});
-    auto ds = *DataSlice::Create(internal::DataItem(),
-                                 internal::DataItem(schema::kInt32), db2,
-                                 DataSlice::Wholeness::kWhole);
-    EXPECT_FALSE(ds.IsWhole());
-  }
-
-  {
     // Flag is true on DataSlice creation, immutable DataBag with immutable
     // fallbacks.
     auto db = DataBag::EmptyMutable();
@@ -2828,7 +2817,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithOtherDbWithFallback) {
   ASSERT_OK(ds_x.SetAttr("a", ds_a));
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_a.GetSchema()));
   ASSERT_OK(ds_x.SetAttr("b", ds_a));
-  db1 = DataBag::ImmutableEmptyWithDeprecatedMutableFallbacks({db1});
+  db1 = *DataBag::ImmutableEmptyWithFallbacks({db1->Freeze()});
   // overwrite fallback
   ASSERT_OK(ds_x.GetSchema().SetAttr("b", ds_b.GetSchema()));
   ASSERT_OK(ds_x.SetAttr("b", ds_b));

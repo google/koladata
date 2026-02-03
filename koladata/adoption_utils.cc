@@ -209,7 +209,7 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
 
 absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
     const absl_nullable DataBagPtr& db, const DataSlice& slice) {
-  if (db != nullptr && (db->IsMutable() || db->HasMutableFallbacks())) {
+  if (db != nullptr && db->IsMutable()) {
     return absl::InvalidArgumentError(
         "WithAdoptedValues requires the DataBag to be immutable; "
         "either freeze it, or use inplace merge.");
