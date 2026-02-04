@@ -189,6 +189,7 @@ PyTypeObject* InitPyDataItemType() {
   };
 
   PyObject* qvalue_subtype = PyType_FromSpec(&spec);
+  PyObject_SetAttrString(qvalue_subtype, "_COLAB_HAS_SAFE_REPR", Py_True);
   if (!arolla::python::RegisterPyQValueSpecializationByKey(
           kDataItemQValueSpecializationKey, qvalue_subtype)) {
     return nullptr;

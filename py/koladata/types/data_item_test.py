@@ -214,9 +214,7 @@ class DataItemTest(parameterized.TestCase):
     self.assertAlmostEqual(int(ds(b'42')), 42)
     with self.assertRaisesRegex(ValueError, 'invalid literal for int'):
       int(ds('xyz'))
-    with self.assertRaisesRegex(
-        TypeError, r'must be a .*, not \'NoneType\''
-    ):
+    with self.assertRaisesRegex(TypeError, r'must be a .*, not \'NoneType\''):
       int(ds(None))
     with self.assertRaisesRegex(
         ValueError, 'cannot be a DataItem that holds an ItemId'
@@ -234,7 +232,7 @@ class DataItemTest(parameterized.TestCase):
     ):
       float(ds(b'xyz'))
     with self.assertRaisesRegex(
-        TypeError, 'must be a string or a real number, not \'NoneType\''
+        TypeError, "must be a string or a real number, not 'NoneType'"
     ):
       float(ds(None))
     with self.assertRaisesRegex(
@@ -325,6 +323,9 @@ class DataItemTest(parameterized.TestCase):
       fn = getattr(data_item.DataItem, fn_name)
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
+
+  def test_colab_has_safe_repr(self):
+    self.assertTrue(hasattr(data_item.DataItem, '_COLAB_HAS_SAFE_REPR'))
 
 
 if __name__ == '__main__':

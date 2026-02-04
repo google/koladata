@@ -4443,6 +4443,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     for line in expected_substrings:
       self.assertIn(line, fn_repr)
 
+  def test_colab_has_safe_repr(self):
+    self.assertFalse(hasattr(data_slice.DataSlice, '_COLAB_HAS_SAFE_REPR'))
 
 if __name__ == '__main__':
   absltest.main()
