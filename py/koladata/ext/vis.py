@@ -987,6 +987,8 @@ _OLD_FORMATTER = None
 
 def _set_ds_formatter(formatter: _Callable[[...], _Any]):
   shell = IPython.get_ipython()
+  if not shell:
+    raise RuntimeError('IPython shell not initialized.')
   # Note that `for_type` does not modify the registered formatter if the
   # formatter. Therefore, popping is necessary to cover the None case.
   html_formatters = shell.display_formatter.formatters['text/html']
@@ -995,11 +997,16 @@ def _set_ds_formatter(formatter: _Callable[[...], _Any]):
   return old_formatter
 
 
-def register_formatters():
-  """Register DataSlice visualization in IPython."""
+def register_formatters() -> bool:
+  """Register DataSlice visualization in IPython.
+
+  Returns:
+    True if the formatters were registered, False if they were already
+    registered.
+  """
   global _WATCHER
   if _WATCHER is not None:
-    return
+    return False
 
   # Avoid showing the default repr of the DataSlice.
   global _OLD_FORMATTER
@@ -1009,13 +1016,18 @@ def register_formatters():
   shell = IPython.get_ipython()
   _WATCHER = _Watcher(shell)
   shell.events.register('post_run_cell', _WATCHER.post_run_cell)
+  return True
 
 
-def unregister_formatters():
-  """Unregister DataSlice visualization in IPython."""
+def unregister_formatters() -> bool:
+  """Unregister DataSlice visualization in IPython.
+
+  Returns:
+    True if the formatters were unregistered, False if they were not registered.
+  """
   global _WATCHER
   if _WATCHER is None:
-    return
+    return False
 
   # Restore the old formatter after popping any existing one.
   shell = IPython.get_ipython()
@@ -1031,4 +1043,5 @@ def unregister_formatters():
     shell.events.unregister('post_run_cell', callback)
 
   _WATCHER = None
+  return True
 

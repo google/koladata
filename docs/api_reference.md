@@ -11824,16 +11824,23 @@ Enumerations can be iterated over, and know how many members they have:
 Methods can be added to enumerations, and members can have their own
 attributes -- see the documentation for details.</code></pre>
 
-### `kd_ext.vis.register_formatters()` {#kd_ext.vis.register_formatters}
+### `kd_ext.vis.register_formatters() -> bool` {#kd_ext.vis.register_formatters}
 Aliases:
 
 - [kd_g3_ext.vis.register_formatters](#kd_g3_ext.vis.register_formatters)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Register DataSlice visualization in IPython.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Register DataSlice visualization in IPython.
 
-### `kd_ext.vis.unregister_formatters()` {#kd_ext.vis.unregister_formatters}
+Returns:
+  True if the formatters were registered, False if they were already
+  registered.</code></pre>
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Unregister DataSlice visualization in IPython.</code></pre>
+### `kd_ext.vis.unregister_formatters() -> bool` {#kd_ext.vis.unregister_formatters}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Unregister DataSlice visualization in IPython.
+
+Returns:
+  True if the formatters were unregistered, False if they were not registered.</code></pre>
 
 ### `kd_ext.vis.visualize_slice(ds: DataSlice, options: DataSliceVisOptions | None = None) -> _DataSliceViewState` {#kd_ext.vis.visualize_slice}
 Aliases:

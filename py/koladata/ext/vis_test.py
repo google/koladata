@@ -36,8 +36,9 @@ class VisTest(absltest.TestCase):
     self.assertIn('kd-multi-dim-table', vis._load_koda_visualization_library())
 
   def test_register_formatters_idempotent(self):
-    vis.register_formatters()
-    vis.register_formatters()
+    vis.unregister_formatters()
+    self.assertTrue(vis.register_formatters())
+    self.assertFalse(vis.register_formatters())
     self.assertLen(get_registered_formatters(), 1)
 
   def test_register_formatters_existing_functions(self):
@@ -51,7 +52,8 @@ class VisTest(absltest.TestCase):
 
   def test_unregister_formatters(self):
     vis.register_formatters()
-    vis.unregister_formatters()
+    self.assertTrue(vis.unregister_formatters())
+    self.assertFalse(vis.unregister_formatters())
     self.assertEmpty(get_registered_formatters())
 
 
