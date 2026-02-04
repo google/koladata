@@ -248,6 +248,7 @@ OPERATOR("kd.proto.to_proto_json", ToProtoJson);
 //
 OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
          "kd.schema.agg_common_schema");
+OPERATOR("kd.schema._deep_cast_to", DeepCastTo, "kd.schema.deep_cast_to");
 OPERATOR("kd.schema._internal_maybe_named_schema",
               InternalMaybeNamedSchema,
               // Don't pass the display name, because it's confusing.

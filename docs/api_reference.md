@@ -5886,7 +5886,7 @@ The &#34;common schema&#34; is defined according to go/koda-type-promotion.
 Args:
   x: DataSlice of schemas.</code></pre>
 
-### `kd.schema.deep_cast_to(x, schema)` {#kd.schema.deep_cast_to}
+### `kd.schema.deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False)` {#kd.schema.deep_cast_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` casted to provided `schema` using explicit casting rules.
 
@@ -5895,7 +5895,13 @@ when x.get_schema().get_itemid() == schema.get_itemid().
 
 Args:
   x: DataSlice to cast.
-  schema: Schema to cast to.</code></pre>
+  schema: Schema to cast to.
+  allow_removing_attrs: If True, the `schema` may omit attributes that are
+    present in `x.get_schema()`. The values of such attributes would be
+    omitted from the result.
+  allow_new_attrs: If True, the `schema` may have additional attributes that
+    are not present in `x.get_schema()`. Additional attributes are set to
+    missing values.</code></pre>
 
 ### `kd.schema.dict_schema(key_schema, value_schema)` {#kd.schema.dict_schema}
 Aliases:

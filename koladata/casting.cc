@@ -122,10 +122,11 @@ absl::StatusOr<DataSlice> ToNumericLike(const DataSlice& slice,
 
 absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
                                  const internal::DataItem& schema,
-                                 bool validate_schema) {
+                                 CastToParams params) {
   DCHECK(schema.is_schema());
   if (schema.holds_value<internal::ObjectId>()) {
-    return ToEntity(slice, schema);
+    return ToEntity(slice, schema, params.allow_removing_attrs,
+                    params.allow_new_attrs);
   }
   switch (schema.value<schema::DType>().type_id()) {
     case schema::kNone.type_id():
@@ -153,7 +154,7 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
     case schema::kSchema.type_id():
       return ToSchema(slice);
     case schema::kObject.type_id():
-      return ToObject(slice, validate_schema);
+      return ToObject(slice, params.validate_schema);
   }
   ABSL_UNREACHABLE();
 }
@@ -214,6 +215,8 @@ bool IsProbablyCastableTo(const internal::DataItem& from_schema,
 
 absl::Status AssertSchemasCompatible(
     const DataSlice& from_schema, const internal::DataItem& to_schema_impl,
+    internal::DeepSchemaCompatibleOp::SchemaCompatibleParams
+        schema_compatibility_params,
     internal::DeepSchemaCompatibleOp::CompatibleCallback
         schemas_compatibility_callback) {
   const auto& from_schema_impl = from_schema.impl<internal::DataItem>();
@@ -243,7 +246,8 @@ absl::Status AssertSchemasCompatible(
   DataBagPtr new_databag = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto& new_databag_impl, new_databag->GetMutableImpl());
   internal::DeepSchemaCompatibleOp deep_schema_compatible_op(
-      &new_databag_impl, {}, schemas_compatibility_callback);
+      &new_databag_impl, schema_compatibility_params,
+      schemas_compatibility_callback);
   ASSIGN_OR_RETURN(
       (auto [are_compatible, diff_item]),
       deep_schema_compatible_op(from_schema_impl, db->GetImpl(), fallbacks_span,
@@ -259,14 +263,18 @@ absl::Status AssertSchemasCompatible(
 }
 
 absl::StatusOr<DataSlice> CastByExtracting(
-    const DataSlice& x, const internal::DataItem& schema_item) {
+    const DataSlice& x, const internal::DataItem& schema_item,
+    bool allow_removing_attrs, bool allow_new_attrs) {
   if (!schema_item.is_struct_schema()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "casting by extracting is only supported for entity schemas, got %v",
         schema_item));
   }
-  RETURN_IF_ERROR(AssertSchemasCompatible(x.GetSchema(), schema_item,
-                                          IsProbablyCastableTo));
+  RETURN_IF_ERROR(
+      AssertSchemasCompatible(x.GetSchema(), schema_item,
+                              {.allow_removing_attrs = allow_removing_attrs,
+                               .allow_new_attrs = allow_new_attrs},
+                              IsProbablyCastableTo));
   auto error_suffix = [&] {
     auto to_schema_str = SchemaImplToStr(schema_item, x.GetBag());
     return absl::StrFormat("when (deep) casting slice %s to entity schema %s",
@@ -423,7 +431,9 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice) {
 }
 
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
-                                   const internal::DataItem& entity_schema) {
+                                   const internal::DataItem& entity_schema,
+                                   bool allow_removing_attrs,
+                                   bool allow_new_attrs) {
   if (!entity_schema.is_struct_schema()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
@@ -472,7 +482,9 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
     return slice.WithSchema(entity_schema);
   }
   return casting_internal::CastByExtracting(slice_with_schema,
-                                            entity_schema);
+                                            entity_schema,
+                                            allow_removing_attrs,
+                                            allow_new_attrs);
 }
 
 absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
@@ -525,7 +537,7 @@ absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
 
 absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
                                          const internal::DataItem& schema,
-                                         bool validate_schema) {
+                                         CastToParams params) {
   if (slice.GetSchemaImpl() == schema) {
     return slice;
   }
@@ -533,7 +545,7 @@ absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
     return absl::InvalidArgumentError(
         absl::StrFormat("expected a schema, got %v", schema));
   }
-  return CastTo(slice, schema, validate_schema);
+  return CastTo(slice, schema, params);
 }
 
 absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
@@ -594,8 +606,8 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
     // compatibility or validate schema (during casting to OBJECT) as no
     // embedding occur.
     if (slice.GetSchemaImpl() != common_schema) {
-      ASSIGN_OR_RETURN(slice, CastTo(slice, common_schema,
-                                     /*validate_schema=*/false));
+      ASSIGN_OR_RETURN(
+          slice, CastTo(slice, common_schema, {.validate_schema = false}));
     }
   }
   return SchemaAlignedSlices{

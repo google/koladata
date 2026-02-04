@@ -1022,7 +1022,7 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.schema.deep_cast_to')
-def deep_cast_to(x, schema):
+def deep_cast_to(x, schema, allow_removing_attrs=False, allow_new_attrs=False):
   """Returns `x` casted to provided `schema` using explicit casting rules.
 
   In contrast to `kd.cast_to`, this operator always performs deep casting - even
@@ -1031,8 +1031,17 @@ def deep_cast_to(x, schema):
   Args:
     x: DataSlice to cast.
     schema: Schema to cast to.
+    allow_removing_attrs: If True, the `schema` may omit attributes that are
+      present in `x.get_schema()`. The values of such attributes would be
+      omitted from the result.
+    allow_new_attrs: If True, the `schema` may have additional attributes that
+      are not present in `x.get_schema()`. Additional attributes are set to
+      missing values.
   """
-  return schema_ops.cast_to(x, deep_clone(schema)).with_schema(schema)
+
+  return schema_ops.deep_cast_to_impl(
+      x, deep_clone(schema), allow_removing_attrs, allow_new_attrs
+  ).with_schema(schema)
 
 
 @optools.as_backend_operator('kd.core._flatten_cyclic_references')

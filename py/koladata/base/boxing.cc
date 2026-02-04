@@ -536,7 +536,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
         }
         // Schema attr validation is handled during adoption queue merging.
         return CastToExplicit(res.WithBag(std::move(db)), schema->item(),
-                              /*validate_schema=*/false);
+                              {.validate_schema = false});
       } else {
         // Makes a copy of DataSlice object. Keeps the reference to DataBag.
         return res;

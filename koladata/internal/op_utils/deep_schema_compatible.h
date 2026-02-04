@@ -45,8 +45,12 @@ class DeepSchemaCompatibleOp {
   };
 
   struct SchemaCompatibleParams {
-    // If true, check only attributes present in to_schema.
-    bool partial = true;
+    // If true, attributes that are present in from_schema but missing in
+    // to_schema will not be checked.
+    bool allow_removing_attrs = false;
+    // If true, attributes that are present in to_schema but missing in
+    // from_schema will not be checked.
+    bool allow_new_attrs = false;
   };
 
   // A callback function that can be used to check if two DataItems are

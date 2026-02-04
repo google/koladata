@@ -75,13 +75,21 @@ class SchemaCastToTest(parameterized.TestCase):
       (  # cast primitives deep and filter attributes
           kd.new(x=1.0, y=kd.new(a=1.0, b=2.0)),
           kd.uu_schema(
-              x=schema_constants.INT32, y=kd.uu_schema(a=schema_constants.INT32)
+              x=schema_constants.INT32,
+              y=kd.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ),
           ),
           kd.uu_schema(
-              x=schema_constants.INT32, y=kd.uu_schema(a=schema_constants.INT32)
+              x=schema_constants.INT32,
+              y=kd.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ),
           ).new(
               x=1,
-              y=kd.schema.uu_schema(a=schema_constants.INT32).new(a=1),
+              y=kd.schema.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ).new(a=1, b=2),
           ),
       ),
   )
@@ -165,7 +173,7 @@ class SchemaCastToTest(parameterized.TestCase):
 
   def test_casting_to_named_schemas(self):
     db = data_bag.DataBag.empty_mutable()
-    e1 = db.new(x=1, y=2)
+    e1 = db.new(x=1)
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
     result = kd.schema.cast_to(e1, schema)
     testing.assert_equivalent(result, schema.new(x=1.), schemas_equality=True)
@@ -176,17 +184,25 @@ class SchemaCastToTest(parameterized.TestCase):
         'bar', x=schema_constants.INT32, y=schema_constants.INT32
     )
     e1 = schema1.new(x=1, y=2)
-    schema = db.named_schema('foo', x=schema_constants.FLOAT32)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
     result = kd.schema.cast_to(e1, schema)
-    testing.assert_equivalent(result, schema.new(x=1.0), schemas_equality=True)
+    testing.assert_equivalent(
+        result, schema.new(x=1.0, y=2.0), schemas_equality=True
+    )
 
   def test_casting_to_schema_with_metadata(self):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1, y=2)
-    schema = db.named_schema('foo', x=schema_constants.FLOAT32)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
     schema = kd.with_metadata(schema.freeze_bag(), source='test')
     result = kd.schema.cast_to(e1, schema)
-    testing.assert_equivalent(result, schema.new(x=1.), schemas_equality=True)
+    testing.assert_equivalent(
+        result, schema.new(x=1.0, y=2.0), schemas_equality=True
+    )
     testing.assert_equivalent(
         kd.get_metadata(result.get_schema()), kd.get_metadata(schema)
     )
@@ -198,15 +214,53 @@ class SchemaCastToTest(parameterized.TestCase):
         schema1.freeze_bag(), foo=schema_constants.ITEMID
     )
     e1 = schema1.new(x=1, y=2)
-    schema = db.named_schema('foo', x=schema_constants.FLOAT32)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
     schema = kd.with_metadata(
         schema.freeze_bag(), source='test', foo=schema_constants.FLOAT64
     )
     result = kd.schema.cast_to(e1, schema)
-    testing.assert_equivalent(result, schema.new(x=1.0), schemas_equality=True)
+    testing.assert_equivalent(
+        result, schema.new(x=1.0, y=2.0), schemas_equality=True
+    )
     testing.assert_equivalent(
         kd.get_metadata(result.get_schema()), kd.get_metadata(schema)
     )
+
+  def test_casting_raises_on_new_attrs(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema1 = db.named_schema(
+        'bar', x=schema_constants.INT32
+    )
+    e1 = schema1.new(x=1)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'DataSlice with schema bar\(x=INT32\) with id Schema:\#[a-zA-Z0-9]*'
+        r' cannot be cast to entity schema foo\(x=FLOAT32, y=FLOAT32\) with'
+        r' id Schema:\#[a-zA-Z0-9]*',
+    ):
+      _ = kd.schema.cast_to(e1, schema)
+
+  def test_casting_raises_on_removing_attrs(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema1 = db.named_schema(
+        'bar', x=schema_constants.INT32, y=schema_constants.INT32
+    )
+    e1 = schema1.new(x=1, y=2)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'DataSlice with schema bar\(x=INT32, y=INT32\) with id'
+        r' Schema:\#[a-zA-Z0-9]* cannot be cast to entity schema '
+        r'foo\(x=FLOAT32\) with id Schema:\#[a-zA-Z0-9]*',
+    ):
+      _ = kd.schema.cast_to(e1, schema)
 
   def test_object_to_entity_casting_incompatible_schema_error(self):
     db = data_bag.DataBag.empty_mutable()

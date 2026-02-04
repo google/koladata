@@ -146,6 +146,32 @@ absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
   }
 }
 
+absl::StatusOr<DataSlice> CastToImpl(const DataSlice& x,
+                                     const DataSlice& schema,
+                                     bool allow_removing_attrs,
+                                     bool allow_new_attrs) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  if (schema.item() == schema::kObject &&
+      x.GetSchemaImpl().is_struct_schema()) {
+    // This requires embedding the entity schema, which is a mutating operation.
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(x);
+    DataBagPtr result_db = DataBag::EmptyMutable();
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+    ASSIGN_OR_RETURN(auto res,
+                     ::koladata::ToObject(x.WithBag(std::move(result_db))));
+    DCHECK(res.GetBag() != nullptr);
+    return res.UnsafeMakeWholeOnImmutableDb();
+  } else {
+    ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
+    return ::koladata::CastToExplicit(
+        x_with_bag, schema.item(),
+        {.validate_schema = true,
+         .allow_removing_attrs = allow_removing_attrs,
+         .allow_new_attrs = allow_new_attrs});
+  }
+}
+
 }  // namespace
 
 absl::StatusOr<arolla::OperatorPtr> NewSchemaOperatorFamily::DoGetOperator(
@@ -209,22 +235,20 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
 }
 
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
-  RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (schema.item() == schema::kObject &&
-      x.GetSchemaImpl().is_struct_schema()) {
-    // This requires embedding the entity schema, which is a mutating operation.
-    AdoptionQueue adoption_queue;
-    adoption_queue.Add(x);
-    DataBagPtr result_db = DataBag::EmptyMutable();
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
-    ASSIGN_OR_RETURN(auto res,
-                     ::koladata::ToObject(x.WithBag(std::move(result_db))));
-    DCHECK(res.GetBag() != nullptr);
-    return res.UnsafeMakeWholeOnImmutableDb();
-  } else {
-    ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
-    return ::koladata::CastToExplicit(x_with_bag, schema.item());
-  }
+  return CastToImpl(x, schema, /*allow_removing_attrs=*/false,
+                    /*allow_new_attrs=*/false);
+}
+
+absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,
+                                     const DataSlice& schema,
+                                     const DataSlice& allow_removing_attrs,
+                                     const DataSlice& allow_new_attrs) {
+  RETURN_IF_ERROR(ExpectPresentScalar("allow_removing_attrs",
+                                      allow_removing_attrs, schema::kBool));
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("allow_new_attrs", allow_new_attrs, schema::kBool));
+  return CastToImpl(x, schema, allow_removing_attrs.item().value<bool>(),
+                    allow_new_attrs.item().value<bool>());
 }
 
 absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,

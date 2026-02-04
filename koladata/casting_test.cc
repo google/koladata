@@ -1938,7 +1938,7 @@ TEST(Casting, CastToExplicit) {
     // Without validation -> success.
     EXPECT_THAT(
         CastToExplicit(item, internal::DataItem(schema::kObject),
-                       /*validate_schema=*/false),
+                       {.validate_schema = false}),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(obj, schema::kObject, db))));
     auto expected_db = DataBag::EmptyMutable();
     auto& expected_db_impl = *expected_db->GetMutableImpl();
@@ -1988,16 +1988,36 @@ TEST_P(DeepCastingTest, CastToExplicit_Nested) {
   SetDataTriples(db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyObjects(3);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto result, CastToExplicit(ds, schema_a_updated));
+  ASSERT_THAT(
+      CastToExplicit(ds, schema_a_updated),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("DataSlice with schema ENTITY"),
+                HasSubstr(absl::StrFormat(
+                    "with id %v cannot be cast to entity schema ENTITY",
+                    schema_a)),
+                HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
 
-  TriplesT expected_data_triples = {
-      {a0, {{"self", a0}, {"b", b0}}},
-      {a1, {{"self", a1}, {"b", b1}}},
-      {a2, {{"self", a2}, {"b", b2}}},
-      {b0, {{"y", internal::DataItem(10.)}}},
-      {b1, {{"y", internal::DataItem(11.)}}},
-      {b2, {{"y", internal::DataItem(12.)}}}};
+  ASSERT_THAT(
+      CastToExplicit(ds, schema_a_updated, {.allow_new_attrs = true}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("DataSlice with schema ENTITY"),
+                HasSubstr(absl::StrFormat(
+                    "with id %v cannot be cast to entity schema ENTITY",
+                    schema_a)),
+                HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
+
+  ASSERT_OK_AND_ASSIGN(
+    auto result,
+      CastToExplicit(ds, schema_a_updated, {.allow_removing_attrs = true}));
+
+  TriplesT expected_data_triples = {{a0, {{"self", a0}, {"b", b0}}},
+                                    {a1, {{"self", a1}, {"b", b1}}},
+                                    {a2, {{"self", a2}, {"b", b2}}},
+                                    {b0, {{"y", internal::DataItem(10.)}}},
+                                    {b1, {{"y", internal::DataItem(11.)}}},
+                                    {b2, {{"y", internal::DataItem(12.)}}}};
   TriplesT expected_schema_triples = {
       {schema_a_updated, {{"self", schema_a_updated}, {"b", schema_b_updated}}},
       {schema_b_updated, {{"y", internal::DataItem(schema::kFloat32)}}}};
@@ -2009,6 +2029,89 @@ TEST_P(DeepCastingTest, CastToExplicit_Nested) {
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
 }
 
+TEST_P(DeepCastingTest, CastToExplicit_NestedNewAttr) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  auto schema_b_updated = AllocateSchema();
+  auto schema_a_updated = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(
+              arolla::CreateDenseArray<internal::DataItem>({a0, a1, a2})),
+          DataSlice::JaggedShape::FlatFromSize(3), schema_a, db_ptr));
+
+  TriplesT data_triples = {
+      {a0, {{"self", a0}, {"b", b0}}},
+      {a1, {{"self", a1}, {"b", b1}}},
+      {a2, {{"self", a2}, {"b", b2}}},
+      {b0, {{"x", internal::DataItem(0)}}},
+      {b1, {{"x", internal::DataItem(1)}}},
+      {b2, {{"x", internal::DataItem(2)}}}};
+  TriplesT schema_triples = {
+      {schema_a, {{"self", schema_a}, {"b", schema_b}}},
+      {schema_b, {{"x", internal::DataItem(schema::kInt32)}}},
+      {schema_a_updated, {{"self", schema_a_updated}, {"b", schema_b_updated}}},
+      {schema_b_updated,
+       {{"x", internal::DataItem(schema::kFloat32)},
+        {"y", internal::DataItem(schema::kFloat32)}}}};
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyObjects(3);
+
+  ASSERT_THAT(
+      CastToExplicit(ds, schema_a_updated),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("DataSlice with schema ENTITY"),
+                HasSubstr(absl::StrFormat(
+                    "with id %v cannot be cast to entity schema ENTITY",
+                    schema_a)),
+                HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
+
+  ASSERT_THAT(
+      CastToExplicit(ds, schema_a_updated, {.allow_removing_attrs = true}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("DataSlice with schema ENTITY"),
+                HasSubstr(absl::StrFormat(
+                    "with id %v cannot be cast to entity schema ENTITY",
+                    schema_a)),
+                HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
+
+  ASSERT_OK_AND_ASSIGN(
+    auto result,
+      CastToExplicit(ds, schema_a_updated, {.allow_new_attrs = true}));
+
+  TriplesT expected_data_triples = {{a0, {{"self", a0}, {"b", b0}}},
+                                    {a1, {{"self", a1}, {"b", b1}}},
+                                    {a2, {{"self", a2}, {"b", b2}}},
+                                    {b0, {{"x", internal::DataItem(0.)}}},
+                                    {b1, {{"x", internal::DataItem(1.)}}},
+                                    {b2, {{"x", internal::DataItem(2.)}}}};
+  TriplesT expected_schema_triples = {
+      {schema_a_updated, {{"self", schema_a_updated}, {"b", schema_b_updated}}},
+      {schema_b_updated,
+       {{"x", internal::DataItem(schema::kFloat32)},
+        {"y", internal::DataItem(schema::kFloat32)}}}};
+
+  const auto& result_db = result.GetBag()->GetImpl();
+  auto expected_db = internal::DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
 
 TEST_P(DeepCastingTest, CastToExplicit_DeepListsSlice) {
   auto db_ptr = DataBag::EmptyMutable();
@@ -2128,8 +2231,9 @@ TEST(Casting, CastToExplicit_CoversAllDTypes) {
   });
   // Entities.
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());
-  EXPECT_THAT(CastToExplicit(test::EmptyDataSlice(3, schema::kNone), schema),
-              IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
+  EXPECT_THAT(
+      CastToExplicit(test::EmptyDataSlice(3, schema::kNone), schema),
+      IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(3, schema))));
 }
 
 TEST(Casting, CastToNarrow) {

@@ -76,9 +76,31 @@ class SchemaDeepCastToTest(parameterized.TestCase):
               y=kd.schema.uu_schema(a=schema_constants.INT32).new(a=1),
           ),
       ),
+      (  # cast primitives deep and add attributes
+          kd.new(x=1.0, y=kd.new(a=1.0)),
+          kd.uu_schema(
+              x=schema_constants.INT32,
+              y=kd.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ),
+          ),
+          kd.uu_schema(
+              x=schema_constants.INT32,
+              y=kd.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ),
+          ).new(
+              x=1,
+              y=kd.schema.uu_schema(
+                  a=schema_constants.INT32, b=schema_constants.INT32
+              ).new(a=1),
+          ),
+      ),
   )
   def test_eval(self, x, schema, expected):
-    res = kd.schema.deep_cast_to(x, schema)
+    res = kd.schema.deep_cast_to(
+        x, schema, allow_removing_attrs=True, allow_new_attrs=True
+    )
     testing.assert_equivalent(res, expected)
 
   def test_same_schema_id(self):
@@ -145,9 +167,9 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     x = schema1.new(b=1)
     with self.assertRaisesRegex(
         ValueError,
-        r'kd.schema.cast_to: DataSlice with schema ENTITY\(a=BOOLEAN, b=INT32\)'
-        r' with id Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'ENTITY\(a=MASK, b=INT32\) with id Schema:\$[a-zA-Z0-9]*',
+        r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(a=BOOLEAN,'
+        r' b=INT32\) with id Schema:\$[a-zA-Z0-9]* cannot be cast to entity'
+        r' schema ENTITY\(a=MASK, b=INT32\) with id Schema:\$[a-zA-Z0-9]*',
     ):
       kd.schema.deep_cast_to(x, schema2)
 
@@ -162,17 +184,29 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1, y=2)
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
-    result = kd.schema.deep_cast_to(e1, schema)
+    result = kd.schema.deep_cast_to(e1, schema, allow_removing_attrs=True)
     testing.assert_equivalent(result, schema.new(x=1.), schemas_equality=True)
 
-  def test_casting_named_schemas(self):
+  def test_casting_named_schemas_remove_attr(self):
     db = data_bag.DataBag.empty_mutable()
     schema1 = db.named_schema(
         'bar', x=schema_constants.INT32, y=schema_constants.INT32
     )
     e1 = schema1.new(x=1, y=2)
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
-    result = kd.schema.deep_cast_to(e1, schema)
+    result = kd.schema.deep_cast_to(e1, schema, allow_removing_attrs=True)
+    testing.assert_equivalent(result, schema.new(x=1.0), schemas_equality=True)
+
+  def test_casting_named_schemas_new_attr(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema1 = db.named_schema(
+        'bar', x=schema_constants.INT32
+    )
+    e1 = schema1.new(x=1)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
+    result = kd.schema.deep_cast_to(e1, schema, allow_new_attrs=True)
     testing.assert_equivalent(result, schema.new(x=1.0), schemas_equality=True)
 
   def test_casting_named_schemas_same_name(self):
@@ -185,7 +219,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
         'bar', x=schema_constants.FLOAT32
     )
     e1 = schema1.new(x=1, y=2)
-    result = kd.schema.deep_cast_to(e1, schema2)
+    result = kd.schema.deep_cast_to(e1, schema2, allow_removing_attrs=True)
     testing.assert_equivalent(result, schema2.new(x=1.0), schemas_equality=True)
 
   def test_casting_to_schema_with_metadata(self):
@@ -193,7 +227,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     schema = db.named_schema('foo', x=schema_constants.FLOAT32)
     e1 = kd.extract(schema.new(x=1, y=2))
     schema = kd.with_metadata(schema.freeze_bag(), source='test')
-    result = kd.schema.deep_cast_to(e1, schema)
+    result = kd.schema.deep_cast_to(e1, schema, allow_removing_attrs=True)
     testing.assert_equivalent(result, schema.new(x=1.))
     testing.assert_equivalent(
         kd.get_metadata(result.get_schema()), kd.get_metadata(schema)
@@ -236,6 +270,40 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     ):
       kd.schema.deep_cast_to(ds(1), ds(1))
 
+  def test_casting_raises_on_new_attrs(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema1 = db.named_schema(
+        'bar', x=schema_constants.INT32
+    )
+    e1 = schema1.new(x=1)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32, y=schema_constants.FLOAT32
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'DataSlice with schema bar\(x=INT32\) with id Schema:\#[a-zA-Z0-9]*'
+        r' cannot be cast to entity schema ENTITY\(x=FLOAT32, y=FLOAT32\) with'
+        r' id Schema:\$[a-zA-Z0-9]*',
+    ):
+      _ = kd.schema.deep_cast_to(e1, schema)
+
+  def test_casting_raises_on_removing_attrs(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema1 = db.named_schema(
+        'bar', x=schema_constants.INT32, y=schema_constants.INT32
+    )
+    e1 = schema1.new(x=1, y=2)
+    schema = db.named_schema(
+        'foo', x=schema_constants.FLOAT32
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'DataSlice with schema bar\(x=INT32, y=INT32\) with id'
+        r' Schema:\#[a-zA-Z0-9]* cannot be cast to entity schema '
+        r'ENTITY\(x=FLOAT32\) with id Schema:\$[a-zA-Z0-9]*',
+    ):
+      _ = kd.schema.deep_cast_to(e1, schema)
+
   def test_unsupported_schema_deep_error(self):
     db = data_bag.DataBag.empty_mutable()
     e1 = db.new(x=1)
@@ -244,8 +312,8 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(
         ValueError,
-        r'kd.schema.cast_to: DataSlice with schema ENTITY\(x=INT32\) with id '
-        r'Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
+        r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(x=INT32\) with'
+        r' id Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
         r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*',
     ):
       _ = kd.schema.deep_cast_to(e1, e2_schema)
@@ -256,7 +324,8 @@ class SchemaDeepCastToTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.schema.deep_cast_to(I.x, I.schema)),
-        'kd.schema.deep_cast_to(I.x, I.schema)',
+        'kd.schema.deep_cast_to(I.x, I.schema, DataItem(False, schema:'
+        ' BOOLEAN), DataItem(False, schema: BOOLEAN))',
     )
 
 

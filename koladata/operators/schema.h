@@ -87,6 +87,12 @@ absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
 absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
                                        const DataSlice& schema);
 
+// kd.schema.deep_cast_to operator.
+absl::StatusOr<DataSlice> DeepCastTo(const DataSlice& x,
+                                     const DataSlice& schema,
+                                     const DataSlice& allow_removing_attrs,
+                                     const DataSlice& allow_new_attrs);
+
 // kd.schema._unsafe_cast_to operator.
 absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
                                        const DataSlice& schema);

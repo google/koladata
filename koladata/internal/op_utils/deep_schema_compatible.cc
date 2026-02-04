@@ -76,7 +76,11 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status LhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& lhs) override {
-    if (params_.partial) {
+    if (params_.allow_removing_attrs) {
+      return absl::OkStatus();
+    }
+    if (!lhs.item.is_schema()) {
+      // We should ignore schema names and metadata when comparing schemas.
       return absl::OkStatus();
     }
     diff_found_ = true;
@@ -85,6 +89,9 @@ class SchemaCompatibleComparator : public AbstractComparator {
   absl::Status RhsOnlyAttribute(
       const DataItem& token, const TraverseHelper::TransitionKey& key,
       const TraverseHelper::Transition& rhs) override {
+    if (params_.allow_new_attrs) {
+      return absl::OkStatus();
+    }
     if (!rhs.item.is_schema()) {
       // We should ignore schema names and metadata when comparing schemas.
       return absl::OkStatus();
@@ -96,7 +103,10 @@ class SchemaCompatibleComparator : public AbstractComparator {
                               const TraverseHelper::TransitionKey& key,
                               const TraverseHelper::Transition& lhs,
                               const TraverseHelper::Transition& rhs) override {
-    if (params_.partial && !rhs.item.has_value()) {
+    if (params_.allow_removing_attrs && !rhs.item.has_value()) {
+      return absl::OkStatus();
+    }
+    if (params_.allow_new_attrs && !lhs.item.has_value()) {
       return absl::OkStatus();
     }
     if (!lhs.item.is_schema() && !rhs.item.is_schema()) {

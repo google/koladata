@@ -115,24 +115,27 @@ TEST_P(DeepSchemaCompatibleTest, IncompatiblePrimitives) {
   EXPECT_THAT(diff_paths, ::testing::ElementsAre(".x"));
 }
 
-TEST_P(DeepSchemaCompatibleTest, PartialDefault) {
+TEST_P(DeepSchemaCompatibleTest, AllowAll) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(6);
   auto schema_a = AllocateSchema();
   auto schema_b = AllocateSchema();
-  TriplesT schema_triples = {
-      {schema_a,
-       {{"self", schema_a},
-        {"x", DataItem(schema::kInt32)},
-        {"y", DataItem(schema::kInt32)}}},
-      {schema_b, {{"self", schema_b}, {"x", DataItem(schema::kFloat32)}}}};
+  TriplesT schema_triples = {{schema_a,
+                              {{"self", schema_a},
+                               {"x", DataItem(schema::kInt32)},
+                               {"y", DataItem(schema::kInt32)}}},
+                             {schema_b,
+                              {{"self", schema_b},
+                               {"x", DataItem(schema::kFloat32)},
+                               {"z", DataItem(schema::kString)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op =
-      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.allow_removing_attrs = true, .allow_new_attrs = true},
+      ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_a, *GetMainDb(db),
@@ -167,8 +170,8 @@ TEST_P(DeepSchemaCompatibleTest, PartialFalse) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_a, *GetMainDb(db),
@@ -208,8 +211,8 @@ TEST_P(DeepSchemaCompatibleTest, PartialFalseDeep) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_a, *GetMainDb(db),
@@ -233,19 +236,18 @@ TEST_P(DeepSchemaCompatibleTest, LhsOnly) {
   auto obj_ids = AllocateEmptyObjects(6);
   auto schema_a = AllocateSchema();
   auto schema_b = AllocateSchema();
-  TriplesT schema_triples = {
-      {schema_a,
-       {{"self", schema_a},
-        {"x", DataItem(schema::kInt32)},
-        {"y", DataItem(schema::kInt32)}}},
-      {schema_b, {{"self", schema_b}}}};
+  TriplesT schema_triples = {{schema_a,
+                              {{"self", schema_a},
+                               {"x", DataItem(schema::kInt32)},
+                               {"y", DataItem(schema::kInt32)}}},
+                             {schema_b, {{"self", schema_b}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_a, *GetMainDb(db),
@@ -264,8 +266,33 @@ TEST_P(DeepSchemaCompatibleTest, LhsOnly) {
   EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".x", ".y"));
 }
 
-TEST_P(DeepSchemaCompatibleTest, NamedSchema)
-{
+TEST_P(DeepSchemaCompatibleTest, LhsOnlyAllowRemovingAttrs) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT schema_triples = {{schema_a,
+                              {{"self", schema_a},
+                               {"x", DataItem(schema::kInt32)},
+                               {"y", DataItem(schema::kInt32)}}},
+                             {schema_b, {{"self", schema_b}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.allow_removing_attrs = true}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      deep_schema_compatible_op(schema_a, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, schema_b,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  EXPECT_TRUE(is_compatible);
+}
+
+TEST_P(DeepSchemaCompatibleTest, NamedSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
@@ -280,18 +307,16 @@ TEST_P(DeepSchemaCompatibleTest, NamedSchema)
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
-      deep_schema_compatible_op(s1, *GetMainDb(db),
-                                {GetFallbackDb(db).get()}, s2,
-                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+      deep_schema_compatible_op(s1, *GetMainDb(db), {GetFallbackDb(db).get()},
+                                s2, *GetMainDb(db), {GetFallbackDb(db).get()}));
   EXPECT_TRUE(is_compatible);
 }
 
-TEST_P(DeepSchemaCompatibleTest, NamedSchemaToNamedSchema)
-{
+TEST_P(DeepSchemaCompatibleTest, NamedSchemaToNamedSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
@@ -308,13 +333,12 @@ TEST_P(DeepSchemaCompatibleTest, NamedSchemaToNamedSchema)
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
-      deep_schema_compatible_op(s1, *GetMainDb(db),
-                                {GetFallbackDb(db).get()}, s2,
-                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+      deep_schema_compatible_op(s1, *GetMainDb(db), {GetFallbackDb(db).get()},
+                                s2, *GetMainDb(db), {GetFallbackDb(db).get()}));
   EXPECT_TRUE(is_compatible);
 }
 
@@ -347,13 +371,12 @@ TEST_P(DeepSchemaCompatibleTest, ToSchemaWithMetadata) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {.partial = false}, ImplicitCastCompatible);
-  ASSERT_OK_AND_ASSIGN(
-      (auto [is_compatible, result_item]),
-      deep_schema_compatible_op(s1, *GetMainDb(db),
-                                {GetFallbackDb(db).get()}, schema,
-                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN((auto [is_compatible, result_item]),
+                       deep_schema_compatible_op(
+                           s1, *GetMainDb(db), {GetFallbackDb(db).get()},
+                           schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
   EXPECT_TRUE(is_compatible);
 }
 
@@ -362,19 +385,18 @@ TEST_P(DeepSchemaCompatibleTest, RhsOnly) {
   auto obj_ids = AllocateEmptyObjects(6);
   auto schema_a = AllocateSchema();
   auto schema_b = AllocateSchema();
-  TriplesT schema_triples = {
-      {schema_a,
-       {{"self", schema_a},
-        {"x", DataItem(schema::kInt32)},
-        {"y", DataItem(schema::kInt32)}}},
-      {schema_b, {{"self", schema_b}}}};
+  TriplesT schema_triples = {{schema_a,
+                              {{"self", schema_a},
+                               {"x", DataItem(schema::kInt32)},
+                               {"y", DataItem(schema::kInt32)}}},
+                             {schema_b, {{"self", schema_b}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_b, *GetMainDb(db),
@@ -393,6 +415,32 @@ TEST_P(DeepSchemaCompatibleTest, RhsOnly) {
   EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".x", ".y"));
 }
 
+TEST_P(DeepSchemaCompatibleTest, RhsOnlyAllowNewAttrs) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT schema_triples = {{schema_a,
+                              {{"self", schema_a},
+                               {"x", DataItem(schema::kInt32)},
+                               {"y", DataItem(schema::kInt32)}}},
+                             {schema_b, {{"self", schema_b}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {.allow_new_attrs = true}, ImplicitCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, result_item]),
+      deep_schema_compatible_op(schema_b, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, schema_a,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  EXPECT_TRUE(is_compatible);
+}
+
 TEST_P(DeepSchemaCompatibleTest, NotCastable) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(6);
@@ -406,8 +454,8 @@ TEST_P(DeepSchemaCompatibleTest, NotCastable) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
-      result_db.get(), {}, ImplicitCastCompatible);
+  auto deep_schema_compatible_op =
+      DeepSchemaCompatibleOp(result_db.get(), {}, ImplicitCastCompatible);
   ASSERT_OK_AND_ASSIGN(
       (auto [is_compatible, result_item]),
       deep_schema_compatible_op(schema_b, *GetMainDb(db),

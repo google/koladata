@@ -350,8 +350,7 @@ absl::StatusOr<DataSlice> CastToExplicitForProtoPrimitive(
       slice.GetSchemaImpl() == internal::DataItem(schema::kBool)) {
     return ops::Equal(slice, DataSlice::CreatePrimitive(true));
   }
-  return CastToExplicit(slice, schema_item,
-                        /*validate_schema=*/false);
+  return CastToExplicit(slice, schema_item, {.validate_schema = false});
 }
 
 absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(

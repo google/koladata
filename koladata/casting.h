@@ -125,8 +125,14 @@ absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice);
 // The following schemas are supported: {NONE, ITEMID, OBJECT} as well as
 // entity schemas. Note that the provided entity schema is not validated to
 // match any existing schema attributes in the slice's DataBag.
+//
+// If `allow_removing_attrs` is true, the schema is allowed to remove attributes
+// from the slice. If `allow_new_attrs` is true, the schema is allowed to add
+// new attributes to the slice.
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
-                                   const internal::DataItem& entity_schema);
+                                   const internal::DataItem& entity_schema,
+                                   bool allow_removing_attrs = false,
+                                   bool allow_new_attrs = false);
 
 // Casts the given slice to OBJECT.
 //
@@ -146,22 +152,32 @@ absl::StatusOr<DataSlice> ToObject(const DataSlice& slice,
 absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
                                          const internal::DataItem& schema);
 
+struct CastToParams {
+  // If `validate_schema` is true, the schema is validated to match existing
+  // schema attributes if the slice is casted to OBJECT. If false, the schema
+  // attributes are set to the new schema without any validation.
+  bool validate_schema = true;
+  // If `allow_removing_attrs` is true, the schema is allowed to remove
+  // attributes from the slice. The values of such attributes would be omitted
+  // from the result.
+  bool allow_removing_attrs = false;
+  // If `allow_new_attrs` is true, the schema is allowed to add new attributes
+  // to the slice. Additional attributes are set to missing values.
+  bool allow_new_attrs = false;
+};
+
 // Casts the given slice to the given schema using explicit casting rules.
 //
 // `CastToExplicit(slice, schema)` dispatches to the appropriate To<Schema>
 // function and allows for more relaxed casting rules. Note that the casting may
 // fail.
 //
-// If `validate_schema` is true, the schema is validated to match existing
-// schema attributes if the slice is casted to OBJECT. If false, the schema
-// attributes are set to the new schema without any validation.
-//
 // Note: `CastToExplicit` assumes that `slice` is correctly typed with its
 // schema. Thus, if provided schema is equal to the slice schema,
 // `CastToExplicit` does nothing.
 absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
                                          const internal::DataItem& schema,
-                                         bool validate_schema = true);
+                                         CastToParams params = {});
 
 // Casts the given slice to the given schema.
 //
