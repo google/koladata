@@ -2661,10 +2661,12 @@ db = kd.loads(s)
 ### DataBag
 
 ```py
-# Empty bag creation
-db1 = kd.bag()
+# Empty immutable bag creation
+db_immutable = kd.bag()
+assert not db_immutable.is_mutable()
 
-# Bag created directly is mutable
+# Mutable bag creation
+db1 = kd.mutable_bag()
 assert db1.is_mutable()
 
 # Get the bag from the DataSlice
@@ -4338,7 +4340,7 @@ productionalization.
 ### Creating Mutable Entities/Objects/Lists/Dicts from a DataBag
 
 ```py
-db = kd.bag()
+db = kd.mutable_bag()
 
 # Create a mutable entity and
 # modify its attributes
@@ -4426,8 +4428,8 @@ d['a'] = 20
 ### Moving Data from a DataSlice/DataBag to Another DataBag
 
 ```py
-db1 = kd.bag()
-db2 = kd.bag()
+db1 = kd.mutable_bag()
+db2 = kd.mutable_bag()
 
 o1 = db1.new(x=1)
 
