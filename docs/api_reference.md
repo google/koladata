@@ -2853,6 +2853,37 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
+### `kd.functor.switch(key, cases, *args, return_type_as=None, **kwargs)` {#kd.functor.switch}
+Aliases:
+
+- [kd.switch](#kd.switch)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Calls a functor selected from `cases` based on `key`.
+
+Raises an error if `kd.SWITCH_DEFAULT` case is not provided and `key` is
+missing in `cases`.
+
+Example:
+  kd.switch(
+      &#39;a&#39;,
+      {
+        &#39;a&#39;: lambda x: x + 1,
+        &#39;b&#39;: lambda x: x * 2
+        kd.SWITCH_DEFAULT: lambda **unused: 57,
+      },
+      x=10)
+
+Args:
+  key: A DataSlice key to lookup in `cases`.
+  cases: A scalar (Python or Koda) dict of functors.
+  *args: Positional arguments to pass to the selected functor.
+  return_type_as: The return type of the call is expected to be the same as
+    the return type of this expression.
+  **kwargs: Keyword arguments to pass to the selected functor.
+
+Returns:
+  The result of calling the selected functor.</code></pre>
+
 ### `kd.functor.trace_as_fn(*, name: str | None = None, return_type_as: Any = None, functor_factory: FunctorFactory | None = None)` {#kd.functor.trace_as_fn}
 Aliases:
 
@@ -2952,8 +2983,8 @@ Args:
   condition_fn: A functor with keyword argument names matching the state
     variable names and returning a MASK DataItem.
   body_fn: A functor with argument names matching the state variable names and
-    returning a namedtuple (see kd.namedtuple) with a subset of the keys
-    of `initial_state`.
+    returning a namedtuple (see kd.namedtuple) with a subset of the keys of
+    `initial_state`.
   returns: If present, the initial value of the &#39;returns&#39; state variable.
   yields: If present, the initial value of the &#39;yields&#39; state variable.
   yields_interleaved: If present, the initial value of the
@@ -10772,6 +10803,10 @@ Alias for [kd.slices.subslice](#kd.slices.subslice) operator.
 ### `kd.sum(x)` {#kd.sum}
 
 Alias for [kd.math.sum](#kd.math.sum) operator.
+
+### `kd.switch(key, cases, *args, return_type_as=None, **kwargs)` {#kd.switch}
+
+Alias for [kd.functor.switch](#kd.functor.switch) operator.
 
 ### `kd.take(x, indices)` {#kd.take}
 

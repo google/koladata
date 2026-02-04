@@ -25,6 +25,7 @@ from koladata.operators import iterables
 from koladata.operators import koda_internal_iterables
 from koladata.operators import lists
 from koladata.operators import masking
+from koladata.operators import objs
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -40,6 +41,8 @@ from koladata.types import signature_utils
 
 P = arolla.P
 M = arolla.M
+I = input_container.InputContainer('I')
+V = input_container.InputContainer('V')
 
 
 @optools.add_to_registry(
@@ -332,6 +335,159 @@ def if_(
   )
 
 
+SWITCH_DEFAULT = arolla.eval(
+    objs.uuobj(
+        seed='__kd_functor_switch_default__',
+        # Unused field, to hint the meaning of the object while custom repr for
+        # kd.switch is not available.
+        switch_default=mask_constants.present,
+    )
+)
+
+
+@optools.add_to_registry(aliases=['kd.switch'], via_cc_operator_package=True)
+@arolla.optools.as_lambda_operator(
+    'kd.functor.switch',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.key),
+        qtype_utils.expect_data_slice(P.case_keys),
+        qtype_utils.expect_data_slice(P.case_fns),
+        qtype_utils.expect_tuple(P.args),  # of anything
+        qtype_utils.expect_namedtuple(P.kwargs),  # of anything
+        qtype_utils.expect_non_deterministic(P.non_deterministic)
+    ],
+    aux_policy='koladata_adhoc_binding_policy[kd.functor.switch]',
+)
+def switch(
+    key,
+    case_keys,
+    case_fns,
+    return_type_as,
+    args,
+    kwargs,
+    non_deterministic,
+):  # pylint: disable=g-doc-args(signature is taken from _switch_bind_args)
+  """Calls a functor selected from `cases` based on `key`.
+
+  Raises an error if `kd.SWITCH_DEFAULT` case is not provided and `key` is
+  missing in `cases`.
+
+  Example:
+    kd.switch(
+        'a',
+        {
+          'a': lambda x: x + 1,
+          'b': lambda x: x * 2
+          kd.SWITCH_DEFAULT: lambda **unused: 57,
+        },
+        x=10)
+
+  Args:
+    key: A DataSlice key to lookup in `cases`.
+    cases: A scalar (Python or Koda) dict of functors.
+    *args: Positional arguments to pass to the selected functor.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression.
+    **kwargs: Keyword arguments to pass to the selected functor.
+
+  Returns:
+    The result of calling the selected functor.
+  """
+  key = assertion.with_assertion(
+      key,
+      slices.get_ndim(key) == 0,
+      'kd.switch: key must be a scalar',
+  )
+  case_keys = assertion.with_assertion(
+      case_keys,
+      slices.get_ndim(case_keys) == 1,
+      'kd.switch: case_keys must be a 1D DataSlice',
+  )
+  case_fns = assertion.with_assertion(
+      case_fns,
+      slices.get_ndim(case_fns) == 1,
+      'kd.switch: case_fns must be a 1D DataSlice',
+  )
+
+  # We unconditionally turn case_keys into an OBJECT in order to allow looking
+  # up by SWITCH_DEFAULT.
+  case_keys = schema.to_object(case_keys)
+
+  # TODO: b/477578091 - If we had a deterministic kd.uudict operator, the dict
+  # creation would be cached by the Expr compiler.
+  # TODO: b/477578091 - Check that there are no adoptions in runtime.
+  cases = dicts.new(case_keys, case_fns)
+
+  fn = masking.coalesce(
+      dicts.get_values(cases, key),
+      dicts.get_values(cases, SWITCH_DEFAULT),
+  )
+  fn = assertion.with_assertion(
+      fn,
+      masking.has(fn),
+      'kd.switch: key not found in cases and no default provided',
+  )
+
+  return optools.fix_non_deterministic_tokens(
+      arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+          call,
+          fn,
+          args=args,
+          return_type_as=return_type_as,
+          kwargs=kwargs,
+          **optools.unified_non_deterministic_kwarg(),
+      ),
+      param=non_deterministic,
+  )
+
+
+def _switch_bind_args(
+    key,
+    cases,
+    *args,
+    return_type_as=data_slice.DataSlice.from_vals(None),
+    **kwargs,
+):
+  """Binding policy for kd.functor.switch."""
+  if isinstance(cases, dict):
+    case_keys = py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
+        list(cases.keys())
+    )
+    case_fns = py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
+        # TODO: b/477578091 - Should this inner as_qvalue_or_expr be done by
+        # as_qvalue_or_expr_with_list_to_slice_support?
+        [py_boxing.as_qvalue_or_expr(v) for v in cases.values()]
+    )
+  elif isinstance(cases, data_slice.DataSlice | arolla.Expr):
+    case_keys = cases.get_keys()
+    case_fns = cases.get_values()
+  else:
+    raise TypeError(f'cases must be a dict, got {type(cases)}')
+
+  args = py_boxing.as_qvalue_or_expr(args)
+
+  kwargs = {k: py_boxing.as_qvalue_or_expr(v) for k, v in kwargs.items()}
+  if arolla.abc.Expr in (type(v) for v in kwargs.values()):
+    kwargs = arolla.M.namedtuple.make(**kwargs)
+  else:
+    kwargs = arolla.namedtuple(**kwargs)
+
+  return (
+      py_boxing.as_qvalue_or_expr(key),
+      case_keys,
+      case_fns,
+      py_boxing.as_qvalue_or_expr(return_type_as),
+      args,
+      kwargs,
+      optools.unified_non_deterministic_arg(),
+  )
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    switch, _switch_bind_args, make_literal_fn=py_boxing.literal
+)
+
+
 # We could later move this operator to slices.py or a similar lower-level
 # operator module if we discover that we have too many unrelated operators in
 # this module because they use _maybe_call.
@@ -598,8 +754,8 @@ def while_(
     condition_fn: A functor with keyword argument names matching the state
       variable names and returning a MASK DataItem.
     body_fn: A functor with argument names matching the state variable names and
-      returning a namedtuple (see kd.namedtuple) with a subset of the keys
-      of `initial_state`.
+      returning a namedtuple (see kd.namedtuple) with a subset of the keys of
+      `initial_state`.
     returns: If present, the initial value of the 'returns' state variable.
     yields: If present, the initial value of the 'yields' state variable.
     yields_interleaved: If present, the initial value of the
@@ -817,7 +973,6 @@ def _create_for_iteration_step_signature():
 
 def _create_for_iteration_normal_step_fn():
   """Creates a functor used to express 'body' step of the for iteration."""
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   item = arolla.M.seq.at(
       koda_internal_iterables.to_sequence(I.iterable),
       arolla_bridge.to_arolla_int64(I.step),
@@ -838,7 +993,6 @@ def _create_for_iteration_normal_step_fn():
 
 def _create_for_iteration_final_step_fn():
   """Creates a functor used to express 'finalize' step of the for iteration."""
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
       call_and_update_namedtuple,
       I.finalize_fn,
@@ -855,8 +1009,6 @@ def _create_for_iteration_final_step_fn():
 
 def _create_for_iteration_body_fn():
   """Creates a functor used to express for iteration."""
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
   seq_size = arolla_bridge.to_data_slice(
       arolla.M.seq.size(
           koda_internal_iterables.to_sequence(I['_koda_internal_iterable'])
@@ -912,8 +1064,6 @@ def _create_constant_present_fn():
 
 def _create_for_iteration_condition_fn():
   """Creates a functor used to express for iteration condition."""
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
   returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
       if_,
       I['_koda_internal_step'] < I['_koda_internal_num_steps'],
@@ -1151,8 +1301,6 @@ def _create_for_flat_map_step_signature():
 
 def _create_for_flat_map_step_fn(interleaved=False):
   """Creates a functor used to express 'body' step of the for flat_map_[chain|interleaved]."""
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-
   internal_call = arolla.abc.bind_op(
       call,
       fn=I['_koda_flat_map_fn'],

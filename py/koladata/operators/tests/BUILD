@@ -8296,6 +8296,27 @@ py_test(
 )
 
 py_test(
+    name = "functor_switch_test",
+    srcs = ["functor_switch_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "koda_internal_iterables_get_iterable_qtype_test",
     srcs = ["koda_internal_iterables_get_iterable_qtype_test.py"],
     deps = [

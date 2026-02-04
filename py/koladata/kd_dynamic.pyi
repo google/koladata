@@ -238,6 +238,7 @@ class functor:
   py_fn = _functor_functor_factories.py_fn
   reduce = _operators_functor.reduce
   register_py_fn = _functor_functor_factories.register_py_fn
+  switch = _operators_functor.switch
   trace_as_fn = _functor_tracing_decorator.TraceAsFnDecorator
   trace_py_fn = _functor_functor_factories.trace_py_fn
   while_ = _operators_functor.while_
@@ -823,6 +824,7 @@ strict_with_attrs = _operators_core.strict_with_attrs
 stub = _operators_core.stub
 subslice = _operators_slices.subslice
 sum = _operators_math.sum
+switch = _operators_functor.switch
 take = _operators_slices.take
 tile = _operators_slices.tile
 to_expr = _operators_schema.to_expr

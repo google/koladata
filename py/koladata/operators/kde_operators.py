@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from koladata.operators import cc_operators_py_clib as _
+from koladata.operators import functor as _functor
 from koladata.operators import py as _
 
 # The Arolla operators are coming from :cc_operators package, importing this
@@ -69,3 +70,8 @@ internal = arolla.OperatorsContainer(
         # go/keep-sorted end
     ]
 ).koda_internal
+
+# Individual operator modules are prohibited to include directly, so we
+# re-export constants from them there.
+
+SWITCH_DEFAULT = _functor.SWITCH_DEFAULT

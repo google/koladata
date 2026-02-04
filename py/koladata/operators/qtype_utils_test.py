@@ -304,6 +304,31 @@ class KodaQTypesTest(absltest.TestCase):
       ):
         _op(arolla.types.Sequence(1, 2, 3))
 
+  def test_expect_tuple(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_tuple(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(arolla.tuple())
+      _op(arolla.tuple(data_slice.DataSlice.from_vals(1)))
+      _op(
+          arolla.tuple(
+              data_slice.DataSlice.from_vals(1),
+              arolla.int32(1),
+          )
+      )
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected a tuple, got x: INT32',
+      ):
+        _op(arolla.int32(1))
+
   def test_expect_namedtuple(self):
     @arolla.optools.as_lambda_operator(
         'op4.name',

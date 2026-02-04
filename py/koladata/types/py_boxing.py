@@ -176,6 +176,8 @@ def as_qvalue_or_expr_with_list_to_slice_support(
   """Converts Python values into QValues or Exprs, supporting list to slice."""
   if not isinstance(arg, list):
     return as_qvalue_or_expr(arg)
+  # TODO: b/477578091 - Using binding policy from kd.slices.slice seems to be
+  # hacky. Try to call it directly instead.
   result, _ = arolla.abc.aux_bind_arguments(_make_slice_op, arg)
   return result
 

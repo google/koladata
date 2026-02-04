@@ -285,6 +285,11 @@ NONE = _same_when_tracing(_schema_constants.NONE)
 missing = _same_when_tracing(_mask_constants.missing)
 present = _same_when_tracing(_mask_constants.present)
 
+# Functor constants.
+
+# "functor" namespace is created by _InitOpsAndContainers above.
+functor.SWITCH_DEFAULT = _same_when_tracing(_kde_operators.SWITCH_DEFAULT)  # pylint: disable=undefined-variable
+SWITCH_DEFAULT = functor.SWITCH_DEFAULT  # pylint: disable=undefined-variable
 
 ### Public submodules.
 

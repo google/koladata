@@ -831,6 +831,18 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(fn(a), kd.slice(3))
     kd.testing.assert_equal(kd.fn(fn)(a), kd.slice(3))
 
+  def test_functor_switch(self):
+    # Testing that kd.SWITCH_DEFAULT is available, with and without alias.
+    kd.testing.assert_equal(kd.functor.switch(
+        'missing',
+        {'a': lambda x: x + 1, kd.functor.SWITCH_DEFAULT: lambda x: x + 100},
+        x=10,
+    ), kd.item(110))
+    kd.testing.assert_equal(kd.switch(
+        'missing',
+        {'a': lambda x: x + 1, kd.SWITCH_DEFAULT: lambda x: x + 100},
+        x=10,
+    ), kd.item(110))
 
 if __name__ == '__main__':
   absltest.main()

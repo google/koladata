@@ -97,6 +97,7 @@ py_library(
     ],
     deps = [
         ":cc_operators_py_clib",
+        ":functor",
         ":operators_in_cc_operator_package",
         ":py",
         "//py:python_path",
@@ -722,6 +723,7 @@ py_library(
         ":koda_internal_iterables",
         ":lists",
         ":masking",
+        ":objs",
         ":op_repr",
         ":optools",
         ":qtype_utils",
