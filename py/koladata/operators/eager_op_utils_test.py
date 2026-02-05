@@ -264,6 +264,25 @@ class EagerOpUtilsTest(parameterized.TestCase):
     ):
       op(arolla.P.x)
 
+  def test_eager_op_call_traceback(self):
+    @eager_op_utils.EagerOperator
+    @arolla.optools.as_lambda_operator('test.op')
+    def test_op(x):
+      return x
+
+    try:
+      test_op(arolla.P.x, arolla.P.y)
+      self.fail('expected TypeError')
+    except TypeError as e:
+      ex = e
+    self.assertEqual(str(ex), 'takes 1 positional argument but 2 were given')
+    tb = ex.__traceback__
+    self.assertIsNotNone(tb)
+    self.assertIs(
+        tb.tb_frame.f_code.co_name, 'test_eager_op_call_traceback'
+    )
+    self.assertIsNone(tb.tb_next)
+
   def test_overrides(self):
     kd = eager_op_utils.operators_container('test.namespace_1')
     kd_with_overrides = eager_op_utils.add_overrides(

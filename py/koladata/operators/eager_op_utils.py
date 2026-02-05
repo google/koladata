@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import functools
 import inspect
 import types
 from typing import Any, Callable
@@ -28,20 +29,6 @@ from koladata.operators import kde_operators
 _eval_op = py_expr_eval_py_ext.eval_op
 
 
-class _EagerOpCallMethod:
-  __slots__ = ('_op',)
-
-  def __init__(self, op: arolla.abc.Operator):
-    self._op = op
-
-  @property
-  def __signature__(self) -> inspect.Signature:  # needed for colab suggest
-    return inspect.signature(self._op)
-
-  def __call__(self, *args: Any, **kwargs: Any) -> arolla.AnyQValue:
-    return _eval_op(self._op, *args, **kwargs)
-
-
 class EagerOperator:
   """An eager-mode adapter for an operator."""
 
@@ -49,7 +36,9 @@ class EagerOperator:
 
   def __init__(self, op: arolla.abc.Operator):
     self.lazy_op = op
-    self.__call__ = _EagerOpCallMethod(op)
+    self.__call__ = functools.update_wrapper(
+        functools.partial(_eval_op, op), op, updated=(), assigned=()
+    )
 
   def getdoc(self) -> str:
     return self.lazy_op.getdoc()
