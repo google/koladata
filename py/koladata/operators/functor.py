@@ -14,6 +14,8 @@
 
 """Functor operators."""
 
+import textwrap
+
 from arolla import arolla
 from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
@@ -345,7 +347,49 @@ SWITCH_DEFAULT = arolla.eval(
 )
 
 
-@optools.add_to_registry(aliases=['kd.switch'], via_cc_operator_package=True)
+def _switch_repr(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> op_repr.ReprToken:
+  """Repr for kd.functor.switch."""
+  assert len(node.node_deps) == 7, 'switch expects exactly 7 arguments.'
+  key_repr = tokens[node.node_deps[0]].text
+  case_keys = node.node_deps[1]
+  case_fns = node.node_deps[2]
+  return_type_as = node.node_deps[3]
+  args = node.node_deps[4]
+  kwargs = node.node_deps[5]
+  # node.node_deps[6] is the non-deterministic token
+
+  case_reprs = {}
+  if (
+      isinstance(case_keys.qvalue, data_slice.DataSlice)
+      and isinstance(case_fns.qvalue, data_slice.DataSlice)
+      and len(case_keys.qvalue.L) == len(case_fns.qvalue.L)
+  ):
+    for k, f in zip(case_keys.qvalue.L, case_fns.qvalue.L):
+      # We want it less verbose than repr(k), yet adding quotes around strings
+      # unlike str(k).
+      k_repr = repr(k.to_py()) if k != SWITCH_DEFAULT else 'kd.SWITCH_DEFAULT'
+      case_reprs[k_repr] = str(f)
+    cases_repr = ',\n'.join(f'{k}: {v}' for k, v in case_reprs.items())
+  else:
+    cases_repr = f'kd.dict({tokens[case_keys].text}, {tokens[case_fns].text})'
+
+  args_kwargs = op_repr.args_kwargs_repr(args, kwargs, return_type_as, tokens)
+
+  res = op_repr.ReprToken()
+  res.text = (
+      f'{node.op.display_name}(\n'
+      f'{textwrap.indent(key_repr, "    ")},\n'
+      f'{textwrap.indent(cases_repr, "    ")},\n'
+      f'{textwrap.indent(args_kwargs, "    ")})'
+  )
+  return res
+
+
+@optools.add_to_registry(
+    aliases=['kd.switch'], repr_fn=_switch_repr, via_cc_operator_package=True
+)
 @arolla.optools.as_lambda_operator(
     'kd.functor.switch',
     qtype_constraints=[

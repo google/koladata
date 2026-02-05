@@ -100,14 +100,20 @@ def get_item_repr(
   return res
 
 
-def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
-  """Repr for kd.functor.call."""
-  res = ReprToken()
-  deps = node.node_deps
-  assert len(deps) == 5, 'call expects exactly five arguments.'
-  func_repr = tokens[deps[0]].text
-  args = deps[1]
+def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
+  """Returns a string representation of args and kwargs.
 
+  The function tries to represent args (accepted as a tuple), kwargs
+  (accepted as a named tuple) and return_type_as as literals. Returns None
+  if there is not enough information to represent them nicely (e.g. they are
+  not literals).
+
+  Args:
+    args: The args expr.
+    kwargs: The kwargs expr.
+    return_type_as: The return_type_as expr.
+    tokens: The repr tokens for the node that uses these args and kwargs.
+  """
   if args.op == arolla.M.core.make_tuple:
     # make_tuple node
     args_repr = ', '.join([tokens[arg].text for arg in args.node_deps])
@@ -115,11 +121,11 @@ def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
       args.op, literal_operator.LiteralOperator
   ) or not isinstance(arolla.eval(args), arolla.types.Tuple):
     # Fall back to the default repr.
-    return default_op_repr(node, tokens)
+    return None
   else:
     # tuple literal
     args_repr = tokens[args].text.removeprefix('(').removesuffix(')')
-  kwargs = deps[3]
+
   if kwargs.op == arolla.M.namedtuple.make:
     # namedtuple.make node
     # The first node_dep is a coma separated string of kwarg names.
@@ -135,7 +141,7 @@ def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
       kwargs.op, literal_operator.LiteralOperator
   ) or not isinstance(arolla.eval(kwargs), arolla.types.NamedTuple):
     # Fall back to the default repr.
-    return default_op_repr(node, tokens)
+    return None
   else:
     # Named tuple literal.
     # We can get the kwarg names from the qtype.
@@ -145,24 +151,39 @@ def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
         f'{repr(arolla.eval(arolla.M.namedtuple.get_field(kwargs, name)))}'
         for name in kwarg_names
     ])
-  return_type_as = deps[2]
+
   is_default_return_type = isinstance(
       return_type_as.op, literal_operator.LiteralOperator
   ) and (arolla.eval(return_type_as).qtype == qtypes.DATA_SLICE)
   if not is_default_return_type:
     if kwargs_repr:
-      pass
       kwargs_repr = (
           f'{kwargs_repr}, return_type_as={tokens[return_type_as].text}'
       )
     else:
       kwargs_repr = f'return_type_as={tokens[return_type_as].text}'
-  # deps[4] is the non-deterministic token and does not need to be included into
-  # the repr.
+
   if args_repr and kwargs_repr:
-    res.text = f'{func_repr}({args_repr}, {kwargs_repr})'
+    return f'{args_repr}, {kwargs_repr}'
   else:
-    res.text = f'{func_repr}({args_repr}{kwargs_repr})'
+    return f'{args_repr}{kwargs_repr}'
+
+
+def call_repr(node: arolla.Expr, tokens: arolla.abc.NodeTokenView) -> ReprToken:
+  """Repr for kd.functor.call."""
+  res = ReprToken()
+  deps = node.node_deps
+  assert len(deps) == 5, 'call expects exactly five arguments.'
+  func_repr = tokens[deps[0]].text
+  args = deps[1]
+  return_type_as = deps[2]
+  kwargs = deps[3]
+
+  args_kwargs = args_kwargs_repr(args, kwargs, return_type_as, tokens)
+  if args_kwargs is None:
+    return default_op_repr(node, tokens)
+
+  res.text = f'{func_repr}({args_kwargs})'
   return res
 
 

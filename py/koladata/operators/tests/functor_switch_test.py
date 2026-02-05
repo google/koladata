@@ -233,6 +233,49 @@ class FunctorSwitchTest(absltest.TestCase):
     testing.assert_equal(a, kde.tuples.tuple(I.x))
     testing.assert_equal(kw, arolla.M.namedtuple.make(y=I.y))
 
+  def test_repr(self):
+    expr = kde.functor.switch(
+        I.k,
+        {
+            # Non-lexicographic order.
+            'b': lambda x: kde.attrs(x, foo='b'),
+            'a': lambda x: kde.attrs(x, foo='a'),
+            kd_SWITCH_DEFAULT: lambda x: kde.attrs(x, foo='default'),
+        },
+        return_type_as=kde.attrs(I.k),
+        x=I.x,
+    )
+    self.assertEqual(
+        repr(expr),
+        """kd.functor.switch(
+    I.k,
+    'b': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING)),
+    ),
+    'a': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
+    ),
+    kd.SWITCH_DEFAULT: Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING)),
+    ),
+    x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
+    )
+
+  def test_repr_non_literal_cases(self):
+    expr = kde.functor.switch(
+        I.k,
+        I.cases,
+        return_type_as=kde.attrs(I.k),
+        x=I.x,
+    )
+    self.assertEqual(
+        repr(expr),
+        """kd.functor.switch(
+    I.k,
+    kd.dict(kd.get_keys(I.cases), kd.get_values(I.cases, unspecified)),
+    x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
