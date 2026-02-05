@@ -16,6 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
@@ -275,6 +276,17 @@ class FunctorSwitchTest(absltest.TestCase):
     kd.dict(kd.get_keys(I.cases), kd.get_values(I.cases, unspecified)),
     x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
     )
+
+  def test_view(self):
+    expr = kde.functor.switch(
+        I.k,
+        {
+            'a': lambda x: x + 1,
+            'b': lambda x: x - 1,
+        },
+        x=I.x,
+    )
+    self.assertTrue(view.has_koda_view(expr))
 
 
 if __name__ == '__main__':

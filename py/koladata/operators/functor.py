@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import dicts
@@ -398,7 +399,7 @@ def _switch_repr(
         qtype_utils.expect_data_slice(P.case_fns),
         qtype_utils.expect_tuple(P.args),  # of anything
         qtype_utils.expect_namedtuple(P.kwargs),  # of anything
-        qtype_utils.expect_non_deterministic(P.non_deterministic)
+        qtype_utils.expect_non_deterministic(P.non_deterministic),
     ],
     aux_policy='koladata_adhoc_binding_policy[kd.functor.switch]',
 )
@@ -530,6 +531,7 @@ def _switch_bind_args(
 arolla.abc.register_adhoc_aux_binding_policy(
     switch, _switch_bind_args, make_literal_fn=py_boxing.literal
 )
+arolla.abc.set_expr_view_for_aux_policy(switch, view.KodaView)
 
 
 # We could later move this operator to slices.py or a similar lower-level
