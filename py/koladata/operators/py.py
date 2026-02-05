@@ -17,7 +17,7 @@
 import concurrent.futures
 import functools
 import itertools
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, TypeVar
 
 from arolla import arolla
 from koladata.base.py_conversions import clib as base_clib
@@ -289,6 +289,30 @@ def _from_py(py_obj, *, schema, from_dim):
   )
 
 
+#
+#
+#
+_T = TypeVar('_T')
+
+
+class _ThreadPoolExecutor(
+    concurrent.futures.ThreadPoolExecutor,
+):
+  """A ThreadPoolExecutor that propagates context to worker threads."""
+
+  def submit(
+      self, fn: Callable[..., _T], /, *args: Any, **kwargs: Any
+  ) -> concurrent.futures.Future[_T]:
+    cancellation_context = arolla.abc.current_cancellation_context()
+    return super().submit(
+        arolla.abc.run_in_cancellation_context,
+        cancellation_context,
+        fn,
+        *args,
+        **kwargs,
+    )
+
+
 def _parallel_map(
     fn: Callable[..., Any],
     *iterables: Iterable[Any],
@@ -317,16 +341,10 @@ def _parallel_map(
     return result
 
   # Multi-thread mode
-  executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
+  executor = _ThreadPoolExecutor(max_workers=max_threads)
   try:
-    cancellation_context = arolla.abc.current_cancellation_context()
     future_to_idx = {
-        executor.submit(
-            arolla.abc.run_in_cancellation_context,
-            cancellation_context,
-            fn,
-            *args,
-        ): idx
+        executor.submit(fn, *args): idx
         for idx, args in enumerate(zip(*iterables))
     }
     result = [None] * len(future_to_idx)
