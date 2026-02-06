@@ -175,12 +175,11 @@ absl::StatusOr<std::pair<bool, DataItem>> DeepSchemaCompatibleOp::operator()(
   return std::make_pair(!compare_op.Comparator().HasDiff(), result[0]);
 }
 
-absl::StatusOr<std::vector<DeepSchemaCompatibleOp::DiffItem>>
+absl::StatusOr<std::vector<DeepDiff::DiffItem>>
 DeepSchemaCompatibleOp::GetDiffPaths(const DataItem& item,
-                                     const DataItem& schema,
                                      size_t max_count) const {
   auto traverse_helper = TraverseHelper(*new_databag_, {});
-  std::vector<DiffItem> diff_paths;
+  std::vector<DeepDiff::DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
   auto lambda_visitor =
@@ -195,7 +194,8 @@ DeepSchemaCompatibleOp::GetDiffPaths(const DataItem& item,
       };
   auto diff_finder =
       ObjectFinder(*new_databag_, {}, DeepDiff::kSchemaAttrPrefix);
-  RETURN_IF_ERROR(diff_finder.TraverseSlice(item, schema, lambda_visitor));
+  RETURN_IF_ERROR(diff_finder.TraverseSlice(item, DataItem(schema::kObject),
+                                            lambda_visitor));
   return diff_paths;
 }
 

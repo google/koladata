@@ -240,8 +240,9 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema bar\(x=INT32\) with id Schema:\#[a-zA-Z0-9]*'
-        r' cannot be cast to entity schema foo\(x=FLOAT32, y=FLOAT32\) with'
-        r' id Schema:\#[a-zA-Z0-9]*',
+        r'\n\ncannot be cast to entity schema foo\(x=FLOAT32, y=FLOAT32\) with'
+        r' id Schema:\#[a-zA-Z0-9]*;\n\nadded:\nnew_schema.y:\n'
+        r'DataItem\(FLOAT32, schema: SCHEMA\)',
     ):
       _ = kd.schema.cast_to(e1, schema)
 
@@ -257,8 +258,9 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema bar\(x=INT32, y=INT32\) with id'
-        r' Schema:\#[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'foo\(x=FLOAT32\) with id Schema:\#[a-zA-Z0-9]*',
+        r' Schema:\#[a-zA-Z0-9]*\n\ncannot be cast to entity schema '
+        r'foo\(x=FLOAT32\) with id Schema:\#[a-zA-Z0-9]*;\n\ndeleted:\n'
+        r'old_schema.y:\nDataItem\(INT32, schema: SCHEMA\)',
     ):
       _ = kd.schema.cast_to(e1, schema)
 
@@ -269,8 +271,8 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema ENTITY\(x=INT32\) with id Schema:\$[a-zA-Z0-9]*'
-        r' cannot be cast to entity schema ENTITY\(y=INT32\) with id'
-        r' Schema:\$[a-zA-Z0-9]*',
+        r'\n\ncannot be cast to entity schema ENTITY\(y=INT32\) with id'
+        r' Schema:\$[a-zA-Z0-9]*;',
     ):
       _ = kd.schema.cast_to(obj, schema)
 
@@ -281,8 +283,10 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema ENTITY\(x=ENTITY\(y=INT32\)\) with id '
-        r'Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'ENTITY\(x=OBJECT\) with id Schema:\$[a-zA-Z0-9]*',
+        r'Schema:\$[a-zA-Z0-9]*\n\ncannot be cast to entity schema '
+        r'ENTITY\(x=OBJECT\) with id Schema:\$[a-zA-Z0-9]*;\n\nmodified:\n'
+        r'old_schema.x:\nDataItem\(ENTITY\(y=INT32\), schema: SCHEMA\)\n'
+        r'-> new_schema.x:\nDataItem\(OBJECT, schema: SCHEMA\)',
     ):
       _ = kd.schema.cast_to(e1, schema)
 
@@ -320,8 +324,9 @@ class SchemaCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'kd.schema.cast_to: DataSlice with schema ENTITY\(x=INT32\) with id '
-        r'Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*',
+        r'Schema:\$[a-zA-Z0-9]*\n\ncannot be cast to entity schema '
+        r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*;'
+        r'\n\nadded:\nnew_schema.y:\nDataItem\(INT32, schema: SCHEMA\)'
     ):
       _ = kd.schema.cast_to(e1, e2_schema)
 

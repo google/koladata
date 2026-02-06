@@ -1994,7 +1994,7 @@ TEST_P(DeepCastingTest, CastToExplicit_Nested) {
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("DataSlice with schema ENTITY"),
                 HasSubstr(absl::StrFormat(
-                    "with id %v cannot be cast to entity schema ENTITY",
+                    "with id %v\n\ncannot be cast to entity schema ENTITY",
                     schema_a)),
                 HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
 
@@ -2004,7 +2004,7 @@ TEST_P(DeepCastingTest, CastToExplicit_Nested) {
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("DataSlice with schema ENTITY"),
                 HasSubstr(absl::StrFormat(
-                    "with id %v cannot be cast to entity schema ENTITY",
+                    "with id %v\n\ncannot be cast to entity schema ENTITY",
                     schema_a)),
                 HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
 
@@ -2076,7 +2076,7 @@ TEST_P(DeepCastingTest, CastToExplicit_NestedNewAttr) {
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("DataSlice with schema ENTITY"),
                 HasSubstr(absl::StrFormat(
-                    "with id %v cannot be cast to entity schema ENTITY",
+                    "with id %v\n\ncannot be cast to entity schema ENTITY",
                     schema_a)),
                 HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
 
@@ -2086,7 +2086,7 @@ TEST_P(DeepCastingTest, CastToExplicit_NestedNewAttr) {
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("DataSlice with schema ENTITY"),
                 HasSubstr(absl::StrFormat(
-                    "with id %v cannot be cast to entity schema ENTITY",
+                    "with id %v\n\ncannot be cast to entity schema ENTITY",
                     schema_a)),
                 HasSubstr(absl::StrFormat("with id %v", schema_a_updated)))));
 
@@ -2213,9 +2213,119 @@ TEST_P(DeepCastingTest, CastToExplicit_DeepListsSlice_Error) {
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr(absl::StrFormat(
-              "DataSlice with schema LIST[ENTITY(x=INT32)] with id %v cannot "
-              "be cast to entity schema LIST[ENTITY(x=EXPR)] with id %v",
+              "DataSlice with schema LIST[ENTITY(x=INT32)] with id %v\n\ncannot"
+              " be cast to entity schema LIST[ENTITY(x=EXPR)] with id %v;\n\n"
+              "modified:\nold_schema.__items__.x:\n"
+              "DataItem(INT32, schema: SCHEMA)\n"
+              "-> new_schema.__items__.x:\n"
+              "DataItem(EXPR, schema: SCHEMA)",
               list_schema, list_schema_updated))));
+}
+
+TEST_P(DeepCastingTest, CastToExplicit_DeepAttributesMismatch) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto ds = AllocateEmptyObjects(7);
+  auto root_schema = AllocateSchema();
+  auto a_schema = AllocateSchema();
+  auto b_schema = AllocateSchema();
+  auto new_root_schema = AllocateSchema();
+  auto new_a_schema = AllocateSchema();
+  auto new_b_schema = AllocateSchema();
+  auto new_c_schema = AllocateSchema();
+
+  TriplesT data_triples = {
+      {ds[0], {{"a", ds[3]}, {"b", ds[4]}}},
+      {ds[1], {{"a", ds[5]}, {"b", ds[6]}}},
+      {ds[3], {{"x", internal::DataItem(3)}}},
+      {ds[5], {{"x", internal::DataItem(1)}}},
+      {ds[4], {{"foo", internal::DataItem(arolla::Text("bar"))}}}};
+  TriplesT schema_triples = {
+      {root_schema, {{"a", a_schema}, {"b", b_schema}}},
+      {a_schema, {{"x", internal::DataItem(schema::kInt32)}}},
+      {b_schema, {{"foo", internal::DataItem(schema::kString)}}},
+      {new_root_schema,
+       {{"a", new_a_schema}, {"b", new_b_schema}, {"c", new_c_schema}}},
+      {new_a_schema, {{"x", internal::DataItem(schema::kExpr)}}},
+      {new_b_schema, {{"foo", internal::DataItem(schema::kItemId)}}},
+      {new_c_schema, {{"bar", internal::DataItem(schema::kBool)}}}};
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  ASSERT_OK_AND_ASSIGN(
+      auto root_ds,
+      DataSlice::Create(ds, DataSlice::JaggedShape::FlatFromSize(7),
+                        root_schema, db_ptr));
+
+  EXPECT_THAT(
+      CastToExplicit(root_ds, new_root_schema),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr(absl::StrFormat(
+                    "DataSlice with schema ENTITY(a=ENTITY(x=INT32), "
+                    "b=ENTITY(foo=STRING)) with id %v\n\ncannot be cast to "
+                    "entity schema ENTITY(a=ENTITY(x=EXPR), "
+                    "b=ENTITY(foo=ITEMID), c=ENTITY(bar=BOOLEAN)) with id %v;",
+                    root_schema, new_root_schema)),
+                HasSubstr("modified:\nold_schema.a.x:\nDataItem(INT32, schema: "
+                          "SCHEMA)\n-> new_schema.a.x:\nDataItem(EXPR, schema: "
+                          "SCHEMA)"),
+                HasSubstr(
+                    "modified:\nold_schema.b.foo:\nDataItem(STRING, schema: "
+                    "SCHEMA)\n-> new_schema.b.foo:\nDataItem(ITEMID, schema: "
+                    "SCHEMA)"),
+                HasSubstr("added:\nnew_schema.c:\nDataItem(ENTITY(bar=BOOLEAN),"
+                          " schema: SCHEMA)"))));
+}
+
+TEST_P(DeepCastingTest, CastToExplicit_DeepAttributesIncompatibleOnlyInError) {
+  auto db_ptr = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto& db, db_ptr->GetMutableImpl());
+  auto ds = AllocateEmptyObjects(7);
+  auto root_schema = AllocateSchema();
+  auto a_schema = AllocateSchema();
+  auto b_schema = AllocateSchema();
+  auto c_schema = AllocateSchema();
+  auto new_root_schema = AllocateSchema();
+  auto new_a_schema = AllocateSchema();
+  auto new_b_schema = AllocateSchema();
+
+  TriplesT data_triples = {
+      {ds[0], {{"a", ds[3]}, {"b", ds[4]}}},
+      {ds[1], {{"a", ds[5]}, {"b", ds[6]}}},
+      {ds[3], {{"x", internal::DataItem(3)}}},
+      {ds[5], {{"x", internal::DataItem(1)}}},
+      {ds[4], {{"foo", internal::DataItem(arolla::Text("bar"))}}}};
+  TriplesT schema_triples = {
+      {root_schema, {{"a", a_schema}, {"b", b_schema}, {"c", c_schema}}},
+      {a_schema, {{"x", internal::DataItem(schema::kInt32)}}},
+      {b_schema, {{"foo", internal::DataItem(schema::kString)}}},
+      {c_schema, {{"bar", internal::DataItem(schema::kBool)}}},
+      {new_root_schema, {{"a", new_a_schema}, {"b", new_b_schema}}},
+      {new_a_schema, {{"x", internal::DataItem(schema::kFloat64)}}},
+      {new_b_schema, {{"foo", internal::DataItem(schema::kItemId)}}}};
+  SetDataTriples(db, data_triples);
+  SetSchemaTriples(db, schema_triples);
+  SetSchemaTriples(db, GenSchemaTriplesFoTests());
+  SetDataTriples(db, GenDataTriplesForTest());
+  ASSERT_OK_AND_ASSIGN(
+      auto root_ds,
+      DataSlice::Create(ds, DataSlice::JaggedShape::FlatFromSize(7),
+                        root_schema, db_ptr));
+
+  EXPECT_THAT(
+      CastToExplicit(root_ds, new_root_schema, {.allow_removing_attrs = true}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          absl::StrFormat(
+              "DataSlice with schema ENTITY(a=ENTITY(x=INT32), "
+              "b=ENTITY(foo=STRING), c=ENTITY(bar=BOOLEAN)) with id %v\n\n"
+              "cannot be cast to entity schema ENTITY(a=ENTITY(x=FLOAT64), "
+              "b=ENTITY(foo=ITEMID)) with id "
+              "%v;\n\nmodified:\nold_schema.b.foo:\nDataItem(STRING, schema: "
+              "SCHEMA)\n-> new_schema.b.foo:\nDataItem(ITEMID, schema: SCHEMA)",
+              root_schema, new_root_schema)));
 }
 
 TEST(Casting, CastToExplicit_CoversAllDTypes) {

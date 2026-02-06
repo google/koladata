@@ -22,7 +22,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/op_utils/traverse_helper.h"
+#include "koladata/internal/op_utils/deep_diff.h"
 
 namespace koladata::internal {
 
@@ -36,12 +36,6 @@ namespace koladata::internal {
 // to flatten the result to a list of paths.
 class DeepEquivalentOp {
  public:
-  struct DiffItem {
-    std::vector<TraverseHelper::TransitionKey> path;
-    DataItem item;
-    DataItem schema;
-  };
-
   struct DeepEquivalentParams {
     // If true, only the attributes present in the expected_value are compared.
     bool partial = false;
@@ -77,13 +71,13 @@ class DeepEquivalentOp {
 
   // For the provided slice, returns the paths in the new_databag_ that leads to
   // the diff items.
-  absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
+  absl::StatusOr<std::vector<DeepDiff::DiffItem>> GetDiffPaths(
       const DataSliceImpl& ds, const DataItem& schema,
       size_t max_count = 5) const;
 
   // For the provided item, returns the paths in the new_databag_ that leads to
   // the diff items.
-  absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
+  absl::StatusOr<std::vector<DeepDiff::DiffItem>> GetDiffPaths(
       const DataItem& item, const DataItem& schema, size_t max_count = 5) const;
 
  private:

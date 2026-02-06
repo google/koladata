@@ -17,6 +17,7 @@
 
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -39,6 +40,13 @@ namespace koladata::internal {
 //  kd.uu_schema(seed='__diff_wrapper_schema__').with_attrs(diff=kd.OBJECT)
 class DeepDiff {
  public:
+  // A struct to reference a node in the deep diff tree.
+  struct DiffItem {
+    std::vector<TraverseHelper::TransitionKey> path;
+    DataItem item;
+    DataItem schema;
+  };
+
   static constexpr std::string_view kLhsAttr = "lhs_value";
   static constexpr std::string_view kRhsAttr = "rhs_value";
   static constexpr std::string_view kDiffItemAttr = "diff";

@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,14 +25,18 @@
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/deep_diff_utils.h"
 #include "koladata/error_repr_utils.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/casting.h"
@@ -40,6 +45,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/deep_diff.h"
 #include "koladata/internal/op_utils/deep_schema_compatible.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
@@ -158,6 +164,10 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& slice,
   }
   ABSL_UNREACHABLE();
 }
+
+constexpr absl::string_view kOldName = "old_schema";
+constexpr absl::string_view kNewName = "new_schema";
+
 }  // namespace
 
 namespace casting_internal {
@@ -255,11 +265,37 @@ absl::Status AssertSchemasCompatible(
   if (are_compatible) {
     return absl::OkStatus();
   }
-  // TODO: improve the error message.
+  ReprOption repr_option({.depth = 2,
+                          .item_limit = 5,
+                          .unbounded_type_max_len = 100,
+                          .show_databag_id = false});
+  auto diff_paths_or =
+      deep_schema_compatible_op.GetDiffPaths(diff_item, /*max_count=*/5);
+  if (!diff_paths_or.ok()) {
+    LOG(ERROR) << "Failed to get diff paths: "
+               << diff_paths_or.status().message();
+    return absl::InvalidArgumentError(
+        absl::StrFormat("DataSlice with schema %v cannot be cast to entity "
+                        "schema %v; failed to generate diff representation",
+                        SchemaImplToStr(from_schema_impl, db),
+                        SchemaImplToStr(to_schema_impl, db)));
+  }
+  std::vector<std::string> mismatches;
+  for (const auto& diff : *diff_paths_or) {
+    auto diff_item_repr_or = DiffItemRepr(
+        diff, new_databag_impl, db, internal::DeepDiff::kRhsAttr, kNewName, db,
+        internal::DeepDiff::kLhsAttr, kOldName, repr_option);
+    if (diff_item_repr_or.ok()) {
+      mismatches.push_back(std::move(*diff_item_repr_or));
+    } else {
+      LOG(ERROR) << "Failed to get diff item repr: "
+                 << diff_item_repr_or.status().message();
+    }
+  }
   return absl::InvalidArgumentError(absl::StrFormat(
-      "DataSlice with schema %v cannot be cast to entity schema %v",
+      "DataSlice with schema %v\n\ncannot be cast to entity schema %v;\n\n%s",
       SchemaImplToStr(from_schema_impl, db),
-      SchemaImplToStr(to_schema_impl, db)));
+      SchemaImplToStr(to_schema_impl, db), absl::StrJoin(mismatches, "\n\n")));
 }
 
 absl::StatusOr<DataSlice> CastByExtracting(

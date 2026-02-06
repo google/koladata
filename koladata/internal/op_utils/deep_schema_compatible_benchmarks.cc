@@ -43,7 +43,7 @@ void RunCastingBenchmarks(benchmark::State& state, DataSliceImpl& ds,
     auto result_db = DataBagImpl::CreateEmptyDatabag();
     DeepSchemaCompatibleOp(result_db.get(), {},
                            casting_internal::IsProbablyCastableTo)(
-        schema_a, *databag_a, fallbacks_a, schema_b, *databag_b, fallbacks_b)
+        schema_b, *databag_b, fallbacks_b, schema_a, *databag_a, fallbacks_a)
         .IgnoreError();
     benchmark::DoNotOptimize(result_db);
   }

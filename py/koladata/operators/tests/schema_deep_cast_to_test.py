@@ -134,7 +134,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema ENTITY\(x=INT32\) with id Schema:\$[a-zA-Z0-9]*'
-        r' cannot be cast to entity schema ENTITY\(y=INT32\) with id'
+        r'\n\ncannot be cast to entity schema ENTITY\(y=INT32\) with id'
         r' Schema:\$[a-zA-Z0-9]*',
     ):
       _ = kd.schema.deep_cast_to(obj, schema)
@@ -168,7 +168,7 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(a=BOOLEAN,'
-        r' b=INT32\) with id Schema:\$[a-zA-Z0-9]* cannot be cast to entity'
+        r' b=INT32\) with id Schema:\$[a-zA-Z0-9]*\n\ncannot be cast to entity'
         r' schema ENTITY\(a=MASK, b=INT32\) with id Schema:\$[a-zA-Z0-9]*',
     ):
       kd.schema.deep_cast_to(x, schema2)
@@ -282,8 +282,8 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema bar\(x=INT32\) with id Schema:\#[a-zA-Z0-9]*'
-        r' cannot be cast to entity schema ENTITY\(x=FLOAT32, y=FLOAT32\) with'
-        r' id Schema:\$[a-zA-Z0-9]*',
+        r'\n\ncannot be cast to entity schema ENTITY\(x=FLOAT32, y=FLOAT32\)'
+        r' with id Schema:\$[a-zA-Z0-9]*',
     ):
       _ = kd.schema.deep_cast_to(e1, schema)
 
@@ -299,8 +299,9 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'DataSlice with schema bar\(x=INT32, y=INT32\) with id'
-        r' Schema:\#[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'ENTITY\(x=FLOAT32\) with id Schema:\$[a-zA-Z0-9]*',
+        r' Schema:\#[a-zA-Z0-9]*\n\ncannot be cast to entity schema '
+        r'ENTITY\(x=FLOAT32\) with id Schema:\$[a-zA-Z0-9]*;\n\n'
+        r'deleted:\nold_schema.y:\nDataItem\(INT32, schema: SCHEMA\)',
     ):
       _ = kd.schema.deep_cast_to(e1, schema)
 
@@ -313,8 +314,9 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(x=INT32\) with'
-        r' id Schema:\$[a-zA-Z0-9]* cannot be cast to entity schema '
-        r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*',
+        r' id Schema:\$[a-zA-Z0-9]*\n\ncannot be cast to entity schema '
+        r'ENTITY\(x=INT32, y=INT32\) with id Schema:\$[a-zA-Z0-9]*;\n\n'
+        r'added:\nnew_schema.y:\nDataItem\(INT32, schema: SCHEMA\)'
     ):
       _ = kd.schema.deep_cast_to(e1, e2_schema)
 

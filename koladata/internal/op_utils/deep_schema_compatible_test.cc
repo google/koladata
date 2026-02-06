@@ -73,8 +73,8 @@ TEST_P(DeepSchemaCompatibleTest, CompatiblePrimitives) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_TRUE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   for (const auto& diff : diffs) {
     diff_paths.push_back(
@@ -105,8 +105,8 @@ TEST_P(DeepSchemaCompatibleTest, IncompatiblePrimitives) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   for (const auto& diff : diffs) {
     diff_paths.push_back(
@@ -143,8 +143,8 @@ TEST_P(DeepSchemaCompatibleTest, AllowAll) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_TRUE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
@@ -179,8 +179,8 @@ TEST_P(DeepSchemaCompatibleTest, PartialFalse) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
@@ -220,8 +220,8 @@ TEST_P(DeepSchemaCompatibleTest, PartialFalseDeep) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
@@ -255,8 +255,8 @@ TEST_P(DeepSchemaCompatibleTest, LhsOnly) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
@@ -404,8 +404,8 @@ TEST_P(DeepSchemaCompatibleTest, RhsOnly) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
@@ -463,8 +463,8 @@ TEST_P(DeepSchemaCompatibleTest, NotCastable) {
                                 *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_FALSE(is_compatible);
-  ASSERT_OK_AND_ASSIGN(auto diffs, deep_schema_compatible_op.GetDiffPaths(
-                                       result_item, DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto diffs,
+                       deep_schema_compatible_op.GetDiffPaths(result_item));
   std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {

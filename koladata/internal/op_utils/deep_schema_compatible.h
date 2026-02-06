@@ -24,7 +24,7 @@
 #include "absl/log/check.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/op_utils/traverse_helper.h"
+#include "koladata/internal/op_utils/deep_diff.h"
 
 namespace koladata::internal {
 
@@ -38,12 +38,6 @@ namespace koladata::internal {
 // to flatten the result to a list of paths.
 class DeepSchemaCompatibleOp {
  public:
-  struct DiffItem {
-    std::vector<TraverseHelper::TransitionKey> path;
-    DataItem item;
-    DataItem schema;
-  };
-
   struct SchemaCompatibleParams {
     // If true, attributes that are present in from_schema but missing in
     // to_schema will not be checked.
@@ -73,8 +67,8 @@ class DeepSchemaCompatibleOp {
 
   // For the provided item, returns the paths in the new_databag_ that leads to
   // the diff items.
-  absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
-      const DataItem& item, const DataItem& schema, size_t max_count = 5) const;
+  absl::StatusOr<std::vector<DeepDiff::DiffItem>> GetDiffPaths(
+      const DataItem& item, size_t max_count = 5) const;
 
  private:
   DataBagImpl* new_databag_;

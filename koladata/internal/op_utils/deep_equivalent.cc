@@ -195,10 +195,10 @@ absl::StatusOr<DataItem> DeepEquivalentOp::operator()(
   return result[0];
 }
 
-absl::StatusOr<std::vector<DeepEquivalentOp::DiffItem>>
+absl::StatusOr<std::vector<DeepDiff::DiffItem>>
 DeepEquivalentOp::GetDiffPaths(const DataSliceImpl& ds, const DataItem& schema,
                                size_t max_count) const {
-  std::vector<DiffItem> diff_paths;
+  std::vector<DeepDiff::DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
   auto lambda_visitor =
@@ -219,11 +219,11 @@ DeepEquivalentOp::GetDiffPaths(const DataSliceImpl& ds, const DataItem& schema,
   return diff_paths;
 }
 
-absl::StatusOr<std::vector<DeepEquivalentOp::DiffItem>>
+absl::StatusOr<std::vector<DeepDiff::DiffItem>>
 DeepEquivalentOp::GetDiffPaths(const DataItem& item, const DataItem& schema,
                                size_t max_count) const {
   auto traverse_helper = TraverseHelper(*new_databag_, {});
-  std::vector<DiffItem> diff_paths;
+  std::vector<DeepDiff::DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
   auto lambda_visitor =
