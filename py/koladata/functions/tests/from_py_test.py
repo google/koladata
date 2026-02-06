@@ -2245,6 +2245,25 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     testing.assert_equal(entity.y.x.abc.no_bag(), ds(42))
     testing.assert_equal(entity.y.y.abc.no_bag(), ds(42))
 
+  def test_mixing_dataclasses_fails_gracefully(self):
+    @dataclasses.dataclass
+    class Output:
+      analysis: str
+
+    with self.assertRaisesRegex(
+        ValueError, 'object with unsupported type: str'
+    ):
+      _ = from_py([Output('foo'), 'str_output'], schema=None)
+
+  def test_non_dataclasses_fails_gracefully(self):
+    class Output:
+      pass
+
+    with self.assertRaisesRegex(
+        ValueError, 'object with unsupported type: Output'
+    ):
+      _ = from_py([Output()], schema=None)
+
   def test_recursive_error_with_schema(self):
     py_l = [1, 2, 3]
     schema = kde.list_schema(schema_constants.INT32).eval()

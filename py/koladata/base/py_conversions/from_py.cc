@@ -174,7 +174,7 @@ class FromPyConverter {
                          executor, result,
                          /*computing_object=*/false);
     }));
-    DCHECK(result.has_value());
+    DCHECK(result.has_value()) << "TrampolineExecutor above must set result.";
     return std::move(*result);
   }
 
@@ -364,17 +364,15 @@ class FromPyConverter {
     }
 
     auto bldr = std::make_unique<internal::SliceBuilder>(size);
-    auto process_element_fn =
-        [this, bldr = bldr.get()](
-            size_t index, std::optional<DataSlice>& ds) -> absl::Status {
-      DCHECK(ds.has_value());
-      if (ds->GetSchemaImpl().is_struct_schema()) {
+    auto process_element_fn = [this, bldr = bldr.get()](
+                                  size_t index, DataSlice& ds) -> absl::Status {
+      if (ds.GetSchemaImpl().is_struct_schema()) {
         // Converting only non-primitives to OBJECTs, in order to embed
         // schema.
-        ASSIGN_OR_RETURN(ds, ObjectCreator::ConvertWithoutAdopt(GetBag(), *ds));
+        ASSIGN_OR_RETURN(ds, ObjectCreator::ConvertWithoutAdopt(GetBag(), ds));
       }
-      DCHECK(ds->is_item());
-      bldr->InsertIfNotSetAndUpdateAllocIds(index, ds->item());
+      DCHECK(ds.is_item());
+      bldr->InsertIfNotSetAndUpdateAllocIds(index, ds.item());
       return absl::OkStatus();
     };
 
@@ -405,11 +403,11 @@ class FromPyConverter {
       // primitives, when adding another element to the queue has a significant
       // overhead.
       if (ds->has_value()) {
-        RETURN_IF_ERROR(process_element_fn(i, *ds));
+        RETURN_IF_ERROR(process_element_fn(i, **ds));
       } else {
         executor.Enqueue(
             [process_element_fn, i, ds = std::move(ds)]() -> absl::Status {
-              RETURN_IF_ERROR(process_element_fn(i, *ds));
+              RETURN_IF_ERROR(process_element_fn(i, **ds));
               return absl::OkStatus();
             });
       }
@@ -697,10 +695,8 @@ class FromPyConverter {
       Py_ssize_t pos = 0;
 
       for (auto& [key, value] : cur_dict_keys_values) {
-        if (!PyDict_Next(py_obj, &pos, &key, &value)) {
-          return absl::InternalError(
-              "failed to get the next key and value from the dictionary.");
-        }
+        auto check = PyDict_Next(py_obj, &pos, &key, &value);
+        DCHECK(check);
       }
       DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
     }
@@ -961,12 +957,12 @@ class FromPyConverter {
       internal::TrampolineExecutor& executor,
       std::optional<DataSlice>& result) {
     DCHECK(schema.IsEntitySchema());
+    DCHECK_EQ(attr_names.size(), attr_python_values_vec.size());
 
     std::vector<std::optional<DataSlice>> attr_schemas(attr_names.size());
     for (int i = 0; i < attr_names.size(); ++i) {
       ASSIGN_OR_RETURN(attr_schemas[i], schema.GetAttr(attr_names[i]));
     }
-    DCHECK_EQ(attr_schemas.size(), attr_python_values_vec.size());
 
     auto values = std::make_unique<std::vector<std::optional<DataSlice>>>(
         attr_names.size());
@@ -1079,7 +1075,12 @@ class FromPyConverter {
         // upstream. Here, we are
         // just re-using the same error message as `kd.slice`.
         auto error = DataSliceFromPyValue(py_obj, adoption_queue_);
-        DCHECK(!error.ok());
+        if (error.ok()) {
+          // This happens when dataclasses are mixed with non-dataclasses on the
+          // same level of nesting with auto schema.
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "object with unsupported type: %s", Py_TYPE(py_obj)->tp_name));
+        }
         return error.status();
       }
       for (int attr_index = 0;
@@ -1101,7 +1102,6 @@ class FromPyConverter {
     for (const auto& [attr_name, cur_values] : values_map) {
       attr_names.push_back(attr_name);
       values.push_back(cur_values);
-      DCHECK_EQ(cur_values.size(), py_objects.size());
     }
 
     return ConvertObjectsFromAttrNamesAndValues(
