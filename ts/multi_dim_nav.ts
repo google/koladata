@@ -96,14 +96,20 @@ function renderNode(
   let left = bounds.left;
   const childCount = children?.length || node?.size || 0;
   const lightnessMid = Math.floor(0.5 * (lightnessLow + lightnessHigh));
+  const nodeSize = node?.size;
+  if (!nodeSize) return;
+
+  let parity = 0;
   for (let i = 0; i < childCount; i++) {
     const childNode = children?.[i];
-    const childWidth =
-      (bounds.width * (childNode?.size || 1)) / (node?.size || 1);
+    // Avoid rendering on an explicitly zero-sized child. If the child has
+    // nullish size, this is actually a leaf case where each child has size 1.
+    if (childNode?.size === 0) continue;
+    const childSize = childNode?.size ?? 1;
+    const childWidth = (bounds.width * childSize) / nodeSize;
 
-    const lightnessAlpha =
-      (lightnessMid + (i % 2) + lightnessOffset) /
-      (lightnessMax + lightnessMargin);
+    const lightnessAlpha = (lightnessMid + parity + lightnessOffset) /
+        (lightnessMax + lightnessMargin);
     const fillLightness = 0.8 * lightnessAlpha + 0.1;
     ctx.fillStyle = `hsl(210, 40%, ${100 * fillLightness}%)`;
     ctx.fillRect(left, bounds.top, childWidth, rowHeight);
@@ -115,8 +121,8 @@ function renderNode(
       rowHeight,
     );
 
-    const childLightnessLow = i % 2 ? lightnessMid + 1 : lightnessLow;
-    const childLightnessHigh = i % 2 ? lightnessHigh : lightnessMid;
+    const childLightnessLow = parity ? lightnessMid + 1 : lightnessLow;
+    const childLightnessHigh = parity ? lightnessHigh : lightnessMid;
     renderNode(
       ctx,
       childNode,
@@ -127,6 +133,7 @@ function renderNode(
       lightnessMax,
     );
     left += childWidth;
+    parity = (parity + 1) % 2;
   }
 }
 
