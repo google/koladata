@@ -809,7 +809,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ds('abc'),
       (fns.list(['abc', 'def']),),
       (fns.dict({'abc': 'def'}),),
-      (fns.new({'abc': 'def', 'g': 123}),),
+      (fns.new(abc='def', g=123),),
       (fns.dict({'abc': fns.dict({'def': 'ghi'})}),),
   )
   def test_koda_roundtrip(self, x):

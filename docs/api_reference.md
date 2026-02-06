@@ -1774,7 +1774,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `kd.entities.new(arg: Any = unspecified, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.new}
+### `kd.entities.new(*, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.entities.new}
 Aliases:
 
 - [kd.new](#kd.new)
@@ -1784,7 +1784,6 @@ Aliases:
 Returns an immutable Entity.
 
 Args:
-  arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
     You can also pass schema=&#39;name&#39; as a shortcut for
@@ -10416,7 +10415,7 @@ Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
 Alias for [kd.tuples.namedtuple](#kd.tuples.namedtuple) operator.
 
-### `kd.new(arg: Any = unspecified, /, *, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new}
+### `kd.new(*, schema: DataSlice | str | None = None, overwrite_schema: bool = False, itemid: DataSlice | None = None, **attrs: Any) -> DataSlice` {#kd.new}
 
 Alias for [kd.entities.new](#kd.entities.new) operator.
 
@@ -14189,12 +14188,11 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a named schema with ItemId derived only from its name.</code></pre>
 
-### `DataBag.new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new}
+### `DataBag.new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities with given attrs.
 
 Args:
-  arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
   overwrite_schema: if schema attribute is missing and the attribute is being

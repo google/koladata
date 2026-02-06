@@ -60,11 +60,11 @@ class NewOperator final : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
         "kd.entities._new",
-        [schema_slot = input_slots[1],
-         overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+        [schema_slot = input_slots[0],
+         overwrite_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          allow_attrs_missing_in_schema_slot =
-             input_slots[3].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[4], named_tuple_slot = input_slots[5],
+             input_slots[2].UnsafeToSlot<DataSlice>(),
+         item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
@@ -270,27 +270,27 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
 absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 7) {
-    return absl::InvalidArgumentError("requires exactly 7 arguments");
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
   }
-  if (!IsDataSliceOrUnspecified(input_types[1])) {
+  if (!IsDataSliceOrUnspecified(input_types[0])) {
     return absl::InvalidArgumentError(
         "requires schema argument to be DataSlice or unspecified");
   }
-  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+  if (input_types[1] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
         "requires overwrite_schema argument to be DataSlice");
   }
-  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
         "requires allow_attrs_missing_in_schema argument to be DataSlice");
   }
-  if (!IsDataSliceOrUnspecified(input_types[4])) {
+  if (!IsDataSliceOrUnspecified(input_types[3])) {
     return absl::InvalidArgumentError(
         "requires itemid argument to be DataSlice or unspecified");
   }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[5]));
-  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[6]));
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
+  RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<NewOperator>(input_types), input_types, output_type);
 }

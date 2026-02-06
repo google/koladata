@@ -318,7 +318,8 @@ PyObject* absl_nullable ProcessObjectCreation(
     return nullptr;
   }
   std::optional<DataSlice> res;
-  if (FirstArgProvided(args.pos_only_args[0])) {
+  // This can happen only for kd.obj.
+  if (!args.pos_only_args.empty() && FirstArgProvided(args.pos_only_args[0])) {
     if (!args.kw_values.empty()) {
       PyErr_SetString(
           PyExc_TypeError,
@@ -381,7 +382,7 @@ PyObject* absl_nullable PyDataBag_new_factory(SelfOrClsType<kMode> self,
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/1, /*optional_positional_only=*/true,
+      /*pos_only_n=*/0, /*optional_positional_only=*/false,
       /*parse_kwargs=*/true, {"schema", "overwrite_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
@@ -1586,12 +1587,11 @@ PyMethodDef kPyDataBag_methods[] = {
      "Returns an empty mutable DataBag. Only works in eager mode."},
     {"new", (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kWithBag>,
      METH_FASTCALL | METH_KEYWORDS,
-     "new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"
+     "new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates Entities with given attrs.
 
 Args:
-  arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
   overwrite_schema: if schema attribute is missing and the attribute is being
@@ -1606,7 +1606,8 @@ Returns:
     {"_new_no_bag",
      (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kNoBag>,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
-     "_new_no_bag(arg, *, itemid=None, **attrs)\n"
+     "_new_no_bag(*, schema=None, overwrite_schema=False, itemid=None, "
+     "**attrs)\n"
      "--\n\n"
      ""
      "Same as `db.new` but without a DataBag. Returns a whole DataSlice with "

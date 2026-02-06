@@ -416,8 +416,6 @@ def dict_shaped_as(
 
 
 def new(
-    arg: Any = arolla.unspecified(),
-    /,
     *,
     schema: data_slice.DataSlice | str | None = None,
     overwrite_schema: bool = False,
@@ -429,7 +427,6 @@ def new(
   Returns an immutable Entity.
 
   Args:
-    arg: optional Python object to be converted to an Entity.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
@@ -445,7 +442,6 @@ def new(
     data_slice.DataSlice with the given attrs.
   """
   return data_bag.DataBag._new_no_bag(  # pylint: disable=protected-access
-      arg,
       schema=schema,
       overwrite_schema=overwrite_schema,
       itemid=itemid,

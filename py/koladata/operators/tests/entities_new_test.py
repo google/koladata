@@ -44,7 +44,7 @@ def generate_qtypes():
   for schema_arg_type in [DATA_SLICE, arolla.UNSPECIFIED]:
     for itemid_arg_type in [DATA_SLICE, arolla.UNSPECIFIED]:
       for attrs_type in test_qtypes.NAMEDTUPLES_OF_DATA_SLICES:
-        yield arolla.UNSPECIFIED, schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
+        yield schema_arg_type, DATA_SLICE, itemid_arg_type, attrs_type, NON_DETERMINISTIC_TOKEN, DATA_SLICE
 
 
 QTYPES = list(generate_qtypes())
@@ -232,12 +232,6 @@ class EntitiesNewTest(absltest.TestCase):
     ):
       kd.entities.new(a=1, schema=kd.list_schema(schema_constants.INT32))
 
-  def test_converter_not_supported(self):
-    with self.assertRaisesRegex(
-        ValueError, 'please use eager only kd.eager.new'
-    ):
-      _ = kd.entities.new(ds(42))
-
   def test_non_determinism(self):
     schema = bag().new_schema(a=schema_constants.INT32).freeze_bag()
     expr = kde.entities.new(schema=schema, a=42)
@@ -254,7 +248,7 @@ class EntitiesNewTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.entities.new(I.x)))
+    self.assertTrue(view.has_koda_view(kde.entities.new(schema=I.x)))
     self.assertTrue(
         view.has_koda_view(kde.entities.new(itemid=I.itemid, a=I.y))
     )
@@ -265,7 +259,7 @@ class EntitiesNewTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.entities.new(a=I.y)),
-        'kd.entities.new(unspecified, schema=unspecified, '
+        'kd.entities.new(schema=unspecified, '
         'overwrite_schema=DataItem(False, schema: BOOLEAN), '
         'itemid=unspecified, a=I.y)',
     )

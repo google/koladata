@@ -27,7 +27,7 @@ constraints = arolla.optools.constraints
 
 @optools.as_backend_operator('kd.entities._new', deterministic=False)
 def _new(
-    arg, schema, overwrite_schema, allow_attrs_missing_in_schema, itemid, attrs  # pylint: disable=unused-argument
+    schema, overwrite_schema, allow_attrs_missing_in_schema, itemid, attrs  # pylint: disable=unused-argument
 ):
   """Internal implementation for kd.entities.new and kd.entities.strict_new."""
   raise NotImplementedError('implemented in the backend')
@@ -37,11 +37,6 @@ def _new(
 @optools.as_lambda_operator(
     'kd.entities.new',
     qtype_constraints=[
-        (
-            (P.arg == arolla.UNSPECIFIED),
-            'kd.new does not support converter use-case. For converting Python '
-            + 'objects to Entities, please use eager only kd.eager.new',
-        ),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
         qtype_utils.expect_data_slice(P.overwrite_schema),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -49,8 +44,6 @@ def _new(
     ],
 )
 def new(
-    arg=arolla.unspecified(),
-    /,
     *,
     schema=arolla.unspecified(),
     overwrite_schema=False,
@@ -64,7 +57,6 @@ def new(
   Koda Entities.
 
   Args:
-    arg: should keep the default arolla.unspecified() value.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
     overwrite_schema: if schema attribute is missing and the attribute is being
@@ -79,7 +71,6 @@ def new(
   """
   attrs = arolla.optools.fix_trace_kwargs(attrs)
   return _new(
-      arg=arg,
       schema=schema_ops.internal_maybe_named_schema(schema),
       overwrite_schema=overwrite_schema,
       allow_attrs_missing_in_schema=True,
@@ -127,7 +118,6 @@ def strict_new(
   """
   attrs = arolla.optools.fix_trace_kwargs(attrs)
   return _new(
-      arg=arolla.unspecified(),
       schema=schema,
       overwrite_schema=overwrite_schema,
       allow_attrs_missing_in_schema=False,
