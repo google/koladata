@@ -36,6 +36,17 @@
 namespace koladata::functor {
 
 // Creates a functor with the given C++ implementation.
+// output_qtype_fn is used to deduce the output type from the input types.
+absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name,
+    const arolla::expr::ExprOperatorSignature& signature,
+    arolla::expr_operators::StdFunctionOperator::OutputQTypeFn output_qtype_fn,
+    std::source_location loc = std::source_location::current());
+
+// Creates a functor with the given C++ implementation.
 // Types of the inputs are not restricted, the output type has to be specified
 // explicitly.
 absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
@@ -45,6 +56,16 @@ absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
     absl::string_view name,
     const arolla::expr::ExprOperatorSignature& signature,
     arolla::QTypePtr output_type,
+    std::source_location loc = std::source_location::current());
+
+// Creates a functor with the given C++ implementation.
+// output_qtype_fn is used to deduce the output type from the input types.
+absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name, absl::string_view signature_spec,
+    arolla::expr_operators::StdFunctionOperator::OutputQTypeFn output_qtype_fn,
     std::source_location loc = std::source_location::current());
 
 // Creates a functor with the given C++ implementation.

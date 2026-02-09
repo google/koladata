@@ -24,6 +24,7 @@
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator_signature.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -53,6 +54,7 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 using ::testing::Property;
@@ -161,6 +163,37 @@ TEST(CppFunctionBridgeTest, CreateFunctorFromFunction) {
   ASSERT_OK_AND_ASSIGN(DataSlice res_a, res.GetAttr("a"));
   ASSERT_TRUE(res_a.is_item());
   EXPECT_EQ(res_a.item(), internal::DataItem(42));
+}
+
+TEST(CppFunctionBridgeTest, CreateFunctorFromFunctionDynamicOutputQType) {
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice functor,
+      CreateFunctorFromStdFunction(
+          [](absl::Span<const arolla::TypedRef> args)
+              -> absl::StatusOr<arolla::TypedValue> {
+            // Note that the real implementation should return an error if args
+            // is empty.
+            return arolla::TypedValue(args[0]);
+          },
+          "propagate_x", "x, y",
+          [](absl::Span<const arolla::QType* const> input_qtypes) {
+            // Note that the real implementation should return nullptr if args
+            // is empty.
+            return input_qtypes[0];
+          }));
+
+  auto db = DataBag::EmptyMutable();
+  auto x = test::DataSlice<int>({1, 2, 3});
+  EXPECT_THAT(CallFunctorWithCompilationCache(functor,
+                                              {arolla::TypedRef::FromValue(db),
+                                               arolla::TypedRef::FromValue(x)},
+                                              {}),
+              IsOkAndHolds(QValueWith<DataBagPtr>(Eq(db))));
+  EXPECT_THAT(CallFunctorWithCompilationCache(functor,
+                                              {arolla::TypedRef::FromValue(x),
+                                               arolla::TypedRef::FromValue(db)},
+                                              {}),
+              IsOkAndHolds(QValueWith<DataSlice>(IsEquivalentTo(x))));
 }
 
 TEST(CppFunctionBridgeTest, CreateFunctorFromFunctionWithSignatureObject) {

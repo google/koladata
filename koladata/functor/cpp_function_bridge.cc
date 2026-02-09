@@ -54,14 +54,11 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
         fn,
     absl::string_view name,
     const arolla::expr::ExprOperatorSignature& signature,
-    arolla::QTypePtr output_type, std::source_location loc) {
-  auto get_output_type =
-      [output_type](absl::Span<const arolla::QType* const> input_qtypes) {
-        return output_type;
-      };
+    arolla::expr_operators::StdFunctionOperator::OutputQTypeFn output_qtype_fn,
+    std::source_location loc) {
   auto arolla_op =
       std::make_shared<arolla::expr_operators::StdFunctionOperator>(
-          name, signature, "", get_output_type, std::move(fn));
+          name, signature, "", std::move(output_qtype_fn), std::move(fn));
 
   ASSIGN_OR_RETURN(expr::InputContainer input_container,
                    expr::InputContainer::Create("I"));
@@ -101,6 +98,34 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
       {functor::kModuleAttrName, functor::kQualnameAttrName},
       {DataSlice::CreatePrimitive(arolla::Text(std::move(module))),
        DataSlice::CreatePrimitive(arolla::Text(name))});
+}
+
+absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name,
+    const arolla::expr::ExprOperatorSignature& signature,
+    arolla::QTypePtr output_type, std::source_location loc) {
+  auto output_qtype_fn =
+      [output_type](absl::Span<const arolla::QType* const> input_qtypes) {
+        return output_type;
+      };
+  return CreateFunctorFromStdFunction(std::move(fn), name, signature,
+                                      std::move(output_qtype_fn), loc);
+}
+
+absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
+    std::function<
+        absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
+        fn,
+    absl::string_view name, absl::string_view signature_spec,
+    arolla::expr_operators::StdFunctionOperator::OutputQTypeFn output_qtype_fn,
+    std::source_location loc) {
+  ASSIGN_OR_RETURN(auto signature,
+                   arolla::expr::ExprOperatorSignature::Make(signature_spec));
+  return CreateFunctorFromStdFunction(std::move(fn), name, signature,
+                                      std::move(output_qtype_fn), loc);
 }
 
 absl::StatusOr<DataSlice> CreateFunctorFromStdFunction(
