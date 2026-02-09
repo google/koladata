@@ -9790,6 +9790,20 @@ Alias for [kd.slices.expand_to](#kd.slices.expand_to) operator.
 
 Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
+### `kd.experimental_safer_loads(x: bytes) -> Any` {#kd.experimental_safer_loads}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">(experimental) Deserializes a DataSlice or a DataBag.
+
+IMPORTANT: This experimental function restricts the allowed codecs to exclude
+PICKLE_PY_OBJECT_CODEC and similar unsafe codecs. However, this restriction
+alone does NOT make it safe for use with untrusted data.
+
+Args:
+  x: Serialized data.
+
+Returns:
+  Deserialized data.</code></pre>
+
 ### `kd.explode(x, ndim=1)` {#kd.explode}
 
 Alias for [kd.lists.explode](#kd.lists.explode) operator.

@@ -142,6 +142,7 @@ del_attr = _eager_only(_attrs.del_attr)
 dir = _eager_only(_attrs.dir)  # pylint: disable=redefined-builtin
 dumps = _eager_only(_s11n.dumps)
 embed_schema = _eager_only(_attrs.embed_schema)
+experimental_safer_loads = _eager_only(_s11n.experimental_safer_loads)
 extension_type = _eager_only(_extension_types.extension_type)
 fn = _same_when_tracing(_functor_factories.fn)
 from_proto = _eager_only(_proto_conversions.from_proto)
