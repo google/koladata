@@ -36,6 +36,7 @@ py_test(
     name = "quick_recipes_test",
     srcs = ["quick_recipes_test.py"],
     data = [
+        ":10_min_intro.md",
         ":quick_recipes.md",
     ],
     deps = [
