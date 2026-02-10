@@ -139,6 +139,16 @@ proto_library(
     srcs = ["persisted_incremental_data_bag_manager_metadata.proto"],
 )
 
+proto_library(
+    name = "composite_initial_data_manager_metadata_proto",
+    srcs = ["composite_initial_data_manager_metadata.proto"],
+)
+
+py_proto_library(
+    name = "composite_initial_data_manager_metadata_py_pb2",
+    deps = [":composite_initial_data_manager_metadata_proto"],
+)
+
 py_proto_library(
     name = "persisted_incremental_data_bag_manager_metadata_py_pb2",
     deps = [
@@ -411,6 +421,38 @@ py_library(
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "composite_initial_data_manager",
+    srcs = ["composite_initial_data_manager.py"],
+    deps = [
+        ":composite_initial_data_manager_metadata_py_pb2",
+        ":fs_interface",
+        ":initial_data_manager_registry",
+        ":initial_data_manager_with_schema_helper",
+        ":persisted_incremental_data_slice_manager",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "composite_initial_data_manager_test",
+    srcs = ["composite_initial_data_manager_test.py"],
+    deps = [
+        ":bare_root_initial_data_manager",
+        ":composite_initial_data_manager",
+        ":data_slice_manager_view",
+        ":data_slice_path",
+        ":fs_util",
+        ":persisted_incremental_data_slice_manager",
+        ":stubs_and_minimal_bags_lib",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

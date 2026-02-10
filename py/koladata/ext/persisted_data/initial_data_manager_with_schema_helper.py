@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import AbstractSet, Collection
+from typing import Collection
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -55,9 +55,6 @@ class InitialDataManagerWithSchemaHelper(
   def _get_schema_helper(self) -> schema_helper.SchemaHelper:
     raise NotImplementedError(type(self))
 
-  def get_all_schema_node_names(self) -> AbstractSet[str]:
-    return self._get_schema_helper().get_all_schema_node_names()
-
   def get_data_slice(
       self,
       populate: Collection[data_slice_path_lib.DataSlicePath] | None = None,
@@ -75,6 +72,11 @@ class InitialDataManagerWithSchemaHelper(
   def get_data_slice_for_schema_node_names(
       self, schema_node_names: Collection[str]
   ) -> kd.types.DataSlice:
+    raise NotImplementedError(type(self))
+
+  def get_data_bag_for_schema_node_names(
+      self, schema_node_names: Collection[str]
+  ) -> kd.types.DataBag:
     raise NotImplementedError(type(self))
 
   def clear_cache(self):

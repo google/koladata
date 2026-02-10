@@ -14,7 +14,7 @@
 
 """Data manager mixin that uses a SchemaHelper to provide common functionality."""
 
-from typing import Collection
+from typing import AbstractSet, Collection
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -54,6 +54,10 @@ class SchemaHelperMixin:
     return schema_helper.get_subschema_at(
         schema_helper.get_schema_node_name_for_data_slice_path(path)
     )
+
+  def get_all_schema_node_names(self) -> AbstractSet[str]:
+    """Returns all the schema node names of self.get_schema()."""
+    return self._get_schema_helper().get_all_schema_node_names()
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
     return self._get_schema_helper().exists(path)

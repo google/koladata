@@ -143,6 +143,22 @@ class BareRootInitialDataManager(
       )
     return self._root_item
 
+  def get_data_bag_for_schema_node_names(
+      self, schema_node_names: Collection[str]
+  ) -> kd.types.DataBag:
+    if not schema_node_names:
+      return kd.bag()
+
+    invalid_schema_node_names = (
+        set(schema_node_names) - self.get_all_schema_node_names()
+    )
+    if invalid_schema_node_names:
+      raise ValueError(
+          'schema_node_names contains invalid entries:'
+          f' {invalid_schema_node_names}'
+      )
+    return self._root_item.get_bag()
+
   def clear_cache(self):
     pass
 

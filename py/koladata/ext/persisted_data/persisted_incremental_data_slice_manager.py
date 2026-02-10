@@ -511,28 +511,11 @@ class PersistedIncrementalDataSliceManager(
             populate_including_descendants=populate_including_descendants,
         )
     )
-
-    needed_bag_names = set()
-    for snn in needed_schema_node_names:
-      names_list = self._get_data_bag_names(snn)
-      assert names_list is not None, (
-          f'invariant violation: schema node name {snn} must have a list of'
-          ' data bag names'
-      )
-      needed_bag_names.update(names_list.to_py())
-    data_bag = self._data_bag_manager.get_minimal_bag(needed_bag_names)
-
-    schema_bag = self._schema_helper.get_schema_bag(
-        needed_schema_node_names,
-    )
-
-    return (
-        self._initial_data_manager.get_data_slice_for_schema_node_names(
+    root = self._initial_data_manager.get_data_slice()
+    return root.updated(
+        self.internal_get_data_bag_for_schema_node_names(
             needed_schema_node_names
-            & self._initial_data_manager.get_all_schema_node_names()
         )
-        .updated(data_bag)
-        .updated(schema_bag)
     )
 
   def get_data_slice_at(
@@ -553,6 +536,35 @@ class PersistedIncrementalDataSliceManager(
     """
     return schema_helper_mixin.SchemaHelperMixin.get_data_slice_at(
         self, path, with_all_descendants
+    )
+
+  def internal_get_data_bag_for_schema_node_names(
+      self, schema_node_names: Collection[str]
+  ) -> kd.types.DataBag:
+    """Returns a DataBag with the data for the given schema node names."""
+    needed_schema_node_names = set(schema_node_names)
+
+    needed_bag_names = set()
+    for snn in needed_schema_node_names:
+      names_list = self._get_data_bag_names(snn)
+      assert names_list is not None, (
+          f'invariant violation: schema node name {snn} must have a list of'
+          ' data bag names'
+      )
+      needed_bag_names.update(names_list.to_py())
+    data_bag = self._data_bag_manager.get_minimal_bag(needed_bag_names)
+
+    schema_bag = self._schema_helper.get_schema_bag(
+        needed_schema_node_names,
+    )
+
+    return kd.bags.updated(
+        self._initial_data_manager.get_data_bag_for_schema_node_names(
+            needed_schema_node_names
+            & self._initial_data_manager.get_all_schema_node_names()
+        ),
+        data_bag,
+        schema_bag,
     )
 
   def get_revision_history(

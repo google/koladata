@@ -352,6 +352,30 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         kd.schema.new_schema(),
     )
 
+  def test_get_data_bag_for_schema_node_names(self):
+    manager = BareRootInitialDataManager.create_new()
+
+    kd.testing.assert_equivalent(
+        manager.get_data_bag_for_schema_node_names([]),
+        kd.bag(),
+    )
+
+    all_snns = manager.get_all_schema_node_names()
+    self.assertLen(all_snns, 1)
+    kd.testing.assert_equivalent(
+        manager.get_data_bag_for_schema_node_names(all_snns),
+        manager.get_data_slice_for_schema_node_names(all_snns).get_bag(),
+    )
+
+    with self.subTest('with_invalid_schema_node_names'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              "schema_node_names contains invalid entries: {'hohoho!'}"
+          ),
+      ):
+        manager.get_data_bag_for_schema_node_names(['hohoho!'])
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -80,8 +80,7 @@ class InitialDataManagerInterface:
 
     Always equivalent to
     SchemaHelper(self.get_schema()).get_all_schema_node_names(), but an
-    implementation would typically cache the names and map them to data sources
-    in order to implement self.get_data_slice().
+    implementation would typically cache the names.
     """
     raise NotImplementedError(type(self))
 
@@ -107,7 +106,28 @@ class InitialDataManagerInterface:
         PersistedIncrementalDataSliceManager will not apply the updates before
         returning the data to the user.
     """
+    raise NotImplementedError(type(self))
 
+  def get_data_bag_for_schema_node_names(
+      self, schema_node_names: Collection[str]
+  ) -> kd.types.DataBag:
+    """Returns a DataBag with the data for the given schema node names.
+
+    All itemids in the returned data bag must be stable, in the sense that they
+    are always the same for repeated calls, even after serialization and
+    deserialization roundtrips.
+
+    Args:
+      schema_node_names: The names of the schema nodes whose data should be
+        included in the returned data bag. Must be a subset of
+        self.get_all_schema_node_names(). Care should be taken that the result
+        contains only the requested data, and nothing more than that. The reason
+        is that all the data returned by PersistedIncrementalDataSliceManager
+        should be up-to-date. If this manager returns more data than requested,
+        and the extra data has been updated in the meantime, then the extra data
+        will be outdated because PersistedIncrementalDataSliceManager will not
+        apply the updates before returning the data to the user.
+    """
     raise NotImplementedError(type(self))
 
   def exists(self, path: data_slice_path_lib.DataSlicePath) -> bool:
