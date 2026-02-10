@@ -77,7 +77,7 @@ cc_library(
         "//koladata/internal/op_utils:trampoline_executor",
         "//py/koladata/base:boxing",
         "//py/koladata/base:py_proto_utils",
-        "//py/koladata/types:pybind11_protobuf_wrapper",
+        "//py/koladata/base:pybind11_protobuf_wrapper",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",

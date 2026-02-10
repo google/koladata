@@ -14,6 +14,7 @@
 
 # Base utilities shared between different parts of Koda.
 
+load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension", "koladata_pybind_extension")
@@ -225,6 +226,7 @@ cc_library(
     srcs = ["py_proto_utils.cc"],
     hdrs = ["py_proto_utils.h"],
     deps = [
+        ":pybind11_protobuf_wrapper",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/internal:data_item",
@@ -232,7 +234,6 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/operators:lib",
         "//koladata/proto:from_proto",
-        "//py/koladata/types:pybind11_protobuf_wrapper",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
@@ -242,6 +243,23 @@ cc_library(
         "@com_google_arolla//py/arolla/py_utils",
         "@com_google_protobuf//:protobuf",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
+)
+
+pybind_library(
+    name = "pybind11_protobuf_wrapper",
+    srcs = ["pybind11_protobuf_wrapper.cc"],
+    hdrs = ["pybind11_protobuf_wrapper.h"],
+    deps = [
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@com_google_protobuf//:protobuf",
+        "@pybind11_protobuf//pybind11_protobuf:native_proto_caster",
     ],
 )
 

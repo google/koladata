@@ -54,7 +54,7 @@
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/py_proto_utils.h"
-#include "py/koladata/types/pybind11_protobuf_wrapper.h"
+#include "py/koladata/base/pybind11_protobuf_wrapper.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

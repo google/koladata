@@ -68,7 +68,7 @@
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/fstring/fstring_processor.h"
-#include "py/koladata/types/pybind11_protobuf_wrapper.h"
+#include "py/koladata/base/pybind11_protobuf_wrapper.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

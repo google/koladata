@@ -33,7 +33,7 @@
 #include "koladata/proto/from_proto.h"
 #include "google/protobuf/message.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/types/pybind11_protobuf_wrapper.h"
+#include "py/koladata/base/pybind11_protobuf_wrapper.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

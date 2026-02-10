@@ -18,8 +18,8 @@
 // uses C++ exceptions, so the cc file needs to be compiled with -fexceptions,
 // so the header needs to be ODR-safe for both -fexceptions and -fno-exceptions.
 
-#ifndef PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
-#define PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
+#ifndef PY_KOLADATA_BASE_PYBIND11_PROTOBUF_WRAPPER_H_
+#define PY_KOLADATA_BASE_PYBIND11_PROTOBUF_WRAPPER_H_
 
 #include <Python.h>
 
@@ -32,7 +32,6 @@
 #include "google/protobuf/message.h"
 #include "py/arolla/py_utils/py_utils.h"
 
-// TODO: move this file to /base.
 namespace koladata::python {
 
 // Calls ::pybind11_protobuf::ImportNativeProtoCasters().
@@ -76,4 +75,4 @@ arolla::python::PyObjectPtr WrapProtoMessage(
 
 }  // namespace koladata::python
 
-#endif  // PY_KOLADATA_TYPES_PYBIND11_PROTOBUF_WRAPPER_H_
+#endif  // PY_KOLADATA_BASE_PYBIND11_PROTOBUF_WRAPPER_H_

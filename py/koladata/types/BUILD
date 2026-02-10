@@ -15,7 +15,6 @@
 # Custom C++/Python bindings for Kola types.
 
 load("@pip_deps//:requirements.bzl", "requirement")
-load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
@@ -78,7 +77,6 @@ cc_library(
     srcs = ["data_slice.cc"],
     hdrs = ["data_slice.h"],
     deps = [
-        ":pybind11_protobuf_wrapper",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -95,6 +93,7 @@ cc_library(
         "//py/koladata/base:boxing",
         "//py/koladata/base:py_args",
         "//py/koladata/base:py_utils",
+        "//py/koladata/base:pybind11_protobuf_wrapper",
         "//py/koladata/base:to_py_object",
         "//py/koladata/base:wrap_utils",
         "//py/koladata/base/py_conversions:to_py",
@@ -440,7 +439,6 @@ cc_library(
     srcs = ["data_bag.cc"],
     hdrs = ["data_bag.h"],
     deps = [
-        ":pybind11_protobuf_wrapper",
         "//koladata:data_bag",
         "//koladata:data_bag_comparison",
         "//koladata:data_slice",
@@ -455,6 +453,7 @@ cc_library(
         "//py/koladata/base:py_args",
         "//py/koladata/base:py_proto_utils",
         "//py/koladata/base:py_utils",
+        "//py/koladata/base:pybind11_protobuf_wrapper",
         "//py/koladata/base:wrap_utils",
         "//py/koladata/base/py_conversions:from_py",
         "@com_google_absl//absl/base:no_destructor",
@@ -524,23 +523,6 @@ cc_library(
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
-    ],
-)
-
-pybind_library(
-    name = "pybind11_protobuf_wrapper",
-    srcs = ["pybind11_protobuf_wrapper.cc"],
-    hdrs = ["pybind11_protobuf_wrapper.h"],
-    deps = [
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//py/arolla/py_utils",
-        "@com_google_protobuf//:protobuf",
-        "@pybind11_protobuf//pybind11_protobuf:native_proto_caster",
     ],
 )
 

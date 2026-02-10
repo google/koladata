@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "py/koladata/types/pybind11_protobuf_wrapper.h"
+#include "py/koladata/base/pybind11_protobuf_wrapper.h"
 
 #include <Python.h>
 
