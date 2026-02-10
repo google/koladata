@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
@@ -45,13 +43,14 @@ class SchemaItemTest(absltest.TestCase):
   def test_hash(self):
     schema_1 = bag().new().get_schema()
     schema_2 = bag().new().get_schema()
-    schema_3 = schema_1.no_bag()
-    schema_4 = schema_constants.INT32
-    schema_5 = schema_constants.OBJECT
-    for s_1, s_2 in itertools.combinations(
-        [schema_1, schema_2, schema_3, schema_4, schema_5], 2
-    ):
-      self.assertNotEqual(hash(s_1), hash(s_2))
+    schema_3 = schema_constants.INT32
+    schema_4 = schema_constants.OBJECT
+    items = [schema_1, schema_2, schema_3, schema_4]
+    for s_1 in items:
+      self.assertEqual(hash(s_1), hash(s_1.no_bag()))
+      for s_2 in items:
+        if s_1 is not s_2:
+          self.assertNotEqual(hash(s_1), hash(s_2))
 
   def test_bag(self):
     db = bag()

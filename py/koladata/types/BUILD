@@ -229,6 +229,7 @@ py_library(
     deps = [
         ":data_item_py_ext",
         ":data_slice",
+        ":py_misc_py_ext",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/util:kd_functools",

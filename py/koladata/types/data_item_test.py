@@ -109,18 +109,6 @@ class DataItemTest(parameterized.TestCase):
     ):
       data_item.DataItem.from_vals(1, ds(1))
 
-  def test_hash(self):
-    items = [
-        ds(12),
-        ds(121),
-        ds('abc'),
-        data_bag.DataBag.empty_mutable().new(x=12),
-    ]
-    for item in items:
-      self.assertEqual(hash(item), hash(ds(item.internal_as_py())))
-    for item_1, item_2 in itertools.combinations(items, 2):
-      self.assertNotEqual(hash(item_1), hash(item_2))
-
   def test_bag(self):
     x = ds(12)
     self.assertFalse(x.has_bag())
@@ -326,6 +314,102 @@ class DataItemTest(parameterized.TestCase):
 
   def test_colab_has_safe_repr(self):
     self.assertTrue(hasattr(data_item.DataItem, '_COLAB_HAS_SAFE_REPR'))
+
+  def test_hash(self):
+    items = [
+        ds(12),
+        ds(121),
+        ds('abc'),
+        data_bag.DataBag.empty_mutable().new(x=12),
+    ]
+    for item in items:
+      self.assertEqual(hash(item), hash(ds(item.internal_as_py())))
+    for item_1, item_2 in itertools.combinations(items, 2):
+      self.assertNotEqual(hash(item_1), hash(item_2))
+
+  def test_hash_compatibility_with_py(self):
+    kd_values = [
+        # NONE
+        user_facing_kd.item(None),
+        user_facing_kd.obj(user_facing_kd.item(None)),
+        # MASK
+        user_facing_kd.mask(None),
+        user_facing_kd.present,
+        user_facing_kd.obj(user_facing_kd.present),
+        # BOOLEAN
+        user_facing_kd.bool(True),
+        user_facing_kd.obj(user_facing_kd.bool(True)),
+        user_facing_kd.bool(None),
+        user_facing_kd.obj(user_facing_kd.bool(None)),
+        # INT32
+        *(user_facing_kd.int32(i) for i in range(-10, 10)),
+        *(user_facing_kd.obj(user_facing_kd.int32(i)) for i in range(-10, 10)),
+        user_facing_kd.int32(None),
+        user_facing_kd.obj(user_facing_kd.int32(None)),
+        # INT64
+        *(user_facing_kd.int64(i) for i in range(-10, 10)),
+        *(user_facing_kd.obj(user_facing_kd.int64(i)) for i in range(-10, 10)),
+        user_facing_kd.int64(None),
+        user_facing_kd.obj(user_facing_kd.int64(None)),
+        # FLOAT32
+        user_facing_kd.float32(0.5),
+        user_facing_kd.float32(1),
+        user_facing_kd.obj(user_facing_kd.float32(0.5)),
+        user_facing_kd.obj(user_facing_kd.float32(1)),
+        user_facing_kd.float32(None),
+        user_facing_kd.obj(user_facing_kd.float32(None)),
+        # FLOAT64
+        user_facing_kd.float64(0.5),
+        user_facing_kd.float64(1),
+        user_facing_kd.obj(user_facing_kd.float64(0.5)),
+        user_facing_kd.obj(user_facing_kd.float64(1)),
+        user_facing_kd.float64(None),
+        user_facing_kd.obj(user_facing_kd.float64(None)),
+        # BYTES
+        user_facing_kd.bytes(b''),
+        user_facing_kd.obj(user_facing_kd.bytes(b'')),
+        user_facing_kd.bytes(b'foo'),
+        user_facing_kd.obj(user_facing_kd.bytes(b'foo')),
+        user_facing_kd.bytes(None),
+        user_facing_kd.obj(user_facing_kd.bytes(None)),
+        # STRING
+        user_facing_kd.str(''),
+        user_facing_kd.obj(user_facing_kd.str('')),
+        user_facing_kd.str('foo'),
+        user_facing_kd.obj(user_facing_kd.str('foo')),
+        user_facing_kd.str(None),
+        user_facing_kd.obj(user_facing_kd.str(None)),
+        # SCHEMA
+        schema_constants.INT32,
+        user_facing_kd.schema.new_schema(x=schema_constants.INT32),
+        user_facing_kd.schema.new_schema(x=schema_constants.INT32),
+        # Entities
+        user_facing_kd.new(schema='foo'),
+        user_facing_kd.new(schema='foo'),
+        user_facing_kd.uu(foo=1),
+        user_facing_kd.uu(foo=1),
+        user_facing_kd.uu(foo=1).stub(),
+        user_facing_kd.uu(foo=1).no_bag(),
+        user_facing_kd.obj(user_facing_kd.uu(foo=1)),
+        user_facing_kd.uuobj(foo=1),
+        user_facing_kd.uuobj(foo=1),
+    ]
+    values = kd_values + [0.5, *(range(-10, 10)), True, b'foo', 'foo', None]
+    for kd_value in kd_values:
+      kd_hash = hash(kd_value)  # No error.
+      for other_value in values:
+        is_equal = False
+        try:
+          is_equal = kd_value == other_value
+        except (ValueError, TypeError):
+          pass
+        if not is_equal:
+          continue  # No need to test hash if values are not equal in Python.
+        self.assertEqual(
+            kd_hash,
+            hash(other_value),
+            f'hash({kd_value!r}) != hash({other_value!r})',
+        )
 
 
 if __name__ == '__main__':

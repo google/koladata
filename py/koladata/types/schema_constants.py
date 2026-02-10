@@ -18,8 +18,8 @@ from koladata.types import py_misc_py_ext as _py_misc_py_ext
 from koladata.types import schema_item as _  # pylint: disable=unused-import
 
 
-# NOTE: Create schema constants here, when `SchemaItem` is registered, so that
-# they have `SchemaItem` Python type.
+# NOTE: (Re-)Create schema constants here, when `SchemaItem` is registered,
+# so that they have `SchemaItem` Python type.
 _py_misc_py_ext.add_schema_constants()
 
 

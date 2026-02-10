@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item_py_ext as _data_item_py_ext
 from koladata.types import data_slice
+from koladata.types import py_misc_py_ext as _py_misc_py_ext
 from koladata.util import kd_functools
 
 
@@ -31,16 +32,43 @@ from_vals = DataItem.from_vals
 
 
 ### Implementation of the DataItem's additional functionality.
-@data_slice.add_method(DataItem, '__hash__')  # pylint: disable=protected-access
-def _hash(self) -> int:
-  return hash(self.fingerprint)
+
+# NOTE: Pre-load schema constants so we can acquire fingerprints. These
+# constants will be recreated in schema_constants.py when SchemaItem is
+# registered.
+_py_misc_py_ext.add_schema_constants()
+_OBJECT = _py_misc_py_ext.OBJECT
+_USE_TO_PY_HASH_METHODS = frozenset({
+    _py_misc_py_ext.BOOLEAN.fingerprint,
+    _py_misc_py_ext.INT32.fingerprint,
+    _py_misc_py_ext.INT64.fingerprint,
+    _py_misc_py_ext.FLOAT32.fingerprint,
+    _py_misc_py_ext.FLOAT64.fingerprint,
+    _py_misc_py_ext.BYTES.fingerprint,
+    _py_misc_py_ext.STRING.fingerprint,
+    # NOTE: While we could technically enable None here too, we don't because
+    # kd.item(None) != kd.item(None)
+})
+
+
+@data_slice.add_method(DataItem, '__hash__')
+def _hash(self: DataItem) -> int:
+  """Returns a hash of the DataItem."""
+  # IMPORTANT: We have to guarantee that hash(x) == hash(y) if x == y. Breaking
+  # this invariant will cause non-deterministic lookups in dicts and sets.
+  dtype_fingerprint = _eval_op('kd.get_primitive_schema', self).fingerprint
+  if dtype_fingerprint in _USE_TO_PY_HASH_METHODS:
+    return hash(self.to_py())
+  return _eval_op(  # pylint: disable=protected-access
+      'kd.schema.with_schema', self.no_bag(), _OBJECT
+  )._fingerprint_hash
 
 
 # Ideally we'd do this only for functors, but we don't have a fast way
 # to check if a DataItem is a functor now. Note that SchemaItem overrides
 # this behavior.
 @kd_functools.skip_from_functor_stack_trace
-@data_slice.add_method(DataItem, '__call__')  # pylint: disable=protected-access
+@data_slice.add_method(DataItem, '__call__')
 def _call(
     self, *args: Any, return_type_as: Any = data_slice.DataSlice, **kwargs: Any
 ) -> data_slice.DataSlice | arolla.Expr:
