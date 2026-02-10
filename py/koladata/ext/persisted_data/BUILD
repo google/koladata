@@ -28,6 +28,7 @@ py_library(
     name = "persisted_data",
     srcs = ["persisted_data.py"],
     deps = [
+        ":composite_initial_data_manager",
         ":data_slice_manager_interface",
         ":data_slice_manager_view",
         ":data_slice_path",
@@ -44,6 +45,7 @@ py_test(
     name = "persisted_data_test",
     srcs = ["persisted_data_test.py"],
     deps = [
+        ":composite_initial_data_manager",
         ":persisted_data",
         "//py:python_path",
         "//py/koladata:kd",

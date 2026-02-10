@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from koladata import kd
+from koladata.ext.persisted_data import composite_initial_data_manager as _composite_initial_data_manager
 from koladata.ext.persisted_data import persisted_data
 
 
@@ -95,6 +96,13 @@ class PersistedDataTest(absltest.TestCase):
     kd.testing.assert_equivalent(
         root.x.get_data_slice(),
         kd.item(1),
+    )
+
+  def test_composite_initial_data_manager_is_exposed(self):
+    self.assertTrue(hasattr(persisted_data, 'CompositeInitialDataManager'))
+    self.assertIs(
+        persisted_data.CompositeInitialDataManager,
+        _composite_initial_data_manager.CompositeInitialDataManager,
     )
 
 

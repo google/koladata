@@ -11632,6 +11632,24 @@ way to track the other distinctions in the type system.</code></pre>
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">BagToAdd(bag_name: str, bag: koladata.types.data_bag.DataBag, dependencies: tuple[str, ...])</code></pre>
 
+### `kd_ext.persisted_data.CompositeInitialDataManager(*, internal_call: object, managers: list[persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager])` {#kd_ext.persisted_data.CompositeInitialDataManager}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Initial data that composes several PersistedIncrementalDataSliceManagers.
+
+The state of the component managers are pinned at the time of the creation of
+the composite manager.
+
+Conceptually, this class serves a DataSlice that is
+equivalent to:
+ds[0].enriched(*[ds[i].get_bag() for i in range(1, len(ds))]).
+where ds[i] is the full DataSlice of the i-th component manager, i.e.
+ds[i] = manager[i].get_data_slice(populate_including_descendants=[&#39;&#39;])
+
+In particular, it means that the list of component managers will form a chain
+of fallbacks, where the data of the earlier managers in the list will have
+a higher priority than the data of the later managers in the list. That is
+the standard semantics of Koda&#39;s enrichment mechanism.</code></pre>
+
 ### `kd_ext.persisted_data.DataSliceManagerInterface()` {#kd_ext.persisted_data.DataSliceManagerInterface}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Interface for data slice managers.</code></pre>
