@@ -321,6 +321,7 @@ class DataItemTest(parameterized.TestCase):
         ds(121),
         ds('abc'),
         data_bag.DataBag.empty_mutable().new(x=12),
+        ds(arolla.quote(arolla.L.x)),
     ]
     for item in items:
       self.assertEqual(hash(item), hash(ds(item.internal_as_py())))
@@ -353,16 +354,23 @@ class DataItemTest(parameterized.TestCase):
         user_facing_kd.obj(user_facing_kd.int64(None)),
         # FLOAT32
         user_facing_kd.float32(0.5),
-        user_facing_kd.float32(1),
         user_facing_kd.obj(user_facing_kd.float32(0.5)),
+        *(user_facing_kd.float32(i) for i in range(-10, 10)),
+        *(
+            user_facing_kd.obj(user_facing_kd.float32(i))
+            for i in range(-10, 10)
+        ),
         user_facing_kd.obj(user_facing_kd.float32(1)),
         user_facing_kd.float32(None),
         user_facing_kd.obj(user_facing_kd.float32(None)),
         # FLOAT64
         user_facing_kd.float64(0.5),
-        user_facing_kd.float64(1),
         user_facing_kd.obj(user_facing_kd.float64(0.5)),
-        user_facing_kd.obj(user_facing_kd.float64(1)),
+        *(user_facing_kd.float64(i) for i in range(-10, 10)),
+        *(
+            user_facing_kd.obj(user_facing_kd.float64(i))
+            for i in range(-10, 10)
+        ),
         user_facing_kd.float64(None),
         user_facing_kd.obj(user_facing_kd.float64(None)),
         # BYTES

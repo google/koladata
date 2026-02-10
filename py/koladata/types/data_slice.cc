@@ -21,12 +21,14 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
@@ -34,6 +36,8 @@
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
@@ -46,6 +50,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/slices.h"
@@ -67,6 +73,10 @@
 
 namespace koladata::python {
 namespace {
+
+using ::arolla::python::PyObjectPtr;
+using ::koladata::internal::MissingValue;
+using ::koladata::internal::ObjectId;
 
 // If `db` is not nullptr, adopt collected DataBags into it. This utility is
 // useful, in order to rely on error reporting from lower-level utilities that
@@ -1247,7 +1257,8 @@ PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore() {
 }
 
 PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
-                                                  PyObject* other, int op) {
+                                                  PyObject* /*other*/,
+                                                  int /*op*/) {
   // NOTE: Python documentation recommends returning NotImplemented, instead of
   // raising an Error, because then Python runtime tries to find other type's
   // richcompare method to compare it with. Given that we overwrite these magic
@@ -1257,6 +1268,55 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
   PyErr_SetString(PyExc_TypeError,
                   "RichCompare methods are overwritten in Python");
   return nullptr;
+}
+
+extern "C" Py_hash_t _Py_HashBytes(const void* src, Py_ssize_t len);
+extern "C" Py_hash_t _Py_HashDouble(PyObject* self, double value);
+
+Py_hash_t PyDataSlice_hash(PyObject* self) {
+  arolla::python::DCheckPyGIL();
+  const auto& ds = UnsafeDataSliceRef(self);
+  if (!ds.is_item()) {
+    return PyObject_HashNotImplemented(self);
+  }
+  const auto hash_int64 = [](int64_t value) {
+    static_assert(sizeof(long long) >= sizeof(int64_t));  // NOLINT
+    auto py_obj = PyObjectPtr::Own(PyLong_FromLongLong(value));
+    return PyObject_Hash(py_obj.get());
+  };
+  const auto hash_double = [&](double value) {
+    return _Py_HashDouble(self, value);
+  };
+  const auto hash_bytes = [](absl::string_view value) {
+    return _Py_HashBytes(value.data(), value.size());
+  };
+  const auto hash_str = [](absl::string_view value) {
+    return PyHash_GetFuncDef()->hash(value.data(), value.size());
+  };
+  return ds.item().VisitValue([&](auto&& value) -> Py_hash_t {
+    using T = std::decay_t<decltype(value)>;
+    if constexpr (std::is_same_v<T, MissingValue>) {
+      return -2;
+    } else if constexpr (std::is_same_v<T, bool>) {
+      return value ? 1 : 0;
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+      return hash_int64(value);
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      return hash_int64(value);
+    } else if constexpr (std::is_same_v<T, float>) {
+      return hash_double(value);
+    } else if constexpr (std::is_same_v<T, double>) {
+      return hash_double(value);
+    } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+      return hash_bytes(value);
+    } else if constexpr (std::is_same_v<T, arolla::Text>) {
+      return hash_str(value);
+    } else {
+      // NOTE: -1 is reserved for an error, so we map it to -2.
+      Py_hash_t hash_val = absl::HashOf(value);
+      return hash_val == -1 ? -2 : hash_val;
+    }
+  });
 }
 
 PyGetSetDef kPyDataSlice_getset[] = {
@@ -1280,6 +1340,7 @@ PyTypeObject* InitPyDataSliceType() {
       {Py_tp_getset, kPyDataSlice_getset},
       {Py_tp_hash, (void*)PyObject_HashNotImplemented},
       {Py_tp_richcompare, (void*)PyDataSlice_richcompare_not_implemented},
+      {Py_tp_hash, (void*)PyDataSlice_hash},
       {Py_tp_str, (void*)PyDataSlice_str},
       {Py_mp_subscript, (void*)PyDataSlice_subscript},
       {Py_mp_ass_subscript, (void*)PyDataSlice_ass_subscript},

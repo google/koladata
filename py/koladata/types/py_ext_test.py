@@ -21,11 +21,6 @@ from koladata.types import data_slice_py_ext
 
 class DataItemPyExtTest(absltest.TestCase):
 
-  def test_hash_not_implemented(self):
-    x = data_item_py_ext.DataItem.from_vals(42)
-    with self.assertRaisesRegex(TypeError, 'unhashable type'):
-      hash(x)
-
   def test_richcompare_not_implemented(self):
     x = data_item_py_ext.DataItem.from_vals(42)
     y = data_item_py_ext.DataItem.from_vals(42)
