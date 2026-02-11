@@ -31,12 +31,10 @@ constexpr const char* kThisModuleName = "koladata.expr.py_expr_eval";
 PyMethodDef kPyExprEvalModule_methods[] = {
     {"eval_expr", (PyCFunction)PyEvalExpr, METH_FASTCALL | METH_KEYWORDS,
      "Evaluates an expression on provided input QValues."},
-    {"clear_eval_cache", PyClearEvalCache, METH_NOARGS,
-     "clear_eval_cache()\n"
+    {"clear_compilation_cache", PyClearCompilationCache, METH_NOARGS,
+     "clear_compilation_cache()\n"
      "--\n\n"
      "Clears Koda specific eval caches."},
-    {"clear_arolla_op_cache", PyClearArollaOpCache, METH_NOARGS,
-     "Clears the cache of Arolla operators invoked from Koda QExpr operators."},
     {"unspecified_self_input", (PyCFunction)PyUnspecifiedSelfInput, METH_NOARGS,
      "Returns the constant representing the unspecified self input."},
     {"eval_op", (PyCFunction)PyEvalOp, METH_FASTCALL | METH_KEYWORDS,
@@ -65,8 +63,8 @@ PyMODINIT_FUNC PyInit_py_expr_eval_py_ext(void) {
     return nullptr;
   }
   if (PyModule_AddStringConstant(
-      result.get(), "NON_DETERMINISTIC_TOKEN_LEAF_KEY",
-      std::string(kNonDeterministicTokenLeafKey).c_str()) < 0) {
+          result.get(), "NON_DETERMINISTIC_TOKEN_LEAF_KEY",
+          std::string(kNonDeterministicTokenLeafKey).c_str()) < 0) {
     return nullptr;
   }
   return result.release();

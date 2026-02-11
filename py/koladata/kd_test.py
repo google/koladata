@@ -652,7 +652,7 @@ class KdTest(absltest.TestCase):
     cached_eval = expr.eval()  # literal-folded computation.
     kd.testing.assert_equal(first_eval, cached_eval)
     self.assertEqual(first_eval.fingerprint, cached_eval.fingerprint)
-    kd.clear_eval_cache()
+    arolla.abc.clear_caches()
     eval_after_clear_cache = expr.eval()
     kd.testing.assert_equivalent(first_eval, eval_after_clear_cache)
     self.assertNotEqual(

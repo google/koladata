@@ -23,7 +23,6 @@ from koladata.base import init as _
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
-from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.extension_types import extension_types as _extension_types
@@ -104,9 +103,7 @@ optools.add_to_registry_as_overloadable = (
 optools.equiv_to_op = _optools.equiv_to_op
 optools.as_qvalue = _py_boxing.as_qvalue
 optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
-optools.fix_non_deterministic_tokens = (
-    _optools.fix_non_deterministic_tokens
-)
+optools.fix_non_deterministic_tokens = _optools.fix_non_deterministic_tokens
 optools.make_operators_container = _optools.make_operators_container
 optools.unified_non_deterministic_arg = _optools.unified_non_deterministic_arg
 optools.unified_non_deterministic_kwarg = (
@@ -236,7 +233,6 @@ I = _same_when_tracing(_input_container.InputContainer('I'))
 V = _same_when_tracing(_input_container.InputContainer('V'))
 S = _same_when_tracing(I.self)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
-clear_eval_cache = _eager_only(_py_expr_eval_py_ext.clear_eval_cache)
 lazy = _eager_only(_kde_operators.kde)
 named_container = _same_when_tracing(_expr_container.NamedContainer)
 check_inputs = _same_when_tracing(_type_checking.check_inputs)

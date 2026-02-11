@@ -9527,10 +9527,6 @@ Returns:
 
 Alias for [kd.random.cityhash](#kd.random.cityhash) operator.
 
-### `kd.clear_eval_cache()` {#kd.clear_eval_cache}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Clears Koda specific eval caches.</code></pre>
-
 ### `kd.clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.clone}
 
 Alias for [kd.core.clone](#kd.core.clone) operator.

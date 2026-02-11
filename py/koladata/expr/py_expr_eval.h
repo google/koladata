@@ -32,11 +32,8 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
 // Returns the constant representing the unspecified self input.
 PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/);
 
-// Clears the Koda-specific eval cache.
-PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/);
-
-// Clears the cache of Arolla operators invoked from Koda QExpr operators.
-PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/);
+// Clears the Koda-specific compilation cache.
+PyObject* PyClearCompilationCache(PyObject* /*self*/, PyObject* /*py_args*/);
 
 // Returns an Expr containing a new non-deterministic token.
 PyObject* NewNonDeterministicToken(PyObject* /*self*/, PyObject* /*py_args*/);

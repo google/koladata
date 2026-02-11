@@ -140,19 +140,11 @@ PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/) {
   return WrapPyDataSlice(std::move(unspecified_self_input));
 }
 
-PyObject* PyClearEvalCache(PyObject* /*self*/, PyObject* /*py_args*/) {
+PyObject* PyClearCompilationCache(PyObject* /*self*/, PyObject* /*py_args*/) {
   DCheckPyGIL();
   {
     ReleasePyGIL guard;
     koladata::expr::ClearCompilationCache();
-  }
-  Py_RETURN_NONE;
-}
-
-PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/) {
-  DCheckPyGIL();
-  {
-    ReleasePyGIL guard;
     koladata::ops::ClearCompilationCache();
   }
   Py_RETURN_NONE;

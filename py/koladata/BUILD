@@ -34,6 +34,8 @@ py_library(
 py_library(
     name = "kd",
     srcs = ["kd.py"],
+    tags = [
+    ],
     visibility = ["//visibility:public"],
     deps = [
         ":kd_dynamic",
@@ -43,7 +45,6 @@ py_library(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
-        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/extension_types",
