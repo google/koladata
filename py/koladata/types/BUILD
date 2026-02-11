@@ -218,6 +218,10 @@ cc_library(
 koladata_py_extension(
     name = "data_item_py_ext",
     srcs = ["data_item_module.cc"],
+    pytype_deps = [
+        ":type_defs",
+    ],
+    pytype_srcs = ["data_item_py_ext.pyi"],
     deps = [
         ":data_item_cc_lib",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
@@ -227,8 +231,6 @@ koladata_py_extension(
 py_library(
     name = "data_item",
     srcs = ["data_item.py"],
-    pyi_deps = [":data_bag"],
-    pyi_srcs = ["data_item.pyi"],
     deps = [
         ":data_item_py_ext",
         ":data_slice",
@@ -325,10 +327,10 @@ py_test(
 py_library(
     name = "schema_item",
     srcs = ["schema_item.py"],
-    pyi_srcs = ["schema_item.pyi"],
     deps = [
         ":data_item",
         ":data_slice",
+        ":type_defs",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",

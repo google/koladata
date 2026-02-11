@@ -14,13 +14,19 @@
 
 """SchemaItem."""
 
+import typing
+
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import type_defs
 
 
 _eval_op = _py_expr_eval_py_ext.eval_op
+
+
+# LINT.IfChange
 
 
 @data_slice.register_reserved_class_method_names
@@ -63,6 +69,12 @@ class SchemaItem(data_item.DataItem):
     return _eval_op('kd.get_value_schema', self)
 
 
+# LINT.ThenChange(//py/koladata/types/type_defs.pyi)
+
+
 arolla.abc.register_qvalue_specialization(
     '::koladata::python::SchemaItem', SchemaItem
 )
+
+if typing.TYPE_CHECKING:
+  SchemaItem = type_defs.SchemaItem

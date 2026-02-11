@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dummy file to hold .pyi definitions for DataSlice, DataItem, SchemaItem, and DataBag.
+from koladata.types import type_defs
 
-This is needed to avoid circular dependencies between .pyi files. Since
-DataBag and DataSlice depend on each other, we break the dependency cycle
-by having all definitions in a single type_deps.pyi file.
-"""
+DataItem = type_defs.DataItem
