@@ -19,7 +19,7 @@ import types as py_types
 from typing import Any, Callable
 
 from arolla import arolla
-from koladata.expr import py_expr_eval_py_ext
+from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.types import data_bag
 # NOTE: To allow Python scalar values to have DataItem Python type.
 from koladata.types import data_item
@@ -39,10 +39,10 @@ REF_CODEC = _REF_CODEC_OBJECT.name
 
 
 NON_DETERMINISTIC_TOKEN_LEAF = arolla.abc.leaf(
-    py_expr_eval_py_ext.NON_DETERMINISTIC_TOKEN_LEAF_KEY
+    eval_clib.NON_DETERMINISTIC_TOKEN_LEAF_KEY
 )
 
-new_non_deterministic_token = py_expr_eval_py_ext.new_non_deterministic_token
+new_non_deterministic_token = eval_clib.new_non_deterministic_token
 
 
 def _no_py_function_boxing_registered(
@@ -137,20 +137,9 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     start = _wrap(arg.start)
     stop = _wrap(arg.stop)
     step = _wrap(arg.step)
-    if arolla.Expr in (type(start), type(stop), type(step)):
-      return arolla.abc.bind_op(
-          'kd.tuples.slice', as_expr(start), as_expr(stop), as_expr(step)
-      )
-    else:
-      return arolla.types.Slice(start, stop, step)
+    return eval_clib.eval_or_bind_op('kd.tuples.slice', start, stop, step)
   if isinstance(arg, tuple):
-    tpl = tuple(as_qvalue_or_expr(v) for v in arg)
-    if arolla.Expr in (type(v) for v in tpl):
-      return arolla.abc.make_operator_node(
-          'kd.tuples.tuple', tuple(map(as_expr, tpl))
-      )
-    else:
-      return arolla.tuple(*tpl)
+    return eval_clib.eval_or_bind_op('kd.tuples.tuple', *arg)
   if isinstance(arg, py_types.EllipsisType):
     return ellipsis.ellipsis()
   if isinstance(arg, list):
@@ -174,12 +163,9 @@ def as_qvalue_or_expr_with_list_to_slice_support(
     arg: Any,
 ) -> arolla.Expr | arolla.QValue:
   """Converts Python values into QValues or Exprs, supporting list to slice."""
-  if not isinstance(arg, list):
-    return as_qvalue_or_expr(arg)
-  # TODO: b/477578091 - Using binding policy from kd.slices.slice seems to be
-  # hacky. Try to call it directly instead.
-  result, _ = arolla.abc.aux_bind_arguments(_make_slice_op, arg)
-  return result
+  if type(arg) is list:  # pylint: disable=unidiomatic-typecheck  # exact type check
+    return eval_clib.eval_or_bind_op('kd.slices.slice', arg)
+  return as_qvalue_or_expr(arg)
 
 
 def as_qvalue_or_expr_with_py_function_to_py_object_support(

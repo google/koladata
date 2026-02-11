@@ -273,6 +273,23 @@ py_test(
     ],
 )
 
+py_test(
+    name = "eval_or_bind_op_test",
+    srcs = ["eval_or_bind_op_test.py"],
+    deps = [
+        ":input_container",
+        ":py_expr_eval_py_ext",
+        "//py:python_path",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 cc_library(
     name = "py_expr_eval_cc_lib",
     srcs = ["py_expr_eval.cc"],

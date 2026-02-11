@@ -22,12 +22,26 @@
 namespace koladata::python {
 
 // Evaluates an expression on provided input QValues.
+//
+// NOTE: This function relies on the compilation cache to reduce evaluation
+// costs.
 PyObject* absl_nullable PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames);
 
 // Evaluates an operator on the provided arguments.
+//
+// NOTE: This function relies on the compilation cache to reduce evaluation
+// costs.
 PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                  Py_ssize_t nargs, PyObject* py_kwnames);
+
+// Evaluates an operator on the provided arguments (if all arguments are eager)
+// or returns an expression that will evaluate the operator when executed.
+//
+// NOTE: This function relies on the compilation cache to reduce evaluation
+// costs.
+PyObject* absl_nullable PyEvalOrBindOp(PyObject* /*self*/, PyObject** py_args,
+                                       Py_ssize_t nargs, PyObject* py_kwnames);
 
 // Returns the constant representing the unspecified self input.
 PyObject* PyUnspecifiedSelfInput(PyObject* /*self*/, PyObject* /*py_args*/);

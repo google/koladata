@@ -232,7 +232,7 @@ class FunctorSwitchTest(absltest.TestCase):
     expr = kde.functor.switch('a', cases, *args, **kwargs)
     _, _, _, _, a, kw, _ = expr.node_deps
     testing.assert_equal(a, kde.tuples.tuple(I.x))
-    testing.assert_equal(kw, arolla.M.namedtuple.make(y=I.y))
+    testing.assert_equal(kw, kde.tuples.namedtuple(y=I.y))
 
   def test_repr(self):
     expr = kde.functor.switch(

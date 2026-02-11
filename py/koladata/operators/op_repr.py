@@ -100,6 +100,12 @@ def get_item_repr(
   return res
 
 
+_KD_NAMEDTUPLE_OPS = frozenset([
+    arolla.abc.unsafe_make_registered_operator('kd.tuples.namedtuple'),
+    arolla.abc.unsafe_make_registered_operator('kd.namedtuple'),
+])
+
+
 def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
   """Returns a string representation of args and kwargs.
 
@@ -126,6 +132,8 @@ def args_kwargs_repr(args, kwargs, return_type_as, tokens) -> str | None:
     # tuple literal
     args_repr = tokens[args].text.removeprefix('(').removesuffix(')')
 
+  if kwargs.op in _KD_NAMEDTUPLE_OPS:
+    kwargs = kwargs.node_deps[0]
   if kwargs.op == arolla.M.namedtuple.make:
     # namedtuple.make node
     # The first node_dep is a coma separated string of kwarg names.

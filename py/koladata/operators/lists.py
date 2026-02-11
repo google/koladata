@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -23,7 +24,6 @@ from koladata.operators import koda_internal as _
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.operators import slices as slices_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -405,7 +405,7 @@ def _new_bind_args(
       and schema_to_use != schema_constants.OBJECT
   ):
     schema_to_use = arolla.unspecified()
-  items, _ = slices_ops.slice_bind_args(items, schema_to_use)
+  items = eval_clib.eval_or_bind_op('kd.slices.slice', items, schema_to_use)
   return (
       items,
       item_schema,

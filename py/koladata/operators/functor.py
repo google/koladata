@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
@@ -495,13 +496,12 @@ def _switch_bind_args(
 ):
   """Binding policy for kd.functor.switch."""
   if isinstance(cases, dict):
-    case_keys = py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
-        list(cases.keys())
-    )
-    case_fns = py_boxing.as_qvalue_or_expr_with_list_to_slice_support(
+    case_keys = eval_clib.eval_or_bind_op('kd.slices.slice', list(cases.keys()))
+    case_fns = eval_clib.eval_or_bind_op(
+        'kd.slices.slice',
         # TODO: b/477578091 - Should this inner as_qvalue_or_expr be done by
-        # as_qvalue_or_expr_with_list_to_slice_support?
-        [py_boxing.as_qvalue_or_expr(v) for v in cases.values()]
+        # kd.slices.slice?
+        [py_boxing.as_qvalue_or_expr(v) for v in cases.values()],
     )
   elif isinstance(cases, data_slice.DataSlice | arolla.Expr):
     case_keys = cases.get_keys()
@@ -509,13 +509,8 @@ def _switch_bind_args(
   else:
     raise TypeError(f'cases must be a dict, got {type(cases)}')
 
-  args = py_boxing.as_qvalue_or_expr(args)
-
-  kwargs = {k: py_boxing.as_qvalue_or_expr(v) for k, v in kwargs.items()}
-  if arolla.abc.Expr in (type(v) for v in kwargs.values()):
-    kwargs = arolla.M.namedtuple.make(**kwargs)
-  else:
-    kwargs = arolla.namedtuple(**kwargs)
+  args = eval_clib.eval_or_bind_op('kd.tuples.tuple', *args)
+  kwargs = eval_clib.eval_or_bind_op('kd.tuples.namedtuple', **kwargs)
 
   return (
       py_boxing.as_qvalue_or_expr(key),

@@ -27,6 +27,7 @@
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
@@ -58,6 +59,7 @@ namespace koladata::python {
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
+using ::arolla::expr::MakeOpNode;
 using ::arolla::python::AuxBindArguments;
 using ::arolla::python::AuxBindingPolicyPtr;
 using ::arolla::python::DCheckPyGIL;
@@ -222,6 +224,87 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                    {.verbose_runtime_errors = true}),
       SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
+}
+
+PyObject* absl_nullable PyEvalOrBindOp(PyObject* /*self*/, PyObject** py_args,
+                                       Py_ssize_t nargs, PyObject* py_kwnames) {
+  DCheckPyGIL();
+  PyCancellationScope cancellation_scope;
+  if (nargs == 0) {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "kd.eval_or_bind_op() missing 1 required positional argument: 'op'");
+    return nullptr;
+  }
+
+  // Parse the operator.
+  auto op = ParseArgPyOperator("kd.eval_or_bind_op", py_args[0]);
+  if (op == nullptr) {
+    return nullptr;
+  }
+
+  // Bind the arguments.
+  ASSIGN_OR_RETURN(auto signature, op->GetSignature(), SetPyErrFromStatus(_));
+  std::vector<QValueOrExpr> bound_args;
+  AuxBindingPolicyPtr policy_implementation;
+  if (!AuxBindArguments(*signature, py_args + 1,
+                        (nargs - 1) | PY_VECTORCALL_ARGUMENTS_OFFSET,
+                        py_kwnames, &bound_args, &policy_implementation)) {
+    return nullptr;
+  }
+
+  // Decide whether to eval the operator or construct an expression.
+  bool eval_mode = true;
+  for (const auto& bound_arg : bound_args) {
+    auto* expr = std::get_if<ExprNodePtr>(&bound_arg);
+    if (expr != nullptr &&
+        (**expr).qtype() !=
+            arolla::GetQType<internal::NonDeterministicToken>()) {
+      eval_mode = false;
+      break;
+    }
+  }
+
+  if (eval_mode) {
+    // Accumulate all inputs for the operator.
+    std::vector<TypedRef> input_qvalues;
+    input_qvalues.reserve(bound_args.size());
+    for (size_t i = 0; i < bound_args.size(); ++i) {
+      if (auto* qvalue = std::get_if<TypedValue>(&bound_args[i])) {
+        input_qvalues.push_back(qvalue->AsRef());
+      } else {
+        input_qvalues.push_back(internal::NonDeterministicTokenValue().AsRef());
+      }
+    }
+    // Set default executor for the current thread, if not already set.
+    ProvideDefaultCurrentExecutorScopeGuard executor_scope;
+    // Call the implementation.
+    ASSIGN_OR_RETURN(
+        auto result,
+        InvokeOpWithCompilationCache(std::move(op), input_qvalues,
+                                     {.verbose_runtime_errors = true}),
+        SetPyErrFromStatus(_));
+    return WrapAsPyQValue(std::move(result));
+  }
+
+  std::vector<ExprNodePtr> input_exprs;
+  input_exprs.reserve(bound_args.size());
+  for (size_t i = 0; i < bound_args.size(); ++i) {
+    if (auto* qvalue = std::get_if<TypedValue>(&bound_args[i])) {
+      auto expr = policy_implementation->MakeLiteral(std::move(*qvalue));
+      if (expr == nullptr) {
+        return nullptr;
+      }
+      input_exprs.push_back(std::move(expr));
+    } else {
+      input_exprs.push_back(
+          std::move(*std::get_if<ExprNodePtr>(&bound_args[i])));
+    }
+  }
+  ASSIGN_OR_RETURN(auto result,
+                   MakeOpNode(std::move(op), std::move(input_exprs)),
+                   SetPyErrFromStatus(std::move(_)));
+  return WrapAsPyExpr(std::move(result));
 }
 
 PyObject* NewNonDeterministicToken(PyObject* /*self*/, PyObject* /*py_args*/) {
