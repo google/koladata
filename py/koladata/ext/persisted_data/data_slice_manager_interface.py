@@ -110,6 +110,18 @@ class DataSliceManagerInterface:
     """
     raise NotImplementedError(type(self))
 
+  @property
+  def is_read_only(self) -> bool:
+    """Returns whether this manager is in read-only mode."""
+    raise NotImplementedError(type(self))
+
+  def set_read_only(self):
+    """Sets this manager instance to read-only mode.
+
+    Update operations will henceforth raise a ValueError.
+    """
+    raise NotImplementedError(type(self))
+
   def update(
       self,
       *,
@@ -120,7 +132,8 @@ class DataSliceManagerInterface:
   ):
     """Updates the data and schema at the given data slice path.
 
-    In particular, the given attribute name is updated with the given value.
+    Raises a ValueError if self.is_readonly is True.
+    Otherwise, the given attribute name is updated with the given value.
     An update can provide new data and new schema, or it can provide updated
     data only or updated data+schema.
 

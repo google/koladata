@@ -660,6 +660,15 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         f' {manager2.get_persistence_directory()}]',
     )
 
+  def test_internal_managers_are_read_only(self):
+    manager1 = self.create_manager(kd.new())
+    manager2 = self.create_manager(kd.new())
+    manager = CompositeInitialDataManager.create_new(
+        managers=[manager1, manager2]
+    )
+    self.assertTrue(manager._managers[0].is_read_only)
+    self.assertTrue(manager._managers[1].is_read_only)
+
 
 if __name__ == '__main__':
   absltest.main()

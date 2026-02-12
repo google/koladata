@@ -70,9 +70,9 @@ class CompositeInitialDataManager(
     if not managers:
       raise ValueError('at least one manager is required')
 
-    # The glued managers are all mutable, so we create immutable copies that are
+    # The glued managers are all mutable, so we create read-only copies that are
     # pinned to the current revision.
-    managers = _new_manager_instances_with_pinned_revisions(managers)
+    managers = [m.get_readonly_copy() for m in managers]
 
     return CompositeInitialDataManager(
         internal_call=_INTERNAL_CALL,
@@ -195,35 +195,17 @@ class CompositeInitialDataManager(
     )
 
   def copy(self) -> CompositeInitialDataManager:
+    # TODO: Once all DataSliceManager and InitialDataManager
+    # implementations are thread-safe, we can completely remove the copy()
+    # method from InitialDataManagerInterface and simply share references to the
+    # InitialDataManager instances.
     return CompositeInitialDataManager(
         internal_call=_INTERNAL_CALL,
         # Use new manager instances. An instance is not thread-safe, creating
         # new instances is cheap, and no synchronization/locking is needed in
         # or around the new instances.
-        # TODO: Once all DataSliceManager and InitialDataManager
-        # implementations are thread-safe, we can completely remove the copy()
-        # method from InitialDataManagerInterface and simply share references to
-        # the InitialDataManager instances. The method
-        # PersistedIncrementalDataSliceManager.internal_copy() must be retained,
-        # because it is used to create instances that have pinned revisions
-        # which is still needed by CompositeInitialDataManager.create_new()
-        # above. Said otherwise, the InitialDataManager abstraction is
-        # conceptually immutable, and the DataSliceManager abstraction is
-        # conceptually mutable, so even if both are thread-safe we need some way
-        # to make immutable snapshots of the mutable instances for use in
-        # CompositeInitialDataManager.
-        managers=_new_manager_instances_with_pinned_revisions(self._managers),
+        managers=[m.get_readonly_copy() for m in self._managers],
     )
-
-
-def _new_manager_instances_with_pinned_revisions(
-    managers: list[
-        persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
-    ],
-) -> list[
-    persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
-]:
-  return [m.internal_copy() for m in managers]
 
 
 def _get_metadata_filepath(persistence_dir: str) -> str:

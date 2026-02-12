@@ -40,6 +40,7 @@ class SimpleInMemoryDataSliceManager(
 
   def __init__(self):
     self._ds = kd.new()
+    self._is_read_only = False
 
   def generate_paths(
       self, *, max_depth: int
@@ -71,6 +72,18 @@ class SimpleInMemoryDataSliceManager(
 
     return self._ds
 
+  @property
+  def is_read_only(self) -> bool:
+    """Returns whether this manager is in read-only mode."""
+    return self._is_read_only
+
+  def set_read_only(self):
+    """Sets this manager instance to read-only mode.
+
+    Update operations will henceforth raise a ValueError.
+    """
+    self._is_read_only = True
+
   def update(
       self,
       *,
@@ -79,6 +92,7 @@ class SimpleInMemoryDataSliceManager(
       attr_value: kd.types.DataSlice,
       description: str | None = None,
   ):
+    self._check_is_not_read_only()
     self._check_is_valid_data_slice_path(at_path)
     self._check_has_entity_schema(at_path)
     try:
@@ -102,6 +116,10 @@ class SimpleInMemoryDataSliceManager(
 
   def _get_schema_helper(self) -> schema_helper_lib.SchemaHelper:
     return schema_helper_lib.SchemaHelper(self._ds.get_schema())
+
+  def _check_is_not_read_only(self):
+    if self.is_read_only:
+      raise ValueError('this manager is in read-only mode')
 
   def _check_is_valid_data_slice_path(
       self,

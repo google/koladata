@@ -4519,6 +4519,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     ):
       unused_args = dict(
           persistence_dir=None,
+          read_only=False,
           fs=None,
           initial_data_manager=None,
           data_bag_manager=None,
@@ -4765,7 +4766,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             persistence_dir, at_revision_history_index=3
         )
 
-  def test_internal_copy(self):
+  def test_get_readonly_copy(self):
     persistence_dir = self.create_tempdir().full_path
     manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
     manager.update(
@@ -4775,11 +4776,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         description='Added queries with only query_id populated',
     )
 
-    manager_copy = manager.internal_copy()
+    manager_copy = manager.get_readonly_copy()
 
     # The copy is a different instance from the original manager, but it is
-    # based on the same persistence directory and revision.
+    # based on the same persistence directory and revision, and it is read-only.
     self.assertIsNot(manager, manager_copy)
+    self.assertTrue(manager_copy.is_read_only)
     self.assertEqual(
         manager_copy.get_persistence_directory(),
         manager.get_persistence_directory(),
@@ -4795,6 +4797,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(
         manager_copy.get_revision_history(), manager.get_revision_history()
     )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('this manager is in read-only mode'),
+    ):
+      manager_copy.update(
+          at_path=parse_dsp(''),
+          attr_name='foo',
+          attr_value=kd.item(1),
+      )
 
     # Update the original manager.
     full_ds_before_update = manager.get_data_slice(
@@ -4848,6 +4859,62 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ),
         ids_equality=True,
     )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_read_only_mode(self, dsm_class):
+    manager = self.new_manager(dsm_class)
+    self.assertFalse(manager.is_read_only)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='foo',
+        attr_value=kd.item(1),
+    )
+    manager.set_read_only()
+    self.assertTrue(manager.is_read_only)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('this manager is in read-only mode'),
+    ):
+      manager.update(
+          at_path=parse_dsp(''),
+          attr_name='bar',
+          attr_value=kd.item(1),
+      )
+
+  def test_create_from_dir_with_read_only_mode(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='foo',
+        attr_value=kd.item(1),
+    )
+
+    # Create a new instance that uses the same persistence directory and that
+    # is in read-only mode.
+    read_only_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        persistence_dir, read_only=True
+    )
+    self.assertTrue(read_only_manager.is_read_only)
+    kd.testing.assert_equivalent(
+        read_only_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        manager.get_data_slice(populate_including_descendants={parse_dsp('')}),
+        ids_equality=True,
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('this manager is in read-only mode'),
+    ):
+      read_only_manager.update(
+          at_path=parse_dsp(''),
+          attr_name='bar',
+          attr_value=kd.item(1),
+      )
 
 
 if __name__ == '__main__':

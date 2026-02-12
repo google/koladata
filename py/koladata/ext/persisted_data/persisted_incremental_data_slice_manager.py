@@ -277,6 +277,7 @@ class PersistedIncrementalDataSliceManager(
     return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
+        read_only=False,
         fs=fs,
         initial_data_manager=initial_data_manager,
         data_bag_manager=data_bag_manager,
@@ -293,6 +294,7 @@ class PersistedIncrementalDataSliceManager(
       persistence_dir: str,
       *,
       at_revision_history_index: int | None = None,
+      read_only: bool = False,
       fs: fs_interface.FileSystemInterface | None = None,
   ) -> PersistedIncrementalDataSliceManager:
     """Initializes a manager from an existing persistence directory.
@@ -312,6 +314,8 @@ class PersistedIncrementalDataSliceManager(
         the persistence directory. If you have a directory and want to see which
         revisions are available, you can simply call
         create_from_dir(persistence_dir).get_revision_history().
+      read_only: If True, then the manager is created in read-only mode, in
+        which case update operations will raise an error.
       fs: All interactions with the file system will go through this instance.
         If None, then the default interaction with the file system is used.
     """
@@ -370,6 +374,7 @@ class PersistedIncrementalDataSliceManager(
     return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
+        read_only=read_only,
         fs=fs,
         initial_data_manager=initial_data_manager,
         data_bag_manager=data_bag_manager,
@@ -385,6 +390,7 @@ class PersistedIncrementalDataSliceManager(
       *,
       internal_call: object,
       persistence_dir: str,
+      read_only: bool,
       fs: fs_interface.FileSystemInterface,
       initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface,
       data_bag_manager: dbm.PersistedIncrementalDataBagManager,
@@ -407,6 +413,8 @@ class PersistedIncrementalDataSliceManager(
         called externally. Clients should use the factory methods create_new()
         or create_from_dir() to create instances of this class.
       persistence_dir: The directory that holds the artifacts of the manager.
+      read_only: If True, then the manager is created in read-only mode, in
+        which case update operations will raise an error.
       fs: All interactions with the file system will go through this instance.
       initial_data_manager: The initial data of the DataSlice.
       data_bag_manager: The manager for the data bags.
@@ -428,6 +436,7 @@ class PersistedIncrementalDataSliceManager(
 
     self._persistence_dir = persistence_dir
     self._fs = fs
+    self._is_read_only = read_only
     self._initial_data_manager = initial_data_manager
     self._data_bag_manager = data_bag_manager
     self._schema_bag_manager = schema_bag_manager
@@ -633,6 +642,18 @@ class PersistedIncrementalDataSliceManager(
     """Returns the persistence directory of this manager."""
     return self._persistence_dir
 
+  @property
+  def is_read_only(self) -> bool:
+    """Returns whether this manager is in read-only mode."""
+    return self._is_read_only
+
+  def set_read_only(self):
+    """Sets this manager instance to read-only mode.
+
+    Update operations will henceforth raise a ValueError.
+    """
+    self._is_read_only = True
+
   def update(
       self,
       *,
@@ -643,7 +664,8 @@ class PersistedIncrementalDataSliceManager(
   ):
     """Updates the data and schema at the given data slice path.
 
-    In particular, the given attribute name is updated with the given value.
+    Raises a ValueError if self.is_readonly is True.
+    Otherwise, the given attribute name is updated with the given value.
     An update can provide new data and new schema, or it can provide updated
     data only or updated data+schema.
 
@@ -720,6 +742,8 @@ class PersistedIncrementalDataSliceManager(
       description: A description of the update. Optional. If provided, it will
         be stored in the history metadata of this manager.
     """
+    self._check_is_not_read_only()
+
     # The implementation below creates many small DataBags by traversing a
     # DataSlice. Conceptually, it would be much simpler and faster to traverse
     # the DataBag to get data for each schema node name directly. However, there
@@ -1218,6 +1242,7 @@ class PersistedIncrementalDataSliceManager(
     return PersistedIncrementalDataSliceManager(
         internal_call=_INTERNAL_CALL,
         persistence_dir=output_dir,
+        read_only=False,
         fs=branch_fs,
         initial_data_manager=branch_initial_data_manager,
         data_bag_manager=branch_data_bag_manager,
@@ -1228,20 +1253,18 @@ class PersistedIncrementalDataSliceManager(
         metadata=branch_metadata,
     )
 
-  def internal_copy(self) -> PersistedIncrementalDataSliceManager:
-    """Returns a copy of this manager.
-
-    This method is not part of the public API and is meant to be called only
-    by library-internal code.
+  def get_readonly_copy(self) -> PersistedIncrementalDataSliceManager:
+    """Returns a read-only copy of this manager at its current revision.
 
     The copy will use the same persistence directory as this manager. It will
     use the same revision as this manager at the time of copying.
 
-    Conceptually, the result should be equivalent to calling
+    Conceptually, the result is equivalent to calling
     PersistedIncrementalDataSliceManager.create_from_dir(
         self.get_persistence_dir(),
         at_revision_history_index=len(self.get_revision_history()) - 1,
-        fs=self._fs
+        read_only=True,
+        fs=self._fs,
     )
     However, the copy implementation should be faster than that, as there is no
     real need to read anything from disk. The implementation is free to read
@@ -1250,16 +1273,6 @@ class PersistedIncrementalDataSliceManager(
     It should be possible to use the copy in another thread. If there is
     internal mutable state, such as caches, that are shared between this
     instance and the copy, then that state must be properly synchronized.
-
-    ** warning **
-    The original manager and all copies of it share the same persistence
-    directory. That means at most one of them can perform updates. Such updates
-    are not propagated to the other instances - i.e. their revisions won't
-    change. Performing an update on another instance (which doesn't use the
-    latest revision) will raise an exception, and instruct you to branch the
-    manager or to create a new manager instance from the persistence directory
-    which uses the latest revision. The update can then be re-attempted on the
-    branch/new instance.
     """
     data_bag_manager_copy = (
         dbm.PersistedIncrementalDataBagManager.create_from_dir(
@@ -1282,6 +1295,7 @@ class PersistedIncrementalDataSliceManager(
     return PersistedIncrementalDataSliceManager(
         internal_call=_INTERNAL_CALL,
         persistence_dir=self._persistence_dir,
+        read_only=True,
         fs=self._fs,
         initial_data_manager=self._initial_data_manager.copy(),
         data_bag_manager=data_bag_manager_copy,
@@ -1311,6 +1325,10 @@ class PersistedIncrementalDataSliceManager(
     """
     self._initial_data_manager.clear_cache()
     self._data_bag_manager.clear_cache()
+
+  def _check_is_not_read_only(self):
+    if self.is_read_only:
+      raise ValueError('this manager is in read-only mode')
 
   def _get_schema_node_name_to_data_bag_names(self) -> kd.types.DataItem:
     """Returns the full Koda DICT that maps schema node names to data bag names."""
