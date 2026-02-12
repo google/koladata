@@ -40,7 +40,9 @@ class PersistedDataTest(absltest.TestCase):
     )
 
     persistence_dir = self.create_tempdir().full_path
-    dbm = persisted_data.PersistedIncrementalDataBagManager(persistence_dir)
+    dbm = persisted_data.PersistedIncrementalDataBagManager.create_new(
+        persistence_dir
+    )
     self.assertEqual(dbm.get_available_bag_names(), {''})
     self.assertEqual(dbm.get_loaded_bag_names(), {''})
     kd.testing.assert_equivalent(

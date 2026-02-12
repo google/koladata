@@ -129,6 +129,7 @@ py_test(
     deps = [
         ":fs_implementation",
         ":persisted_incremental_data_bag_manager",
+        ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",

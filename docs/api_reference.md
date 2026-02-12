@@ -11441,17 +11441,21 @@ meantime by another instance.</code></pre>
 
 **Members**
 
-### `PersistedIncrementalDataBagManager.__init__(self, persistence_dir: str, *, fs: FileSystemInterface | None = None)` {#PersistedIncrementalDataBagManager.__init__}
+### `PersistedIncrementalDataBagManager.__init__(self, *, internal_call: object, persistence_dir: str, fs: fs_interface.FileSystemInterface, metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata, loaded_bags_cache: dict[str, kd.types.DataBag])` {#PersistedIncrementalDataBagManager.__init__}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Initializes the manager.
 
+This constructor is private. To create an instance of this class, please use
+create_new() or create_from_dir().
+
 Args:
-  persistence_dir: The directory where the small bags and metadata will be
-    persisted. If it does not exist, or it is empty, then it will be
-    populated with an empty bag named &#39;&#39;. Otherwise, the manager will be
-    initialized from the existing artifacts in the directory.
-  fs: All interactions with the file system will go through this instance.
-    If None, then the default interaction with the file system is used.</code></pre>
+  internal_call: A sentinel object to ensure that this constructor is only
+    called from within this module.
+  persistence_dir: The directory where the small bags and metadata are
+    persisted.
+  fs: All interactions with the file system will go through this object.
+  metadata: The metadata of the manager.
+  loaded_bags_cache: A cache of the bags that are currently loaded.</code></pre>
 
 ### `PersistedIncrementalDataBagManager.add_bags(self, bags_to_add: list[BagToAdd])` {#PersistedIncrementalDataBagManager.add_bags}
 
@@ -11486,7 +11490,7 @@ Args:
 After this method returns, get_loaded_bag_names() will return only {&#39;&#39;},
 i.e. only the initial empty bag with name &#39;&#39; will still be loaded.</code></pre>
 
-### `PersistedIncrementalDataBagManager.create_branch(self, bag_names: Collection[str], *, with_all_dependents: bool = False, output_dir: str, fs: FileSystemInterface | None = None)` {#PersistedIncrementalDataBagManager.create_branch}
+### `PersistedIncrementalDataBagManager.create_branch(self, bag_names: Collection[str], *, with_all_dependents: bool = False, output_dir: str, fs: fs_interface.FileSystemInterface | None = None)` {#PersistedIncrementalDataBagManager.create_branch}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a branch of the current manager in a new persistence directory.
 
@@ -11514,7 +11518,37 @@ Args:
   fs: All interactions with the file system for output_dir will happen via
     this instance.</code></pre>
 
-### `PersistedIncrementalDataBagManager.extract_bags(self, bag_names: Collection[str], *, with_all_dependents: bool = False, output_dir: str, fs: FileSystemInterface | None = None)` {#PersistedIncrementalDataBagManager.extract_bags}
+### `PersistedIncrementalDataBagManager.create_from_dir(persistence_dir: str, *, fs: fs_interface.FileSystemInterface | None = None) -> PersistedIncrementalDataBagManager` {#PersistedIncrementalDataBagManager.create_from_dir}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Initializes a manager from an existing persistence directory.
+
+Args:
+  persistence_dir: The directory where the small bags and metadata are
+    persisted. It must have been populated sometime in the past by an
+    instance of PersistedIncrementalDataBagManager.
+  fs: All interactions with the file system will go through this object. If
+    None, then the default interaction with the file system is used.
+
+Returns:
+  A new instance of PersistedIncrementalDataBagManager that is initialized
+  from the given persistence directory.</code></pre>
+
+### `PersistedIncrementalDataBagManager.create_new(persistence_dir: str, *, fs: fs_interface.FileSystemInterface | None = None) -> PersistedIncrementalDataBagManager` {#PersistedIncrementalDataBagManager.create_new}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new manager for the given persistence directory.
+
+Args:
+  persistence_dir: The directory where the small bags and metadata will be
+    persisted. It should either not exist, or it must be empty.
+  fs: All interactions with the file system will go through this object. If
+    None, then the default interaction with the file system is used.
+
+Returns:
+  A new instance of PersistedIncrementalDataBagManager with only an empty
+  bag named &#39;&#39;, which writes its artifacts to the given persistence_dir via
+  the given fs.</code></pre>
+
+### `PersistedIncrementalDataBagManager.extract_bags(self, bag_names: Collection[str], *, with_all_dependents: bool = False, output_dir: str, fs: fs_interface.FileSystemInterface | None = None)` {#PersistedIncrementalDataBagManager.extract_bags}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts the requested bags to the given output directory.
 
@@ -11534,7 +11568,7 @@ Args:
   fs: All interactions with the file system for output_dir will happen via
     this instance.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_available_bag_names(self) -> Set[str]` {#PersistedIncrementalDataBagManager.get_available_bag_names}
+### `PersistedIncrementalDataBagManager.get_available_bag_names(self) -> AbstractSet[str]` {#PersistedIncrementalDataBagManager.get_available_bag_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are managed by this manager.
 
@@ -11542,11 +11576,11 @@ They include the initial empty bag (named &#39;&#39;), all bags that have been a
 to this manager instance, and all bags that were already persisted in the
 persistence directory before this manager instance was created.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_loaded_bag(self) -> DataBag` {#PersistedIncrementalDataBagManager.get_loaded_bag}
+### `PersistedIncrementalDataBagManager.get_loaded_bag(self) -> kd.types.DataBag` {#PersistedIncrementalDataBagManager.get_loaded_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a bag consisting of all the small bags that are currently loaded.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_loaded_bag_names(self) -> Set[str]` {#PersistedIncrementalDataBagManager.get_loaded_bag_names}
+### `PersistedIncrementalDataBagManager.get_loaded_bag_names(self) -> AbstractSet[str]` {#PersistedIncrementalDataBagManager.get_loaded_bag_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the names of all bags that are currently loaded in this manager.
 
@@ -11557,7 +11591,7 @@ load_bags() and their transitive dependencies are also considered loaded.
 Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
 a side effect when they are needed but not loaded yet.</code></pre>
 
-### `PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names: Collection[str], *, with_all_dependents: bool = False) -> DataBag` {#PersistedIncrementalDataBagManager.get_minimal_bag}
+### `PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names: Collection[str], *, with_all_dependents: bool = False) -> kd.types.DataBag` {#PersistedIncrementalDataBagManager.get_minimal_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a minimal bag that includes bag_names and all their dependencies.
 
@@ -11624,9 +11658,9 @@ way to track the other distinctions in the type system.</code></pre>
 
 **Operators**
 
-### `kd_ext.persisted_data.BagToAdd(bag_name: str, bag: DataBag, dependencies: tuple[str, ...])` {#kd_ext.persisted_data.BagToAdd}
+### `kd_ext.persisted_data.BagToAdd(bag_name: str, bag: kd.types.DataBag, dependencies: tuple[str, ...])` {#kd_ext.persisted_data.BagToAdd}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">BagToAdd(bag_name: str, bag: koladata.types.data_bag.DataBag, dependencies: tuple[str, ...])</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">BagToAdd(bag_name: &#39;str&#39;, bag: &#39;kd.types.DataBag&#39;, dependencies: &#39;tuple[str, ...]&#39;)</code></pre>
 
 ### `kd_ext.persisted_data.CompositeInitialDataManager(*, internal_call: object, managers: list[persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager])` {#kd_ext.persisted_data.CompositeInitialDataManager}
 
@@ -11680,7 +11714,7 @@ why the is_view_valid() method is not simply called is_valid() or valid().</code
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A data slice path.</code></pre>
 
-### `kd_ext.persisted_data.PersistedIncrementalDataBagManager(persistence_dir: str, *, fs: FileSystemInterface | None = None)` {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
+### `kd_ext.persisted_data.PersistedIncrementalDataBagManager(*, internal_call: object, persistence_dir: str, fs: fs_interface.FileSystemInterface, metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata, loaded_bags_cache: dict[str, kd.types.DataBag])` {#kd_ext.persisted_data.PersistedIncrementalDataBagManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataBag that is assembled from multiple smaller bags.
 

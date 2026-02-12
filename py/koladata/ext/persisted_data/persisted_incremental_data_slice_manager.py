@@ -226,10 +226,10 @@ class PersistedIncrementalDataSliceManager(
     initial_data_manager.serialize(
         _get_initial_data_dir(persistence_dir), fs=fs
     )
-    data_bag_manager = dbm.PersistedIncrementalDataBagManager(
+    data_bag_manager = dbm.PersistedIncrementalDataBagManager.create_new(
         _get_data_bags_dir(persistence_dir), fs=fs
     )
-    schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
+    schema_bag_manager = dbm.PersistedIncrementalDataBagManager.create_new(
         _get_schema_bags_dir(persistence_dir), fs=fs
     )
     schema_helper = schema_helper_lib.SchemaHelper(
@@ -247,7 +247,7 @@ class PersistedIncrementalDataSliceManager(
         ),
     )
     schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager(
+        dbm.PersistedIncrementalDataBagManager.create_new(
             _get_schema_node_name_to_data_bags_updates_dir(persistence_dir),
             fs=fs,
         )
@@ -332,10 +332,10 @@ class PersistedIncrementalDataSliceManager(
     initial_data_manager = initial_data_manager_class.deserialize(
         _get_initial_data_dir(persistence_dir), fs=fs
     )
-    data_bag_manager = dbm.PersistedIncrementalDataBagManager(
+    data_bag_manager = dbm.PersistedIncrementalDataBagManager.create_from_dir(
         _get_data_bags_dir(persistence_dir), fs=fs
     )
-    schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
+    schema_bag_manager = dbm.PersistedIncrementalDataBagManager.create_from_dir(
         _get_schema_bags_dir(persistence_dir), fs=fs
     )
     schema_bag_names = set()
@@ -356,7 +356,7 @@ class PersistedIncrementalDataSliceManager(
         ),
     )
     schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager(
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
             _get_schema_node_name_to_data_bags_updates_dir(persistence_dir),
             fs=fs,
         )
@@ -1156,8 +1156,10 @@ class PersistedIncrementalDataSliceManager(
         output_dir=branch_data_bag_manager_dir,
         fs=branch_fs,
     )
-    branch_data_bag_manager = dbm.PersistedIncrementalDataBagManager(
-        branch_data_bag_manager_dir, fs=branch_fs
+    branch_data_bag_manager = (
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+            branch_data_bag_manager_dir, fs=branch_fs
+        )
     )
     branch_schema_bag_manager_dir = os.path.join(output_dir, 'schema_bags')
     self._schema_bag_manager.create_branch(
@@ -1165,8 +1167,10 @@ class PersistedIncrementalDataSliceManager(
         output_dir=branch_schema_bag_manager_dir,
         fs=branch_fs,
     )
-    branch_schema_bag_manager = dbm.PersistedIncrementalDataBagManager(
-        branch_schema_bag_manager_dir, fs=branch_fs
+    branch_schema_bag_manager = (
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+            branch_schema_bag_manager_dir, fs=branch_fs
+        )
     )
     branch_schema_node_name_to_data_bags_updates_manager_dir = os.path.join(
         output_dir, 'snn_to_data_bags_updates'
@@ -1177,7 +1181,7 @@ class PersistedIncrementalDataSliceManager(
         fs=branch_fs,
     )
     branch_schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager(
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
             branch_schema_node_name_to_data_bags_updates_manager_dir,
             fs=branch_fs,
         )
@@ -1257,14 +1261,18 @@ class PersistedIncrementalDataSliceManager(
     which uses the latest revision. The update can then be re-attempted on the
     branch/new instance.
     """
-    data_bag_manager_copy = dbm.PersistedIncrementalDataBagManager(
-        _get_data_bags_dir(self._persistence_dir), fs=self._fs
+    data_bag_manager_copy = (
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+            _get_data_bags_dir(self._persistence_dir), fs=self._fs
+        )
     )
-    schema_bag_manager_copy = dbm.PersistedIncrementalDataBagManager(
-        _get_schema_bags_dir(self._persistence_dir), fs=self._fs
+    schema_bag_manager_copy = (
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+            _get_schema_bags_dir(self._persistence_dir), fs=self._fs
+        )
     )
     schema_node_name_to_data_bags_updates_manager_copy = (
-        dbm.PersistedIncrementalDataBagManager(
+        dbm.PersistedIncrementalDataBagManager.create_from_dir(
             _get_schema_node_name_to_data_bags_updates_dir(
                 self._persistence_dir
             ),

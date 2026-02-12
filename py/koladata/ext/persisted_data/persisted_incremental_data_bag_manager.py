@@ -18,6 +18,8 @@ The main user-facing abstraction in this module is the class
 PersistedIncrementalDataBagManager.
 """
 
+from __future__ import annotations
+
 import collections
 import concurrent.futures
 import dataclasses
@@ -33,6 +35,7 @@ from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_m
 
 
 _INITIAL_BAG_NAME = ''
+_INTERNAL_CALL = object()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -97,41 +100,135 @@ class PersistedIncrementalDataBagManager:
   meantime by another instance.
   """
 
-  def __init__(
-      self,
+  _persistence_dir: str
+  _fs: fs_interface.FileSystemInterface
+  _metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata
+  _loaded_bags_cache: dict[str, kd.types.DataBag]
+
+  @classmethod
+  def create_new(
+      cls,
       persistence_dir: str,
       *,
       fs: fs_interface.FileSystemInterface | None = None,
-  ):
-    """Initializes the manager.
+  ) -> PersistedIncrementalDataBagManager:
+    """Creates a new manager for the given persistence directory.
 
     Args:
       persistence_dir: The directory where the small bags and metadata will be
-        persisted. If it does not exist, or it is empty, then it will be
-        populated with an empty bag named ''. Otherwise, the manager will be
-        initialized from the existing artifacts in the directory.
-      fs: All interactions with the file system will go through this instance.
-        If None, then the default interaction with the file system is used.
+        persisted. It should either not exist, or it must be empty.
+      fs: All interactions with the file system will go through this object. If
+        None, then the default interaction with the file system is used.
+
+    Returns:
+      A new instance of PersistedIncrementalDataBagManager with only an empty
+      bag named '', which writes its artifacts to the given persistence_dir via
+      the given fs.
     """
-    self._persistence_dir: str = persistence_dir
-    self._fs = fs or fs_util.get_default_file_system_interaction()
-    del persistence_dir, fs  # Forces the use of the attributes henceforth.
-    self._loaded_bags_cache: dict[str, kd.types.DataBag] = dict()
-    if not self._fs.exists(self._persistence_dir):
-      self._fs.make_dirs(self._persistence_dir)
-    if not self._fs.glob(os.path.join(self._persistence_dir, '*')):  # Empty dir
-      self._metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
-          version='1.0.0',
-          # Using -1 here looks strange, but the self._add_bags() call below to
-          # add the initial bag will bump it to 0 in a moment.
-          metadata_update_number=-1,
+    fs = fs or fs_util.get_default_file_system_interaction()
+
+    if not fs.exists(persistence_dir):
+      fs.make_dirs(persistence_dir)
+    if fs.glob(os.path.join(persistence_dir, '*')):  # if not empty dir:
+      raise ValueError(
+          'the persistence_dir must be empty or not exist yet. Got'
+          f' {persistence_dir}'
       )
-      self._add_bags(
-          [BagToAdd(_INITIAL_BAG_NAME, kd.bag(), dependencies=tuple())]
+
+    result = cls(
+        internal_call=_INTERNAL_CALL,
+        persistence_dir=persistence_dir,
+        fs=fs,
+        metadata=metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
+            version='1.0.0',
+            # Using -1 here looks strange, but the self._add_bags() call below
+            # to add the initial bag will bump it to 0 in a moment.
+            metadata_update_number=-1,
+        ),
+        loaded_bags_cache=dict(),
+    )
+    # Add the initial empty bag, which will be a dependency of all other bags.
+    result._add_bags(
+        [BagToAdd(_INITIAL_BAG_NAME, kd.bag(), dependencies=tuple())]
+    )
+    return result
+
+  @classmethod
+  def create_from_dir(
+      cls,
+      persistence_dir: str,
+      *,
+      fs: fs_interface.FileSystemInterface | None = None,
+  ) -> PersistedIncrementalDataBagManager:
+    """Initializes a manager from an existing persistence directory.
+
+    Args:
+      persistence_dir: The directory where the small bags and metadata are
+        persisted. It must have been populated sometime in the past by an
+        instance of PersistedIncrementalDataBagManager.
+      fs: All interactions with the file system will go through this object. If
+        None, then the default interaction with the file system is used.
+
+    Returns:
+      A new instance of PersistedIncrementalDataBagManager that is initialized
+      from the given persistence directory.
+    """
+    fs = fs or fs_util.get_default_file_system_interaction()
+
+    if not fs.exists(persistence_dir):
+      raise ValueError(
+          f'the persistence_dir does not exist. Got {persistence_dir}'
       )
-    else:
-      self._metadata = _read_latest_metadata(self._fs, self._persistence_dir)
-      self._load_bags_into_cache({_INITIAL_BAG_NAME})
+    if not fs.glob(os.path.join(persistence_dir, '*')):  # if empty dir:
+      raise ValueError(
+          f'the persistence_dir must not be empty. Got {persistence_dir}'
+      )
+
+    result = cls(
+        internal_call=_INTERNAL_CALL,
+        persistence_dir=persistence_dir,
+        fs=fs,
+        metadata=_read_latest_metadata(fs, persistence_dir),
+        loaded_bags_cache=dict(),
+    )
+    result._load_bags_into_cache({_INITIAL_BAG_NAME})
+    return result
+
+  def __init__(
+      self,
+      *,
+      internal_call: object,
+      persistence_dir: str,
+      fs: fs_interface.FileSystemInterface,
+      metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
+      loaded_bags_cache: dict[str, kd.types.DataBag],
+  ):
+    """Initializes the manager.
+
+    This constructor is private. To create an instance of this class, please use
+    create_new() or create_from_dir().
+
+    Args:
+      internal_call: A sentinel object to ensure that this constructor is only
+        called from within this module.
+      persistence_dir: The directory where the small bags and metadata are
+        persisted.
+      fs: All interactions with the file system will go through this object.
+      metadata: The metadata of the manager.
+      loaded_bags_cache: A cache of the bags that are currently loaded.
+    """
+
+    if internal_call is not _INTERNAL_CALL:
+      raise ValueError(
+          'please do not call the PersistedIncrementalDataBagManager'
+          ' constructor directly; use the class factory methods create_new() or'
+          ' create_from_dir() instead.'
+      )
+
+    self._persistence_dir = persistence_dir
+    self._fs = fs
+    self._metadata = metadata
+    self._loaded_bags_cache = loaded_bags_cache
 
   def get_available_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are managed by this manager.
@@ -292,7 +389,9 @@ class PersistedIncrementalDataBagManager:
     # alternative would be to populate the output_dir directly, i.e. without
     # using a new manager. Or to provide a way to unload the bags from the
     # memory of the new manager.
-    new_manager = PersistedIncrementalDataBagManager(output_dir, fs=fs)
+    new_manager = PersistedIncrementalDataBagManager.create_new(
+        output_dir, fs=fs
+    )
     bags_to_add = [
         BagToAdd(
             bag_name,

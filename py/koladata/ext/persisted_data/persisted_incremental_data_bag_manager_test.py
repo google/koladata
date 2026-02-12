@@ -22,9 +22,11 @@ from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
+from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
 BagToAdd = pidbm.BagToAdd
+PersistedIncrementalDataBagManager = pidbm.PersistedIncrementalDataBagManager
 
 
 class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
@@ -36,7 +38,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
     o = kd.new(a=1, b=2, c=3)
 
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), {''})
     self.assertEqual(manager.get_loaded_bag_names(), {''})
     self.assert_equivalent_bags(manager.get_loaded_bag(), kd.bag())
@@ -95,7 +97,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # persistence_dir that was populated above.
 
     with self.subTest('InitializeFromPersistenceDir'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assertEqual(
           manager.get_available_bag_names(),
           {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
@@ -105,7 +109,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       self.assertEqual(manager._metadata.version, '1.0.0')
 
     with self.subTest('LoadAllBags'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags(manager.get_available_bag_names())
       self.assertEqual(
           manager.get_loaded_bag_names(),
@@ -117,7 +123,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadInitialBagDag'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       # Load all the bags that depend transitively on the initial bag, which is
       # the same as loading all the bags:
       manager.load_bags({''}, with_all_dependents=True)
@@ -131,7 +139,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadsAllTransitiveDependencies'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags({'bag3'})
       self.assert_equivalent_bags(
           manager.get_loaded_bag(),
@@ -143,7 +153,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadsAllTransitiveDependents'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags({'bag1'}, with_all_dependents=True)
       self.assert_equivalent_bags(
           manager.get_loaded_bag(),
@@ -155,7 +167,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadEmptySetOfBagNames'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assertEqual(manager.get_loaded_bag_names(), {''})
       manager.load_bags({})
       manager.load_bags({}, with_all_dependents=True)
@@ -177,7 +191,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     shutil.move(persistence_dir, new_persistence_dir)
     persistence_dir = new_persistence_dir
 
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     self.assertEqual(
         manager.get_available_bag_names(),
         {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
@@ -197,7 +213,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # We can add further bags to a manager that was initialized from a
     # persistence_dir that was already populated.
 
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     bag5 = kd.attrs(o, h=14, k=15, l=16)
     manager.add_bags([BagToAdd('bag5', bag5, dependencies=('bag3',))])
     self.assertEqual(
@@ -215,7 +233,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # These additional bags are also persisted, and can be picked up by new
     # manager instances.
 
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     self.assertEqual(
         manager.get_available_bag_names(),
         {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4', 'bag5'},
@@ -239,7 +259,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # a new dependent, namely bag6, which in turn depends on bag4, which isn't
     # in the transitive dependencies of bag5, but which must be loaded when we
     # ask to load bag5 and all its dependents.
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     bag6 = kd.attrs(o, j=17, l=18, m=19)
     manager.add_bags(
         [
@@ -254,7 +276,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
         ]
     )
     # Start using a new manager initialized from the persistence dir.
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     self.assertEqual(manager.get_loaded_bag_names(), {''})
     manager.load_bags({'bag5'}, with_all_dependents=True)
     self.assert_equivalent_bags(
@@ -270,7 +294,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # transitive dependencies, without any extra bags that happen to be loaded.
 
     with self.subTest('GetMinimalBag'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assertEqual(manager.get_loaded_bag_names(), {''})
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}),
@@ -292,7 +318,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('GetMinimalBagWithAllDependents'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}, with_all_dependents=True),
           kd.bags.updated(bag0, bag1, bag3, bag4, bag5, bag6),
@@ -311,7 +339,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
           bag_names={'bag5'},
           output_dir=new_persistence_dir,
       )
-      extracted_manager = pidbm.PersistedIncrementalDataBagManager(
+      extracted_manager = PersistedIncrementalDataBagManager.create_from_dir(
           new_persistence_dir
       )
       self.assertEqual(
@@ -338,7 +366,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
           with_all_dependents=True,
           output_dir=new_persistence_dir,
       )
-      extracted_manager = pidbm.PersistedIncrementalDataBagManager(
+      extracted_manager = PersistedIncrementalDataBagManager.create_from_dir(
           new_persistence_dir
       )
       self.assertEqual(
@@ -361,7 +389,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_non_existing_persistence_dir_with_initial_bag(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), {''})
     self.assertEqual(manager.get_loaded_bag_names(), {''})
     self.assert_equivalent_bags(manager.get_loaded_bag(), kd.bag())
@@ -369,7 +397,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_empty_persistence_dir_initialization(self):
     persistence_dir = self.create_tempdir().full_path  # Exists and empty.
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), {''})
     self.assertEqual(manager.get_loaded_bag_names(), {''})
     self.assert_equivalent_bags(manager.get_loaded_bag(), kd.bag())
@@ -379,7 +407,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     bag_names = ['bag0', 'bag1', 'bag2']
     for name0, name1, name2 in itertools.permutations(bag_names):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
       manager.add_bags([BagToAdd(name0, kd.bag(), dependencies=('',))])
       manager.add_bags([BagToAdd(name1, kd.bag(), dependencies=('',))])
       manager.add_bags([BagToAdd(name2, kd.bag(), dependencies=('',))])
@@ -396,7 +424,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # The same holds when the bags are added in one go:
     for name0, name1, name2 in itertools.permutations(bag_names):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
       manager.add_bags([
           pidbm.BagToAdd(name0, kd.bag(), dependencies=('',)),
           pidbm.BagToAdd(name1, kd.bag(), dependencies=('',)),
@@ -420,7 +448,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     with self.subTest('EmptyInitialPersistenceDir'):
       persistence_dir = self.create_tempdir().full_path
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      _ = pidbm.PersistedIncrementalDataBagManager(
+      _ = PersistedIncrementalDataBagManager.create_new(
           persistence_dir, fs=mocked_fs
       )
       method_names_called = [c[0] for c in mocked_fs.method_calls]
@@ -444,11 +472,11 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     with self.subTest('NonEmptyInitialPersistenceDir'):
       persistence_dir = self.create_tempdir().full_path
       # Initialize the directory:
-      _ = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      _ = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
       # Start a new manager with the already initialized persistence_dir.
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      _ = pidbm.PersistedIncrementalDataBagManager(
+      _ = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=mocked_fs
       )
       method_names_called = [c[0] for c in mocked_fs.method_calls]
@@ -466,7 +494,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     with self.subTest('add_bags'):
       persistence_dir = self.create_tempdir().full_path
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir, fs=mocked_fs
       )
 
@@ -490,14 +518,14 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     with self.subTest('load_bags'):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir, fs=mocked_fs
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
       manager.add_bags([BagToAdd('bag2', kd.bag(), dependencies=('',))])
 
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=mocked_fs
       )
       mocked_fs.reset_mock()
@@ -513,13 +541,13 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     with self.subTest('get_minimal_bag'):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir,
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=mocked_fs
       )
       mocked_fs.reset_mock()
@@ -534,13 +562,13 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # persistence_dir, and one for the output_dir.
     with self.subTest('extract_bags'):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir,
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
       original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=original_fs
       )
       original_fs.reset_mock()
@@ -592,13 +620,13 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     with self.subTest('create_branch'):
       persistence_dir = self.create_tempdir().full_path
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir,
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
       original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
-      manager = pidbm.PersistedIncrementalDataBagManager(
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=original_fs
       )
       original_fs.reset_mock()
@@ -636,7 +664,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_load_bags_with_wrong_name(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
         re.escape("The following bags are not available: ['bag1']"),
@@ -645,7 +673,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_add_bag_with_conflicting_name(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
         "A bag with name '' was already added.",
@@ -661,7 +689,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_add_bag_with_empty_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -673,7 +701,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_add_bag_with_invalid_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
         "A dependency on a bag with name 'non_existent_bag' is invalid, because"
@@ -693,7 +721,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_get_minimal_bag_with_empty_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     kd.testing.assert_equivalent(
         manager.get_minimal_bag(bag_names=[]), kd.bag()
@@ -701,7 +729,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_get_minimal_bag_with_unknown_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -714,18 +742,20 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_extract_bags_with_empty_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     output_dir = self.create_tempdir().full_path
     manager.extract_bags(bag_names=[], output_dir=output_dir)
-    extracted_manager = pidbm.PersistedIncrementalDataBagManager(output_dir)
+    extracted_manager = PersistedIncrementalDataBagManager.create_from_dir(
+        output_dir
+    )
     self.assertEqual(extracted_manager.get_available_bag_names(), {''})
     self.assertEqual(extracted_manager.get_loaded_bag_names(), {''})
     self.assert_equivalent_bags(extracted_manager.get_loaded_bag(), kd.bag())
 
   def test_extract_bags_with_unknown_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     output_dir = self.create_tempdir().full_path
     with self.assertRaisesRegex(
@@ -739,7 +769,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_extract_bags_with_non_empty_output_dir(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     tempdir = self.create_tempdir()
     tempdir.create_file()  # Non-empty.
@@ -754,7 +784,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
   # in one go, instead of adding them one by one.
   def test_add_bags_in_one_go(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     o = kd.new(a=1, b=2, c=3)
     bag0 = o.get_bag()
@@ -774,7 +804,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # persistence_dir that was populated above.
 
     with self.subTest('InitializeFromPersistenceDir'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assertEqual(
           manager.get_available_bag_names(),
           {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
@@ -784,7 +816,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       self.assertEqual(manager._metadata.version, '1.0.0')
 
     with self.subTest('LoadAllBags'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags(manager.get_available_bag_names())
       self.assertEqual(
           manager.get_loaded_bag_names(),
@@ -796,7 +830,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadInitialBagDag'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       # Load all the bags that depend transitively on the initial bag, which is
       # the same as loading all the bags:
       manager.load_bags({''}, with_all_dependents=True)
@@ -810,7 +846,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadsAllTransitiveDependencies'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags({'bag3'})
       self.assert_equivalent_bags(
           manager.get_loaded_bag(),
@@ -822,7 +860,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadsAllTransitiveDependents'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       manager.load_bags({'bag1'}, with_all_dependents=True)
       self.assert_equivalent_bags(
           manager.get_loaded_bag(),
@@ -834,7 +874,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
 
     with self.subTest('LoadEmptySetOfBagNames'):
-      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager = PersistedIncrementalDataBagManager.create_from_dir(
+          persistence_dir
+      )
       self.assertEqual(manager.get_loaded_bag_names(), {''})
       manager.load_bags({})
       manager.load_bags({}, with_all_dependents=True)
@@ -851,7 +893,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_add_bags_with_wrong_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
     o = kd.new(a=1, b=2, c=3)
     bag0 = o.get_bag()
@@ -898,7 +940,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     c = kd.new(c=5, d=6)
 
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     manager.add_bags([BagToAdd('bag_a', a.get_bag(), dependencies=('',))])
     manager.add_bags([BagToAdd('bag_b', b.get_bag(), dependencies=('',))])
     manager.add_bags([BagToAdd('bag_c', c.get_bag(), dependencies=('bag_a',))])
@@ -924,7 +966,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     # After clearing the cache, the state of the manager is the same as that of
     # a new manager instance with the same persistence_dir.
-    new_manager = pidbm.PersistedIncrementalDataBagManager(
+    new_manager = PersistedIncrementalDataBagManager.create_from_dir(
         persistence_dir, fs=manager._fs
     )
     for attr_name in manager.__dict__:
@@ -944,7 +986,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     entity = kd.new()
 
     trunk_dir = self.create_tempdir().full_path
-    trunk_manager = pidbm.PersistedIncrementalDataBagManager(trunk_dir)
+    trunk_manager = PersistedIncrementalDataBagManager.create_new(trunk_dir)
     trunk_manager.add_bags([
         pidbm.BagToAdd(
             bag_name='trunk1', bag=kd.attrs(entity, a=1), dependencies=('',)
@@ -968,7 +1010,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     )
     # Only the metadata file is created. No bag files are copied.
     self.assertEqual(os.listdir(branch_dir), ['metadata-000000000000.pb'])
-    branch_manager = pidbm.PersistedIncrementalDataBagManager(branch_dir)
+    branch_manager = PersistedIncrementalDataBagManager.create_from_dir(
+        branch_dir
+    )
     self.assertEqual(
         branch_manager.get_available_bag_names(),
         {'', 'trunk1', 'trunk2', 'trunk3'},
@@ -996,7 +1040,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
         {'', 'trunk1', 'trunk2', 'trunk3'},  # branch1 is not available
     )
     self.assertEqual(
-        pidbm.PersistedIncrementalDataBagManager(
+        PersistedIncrementalDataBagManager.create_from_dir(
             trunk_dir
         ).get_available_bag_names(),
         {'', 'trunk1', 'trunk2', 'trunk3'},  # branch1 is not available
@@ -1027,7 +1071,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
         },  # trunk4 is not available
     )
     self.assertEqual(
-        pidbm.PersistedIncrementalDataBagManager(
+        PersistedIncrementalDataBagManager.create_from_dir(
             branch_dir
         ).get_available_bag_names(),
         {'', 'trunk1', 'trunk2', 'trunk3', 'branch1'},
@@ -1043,7 +1087,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
         bag_names=['branch1'], output_dir=twig_dir, fs=branch_manager._fs
     )
     self.assertEqual(os.listdir(twig_dir), ['metadata-000000000000.pb'])
-    twig_manager = pidbm.PersistedIncrementalDataBagManager(twig_dir)
+    twig_manager = PersistedIncrementalDataBagManager.create_from_dir(twig_dir)
     self.assertEqual(
         twig_manager.get_available_bag_names(),
         # trunk3 is not included because it is not a dependency of branch1, and
@@ -1075,7 +1119,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     trunk_manager.create_branch(
         bag_names=['trunk1'], output_dir=another_branch_dir
     )
-    another_branch_manager = pidbm.PersistedIncrementalDataBagManager(
+    another_branch_manager = PersistedIncrementalDataBagManager.create_from_dir(
         another_branch_dir
     )
     self.assertEqual(
@@ -1085,7 +1129,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_create_branch_with_invalid_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -1114,7 +1158,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_create_branch_with_non_empty_output_dir(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     tempdir = self.create_tempdir()
     tempdir.create_file()  # Non-empty.
     output_dir = tempdir.full_path
@@ -1126,14 +1170,16 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
   def test_basic_concurrent_readers_writers(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    manager = PersistedIncrementalDataBagManager.create_new(persistence_dir)
     manager.add_bags([
         pidbm.BagToAdd(
             bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=('',)
         ),
     ])
 
-    another_manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+    another_manager = PersistedIncrementalDataBagManager.create_from_dir(
+        persistence_dir
+    )
     another_manager.add_bags([
         pidbm.BagToAdd(
             bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('bag1',)
@@ -1194,7 +1240,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     )
 
     persistence_dir = self.create_tempdir().full_path
-    manager = pidbm.PersistedIncrementalDataBagManager(
+    manager = PersistedIncrementalDataBagManager.create_new(
         persistence_dir, fs=fs_factory()
     )
     bag1 = kd.attrs(kd.new(), a=1)
@@ -1283,7 +1329,9 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     manager._fs = fs_factory()  # Don't raise on rename anymore.
     branch_dir = self.create_tempdir().full_path
     manager.create_branch({''}, with_all_dependents=True, output_dir=branch_dir)
-    branch_manager = pidbm.PersistedIncrementalDataBagManager(branch_dir)
+    branch_manager = PersistedIncrementalDataBagManager.create_from_dir(
+        branch_dir
+    )
     branch_manager.add_bags([
         pidbm.BagToAdd(bag_name='bag6', bag=bag6, dependencies=('',)),
     ])
@@ -1291,6 +1339,51 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
         branch_manager.get_minimal_bag({'bag6'}).merge_fallbacks(),
         bag6,
     )
+
+  def test_calling_constructor_directly_raises(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'please do not call the PersistedIncrementalDataBagManager'
+            ' constructor directly; use the class factory methods create_new()'
+            ' or create_from_dir() instead'
+        ),
+    ):
+      PersistedIncrementalDataBagManager(
+          internal_call=object(),
+          persistence_dir=self.create_tempdir().full_path,
+          fs=fs_implementation.FileSystemInteraction(),
+          metadata=metadata_pb2.PersistedIncrementalDataBagManagerMetadata(),
+          loaded_bags_cache=dict(),
+      )
+
+  def test_create_new_with_non_empty_dir(self):
+    persistence_dir = self.create_tempdir().full_path
+    with open(os.path.join(persistence_dir, 'foo'), 'w') as f:
+      f.write('bar')
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('the persistence_dir must be empty or not exist yet. Got'),
+    ):
+      PersistedIncrementalDataBagManager.create_new(persistence_dir)
+
+  def test_create_from_dir_with_non_existent_dir(self):
+    persistence_dir = os.path.join(
+        self.create_tempdir().full_path, 'non_existent_dir'
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('the persistence_dir does not exist. Got'),
+    ):
+      PersistedIncrementalDataBagManager.create_from_dir(persistence_dir)
+
+  def test_create_from_dir_with_empty_dir(self):
+    persistence_dir = self.create_tempdir().full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('the persistence_dir must not be empty. Got'),
+    ):
+      PersistedIncrementalDataBagManager.create_from_dir(persistence_dir)
 
 
 if __name__ == '__main__':
