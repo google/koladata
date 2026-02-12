@@ -363,8 +363,8 @@ class FromPyTest(parameterized.TestCase):
     l2 = db.list()
     with self.assertRaisesRegex(
         ValueError,
-        'could not parse list of primitives / data items: cannot find a common'
-        ' schema',
+        'could not parse list of primitives / data items on the same level '
+        'when schema is specified: cannot find a common schema',
     ):
       _ = from_py([[l1, l2], [o1, o2]], from_dim=2, schema=None)
 
@@ -403,8 +403,8 @@ class FromPyTest(parameterized.TestCase):
     o2 = fns.list()  # bag 2
     with self.assertRaisesRegex(
         ValueError,
-        'could not parse list of primitives / data items: cannot find a common'
-        ' schema',
+        'could not parse list of primitives / data items on the same level '
+        'when schema is specified: cannot find a common schema',
     ):
       _ = from_py([[o1, o2], [42]], from_dim=2, schema=None)
 
@@ -1004,7 +1004,9 @@ assigned schema: INT32"""),
       testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
 
       with self.assertRaisesRegex(
-          ValueError, 'could not parse list of primitives'
+          ValueError,
+          'could not parse list of primitives / data items on the same level '
+          'when schema is specified: object with unsupported type: TestClass',
       ):
         _ = from_py([entity, obj], schema=schema, dict_as_obj=True)
 
@@ -2275,9 +2277,10 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
 
-    # TODO: Make the error message indicate the actual problem.
     with self.assertRaisesRegex(
-        ValueError, 'could not parse list of primitives'
+        ValueError,
+        'could not parse list of primitives / data items on the same level '
+        'when schema is specified: object with unsupported type: list',
     ):
       from_py(py_l, schema=schema)
 

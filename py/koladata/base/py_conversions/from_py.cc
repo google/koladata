@@ -502,11 +502,10 @@ class FromPyConverter {
           schema ? schema->item() : DataItem(), adoption_queue_,
           /*explicit_cast=*/IsObjectSchema(schema));
       if (!ds_or.ok()) {
-        // TODO (b/391097990) find a way to make the error message more user
-        // friendly.
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "could not parse list of primitives / data items: %s",
-            ds_or.status().message()));
+        return absl::InvalidArgumentError(
+            absl::StrFormat("could not parse list of primitives / data items "
+                            "on the same level when schema is specified: %s",
+                            ds_or.status().message()));
       }
       result = std::move(ds_or).value();
       return absl::OkStatus();
