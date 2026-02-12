@@ -4765,6 +4765,90 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             persistence_dir, at_revision_history_index=3
         )
 
+  def test_internal_copy(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = PersistedIncrementalDataSliceManager.create_new(persistence_dir)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([kd.new(query_id='q1')]),
+        description='Added queries with only query_id populated',
+    )
+
+    manager_copy = manager.internal_copy()
+
+    # The copy is a different instance from the original manager, but it is
+    # based on the same persistence directory and revision.
+    self.assertIsNot(manager, manager_copy)
+    self.assertEqual(
+        manager_copy.get_persistence_directory(),
+        manager.get_persistence_directory(),
+    )
+    self.assertIs(manager_copy._fs, manager._fs)
+    kd.testing.assert_equivalent(
+        manager_copy.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        manager.get_data_slice(populate_including_descendants={parse_dsp('')}),
+        ids_equality=True,
+    )
+    self.assertEqual(
+        manager_copy.get_revision_history(), manager.get_revision_history()
+    )
+
+    # Update the original manager.
+    full_ds_before_update = manager.get_data_slice(
+        populate_including_descendants={parse_dsp('')}
+    )
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),
+        description='Added docs to queries',
+    )
+
+    # The copy is not affected by the update to the original manager.
+    kd.testing.assert_equivalent(
+        manager_copy.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        full_ds_before_update,
+        ids_equality=True,
+    )
+    # Sanity check: something did get updated in the original manager.
+    with self.assertRaises(AssertionError):
+      kd.testing.assert_equivalent(
+          manager.get_data_slice(
+              populate_including_descendants={parse_dsp('')}
+          ),
+          full_ds_before_update,
+          ids_equality=True,
+      )
+    # The original manager has one more revision appended to its history.
+    self.assertEqual(
+        manager_copy.get_revision_history(),
+        manager.get_revision_history()[:-1],
+    )
+
+    # The docstring mentions that the copy is equivalent to creating a new
+    # manager from the same directory but at a pinned revision. Let's verify
+    # that.
+    new_manager = PersistedIncrementalDataSliceManager.create_from_dir(
+        manager.get_persistence_directory(),
+        # Here we pin the revision to the one before the last update.
+        at_revision_history_index=len(manager.get_revision_history()) - 2,
+    )
+    self.assertIsNot(new_manager, manager_copy)
+    kd.testing.assert_equivalent(
+        new_manager.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        manager_copy.get_data_slice(
+            populate_including_descendants={parse_dsp('')}
+        ),
+        ids_equality=True,
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

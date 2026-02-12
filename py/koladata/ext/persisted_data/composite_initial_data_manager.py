@@ -200,6 +200,18 @@ class CompositeInitialDataManager(
         # Use new manager instances. An instance is not thread-safe, creating
         # new instances is cheap, and no synchronization/locking is needed in
         # or around the new instances.
+        # TODO: Once all DataSliceManager and InitialDataManager
+        # implementations are thread-safe, we can completely remove the copy()
+        # method from InitialDataManagerInterface and simply share references to
+        # the InitialDataManager instances. The method
+        # PersistedIncrementalDataSliceManager.internal_copy() must be retained,
+        # because it is used to create instances that have pinned revisions
+        # which is still needed by CompositeInitialDataManager.create_new()
+        # above. Said otherwise, the InitialDataManager abstraction is
+        # conceptually immutable, and the DataSliceManager abstraction is
+        # conceptually mutable, so even if both are thread-safe we need some way
+        # to make immutable snapshots of the mutable instances for use in
+        # CompositeInitialDataManager.
         managers=_new_manager_instances_with_pinned_revisions(self._managers),
     )
 
@@ -211,18 +223,7 @@ def _new_manager_instances_with_pinned_revisions(
 ) -> list[
     persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
 ]:
-  return [
-      # TODO: create a new public method for creating a new manager
-      # instance with a pinned revision. That method should be much faster than
-      # create_from_dir() because it can avoid the potentially expensive
-      # deserialization of the initial data manager.
-      persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager.create_from_dir(
-          m.get_persistence_directory(),
-          at_revision_history_index=len(m.get_revision_history()) - 1,
-          fs=m._fs,  # pylint: disable=protected-access
-      )
-      for m in managers
-  ]
+  return [m.internal_copy() for m in managers]
 
 
 def _get_metadata_filepath(persistence_dir: str) -> str:

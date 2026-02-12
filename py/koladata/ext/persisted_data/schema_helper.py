@@ -615,7 +615,7 @@ def _get_transitive_closure_image(
 
 
 class SchemaHelper:
-  """A helper for a given schema. Instances are immutable.
+  """A helper for a given schema. Instances are immutable and thread-safe.
 
   The purpose is twofold:
   * Cache the schema graph and the node name to schema mapping to speed up

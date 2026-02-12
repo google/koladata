@@ -20,6 +20,7 @@ PersistedIncrementalDataSliceManager.
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import datetime
 import os
@@ -1221,6 +1222,70 @@ class PersistedIncrementalDataSliceManager(
         initial_schema_node_name_to_data_bag_names=branch_initial_schema_node_name_to_data_bag_names,
         schema_node_name_to_data_bags_updates_manager=branch_schema_node_name_to_data_bags_updates_manager,
         metadata=branch_metadata,
+    )
+
+  def internal_copy(self) -> PersistedIncrementalDataSliceManager:
+    """Returns a copy of this manager.
+
+    This method is not part of the public API and is meant to be called only
+    by library-internal code.
+
+    The copy will use the same persistence directory as this manager. It will
+    use the same revision as this manager at the time of copying.
+
+    Conceptually, the result should be equivalent to calling
+    PersistedIncrementalDataSliceManager.create_from_dir(
+        self.get_persistence_dir(),
+        at_revision_history_index=len(self.get_revision_history()) - 1,
+        fs=self._fs
+    )
+    However, the copy implementation should be faster than that, as there is no
+    real need to read anything from disk. The implementation is free to read
+    cheap parts from disk if that turns out to be convenient.
+
+    It should be possible to use the copy in another thread. If there is
+    internal mutable state, such as caches, that are shared between this
+    instance and the copy, then that state must be properly synchronized.
+
+    ** warning **
+    The original manager and all copies of it share the same persistence
+    directory. That means at most one of them can perform updates. Such updates
+    are not propagated to the other instances - i.e. their revisions won't
+    change. Performing an update on another instance (which doesn't use the
+    latest revision) will raise an exception, and instruct you to branch the
+    manager or to create a new manager instance from the persistence directory
+    which uses the latest revision. The update can then be re-attempted on the
+    branch/new instance.
+    """
+    data_bag_manager_copy = dbm.PersistedIncrementalDataBagManager(
+        _get_data_bags_dir(self._persistence_dir), fs=self._fs
+    )
+    schema_bag_manager_copy = dbm.PersistedIncrementalDataBagManager(
+        _get_schema_bags_dir(self._persistence_dir), fs=self._fs
+    )
+    schema_node_name_to_data_bags_updates_manager_copy = (
+        dbm.PersistedIncrementalDataBagManager(
+            _get_schema_node_name_to_data_bags_updates_dir(
+                self._persistence_dir
+            ),
+            fs=self._fs,
+        )
+    )
+    return PersistedIncrementalDataSliceManager(
+        internal_call=_INTERNAL_CALL,
+        persistence_dir=self._persistence_dir,
+        fs=self._fs,
+        initial_data_manager=self._initial_data_manager.copy(),
+        data_bag_manager=data_bag_manager_copy,
+        schema_bag_manager=schema_bag_manager_copy,
+        schema_helper=self._schema_helper,
+        initial_schema_node_name_to_data_bag_names=(
+            self._initial_schema_node_name_to_data_bag_names
+        ),
+        schema_node_name_to_data_bags_updates_manager=(
+            schema_node_name_to_data_bags_updates_manager_copy
+        ),
+        metadata=copy.deepcopy(self._metadata),
     )
 
   def clear_cache(self):
