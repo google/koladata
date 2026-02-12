@@ -88,8 +88,10 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       s = db.named_schema(
           f'__schema_from_py__{tpe.__module__}.{tpe.__qualname__}'
       )
+      # Required to support `from __future__ import annotations`.
+      field_types = typing.get_type_hints(tpe)
       s.set_attrs(**{
-          field.name: schema_from_py_impl(field.type, db)
+          field.name: schema_from_py_impl(field_types[field.name], db)
           for field in dataclasses.fields(tpe)
       })
       return s

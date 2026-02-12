@@ -103,6 +103,23 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertEqual(my_class_schema, schema.schema_from_py(MyClass))
     self.assertFalse(my_class_schema.is_mutable())
 
+  def test_schema_from_inherited_py_dataclasses(self):
+    # Tests that annotations from inherited dataclasses are included.
+
+    @dataclasses.dataclass
+    class MyParentClass:
+      x: int
+
+    @dataclasses.dataclass
+    class MyChildClass(MyParentClass):
+      y: str
+
+    my_class_schema = schema.schema_from_py(MyChildClass)
+    self.assertEqual(my_class_schema.x, schema_constants.INT64)
+    self.assertEqual(my_class_schema.y, schema_constants.STRING)
+    self.assertEqual(my_class_schema, schema.schema_from_py(MyChildClass))
+    self.assertFalse(my_class_schema.is_mutable())
+
   def test_schema_from_py_a_bit_of_everything(self):
 
     @dataclasses.dataclass

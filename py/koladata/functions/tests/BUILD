@@ -1002,6 +1002,19 @@ py_test(
     ],
 )
 
+py_test(
+    name = "schema_from_py_with_future_annotations_test",
+    srcs = ["schema_from_py_with_future_annotations_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions:schema",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],
