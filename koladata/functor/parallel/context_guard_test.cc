@@ -38,7 +38,21 @@ class TestScopeGuard {
   std::function<void()> on_destruct_fn_;
 };
 
-TEST(ContextGuardTest, TestScopeGuard) {
+TEST(ContextGuardTest, TestScopeGuardInplaceCtor) {
+  bool constructed = false;
+  bool destructed = false;
+  std::function<void()> on_construct = [&] { constructed = true; };
+  std::function<void()> on_destruct = [&] { destructed = true; };
+  {
+    ContextGuard context_guard(std::in_place_type_t<TestScopeGuard>(),
+                               on_construct, on_destruct);
+    EXPECT_TRUE(constructed);
+    EXPECT_FALSE(destructed);
+  }
+  EXPECT_TRUE(destructed);
+}
+
+TEST(ContextGuardTest, TestScopeGuardInit) {
   bool constructed = false;
   bool destructed = false;
   std::function<void()> on_construct = [&] { constructed = true; };
