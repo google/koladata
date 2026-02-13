@@ -88,8 +88,8 @@ message ParallelTransformConfigProto {
 
   repeated OperatorReplacement operator_replacements = 1;
 
-  // If true, the sub-functors that are not static but computed will
-  // be transformed to the parallel form at runtime. If false, we will
-  // raise an error in that case.
+  // If true, the sub-functors that are not fully defined at transform time
+  // (i.e. that depend on functor inputs) will be transformed to the parallel
+  // form at runtime. If false, we will raise an error in that case.
   bool allow_runtime_transforms = 2;
 }

@@ -250,15 +250,17 @@ class FunctorSwitchTest(absltest.TestCase):
         repr(expr),
         """kd.functor.switch(
     I.k,
-    'b': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING)),
-    ),
-    'a': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
-    ),
-    kd.SWITCH_DEFAULT: Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-      returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING)),
-    ),
+    {
+        'b': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING)),
+        ),
+        'a': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
+        ),
+        kd.SWITCH_DEFAULT: Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING)),
+        ),
+    },
     x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
     )
 
@@ -275,6 +277,24 @@ class FunctorSwitchTest(absltest.TestCase):
     I.k,
     kd.dict(kd.get_keys(I.cases), kd.get_values(I.cases, unspecified)),
     x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
+    )
+
+  def test_repr_no_args(self):
+    expr = kde.functor.switch(
+        I.k,
+        {
+            'a': lambda x: kde.attrs(x, foo='a'),
+        },
+    )
+    self.assertEqual(
+        repr(expr),
+        """kd.functor.switch(
+    I.k,
+    {
+        'a': Functor FunctorSwitchTest.test_repr_no_args.<locals>.<lambda>[x](
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
+        ),
+    })""",
     )
 
   def test_view(self):

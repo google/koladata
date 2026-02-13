@@ -2246,6 +2246,69 @@ def _parallel_if(
           cond,
           transformed_yes_fn,
           transformed_no_fn,
+          # async_eval waits until all the future args are ready, but here we
+          # hide the futures inside a tuple in order to propagate to the
+          # downstream operators.
+          (args, return_type_as, kwargs),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_switch_impl',
+)
+def _parallel_switch_impl(
+    executor, key, case_keys, transformed_case_fns, parallel_args
+):
+  """Implementation helper for _parallel_switch."""
+  args = parallel_args[0]
+  return_type_as = parallel_args[1]
+  kwargs = parallel_args[2]
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      functor.switch,
+      key,
+      case_keys,
+      transformed_case_fns,
+      return_type_as=return_type_as,
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
+      kwargs=kwargs,
+      non_deterministic=optools.unified_non_deterministic_arg(),
+  )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_switch',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_future(P.key),
+        qtype_utils.expect_data_slice(P.transformed_case_fns),
+        qtype_utils.expect_tuple(P.args),
+        qtype_utils.expect_namedtuple(P.kwargs),
+    ],
+)
+def _parallel_switch(
+    executor,
+    key,
+    case_keys,
+    transformed_case_fns,
+    return_type_as,
+    args,
+    kwargs,
+):
+  """The parallel version of kd.switch."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          executor,
+          _parallel_switch_impl,
+          executor,
+          key,
+          case_keys,
+          transformed_case_fns,
+          # async_eval waits until all the future args are ready, but here we
+          # hide the futures inside a tuple in order to propagate to the
+          # downstream operators.
           (args, return_type_as, kwargs),
           optools.unified_non_deterministic_arg(),
       )
@@ -3320,6 +3383,15 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
       arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS
       functor_argument_indices: 1
+      functor_argument_indices: 2
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.switch"
+    to_op: "koda_internal.parallel._parallel_switch"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
       functor_argument_indices: 2
     }
   }

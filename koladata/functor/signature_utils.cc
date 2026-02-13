@@ -280,11 +280,23 @@ const Signature& CppArgsKwargsSignature() {
           .value());
   return *val;
 }
+
+const Signature& CppEmptySignature() {
+  static absl::NoDestructor<Signature> val(Signature::Create({}).value());
+  return *val;
+}
+
 }  // namespace
 
 const DataSlice& KodaArgsKwargsSignature() {
   static absl::NoDestructor<DataSlice> val{
       CppSignatureToKodaSignature(CppArgsKwargsSignature()).value()};
+  return *val;
+}
+
+const DataSlice& KodaEmptySignature() {
+  static absl::NoDestructor<DataSlice> val{
+      CppSignatureToKodaSignature(CppEmptySignature()).value()};
   return *val;
 }
 

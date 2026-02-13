@@ -31,6 +31,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 
@@ -42,6 +43,7 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::HasSubstr;
+using ::testing::IsEmpty;
 
 TEST(BindArgumentsTest, Basic) {
   Signature::Parameter p1 = {
@@ -378,6 +380,12 @@ TEST(CppSignatureToKodaSignatureTest, Basic) {
   EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("keyword_only"));
   EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("var_keyword"));
   EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("no_default_value"));
+}
+
+TEST(SignatureUtilsTest, KodaEmptySignature) {
+  ASSERT_OK_AND_ASSIGN(auto signature,
+                       KodaSignatureToCppSignature(KodaEmptySignature()));
+  EXPECT_THAT(signature.parameters(), IsEmpty());
 }
 
 }  // namespace

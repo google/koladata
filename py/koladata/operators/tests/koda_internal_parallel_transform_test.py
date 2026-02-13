@@ -767,11 +767,61 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         expected_output=ds(1 * 10),
     )
 
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(
+                S.x,
+                # Literal subexpressions are evaluated during transform.
+                kde.slice([fn1, fn2]),
+                S.y,
+                arolla.unspecified(),
+            ),
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds([10, 1]),
+    )
+
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(
+                S.x,
+                # Literal subexpressions are evaluated during transform.
+                kde.slice([V.fn1, V.fn2]),
+                S.y,
+                arolla.unspecified(),
+            ),
+            fn1=fn1,
+            fn2=fn2,
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds([10, 1]),
+    )
+
+    fn3 = functor_factories.expr_fn(S + V.foo)
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(
+                S.x,
+                # Literal subexpressions are evaluated during transform.
+                kde.slice([V.fn1, V.fn3.with_attrs(foo=5)]),
+                S.y,
+                arolla.unspecified(),
+            ),
+            fn1=fn1,
+            fn3=fn3,
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds([10, 6]),
+    )
+
     with self.assertRaisesRegex(ValueError, 'allow_runtime_transforms=True'):
       self._test_eval_on_futures(
           functor_factories.expr_fn(
               my_op_with_nested_transform(
-                  S.x, fns.slice([fn1, fn2]), S.y, arolla.unspecified()
+                  S.x, kde.slice([fn1, S.fn]), S.y, arolla.unspecified()
               ),
           ),
           replacements=replacements,

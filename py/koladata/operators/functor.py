@@ -373,7 +373,13 @@ def _switch_repr(
       # unlike str(k).
       k_repr = repr(k.to_py()) if k != SWITCH_DEFAULT else 'kd.SWITCH_DEFAULT'
       case_reprs[k_repr] = str(f)
-    cases_repr = ',\n'.join(f'{k}: {v}' for k, v in case_reprs.items())
+    cases_repr = (
+        '{\n'
+        + textwrap.indent(
+            '\n'.join(f'{k}: {v},' for k, v in case_reprs.items()), '    '
+        )
+        + '\n}'
+    )
   else:
     cases_repr = f'kd.dict({tokens[case_keys].text}, {tokens[case_fns].text})'
 
@@ -382,9 +388,11 @@ def _switch_repr(
   res = op_repr.ReprToken()
   res.text = (
       f'{node.op.display_name}(\n'
-      f'{textwrap.indent(key_repr, "    ")},\n'
-      f'{textwrap.indent(cases_repr, "    ")},\n'
-      f'{textwrap.indent(args_kwargs, "    ")})'
+      + textwrap.indent(
+          ',\n'.join(filter(None, (key_repr, cases_repr, args_kwargs))),
+          '    ',
+      )
+      + ')'
   )
   return res
 

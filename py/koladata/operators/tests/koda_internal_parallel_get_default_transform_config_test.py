@@ -347,6 +347,49 @@ class KodaInternalParallelGetDefaultTransformConfigTest(parameterized.TestCase):
     new_y = y.updated(res.read_all(timeout=5.0)[0])
     testing.assert_equal(new_y.foo.no_bag(), ds(2))
 
+  @parameterized.parameters(('a', 5), ('b', 9), ('c', 13))
+  def test_switch(self, branch_to_use, expected_result):
+    barrier = threading.Barrier(2)
+
+    @tracing_decorator.TraceAsFnDecorator(
+        functor_factory=functor_factories.py_fn
+    )
+    def wait_and_return_x(x):
+      barrier.wait()
+      return x
+
+    def case_a(x):
+      return wait_and_return_x(x + 1) + wait_and_return_x(x + 2)
+
+    def case_b(x):
+      return wait_and_return_x(x + 3) + wait_and_return_x(x + 4)
+
+    def case_c(x):
+      return wait_and_return_x(x + 5) + wait_and_return_x(x + 6)
+
+    @functor_factories.trace_py_fn
+    def fn(x):
+      return user_facing_kd.switch(
+          branch_to_use,
+          {
+              'a': case_a,
+              'b': case_b,
+              user_facing_kd.SWITCH_DEFAULT: case_c,
+          },
+          x,
+      )
+
+    config = kde_internal.parallel.get_default_transform_config()
+    transformed_fn = kde_internal.parallel.transform(config, fn)
+    res = kde_internal.parallel.stream_from_future(
+        transformed_fn(
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds(1)),
+            return_type_as=kde_internal.parallel.as_future(None),
+        )
+    ).eval()
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds(expected_result))
+
   def test_iterables_make(self):
     e1 = threading.Event()
     e2 = threading.Event()

@@ -177,13 +177,14 @@ def transform(
 
   Args:
     fn: The functor to transform.
-    allow_runtime_transforms: Whether to allow sub-functors to be not literals,
-      but computed expressions, which will therefore have to be transformed at
-      runtime. This can be slow.
+    allow_runtime_transforms: Whether to allow sub-functors to be not fully
+      defined at transform time (i.e. to depend on functor inputs), which will
+      therefore have to be transformed at runtime. This can be slow.
 
   Returns:
     The transformed functor.
   """
+
   fn = py_boxing.as_qvalue(fn)
   config = koda_internal_parallel.create_transform_config(
       koda_internal_parallel.get_default_transform_config_src().with_attrs(

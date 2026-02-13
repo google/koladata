@@ -61,14 +61,16 @@
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "koladata/functor/auto_variables.h"
+#include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/parallel/transform_config.pb.h"
 #include "koladata/functor/parallel/transform_config.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/core.h"
 #include "koladata/operators/slices.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
@@ -278,24 +280,15 @@ class InnerTransformManager {
     }
     used_var_names_.insert(result.var_name);
     ASSIGN_OR_RETURN(DataSlice var, functor_.GetAttr(var_name));
-    if (!var.item().holds_value<arolla::expr::ExprQuote>()) {
-      ASSIGN_OR_RETURN(
-          auto transformed_var,
-          TransformEager(arolla::TypedValue::FromValue(std::move(var))));
-      ASSIGN_OR_RETURN(auto transformed_var_slice,
-                       std::move(transformed_var).As<DataSlice>());
-      new_vars_.emplace_back(result.var_name, std::move(transformed_var_slice));
-      results_.emplace(var_name, result);
-      return result;
+    std::optional<arolla::TypedValue> var_qvalue;
+    if (var.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(var_qvalue, TryComputeLiteral(var));
+    } else {
+      var_qvalue = arolla::TypedValue::FromValue(std::move(var));
     }
-    ASSIGN_OR_RETURN(auto var_expr,
-                     var.item().value<arolla::expr::ExprQuote>().expr());
-    if (expr::IsLiteral(var_expr)) {
-      if (!var_expr->qvalue()) {
-        return absl::InternalError("Literal does not have a value");
-      }
+    if (var_qvalue.has_value()) {
       ASSIGN_OR_RETURN(auto transformed_var,
-                       TransformEager(*var_expr->qvalue()));
+                       TransformEager(*std::move(var_qvalue)));
       auto new_var_expr = arolla::expr::Literal(std::move(transformed_var));
       auto new_var = DataSlice::CreatePrimitive(
           arolla::expr::ExprQuote{std::move(new_var_expr)});
@@ -305,18 +298,17 @@ class InnerTransformManager {
     }
     if (!config_->allow_runtime_transforms()) {
       return absl::InvalidArgumentError(absl::StrCat(
-          "The parallel transformation requires that all sub-functors being"
-          " called are specified as literals, instead of being computed"
-          " dynamically, so that we can transform them recursively. In case you"
-          " are calling a sub-functor that is computed dynamically, but do not"
-          " need to recursively transform it (evaluating this sub-functor"
-          " single-threaded is fine), you can use"
-          " kd.functor.call_fn_normally_when_parallel and its variants to call"
-          " the sub-functor. In case you do need to evaluate a dynamically"
-          " computed sub-functor in a parallel fashion, you can pass"
-          " allow_runtime_transforms=True to kd.parallel.transform, but this"
-          " will be slower and should not be used in production."
-          "\nThe offending sub-functor ",
+          "The parallel transformation requires that all sub-functors being "
+          "called are fully defined at transformation time, so that we can "
+          "transform them recursively. In case you are calling a sub-functor "
+          "that is computed dynamically, but do not need to recursively "
+          "transform it (evaluating this sub-functor single-threaded is fine), "
+          "you can use kd.functor.call_fn_normally_when_parallel and its "
+          "variants to call the sub-functor. In case you do need to evaluate a "
+          "dynamically computed sub-functor in a parallel fashion, you can "
+          "pass allow_runtime_transforms=True to kd.parallel.transform, but "
+          "this will be slower and should not be used in production.\nThe "
+          "offending sub-functor ",
           var_name, ": ", arolla::Repr(var),
           " . The whole functor: ", arolla::Repr(functor_)));
     }
@@ -353,6 +345,38 @@ class InnerTransformManager {
         "koda_internal.parallel._async_transform_many",
         {executor_input_, arolla::expr::Literal(config_),
          std::move(sub_functor)});
+  }
+
+  // If expr can be literal folded (with respect of its dependencies in
+  // functor_), returns its value. Otherwise returns std::nullopt.
+  absl::StatusOr<std::optional<arolla::TypedValue>> TryComputeLiteral(
+      const DataSlice& expr) const {
+    // TODO: b/477578091 - we are changing the functor in order to reuse
+    // CallFunctorWithCompilationCache. It will be more efficient if we just
+    // evaluate all the variables needed for `expr` explicitly.
+    ASSIGN_OR_RETURN(
+        DataBagPtr returns_db,
+        ops::Attr(functor_,
+                  DataSlice::CreatePrimitive(arolla::Text(kReturnsAttrName)),
+                  expr,
+                  /*override_schema=*/DataSlice::CreatePrimitive(false)));
+    ASSIGN_OR_RETURN(
+        DataBagPtr signature_db,
+        ops::Attr(functor_,
+                  DataSlice::CreatePrimitive(arolla::Text(kSignatureAttrName)),
+                  KodaEmptySignature(),
+                  /*override_schema=*/DataSlice::CreatePrimitive(false)));
+    ASSIGN_OR_RETURN(
+        auto db, DataBag::ImmutableEmptyWithFallbacks({std::move(returns_db),
+                                                       std::move(signature_db),
+                                                       functor_.GetBag()}));
+    auto new_functor = functor_.WithBag(std::move(db));
+    ASSIGN_OR_RETURN(
+        auto res, functor::CallFunctorWithCompilationCache(new_functor, {}, {}),
+        // We consider all functor evaluation errors as caused by being not
+        // actually a literal.
+        std::nullopt);
+    return res;
   }
 
   const ParallelTransformConfigPtr absl_nonnull& config_;

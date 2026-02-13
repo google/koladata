@@ -57,6 +57,8 @@ const DataSlice& NoDefaultValueMarker();
 // Returns functor signature for the *args and **kwargs parameters.
 const DataSlice& KodaArgsKwargsSignature();
 
+// Returns a functor signature with no parameters.
+const DataSlice& KodaEmptySignature();
 
 // Converts a C++ Signature object to a Koda DataItem storing the signature.
 // The returned DataItem will have a new DataBag created to store the triples.

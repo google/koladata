@@ -5338,9 +5338,9 @@ parallel version (DataSlice -&gt; future[DataSlice]), this is work in progress.
 
 Args:
   fn: The functor to transform.
-  allow_runtime_transforms: Whether to allow sub-functors to be not literals,
-    but computed expressions, which will therefore have to be transformed at
-    runtime. This can be slow.
+  allow_runtime_transforms: Whether to allow sub-functors to be not fully
+    defined at transform time (i.e. to depend on functor inputs), which will
+    therefore have to be transformed at runtime. This can be slow.
 
 Returns:
   The transformed functor.</code></pre>
