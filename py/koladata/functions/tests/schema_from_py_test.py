@@ -35,6 +35,12 @@ class IntStrPair:
   y: str
 
 
+@dataclasses.dataclass
+class MyRecursiveClass:
+  x: int
+  y: Optional['MyRecursiveClass']
+
+
 class SchemaFromPyTest(absltest.TestCase):
 
   def test_schema_from_py_primitives(self):
@@ -103,7 +109,7 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertEqual(my_class_schema, schema.schema_from_py(MyClass))
     self.assertFalse(my_class_schema.is_mutable())
 
-  def test_schema_from_inherited_py_dataclasses(self):
+  def test_schema_from_py_inherited_dataclasses(self):
     # Tests that annotations from inherited dataclasses are included.
 
     @dataclasses.dataclass
@@ -118,6 +124,13 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertEqual(my_class_schema.x, schema_constants.INT64)
     self.assertEqual(my_class_schema.y, schema_constants.STRING)
     self.assertEqual(my_class_schema, schema.schema_from_py(MyChildClass))
+    self.assertFalse(my_class_schema.is_mutable())
+
+  def test_schema_from_py_recursive_dataclasses(self):
+    my_class_schema = schema.schema_from_py(MyRecursiveClass)
+    self.assertEqual(my_class_schema.x, schema_constants.INT64)
+    self.assertEqual(my_class_schema.y, my_class_schema)
+    self.assertEqual(my_class_schema, schema.schema_from_py(MyRecursiveClass))
     self.assertFalse(my_class_schema.is_mutable())
 
   def test_schema_from_py_a_bit_of_everything(self):

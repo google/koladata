@@ -52,25 +52,29 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
     the same input. For dataclasses, we use the module name and the class name
     to derive the itemid for the uu-schema.
   """
+  # Cache to handle recursive types. _Not_ guaranteed to contain the result of
+  # `tpe` after `schema_from_py_impl(tpe)` has been called.
+  schema_from_tpe: dict[type[Any], data_slice.DataSlice] = {}
+  db = data_bag.DataBag.empty_mutable()
 
-  def schema_from_py_impl(
-      tpe: type[Any], db: data_bag.DataBag
-  ) -> data_slice.DataSlice:
+  def schema_from_py_impl(tpe: type[Any]) -> data_slice.DataSlice:
+    if (res := schema_from_tpe.get(tpe)) is not None:
+      return res
     if origin_tpe := typing.get_origin(tpe):
       if isinstance(origin_tpe, type) and issubclass(
           origin_tpe, typing.Sequence
       ):
         (item_tpe,) = typing.get_args(tpe)
-        return db.list_schema(schema_from_py_impl(item_tpe, db))
+        return db.list_schema(schema_from_py_impl(item_tpe))
       if isinstance(origin_tpe, type) and issubclass(
           origin_tpe, typing.Mapping
       ):
         key_tpe, value_tpe = typing.get_args(tpe)
         return db.dict_schema(
-            schema_from_py_impl(key_tpe, db), schema_from_py_impl(value_tpe, db)
+            schema_from_py_impl(key_tpe), schema_from_py_impl(value_tpe)
         )
       if origin_tpe is typing.Annotated:
-        return schema_from_py_impl(typing.get_args(tpe)[0], db)
+        return schema_from_py_impl(typing.get_args(tpe)[0])
       if origin_tpe == py_types.UnionType or origin_tpe == typing.Union:
         options = typing.get_args(tpe)
         if len(options) != 2 or (options[1] != py_types.NoneType):
@@ -78,7 +82,7 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
               f'unsupported union type: {tpe}. kd.schema_from_py only'
               ' supports "smth | None" or "Optional[smth]".'
           )
-        return schema_from_py_impl(options[0], db)
+        return schema_from_py_impl(options[0])
       raise TypeError(
           f'unsupported generic field type in kd.schema_from_py: {origin_tpe}.'
       )
@@ -88,10 +92,11 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       s = db.named_schema(
           f'__schema_from_py__{tpe.__module__}.{tpe.__qualname__}'
       )
+      schema_from_tpe[tpe] = s
       # Required to support `from __future__ import annotations`.
       field_types = typing.get_type_hints(tpe)
       s.set_attrs(**{
-          field.name: schema_from_py_impl(field_types[field.name], db)
+          field.name: schema_from_py_impl(field_types[field.name])
           for field in dataclasses.fields(tpe)
       })
       return s
@@ -113,5 +118,5 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
 
   return typing.cast(
       schema_item.SchemaItem,
-      schema_from_py_impl(tpe, data_bag.DataBag.empty_mutable()).freeze_bag(),
+      schema_from_py_impl(tpe).freeze_bag(),
   )
