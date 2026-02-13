@@ -1085,6 +1085,31 @@ cc_library(
 )
 
 cc_test(
+    name = "derived_executor_test",
+    srcs = ["derived_executor_test.cc"],
+    deps = [
+        ":context_guard",
+        ":derived_executor",
+        ":executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "derived_executor",
+    srcs = ["derived_executor.cc"],
+    hdrs = ["derived_executor.h"],
+    deps = [
+        ":executor",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
     name = "parallel_call_utils_test",
     srcs = ["parallel_call_utils_test.cc"],
     deps = [
