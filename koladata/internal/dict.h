@@ -69,12 +69,10 @@ class Dict {
   void Set(const T& key, DataItem value) {
     if constexpr (std::is_same_v<T, DataItem>) {
       if (IsUnsupportedDataItemKeyType(key)) {
-        DCHECK(false);
         return;
       }
     }
     using KeyT = arolla::meta::strip_template_t<DataItem::View, T>;
-    DCHECK(!IsUnsupportedKeyType<KeyT>());
     if constexpr (!IsUnsupportedKeyType<KeyT>()) {
       data_[key] = std::move(value);
     }
@@ -100,13 +98,11 @@ class Dict {
   const DataItem& GetOrAssign(const T& key, ValueT&& value) {
     if constexpr (std::is_same_v<T, DataItem>) {
       if (IsUnsupportedDataItemKeyType(key)) {
-        DCHECK(false);
         return *empty_item_;
       }
     }
     using KeyT = arolla::meta::strip_template_t<DataItem::View, T>;
     if constexpr (IsUnsupportedKeyType<KeyT>()) {
-      DCHECK(false);
       return *empty_item_;
     }
     if (parent_ == nullptr) {
