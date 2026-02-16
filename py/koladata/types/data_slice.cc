@@ -1270,7 +1270,12 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
   return nullptr;
 }
 
+#if PY_VERSION_HEX >= 0x030E0000
+#define _Py_HashBytes Py_HashBuffer
+#else
 extern "C" Py_hash_t _Py_HashBytes(const void* src, Py_ssize_t len);
+#endif
+
 extern "C" Py_hash_t _Py_HashDouble(PyObject* self, double value);
 
 Py_hash_t PyDataSlice_hash(PyObject* self) {
