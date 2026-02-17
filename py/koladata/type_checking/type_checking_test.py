@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -31,21 +30,6 @@ Person_named = kd.schema.named_schema(
     'Person', age=kd.INT32, first_name=kd.STRING
 )
 UuPerson = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
-
-
-@contextlib.contextmanager
-def override_operator(operator_name: str, new_operator: arolla.abc.Operator):
-  old_operator = arolla.abc.decay_registered_operator(operator_name)
-  arolla.abc.register_operator(
-      operator_name, new_operator, if_present='unsafe_override'
-  )
-
-  try:
-    yield
-  finally:
-    arolla.abc.register_operator(
-        operator_name, old_operator, if_present='unsafe_override'
-    )
 
 
 ERROR_CASES = (
@@ -720,7 +704,9 @@ class TypeCheckingTest(parameterized.TestCase):
           '`kd.schema.get_repr` should not have been called',
       )
 
-    with override_operator('kd.schema.get_repr', get_repr):
+    with arolla.testing.override_registered_operator(
+        'kd.schema.get_repr', get_repr
+    ):
       _ = fn(ds([1]))  # Does not raise.
 
   @parameterized.named_parameters(('boolean', kd.BOOLEAN), ('none', None))
