@@ -442,6 +442,22 @@ py_library(
     ],
 )
 
+py_library(
+    name = "lru_size_tracking_cache",
+    srcs = ["lru_size_tracking_cache.py"],
+    deps = ["//py:python_path"],
+)
+
+py_test(
+    name = "lru_size_tracking_cache_test",
+    srcs = ["lru_size_tracking_cache_test.py"],
+    deps = [
+        ":lru_size_tracking_cache",
+        "//py:python_path",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "composite_initial_data_manager_test",
     srcs = ["composite_initial_data_manager_test.py"],
