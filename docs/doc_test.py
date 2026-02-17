@@ -30,6 +30,7 @@ def load_tests(loader, tests, ignore):
       doctest.DocFileSuite(
           'quick_recipes.md',
           '10_min_intro.md',
+          'common_pitfalls.md',
           optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE,
           parser=CustomParser(),
       )

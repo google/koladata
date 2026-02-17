@@ -33,10 +33,11 @@ filegroup(
 )
 
 py_test(
-    name = "quick_recipes_test",
-    srcs = ["quick_recipes_test.py"],
+    name = "doc_test",
+    srcs = ["doc_test.py"],
     data = [
         ":10_min_intro.md",
+        ":common_pitfalls.md",
         ":quick_recipes.md",
     ],
     deps = [
