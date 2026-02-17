@@ -36,7 +36,7 @@ cc_shared_library(
         "//koladata:__subpackages__",
         "//py/koladata:__subpackages__",
     ],
-    visibility = default_visibility + ["//py/koladata/ext/view:__subpackages__"],
+    visibility = ["//visibility:public"],
     deps = [
         "//koladata:all_qexpr_operators",
         "//koladata:data_slice",

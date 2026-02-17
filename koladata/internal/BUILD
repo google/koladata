@@ -1092,10 +1092,13 @@ cc_library(
     name = "pseudo_random",
     srcs = ["pseudo_random.cc"],
     hdrs = ["pseudo_random.h"],
+    visibility = ["//visibility:public"],
     deps = [
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/random",
+        "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/util",
     ],
 )
@@ -1105,6 +1108,8 @@ cc_test(
     srcs = ["pseudo_random_test.cc"],
     deps = [
         ":pseudo_random",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

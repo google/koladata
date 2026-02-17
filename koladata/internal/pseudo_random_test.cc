@@ -15,13 +15,19 @@
 #include "koladata/internal/pseudo_random.h"
 
 #include <cstdint>
+#include <random>
 #include <thread>  // NOLINT(build/c++11): only used for tests.
 #include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 
 namespace koladata::internal {
 namespace {
+
+using ::absl_testing::StatusIs;
 
 TEST(PseudoRandomTest, PseudoRandomUint64) {
   EXPECT_NE(PseudoRandomUint64(), PseudoRandomUint64());
@@ -56,6 +62,43 @@ TEST(PseudoRandomTest, PseudoRandomUint64_MultiThreaded) {
       EXPECT_NE(results[i], results[j]);
     }
   }
+}
+
+TEST(PseudoRandomTest, PseudoRandomEpochIdPtr) {
+  auto* ptr = PseudoRandomEpochIdPtr();
+  ASSERT_NE(ptr, nullptr);
+  EXPECT_NE(*ptr, 0);
+  EXPECT_EQ(PseudoRandomEpochIdPtr(), ptr);
+
+  std::vector<std::thread> threads(10);
+  for (auto& thread : threads) {
+    thread = std::thread([&] { EXPECT_EQ(PseudoRandomEpochIdPtr(), ptr); });
+  }
+  for (auto& thread : threads) {
+    thread.join();
+  }
+}
+
+TEST(PseudoRandomTest, PseudoRandomEpochId) {
+  const uint64_t epoch_id = PseudoRandomEpochId();
+  EXPECT_NE(epoch_id, 0);
+  EXPECT_EQ(PseudoRandomEpochId(), epoch_id);
+  EXPECT_EQ(epoch_id, *PseudoRandomEpochIdPtr());
+
+  std::vector<std::thread> threads(10);
+  for (auto& thread : threads) {
+    thread = std::thread([&] { EXPECT_EQ(PseudoRandomEpochId(), epoch_id); });
+  }
+  for (auto& thread : threads) {
+    thread.join();
+  }
+}
+
+TEST(PseudoRandomTest, ReseedPseudoRandomUnimplemented) {
+  auto epoch_id = PseudoRandomEpochId();
+  EXPECT_THAT(ReseedPseudoRandom(std::seed_seq{0}),
+              StatusIs(absl::StatusCode::kUnimplemented));
+  EXPECT_EQ(PseudoRandomEpochId(), epoch_id);
 }
 
 }  // namespace

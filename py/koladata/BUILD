@@ -110,6 +110,7 @@ py_library(
         "//py/koladata/ext/contrib:functions",
         "//py/koladata/ext/operators:kde_operators",
         "//py/koladata/ext/persisted_data",
+        "//py/koladata/ext/pseudo_random",
         "//py/koladata/ext/view:kv",
         "//py/koladata/operators:eager_op_utils",
     ],

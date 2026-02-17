@@ -34,13 +34,11 @@
 #include "koladata/internal/pseudo_random.h"
 
 namespace koladata::internal {
-
 namespace {
 
 uint64_t AllocatorId() {
-  static uint64_t kAllocatorId =
-      PseudoRandomUint64() & ((1ull << 52) - 1);
-  return kAllocatorId;
+  // Only 52 bits matter in the result.
+  return PseudoRandomEpochId() & ((1ull << 52) - 1);
 }
 
 }  // namespace
@@ -173,9 +171,8 @@ ObjectId AllocateSingleObject() {
 }
 
 bool AllocationIdSet::InsertBigAllocationSlow(AllocationId id) {
-  auto sorted_end = ids_.size() > kMaxSortedSize
-                        ? ids_.begin() + kMaxSortedSize
-                        : ids_.end();
+  auto sorted_end =
+      ids_.size() > kMaxSortedSize ? ids_.begin() + kMaxSortedSize : ids_.end();
   auto sorted_it = std::lower_bound(ids_.begin(), sorted_end, id);
   if (sorted_it != sorted_end && *sorted_it == id) {
     return false;

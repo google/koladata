@@ -14,21 +14,65 @@
 //
 #include "koladata/internal/pseudo_random.h"
 
+#include <atomic>
 #include <cstdint>
+#include <random>
+#include <utility>
 
 #include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/numeric/int128.h"
 #include "absl/random/random.h"
+#include "absl/status/status.h"
 #include "arolla/util/fingerprint.h"
 
-// Note: Implement the function as a weak symbol so that this implementation can
-// be overridden by a build dependency or via LD_PRELOAD.
-extern "C" ABSL_ATTRIBUTE_WEAK uint64_t KoladataInternalPseudoRandomUint64() {
+extern "C" {
+
+// Note: Implement these functions as weak symbols so that the implementations
+// can be overridden by a build dependency or via LD_PRELOAD.
+
+ABSL_ATTRIBUTE_WEAK uint64_t KoladataInternalPseudoRandomUint64() {
   static thread_local absl::BitGen bitgen;
   return absl::Uniform<uint64_t>(bitgen);
 }
 
+extern "C" ABSL_ATTRIBUTE_WEAK int KoladataInternalReseedPseudoRandom(
+    std::seed_seq&& /*entropy*/) {
+  return -1;
+}
+
+}  // extern "C"
+
 namespace koladata::internal {
+namespace {
+
+constinit std::atomic_uint64_t pseudo_random_epoch_id = 0;
+
+}  // namespace
+
+// Reseeds the pseudo-random sequence using the given seed.
+//
+// This function has effect on the subsequent calls to
+// KoladataInternalPseudoRandomUint64 and, consequently, on the pseudo-random
+// instance ID and fingerprint.
+absl::Status ReseedPseudoRandom(std::seed_seq&& entropy) {
+  if (KoladataInternalReseedPseudoRandom(std::move(entropy)) < 0) {
+    return absl::UnimplementedError(
+        "KoladataInternalReseedPseudoRandom does not support reseeding.");
+  }
+  pseudo_random_epoch_id = KoladataInternalPseudoRandomUint64();
+  return absl::OkStatus();
+}
+
+const std::atomic_uint64_t* absl_nonnull PseudoRandomEpochIdPtr() {
+  while (pseudo_random_epoch_id.load(std::memory_order_relaxed) == 0)
+      [[unlikely]] {
+    uint64_t zero = 0;
+    pseudo_random_epoch_id.compare_exchange_weak(
+        zero, KoladataInternalPseudoRandomUint64());
+  }
+  return &pseudo_random_epoch_id;
+}
 
 arolla::Fingerprint PseudoRandomFingerprint() {
   return arolla::Fingerprint(
