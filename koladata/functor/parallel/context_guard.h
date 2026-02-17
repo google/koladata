@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 #include "absl/log/check.h"
 
@@ -26,6 +27,11 @@ namespace koladata::functor::parallel {
 class ContextGuard final {
  public:
   ContextGuard() = default;
+
+  template <typename T, typename... Args>
+  explicit ContextGuard(std::in_place_type_t<T>, Args&&... args) {
+    init<T>(std::forward<Args>(args)...);
+  }
 
   ~ContextGuard() {
     if (destructor_fn_ != nullptr) {
