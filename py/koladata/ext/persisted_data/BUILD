@@ -448,6 +448,30 @@ py_library(
     deps = ["//py:python_path"],
 )
 
+py_library(
+    name = "global_cache_lib",
+    srcs = ["global_cache_lib.py"],
+    deps = [
+        ":lru_size_tracking_cache",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/flags",
+    ],
+)
+
+py_test(
+    name = "global_cache_lib_test",
+    srcs = ["global_cache_lib_test.py"],
+    deps = [
+        ":global_cache_lib",
+        ":lru_size_tracking_cache",
+        "//py:python_path",
+        "@com_google_absl_py//absl/flags",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:flagsaver",
+    ],
+)
+
 py_test(
     name = "lru_size_tracking_cache_test",
     srcs = ["lru_size_tracking_cache_test.py"],
