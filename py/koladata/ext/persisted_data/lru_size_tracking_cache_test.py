@@ -114,23 +114,28 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     self.assertIsNone(cache.get('d'))
     self.assertIsNone(cache.get('e'))
 
-    # Setting the max size to a non-positive value raises an error.
-    with self.assertRaises(ValueError):
-      cache.set_max_total_bytes_of_entries_in_cache(0)
+    # Setting the max size to a negative value raises an error.
     with self.assertRaises(ValueError):
       cache.set_max_total_bytes_of_entries_in_cache(-1)
     # The max size is not changed.
     self.assertEqual(cache.get_max_total_bytes_of_entries_in_cache(), 10)
 
-    # Creating a new cache with a non-positive max size raises an error.
-    with self.assertRaises(ValueError):
-      lru_size_tracking_cache.LruSizeTrackingCache(
-          max_total_bytes_of_entries_in_cache=0,
-      )
+    # Using zero is fine and evicts all entries, thereby disabling caching.
+    cache.set_max_total_bytes_of_entries_in_cache(0)
+    self.assertEqual(cache.get_max_total_bytes_of_entries_in_cache(), 0)
+
+    # Creating a new cache with a negative max size raises an error.
     with self.assertRaises(ValueError):
       lru_size_tracking_cache.LruSizeTrackingCache(
           max_total_bytes_of_entries_in_cache=-1,
       )
+
+    # We can create a cache with zero max size. Such a cache is not very useful
+    # unless we plan to increase the max size later.
+    cache = lru_size_tracking_cache.LruSizeTrackingCache(
+        max_total_bytes_of_entries_in_cache=0,
+    )
+    self.assertEqual(cache.get_max_total_bytes_of_entries_in_cache(), 0)
 
 
 if __name__ == '__main__':

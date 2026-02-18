@@ -78,9 +78,9 @@ class LruSizeTrackingCache(Generic[K, V]):
         that the cache should hold. The cache will evict the least recently used
         entries to ensure that it never exceeds this limit.
     """
-    if max_total_bytes_of_entries_in_cache <= 0:
+    if max_total_bytes_of_entries_in_cache < 0:
       raise ValueError(
-          'max_total_bytes_of_entries_in_cache must be positive, but is'
+          'max_total_bytes_of_entries_in_cache must be non-negative, but is'
           f' {max_total_bytes_of_entries_in_cache}'
       )
 
@@ -155,9 +155,9 @@ class LruSizeTrackingCache(Generic[K, V]):
       self, max_total_bytes_of_entries_in_cache: int
   ) -> None:
     """Sets the limit on the total size of all entries in the cache."""
-    if max_total_bytes_of_entries_in_cache <= 0:
+    if max_total_bytes_of_entries_in_cache < 0:
       raise ValueError(
-          'max_total_bytes_of_entries_in_cache must be positive, but is'
+          'max_total_bytes_of_entries_in_cache must be non-negative, but is'
           f' {max_total_bytes_of_entries_in_cache}'
       )
     with self._rlock:
