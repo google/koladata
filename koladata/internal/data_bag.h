@@ -210,7 +210,7 @@ class DataBagImpl : public arolla::RefcountedBase {
   // DataSource with lower index will override values of sources with
   // higher indices.
   // Sparse sources always override dense sources.
-  // Returns size of the alloc (can be less then alloc.Capacity() e.g. if
+  // Returns size of the alloc (can be less than alloc.Capacity() e.g. if
   // an initial dense source for this allocation was created from a pre-existing
   // DenseArray).
   int64_t GetAttributeDataSources(AllocationId alloc, absl::string_view attr,

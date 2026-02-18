@@ -3411,11 +3411,6 @@ DataBagImpl::ExtractSmallAllocAttrContent(absl::string_view attr_name) const {
       }
     }
   }
-  std::sort(res.begin(), res.end(),
-            [](const DataBagContent::AttrItemContent& lhs,
-               const DataBagContent::AttrItemContent& rhs) {
-              return lhs.object_id < rhs.object_id;
-            });
   return res;
 }
 
@@ -3433,11 +3428,34 @@ absl::StatusOr<DataBagContent::AttrContent> DataBagImpl::ExtractAttrContent(
     if (size == 0) {
       continue;
     }
-    auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
-    ASSIGN_OR_RETURN(auto values, GetAttributeFromSources(
-                                      objects, dense_sources, sparse_sources));
-    content.allocs.push_back({alloc, values});
+    if (dense_sources.empty()) {
+      if (sparse_sources.size() == 1) {
+        for (const auto& [obj, value] : sparse_sources.front()->GetAll()) {
+          content.items.push_back({obj, value});
+        }
+      } else {
+        absl::flat_hash_set<ObjectId> visited_ids;
+        for (const SparseSource* source : sparse_sources) {
+          for (const auto& [obj, value] : source->GetAll()) {
+            if (bool inserted = visited_ids.insert(obj).second; inserted) {
+              content.items.push_back({obj, value});
+            }
+          }
+        }
+      }
+    } else {
+      auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
+      ASSIGN_OR_RETURN(
+          auto values,
+          GetAttributeFromSources(objects, dense_sources, sparse_sources));
+      content.allocs.push_back({alloc, std::move(values)});
+    }
   }
+  std::sort(content.items.begin(), content.items.end(),
+            [](const DataBagContent::AttrItemContent& lhs,
+               const DataBagContent::AttrItemContent& rhs) {
+              return lhs.object_id < rhs.object_id;
+            });
   return content;
 }
 

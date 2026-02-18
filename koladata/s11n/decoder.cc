@@ -576,8 +576,14 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
     }
     const TypedValue& tval = input_values[chunk_proto.values_subindex()];
     if (tval.GetType() == arolla::GetQType<internal::DataItem>()) {
-      RETURN_IF_ERROR(db.SetAttr(internal::DataItem(obj), attr_proto.name(),
-                                 tval.UnsafeAs<internal::DataItem>()));
+      if (obj.IsSchema() && attr_proto.name() != schema::kSchemaNameAttr) {
+        RETURN_IF_ERROR(db.SetSchemaAttr(internal::DataItem(obj),
+                                         attr_proto.name(),
+                                         tval.UnsafeAs<internal::DataItem>()));
+      } else {
+        RETURN_IF_ERROR(db.SetAttr(internal::DataItem(obj), attr_proto.name(),
+                                   tval.UnsafeAs<internal::DataItem>()));
+      }
     } else {
       ASSIGN_OR_RETURN(const internal::DataSliceImpl& values,
                        tval.As<internal::DataSliceImpl>());

@@ -72,6 +72,44 @@ TEST(DataBagTest, ExtractSingleItemBigAllocRemovedValues) {
                                     std::bit_ceil(size), DataItem())));
 }
 
+TEST(DataBagTest, ExtractAttrFromSparseSources) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  DataSliceImpl objs =
+      DataSliceImpl::ObjectsFromAllocation(Allocate(1000), 1000);
+
+  ASSERT_OK(db->SetAttr(objs[43], "a", DataItem(57)));
+  ASSERT_OK(db->SetAttr(objs[57], "a", DataItem(75)));
+
+  {
+    ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+    EXPECT_TRUE(content.dicts.empty());
+    EXPECT_TRUE(content.lists.empty());
+    auto a = content.attrs["a"];
+    EXPECT_TRUE(a.allocs.empty());
+    ASSERT_EQ(a.items.size(), 2);
+    EXPECT_EQ(a.items[0].object_id, objs[43].value<ObjectId>());
+    EXPECT_EQ(a.items[0].value, DataItem(57));
+    EXPECT_EQ(a.items[1].object_id, objs[57].value<ObjectId>());
+    EXPECT_EQ(a.items[1].value, DataItem(75));
+  }
+
+  db = db->PartiallyPersistentFork();
+  ASSERT_OK(db->SetAttr(objs[57], "a", DataItem(43)));
+
+  {
+    ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+    EXPECT_TRUE(content.dicts.empty());
+    EXPECT_TRUE(content.lists.empty());
+    auto a = content.attrs["a"];
+    EXPECT_TRUE(a.allocs.empty());
+    ASSERT_EQ(a.items.size(), 2);
+    EXPECT_EQ(a.items[0].object_id, objs[43].value<ObjectId>());
+    EXPECT_EQ(a.items[0].value, DataItem(57));
+    EXPECT_EQ(a.items[1].object_id, objs[57].value<ObjectId>());
+    EXPECT_EQ(a.items[1].value, DataItem(43));
+  }
+}
+
 TEST(DataBagTest, ExtractRemovedValues) {
   int64_t size = 5;
   auto db = DataBagImpl::CreateEmptyDatabag();

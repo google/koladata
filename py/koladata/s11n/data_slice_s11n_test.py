@@ -552,6 +552,17 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
       with self.assertRaisesRegex(ValueError, 'unsupported DType: ANY'):
         arolla.s11n.loads(container_proto.SerializeToString())
 
+  def test_memory_usage(self):
+    a = kd.obj_shaped_as(kd.item(1).repeat(int(1e6))).with_attrs(x=1)
+    b = a.S[0].extract()
+    # `b` is a single ObjectId from a big allocation. Here we test that we
+    # serialize the allocation in sparse form (1 ObjectId + value) rather than
+    # in dense form (1 base ObjectId + 1e6 bytes with type and presence
+    # information + value)
+    data = kd.dumps(b)
+    self.assertLess(len(data), 1000)
+    kd.testing.assert_equivalent(kd.loads(data), b)
+
 
 if __name__ == '__main__':
   absltest.main()
