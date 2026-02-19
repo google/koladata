@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from koladata import kd
 from koladata.ext.persisted_data import composite_initial_data_manager as _composite_initial_data_manager
+from koladata.ext.persisted_data import global_cache_lib as _global_cache_lib
 from koladata.ext.persisted_data import persisted_data
 
 
@@ -105,6 +106,13 @@ class PersistedDataTest(absltest.TestCase):
     self.assertIs(
         persisted_data.CompositeInitialDataManager,
         _composite_initial_data_manager.CompositeInitialDataManager,
+    )
+
+  def test_global_cache_is_exposed(self):
+    self.assertTrue(hasattr(persisted_data, 'get_internal_global_cache'))
+    self.assertIs(
+        persisted_data.get_internal_global_cache(),
+        _global_cache_lib.get_global_cache(),
     )
 
 

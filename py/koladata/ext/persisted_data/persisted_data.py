@@ -21,6 +21,7 @@ from koladata.ext.persisted_data import data_slice_path as _data_slice_path
 from koladata.ext.persisted_data import fs_implementation as _fs_implementation
 from koladata.ext.persisted_data import fs_interface as _fs_interface
 from koladata.ext.persisted_data import fs_util as _fs_util
+from koladata.ext.persisted_data import global_cache_lib as _global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as _pidbm
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as _pidsm
 
@@ -44,3 +45,16 @@ PersistedIncrementalDataSliceManager = (
 CompositeInitialDataManager = (
     _composite_initial_data_manager.CompositeInitialDataManager
 )
+
+
+def get_internal_global_cache() -> (
+    _global_cache_lib.Cache[str, _global_cache_lib.CACHE_VALUE_TYPE]
+):
+  """Returns the internal global cache.
+
+  Normal clients should not call this method. It is intended for use by low
+  level code that needs to interact with the global cache, for example for
+  adjusting the maximum size of the cache or for clearing the cache in OOM
+  prevention.
+  """
+  return _global_cache_lib.get_global_cache()

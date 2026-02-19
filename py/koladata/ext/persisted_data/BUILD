@@ -35,6 +35,7 @@ py_library(
         ":fs_implementation",
         ":fs_interface",
         ":fs_util",
+        ":global_cache_lib",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
         "//py:python_path",
@@ -46,6 +47,7 @@ py_test(
     srcs = ["persisted_data_test.py"],
     deps = [
         ":composite_initial_data_manager",
+        ":global_cache_lib",
         ":persisted_data",
         "//py:python_path",
         "//py/koladata:kd",

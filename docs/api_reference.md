@@ -11819,6 +11819,15 @@ the update can possibly provide data. When a user requests a subslice,
 the manager consults the index and asks the bag manager to load all the needed
 updates (data bags).</code></pre>
 
+### `kd_ext.persisted_data.get_internal_global_cache() -> LruSizeTrackingCache[str, DataBag | DataSlice]` {#kd_ext.persisted_data.get_internal_global_cache}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the internal global cache.
+
+Normal clients should not call this method. It is intended for use by low
+level code that needs to interact with the global cache, for example for
+adjusting the maximum size of the cache or for clearing the cache in OOM
+prevention.</code></pre>
+
 </section>
 
 ### kd_ext.vis {#kd_ext.vis}
