@@ -188,7 +188,7 @@ struct DecodeBase64Op {
 struct EncodeBase64Op {
   arolla::Text operator()(absl::string_view x) const {
     std::string dst;
-    absl::Base64Escape(x, &dst);
+    dst = absl::Base64Escape(x);
     return arolla::Text(std::move(dst));
   }
 
