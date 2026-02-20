@@ -36,7 +36,6 @@ py_library(
         ":fs_interface",
         ":fs_util",
         ":global_cache_lib",
-        ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
         "//py:python_path",
     ],

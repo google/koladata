@@ -22,15 +22,11 @@ from koladata.ext.persisted_data import fs_implementation as _fs_implementation
 from koladata.ext.persisted_data import fs_interface as _fs_interface
 from koladata.ext.persisted_data import fs_util as _fs_util
 from koladata.ext.persisted_data import global_cache_lib as _global_cache_lib
-from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as _pidbm
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as _pidsm
 
 fs_interface = _fs_interface
 fs_implementation = _fs_implementation
 fs_util = _fs_util
-
-BagToAdd = _pidbm.BagToAdd
-PersistedIncrementalDataBagManager = _pidbm.PersistedIncrementalDataBagManager
 
 data_slice_path = _data_slice_path
 DataSlicePath = _data_slice_path.DataSlicePath
