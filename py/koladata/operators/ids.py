@@ -113,11 +113,7 @@ def has_uuid(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=[
-        'kd.uuid_for_list',
-        'lists.uuid_for_list',
-    ],
-    via_cc_operator_package=True
+    aliases=['kd.uuid_for_list'], via_cc_operator_package=True
 )
 @optools.as_backend_operator(
     'kd.ids.uuid_for_list',
@@ -148,11 +144,8 @@ def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=[
-        'kd.uuid_for_dict',
-        'dicts.uuid_for_dict',
-    ],
-    via_cc_operator_package=True
+    aliases=['kd.uuid_for_dict'],
+    via_cc_operator_package=True,
 )
 @optools.as_backend_operator(
     'kd.ids.uuid_for_dict',
