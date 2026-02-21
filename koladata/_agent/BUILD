@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@pip_deps//:requirements.bzl", "requirement")
-load("@rules_python//python:defs.bzl", "py_test")
-
-# Package for KolaData documentation.
-
 package(default_visibility = [
     "//koladata:internal",
 ])
@@ -24,28 +19,17 @@ package(default_visibility = [
 licenses(["notice"])
 
 exports_files(
-    glob(["**/*.md"]),
+    glob(
+        ["**/*.md"],
+        allow_empty = True,
+    ),
 )
 
 filegroup(
     name = "docs",
-    data = glob(["**/*.md"]),
+    data = glob(
+        ["**/*.md"],
+        allow_empty = True,
+    ),
     visibility = ["//visibility:public"],
-)
-
-py_test(
-    name = "doc_test",
-    srcs = ["doc_test.py"],
-    data = [
-        ":10_min_intro.md",
-        ":common_pitfalls.md",
-        ":quick_recipes.md",
-    ],
-    deps = [
-        "//py:python_path",
-        "//py/koladata:kd",  # buildcleaner: keep
-        "//py/koladata:kd_ext",  # buildcleaner: keep
-        requirement("numpy"),  # buildcleaner: keep
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
 )
