@@ -15,6 +15,7 @@
 #include <Python.h>
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
@@ -39,6 +40,22 @@ PYBIND11_MODULE(testing_clib, m) {
                      self.MakeDataClassInstance(attr_names));
              return py::reinterpret_steal<py::object>(py_obj.release());
            })
+      .def("get_class_field_type",
+           [](DataClassesUtil& self, py::handle py_class,
+              absl::string_view attr_name, bool for_primitive) -> py::object {
+             arolla::python::PyObjectPtr py_obj =
+                 arolla::python::pybind11_unstatus_or(self.GetClassFieldType(
+                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
+                     attr_name, for_primitive));
+             return py::reinterpret_steal<py::object>(py_obj.release());
+           })
+      .def("has_optional_field",
+           [](DataClassesUtil& self, py::handle py_class,
+              absl::string_view attr_name) -> bool {
+             return arolla::python::pybind11_unstatus_or(self.HasOptionalField(
+                 arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
+                 attr_name));
+           })
       .def("get_attr_values",
            [](DataClassesUtil& self, py::handle dataclass_obj,
               absl::Span<const absl::string_view> attr_names) -> py::object {
@@ -49,6 +66,46 @@ PYBIND11_MODULE(testing_clib, m) {
                PyList_SET_ITEM(res, i, attr_values[i]);
              }
              return py::reinterpret_steal<py::object>(res);
+           })
+      .def("create_class_instance_kwargs",
+           [](DataClassesUtil& self, py::handle py_class,
+              absl::Span<const absl::string_view> attr_names,
+              absl::Span<const py::handle> attr_values) -> py::object {
+             std::vector<arolla::python::PyObjectPtr> attr_values_ptrs;
+             for (const auto& attr_value : attr_values) {
+               attr_values_ptrs.push_back(
+                   arolla::python::PyObjectPtr::NewRef(attr_value.ptr()));
+             }
+             std::vector<std::string> attr_names_vec(attr_names.begin(),
+                                                     attr_names.end());
+
+             auto res = arolla::python::pybind11_unstatus_or(
+                 self.CreateClassInstanceKwargs(
+                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
+                     attr_names_vec, attr_values_ptrs));
+             return py::reinterpret_steal<py::object>(res.release());
+           })
+      .def("create_class_instance_args",
+           [](DataClassesUtil& self, py::handle py_class,
+              absl::Span<const py::handle> attr_values) -> py::object {
+             std::vector<arolla::python::PyObjectPtr> attr_values_ptrs;
+             for (const auto& attr_value : attr_values) {
+               attr_values_ptrs.push_back(
+                   arolla::python::PyObjectPtr::NewRef(attr_value.ptr()));
+             }
+
+             auto res = arolla::python::pybind11_unstatus_or(
+                 self.CreateClassInstanceArgs(
+                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
+                     attr_values_ptrs));
+             return py::reinterpret_steal<py::object>(res.release());
+           })
+      .def("get_simple_namespace_class",
+           [](DataClassesUtil& self) -> py::object {
+             arolla::python::PyObjectPtr py_obj =
+                 arolla::python::pybind11_unstatus_or(
+                     self.GetSimpleNamespaceClass());
+             return py::reinterpret_steal<py::object>(py_obj.release());
            });
 }
 }  // namespace

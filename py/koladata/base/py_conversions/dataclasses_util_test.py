@@ -13,12 +13,20 @@
 # limitations under the License.
 
 import dataclasses
+import types as _py_types
+from typing import Any, Optional
 
 from absl.testing import absltest
 from koladata.base.py_conversions import testing_clib
 from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
+
+
+@dataclasses.dataclass(frozen=True)
+class Obj1:
+  a: int = 123
+  b: str = 'abc'
 
 
 class DataclassesUtilTest(absltest.TestCase):
@@ -91,6 +99,155 @@ class DataclassesUtilTest(absltest.TestCase):
 
     with self.assertRaisesRegex(AttributeError, 'object has no attribute'):
       _ = util.get_attr_values(1, ['a', 'b', 'c'])
+
+  def test_get_class_field_type(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: Obj1
+
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
+    self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
+
+  def test_get_class_field_type_optional(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: Obj1 | None
+      b: Optional[Obj1]
+
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), Obj1)
+
+  def test_get_class_field_list(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: list[Obj1]
+
+    list_type = util.get_class_field_type(Obj2, 'a', False)
+    self.assertEqual(list_type, list[Obj1])
+    self.assertEqual(
+        util.get_class_field_type(list_type, '__items__', False), Obj1
+    )
+
+  def test_get_class_field_dict(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: dict[Obj1, _py_types.SimpleNamespace]
+
+    dict_type = util.get_class_field_type(Obj2, 'a', False)
+    self.assertEqual(dict_type, dict[Obj1, _py_types.SimpleNamespace])
+    self.assertEqual(
+        util.get_class_field_type(dict_type, '__keys__', False), Obj1
+    )
+    self.assertEqual(
+        util.get_class_field_type(dict_type, '__values__', False),
+        _py_types.SimpleNamespace,
+    )
+
+  def test_get_class_field_type_simple_namespace(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: _py_types.SimpleNamespace
+
+    self.assertEqual(
+        util.get_class_field_type(_py_types.SimpleNamespace, 'any_attr', False),
+        _py_types.SimpleNamespace,
+    )
+    self.assertEqual(
+        util.get_class_field_type(Obj2, 'a', False), _py_types.SimpleNamespace
+    )
+
+  def test_get_class_field_typefor_primitive(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: int
+      b: Obj1
+
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', True), int)
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), Obj1)
+
+    self.assertIsNone(
+        util.get_class_field_type(_py_types.SimpleNamespace, 'a', True), None
+    )
+
+  def test_get_class_field_type_errors(self):
+    util = testing_clib.DataClassesUtil()
+    self.assertIsNone(util.get_class_field_type(Obj1, 'x', False))
+
+    with self.assertRaisesRegex(ValueError, "field 'a' has unsupported type"):
+      _ = util.get_class_field_type(Obj1, 'a', False)
+    with self.assertRaisesRegex(
+        ValueError, 'only dataclasses or SimpleNamespace are supported'
+    ):
+      _ = util.get_class_field_type(int, 'a', False)
+
+  def test_has_optional_field(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class Obj2:
+      a: Obj1 | None
+      c: Optional[Obj1]
+      d: int
+      e: None
+      f: Any
+      bad_0: int | Any
+      bad_1: int | float | None
+      bad_2: None | int
+
+    self.assertTrue(util.has_optional_field(Obj2, 'a'))
+    self.assertFalse(util.has_optional_field(Obj2, 'b'))
+    self.assertTrue(util.has_optional_field(Obj2, 'c'))
+    self.assertFalse(util.has_optional_field(Obj2, 'd'))
+    self.assertFalse(util.has_optional_field(Obj2, 'e'))
+    self.assertFalse(util.has_optional_field(Obj2, 'f'))
+    self.assertFalse(util.has_optional_field(int, 'non_existent_field'))
+    with self.assertRaisesRegex(
+        ValueError,
+        'only unions `SomeType | None` are supported ; got instead: int | Any',
+    ):
+      _ = util.has_optional_field(Obj2, 'bad_0')
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'only unions `SomeType | None` are supported ; got instead: int | float'
+        ' | None',
+    ):
+      _ = util.has_optional_field(Obj2, 'bad_1')
+    with self.assertRaisesRegex(
+        ValueError,
+        'only unions `SomeType | None` are supported ; got instead: int | float'
+        ' | None',
+    ):
+      _ = util.has_optional_field(Obj2, 'bad_2')
+
+  def test_create_class_instance_kwargs(self):
+    util = testing_clib.DataClassesUtil()
+    obj = util.create_class_instance_kwargs(Obj1, ['a', 'b'], [123, 'abc'])
+    self.assertEqual(obj, Obj1(a=123, b='abc'))
+
+  def test_create_class_instance_args(self):
+    util = testing_clib.DataClassesUtil()
+    obj = util.create_class_instance_args(list, [1, 2, 3])
+    self.assertEqual(obj, list([1, 2, 3]))
+    obj2 = util.create_class_instance_args(tuple, [1, 2, 3])
+    self.assertEqual(obj2, tuple([1, 2, 3]))
+
+  def test_get_simple_namespace_class(self):
+    util = testing_clib.DataClassesUtil()
+    simple_namespace_class = util.get_simple_namespace_class()
+    self.assertEqual(simple_namespace_class, _py_types.SimpleNamespace)
 
 
 if __name__ == '__main__':

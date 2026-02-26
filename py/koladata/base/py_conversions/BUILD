@@ -119,6 +119,7 @@ cc_library(
     srcs = ["dataclasses_util.cc"],
     hdrs = ["dataclasses_util.h"],
     deps = [
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
