@@ -268,7 +268,7 @@ struct ObjectCreatorHelper {
       const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
       if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
         const DataSlice& res = typed_value.UnsafeAs<DataSlice>();
-        return ops::ConvertWithAdoption(db, res);
+        return ObjectCreator::ConvertWithAdoption(db, res);
       } else {
         return absl::InvalidArgumentError(absl::StrFormat(
             "only DataSlice QValues are supported as objects; got: %s.",
@@ -282,7 +282,7 @@ struct ObjectCreatorHelper {
     ASSIGN_OR_RETURN(DataSlice res,
                      FromPy(py_obj, std::move(schema), /*from_dim=*/0,
                             /*dict_as_obj=*/false, itemid));
-    return ops::ConvertWithAdoption(db, res);
+    return ObjectCreator::ConvertWithAdoption(db, res);
   }
 };
 

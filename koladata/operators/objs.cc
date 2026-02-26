@@ -28,14 +28,12 @@
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
-#include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -46,17 +44,6 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
-
-absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
-                                              const DataSlice& value) {
-  if (value.GetBag() != nullptr && value.GetBag() != db) {
-    AdoptionQueue adoption_queue;
-    adoption_queue.Add(value);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
-  }
-  ASSIGN_OR_RETURN(auto res, ObjectCreator::ConvertWithoutAdopt(db, value));
-  return res.WithBag(db);
-}
 
 class ObjOperator final : public arolla::QExprOperator {
  public:
@@ -96,8 +83,8 @@ class ObjOperator final : public arolla::QExprOperator {
               return absl::InvalidArgumentError(
                   "cannot set extra attributes when converting to object");
             }
-            ASSIGN_OR_RETURN(result,
-                             ConvertWithAdoption(result_db, *first_arg));
+            ASSIGN_OR_RETURN(result, ObjectCreator::ConvertWithAdoption(
+                                         result_db, *first_arg));
           } else {
             ASSIGN_OR_RETURN(result,
                              ObjectCreator::FromAttrs(result_db, attr_names,

@@ -1189,6 +1189,44 @@ TEST(ObjectCreatorTest, ReferenceToObject) {
                   Property(&DataSlice::GetBag, Eq(db)))));
 }
 
+TEST(ObjectCreatorWithAdoptionTest, PrimitiveToObject) {
+  auto db_val = DataBag::EmptyMutable();
+  auto ds = test::DataSlice<int>({1, 2, 3}, db_val);
+  auto db_to_attach = DataBag::EmptyMutable();
+  // DataSlice with a DataBag gets a new DataBag attached.
+  EXPECT_THAT(ObjectCreator::ConvertWithAdoption(db_to_attach, ds),
+              IsOkAndHolds(AllOf(
+                  Property(&DataSlice::slice, ElementsAre(1, 2, 3)),
+                  Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                  Property(&DataSlice::GetBag, Eq(db_to_attach)))));
+  // DataSlice without a DataBag gets a new DataBag attached.
+  EXPECT_THAT(
+      ObjectCreator::ConvertWithAdoption(db_to_attach, test::DataItem(42)),
+      IsOkAndHolds(
+          AllOf(Property(&DataSlice::item, Eq(42)),
+                Property(&DataSlice::GetSchemaImpl, Eq(schema::kObject)),
+                Property(&DataSlice::GetBag, Eq(db_to_attach)))));
+}
+
+TEST(ObjectCreatorWithAdoptionTest, DatabagAdoption) {
+  auto db_original = DataBag::EmptyMutable();
+  auto ds_a = test::DataItem(42);
+  ASSERT_OK_AND_ASSIGN(auto ds_nested,
+                       ObjectCreator::FromAttrs(db_original, {"a"}, {ds_a}));
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::FromAttrs(
+                                      db_original, {"nested"}, {ds_nested}));
+
+    auto db_adopt_into = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(auto ds_converted,
+                         ObjectCreator::ConvertWithAdoption(db_adopt_into, ds));
+    ASSERT_OK_AND_ASSIGN(auto ds_get_attr, ds_converted.GetAttr("nested"));
+    EXPECT_THAT(ds_get_attr.GetAttr("a"),
+                IsOkAndHolds(
+                    IsEquivalentTo(test::DataItem(42).WithBag(db_adopt_into))));
+  }
+}
+
 TEST(ObjectCreatorTest, ObjectConverterError) {
   auto db = DataBag::EmptyMutable();
   EXPECT_THAT(

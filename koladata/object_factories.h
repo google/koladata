@@ -219,6 +219,13 @@ struct ObjectCreator {
   // NOTE: Does not adopt a DataBag from `value`.
   static absl::StatusOr<DataSlice> ConvertWithoutAdopt(const DataBagPtr& db,
                                                        const DataSlice& value);
+
+  // If `slice` does not have a DataBag, creates a new DataBag and adopts
+  // `slice`
+  // into it. Otherwise calls `ObjectCreator::ConvertWithoutAdopt` for it and
+  // attaches the `db` to the result.
+  static absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
+                                                       const DataSlice& value);
 };
 
 // Returns a UuEntity ((DataSlice of UuIds generated as row-wise fingerprints
@@ -453,7 +460,6 @@ absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema);
 // schema created from `target.GetSchema()` slice. NoFollow, Primitive and
 // ITEMID slices are not accepted and the appropriate error is returned.
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target);
-
 
 }  // namespace koladata
 

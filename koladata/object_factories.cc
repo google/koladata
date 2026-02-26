@@ -735,6 +735,17 @@ absl::StatusOr<DataSlice> ObjectCreator::ConvertWithoutAdopt(
   return value.WithSchema(internal::DataItem(schema::kObject));
 }
 
+absl::StatusOr<DataSlice> ObjectCreator::ConvertWithAdoption(
+    const DataBagPtr& db, const DataSlice& value) {
+  if (value.GetBag() != nullptr && value.GetBag() != db) {
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(value);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+  }
+  ASSIGN_OR_RETURN(auto res, ObjectCreator::ConvertWithoutAdopt(db, value));
+  return res.WithBag(db);
+}
+
 absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db, absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
