@@ -70,6 +70,7 @@ def to_py(
     max_depth: int = 2,
     obj_as_dict: bool = False,
     include_missing_attrs: bool = True,
+    output_class: type[Any] | None = None,
 ) -> Any:
   """Returns a readable python object from a DataSlice.
 
@@ -84,9 +85,10 @@ def to_py(
       are converted to automatically constructed 'Obj' dataclass instances.
     include_missing_attrs: whether to include attributes with None value in
       objects.
+    output_class: If not None, will be used recursively as the output type.
   """
   return ds._to_py_impl(  # pylint: disable=protected-access
-      max_depth, obj_as_dict, include_missing_attrs
+      max_depth, obj_as_dict, include_missing_attrs, output_class
   )
 
 

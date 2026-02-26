@@ -1020,7 +1020,7 @@ Args:
      "Returns an UNSPECIFIED with DataSlice QType."},
     {"_to_py_impl", (PyCFunction)PyDataSlice_to_py, METH_FASTCALL,
      "_to_py_impl(ds, /, max_depth=-1, obj_as_dict=False, "
-     "include_missing_attrs=True)\n"
+     "include_missing_attrs=True, output_class=None)\n"
      "--\n\n"
      "Returns a Python object equivalent to this DataSlice.\n"},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,

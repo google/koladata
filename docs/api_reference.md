@@ -10901,7 +10901,7 @@ Alias for [kd.proto.to_proto_bytes](#kd.proto.to_proto_bytes) operator.
 
 Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
 
-### `kd.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True) -> Any` {#kd.to_py}
+### `kd.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: type[Any] | None = None) -> Any` {#kd.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 
@@ -10915,7 +10915,8 @@ Args:
   obj_as_dict: Whether to convert objects to python dicts. By default objects
     are converted to automatically constructed &#39;Obj&#39; dataclass instances.
   include_missing_attrs: whether to include attributes with None value in
-    objects.</code></pre>
+    objects.
+  output_class: If not None, will be used recursively as the output type.</code></pre>
 
 ### `kd.to_pylist(x: DataSlice) -> list[Any]` {#kd.to_pylist}
 
@@ -13454,7 +13455,7 @@ Args:
 Returns:
   A new DataSlice with items selected by indices.</code></pre>
 
-### `DataSlice.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True) -> Any` {#DataSlice.to_py}
+### `DataSlice.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: Any | None = None) -> Any` {#DataSlice.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 
@@ -13467,7 +13468,8 @@ Args:
   obj_as_dict: Whether to convert objects to python dicts. By default objects
     are converted to automatically constructed &#39;Obj&#39; dataclass instances.
   include_missing_attrs: whether to include attributes with None value in
-    objects.</code></pre>
+    objects.
+  output_class: If not None, will be used recursively as the output type.</code></pre>
 
 ### `DataSlice.to_pytree(ds: DataSlice, max_depth: int = 2, include_missing_attrs: bool = True) -> Any` {#DataSlice.to_pytree}
 

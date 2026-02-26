@@ -98,12 +98,14 @@ class ToPyVisitor : internal::AbstractVisitor {
  public:
   ToPyVisitor(bool obj_as_dict, bool include_missing_attrs,
               const absl::flat_hash_set<ObjectId>& objects_not_to_convert,
-              DataBagPtr db, internal::DataBagImpl::FallbackSpan fallback_span)
+              DataBagPtr db, internal::DataBagImpl::FallbackSpan fallback_span,
+              PyObject* output_class)
       : obj_as_dict_(obj_as_dict),
         include_missing_attrs_(include_missing_attrs),
         objects_not_to_convert_(objects_not_to_convert),
         db_(std::move(db)),
-        fallback_span_(fallback_span) {}
+        fallback_span_(fallback_span),
+        output_class_(PyObjectPtr::NewRef(output_class)) {}
 
   ItemToPyConverter GetItemToPyConverter(const DataItem& schema) {
     return [&](const DataItem& item) -> absl::StatusOr<PyObjectPtr> {
@@ -408,16 +410,23 @@ class ToPyVisitor : internal::AbstractVisitor {
   DataClassesUtil dataclasses_util_;
   DataBagPtr db_;
   internal::DataBagImpl::FallbackSpan fallback_span_;
+  PyObjectPtr output_class_;
 };
 
 PyObject* absl_nullable ToPyImplInternal(
     const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
-    bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids) {
+    bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids,
+    PyObject* output_class) {
   if (ds.IsEmpty() || bag == nullptr ||
       GetNarrowedSchema(ds).is_primitive_schema()) {
     ASSIGN_OR_RETURN(PyObjectPtr res, PyObjectFromDataSlice(ds),
                      arolla::python::SetPyErrFromStatus(_));
     return res.release();
+  }
+  if (obj_as_dict && output_class != Py_None) {
+    arolla::python::SetPyErrFromStatus(absl::InvalidArgumentError(
+        "obj_as_dict cannot be used with output_class"));
+    return nullptr;
   }
   const DataSlice& schema = ds.GetSchema();
   DCHECK(bag != nullptr);
@@ -426,8 +435,9 @@ PyObject* absl_nullable ToPyImplInternal(
   const internal::DataBagImpl::FallbackSpan fallback_span =
       fb_finder.GetFlattenFallbacks();
   // We use original DataBag in ToPyVisitor.
-  std::shared_ptr<ToPyVisitor> visitor = std::make_shared<ToPyVisitor>(
-      obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span);
+  std::shared_ptr<ToPyVisitor> visitor =
+      std::make_shared<ToPyVisitor>(obj_as_dict, include_missing_attrs,
+                                    leaf_ids, bag, fallback_span, output_class);
   // We use extracted DataBag for traversal.
   internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
                                                visitor);
@@ -451,7 +461,8 @@ PyObject* absl_nullable ToPyImplInternal(
 
 PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
                                  int max_depth, bool obj_as_dict,
-                                 bool include_missing_attrs) {
+                                 bool include_missing_attrs,
+                                 PyObject* output_class) {
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
   // to be kept as DataItems and not converted to Python objects.
   // To do that, we extract a DataSlice, and keep track of the leaf DataItems.
@@ -474,10 +485,11 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
             /*casting_callback=*/std::nullopt, std::move(leaf_callback)),
         arolla::python::SetPyErrFromStatus(_));
     return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
-                            include_missing_attrs, objects_not_to_convert);
+                            include_missing_attrs, objects_not_to_convert,
+                            output_class);
   }
   return ToPyImplInternal(ds, nullptr, obj_as_dict, include_missing_attrs,
-                          objects_not_to_convert);
+                          objects_not_to_convert, output_class);
 }
 
 }  // namespace
@@ -487,9 +499,9 @@ PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
                                           Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
-  if (nargs != 3) {
+  if (nargs != 4) {
     PyErr_Format(PyExc_ValueError,
-                 "DataSlice._to_py_impl accepts exactly 3 arguments, got %d",
+                 "DataSlice._to_py_impl accepts exactly 4 arguments, got %d",
                  nargs);
     return nullptr;
   }
@@ -518,9 +530,15 @@ PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
     return nullptr;
   }
   const bool include_missing_attrs = py_args[2] == Py_True;
+  PyObject* output_class = py_args[3];
+  if (output_class == nullptr) {
+    PyErr_Format(PyExc_TypeError,
+                 "expecting output_class to be a class, got nullptr");
+    return nullptr;
+  }
 
   return ToPyImpl(ds, ds.GetBag(), max_depth, obj_as_dict,
-                  include_missing_attrs);
+                  include_missing_attrs, output_class);
 }
 
 }  // namespace koladata::python
