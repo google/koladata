@@ -14,6 +14,8 @@
 
 # Utilities that are used in Koda operators.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
@@ -1300,6 +1302,20 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "json_stream",
+    srcs = ["json_stream.cc"],
+    hdrs = ["json_stream.h"],
+    deps = [
+        ":stream_processor_state_cc_proto",
+        "@com_google_absl//absl/cleanup",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@icu4c",
+    ],
+)
+
 cc_test(
     name = "print_test",
     srcs = ["print_test.cc"],
@@ -1328,4 +1344,24 @@ cc_test(
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
+)
+
+cc_test(
+    name = "json_stream_test",
+    srcs = ["json_stream_test.cc"],
+    deps = [
+        ":json_stream",
+        ":stream_processor_state_cc_proto",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+proto_library(
+    name = "stream_processor_state_proto",
+    srcs = ["stream_processor_state.proto"],
+)
+
+cc_proto_library(
+    name = "stream_processor_state_cc_proto",
+    deps = ["stream_processor_state_proto"],
 )
