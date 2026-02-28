@@ -110,7 +110,7 @@ The following table highlights the differences between objects and non-objects:
 :                       :                         : attribute)               :
 | Allow mixed type in a | No                      | Yes                      |
 : DataSlice             :                         :                          :
-| Where schema(s) are   | DataSlice level         | Level of Iindividual     |
+| Where schema(s) are   | DataSlice level         | Level of Individual      |
 : stored                :                         : items (as `__schema__`   :
 :                       :                         : attribute or inferred    :
 :                       :                         : from primitive data)     :
