@@ -835,5 +835,142 @@ TEST(JsonStreamTest, SalvageStreamProcessorLoadStateFailure) {
   }
 }
 
+std::string RunPrettify(std::string input, std::string indent_string = "  ") {
+  JsonPrettifyOptions options = {.indent_string = indent_string};
+
+  JsonPrettifyStreamProcessor processor(options);
+  std::string output;
+  output += processor.ProcessInputChunk(input);
+  output += processor.ProcessEnd();
+
+  // Also run the processor on a single byte of input at a time, serializing
+  // and deserializing in between each byte. This should produce the same
+  // concatenated result.
+  std::string byte_streamed_output;
+  processor.Reset();
+  std::string state = processor.ToState();
+  for (char c : input) {
+    std::string input_chunk;
+    input_chunk.push_back(c);
+    {
+      JsonPrettifyStreamProcessor tmp_processor(options);
+      EXPECT_TRUE(tmp_processor.LoadState(state));
+      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
+      state = tmp_processor.ToState();
+    }
+  }
+  {
+    JsonPrettifyStreamProcessor tmp_processor(options);
+    EXPECT_TRUE(tmp_processor.LoadState(state));
+    byte_streamed_output += tmp_processor.ProcessEnd();
+  }
+
+  EXPECT_EQ(byte_streamed_output, output);
+
+  return output;
+}
+
+TEST(JsonStreamTest, PrettifyStreamProcessor) {
+  // Top-level value handling.
+  EXPECT_EQ(RunPrettify(""), "");
+  EXPECT_EQ(RunPrettify("123"), "123");
+  EXPECT_EQ(RunPrettify("\"abc\""), "\"abc\"");
+  EXPECT_EQ(RunPrettify("123 456 789"), "123\n456\n789");
+  EXPECT_EQ(RunPrettify("123\n456\n789"), "123\n456\n789");
+  EXPECT_EQ(RunPrettify("123  456  789"), "123\n456\n789");
+  EXPECT_EQ(RunPrettify("123   456   789"), "123\n456\n789");
+  EXPECT_EQ(RunPrettify("\"abc\" \"def\" \"ghi\""),
+            "\"abc\"\n\"def\"\n\"ghi\"");
+  EXPECT_EQ(RunPrettify("\"abc\"\"def\"\"ghi\""),
+            "\"abc\"\n\"def\"\n\"ghi\"");
+  EXPECT_EQ(RunPrettify("\"abc\"\n\"def\"\n\"ghi\""),
+            "\"abc\"\n\"def\"\n\"ghi\"");
+  EXPECT_EQ(RunPrettify("{}"), "{}");
+  EXPECT_EQ(RunPrettify("{}{}{}"), "{}\n{}\n{}");
+  EXPECT_EQ(RunPrettify("{} {} {}"), "{}\n{}\n{}");
+  EXPECT_EQ(RunPrettify("{}  {}  {}"), "{}\n{}\n{}");
+  EXPECT_EQ(RunPrettify("{ }  { }  { }"), "{}\n{}\n{}");
+  EXPECT_EQ(RunPrettify("[]"), "[]");
+  EXPECT_EQ(RunPrettify("[][][]"), "[]\n[]\n[]");
+  EXPECT_EQ(RunPrettify("[] [] []"), "[]\n[]\n[]");
+  EXPECT_EQ(RunPrettify("[]  []  []"), "[]\n[]\n[]");
+  EXPECT_EQ(RunPrettify("[ ]  [ ]  [ ]"), "[]\n[]\n[]");
+
+  // String escapes.
+  EXPECT_EQ(RunPrettify("[\"abc\"]"), "[\n  \"abc\"\n]");
+  EXPECT_EQ(RunPrettify("[\"abc\\\\def\"]"), "[\n  \"abc\\\\def\"\n]");
+  EXPECT_EQ(RunPrettify("[\"abc\\\"def\"]"), "[\n  \"abc\\\"def\"\n]");
+  EXPECT_EQ(RunPrettify("[\"abc\\\\\"]"), "[\n  \"abc\\\\\"\n]");
+
+  // Nonempty arrays and indentation.
+  EXPECT_EQ(RunPrettify("[[]]"), "[\n  []\n]");
+  EXPECT_EQ(RunPrettify("[ [ ] ] "), "[\n  []\n]");
+  EXPECT_EQ(RunPrettify("[[[]]]"), "[\n  [\n    []\n  ]\n]");
+  EXPECT_EQ(RunPrettify("[ [ [ ] ] ] "), "[\n  [\n    []\n  ]\n]");
+  EXPECT_EQ(RunPrettify("[[],[],[]]"), "[\n  [],\n  [],\n  []\n]");
+  EXPECT_EQ(RunPrettify("[ [ ] , [ ] , [ ] ] "), "[\n  [],\n  [],\n  []\n]");
+  EXPECT_EQ(RunPrettify("[123,456,789]"), "[\n  123,\n  456,\n  789\n]");
+  EXPECT_EQ(RunPrettify("[ 123 , 456 , 789 ] "), "[\n  123,\n  456,\n  789\n]");
+  EXPECT_EQ(RunPrettify("[\"abc\",\"def\",\"ghi\"]"),
+            "[\n  \"abc\",\n  \"def\",\n  \"ghi\"\n]");
+  EXPECT_EQ(RunPrettify("[ \"abc\" , \"def\" , \"ghi\" ] "),
+            "[\n  \"abc\",\n  \"def\",\n  \"ghi\"\n]");
+  EXPECT_EQ(RunPrettify("[]\n[]\n[]\n"), "[]\n[]\n[]");
+  EXPECT_EQ(RunPrettify("[ ]\n[ ]\n[ ]\n"), "[]\n[]\n[]");
+
+  // Alternative indent strings.
+  EXPECT_EQ(RunPrettify("[[]]", "\t"), "[\n\t[]\n]");
+  EXPECT_EQ(RunPrettify("[[[]]]", "\t"), "[\n\t[\n\t\t[]\n\t]\n]");
+  EXPECT_EQ(RunPrettify("[[],[],[]]", "\t"), "[\n\t[],\n\t[],\n\t[]\n]");
+  EXPECT_EQ(RunPrettify("[[]]", "    "), "[\n    []\n]");
+  EXPECT_EQ(RunPrettify("[[[]]]", "    "), "[\n    [\n        []\n    ]\n]");
+  EXPECT_EQ(RunPrettify("[[],[],[]]", "    "),
+            "[\n    [],\n    [],\n    []\n]");
+
+  // Nonempty objects.
+  EXPECT_EQ(RunPrettify("{\"key\":\"value\"}"), "{\n  \"key\": \"value\"\n}");
+  EXPECT_EQ(RunPrettify("{ \"key\" : \"value\" } "),
+            "{\n  \"key\": \"value\"\n}");
+  EXPECT_EQ(RunPrettify("{\"a\":1,\"b\":2}"),
+            "{\n  \"a\": 1,\n  \"b\": 2\n}");
+  EXPECT_EQ(RunPrettify("{ \"a\" : 1 , \"b\" : 2 }"),
+            "{\n  \"a\": 1,\n  \"b\": 2\n}");
+  EXPECT_EQ(RunPrettify("{\"a\":\"x\",\"b\":\"y\"}"),
+            "{\n  \"a\": \"x\",\n  \"b\": \"y\"\n}");
+  EXPECT_EQ(RunPrettify("{ \"a\" : \"x\" , \"b\" : \"y\" } "),
+            "{\n  \"a\": \"x\",\n  \"b\": \"y\"\n}");
+  EXPECT_EQ(RunPrettify("{\"a\":[],\"b\":[],\"c\":[]}"),
+            "{\n  \"a\": [],\n  \"b\": [],\n  \"c\": []\n}");
+  EXPECT_EQ(RunPrettify("{ \"a\" : [ ] , \"b\" : [ ] , \"c\" : [ ] } "),
+            "{\n  \"a\": [],\n  \"b\": [],\n  \"c\": []\n}");
+
+  // Larger example. Expected string generated using json.dumps(x, indent=2).
+  EXPECT_EQ(
+      RunPrettify(
+          R"json({"a":1,"b":"x","c":true,"d":null,"e":[2],"f":{"g":3}})json"),
+      "{\n  \"a\": 1,\n  \"b\": \"x\",\n  \"c\": true,\n  \"d\": null,\n  "
+      "\"e\": [\n    2\n  ],\n  \"f\": {\n    \"g\": 3\n  }\n}");
+  EXPECT_EQ(
+      RunPrettify(
+          R"json({ "a" : 1 , "b" : "x" , "c" : true , "d" : null , "e" : [ 2 ] , "f" : { "g" : 3 } } )json"),
+      "{\n  \"a\": 1,\n  \"b\": \"x\",\n  \"c\": true,\n  \"d\": null,\n  "
+      "\"e\": [\n    2\n  ],\n  \"f\": {\n    \"g\": 3\n  }\n}");
+}
+
+TEST(JsonStreamTest, PrettifyStreamProcessorLoadStateFailure) {
+  JsonPrettifyStreamProcessor processor({.indent_string = "  "});
+
+  EXPECT_FALSE(processor.LoadState(""));
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  EXPECT_FALSE(processor.LoadState(
+      JsonPrettifyStreamProcessor({.indent_string = " "}).ToState()));
+  {
+    JsonPrettifyStateProto proto;
+    proto.set_indent_string("  ");
+    proto.set_container_depth(-1);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal

@@ -1100,4 +1100,116 @@ std::string JsonSalvageStreamProcessor::ConsumeOutput() {
   return output;
 }
 
+void JsonPrettifyStreamProcessor::Reset() {
+  container_depth_ = 0;
+  is_in_string_ = false;
+  is_in_escape_ = false;
+  needs_newline_and_indent_ = false;
+}
+
+bool JsonPrettifyStreamProcessor::LoadState(std::string_view state) {
+  JsonPrettifyStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.container_depth() < 0) {
+    return false;
+  }
+  if (proto.indent_string() != options_.indent_string) {
+    return false;
+  }
+  container_depth_ = proto.container_depth();
+  has_contents_ = proto.has_contents();
+  is_in_string_ = proto.is_in_string();
+  is_in_escape_ = proto.is_in_escape();
+  needs_newline_and_indent_ = proto.needs_newline_and_indent();
+  return true;
+}
+
+std::string JsonPrettifyStreamProcessor::ToState() const {
+  JsonPrettifyStateProto proto;
+  proto.set_indent_string(options_.indent_string);
+  proto.set_container_depth(container_depth_);
+  proto.set_has_contents(has_contents_);
+  proto.set_is_in_string(is_in_string_);
+  proto.set_is_in_escape(is_in_escape_);
+  proto.set_needs_newline_and_indent(needs_newline_and_indent_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonPrettifyStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+
+  auto emit_newline_and_indent_if_needed = [&]() {
+    if (needs_newline_and_indent_) {
+      output.push_back('\n');
+      for (int64_t i = 0; i < container_depth_; ++i) {
+        output.append(options_.indent_string);
+      }
+      needs_newline_and_indent_ = false;
+    }
+  };
+
+  for (char c : input_chunk) {
+    if (is_in_string_) {
+      output.push_back(c);
+      if (is_in_escape_) {
+        is_in_escape_ = false;
+      } else if (c == '"') {
+        is_in_string_ = false;
+        if (container_depth_ == 0) {
+          needs_newline_and_indent_ = true;
+        }
+      } else if (c == '\\') {
+        is_in_escape_ = true;
+      }
+    } else {
+      if (absl::ascii_isspace(c)) {
+        // Strip original whitespace and normalize whitespace between top-level
+        // values.
+        if (container_depth_ == 0) {
+          needs_newline_and_indent_ = true;
+        }
+      } else if (c == '"') {
+        emit_newline_and_indent_if_needed();
+        output.push_back('"');
+        is_in_string_ = true;
+        has_contents_ = true;
+      } else if (c == '[' || c == '{') {
+        emit_newline_and_indent_if_needed();
+        ++container_depth_;
+        output.push_back(c);
+        needs_newline_and_indent_ = true;
+        has_contents_ = false;
+      } else if (c == ']' || c == '}') {
+        --container_depth_;
+        if (has_contents_) {
+          needs_newline_and_indent_ = true;
+          emit_newline_and_indent_if_needed();
+        }
+        output.push_back(c);
+        needs_newline_and_indent_ = true;
+        has_contents_ = true;
+      } else if (c == ',') {
+        output.push_back(c);
+        needs_newline_and_indent_ = true;
+        has_contents_ = true;
+      } else if (c == ':') {
+        output.push_back(c);
+        output.push_back(' ');
+        has_contents_ = true;
+      } else {
+        emit_newline_and_indent_if_needed();
+        output.push_back(c);
+        has_contents_ = true;
+      }
+    }
+  }
+
+  return output;
+}
+
+std::string JsonPrettifyStreamProcessor::ProcessEnd() { return ""; }
+
 }  // namespace koladata::internal

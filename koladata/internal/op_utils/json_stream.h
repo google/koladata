@@ -227,6 +227,66 @@ class JsonSalvageStreamProcessor {
   std::string output_;
 };
 
+struct JsonPrettifyOptions {
+  // The character sequence to use as a single indent. Must be valid UTF-8.
+  std::string indent_string = "  ";
+};
+
+// Adds indents and newlines to a stream of valid whitespace-separated JSON
+// values, equivalent to python json.dumps(..., indent=config.indent_string),
+// to make large JSON values more human-readable. Empty containers `[]` and `{}`
+// do not have whitespace inserted into them, matching python json.dumps.
+//
+// For example:
+//
+//   `{"x": [], "y": [1, 2, 3]}`
+//   ->
+//   ```json
+//   {
+//     "x": [],
+//     "z": [
+//       1,
+//       2,
+//       3,
+//     ]
+//   }
+//   ```
+//
+// If the input is not a stream of valid whitespace-separated JSON values, the
+// output is unspecified.
+class JsonPrettifyStreamProcessor {
+ public:
+  explicit JsonPrettifyStreamProcessor(const JsonPrettifyOptions& options)
+      : options_(options) {}
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid or does not match the options passed to the
+  // constructor.
+  [[nodiscard]] bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  const JsonPrettifyOptions options_;
+
+  int64_t container_depth_ = 0;
+  bool has_contents_ = false;
+  bool is_in_string_ = false;
+  bool is_in_escape_ = false;
+  bool needs_newline_and_indent_ = false;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_JSON_STREAM_H_
