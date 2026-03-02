@@ -948,6 +948,51 @@ TEST(JsonStreamTest, PrettifyStreamProcessorLoadStateFailure) {
   }
 }
 
+std::string RunCompactify(std::string input) {
+  return RunProcessor<JsonCompactifyStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, CompactifyStreamProcessor) {
+  // Note: concatenated JSON without any intermediate whitespace is technically
+  // invalid, but for containers and strings we make sure to separate it anyway.
+  EXPECT_EQ(RunCompactify(""), "");
+  EXPECT_EQ(RunCompactify("123"), "123\n");
+  EXPECT_EQ(RunCompactify(" 123 "), "123\n");
+  EXPECT_EQ(RunCompactify("123 456 789"), "123\n456\n789\n");
+  EXPECT_EQ(RunCompactify("123  456  789"), "123\n456\n789\n");
+  EXPECT_EQ(RunCompactify("\"abc\""), "\"abc\"\n");
+  EXPECT_EQ(RunCompactify("\"abc\\\"def\\\\\"\"ghi\""),
+            "\"abc\\\"def\\\\\"\n\"ghi\"\n");
+  EXPECT_EQ(RunCompactify("\"abc def ghi\""), "\"abc def ghi\"\n");
+  EXPECT_EQ(RunCompactify(" \"abc\" "), "\"abc\"\n");
+  EXPECT_EQ(RunCompactify("\"abc\"\"def\"\"ghi\""),
+            "\"abc\"\n\"def\"\n\"ghi\"\n");
+  EXPECT_EQ(RunCompactify("\"abc\" \"def\" \"ghi\""),
+            "\"abc\"\n\"def\"\n\"ghi\"\n");
+  EXPECT_EQ(RunCompactify("\"abc\"123[]true"), "\"abc\"\n123\n[]\ntrue\n");
+  EXPECT_EQ(RunCompactify("[][][]"), "[]\n[]\n[]\n");
+  EXPECT_EQ(RunCompactify("[] [] []"), "[]\n[]\n[]\n");
+  EXPECT_EQ(RunCompactify("{}{}{}"), "{}\n{}\n{}\n");
+  EXPECT_EQ(RunCompactify(" { } { } { } "), "{}\n{}\n{}\n");
+  EXPECT_EQ(RunCompactify("[][[]][[[],[]]]"), "[]\n[[]]\n[[[],[]]]\n");
+  EXPECT_EQ(RunCompactify(" [ ] [ [ ] ] [ [ [ ] , [ ] ] ] "),
+            "[]\n[[]]\n[[[],[]]]\n");
+
+  EXPECT_EQ(RunCompactify("{\"key\": \"value\"}"), "{\"key\":\"value\"}\n");
+  EXPECT_EQ(RunCompactify("{\"a\": 1, \"b\": 2}"), "{\"a\":1,\"b\":2}\n");
+}
+
+TEST(JsonStreamTest, CompactifyStreamProcessorLoadStateFailure) {
+  JsonCompactifyStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonCompactifyStateProto proto;
+    proto.set_container_depth(-1);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
 std::string RunUnquote(std::string input) {
   return RunProcessor<JsonUnquoteStreamProcessor>(input);
 }

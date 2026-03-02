@@ -49,6 +49,14 @@ message JsonPrettifyStateProto {
   bool needs_newline_and_indent = 6;
 }
 
+// Internal to JsonCompactifyStreamProcessor. Do not use directly.
+message JsonCompactifyStateProto {
+  int64 container_depth = 1;
+  bool is_in_value = 2;
+  bool is_in_string = 3;
+  bool is_in_escape = 4;
+}
+
 // Internal to JsonUnquoteStreamProcessor. Do not use directly.
 message JsonUnquoteStateProto {
   bool is_in_string = 1;

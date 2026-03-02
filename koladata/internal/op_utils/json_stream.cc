@@ -23,6 +23,7 @@
 
 #include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
+#include "absl/memory/memory.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -1219,6 +1220,91 @@ std::string JsonPrettifyStreamProcessor::ProcessInputChunk(
 }
 
 std::string JsonPrettifyStreamProcessor::ProcessEnd() { return ""; }
+
+void JsonCompactifyStreamProcessor::Reset() {
+  container_depth_ = 0;
+  is_in_value_ = false;
+  is_in_string_ = false;
+  is_in_escape_ = false;
+}
+
+bool JsonCompactifyStreamProcessor::LoadState(std::string_view state) {
+  JsonCompactifyStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.container_depth() < 0) {
+    return false;
+  }
+  container_depth_ = proto.container_depth();
+  is_in_value_ = proto.is_in_value();
+  is_in_string_ = proto.is_in_string();
+  is_in_escape_ = proto.is_in_escape();
+  return true;
+}
+
+std::string JsonCompactifyStreamProcessor::ToState() const {
+  JsonCompactifyStateProto proto;
+  proto.set_container_depth(container_depth_);
+  proto.set_is_in_value(is_in_value_);
+  proto.set_is_in_string(is_in_string_);
+  proto.set_is_in_escape(is_in_escape_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonCompactifyStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+
+  auto emit_newline_if_needed = [&]() {
+    if (container_depth_ == 0 && is_in_value_) {
+      output.push_back('\n');
+      is_in_value_ = false;
+    }
+  };
+
+  for (char c : input_chunk) {
+    if (is_in_string_) {
+      output.push_back(c);
+      if (is_in_escape_) {
+        is_in_escape_ = false;
+      } else if (c == '"') {
+        is_in_string_ = false;
+        emit_newline_if_needed();
+      } else if (c == '\\') {
+        is_in_escape_ = true;
+      }
+    } else {
+      if (absl::ascii_isspace(c)) {
+        emit_newline_if_needed();
+      } else if (c == '"') {
+        output.push_back(c);
+        is_in_value_ = true;
+        is_in_string_ = true;
+      } else if (c == '[' || c == '{') {
+        emit_newline_if_needed();
+        output.push_back(c);
+        ++container_depth_;
+        is_in_value_ = true;
+      } else if (c == ']' || c == '}') {
+        output.push_back(c);
+        --container_depth_;
+        emit_newline_if_needed();
+      } else {
+        output.push_back(c);
+        is_in_value_ = true;
+      }
+    }
+  }
+  return output;
+}
+
+std::string JsonCompactifyStreamProcessor::ProcessEnd() {
+  if (is_in_value_) {
+    return "\n";
+  }
+  return "";
+}
 
 void JsonUnquoteStreamProcessor::Reset() {
   is_in_string_ = false;

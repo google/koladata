@@ -287,6 +287,38 @@ class JsonPrettifyStreamProcessor {
   bool needs_newline_and_indent_ = false;
 };
 
+// Normalizes JSONL so that it has no internal whitespace (outside of strings)
+// and each top-level value is followed by exactly one '\n' character. Most
+// transformation operators require compactified JSONL input to simplify their
+// implementations.
+class JsonCompactifyStreamProcessor {
+ public:
+  JsonCompactifyStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Process a chunk of input bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // End the input.
+  std::string ProcessEnd();
+
+ private:
+  int64_t container_depth_ = 0;
+  bool is_in_value_ = false;
+  bool is_in_string_ = false;
+  bool is_in_escape_ = false;
+};
+
 // Extracts the contents of all JSON strings in a stream of valid JSON values.
 // If there are multiple strings in the input, the contents are concatenated
 // in the result.
