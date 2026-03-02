@@ -221,7 +221,7 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   ASSIGN_OR_RETURN(
       auto result,
       InvokeOpWithCompilationCache(std::move(op), input_qvalues,
-                                   {.verbose_runtime_errors = true}),
+                                   {.enable_expr_stack_trace = true}),
       SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
 }
@@ -282,7 +282,7 @@ PyObject* absl_nullable PyEvalOrBindOp(PyObject* /*self*/, PyObject** py_args,
     ASSIGN_OR_RETURN(
         auto result,
         InvokeOpWithCompilationCache(std::move(op), input_qvalues,
-                                     {.verbose_runtime_errors = true}),
+                                     {.enable_expr_stack_trace = true}),
         SetPyErrFromStatus(_));
     return WrapAsPyQValue(std::move(result));
   }
