@@ -1325,4 +1325,59 @@ std::string JsonUnquoteStreamProcessor::ProcessInputChunk(
 
 std::string JsonUnquoteStreamProcessor::ProcessEnd() { return ""; }
 
+void JsonQuoteStreamProcessor::Reset() { emitted_opening_quote_ = false; }
+
+bool JsonQuoteStreamProcessor::LoadState(std::string_view state) {
+  JsonQuoteStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  emitted_opening_quote_ = proto.emitted_opening_quote();
+  return true;
+}
+
+std::string JsonQuoteStreamProcessor::ToState() const {
+  JsonQuoteStateProto proto;
+  proto.set_emitted_opening_quote(emitted_opening_quote_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonQuoteStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  if (!emitted_opening_quote_) {
+    output.push_back('"');
+    emitted_opening_quote_ = true;
+  }
+  for (char c : input_chunk) {
+    if (c == '\\') {
+      output.append("\\\\");
+    } else if (c == '"') {
+      output.append("\\\"");
+    } else if (c == '\b') {
+      output.append("\\b");
+    } else if (c == '\f') {
+      output.append("\\f");
+    } else if (c == '\n') {
+      output.append("\\n");
+    } else if (c == '\r') {
+      output.append("\\r");
+    } else if (c == '\t') {
+      output.append("\\t");
+    } else if (static_cast<uint8_t>(c) < 0x20) {
+      output.append(absl::StrFormat("\\u%04x", static_cast<uint8_t>(c)));
+    } else {
+      output.push_back(c);
+    }
+  }
+  return output;
+}
+
+std::string JsonQuoteStreamProcessor::ProcessEnd() {
+  if (!emitted_opening_quote_) {
+    return "\"\"";
+  }
+  return "\"";
+}
+
 }  // namespace koladata::internal

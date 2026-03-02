@@ -319,6 +319,35 @@ class JsonUnquoteStreamProcessor {
   std::string escape_buffer_;
 };
 
+// Packs an input stream of arbitrary UTF-8 into a single JSON string with
+// only necessary escapes.
+//
+// If the input is not valid UTF-8, the output is unspecified.
+class JsonQuoteStreamProcessor {
+ public:
+  JsonQuoteStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  bool emitted_opening_quote_ = false;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_JSON_STREAM_H_

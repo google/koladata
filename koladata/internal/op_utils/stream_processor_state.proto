@@ -54,3 +54,8 @@ message JsonUnquoteStateProto {
   bool is_in_string = 1;
   bytes escape_buffer = 2;
 }
+
+// Internal to JsonQuoteStreamProcessor. Do not use directly.
+message JsonQuoteStateProto {
+  bool emitted_opening_quote = 1;
+}

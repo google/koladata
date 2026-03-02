@@ -15,12 +15,47 @@
 #include "koladata/internal/op_utils/json_stream.h"
 
 #include <string>
+#include <string_view>
 
 #include "gtest/gtest.h"
 #include "koladata/internal/op_utils/stream_processor_state.pb.h"
 
 namespace koladata::internal {
 namespace {
+
+template <typename ProcessorT, typename... OptionsT>
+std::string RunProcessor(std::string input, const OptionsT&... options) {
+  ProcessorT processor(options...);
+  std::string output;
+  output += processor.ProcessInputChunk(input);
+  output += processor.ProcessEnd();
+
+  // Also run the processor on a single byte of input at a time, serializing
+  // and deserializing in between each byte. This should produce the same
+  // concatenated result.
+  std::string byte_streamed_output;
+  processor.Reset();
+  std::string state = processor.ToState();
+  for (char c : input) {
+    std::string input_chunk;
+    input_chunk.push_back(c);
+    {
+      ProcessorT tmp_processor(options...);
+      EXPECT_TRUE(tmp_processor.LoadState(state));
+      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
+      state = tmp_processor.ToState();
+    }
+  }
+  {
+    ProcessorT tmp_processor(options...);
+    EXPECT_TRUE(tmp_processor.LoadState(state));
+    byte_streamed_output += tmp_processor.ProcessEnd();
+  }
+
+  EXPECT_EQ(byte_streamed_output, output);
+
+  return output;
+}
 
 constexpr JsonSalvageOptions kDefaultJsonSalvageOptions = {
     .allow_nan = false,
@@ -42,36 +77,8 @@ constexpr JsonSalvageOptions kAllowNanJsonSalvageOptions = {
 
 std::string RunSalvage(std::string input, const JsonSalvageOptions& options =
                                               kDefaultJsonSalvageOptions) {
-  JsonSalvageStreamProcessor processor(options);
-  std::string output;
-  output += processor.ProcessInputChunk(input);
-  output += processor.ProcessEnd();
-
-  // Also run the processor on a single byte of input at a time, serializing
-  // and deserializing in between each byte. This should produce the same
-  // concatenated result.
-  std::string byte_streamed_output;
-  processor.Reset();
-  std::string state = processor.ToState();
-  for (char c : input) {
-    std::string input_chunk;
-    input_chunk.push_back(c);
-    {
-      JsonSalvageStreamProcessor tmp_processor(options);
-      EXPECT_TRUE(tmp_processor.LoadState(state));
-      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
-      state = tmp_processor.ToState();
-    }
-  }
-  {
-    JsonSalvageStreamProcessor tmp_processor(options);
-    EXPECT_TRUE(tmp_processor.LoadState(state));
-    byte_streamed_output += tmp_processor.ProcessEnd();
-  }
-
-  EXPECT_EQ(byte_streamed_output, output);
-
-  return output;
+  return RunProcessor<JsonSalvageStreamProcessor, JsonSalvageOptions>(input,
+                                                                      options);
 }
 
 TEST(JsonStreamTest, SalvageStreamProcessorValidJson) {
@@ -836,38 +843,8 @@ TEST(JsonStreamTest, SalvageStreamProcessorLoadStateFailure) {
 }
 
 std::string RunPrettify(std::string input, std::string indent_string = "  ") {
-  JsonPrettifyOptions options = {.indent_string = indent_string};
-
-  JsonPrettifyStreamProcessor processor(options);
-  std::string output;
-  output += processor.ProcessInputChunk(input);
-  output += processor.ProcessEnd();
-
-  // Also run the processor on a single byte of input at a time, serializing
-  // and deserializing in between each byte. This should produce the same
-  // concatenated result.
-  std::string byte_streamed_output;
-  processor.Reset();
-  std::string state = processor.ToState();
-  for (char c : input) {
-    std::string input_chunk;
-    input_chunk.push_back(c);
-    {
-      JsonPrettifyStreamProcessor tmp_processor(options);
-      EXPECT_TRUE(tmp_processor.LoadState(state));
-      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
-      state = tmp_processor.ToState();
-    }
-  }
-  {
-    JsonPrettifyStreamProcessor tmp_processor(options);
-    EXPECT_TRUE(tmp_processor.LoadState(state));
-    byte_streamed_output += tmp_processor.ProcessEnd();
-  }
-
-  EXPECT_EQ(byte_streamed_output, output);
-
-  return output;
+  return RunProcessor<JsonPrettifyStreamProcessor, JsonPrettifyOptions>(
+      input, JsonPrettifyOptions{.indent_string = indent_string});
 }
 
 TEST(JsonStreamTest, PrettifyStreamProcessor) {
@@ -881,8 +858,7 @@ TEST(JsonStreamTest, PrettifyStreamProcessor) {
   EXPECT_EQ(RunPrettify("123   456   789"), "123\n456\n789");
   EXPECT_EQ(RunPrettify("\"abc\" \"def\" \"ghi\""),
             "\"abc\"\n\"def\"\n\"ghi\"");
-  EXPECT_EQ(RunPrettify("\"abc\"\"def\"\"ghi\""),
-            "\"abc\"\n\"def\"\n\"ghi\"");
+  EXPECT_EQ(RunPrettify("\"abc\"\"def\"\"ghi\""), "\"abc\"\n\"def\"\n\"ghi\"");
   EXPECT_EQ(RunPrettify("\"abc\"\n\"def\"\n\"ghi\""),
             "\"abc\"\n\"def\"\n\"ghi\"");
   EXPECT_EQ(RunPrettify("{}"), "{}");
@@ -973,33 +949,7 @@ TEST(JsonStreamTest, PrettifyStreamProcessorLoadStateFailure) {
 }
 
 std::string RunUnquote(std::string input) {
-  JsonUnquoteStreamProcessor processor;
-  std::string output;
-  output += processor.ProcessInputChunk(input);
-  output += processor.ProcessEnd();
-
-  std::string byte_streamed_output;
-  processor.Reset();
-  std::string state = processor.ToState();
-  for (char c : input) {
-    std::string input_chunk;
-    input_chunk.push_back(c);
-    {
-      JsonUnquoteStreamProcessor tmp_processor;
-      EXPECT_TRUE(tmp_processor.LoadState(state));
-      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
-      state = tmp_processor.ToState();
-    }
-  }
-  {
-    JsonUnquoteStreamProcessor tmp_processor;
-    EXPECT_TRUE(tmp_processor.LoadState(state));
-    byte_streamed_output += tmp_processor.ProcessEnd();
-  }
-
-  EXPECT_EQ(byte_streamed_output, output);
-
-  return output;
+  return RunProcessor<JsonUnquoteStreamProcessor>(input);
 }
 
 TEST(JsonStreamTest, UnquoteStreamProcessor) {
@@ -1053,6 +1003,39 @@ TEST(JsonStreamTest, UnquoteStreamProcessor) {
 
 TEST(JsonStreamTest, UnquoteStreamProcessorLoadStateFailure) {
   JsonUnquoteStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+}
+
+std::string RunQuote(std::string input) {
+  return RunProcessor<JsonQuoteStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, QuoteStreamProcessor) {
+  EXPECT_EQ(RunQuote(""), "\"\"");
+  EXPECT_EQ(RunQuote("abc"), "\"abc\"");
+  EXPECT_EQ(RunQuote("abc def ghi"), "\"abc def ghi\"");
+  EXPECT_EQ(RunQuote("\""), "\"\\\"\"");
+  EXPECT_EQ(RunQuote("\\"), "\"\\\\\"");
+  {
+    std::string null_string;
+    null_string.push_back('\x00');
+    EXPECT_EQ(RunQuote(null_string), "\"\\u0000\"");
+  }
+  EXPECT_EQ(RunQuote("\x1f"), "\"\\u001f\"");
+  EXPECT_EQ(RunQuote("\x20"), "\" \"");
+  EXPECT_EQ(RunQuote("\b"), "\"\\b\"");
+  EXPECT_EQ(RunQuote("\f"), "\"\\f\"");
+  EXPECT_EQ(RunQuote("\n"), "\"\\n\"");
+  EXPECT_EQ(RunQuote("\r"), "\"\\r\"");
+  EXPECT_EQ(RunQuote("\t"), "\"\\t\"");
+  EXPECT_EQ(RunQuote("♠"), "\"♠\"");
+  EXPECT_EQ(RunQuote("😊"), "\"😊\"");
+  EXPECT_EQ(RunQuote("\\u2660"), "\"\\\\u2660\"");
+}
+
+TEST(JsonStreamTest, QuoteStreamProcessorLoadStateFailure) {
+  JsonQuoteStreamProcessor processor;
 
   EXPECT_FALSE(processor.LoadState("GARBAGE"));
 }
