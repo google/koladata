@@ -23,7 +23,6 @@
 
 #include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
-#include "absl/memory/memory.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -1303,6 +1302,209 @@ std::string JsonCompactifyStreamProcessor::ProcessEnd() {
   if (is_in_value_) {
     return "\n";
   }
+  return "";
+}
+
+void JsonSelectNonemptyObjectsStreamProcessor::Reset() {
+  state_ = State::kStart;
+}
+
+bool JsonSelectNonemptyObjectsStreamProcessor::LoadState(
+    std::string_view state) {
+  JsonSelectNonemptyObjectsProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  switch (static_cast<State>(proto.state())) {
+    case State::kStart:
+    case State::kOpenBrace:
+    case State::kDropLine:
+    case State::kKeepLine:
+      state_ = static_cast<State>(proto.state());
+      break;
+    default:
+      Reset();
+      return false;
+  }
+  return true;
+}
+
+std::string JsonSelectNonemptyObjectsStreamProcessor::ToState() const {
+  JsonSelectNonemptyObjectsProto proto;
+  proto.set_state(static_cast<int32_t>(state_));
+  return proto.SerializeAsString();
+}
+
+std::string JsonSelectNonemptyObjectsStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    switch (state_) {
+      case State::kStart:
+        if (c == '{') {
+          state_ = State::kOpenBrace;
+        } else {
+          state_ = State::kDropLine;
+        }
+        break;
+      case State::kOpenBrace:
+        if (c == '}') {
+          state_ = State::kDropLine;
+        } else {
+          output.push_back('{');
+          output.push_back(c);
+          state_ = State::kKeepLine;
+        }
+        break;
+      case State::kDropLine:
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+      case State::kKeepLine:
+        output.push_back(c);
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+    }
+  }
+  return output;
+}
+
+std::string JsonSelectNonemptyObjectsStreamProcessor::ProcessEnd() {
+  return "";
+}
+
+void JsonSelectNonemptyArraysStreamProcessor::Reset() {
+  state_ = State::kStart;
+}
+
+bool JsonSelectNonemptyArraysStreamProcessor::LoadState(
+    std::string_view state) {
+  JsonSelectNonemptyArraysProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  switch (static_cast<State>(proto.state())) {
+    case State::kStart:
+    case State::kOpenSquareBracket:
+    case State::kDropLine:
+    case State::kKeepLine:
+      state_ = static_cast<State>(proto.state());
+      break;
+    default:
+      Reset();
+      return false;
+  }
+  return true;
+}
+
+std::string JsonSelectNonemptyArraysStreamProcessor::ToState() const {
+  JsonSelectNonemptyArraysProto proto;
+  proto.set_state(static_cast<int32_t>(state_));
+  return proto.SerializeAsString();
+}
+
+std::string JsonSelectNonemptyArraysStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    switch (state_) {
+      case State::kStart:
+        if (c == '[') {
+          state_ = State::kOpenSquareBracket;
+        } else {
+          state_ = State::kDropLine;
+        }
+        break;
+      case State::kOpenSquareBracket:
+        if (c == ']') {
+          state_ = State::kDropLine;
+        } else {
+          output.push_back('[');
+          output.push_back(c);
+          state_ = State::kKeepLine;
+        }
+        break;
+      case State::kDropLine:
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+      case State::kKeepLine:
+        output.push_back(c);
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+    }
+  }
+  return output;
+}
+
+std::string JsonSelectNonemptyArraysStreamProcessor::ProcessEnd() {
+  return "";
+}
+
+void JsonSelectNonnullStreamProcessor::Reset() {
+  state_ = State::kStart;
+}
+
+bool JsonSelectNonnullStreamProcessor::LoadState(std::string_view state) {
+  JsonSelectNonnullProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  switch (static_cast<State>(proto.state())) {
+    case State::kStart:
+    case State::kDropLine:
+    case State::kKeepLine:
+      state_ = static_cast<State>(proto.state());
+      break;
+    default:
+      Reset();
+      return false;
+  }
+  return true;
+}
+
+std::string JsonSelectNonnullStreamProcessor::ToState() const {
+  JsonSelectNonnullProto proto;
+  proto.set_state(static_cast<int32_t>(state_));
+  return proto.SerializeAsString();
+}
+
+std::string JsonSelectNonnullStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    switch (state_) {
+      case State::kStart:
+        if (c == 'n') {
+          state_ = State::kDropLine;
+        } else {
+          output.push_back(c);
+          state_ = State::kKeepLine;
+        }
+        break;
+      case State::kDropLine:
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+      case State::kKeepLine:
+        output.push_back(c);
+        if (c == '\n') {
+          state_ = State::kStart;
+        }
+        break;
+    }
+  }
+  return output;
+}
+
+std::string JsonSelectNonnullStreamProcessor::ProcessEnd() {
   return "";
 }
 

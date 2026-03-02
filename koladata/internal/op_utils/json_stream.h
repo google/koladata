@@ -319,6 +319,113 @@ class JsonCompactifyStreamProcessor {
   bool is_in_escape_ = false;
 };
 
+// Keeps top-level values in a stream of compactified newline-separated JSON
+// that are objects with at least one key/value pair.
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonSelectNonemptyObjectsStreamProcessor {
+ public:
+  JsonSelectNonemptyObjectsStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  enum class State : uint8_t {
+    kStart = 0,      // Initial state.
+    kOpenBrace = 1,  // Saw "{"
+    kDropLine = 2,   // Line is not a nonempty object, drop from output.
+    kKeepLine = 3,   // Line is a nonempty object, echo to output.
+  };
+
+  State state_;
+};
+
+// Keeps top-level values in a stream of compactified newline-separated JSON
+// that are arrays with at least one element.
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonSelectNonemptyArraysStreamProcessor {
+ public:
+  JsonSelectNonemptyArraysStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  enum class State : uint8_t {
+    kStart = 0,              // Initial state.
+    kOpenSquareBracket = 1,  // Saw "["
+    kDropLine = 2,           // Line is not a nonempty array, drop from output.
+    kKeepLine = 3,           // Line is a nonempty array, echo to output.
+  };
+
+  State state_;
+};
+
+// Keeps top-level values in a stream of compactified newline-separated JSON
+// that are not the value `null`.
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonSelectNonnullStreamProcessor {
+ public:
+  JsonSelectNonnullStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  enum class State : uint8_t {
+    kStart = 0,     // Saw ""
+    kDropLine = 2,  // Line is not a non-null value, drop from output.
+    kKeepLine = 3,  // Line is a non-null value, echo to output.
+  };
+
+  State state_;
+};
+
 // Extracts the contents of all JSON strings in a stream of valid JSON values.
 // If there are multiple strings in the input, the contents are concatenated
 // in the result.

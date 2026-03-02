@@ -993,6 +993,73 @@ TEST(JsonStreamTest, CompactifyStreamProcessorLoadStateFailure) {
   }
 }
 
+std::string RunSelectNonemptyObjects(std::string input) {
+  return RunProcessor<JsonSelectNonemptyObjectsStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, SelectNonemptyObjectsStreamProcessor) {
+  EXPECT_EQ(RunSelectNonemptyObjects(""), "");
+  EXPECT_EQ(RunSelectNonemptyObjects(
+                "123\nnull\n{}\n{\"a\":\"b\"}\n[]\n[1,2,3]\n{\"c\":\"d\"}\n"),
+            "{\"a\":\"b\"}\n{\"c\":\"d\"}\n");
+}
+
+TEST(JsonStreamTest, SelectNonemptyObjectsStreamProcessorLoadStateFailure) {
+  JsonSelectNonemptyObjectsStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonSelectNonemptyObjectsProto proto;
+    proto.set_state(4);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
+std::string RunSelectNonemptyArrays(std::string input) {
+  return RunProcessor<JsonSelectNonemptyArraysStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, SelectNonemptyArraysStreamProcessor) {
+  EXPECT_EQ(RunSelectNonemptyArrays(""), "");
+  EXPECT_EQ(RunSelectNonemptyArrays("123\nnull\n{}\n[\"x\"]\n{\"a\":\"b\"}\n[]"
+                                    "\n[1,2,3]\n{\"c\":\"d\"}\n"),
+            "[\"x\"]\n[1,2,3]\n");
+}
+
+TEST(JsonStreamTest, SelectNonemptyArraysStreamProcessorLoadStateFailure) {
+  JsonSelectNonemptyArraysStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonSelectNonemptyArraysProto proto;
+    proto.set_state(4);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
+std::string RunSelectNonnull(std::string input) {
+  return RunProcessor<JsonSelectNonnullStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, SelectNonnullStreamProcessor) {
+  EXPECT_EQ(RunSelectNonnull(""), "");
+  EXPECT_EQ(
+      RunSelectNonnull(
+          "123\nnull\n{}\n{\"a\":\"b\"}\n[]\nnull\n[1,2,3]\n{\"c\":\"d\"}\n"),
+      "123\n{}\n{\"a\":\"b\"}\n[]\n[1,2,3]\n{\"c\":\"d\"}\n");
+}
+
+TEST(JsonStreamTest, SelectNonnullStreamProcessorLoadStateFailure) {
+  JsonSelectNonnullStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonSelectNonnullProto proto;
+    proto.set_state(4);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
 std::string RunUnquote(std::string input) {
   return RunProcessor<JsonUnquoteStreamProcessor>(input);
 }

@@ -57,6 +57,21 @@ message JsonCompactifyStateProto {
   bool is_in_escape = 4;
 }
 
+// Internal to JsonSelectNonemptyObjectsStreamProcessor. Do not use directly.
+message JsonSelectNonemptyObjectsProto {
+  int32 state = 1;
+};
+
+// Internal to JsonSelectNonemptyArraysStreamProcessor. Do not use directly.
+message JsonSelectNonemptyArraysProto {
+  int32 state = 1;
+};
+
+// Internal to JsonSelectNonnullStreamProcessor. Do not use directly.
+message JsonSelectNonnullProto {
+  int32 state = 1;
+};
+
 // Internal to JsonUnquoteStreamProcessor. Do not use directly.
 message JsonUnquoteStateProto {
   bool is_in_string = 1;
