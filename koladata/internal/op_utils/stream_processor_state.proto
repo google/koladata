@@ -48,3 +48,9 @@ message JsonPrettifyStateProto {
   bool is_in_escape = 5;
   bool needs_newline_and_indent = 6;
 }
+
+// Internal to JsonUnquoteStreamProcessor. Do not use directly.
+message JsonUnquoteStateProto {
+  bool is_in_string = 1;
+  bytes escape_buffer = 2;
+}

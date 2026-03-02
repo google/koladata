@@ -93,6 +93,18 @@ uint32_t DigitValue(std::optional<char32_t> c) {
   }
 }
 
+template <typename Container>
+uint64_t ConvertDigitSpan(const Container& data, size_t begin, size_t end,
+                          uint64_t base) {
+  DCHECK_LE(begin, end);
+  DCHECK_LE(end, data.size());
+  uint64_t value = 0;
+  for (size_t i = begin; i < end && i < data.size(); ++i) {
+    value = value * base + DigitValue(data[i]);
+  }
+  return value;
+}
+
 }  // namespace
 
 void JsonSalvageStreamProcessor::Reset() {
@@ -901,11 +913,7 @@ bool JsonSalvageStreamProcessor::BufferContainsAnycasePrefixOf(
 
 uint64_t JsonSalvageStreamProcessor::ConvertBufferValueAt(size_t offset,
                                                           uint64_t base) const {
-  uint64_t value = 0;
-  for (size_t i = offset; i < buffer_.size(); ++i) {
-    value = value * base + DigitValue(buffer_[i]);
-  }
-  return value;
+  return ConvertDigitSpan(buffer_, offset, buffer_.size(), base);
 }
 
 void JsonSalvageStreamProcessor::StartValue() {
@@ -1211,5 +1219,110 @@ std::string JsonPrettifyStreamProcessor::ProcessInputChunk(
 }
 
 std::string JsonPrettifyStreamProcessor::ProcessEnd() { return ""; }
+
+void JsonUnquoteStreamProcessor::Reset() {
+  is_in_string_ = false;
+  escape_buffer_.clear();
+}
+
+bool JsonUnquoteStreamProcessor::LoadState(std::string_view state) {
+  JsonUnquoteStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  is_in_string_ = proto.is_in_string();
+  escape_buffer_ = proto.escape_buffer();
+  return true;
+}
+
+std::string JsonUnquoteStreamProcessor::ToState() const {
+  JsonUnquoteStateProto proto;
+  proto.set_is_in_string(is_in_string_);
+  proto.set_escape_buffer(escape_buffer_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonUnquoteStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    if (is_in_string_) {
+      if (escape_buffer_.empty()) {
+        if (c == '"') {
+          is_in_string_ = false;
+        } else if (c == '\\') {
+          escape_buffer_.push_back(c);
+        } else {
+          output.push_back(c);
+        }
+      } else if (escape_buffer_ == "\\") {
+        if (c == '"' || c == '\\' || c == '/') {
+          output.push_back(c);
+          escape_buffer_.clear();
+        } else if (c == 'b') {
+          output.push_back('\b');
+          escape_buffer_.clear();
+        } else if (c == 'f') {
+          output.push_back('\f');
+          escape_buffer_.clear();
+        } else if (c == 'n') {
+          output.push_back('\n');
+          escape_buffer_.clear();
+        } else if (c == 'r') {
+          output.push_back('\r');
+          escape_buffer_.clear();
+        } else if (c == 't') {
+          output.push_back('\t');
+          escape_buffer_.clear();
+        } else if (c == 'u') {
+          escape_buffer_.push_back('u');
+        }
+      } else if (c == '"') {
+        // Purely defensive, not required by contract. Prevent truncated \u
+        // escapes from swallowing end quotes and causing non-local chaos.
+        is_in_string_ = false;
+        AppendUtf8CodePoint(kReplacementCharacter, output);
+        escape_buffer_.clear();
+      } else if (escape_buffer_.size() == 5 && IsHexDigit(c)) {
+        escape_buffer_.push_back(c);  // \uXXX + X
+        uint16_t value = ConvertDigitSpan(escape_buffer_, 2, 6, 16);
+        if (!U16_IS_LEAD(value)) {
+          AppendUtf8CodePoint(value, output);
+          escape_buffer_.clear();
+        }
+      } else if (escape_buffer_.size() == 11 && IsHexDigit(c)) {
+        escape_buffer_.push_back(c);  // \uXXXX\uXXX + X
+        uint16_t a = ConvertDigitSpan(escape_buffer_, 2, 6, 16);
+        uint16_t b = ConvertDigitSpan(escape_buffer_, 8, 12, 16);
+        if (U16_IS_TRAIL(b)) {
+          AppendUtf8CodePoint(U16_GET_SUPPLEMENTARY(a, b), output);
+        } else {
+          AppendUtf8CodePoint(kReplacementCharacter, output);
+        }
+        escape_buffer_.clear();
+      } else if (escape_buffer_.size() == 6 && c == '\\') {
+        escape_buffer_.push_back(c);  // \uXXXX + \ .
+      } else if (escape_buffer_.size() == 7 && c == 'u') {
+        escape_buffer_.push_back(c);  // \uXXXX\ + u
+      } else if ((escape_buffer_.size() == 2 || escape_buffer_.size() == 3 ||
+                  escape_buffer_.size() == 4 || escape_buffer_.size() == 8 ||
+                  escape_buffer_.size() == 9 || escape_buffer_.size() == 10) &&
+                 IsHexDigit(c)) {
+        // \uXXXX\uXXXX has Xs at indices {2, 3, 4, 5, 8, 9, 10, 11}. 5 and 11
+        // are handled above.
+        escape_buffer_.push_back(c);
+      } else {
+        // Broken escape.
+        AppendUtf8CodePoint(kReplacementCharacter, output);
+        escape_buffer_.clear();
+      }
+    } else if (c == '"') {
+      is_in_string_ = true;
+    }
+  }
+  return output;
+}
+
+std::string JsonUnquoteStreamProcessor::ProcessEnd() { return ""; }
 
 }  // namespace koladata::internal

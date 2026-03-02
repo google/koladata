@@ -287,6 +287,38 @@ class JsonPrettifyStreamProcessor {
   bool needs_newline_and_indent_ = false;
 };
 
+// Extracts the contents of all JSON strings in a stream of valid JSON values.
+// If there are multiple strings in the input, the contents are concatenated
+// in the result.
+//
+// If the input is not a stream of valid whitespace-separated JSON values, the
+// output is unspecified.
+class JsonUnquoteStreamProcessor {
+ public:
+  JsonUnquoteStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  bool is_in_string_ = false;
+  std::string escape_buffer_;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_JSON_STREAM_H_

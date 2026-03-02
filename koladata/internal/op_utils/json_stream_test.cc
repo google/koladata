@@ -972,5 +972,90 @@ TEST(JsonStreamTest, PrettifyStreamProcessorLoadStateFailure) {
   }
 }
 
+std::string RunUnquote(std::string input) {
+  JsonUnquoteStreamProcessor processor;
+  std::string output;
+  output += processor.ProcessInputChunk(input);
+  output += processor.ProcessEnd();
+
+  std::string byte_streamed_output;
+  processor.Reset();
+  std::string state = processor.ToState();
+  for (char c : input) {
+    std::string input_chunk;
+    input_chunk.push_back(c);
+    {
+      JsonUnquoteStreamProcessor tmp_processor;
+      EXPECT_TRUE(tmp_processor.LoadState(state));
+      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
+      state = tmp_processor.ToState();
+    }
+  }
+  {
+    JsonUnquoteStreamProcessor tmp_processor;
+    EXPECT_TRUE(tmp_processor.LoadState(state));
+    byte_streamed_output += tmp_processor.ProcessEnd();
+  }
+
+  EXPECT_EQ(byte_streamed_output, output);
+
+  return output;
+}
+
+TEST(JsonStreamTest, UnquoteStreamProcessor) {
+  // Zero to many top-level inputs.
+  EXPECT_EQ(RunUnquote(""), "");
+  EXPECT_EQ(RunUnquote("\"abc\""), "abc");
+  EXPECT_EQ(RunUnquote("\"abc\" \"def\" \"ghi\""), "abcdefghi");
+
+  // Escapes.
+  EXPECT_EQ(RunUnquote("\"\\\\\""), "\\");
+  EXPECT_EQ(RunUnquote("\"\\\"\""), "\"");
+  EXPECT_EQ(RunUnquote("\"\\/\""), "/");
+  EXPECT_EQ(RunUnquote("\"\\b\""), "\b");
+  EXPECT_EQ(RunUnquote("\"\\f\""), "\f");
+  EXPECT_EQ(RunUnquote("\"\\n\""), "\n");
+  EXPECT_EQ(RunUnquote("\"\\r\""), "\r");
+  EXPECT_EQ(RunUnquote("\"\\t\""), "\t");
+  {
+    std::string null_string;
+    null_string.push_back('\x00');
+    EXPECT_EQ(RunUnquote("\"\\u0000\""), null_string);
+  }
+  EXPECT_EQ(RunUnquote("\"\\u001f\""), "\x1f");
+  EXPECT_EQ(RunUnquote("\"\\u0042\""), "B");
+  EXPECT_EQ(RunUnquote("\"\\u2660\""), "♠");
+  EXPECT_EQ(RunUnquote("\"\\ud83d\\ude0a\""), "😊");
+
+  // Non-ascii data is preserved.
+  EXPECT_EQ(RunUnquote("\"♠\""), "♠");
+  EXPECT_EQ(RunUnquote("\"😊\""), "😊");
+
+  // Non-string values (behavior is implementation-defined).
+  EXPECT_EQ(RunUnquote("[[], {\"x\": 123}]"), "x");
+
+  // Invalid UTF-16 surrogate pair escapes (behavior is implementation-defined).
+  EXPECT_EQ(RunUnquote("\"\\ud83d\""), "\ufffd");
+  EXPECT_EQ(RunUnquote("\"\\ude0a\""), "\ufffd");
+  EXPECT_EQ(RunUnquote("\"\\ude0a\\ud83d\""), "\ufffd\ufffd");
+  EXPECT_EQ(RunUnquote("\"\\ud83d\\u1234\""), "\ufffd");
+
+  // Truncated escapes (behavior is implementation-defined).
+  EXPECT_EQ(RunUnquote("\"\\u123\""), "\ufffd");
+  EXPECT_EQ(RunUnquote("\"\\u123\"\"abc\""), "\ufffdabc");
+  EXPECT_EQ(RunUnquote("\"\\u123\\u456\""), "\ufffdu456");
+  EXPECT_EQ(RunUnquote("\"?\\u123??\""), "?\ufffd?");
+  EXPECT_EQ(RunUnquote("\"?\\u123u?\""), "?\ufffd?");
+  EXPECT_EQ(RunUnquote("\"?\\u1uu4?\""), "?\ufffdu4?");
+  EXPECT_EQ(RunUnquote("\"?\\ud83d\\u567u?\""), "?\ufffd?");
+  EXPECT_EQ(RunUnquote("\"?\\ud83d\\udeua?\""), "?\ufffda?");
+}
+
+TEST(JsonStreamTest, UnquoteStreamProcessorLoadStateFailure) {
+  JsonUnquoteStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+}
+
 }  // namespace
 }  // namespace koladata::internal
