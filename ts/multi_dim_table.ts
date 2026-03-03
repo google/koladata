@@ -394,17 +394,7 @@ export class MultiDimTable
     const existingScrollLeft = this.dimNav?.scrollLeft || 0;
     shadowRoot.textContent = '';
 
-    // Construct info bar that contains the view options.
-    const infoBarParts = multiDimTableRender.infoBar(
-        this.dataset, this.cellWidth, this.maxFolds);
-    shadowRoot.appendChild(infoBarParts.infoBar);
-    infoBarParts.overflowCheckbox.addEventListener(
-        'change',
-        () => {
-          this.compactTable?.classList.toggle('hover-overflow');
-          this.syncOverflowCheckbox();
-        },
-    );
+
 
     // Render all main data region components.
     const dataRegionParts =
@@ -442,6 +432,18 @@ export class MultiDimTable
         this.scrollToIndex(col + this.loadedRange[0]);
       }
     });
+
+    // Construct info bar that contains the view options.
+    const infoBarParts = multiDimTableRender.infoBar(
+        this.dataset, this.cellWidth, this.maxFolds);
+    shadowRoot.appendChild(infoBarParts.infoBar);
+    infoBarParts.overflowCheckbox.addEventListener(
+        'change',
+        () => {
+          this.compactTable?.classList.toggle('hover-overflow');
+          this.syncOverflowCheckbox();
+        },
+    );
 
     // Sync necessary state after rendering.
     this.onMutation();
