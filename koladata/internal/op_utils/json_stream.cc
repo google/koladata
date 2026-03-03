@@ -210,6 +210,7 @@ std::string JsonSalvageStreamProcessor::ToState() const {
 
 std::string JsonSalvageStreamProcessor::ProcessInputChunk(
     std::string_view input_chunk) {
+  DCHECK(output_.empty());
   for (char c : input_chunk) {
     ProcessInputByte(static_cast<uint8_t>(c));
   }
@@ -1505,6 +1506,299 @@ std::string JsonSelectNonnullStreamProcessor::ProcessInputChunk(
 }
 
 std::string JsonSelectNonnullStreamProcessor::ProcessEnd() {
+  return "";
+}
+
+void JsonImplodeArrayStreamProcessor::Reset() {
+  emitted_opening_square_bracket_ = false;
+  needs_leading_comma_ = false;
+}
+
+bool JsonImplodeArrayStreamProcessor::LoadState(std::string_view state) {
+  JsonImplodeArrayStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  emitted_opening_square_bracket_ = proto.emitted_opening_square_bracket();
+  needs_leading_comma_ = proto.needs_leading_comma();
+  return true;
+}
+
+std::string JsonImplodeArrayStreamProcessor::ToState() const {
+  JsonImplodeArrayStateProto proto;
+  proto.set_emitted_opening_square_bracket(emitted_opening_square_bracket_);
+  proto.set_needs_leading_comma(needs_leading_comma_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonImplodeArrayStreamProcessor::ProcessInputChunk(
+    std::string_view input) {
+  std::string output;
+  if (!emitted_opening_square_bracket_) {
+    output.push_back('[');
+    emitted_opening_square_bracket_ = true;
+  }
+  for (char c : input) {
+    if (c == '\n') {
+      needs_leading_comma_ = true;
+    } else {
+      if (needs_leading_comma_) {
+        output.push_back(',');
+        needs_leading_comma_ = false;
+      }
+      output.push_back(c);
+    }
+  }
+  return output;
+}
+
+std::string JsonImplodeArrayStreamProcessor::ProcessEnd() {
+  return emitted_opening_square_bracket_ ? "]\n" : "[]\n";
+}
+
+void JsonExplodeArrayStreamProcessor::Reset() {
+  container_depth_ = 0;
+  is_top_level_array_ = false;
+  has_contents_ = false;
+  is_in_string_ = false;
+  is_in_escape_ = false;
+}
+
+bool JsonExplodeArrayStreamProcessor::LoadState(std::string_view state) {
+  JsonExplodeArrayStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.container_depth() < 0) {
+    return false;
+  }
+  container_depth_ = proto.container_depth();
+  is_top_level_array_ = proto.is_top_level_array();
+  has_contents_ = proto.has_contents();
+  is_in_string_ = proto.is_in_string();
+  is_in_escape_ = proto.is_in_escape();
+  return true;
+}
+
+std::string JsonExplodeArrayStreamProcessor::ToState() const {
+  JsonExplodeArrayStateProto proto;
+  proto.set_container_depth(container_depth_);
+  proto.set_is_top_level_array(is_top_level_array_);
+  proto.set_has_contents(has_contents_);
+  proto.set_is_in_string(is_in_string_);
+  proto.set_is_in_escape(is_in_escape_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonExplodeArrayStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    auto emit_c_if_matched = [&]() {
+      if (is_top_level_array_) {
+        output.push_back(c);
+      }
+    };
+
+    if (is_in_string_) {
+      emit_c_if_matched();
+      if (is_in_escape_) {
+        is_in_escape_ = false;
+      } else if (c == '"') {
+        is_in_string_ = false;
+      } else if (c == '\\') {
+        is_in_escape_ = true;
+      }
+    } else {
+      if (c == '[') {
+        ++container_depth_;
+        if (container_depth_ == 1) {
+          is_top_level_array_ = true;
+          has_contents_ = false;
+        } else {
+          emit_c_if_matched();
+          has_contents_ = true;
+        }
+      } else if (c == '{') {
+        ++container_depth_;
+        emit_c_if_matched();
+        has_contents_ = true;
+      } else if (c == ',' && is_top_level_array_ && container_depth_ == 1) {
+        output.push_back('\n');
+      } else if (c == ']') {
+        --container_depth_;
+        if (container_depth_ == 0) {
+          if (has_contents_) {
+            output.push_back('\n');
+            has_contents_ = false;
+          }
+          is_top_level_array_ = false;
+        } else {
+          emit_c_if_matched();
+        }
+      } else if (c == '}') {
+        --container_depth_;
+        emit_c_if_matched();
+      } else if (c == '"') {
+        is_in_string_ = true;
+        emit_c_if_matched();
+        has_contents_ = true;
+      } else if (!absl::ascii_isspace(c)) {
+        emit_c_if_matched();
+        has_contents_ = true;
+      }
+    }
+  }
+  return output;
+}
+
+std::string JsonExplodeArrayStreamProcessor::ProcessEnd() {
+  return "";
+}
+
+void JsonGetArrayNthValueStreamProcessor::Reset() {
+  container_depth_ = 0;
+  is_top_level_array_ = false;
+  top_level_array_value_index_ = 0;
+  emitted_value_ = false;
+  is_in_string_ = false;
+  is_in_escape_ = false;
+}
+
+bool JsonGetArrayNthValueStreamProcessor::LoadState(std::string_view state) {
+  JsonGetArrayNthValueStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.container_depth() < 0) {
+    return false;
+  }
+  if (proto.n() != options_.n) {
+    return false;
+  }
+  container_depth_ = proto.container_depth();
+  is_top_level_array_ = proto.is_top_level_array();
+  top_level_array_value_index_ = proto.top_level_array_value_index();
+  has_contents_ = proto.has_contents();
+  emitted_value_ = proto.emitted_value();
+  is_in_string_ = proto.is_in_string();
+  is_in_escape_ = proto.is_in_escape();
+  return true;
+}
+
+std::string JsonGetArrayNthValueStreamProcessor::ToState() const {
+  JsonGetArrayNthValueStateProto proto;
+  proto.set_n(options_.n);
+  proto.set_container_depth(container_depth_);
+  proto.set_is_top_level_array(is_top_level_array_);
+  proto.set_top_level_array_value_index(top_level_array_value_index_);
+  proto.set_has_contents(has_contents_);
+  proto.set_emitted_value(emitted_value_);
+  proto.set_is_in_string(is_in_string_);
+  proto.set_is_in_escape(is_in_escape_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonGetArrayNthValueStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+  for (char c : input_chunk) {
+    auto emit_c_if_matched = [&]() {
+      if (is_top_level_array_ && top_level_array_value_index_ == options_.n) {
+        output.push_back(c);
+      }
+    };
+
+    auto emit_top_level_null_if_not_already_done = [&]() {
+      if (!emitted_value_) {
+        output.append("null\n");
+        emitted_value_ = true;
+      }
+    };
+
+    auto end_top_level_value = [&]() {
+      has_contents_ = false;
+      is_top_level_array_ = false;
+      emitted_value_ = false;
+      top_level_array_value_index_ = 0;
+    };
+
+    if (is_in_string_) {
+      emit_c_if_matched();
+      if (is_in_escape_) {
+        is_in_escape_ = false;
+      } else if (c == '"') {
+        is_in_string_ = false;
+      } else if (c == '\\') {
+        is_in_escape_ = true;
+      }
+    } else {
+      if (c == '[') {
+        ++container_depth_;
+        if (container_depth_ == 1) {
+          is_top_level_array_ = true;
+          top_level_array_value_index_ = 0;
+        } else {
+          emit_c_if_matched();
+          has_contents_ = true;
+        }
+      } else if (c == '{') {
+        if (container_depth_ == 0) {
+          emit_top_level_null_if_not_already_done();
+        }
+        ++container_depth_;
+        emit_c_if_matched();
+        has_contents_ = true;
+      } else if (c == ',' && is_top_level_array_ && container_depth_ == 1) {
+        if (top_level_array_value_index_ == options_.n) {
+          output.push_back('\n');
+          emitted_value_ = true;
+        }
+        ++top_level_array_value_index_;
+        has_contents_ = true;
+      } else if (c == ']') {
+        --container_depth_;
+        if (container_depth_ == 0) {
+          if (top_level_array_value_index_ == options_.n) {
+            if (has_contents_) {
+              output.push_back('\n');
+            } else {
+              output.append("null\n");
+            }
+          } else if (top_level_array_value_index_ < options_.n) {
+            emit_top_level_null_if_not_already_done();
+          }
+          end_top_level_value();
+        } else {
+          emit_c_if_matched();
+        }
+      } else if (c == '}') {
+        --container_depth_;
+        emit_c_if_matched();
+        if (container_depth_ == 0) {
+          end_top_level_value();
+        }
+      } else if (c == '"') {
+        if (container_depth_ == 0) {
+          emit_top_level_null_if_not_already_done();
+        }
+        is_in_string_ = true;
+        emit_c_if_matched();
+        has_contents_ = true;
+      } else if (is_top_level_array_ && !absl::ascii_isspace(c)) {
+        emit_c_if_matched();
+        has_contents_ = true;
+      } else if (!absl::ascii_isspace(c)) {
+        if (container_depth_ == 0) {
+          emit_top_level_null_if_not_already_done();
+        }
+      }
+    }
+  }
+  return output;
+}
+
+std::string JsonGetArrayNthValueStreamProcessor::ProcessEnd() {
   return "";
 }
 

@@ -1060,6 +1060,193 @@ TEST(JsonStreamTest, SelectNonnullStreamProcessorLoadStateFailure) {
   }
 }
 
+std::string RunImplodeArray(std::string input) {
+  return RunProcessor<JsonImplodeArrayStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, ImplodeArrayStreamProcessor) {
+  EXPECT_EQ(RunImplodeArray(""), "[]\n");
+  EXPECT_EQ(RunImplodeArray("123\n456\n789\n"), "[123,456,789]\n");
+  EXPECT_EQ(RunImplodeArray("[]\n[[]]\n[[],[]]\n"), "[[],[[]],[[],[]]]\n");
+  EXPECT_EQ(RunImplodeArray("\"abc]\\\\def\\\"[ghi\"\n"),
+            "[\"abc]\\\\def\\\"[ghi\"]\n");
+}
+
+TEST(JsonStreamTest, ImplodeArrayStreamProcessorLoadStateFailure) {
+  JsonImplodeArrayStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+}
+
+TEST(JsonStreamTest, ImplodeArrayStreamProcessorMinimallyDelayed) {
+  JsonImplodeArrayStreamProcessor processor;
+  // 123\n"456"\n[789]\n"\\\""\n
+  EXPECT_EQ(processor.ProcessInputChunk("1"), "[1");
+  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
+  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
+  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), ",\"");
+  EXPECT_EQ(processor.ProcessInputChunk("4"), "4");
+  EXPECT_EQ(processor.ProcessInputChunk("5"), "5");
+  EXPECT_EQ(processor.ProcessInputChunk("6"), "6");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("["), ",[");
+  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
+  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
+  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
+  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
+  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), ",\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
+  EXPECT_EQ(processor.ProcessEnd(), "]\n");
+}
+
+std::string RunExplodeArray(std::string input) {
+  return RunProcessor<JsonExplodeArrayStreamProcessor>(input);
+}
+
+TEST(JsonStreamTest, ExplodeArrayStreamProcessor) {
+  EXPECT_EQ(RunExplodeArray(""), "");
+  EXPECT_EQ(RunExplodeArray("[]\n"), "");
+  EXPECT_EQ(RunExplodeArray("[[]]\n"), "[]\n");
+  EXPECT_EQ(RunExplodeArray("[[],{},[]]\n"), "[]\n{}\n[]\n");
+  EXPECT_EQ(RunExplodeArray("[123,456,789]\n"), "123\n456\n789\n");
+  EXPECT_EQ(RunExplodeArray("[123,456]\n[]\n[789]\n"), "123\n456\n789\n");
+  EXPECT_EQ(RunExplodeArray("[\"abc\"]\n"), "\"abc\"\n");
+  EXPECT_EQ(RunExplodeArray("[\"\\\\\\\"\"]\n"), "\"\\\\\\\"\"\n");
+  EXPECT_EQ(RunExplodeArray("[\"abc\",\"\\\\\\\"\"]\n[]\n[\"def\"]\n"),
+            "\"abc\"\n\"\\\\\\\"\"\n\"def\"\n");
+}
+
+TEST(JsonStreamTest, ExplodeArrayStreamProcessorLoadStateFailure) {
+  JsonExplodeArrayStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonExplodeArrayStateProto proto;
+    proto.set_container_depth(-1);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
+TEST(JsonStreamTest, ExplodeArrayStreamProcessorMinimallyDelayed) {
+  JsonExplodeArrayStreamProcessor processor;
+  // [123,"456",[789],"\\\""]
+  EXPECT_EQ(processor.ProcessInputChunk("["), "");
+  EXPECT_EQ(processor.ProcessInputChunk("1"), "1");
+  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
+  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("4"), "4");
+  EXPECT_EQ(processor.ProcessInputChunk("5"), "5");
+  EXPECT_EQ(processor.ProcessInputChunk("6"), "6");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
+  EXPECT_EQ(processor.ProcessInputChunk("["), "[");
+  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
+  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
+  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
+  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
+  EXPECT_EQ(processor.ProcessInputChunk("]"), "\n");
+  EXPECT_EQ(processor.ProcessEnd(), "");
+}
+
+std::string RunGetArrayNthValue(std::string input, int n) {
+  return RunProcessor<JsonGetArrayNthValueStreamProcessor,
+                      JsonGetArrayNthValueOptions>(
+      input, JsonGetArrayNthValueOptions{.n = n});
+}
+
+TEST(JsonStreamTest, GetArrayNthValueStreamProcessor) {
+  EXPECT_EQ(RunGetArrayNthValue("", 0), "");
+  EXPECT_EQ(RunGetArrayNthValue("", 1), "");
+  EXPECT_EQ(RunGetArrayNthValue("{}\n", 0), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("123\n", 0), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("\"abc\"\n", 0), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("\"[]\"\n", 0), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[]\n", 0), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[]\n", 1), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123]\n", 0), "123\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123]\n", 1), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[\"abc\"]\n", 0), "\"abc\"\n");
+  EXPECT_EQ(RunGetArrayNthValue("[\"abc\"]\n", 1), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[\"]\\\\\\\"\"]\n", 0), "\"]\\\\\\\"\"\n");
+  EXPECT_EQ(RunGetArrayNthValue("[\"]\\\\\\\"\"]\n", 1), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[{}]\n", 0), "{}\n");
+  EXPECT_EQ(RunGetArrayNthValue("[{}]\n", 1), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123,456,789]\n", 0), "123\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123,456,789]\n", 1), "456\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123,456,789]\n", 2), "789\n");
+  EXPECT_EQ(RunGetArrayNthValue("[123,456,789]\n", 3), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[[],[[]],[[],[]]]\n", 0), "[]\n");
+  EXPECT_EQ(RunGetArrayNthValue("[[],[[]],[[],[]]]\n", 1), "[[]]\n");
+  EXPECT_EQ(RunGetArrayNthValue("[[],[[]],[[],[]]]\n", 2), "[[],[]]\n");
+  EXPECT_EQ(RunGetArrayNthValue("[[],[[]],[[],[]]]\n", 3), "null\n");
+  EXPECT_EQ(RunGetArrayNthValue("[1,2,3]\n[4]\n[5,6]\n", 0), "1\n4\n5\n");
+  EXPECT_EQ(RunGetArrayNthValue("[1,2,3]\n[4]\n[5,6]\n", 1), "2\nnull\n6\n");
+  EXPECT_EQ(RunGetArrayNthValue("[1,2,3]\n[4]\n[5,6]\n", 2), "3\nnull\nnull\n");
+  EXPECT_EQ(RunGetArrayNthValue("[1,2,3]\n[4]\n[5,6]\n", 3),
+            "null\nnull\nnull\n");
+}
+
+TEST(JsonStreamTest, GetArrayNthValueStreamProcessorLoadStateFailure) {
+  JsonGetArrayNthValueStreamProcessor processor({.n = 0});
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  {
+    JsonGetArrayNthValueStateProto proto;
+    proto.set_n(0);
+    proto.set_container_depth(-1);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+  EXPECT_FALSE(processor.LoadState(
+      JsonGetArrayNthValueStreamProcessor({.n = 1}).ToState()));
+}
+
+TEST(JsonStreamTest, GetArrayNthValueStreamProcessorMinimallyDelayed) {
+  JsonGetArrayNthValueStreamProcessor processor({.n = 2});
+  // [123,"456",[789],"\\\""]
+  EXPECT_EQ(processor.ProcessInputChunk("["), "");
+  EXPECT_EQ(processor.ProcessInputChunk("1"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("2"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("3"), "");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
+  EXPECT_EQ(processor.ProcessInputChunk("4"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("5"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("6"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "");
+  EXPECT_EQ(processor.ProcessInputChunk("["), "[");
+  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
+  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
+  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
+  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
+  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
+  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
+  EXPECT_EQ(processor.ProcessInputChunk("]"), "");
+  EXPECT_EQ(processor.ProcessEnd(), "");
+}
+
 std::string RunUnquote(std::string input) {
   return RunProcessor<JsonUnquoteStreamProcessor>(input);
 }

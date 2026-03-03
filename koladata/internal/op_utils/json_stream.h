@@ -426,6 +426,162 @@ class JsonSelectNonnullStreamProcessor {
   State state_;
 };
 
+// Converts a stream of compactified newline-separated JSON values into a
+// single top-level JSON array.
+//
+// For example:
+//
+//   ```json
+//   1
+//   [2,3]
+//   {"x":4}
+//   ```
+//   ->
+//   ```json
+//   [1,[2,3],{"x":4}]
+//   ```
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonImplodeArrayStreamProcessor {
+ public:
+  JsonImplodeArrayStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Process a chunk of input bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // End the input.
+  std::string ProcessEnd();
+
+ private:
+  bool emitted_opening_square_bracket_ = false;
+  bool needs_leading_comma_ = false;
+};
+
+// Extracts the contents of all top-level JSON arrays as separate top-level
+// values, skipping any top-level values that are not arrays. If there are
+// multiple top-level arrays in the input, their contents are concatenated in
+// the output.
+//
+// For example:
+//
+//  ```json
+//  [1]
+//  2
+//  [3, [4, 5]]
+//  ```
+//  ->
+//  ```json
+//  1
+//  3
+//  [4,5]
+//  ```
+//
+// If the input is not valid whitespace-separated JSON, the output is
+// unspecified.
+class JsonExplodeArrayStreamProcessor {
+ public:
+  JsonExplodeArrayStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Process a chunk of input bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // End the input.
+  std::string ProcessEnd();
+
+ private:
+  int64_t container_depth_ = 0;
+  bool is_top_level_array_ = false;
+  bool has_contents_ = false;
+  bool is_in_string_ = false;
+  bool is_in_escape_ = false;
+};
+
+struct JsonGetArrayNthValueOptions {
+  // The number (0-indexed) of the array element to extract.
+  int64_t n = 0;
+};
+
+// Extracts the `n`th element from all top-level JSON arrays, or `null` if a
+// top-level JSON value is not an array or does not have an `n`th element.
+//
+// For example:
+//
+//   ```json
+//   [1, 2, 3]
+//   4,
+//   [[5]]
+//   []
+//   ```
+//   -> (with `n = 0`)
+//   ```json
+//   1
+//   null
+//   [5]
+//   null
+//   ```
+//
+// If the input is not valid whitespace-separated JSON, the output is
+// unspecified.
+class JsonGetArrayNthValueStreamProcessor {
+ public:
+  explicit JsonGetArrayNthValueStreamProcessor(
+      const JsonGetArrayNthValueOptions& options)
+      : options_(options) {}
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Process a chunk of input bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // End the input.
+  std::string ProcessEnd();
+
+ private:
+  const JsonGetArrayNthValueOptions options_;
+
+  int64_t container_depth_ = 0;
+  bool is_top_level_array_ = false;
+  int64_t top_level_array_value_index_ = 0;
+  // Whether the current top-level input array is non-empty.
+  bool has_contents_ = false;
+  // Whether we have emitted a full top-level output value for the current
+  // top-level input value. If false, we haven't yet and still need to.
+  bool emitted_value_ = false;
+  bool is_in_string_ = false;
+  bool is_in_escape_ = false;
+};
+
 // Extracts the contents of all JSON strings in a stream of valid JSON values.
 // If there are multiple strings in the input, the contents are concatenated
 // in the result.

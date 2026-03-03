@@ -72,6 +72,32 @@ message JsonSelectNonnullProto {
   int32 state = 1;
 };
 
+message JsonImplodeArrayStateProto {
+  bool emitted_opening_square_bracket = 1;
+  bool needs_leading_comma = 2;
+}
+
+message JsonExplodeArrayStateProto {
+  int64 container_depth = 1;
+  bool is_top_level_array = 2;
+  bool has_contents = 3;
+  bool is_in_string = 4;
+  bool is_in_escape = 5;
+}
+
+message JsonGetArrayNthValueStateProto {
+  // Must match options passed to processor.
+  int64 n = 1;
+
+  int64 container_depth = 2;
+  bool is_top_level_array = 3;
+  int64 top_level_array_value_index = 5;
+  bool has_contents = 4;
+  bool emitted_value = 6;
+  bool is_in_string = 7;
+  bool is_in_escape = 8;
+}
+
 // Internal to JsonUnquoteStreamProcessor. Do not use directly.
 message JsonUnquoteStateProto {
   bool is_in_string = 1;
