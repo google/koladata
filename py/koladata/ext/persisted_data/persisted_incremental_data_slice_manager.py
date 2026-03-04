@@ -973,7 +973,7 @@ class PersistedIncrementalDataSliceManager(
         dbm.BagToAdd(
             merged_bag_name,
             merged_bag_name_to_merged_bag[merged_bag_name],
-            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
+            dependencies=(),
         )
         # We add bags in the order of `merged_bag_names`. The code is also
         # functionally correct without a fixed order: all the bags are sub-bags
@@ -996,7 +996,7 @@ class PersistedIncrementalDataSliceManager(
             # Instead, we always load+use all the schema bags, and we rely on
             # the manager's bookkeeping of the total order in which the bags
             # were added.
-            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
+            dependencies=(),
         )
     ]
     self._schema_bag_manager.add_bags(schema_bags_to_add)
@@ -1022,7 +1022,7 @@ class PersistedIncrementalDataSliceManager(
             # We don't specify fine-grained dependencies. Instead, we always
             # load+use all the update bags, and we rely on the manager's
             # bookkeeping of the total order in which the bags were added.
-            dependencies=(dbm._INITIAL_BAG_NAME,),  # pylint: disable=protected-access
+            dependencies=(),
         )
     ])
     new_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata()

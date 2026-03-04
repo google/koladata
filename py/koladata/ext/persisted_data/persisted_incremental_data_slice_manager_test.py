@@ -3534,9 +3534,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         metadata_pb2.RevisionMetadata(
             timestamp=timestamp.from_seconds(1756729753),
             description='Initial state',
-            added_data_bag_names=[''],
-            added_schema_bag_names=[''],
-            added_snn_to_data_bags_update_bag_names=[''],
+            added_data_bag_names=[],
+            added_schema_bag_names=[],
+            added_snn_to_data_bags_update_bag_names=[],
             creation=metadata_pb2.CreationMetadata(),
         ),
     )

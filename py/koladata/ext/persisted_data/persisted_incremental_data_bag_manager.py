@@ -34,7 +34,6 @@ from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
-_INITIAL_BAG_NAME = ''
 _INTERNAL_CALL = object()
 
 
@@ -120,9 +119,9 @@ class PersistedIncrementalDataBagManager:
         None, then the default interaction with the file system is used.
 
     Returns:
-      A new instance of PersistedIncrementalDataBagManager with only an empty
-      bag named '', which writes its artifacts to the given persistence_dir via
-      the given fs.
+      A new instance of PersistedIncrementalDataBagManager, which writes its
+      artifacts to the given persistence_dir via the given fs. The managed bag
+      is initially empty.
     """
     fs = fs or fs_util.get_default_file_system_interaction()
 
@@ -134,22 +133,18 @@ class PersistedIncrementalDataBagManager:
           f' {persistence_dir}'
       )
 
-    result = cls(
+    metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
+        version='1.0.0',
+        metadata_update_number=0,
+    )
+    _persist_metadata(fs, persistence_dir, metadata)
+
+    return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
         fs=fs,
-        metadata=metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
-            version='1.0.0',
-            # Using -1 here looks strange, but the self._add_bags() call below
-            # to add the initial bag will bump it to 0 in a moment.
-            metadata_update_number=-1,
-        ),
+        metadata=metadata,
     )
-    # Add the initial empty bag, which will be a dependency of all other bags.
-    result._add_bags(
-        [BagToAdd(_INITIAL_BAG_NAME, kd.bag(), dependencies=tuple())]
-    )
-    return result
 
   @classmethod
   def create_from_dir(
@@ -240,17 +235,14 @@ class PersistedIncrementalDataBagManager:
         already present in get_available_bag_names() or any preceding item of
         bags_to_add.
       - bag: The DataBag to add.
-      - dependencies: A non-empty collection of the names of the bags that `bag`
-        depends on. It should include all the direct dependencies. There is no
-        need to include transitive dependencies. All the names mentioned here
-        must already be present in get_available_bag_names() or must be the name
-        of some preceding item in bags_to_add.
+      - dependencies: A collection of the names of the bags that `bag` depends
+        on. It should include all the direct dependencies. There is no need to
+        include transitive dependencies. All the names mentioned here must
+        already be present in get_available_bag_names() or must be the name of
+        some preceding item in bags_to_add.
 
     The implementation does not simply add the bags one by one - internally it
     persists them in parallel.
-
-    After this function returns, the bags and all their transitive dependencies
-    will be loaded and will hence be present in get_loaded_bag_names().
 
     Args:
       bags_to_add: A list of bags to add. They are added in the order given by
@@ -262,11 +254,6 @@ class PersistedIncrementalDataBagManager:
       dependencies = bag_to_add.dependencies
       if bag_name in available_bag_names:
         raise ValueError(f"A bag with name '{bag_name}' was already added.")
-      if not dependencies:
-        raise ValueError(
-            "The dependencies must not be empty. Use dependencies=('',) to "
-            'depend only on the initial empty bag.'
-        )
       for d in dependencies:
         if d not in available_bag_names:
           raise ValueError(
@@ -314,12 +301,12 @@ class PersistedIncrementalDataBagManager:
     """Extracts the requested bags to the given output directory.
 
     To extract all the bags managed by this manager, you can call this function
-    with the arguments bag_names=[''], with_all_dependents=True.
+    with the arguments bag_names=get_available_bag_names().
 
     Args:
       bag_names: The names of the bags that will be extracted. They must be a
-        non-empty subset of get_available_bag_names(). The extraction will also
-        include their transitive dependencies.
+        subset of get_available_bag_names(). The extraction will also include
+        their transitive dependencies.
       with_all_dependents: If True, then the extracted bags will also include
         all dependents of bag_names. The dependents are computed transitively.
         All transitive dependencies of the dependents will also be included in
@@ -358,7 +345,6 @@ class PersistedIncrementalDataBagManager:
         for bag_name in self._canonical_topological_sorting(
             bag_name_to_bag.keys()
         )
-        if bag_name  # Skip the initial empty bag; new_manager already has one.
     ]
     new_manager.add_bags(bags_to_add)
 
@@ -381,12 +367,12 @@ class PersistedIncrementalDataBagManager:
     branch, and similarly the branch won't affect the current manager.
 
     To create a branch with all the bags managed by this manager, you can call
-    this function with the arguments bag_names=[''], with_all_dependents=True.
+    this function with the arguments bag_names=get_available_bag_names().
 
     Args:
       bag_names: The names of the bags that must be included in the branch. They
-        must be a non-empty subset of get_available_bag_names(). The branch will
-        also include their transitive dependencies.
+        must be a subset of get_available_bag_names(). The branch will also
+        include their transitive dependencies.
       with_all_dependents: If True, then the branch will also include all the
         dependents of bag_names. The dependents are computed transitively. All
         the transitive dependencies of the dependents will also be included in
@@ -806,9 +792,7 @@ def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
   # client of PersistedIncrementalDataBagManager is
   # PersistedIncrementalDataSliceManager, which uses UUIDs for bag names, the
   # scheme used here to generate cache keys is robust with respect to such
-  # moves/swaps/overwrites. The root bags all have the empty string as their
-  # name, but these bags are all identical (and empty), so collisions of them do
-  # not matter when users move manager directories around.
+  # moves/swaps/overwrites.
   return f'bag_name:{bag_name} filepath:{bag_filepath}'
 
 
