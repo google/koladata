@@ -23,7 +23,6 @@ from __future__ import annotations
 import collections
 import concurrent.futures
 import dataclasses
-import itertools
 import os
 from typing import AbstractSet, Collection, Iterable
 import uuid
@@ -31,6 +30,7 @@ import uuid
 from koladata import kd
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
+from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
@@ -103,7 +103,6 @@ class PersistedIncrementalDataBagManager:
   _persistence_dir: str
   _fs: fs_interface.FileSystemInterface
   _metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata
-  _loaded_bags_cache: dict[str, kd.types.DataBag]
 
   @classmethod
   def create_new(
@@ -145,7 +144,6 @@ class PersistedIncrementalDataBagManager:
             # to add the initial bag will bump it to 0 in a moment.
             metadata_update_number=-1,
         ),
-        loaded_bags_cache=dict(),
     )
     # Add the initial empty bag, which will be a dependency of all other bags.
     result._add_bags(
@@ -184,15 +182,12 @@ class PersistedIncrementalDataBagManager:
           f'the persistence_dir must not be empty. Got {persistence_dir}'
       )
 
-    result = cls(
+    return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
         fs=fs,
         metadata=_read_latest_metadata(fs, persistence_dir),
-        loaded_bags_cache=dict(),
     )
-    result._load_bags_into_cache({_INITIAL_BAG_NAME})
-    return result
 
   def __init__(
       self,
@@ -201,7 +196,6 @@ class PersistedIncrementalDataBagManager:
       persistence_dir: str,
       fs: fs_interface.FileSystemInterface,
       metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
-      loaded_bags_cache: dict[str, kd.types.DataBag],
   ):
     """Initializes the manager.
 
@@ -215,7 +209,6 @@ class PersistedIncrementalDataBagManager:
         persisted.
       fs: All interactions with the file system will go through this object.
       metadata: The metadata of the manager.
-      loaded_bags_cache: A cache of the bags that are currently loaded.
     """
 
     if internal_call is not _INTERNAL_CALL:
@@ -228,7 +221,6 @@ class PersistedIncrementalDataBagManager:
     self._persistence_dir = persistence_dir
     self._fs = fs
     self._metadata = metadata
-    self._loaded_bags_cache = loaded_bags_cache
 
   def get_available_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are managed by this manager.
@@ -238,40 +230,6 @@ class PersistedIncrementalDataBagManager:
     persistence directory before this manager instance was created.
     """
     return frozenset([m.name for m in self._metadata.data_bag_metadata])
-
-  def get_loaded_bag_names(self) -> AbstractSet[str]:
-    """Returns the names of all bags that are currently loaded in this manager.
-
-    The initial empty bag (with name '') is always loaded, and the bags that
-    have been added to this manager instance or loaded by previous calls to
-    load_bags() and their transitive dependencies are also considered loaded.
-
-    Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
-    a side effect when they are needed but not loaded yet.
-    """
-    return frozenset(self._loaded_bags_cache.keys())
-
-  def load_bags(
-      self,
-      bag_names: Collection[str],
-      *,
-      with_all_dependents: bool = False,
-  ):
-    """Loads the requested bags and their transitive dependencies.
-
-    Args:
-      bag_names: The names of the bags that should be loaded. They must be a
-        subset of get_available_bag_names(). All their transitive dependencies
-        will be loaded as well.
-      with_all_dependents: If True, then all the dependents of bag_names will
-        also be loaded. The dependents are computed transitively. All transitive
-        dependencies of the dependents will also be loaded.
-    """
-    self._load_bags(bag_names, with_all_dependents=with_all_dependents)
-
-  def get_loaded_bag(self) -> kd.types.DataBag:
-    """Returns a bag consisting of all the small bags that are currently loaded."""
-    return self._make_single_bag(self.get_loaded_bag_names())
 
   def add_bags(self, bags_to_add: list[BagToAdd]):
     """Adds the given bags to the manager, which will persist them.
@@ -330,8 +288,7 @@ class PersistedIncrementalDataBagManager:
     Args:
       bag_names: The name of the bags whose data must be included in the result.
         It must be a non-empty subset of get_available_bag_names(). These bags
-        and their transitive dependencies will be loaded if they are not loaded
-        yet.
+        and their transitive dependencies will be included in the returned bag.
       with_all_dependents: If True, then the returned bag will also include all
         the dependents of bag_names. The dependents are computed transitively.
         All transitive dependencies of the dependents are then also included in
@@ -339,12 +296,12 @@ class PersistedIncrementalDataBagManager:
 
     Returns:
       A minimal bag that has the data of the requested small bags. It will not
-      include any unrelated bags that are already loaded.
+      include any bags that are not in the closure mentioned above.
     """
-    needed_bag_names = self._load_bags(
+    bag_name_to_bag_dict = self._load_bags(
         bag_names, with_all_dependents=with_all_dependents
     )
-    return self._make_single_bag(needed_bag_names)
+    return self._make_single_bag(bag_name_to_bag_dict)
 
   def extract_bags(
       self,
@@ -372,7 +329,7 @@ class PersistedIncrementalDataBagManager:
       fs: All interactions with the file system for output_dir will happen via
         this instance.
     """
-    bags_to_extract = self._load_bags(
+    bag_name_to_bag = self._load_bags(
         bag_names, with_all_dependents=with_all_dependents
     )
     bag_dependencies = self._get_dependency_relation()
@@ -395,10 +352,12 @@ class PersistedIncrementalDataBagManager:
     bags_to_add = [
         BagToAdd(
             bag_name,
-            bag=self._loaded_bags_cache[bag_name],
+            bag=bag_name_to_bag[bag_name],
             dependencies=tuple(bag_dependencies[bag_name]),
         )
-        for bag_name in self._canonical_topological_sorting(bags_to_extract)
+        for bag_name in self._canonical_topological_sorting(
+            bag_name_to_bag.keys()
+        )
         if bag_name  # Skip the initial empty bag; new_manager already has one.
     ]
     new_manager.add_bags(bags_to_add)
@@ -464,21 +423,12 @@ class PersistedIncrementalDataBagManager:
 
     _persist_metadata(fs, output_dir, branch_metadata)
 
-  def clear_cache(self):
-    """Clears the cache of loaded bags.
-
-    After this method returns, get_loaded_bag_names() will return only {''},
-    i.e. only the initial empty bag with name '' will still be loaded.
-    """
-    initial_empty_bag = self._loaded_bags_cache[_INITIAL_BAG_NAME]
-    self._loaded_bags_cache = {_INITIAL_BAG_NAME: initial_empty_bag}
-
   def _load_bags(
       self,
       bag_names: Collection[str],
       *,
       with_all_dependents: bool,
-  ) -> AbstractSet[str]:
+  ) -> dict[str, kd.types.DataBag]:
     """Loads the requested bags and their transitive dependencies.
 
     Args:
@@ -490,16 +440,16 @@ class PersistedIncrementalDataBagManager:
         dependencies of the dependents will also be loaded.
 
     Returns:
-      The names of the requested bags. Guaranteed to be the same as
+      A dictionary mapping the names of the loaded bags to their data. The names
+      are guaranteed to be the same as
       self._get_dependency_closure(
-          bags_to_load, with_all_dependents=with_all_dependents
+          bag_names, with_all_dependents=with_all_dependents
       )
     """
     bags_to_load = self._get_dependency_closure(
         bag_names, with_all_dependents=with_all_dependents
     )
-    self._load_bags_into_cache(bags_to_load)
-    return bags_to_load
+    return self._load_exactly_these_bags(bags_to_load)
 
   def _add_bags(self, bags_to_add: list[BagToAdd]):
     """Adds the given bags in the given order to this manager.
@@ -507,27 +457,10 @@ class PersistedIncrementalDataBagManager:
     Callers must make sure that all the bags have fresh names and that all the
     dependencies are valid.
 
-    After this function returns, the bags and all their transitive dependencies
-    will be loaded and will hence be present in get_loaded_bag_names().
-
     Args:
       bags_to_add: A list of bags to add. They are added in the order given by
         the list.
     """
-    # Load all the (transitive) dependencies that are already available. They
-    # are not necessarily loaded yet.
-    self._load_bags_into_cache(
-        self._get_reflexive_and_transitive_closure_image(
-            self._get_dependency_relation(),
-            set(
-                itertools.chain.from_iterable(
-                    b.dependencies for b in bags_to_add
-                )
-            )
-            & self.get_available_bag_names(),
-        )
-    )
-
     # Write the bags to files in parallel.
     bags = [bag_to_add.bag for bag_to_add in bags_to_add]
     bag_filenames = self._get_fresh_bag_filenames(len(bags_to_add))
@@ -536,9 +469,11 @@ class PersistedIncrementalDataBagManager:
           executor.submit(self._write_bag_to_file, bag, bag_filename)
           for bag, bag_filename in zip(bags, bag_filenames)
       ]
-    # Make sure all the writes completed successfully.
-    for future in futures:
-      future.result()
+    bag_name_to_serialized_bag_size_in_bytes = {}
+    for bag_to_add, future in zip(bags_to_add, futures):
+      bag_name_to_serialized_bag_size_in_bytes[bag_to_add.bag_name] = (
+          future.result()
+      )
 
     new_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
@@ -573,31 +508,44 @@ class PersistedIncrementalDataBagManager:
       )
       raise
 
-    # Populate the cache of "self" with data of the new revision. No changes to
-    # the cache should happen before the state of "self" is updated to the new
-    # revision, which is why this code must follow the try-except block above.
+    # Populate the global cache with the newly added bags.
     # If the cache is partially updated, e.g. when a KeyboardInterrupt happens
     # during the loop below, then the state of the current manager remains
-    # consistent.
-    for bag_to_add in bags_to_add:
-      self._loaded_bags_cache[bag_to_add.bag_name] = bag_to_add.bag
+    # consistent. It only means that the bags will have to be loaded from disk
+    # the next time they are needed.
+    cache = global_cache_lib.get_global_cache()
+    for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
+      cache_key = _get_global_cache_key(
+          bag_name=bag_to_add.bag_name,
+          bag_filepath=self._get_bag_filepath_from_filename(bag_filename),
+      )
+      cache_value = bag_to_add.bag
+      entry_metadata = _make_cache_entry_metadata(
+          cache_key=cache_key,
+          serialized_bag_size_in_bytes=bag_name_to_serialized_bag_size_in_bytes[
+              bag_to_add.bag_name
+          ],
+      )
+      cache.set(key=cache_key, value=cache_value, metadata=entry_metadata)
 
-  def _make_single_bag(self, bag_names: AbstractSet[str]) -> kd.types.DataBag:
-    """Returns a single bag with the data of bag_names.
+  def _make_single_bag(
+      self, bag_name_to_bag: dict[str, kd.types.DataBag]
+  ) -> kd.types.DataBag:
+    """Returns a single bag from the given bag dictionary.
 
     Args:
-      bag_names: The names of the bags whose data will be put in the result. It
-        must be a non-empty subset of get_loaded_bag_names(). The result will
-        contain exactly these bags, so all the needed dependencies must already
-        be included in bag_names.
+      bag_name_to_bag: The named bags whose data will be put in the result. The
+        result will contain exactly the data of the given bags, so all the
+        needed dependencies must already be included in bag_name_to_bag.
 
     Returns:
-      A single bag with the data of bag_names, which are combined in the
-      order given by their canonical topological sorting.
+      A single bag composed of the bags in bag_name_to_bag. The bags are
+      combined in the order given by the canonical topological sorting of the
+      bag names.
     """
     bags = [
-        self._loaded_bags_cache[bn]
-        for bn in self._canonical_topological_sorting(bag_names)
+        bag_name_to_bag[bn]
+        for bn in self._canonical_topological_sorting(bag_name_to_bag.keys())
     ]
     return kd.bags.updated(*bags)
 
@@ -667,28 +615,60 @@ class PersistedIncrementalDataBagManager:
       unvisited.update(relation[current])
     return result
 
-  def _load_bags_into_cache(self, bags_to_load: AbstractSet[str]):
-    """Loads the requested bags into the cache.
+  def _load_exactly_these_bags(
+      self, bags_to_load: AbstractSet[str]
+  ) -> dict[str, kd.types.DataBag]:
+    """Loads exactly the requested bags.
 
-    If a bag mentioned in bags_to_load is already cached, then it won't be
-    processed again.
+    Loading from disk is done only when the requested bag is not found in the
+    global cache.
 
     Args:
-      bags_to_load: The names of the bags to load into the cache. They must be a
-        subset of get_available_bag_names().
+      bags_to_load: The names of the bags to load. They must be a subset of
+        get_available_bag_names().
+
+    Returns:
+      A dictionary mapping the requested bag names to the corresponding
+      DataBags.
     """
-    needed_bags = [
-        bn for bn in bags_to_load if bn not in self._loaded_bags_cache
-    ]
+    global_cache = global_cache_lib.get_global_cache()
+    result = {
+        bn: global_cache.get(
+            _get_global_cache_key(
+                bag_name=bn, bag_filepath=self._get_bag_filepath(bn)
+            )
+        )
+        for bn in bags_to_load
+    }
+    result: dict[str, kd.types.DataBag] = {
+        k: v
+        for k, v in result.items()
+        if v is not None and isinstance(v, kd.types.DataBag)
+    }
+    needed_bags = bags_to_load - result.keys()
     if not needed_bags:
-      return
+      return result
     with concurrent.futures.ThreadPoolExecutor() as executor:
       futures = [
           executor.submit(self._read_bag_from_file, bag_name)
           for bag_name in needed_bags
       ]
     for bag_name, future in zip(needed_bags, futures):
-      self._loaded_bags_cache[bag_name] = future.result()
+      bag, serialized_bag_size_in_bytes = future.result()
+      result[bag_name] = bag
+      cache_key = _get_global_cache_key(
+          bag_name=bag_name,
+          bag_filepath=self._get_bag_filepath(bag_name),
+      )
+      cache_value = bag
+      entry_metadata = _make_cache_entry_metadata(
+          cache_key=cache_key,
+          serialized_bag_size_in_bytes=serialized_bag_size_in_bytes,
+      )
+      global_cache.set(
+          key=cache_key, value=cache_value, metadata=entry_metadata
+      )
+    return result
 
   def _canonical_topological_sorting(
       self,
@@ -728,8 +708,9 @@ class PersistedIncrementalDataBagManager:
     session_id = _get_uuid()
     return [f'bag-{session_id}-{i:012d}.kd' for i in range(num_filenames)]
 
-  def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
-    fs_util.write_bag_to_file(
+  def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str) -> int:
+    """Returns the size in bytes of the serialized bag written to file."""
+    return fs_util.write_bag_to_file(
         self._fs, bag, self._get_bag_filepath_from_filename(bag_filename)
     )
 
@@ -742,7 +723,8 @@ class PersistedIncrementalDataBagManager:
     else:
       return self._get_bag_filepath_from_filename(bag_metadata.filename)
 
-  def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
+  def _read_bag_from_file(self, bag_name: str) -> tuple[kd.types.DataBag, int]:
+    """Returns a bag read from file and its serialized size in bytes."""
     bag_filepath = self._get_bag_filepath(bag_name)
     return fs_util.read_bag_from_file(self._fs, bag_filepath)
 
@@ -815,3 +797,28 @@ def _read_latest_metadata(
     return metadata_pb2.PersistedIncrementalDataBagManagerMetadata.FromString(
         f.read()
     )
+
+
+def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
+  # We include the bag name in the cache key because users might move
+  # manager directories around in the filesystem, and nothing prevents them from
+  # swapping the filesystem locations of two unrelated managers. Since the only
+  # client of PersistedIncrementalDataBagManager is
+  # PersistedIncrementalDataSliceManager, which uses UUIDs for bag names, the
+  # scheme used here to generate cache keys is robust with respect to such
+  # moves/swaps/overwrites. The root bags all have the empty string as their
+  # name, but these bags are all identical (and empty), so collisions of them do
+  # not matter when users move manager directories around.
+  return f'bag_name:{bag_name} filepath:{bag_filepath}'
+
+
+def _make_cache_entry_metadata(
+    *, cache_key: str, serialized_bag_size_in_bytes: int
+) -> global_cache_lib.CacheEntryMetadata:
+  # Ideally we would use the number of bytes of memory that the deserialized
+  # bag occupies. At the moment we don't have a way to obtain that, so we use
+  # the size of the serialized bag as an approximation.
+  # TODO: Use the size of the deserialized bag instead.
+  return global_cache_lib.CacheEntryMetadata(
+      num_bytes_estimate=len(cache_key) + serialized_bag_size_in_bytes,
+  )

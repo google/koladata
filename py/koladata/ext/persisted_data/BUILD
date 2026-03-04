@@ -84,11 +84,11 @@ py_test(
         ":data_slice_manager_interface",
         ":data_slice_path",
         ":fs_implementation",
+        ":global_cache_lib",
         ":initial_data_manager_interface",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager",
         ":persisted_incremental_data_slice_manager_metadata_py_pb2",
-        ":schema_helper",
         ":simple_in_memory_data_slice_manager",
         ":test_only_schema_node_name_helper",
         "//py:python_path",
@@ -118,6 +118,7 @@ py_library(
     deps = [
         ":fs_interface",
         ":fs_util",
+        ":global_cache_lib",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",
         "//py/koladata:kd",
@@ -129,6 +130,7 @@ py_test(
     srcs = ["persisted_incremental_data_bag_manager_test.py"],
     deps = [
         ":fs_implementation",
+        ":global_cache_lib",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",

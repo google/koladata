@@ -44,18 +44,22 @@ class DataSliceAndBagPersistenceTest(absltest.TestCase):
   def test_databag_write_read(self):
     db = kd.new(x=1, y=2).get_bag()
     filepath = os.path.join(self.create_tempdir().full_path, 'test_bag.kd')
-    fs_util.write_bag_to_file(self._fs, db, filepath)
-    kd.testing.assert_equivalent(
-        fs_util.read_bag_from_file(self._fs, filepath), db
-    )
+    num_bytes_written = fs_util.write_bag_to_file(self._fs, db, filepath)
+    self.assertLen(kd.dumps(db), num_bytes_written)
+    read_bag, num_bytes_read = fs_util.read_bag_from_file(self._fs, filepath)
+    kd.testing.assert_equivalent(read_bag, db)
+    self.assertLen(kd.dumps(db), num_bytes_read)
 
     new_db = kd.new(x=3, y=4).get_bag()
     with self.assertRaisesRegex(ValueError, 'already exists'):
       fs_util.write_bag_to_file(self._fs, new_db, filepath)
-    fs_util.write_bag_to_file(self._fs, new_db, filepath, overwrite=True)
-    kd.testing.assert_equivalent(
-        fs_util.read_bag_from_file(self._fs, filepath), new_db
+    num_bytes_written = fs_util.write_bag_to_file(
+        self._fs, new_db, filepath, overwrite=True
     )
+    self.assertLen(kd.dumps(new_db), num_bytes_written)
+    read_bag, num_bytes_read = fs_util.read_bag_from_file(self._fs, filepath)
+    kd.testing.assert_equivalent(read_bag, new_db)
+    self.assertLen(kd.dumps(new_db), num_bytes_read)
 
 
 if __name__ == '__main__':

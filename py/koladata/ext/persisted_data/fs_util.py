@@ -56,19 +56,44 @@ def write_bag_to_file(
     *,
     overwrite: bool = False,
     riegeli_options: str | None = None,
-):
-  """Writes the given DataBag to a file; overwrites the file if requested."""
+) -> int:
+  """Writes the given DataBag to a file; overwrites the file if requested.
+
+  Args:
+    fs: The file system interaction object to use.
+    ds: The DataBag to write.
+    filepath: The path to the file to write.
+    overwrite: If True, then the file will be overwritten if it already exists.
+    riegeli_options: The Riegeli options to use.
+
+  Returns:
+    The size of the serialized DataBag in bytes, which is the same as the number
+    of bytes written to the file.
+  """
   if fs.exists(filepath):
     if overwrite:
       fs.remove(filepath)
     else:
       raise ValueError(f'File {filepath} already exists.')
+  data = kd.dumps(ds, riegeli_options=riegeli_options)
   with fs.open(filepath, 'wb') as f:
-    f.write(kd.dumps(ds, riegeli_options=riegeli_options))
+    f.write(data)
+  return len(data)
 
 
 def read_bag_from_file(
     fs: fs_interface.FileSystemInterface, filepath: str
-) -> kd.types.DataBag:
+) -> tuple[kd.types.DataBag, int]:
+  """Returns a bag read from file and its serialized size in bytes.
+
+  Args:
+    fs: The file system interaction object to use.
+    filepath: The path to the file to read.
+
+  Returns:
+    A tuple containing the bag read from file and its serialized size in bytes,
+    which is the same as the number of bytes read from the file.
+  """
   with fs.open(filepath, 'rb') as f:
-    return kd.loads(f.read())
+    data = f.read()
+  return kd.loads(data), len(data)

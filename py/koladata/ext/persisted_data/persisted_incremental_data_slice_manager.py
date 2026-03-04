@@ -365,12 +365,6 @@ class PersistedIncrementalDataSliceManager(
             fs=fs,
         )
     )
-    update_bags_to_load = set()
-    for revision in metadata.revision_history:
-      update_bags_to_load.update(
-          revision.added_snn_to_data_bags_update_bag_names
-      )
-    schema_node_name_to_data_bags_updates_manager.load_bags(update_bags_to_load)
     return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
@@ -1323,8 +1317,9 @@ class PersistedIncrementalDataSliceManager(
     get_data_slice(...) will simply load the data again and return the same
     result as before.
     """
+    # TODO: delete this method once
+    # PersistedIncrementalDataSliceManager uses the global cache.
     self._initial_data_manager.clear_cache()
-    self._data_bag_manager.clear_cache()
 
   def _check_is_not_read_only(self):
     if self.is_read_only:
