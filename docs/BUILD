@@ -39,6 +39,7 @@ py_test(
     data = [
         ":10_min_intro.md",
         ":common_pitfalls.md",
+        ":overview.md",
         ":quick_recipes.md",
     ],
     deps = [

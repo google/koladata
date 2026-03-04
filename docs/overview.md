@@ -57,11 +57,13 @@ For example, the following DataSlice has 2 dimensions and 5 items. The first
 dimension has 2 items and the second dimension has 5 items partitioned as `[3,
 2]`.
 
-```py
-ds = kd.slice([["one", "two", "three"], ["four", "five"]])
-
-ds.get_ndim() # 2
-ds.get_shape() # JaggedShape(2, [3, 2])
+```py {.pycon-doctest}
+>>> from koladata import kd
+>>> ds = kd.slice([["one", "two", "three"], ["four", "five"]])
+>>> ds.get_ndim()
+DataItem(2, schema: INT64)
+>>> ds.get_shape()
+JaggedShape(2, [3, 2])
 ```
 
 Conceptually, it can be thought as partition tree + flattened array as shown in
@@ -101,65 +103,89 @@ or strings), or more complex data structures (e.g. lists, dicts and entities).
 
 A zero-dimensional DataSlice is a scalar item. It is called a DataItem.
 
-```py
-kd.item(1, schema=kd.FLOAT32)  # 1.
-kd.item(1, schema=kd.FLOAT32).to_py()  # python 1.
-kd.list([10, 20, 30, 40])[2]  # 30
-kd.dict({1: 'a', 2: 'b'})[2]  # 'b'
-kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
-kd.to_py(kd.from_py({'a': [1, 2, 3], 'b': [4, 5, 6]})) # {'a': [1, 2, 3], 'b': [4, 5, 6]}
-
-kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # DataSlice of lists
-kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # DataSlice of dicts
+```py {.pycon-doctest}
+>>> kd.item(1, schema=kd.FLOAT32)
+DataItem(1.0, schema: FLOAT32)
+>>> kd.item(1, schema=kd.FLOAT32).to_py()
+1.0
+>>> kd.list([10, 20, 30, 40])[2]
+DataItem(30, schema: INT32, bag_id...)
+>>> kd.dict({1: 'a', 2: 'b'})[2]
+DataItem('b', schema: STRING, bag_id...)
+>>> kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
+DataItem(List[Dict{...'a'=List[1, 2, 3]...}, Dict{...'a'=3...}], schema: OBJECT, bag_id...)
+>>> d = kd.to_py(kd.from_py({'a': [1, 2, 3], 'b': [4, 5, 6]}))
+>>> dict(sorted(d.items()))
+{'a': [1, 2, 3], 'b': [4, 5, 6]}
+>>> kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])  # DataSlice of lists
+DataSlice([List[1, 2, 3], List[4, 5]], schema: LIST[INT32], ...)
+>>> kd.slice([kd.dict({'a':1, 'b':2}), kd.dict({'c':3})])  # DataSlice of dicts
+DataSlice([Dict{...'a'=1...}, Dict{'c'=3}], schema: DICT{STRING, INT32}, ...)
 ```
 
 The DataSlice `kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])` is different
 from the DataSlice `kd.slice([[1, 2, 3], [4, 5]])`, as the following example
 shows. However, they can be converted from/to each other as we will see later.
 
-```py
-l1 = kd.list([1, 2, 3])
-l2 = kd.list([4, 5])
-list_ds = kd.slice([l1, l2])
-list_ds.get_ndim()  # 1
-list_ds.get_size()  # 2
-
-int_ds = kd.slice([[1, 2, 3], [4, 5]])
-int_ds.get_ndim()  # 2
-int_ds.get_size()  # 5
+```py {.pycon-doctest}
+>>> l1 = kd.list([1, 2, 3])
+>>> l2 = kd.list([4, 5])
+>>> list_ds = kd.slice([l1, l2])
+>>> list_ds.get_ndim()
+DataItem(1, schema: INT64)
+>>> list_ds.get_size()
+DataItem(2, schema: INT64)
+>>> int_ds = kd.slice([[1, 2, 3], [4, 5]])
+>>> int_ds.get_ndim()
+DataItem(2, schema: INT64)
+>>> int_ds.get_size()
+DataItem(5, schema: INT64)
 ```
 
 DataSlices have different mechanisms around accessing and broadcasting compared
 to tensors and nested lists. That is, they specialize in **aggregation** from
 inner dimensions into outer ones.
 
-```py
-ds = kd.slice([[1, 2, 3], [4, 5]])
+```py {.pycon-doctest}
+>>> ds = kd.slice([[1, 2, 3], [4, 5]])
+
 # Use .S for indexing
-ds.S[1, 0]  # 4
-ds.S[..., :2]  # [[1, 2],[4, 5]]
+>>> ds.S[1, 0]
+DataItem(4,...)
+
+>>> ds.S[..., :2]
+DataSlice([[1, 2], [4, 5]], schema: INT32...)
 
 # Use .take for getting items in the last dimension
-ds.take(1)  # [2, 5] - 1st item in the last dimension
+>>> ds.take(1)  # [2, 5] - 1st item in the last dimension
+DataSlice([2, 5], schema: INT32, ...)
 
 # Use .L to work with DataSlices as with python lists
-ds.L[0]  # kd.slice([1, 2, 3])
-[int(y) for x in ds.L for y in x.L]  # [1, 2, 3, 4, 5]
-
-kd.slice([5, 6]).expand_to(ds)  # [[5, 5, 5], [6, 6]]
-ds + kd.slice([6, 7]) + kd.item(8)  # [[15, 16, 17], [19, 20]]
-kd.agg_max(ds)  # [3, 5]
-kd.map_py(lambda x, y: x*y, ds, 2)  # [[2, 4, 6], [8, 10]]
-
-ds = kd.slice([4, 3, 4, 2, 2, 1, 4, 1, 2])
-kd.group_by(ds)  # [[4, 4, 4], [3], [2, 2, 2], [1, 1]]
-kd.group_by(ds).take(0)  # [4, 3, 2, 1]
-kd.unique(ds)  # the same as above
+>>> ds.L[0]
+DataSlice([1, 2, 3], schema: INT32, ...)
+>>> [int(y) for x in ds.L for y in x.L]
+[1, 2, 3, 4, 5]
+>>> kd.slice([5, 6]).expand_to(ds)
+DataSlice([[5, 5, 5], [6, 6]], schema: INT32,...)
+>>> ds + kd.slice([6, 7]) + kd.item(8)
+DataSlice([[15, 16, 17], [19, 20]], schema: INT32,...)
+>>> kd.agg_max(ds)
+DataSlice([3, 5], schema: INT32, ...)
+>>> kd.map_py(lambda x, y: x*y, ds, 2)
+DataSlice([[2, 4, 6], [8, 10]], schema: INT32...)
+>>> ds = kd.slice([4, 3, 4, 2, 2, 1, 4, 1, 2])
+>>> kd.group_by(ds)
+DataSlice([[4, 4, 4], [3], [2, 2, 2], [1, 1]], schema: INT32...)
+>>> kd.group_by(ds).take(0)
+DataSlice([4, 3, 2, 1], schema: INT32...)
+>>> kd.unique(ds)  # the same as above
+DataSlice([4, 3, 2, 1], schema: INT32...)
 
 # Group_by can be used to swap dimensions, which can be used to transpose the
 # final dimension of a slice.
-ds = kd.slice([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-kd.group_by(ds.flatten(-2), kd.index(kd.present_shaped_as(ds)).flatten(-2))  # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
+>>> ds = kd.slice([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+>>> kd.group_by(ds.flatten(-2), kd.index(kd.present_shaped_as(ds)).flatten(-2))
+DataSlice([[1, 4, 7], [2, 5, 8], [3, 6, 9]], schema: INT32...)
 ```
 
 ## Primitives
@@ -167,17 +193,25 @@ kd.group_by(ds.flatten(-2), kd.index(kd.present_shaped_as(ds)).flatten(-2))  # [
 Koda supports INT32, INT64, FLOAT32, FLOAT64, STRING, BYTES, BOOLEAN, MASK as
 primitive types.
 
-```py
-kd.int32(1) # INT32 DataItem
-kd.int64([2, 3]) # 1-dim INT64 DataSlice
-kd.float32([[1., 2.], [3.]]) # 2-dim FLOAT32 DataSlice
-kd.str('string')
-kd.bytes(b'bytes')
-kd.bool(True)
+```py {.pycon-doctest}
+>>> kd.int32(1)
+DataItem(1, schema: INT32)
+>>> kd.int64([2, 3])
+DataSlice([2, 3], schema: INT64...)
+>>> kd.float32([[1., 2.], [3.]])
+DataSlice([[1.0, 2.0], [3.0]], schema: FLOAT32,...)
+>>> kd.str('string')
+DataItem('string', schema: STRING)
+>>> kd.bytes(b'bytes')
+DataItem(b'bytes', schema: BYTES)
+>>> kd.bool(True)
+DataItem(True, schema: BOOLEAN)
 
 # There is no native MASK type in Python, thus we have them directly in kd
-kd.present
-kd.missing
+>>> kd.present
+DataItem(present, schema: MASK)
+>>> kd.missing
+DataItem(missing, schema: MASK)
 ```
 
 ## Entities, Schemas, ItemIds and Universally-Unique ItemIds
@@ -188,65 +222,86 @@ primitives or other entities. **Entities** can have **schema** assigned, and
 multiple entities can share the same schema, which improves performance for
 vectorized operations.
 
-```py
+```py {.pycon-doctest}
 # kd.new creates new entities and assigns schemas to them
-kd.new(x=1, y=2, schema='Point')
+>>> kd.new(x=1, y=2, schema='Point')
+DataItem(Entity(x=1, y=2), schema: Point(x=INT32, y=INT32),...)
 
 # Can also explicitly create schema with attributes before using.
-my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
-x = kd.new(x=1, y=2, schema=my_schema)
-x.get_schema() == my_schema  # yes
+>>> my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+>>> x = kd.new(x=1, y=2, schema=my_schema)
+>>> x.get_schema() == my_schema # Yes, i.e. a present mask.
+DataItem(present, schema: MASK)
 
 # When converting from py, can specify schema
-kd.from_py({'x': 1, 'y': 2}, schema=my_schema)
+>>> kd.from_py({'x': 1, 'y': 2}, schema=my_schema)
+DataItem(Entity(x=1, y=2), schema: Point(x=INT32, y=INT32),...)
 
 # It's possible to create nested entities
-x = kd.new(a=1, b=kd.new(c=3, schema='Inner'), schema='Outer')
+>>> x = kd.new(a=1, b=kd.new(c=3, schema='Inner'), schema='Outer')
+>>> x
+DataItem(Entity(a=1, b=Entity(c=3)), schema: Outer(a=INT32, b=Inner(c=INT32)),...)
+
 ```
 
 Entities are **immutable** by default, and it's possible to create multiple
 slightly different versions with O(1) cost.
 
-```py
-x = x.with_attrs(d=4)  # add an attribute
-x = x.updated(kd.attrs(x.b, c=5))  # update nested attribute 'c'
+```py {.pycon-doctest}
+>>> x = x.with_attrs(d=4)  # add an attribute
+>>> x = x.updated(kd.attrs(x.b, c=5))  # update nested attribute 'c'
 
 # Entities can be cloned or deep cloned
-x = kd.new(a=1, b=kd.new(c=3, schema='Inner'), schema='Outer')
-x1 = x.clone(a=2)
-x1.get_itemid() != x.get_itemid()  # yes
-x1.b.get_itemid() == x.b.get_itemid()  # yes
-x2 = x.deep_clone(a=2)
-x2.b.get_itemid() != x.b.get_itemid()  # yes
+>>> x = kd.new(a=1, b=kd.new(c=3, schema='Inner'), schema='Outer')
+>>> x1 = x.clone(a=2)
+>>> x1.get_itemid() != x.get_itemid()
+DataItem(present, schema: MASK)
 
+>>> x1.b.get_itemid() == x.b.get_itemid()
+DataItem(present, schema: MASK)
+
+>>> x2 = x.deep_clone(a=2)
+>>> x2.b.get_itemid() != x.b.get_itemid()
+DataItem(present, schema: MASK)
 ```
 
 Both entities and schemas can be dynamically **allocated** or be
 **universally-unique** (i.e. have the same ItemIds across processes/machines).
 
-```py
+```py {.pycon-doctest}
 # Instead of specifying schemas, can auto-allocate them
-x = kd.new(a=1, b=kd.new(c=3))
+>>> x = kd.new(a=1, b=kd.new(c=3))
 
 # Entities with auto-allocated schemas cannot be mixed together in vectorized ops
-kd.new(x=1).get_schema() != kd.new(x=1).get_schema()  # yes
+>>> kd.new(x=1).get_schema() != kd.new(x=1).get_schema()
+DataItem(present, schema: MASK)
 
 # Auto-allocated schemas can be cast to have the same schema
-x, y = kd.new(a=1), kd.new(b=2)  # two entites with different schemas
-kd.slice([x, y.with_schema(x.get_schema())])
+>>> x, y = kd.new(a=1), kd.new(b=2)  # two entities with different schemas
+>>> kd.slice([x, y.with_schema(x.get_schema())])
+DataSlice([Entity(a=1), Entity():...], schema: ENTITY(a=INT32), ...)
 
 # Universally unique entities can be used similarly to named tuples
-kd.uu(x=1, y=kd.uu(z=3))
-kd.dict({kd.uu(x=1, y=2): 10, kd.uu(x=2, y=3): 20})[kd.uu(x=1, y=2)]  # 10
+>>> kd.uu(x=1, y=kd.uu(z=3))
+DataItem(Entity(x=1, y=Entity(z=3)), schema: ENTITY(x=INT32, y=ENTITY(z=INT32)), bag_id:...)
+
+>>> kd.dict({kd.uu(x=1, y=2): 10, kd.uu(x=2, y=3): 20})[kd.uu(x=1, y=2)]
+DataItem(10, schema: INT32, bag_id:...)
 
 # Dynamically allocated entities have different ids
-kd.new(x=1, y=2).get_itemid() != kd.new(x=1, y=2).get_itemid()  # yes
+>>> kd.new(x=1, y=2).get_itemid() != kd.new(x=1, y=2).get_itemid()
+DataItem(present, schema: MASK)
+
 # Universally-uniquely allocated entities have always the same ids
-kd.uu(x=1, y=2).get_itemid() == kd.uu(x=1, y=2).get_itemid()  # yes
+>>> kd.uu(x=1, y=2).get_itemid() == kd.uu(x=1, y=2).get_itemid()
+DataItem(present, schema: MASK)
 
 # Can encode itemid's into strings
-kd.encode_itemid(kd.new(x=1, y=2))  # always different, as ids are allocated
-kd.encode_itemid(kd.uu(x=1, y=2)) == '07aXeaqDy6UJNv8EUfA0jz'  # always the same
+>>> kd.encode_itemid(kd.new(x=1, y=2))  # always different, as ids are allocated
+DataItem('...', schema: STRING)
+
+>>> kd.encode_itemid(kd.uu(x=1, y=2))  # always the same
+DataItem('07...', schema: STRING)
 ```
 
 ## DataSlices of Structured Data, Explosion/Implosion and Attribute Access
@@ -255,7 +310,7 @@ When working with DataSlices of structured data (entities, lists, and dicts),
 the operation is applied to **all the items** in the DataSlice
 **simultaneously**.
 
-```py
+```py {.pycon-doctest}
 # Root
 # ├── dim_1:0
 # │   ├── dim_2:0 -> kd.new(x=1, y=20, schema='Point')
@@ -264,22 +319,27 @@ the operation is applied to **all the items** in the DataSlice
 #     ├── dim_2:0 -> kd.new(x=3, y=40, schema='Point')
 #     ├── dim_2:1 -> kd.new(x=4, y=50, schema='Point')
 #     └── dim_2:2 -> kd.new(x=5, y=60, schema='Point')
-kd.slice([
-    [
-      kd.new(x=1, y=20, schema='Point'),
-      kd.new(x=2, y=30, schema='Point')
-    ],
-    [
-      kd.new(x=3, y=40, schema='Point'),
-      kd.new(x=4, y=50, schema='Point'),
-      kd.new(x=5, y=60, schema='Point')
-    ]
-])
+>>> kd.slice([
+...     [
+...       kd.new(x=1, y=20, schema='Point'),
+...       kd.new(x=2, y=30, schema='Point')
+...     ],
+...     [
+...       kd.new(x=3, y=40, schema='Point'),
+...       kd.new(x=4, y=50, schema='Point'),
+...       kd.new(x=5, y=60, schema='Point')
+...     ]
+... ])
+DataSlice([
+      [Entity(x=1, y=20), Entity(x=2, y=30)],
+      [Entity(x=3, y=40), Entity(x=4, y=50), Entity(x=5, y=60)],
+    ], schema: Point(x=INT32, y=INT32),...)
 
 # Root
 # ├── dim_1:0 -> kd.list([20, 30])
 # └── dim_1:1 -> kd.list([40, 50, 60])
-kd.slice([kd.list([20, 30]), kd.list([40, 50, 60])])
+>>> kd.slice([kd.list([20, 30]), kd.list([40, 50, 60])])
+DataSlice([List[20, 30], List[40, 50, 60]], schema: LIST[INT32],...)
 
 # Root
 # ├── dim_1:0
@@ -287,97 +347,129 @@ kd.slice([kd.list([20, 30]), kd.list([40, 50, 60])])
 # │   └── dim_2:1 -> kd.dict({'b': 3,'c': 4})
 # └── dim_1:1
 #     └── dim_2:0 -> kd.dict({'a': 5,'b': 6,'c': 7})
-kd.slice([[kd.dict({'a': 1,'b': 2}), kd.dict({'b': 3,'c': 4})],
- [kd.dict({'a': 5,'b': 6,'c': 7})]])
+>>> kd.slice([[kd.dict({'a': 1,'b': 2}), kd.dict({'b': 3,'c': 4})],
+...  [kd.dict({'a': 5,'b': 6,'c': 7})]])
+DataSlice([[Dict{...'b'=2...}, Dict{...'b'=3...}], [Dict{...'c'=7...}]], schema: DICT{STRING, INT32},...)
 ```
 
 As a result of **attribute access** of a **DataSlice of entities**, a new
 DataSlice is returned, which contains attributes of every corresponding entity
 in the original DataSlice.
 
-```py
-a = kd.slice([kd.new(x=1, schema='Foo'),
-              kd.new(x=2, schema='Foo'),
-              kd.new(x=3, schema='Foo')])
-a  # [Entity(x=1), Entity(x=2), Entity(x=3)]
-a.x  # [1, 2, 3]
+```py {.pycon-doctest}
+>>> a = kd.slice([kd.new(x=1, schema='Foo'),
+...               kd.new(x=2, schema='Foo'),
+...               kd.new(x=3, schema='Foo')])
+>>> a
+DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema: Foo(x=INT32),...)
 
-a = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
+>>> a.x
+DataSlice([1, 2, 3], schema: INT32,...)
 
-b = kd.slice([kd.new(x=1, schema='Foo'),
-              kd.new(schema='Foo'),
-              kd.new(x=3, schema='Foo')])
-b  # [Entity(x=1), Entity(), Entity(x=3)]
+>>> a = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
+>>> a
+DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema: Foo(x=INT32),...)
 
-b.maybe('x')  # [1, None, 3] - only the first one has an attribute 'x'
+>>> b = kd.slice([kd.new(x=1, schema='Foo'),
+...               kd.new(schema='Foo'),
+...               kd.new(x=3, schema='Foo')])
+>>> b
+DataSlice([Entity(x=1), Entity():..., Entity(x=3)], schema: Foo(x=INT32),...)
+
+>>> b.maybe('x')  # only the first and third ones have an attribute 'x'
+DataSlice([1, None, 3], schema: INT32,...)
 ```
 
 When accessing a **single element** of a **DataSlice of lists** or a **key** of
 a **DataSlice of dicts**, a new DataSlice is returned with the corresponding
 values in the original lists and dicts.
 
-```py
-a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
-# Access 1st item in each list
-a[1]  # [2, 5] == [list0[1], list1[1]]
+```py {.pycon-doctest}
+>>> a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
 
-a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
-a['c']  # [None, 4] == [dict0['c'], dict1['c']]
+# Access 1st item in each list
+>>> a[1]  # [2, 5] == [list0[1], list1[1]]
+DataSlice([2, 5], schema: INT32,...)
+
+>>> a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
+>>> a['c']  # [None, 4] == [dict0['c'], dict1['c']]
+DataSlice([None, 4], schema: INT32, ...)
+
 ```
 
 A common operation is **explosion** of DataSlices of lists, when we return a new
 DataSlice with an **extra dimension**, where the innermost dimension is composed
 of the values of the original lists.
 
-```py
-a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
+```py {.pycon-doctest}
+>>> a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
+
 # Access 1st item in each list
-a[1]  # [2, 5] == [list0[1], list1[1]]
+>>> a[1]  # [2, 5] == [list0[1], list1[1]]
+DataSlice([2, 5], schema: INT32,...)
 
 # "Explosion": add another dimension to the DataSlice
 # That is, a 1-dim DataSlice of lists becomes a 2-dim DataSlice
-a[:]  # [[1, 2, 3],[4, 5]]
+>>> a[:]
+DataSlice([[1, 2, 3], [4, 5]], schema: INT32...)
 
 # "Explosion" of the first two items in each list
-a[:2]  # [[1, 2], [4, 5]]
-a[:].get_ndim() == a.get_ndim() + 1  # explosion adds one dimension
+>>> a[:2]
+DataSlice([[1, 2], [4, 5]], schema: INT32,...)
+
+>>> a[:].get_ndim() == a.get_ndim() + 1  # explosion adds one dimension
+DataItem(present, schema: MASK)
 ```
 
 An opposite operation is **implosion**, when we return a DataSlice of lists with
 one fewer dimension, where each list contains the values of the innermost
 dimension of the original DataSlice.
 
-```py
+```py {.pycon-doctest}
 # Implode replaces the last dimension with lists
-a = kd.slice([[1, 2, 3], [4, 5]])
-kd.implode(a)  # kd.slice([kd.list([1,2,3]), kd.list([4,5])])
-kd.implode(a)[:]  # == a
+>>> a = kd.slice([[1, 2, 3], [4, 5]])
+>>> kd.implode(a)
+DataSlice([List[1, 2, 3], List[4, 5]], schema: LIST[INT32],...)
+
+>>> kd.implode(a)[:]# == a
+DataSlice([[1, 2, 3], [4, 5]], schema: INT32,...)
 ```
 
 Getting all keys or values of a DataSlice of dicts will return a DataSlice with
 one more dimension.
 
-```py
-a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
+```py {.pycon-doctest}
+>>> a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
 
-a.get_keys() # [['a', 'b'], ['b', 'c']]
-a.get_values() # [[1, 2], [3, 4]]
+>>> a.get_keys()
+DataSlice([['a', 'b'], ['b', 'c']], schema: STRING,...)
+
+>>> a.get_values()
+DataSlice([[1, 2], [3, 4]], schema: INT32,...)
+
 # shortcut for get_value
-a[:] # [[1, 2], [3, 4]]
+>>> a[:] # [[1, 2], [3, 4]]
+DataSlice([[1, 2], [3, 4]], schema: INT32,...)
 
 # note, get_keys() doesn't guarantee to preserve the order, but we can sort before lookup
-a[kd.sort(a.get_keys())]  # [[1, 2], [3, 4]]
-a.get_keys().get_ndim() == a.get_ndim() + 1  # the keys DataSlice has one more dimension
+>>> a[kd.sort(a.get_keys())]
+DataSlice([[1, 2], [3, 4]], schema: INT32,...)
+
+>>> a.get_keys().get_ndim() == a.get_ndim() + 1  # the keys DataSlice has one more dimension
+DataItem(present, schema: MASK)
 ```
 
 Here is an example that puts everything together.
 
-```py
-a = kd.from_py([{'x': 1}, {'x': 3}], dict_as_obj=True)
-b = kd.from_py([{'y': 2}, {'y': 4}])
+```py {.pycon-doctest}
+>>> a = kd.from_py([{'x': 1}, {'x': 3}], dict_as_obj=True)
+>>> b = kd.from_py([{'y': 2}, {'y': 4}])
 
-a[:].x + b[:]['y']  # [3, 7]
-kd.zip(kd.agg_sum(a[:].x), kd.agg_sum(b[:]['y']))  # [4, 6]
+>>> a[:].x + b[:]['y']
+DataSlice([3, 7], schema: OBJECT, present: 2/2)
+
+>>> kd.zip(kd.agg_sum(a[:].x), kd.agg_sum(b[:]['y']))
+DataSlice([4, 6], schema: OBJECT, present: 2/2)
 ```
 
 ## Objects
@@ -393,28 +485,38 @@ There are two main kinds of objects in Koda:
     their schemas. They are **similar to Python objects** that store their
     classes in the `__class__` attribute.
 
-```py
-kd.obj(x=2, y=kd.obj(z=3))
+```py {.pycon-doctest}
+>>> kd.obj(x=2, y=kd.obj(z=3))
+DataItem(Obj(x=2, y=Obj(z=3)), schema: OBJECT, bag_id:...)
 
-x = kd.uuobj(x=2, y=kd.uuobj(z=3))  # universally unique (always the same id)
-kd.encode_itemid(x) == '07ZWVFWxz9lNirDW8RXBlw'  # always the same id
+>>> x = kd.uuobj(x=2, y=kd.uuobj(z=3))  # universally unique (always the same id)
+>>> kd.encode_itemid(x)  # always the same id
+DataItem('07...', schema: STRING)
 
-x = kd.from_py([{'a': 1, 'b': 2}, {'c': 3, 'd': 4}], dict_as_obj=True)
-x[0]  # Obj(a=1, b=2)
-x[:].maybe('a')  # [1, None]
+>>> x = kd.from_py([{'a': 1, 'b': 2}, {'c': 3, 'd': 4}], dict_as_obj=True)
+>>> x[0]
+DataItem(Obj(a=1, b=2), schema: OBJECT,...)
+
+>>> x[:].maybe('a')
+DataSlice([1, None], schema: OBJECT,...)
 
 # Mix objects with different schemas
-kd.slice([kd.obj(1), kd.obj("hello"), kd.obj([1, 2, 3])])
-kd.slice([kd.obj(x=1, y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
-
-kd.obj(x=1).get_schema() # kd.OBJECT
-kd.obj(x=1).get_schema() == kd.obj(1).get_schema()  # yes
+>>> kd.slice([kd.obj(1), kd.obj("hello"), kd.obj([1, 2, 3])])
+DataSlice([1, 'hello', List[1, 2, 3]], schema: OBJECT,...)
+>>> kd.slice([kd.obj(x=1, y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
+DataSlice([Obj(x=1, y=2), Obj(x='hello', y='world'), 1], schema: OBJECT,...)
+>>> kd.obj(x=1).get_schema()
+DataItem(OBJECT, schema: SCHEMA, bag_id:...)
+>>> kd.obj(x=1).get_schema() == kd.obj(1).get_schema()
+DataItem(present, schema: MASK)
 
 # Get per-item schemas stored in every object
-kd.obj(x=1).get_obj_schema() # IMPLICIT_SCHEMA(x=INT32)
-kd.obj(x=1).get_obj_schema() != kd.obj(1).get_obj_schema()  # yes, different actual schemas
-kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)]).get_obj_schema()
-# [IMPLICIT_SCHEMA(x=INT32, y=INT32), IMPLICIT_SCHEMA(x=STRING, y=STRING), INT32]
+>>> kd.obj(x=1).get_obj_schema() # IMPLICIT_SCHEMA(x=INT32)
+DataItem(IMPLICIT_ENTITY(x=INT32), schema: SCHEMA, bag_id:...)
+>>> kd.obj(x=1).get_obj_schema() != kd.obj(1).get_obj_schema()  # yes, different actual schemas
+DataItem(present, schema: MASK)
+>>> kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)]).get_obj_schema()
+DataSlice([IMPLICIT_ENTITY(x=INT32, y=INT32), IMPLICIT_ENTITY(x=STRING, y=STRING), INT32], schema: SCHEMA...)
 ```
 
 Similar to entities, objects can be modified with a cost of O(1), cloned or deep
