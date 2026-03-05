@@ -72,11 +72,34 @@ message JsonSelectNonnullProto {
   int32 state = 1;
 };
 
+// Internal to JsonExtractValuesStreamProcessor. Do not use directly.
+message JsonExtractValuesStateProto {
+  // Must match options passed to processor.
+  bool with_path = 1;
+
+  message PathPart {
+    oneof kind {
+      bytes object_key = 1;
+      int64 array_index = 2;
+    }
+  }
+  repeated PathPart container_path_stack = 2;
+  bool is_object_key = 3;
+  bytes key_literal_buffer = 4;
+  bool is_in_match = 5;
+  bool has_any_matches = 6;
+  int64 match_depth = 7;
+  bool is_in_string = 8;
+  bool is_in_escape = 9;
+}
+
+// Internal to JsonImplodeArrayStreamProcessor. Do not use directly.
 message JsonImplodeArrayStateProto {
   bool emitted_opening_square_bracket = 1;
   bool needs_leading_comma = 2;
 }
 
+// Internal to JsonExplodeArrayStreamProcessor. Do not use directly.
 message JsonExplodeArrayStateProto {
   int64 container_depth = 1;
   bool is_top_level_array = 2;
@@ -85,6 +108,7 @@ message JsonExplodeArrayStateProto {
   bool is_in_escape = 5;
 }
 
+// Internal to JsonGetArrayNthValueStreamProcessor. Do not use directly.
 message JsonGetArrayNthValueStateProto {
   // Must match options passed to processor.
   int64 n = 1;

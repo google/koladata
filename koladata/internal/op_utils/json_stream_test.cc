@@ -14,10 +14,14 @@
 //
 #include "koladata/internal/op_utils/json_stream.h"
 
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include "gtest/gtest.h"
+#include "absl/types/span.h"
 #include "koladata/internal/op_utils/stream_processor_state.pb.h"
 
 namespace koladata::internal {
@@ -907,8 +911,7 @@ TEST(JsonStreamTest, PrettifyStreamProcessor) {
   EXPECT_EQ(RunPrettify("{\"key\":\"value\"}"), "{\n  \"key\": \"value\"\n}");
   EXPECT_EQ(RunPrettify("{ \"key\" : \"value\" } "),
             "{\n  \"key\": \"value\"\n}");
-  EXPECT_EQ(RunPrettify("{\"a\":1,\"b\":2}"),
-            "{\n  \"a\": 1,\n  \"b\": 2\n}");
+  EXPECT_EQ(RunPrettify("{\"a\":1,\"b\":2}"), "{\n  \"a\": 1,\n  \"b\": 2\n}");
   EXPECT_EQ(RunPrettify("{ \"a\" : 1 , \"b\" : 2 }"),
             "{\n  \"a\": 1,\n  \"b\": 2\n}");
   EXPECT_EQ(RunPrettify("{\"a\":\"x\",\"b\":\"y\"}"),
@@ -1056,6 +1059,334 @@ TEST(JsonStreamTest, SelectNonnullStreamProcessorLoadStateFailure) {
   {
     JsonSelectNonnullProto proto;
     proto.set_state(4);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
+std::string RunExtractValues(
+    std::string input,
+    std::function<bool(absl::Span<const std::variant<int64_t, std::string>>)>
+        path_match_fn,
+    bool with_path = false) {
+  return RunProcessor<JsonExtractValuesStreamProcessor,
+                      JsonExtractValuesOptions>(
+      input, JsonExtractValuesOptions{.path_match_fn = path_match_fn,
+                                      .with_path = with_path});
+}
+
+TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
+  auto match_all = [](absl::Span<const std::variant<int64_t, std::string>>) {
+    return true;
+  };
+  auto match_none = [](absl::Span<const std::variant<int64_t, std::string>>) {
+    return false;
+  };
+  auto match_depth_1 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1;
+      };
+  auto match_key = [](std::string key) {
+    return [key](absl::Span<const std::variant<int64_t, std::string>> path) {
+      return path.size() == 1 && std::holds_alternative<std::string>(path[0]) &&
+             std::get<std::string>(path[0]) == key;
+    };
+  };
+
+  EXPECT_EQ(RunExtractValues("", match_all), "");
+  EXPECT_EQ(RunExtractValues("", match_none), "");
+
+  EXPECT_EQ(RunExtractValues("[1,2,3]\n", match_all), "[[1,2,3]]\n");
+  EXPECT_EQ(RunExtractValues("[1,2,3]\n", match_none), "[]\n");
+  EXPECT_EQ(RunExtractValues("[]\n", match_depth_1), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n", match_depth_1), "[1]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n", match_none), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2}\n", match_depth_1), "[1,2]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2}\n", match_key("a")), "[1]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2}\n", match_key("b")), "[2]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2}\n", match_key("c")), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":\"a\",\"a\":\"a\"}\n", match_depth_1),
+            "[\"a\",\"a\"]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2,\"a\":3}\n", match_key("a")),
+            "[1,3]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"😊\":1,\"\\ud83d\\ude0a\":2,\"x\":3}\n",
+                             match_key("😊")),
+            "[1,2]\n");
+
+  EXPECT_EQ(RunExtractValues("[\"abc\"]\n", match_depth_1), "[\"abc\"]\n");
+  EXPECT_EQ(RunExtractValues("[\"abc\\\\def\\\"ghi\"]\n", match_depth_1),
+            "[\"abc\\\\def\\\"ghi\"]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":[1,2]}\n", match_depth_1), "[[1,2]]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":{\"b\":3}}\n", match_depth_1),
+            "[{\"b\":3}]\n");
+
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n[40,50]\n", match_depth_1),
+            "[10,20,30]\n[40,50]\n");
+
+  EXPECT_EQ(RunExtractValues("null\n", match_none), "[]\n");
+  EXPECT_EQ(RunExtractValues("null\n", match_all), "[null]\n");
+  EXPECT_EQ(RunExtractValues("123\n", match_none), "[]\n");
+  EXPECT_EQ(RunExtractValues("123\n", match_all), "[123]\n");
+
+  EXPECT_EQ(RunExtractValues("true\n", match_all), "[true]\n");
+  EXPECT_EQ(RunExtractValues("false\n", match_all), "[false]\n");
+  EXPECT_EQ(RunExtractValues("\"hello\"\n", match_all), "[\"hello\"]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":[1,[2,3]],\"b\":4}\n", match_depth_1),
+            "[[1,[2,3]],4]\n");
+
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":{\"x\":1,\"y\":2},\"b\":3}\n", match_depth_1),
+      "[{\"x\":1,\"y\":2},3]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":{\"x\":[1,2]},\"b\":[3,{\"y\":4}]}\n",
+                             match_depth_1),
+            "[{\"x\":[1,2]},[3,{\"y\":4}]]\n");
+
+  EXPECT_EQ(
+      RunExtractValues("{\"a\\\"b\":1}\n", match_depth_1), "[1]\n");
+  auto match_escaped_key =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1 &&
+               std::holds_alternative<std::string>(path[0]) &&
+               std::get<std::string>(path[0]) == "a\"b";
+      };
+  EXPECT_EQ(RunExtractValues("{\"a\\\"b\":1}\n", match_escaped_key), "[1]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\\\\b\":1}\n", match_depth_1), "[1]\n");
+
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_depth_1), "[10,20,30]\n");
+  EXPECT_EQ(RunExtractValues("[\"a\",\"b\"]\n", match_depth_1),
+            "[\"a\",\"b\"]\n");
+  EXPECT_EQ(RunExtractValues("[[1,2],[3,4]]\n", match_depth_1),
+            "[[1,2],[3,4]]\n");
+  EXPECT_EQ(RunExtractValues("[{\"x\":1},{\"y\":2}]\n", match_depth_1),
+            "[{\"x\":1},{\"y\":2}]\n");
+
+  EXPECT_EQ(RunExtractValues("[\"a\\\"b\"]\n", match_depth_1),
+            "[\"a\\\"b\"]\n");
+  EXPECT_EQ(RunExtractValues("[\"a\\\\b\"]\n", match_depth_1),
+            "[\"a\\\\b\"]\n");
+
+  EXPECT_EQ(RunExtractValues("123\n456\n789\n", match_all),
+            "[123]\n[456]\n[789]\n");
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n", match_depth_1),
+      "[1]\n[2]\n[3]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n{\"b\":2}\n", match_key("a")),
+            "[1]\n[]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n{\"b\":2}\n", match_key("b")),
+            "[]\n[2]\n");
+
+  EXPECT_EQ(RunExtractValues("[]\n", match_depth_1), "[]\n");
+  EXPECT_EQ(RunExtractValues("{}\n", match_depth_1), "[]\n");
+  EXPECT_EQ(RunExtractValues("[]\n", match_all), "[[]]\n");
+  EXPECT_EQ(RunExtractValues("{}\n", match_all), "[{}]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2,\"c\":3}\n", match_depth_1),
+            "[1,2,3]\n");
+
+  auto match_index_0 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1 &&
+               std::holds_alternative<int64_t>(path[0]) &&
+               std::get<int64_t>(path[0]) == 0;
+      };
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_0), "[10]\n");
+  EXPECT_EQ(RunExtractValues("[[1,2],20,30]\n", match_index_0), "[[1,2]]\n");
+  EXPECT_EQ(RunExtractValues("[{\"x\":1},20]\n", match_index_0),
+            "[{\"x\":1}]\n");
+
+  auto match_index_1 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1 &&
+               std::holds_alternative<int64_t>(path[0]) &&
+               std::get<int64_t>(path[0]) == 1;
+      };
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_1), "[20]\n");
+  EXPECT_EQ(RunExtractValues("[10,[20,21],30]\n", match_index_1),
+            "[[20,21]]\n");
+  EXPECT_EQ(RunExtractValues("[10,{\"a\":20},30]\n", match_index_1),
+            "[{\"a\":20}]\n");
+
+  auto match_index_2 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1 &&
+               std::holds_alternative<int64_t>(path[0]) &&
+               std::get<int64_t>(path[0]) == 2;
+      };
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_2), "[30]\n");
+  EXPECT_EQ(RunExtractValues("[10,20,[30,31]]\n", match_index_2),
+            "[[30,31]]\n");
+  EXPECT_EQ(RunExtractValues("[10,20,{\"a\":30}]\n", match_index_2),
+            "[{\"a\":30}]\n");
+  EXPECT_EQ(RunExtractValues("[10,20]\n", match_index_2), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":\"x\\\"y\"}\n", match_depth_1),
+            "[\"x\\\"y\"]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":\"x\\\\y\"}\n", match_depth_1),
+            "[\"x\\\\y\"]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":null,\"b\":true,\"c\":false}\n",
+                             match_depth_1),
+            "[null,true,false]\n");
+
+  EXPECT_EQ(RunExtractValues("\"hello\"\n", match_none), "[]\n");
+  EXPECT_EQ(RunExtractValues("true\n", match_none), "[]\n");
+  EXPECT_EQ(RunExtractValues("false\n", match_none), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":[[1,2],[3,4]]}\n", match_depth_1),
+            "[[[1,2],[3,4]]]\n");
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":{\"x\":{\"y\":1}}}\n", match_depth_1),
+      "[{\"x\":{\"y\":1}}]\n");
+
+  EXPECT_EQ(
+      RunExtractValues(
+          "{\"a\":[{\"x\":1},{\"y\":2}],\"b\":{\"c\":[3,4]}}\n",
+          match_depth_1),
+      "[[{\"x\":1},{\"y\":2}],{\"c\":[3,4]}]\n");
+
+  EXPECT_EQ(RunExtractValues("[\"a\",null,true,false,123]\n", match_depth_1),
+            "[\"a\",null,true,false,123]\n");
+
+  EXPECT_EQ(RunExtractValues("null\n123\n\"abc\"\ntrue\n", match_all),
+            "[null]\n[123]\n[\"abc\"]\n[true]\n");
+
+  auto match_depth_0 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.empty();
+      };
+  EXPECT_EQ(RunExtractValues("[1,2,3]\n", match_depth_0), "[[1,2,3]]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n", match_depth_0), "[{\"a\":1}]\n");
+  EXPECT_EQ(RunExtractValues("null\n", match_depth_0), "[null]\n");
+  EXPECT_EQ(RunExtractValues("123\n", match_depth_0), "[123]\n");
+  EXPECT_EQ(RunExtractValues("\"str\"\n", match_depth_0), "[\"str\"]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":[],\"b\":{}}\n", match_depth_1),
+            "[[],{}]\n");
+
+  EXPECT_EQ(RunExtractValues("[1]\n\n[2]\n", match_depth_1),
+            "[1]\n[]\n[2]\n");
+}
+
+TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
+  auto match_all = [](absl::Span<const std::variant<int64_t, std::string>>) {
+    return true;
+  };
+  auto match_depth_1 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1;
+      };
+  auto match_depth_2 =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 2;
+      };
+
+  EXPECT_EQ(RunExtractValues("", match_all, true), "");
+  EXPECT_EQ(RunExtractValues("[1,2,3]\n", match_depth_1, true),
+            "[[[0],1],[[1],2],[[2],3]]\n");
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":1,\"b\":2,\"a\":3}\n", match_depth_1, true),
+      "[[[\"a\"],1],[[\"b\"],2],[[\"a\"],3]]\n");
+
+  EXPECT_EQ(RunExtractValues("[[1],{\"x\":2},[[3]]]\n", match_depth_2, true),
+            "[[[0,0],1],[[1,\"x\"],2],[[2,0],[3]]]\n");
+  EXPECT_EQ(RunExtractValues("[[]]\n", match_depth_2, true), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("123\n456\n789\n", match_all, true),
+            "[[[],123]]\n[[[],456]]\n[[[],789]]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1,\"b\":2}\n", match_depth_1, true),
+            "[[[\"a\"],1],[[\"b\"],2]]\n");
+
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":[1,2],\"b\":{\"c\":3}}\n", match_depth_1, true),
+      "[[[\"a\"],[1,2]],[[\"b\"],{\"c\":3}]]\n");
+
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n[40]\n", match_depth_1, true),
+            "[[[0],10],[[1],20],[[2],30]]\n[[[0],40]]\n");
+
+  EXPECT_EQ(RunExtractValues("{}\n", match_depth_1, true), "[]\n");
+  EXPECT_EQ(RunExtractValues("[]\n", match_depth_1, true), "[]\n");
+
+  EXPECT_EQ(RunExtractValues("null\n", match_all, true), "[[[],null]]\n");
+  EXPECT_EQ(RunExtractValues("\"abc\"\n", match_all, true),
+            "[[[],\"abc\"]]\n");
+  EXPECT_EQ(RunExtractValues("true\n", match_all, true), "[[[],true]]\n");
+  EXPECT_EQ(RunExtractValues("false\n", match_all, true), "[[[],false]]\n");
+
+  EXPECT_EQ(RunExtractValues("{\"a\":1}\n{\"b\":2}\n", match_depth_1, true),
+            "[[[\"a\"],1]]\n[[[\"b\"],2]]\n");
+
+  auto match_key_with_path = [](std::string key) {
+    return [key](absl::Span<const std::variant<int64_t, std::string>> path) {
+      return path.size() == 1 &&
+             std::holds_alternative<std::string>(path[0]) &&
+             std::get<std::string>(path[0]) == key;
+    };
+  };
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":1,\"b\":2}\n", match_key_with_path("a"), true),
+      "[[[\"a\"],1]]\n");
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":1,\"b\":2}\n", match_key_with_path("b"), true),
+      "[[[\"b\"],2]]\n");
+
+  auto match_index_0_with_path =
+      [](absl::Span<const std::variant<int64_t, std::string>> path) {
+        return path.size() == 1 &&
+               std::holds_alternative<int64_t>(path[0]) &&
+               std::get<int64_t>(path[0]) == 0;
+      };
+  EXPECT_EQ(
+      RunExtractValues("[10,20,30]\n", match_index_0_with_path, true),
+      "[[[0],10]]\n");
+  EXPECT_EQ(
+      RunExtractValues("[[1,2],20]\n", match_index_0_with_path, true),
+      "[[[0],[1,2]]]\n");
+  EXPECT_EQ(
+      RunExtractValues("[{\"x\":1},20]\n", match_index_0_with_path, true),
+      "[[[0],{\"x\":1}]]\n");
+
+  EXPECT_EQ(
+      RunExtractValues(
+          "{\"key\":{\"inner\":[1,2,3]}}\n", match_depth_2, true),
+      "[[[\"key\",\"inner\"],[1,2,3]]]\n");
+  EXPECT_EQ(RunExtractValues("[[10,20],[30]]\n", match_depth_2, true),
+            "[[[0,0],10],[[0,1],20],[[1,0],30]]\n");
+
+  EXPECT_EQ(RunExtractValues("null\n123\n\"x\"\n", match_all, true),
+            "[[[],null]]\n[[[],123]]\n[[[],\"x\"]]\n");
+}
+
+TEST(JsonStreamTest, ExtractValuesStreamProcessorLoadStateFailure) {
+  auto match_fn = [](absl::Span<const std::variant<int64_t, std::string>>) {
+    return true;
+  };
+  JsonExtractValuesStreamProcessor processor(
+      {.path_match_fn = match_fn, .with_path = false});
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  EXPECT_FALSE(
+      processor.LoadState(JsonExtractValuesStreamProcessor(
+                              {.path_match_fn = match_fn, .with_path = true})
+                              .ToState()));
+  {
+    JsonExtractValuesStateProto proto;
+    proto.set_with_path(false);
+    proto.set_match_depth(-1);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+  {
+    JsonExtractValuesStateProto proto;
+    proto.set_with_path(false);
+    proto.add_container_path_stack();
     EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
   }
 }

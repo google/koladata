@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 
 #include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
@@ -1444,13 +1445,9 @@ std::string JsonSelectNonemptyArraysStreamProcessor::ProcessInputChunk(
   return output;
 }
 
-std::string JsonSelectNonemptyArraysStreamProcessor::ProcessEnd() {
-  return "";
-}
+std::string JsonSelectNonemptyArraysStreamProcessor::ProcessEnd() { return ""; }
 
-void JsonSelectNonnullStreamProcessor::Reset() {
-  state_ = State::kStart;
-}
+void JsonSelectNonnullStreamProcessor::Reset() { state_ = State::kStart; }
 
 bool JsonSelectNonnullStreamProcessor::LoadState(std::string_view state) {
   JsonSelectNonnullProto proto;
@@ -1505,9 +1502,237 @@ std::string JsonSelectNonnullStreamProcessor::ProcessInputChunk(
   return output;
 }
 
-std::string JsonSelectNonnullStreamProcessor::ProcessEnd() {
-  return "";
+std::string JsonSelectNonnullStreamProcessor::ProcessEnd() { return ""; }
+
+void JsonExtractValuesStreamProcessor::Reset() {
+  container_path_stack_.clear();
+  is_object_key_ = false;
+  key_literal_buffer_.clear();
+  is_in_match_ = false;
+  has_any_matches_ = false;
+  match_depth_ = 0;
+  is_in_string_ = false;
+  is_in_escape_ = false;
 }
+
+bool JsonExtractValuesStreamProcessor::LoadState(std::string_view state) {
+  Reset();
+  auto reset_on_failure = absl::MakeCleanup([this] { Reset(); });
+
+  JsonExtractValuesStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.with_path() != options_.with_path) {
+    return false;
+  }
+  if (proto.match_depth() < 0) {
+    return false;
+  }
+  for (const auto& path_part : proto.container_path_stack()) {
+    switch (path_part.kind_case()) {
+      case JsonExtractValuesStateProto::PathPart::kArrayIndex:
+        container_path_stack_.push_back(path_part.array_index());
+        break;
+      case JsonExtractValuesStateProto::PathPart::kObjectKey:
+        container_path_stack_.push_back(std::string(path_part.object_key()));
+        break;
+      default:
+        return false;
+    }
+  }
+  is_object_key_ = proto.is_object_key();
+  key_literal_buffer_ = proto.key_literal_buffer();
+  is_in_match_ = proto.is_in_match();
+  has_any_matches_ = proto.has_any_matches();
+  match_depth_ = proto.match_depth();
+  is_in_string_ = proto.is_in_string();
+  is_in_escape_ = proto.is_in_escape();
+
+  std::move(reset_on_failure).Cancel();
+  return true;
+}
+
+std::string JsonExtractValuesStreamProcessor::ToState() const {
+  JsonExtractValuesStateProto proto;
+  proto.set_with_path(options_.with_path);
+  for (const auto& path_part : container_path_stack_) {
+    auto* pp = proto.add_container_path_stack();
+    if (const auto* index = std::get_if<int64_t>(&path_part)) {
+      pp->set_array_index(*index);
+    } else if (const auto* key = std::get_if<std::string>(&path_part)) {
+      pp->set_object_key(*key);
+    }
+  }
+  proto.set_is_object_key(is_object_key_);
+  proto.set_key_literal_buffer(key_literal_buffer_);
+  proto.set_is_in_match(is_in_match_);
+  proto.set_has_any_matches(has_any_matches_);
+  proto.set_match_depth(match_depth_);
+  proto.set_is_in_string(is_in_string_);
+  proto.set_is_in_escape(is_in_escape_);
+  return proto.SerializeAsString();
+}
+
+std::string JsonExtractValuesStreamProcessor::ProcessInputChunk(
+    std::string_view input_chunk) {
+  std::string output;
+
+  auto run_processor = [&](auto processor, std::string input) -> std::string {
+    std::string output = processor.ProcessInputChunk(std::move(input));
+    output.append(processor.ProcessEnd());
+    return output;
+  };
+
+  auto emit_path_array = [&]() {
+    // Emit `[[path...],` part of [path, value] pair.
+    output.append("[[");
+    for (size_t i = 0; i < container_path_stack_.size(); ++i) {
+      auto path_part = container_path_stack_[i];
+      if (int64_t* index = std::get_if<int64_t>(&path_part)) {
+        absl::StrAppend(&output, *index);
+      } else if (std::string* key = std::get_if<std::string>(&path_part)) {
+        output.append(run_processor(JsonQuoteStreamProcessor{}, *key));
+      }
+      if (i < container_path_stack_.size() - 1) {
+        output.push_back(',');
+      }
+    }
+    output.append("],");
+  };
+
+  auto try_start_match_at_current_path = [&]() {
+    DCHECK(!is_in_match_);
+    is_in_match_ = options_.path_match_fn(container_path_stack_);
+    if (is_in_match_) {
+      match_depth_ = 0;
+      output.push_back(has_any_matches_ ? ',' : '[');
+      has_any_matches_ = true;
+      if (options_.with_path) {
+        emit_path_array();
+      }
+    }
+  };
+
+  auto is_in_array = [&]() {
+    return !container_path_stack_.empty() &&
+           std::holds_alternative<int64_t>(container_path_stack_.back());
+  };
+
+  auto is_in_object = [&]() {
+    return !container_path_stack_.empty() &&
+           std::holds_alternative<std::string>(container_path_stack_.back());
+  };
+
+  for (char c : input_chunk) {
+    if (container_path_stack_.empty() && !is_in_match_ && c != '\n') {
+      try_start_match_at_current_path();
+    }
+
+    // Handle deferred processing of first array element.
+    if (!is_in_match_ && is_in_array() &&
+        std::get<int64_t>(container_path_stack_.back()) == -1 && c != ']') {
+      container_path_stack_.back() = 0;
+      try_start_match_at_current_path();
+    }
+
+    if (is_in_match_) {
+      // May be popped back off, but only on this iteration.
+      output.push_back(c);
+    }
+
+    if (is_in_string_) {
+      if (!is_in_match_ && is_object_key_) {
+        key_literal_buffer_.push_back(c);
+      }
+      if (is_in_escape_) {
+        is_in_escape_ = false;
+      } else if (c == '"') {
+        is_in_string_ = false;
+      } else if (c == '\\') {
+        is_in_escape_ = true;
+      }
+    } else {
+      if (c == '"') {
+        is_in_string_ = true;
+        if (!is_in_match_ && is_object_key_) {
+          key_literal_buffer_.push_back('"');
+        }
+      } else if (c == '[') {
+        if (!is_in_match_) {
+          // Defer until we know the array is non-empty (see above).
+          container_path_stack_.push_back(-1);  // Placeholder.
+          is_object_key_ = false;
+        } else {
+          ++match_depth_;
+        }
+      } else if (c == ']' || c == '}') {
+        if (is_in_match_) {
+          if (match_depth_ == 0) {
+            is_in_match_ = false;
+            output.pop_back();  // Don't include trailing ',' in match.
+            if (options_.with_path) {
+              output.push_back(']');  // End [path, value] pair.
+            }
+          } else {
+            --match_depth_;
+          }
+        }
+
+        if (!is_in_match_) {
+          container_path_stack_.pop_back();
+        }
+      } else if (c == ',') {
+        if (is_in_match_) {
+          if (match_depth_ == 0) {
+            is_in_match_ = false;
+            output.pop_back();  // Don't include trailing ',' in match.
+            if (options_.with_path) {
+              output.push_back(']');  // End [path, value] pair.
+            }
+          }
+        }
+
+        if (!is_in_match_) {
+          if (is_in_array()) {
+            ++*std::get_if<int64_t>(&container_path_stack_.back());
+            try_start_match_at_current_path();
+          } else if (is_in_object()) {
+            is_object_key_ = true;
+          }
+        }
+      } else if (c == '{') {
+        if (!is_in_match_) {
+          container_path_stack_.push_back("");  // Placeholder.
+          is_object_key_ = true;
+        } else {
+          ++match_depth_;
+        }
+      } else if (c == ':' && is_in_object() && !is_in_match_) {
+        container_path_stack_.back() = run_processor(
+            JsonUnquoteStreamProcessor{}, std::move(key_literal_buffer_));
+        key_literal_buffer_.clear();
+        is_object_key_ = false;
+        try_start_match_at_current_path();
+      } else if (container_path_stack_.empty() && c == '\n') {
+        if (!is_in_match_) {
+          output.append(has_any_matches_ ? "]\n" : "[]\n");
+        } else {
+          is_in_match_ = false;
+          output.pop_back();  // Don't include trailing '\n' in match.
+          if (options_.with_path) {
+            output.push_back(']');  // End [path, value] pair.
+          }
+          output.append("]\n");
+        }
+        has_any_matches_ = false;
+      }
+    }
+  }
+  return output;
+}
+
+std::string JsonExtractValuesStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonImplodeArrayStreamProcessor::Reset() {
   emitted_opening_square_bracket_ = false;
@@ -1652,9 +1877,7 @@ std::string JsonExplodeArrayStreamProcessor::ProcessInputChunk(
   return output;
 }
 
-std::string JsonExplodeArrayStreamProcessor::ProcessEnd() {
-  return "";
-}
+std::string JsonExplodeArrayStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonGetArrayNthValueStreamProcessor::Reset() {
   container_depth_ = 0;
@@ -1798,9 +2021,7 @@ std::string JsonGetArrayNthValueStreamProcessor::ProcessInputChunk(
   return output;
 }
 
-std::string JsonGetArrayNthValueStreamProcessor::ProcessEnd() {
-  return "";
-}
+std::string JsonGetArrayNthValueStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonUnquoteStreamProcessor::Reset() {
   is_in_string_ = false;

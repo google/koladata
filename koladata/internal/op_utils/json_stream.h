@@ -17,10 +17,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
+#include "absl/types/span.h"
 
 namespace koladata::internal {
 
@@ -424,6 +427,64 @@ class JsonSelectNonnullStreamProcessor {
   };
 
   State state_;
+};
+
+struct JsonExtractValuesOptions {
+  // Determines which paths within each top-level value are "matched" and will
+  // be included in the output. If a path is matched, then the value at that
+  // path is streamed to the output array, and indices/keys within that value,
+  // if it contains arrays and objects, are not subject to further matching
+  // decisions (because they are already part of a match).
+  std::function<bool(absl::Span<const std::variant<int64_t, std::string>>)>
+      path_match_fn;
+
+  // If false, the output for each top-level value is an array containing all
+  // matched values directly.
+  //
+  // If true, the output for each top-level value is an array containing sub-
+  // arrays of length 2 with the structure `[[path...], value]`. `path...` is
+  // zero or more string literals and/or integer number literals, corresponding
+  // to the object keys and array indices of the path to the matched value.
+  bool with_path = false;
+};
+
+// Extracts values from an arbitrary subset of paths within each top-level JSON
+// value.
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonExtractValuesStreamProcessor {
+ public:
+  explicit JsonExtractValuesStreamProcessor(JsonExtractValuesOptions options)
+      : options_(options) {}
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of input bytes, returning a chunk of output bytes.
+  std::string ProcessInputChunk(std::string_view input_chunk);
+
+  // Ends the input, returning a chunk of output bytes.
+  std::string ProcessEnd();
+
+ private:
+  const JsonExtractValuesOptions options_;
+
+  std::vector<std::variant<int64_t, std::string>> container_path_stack_;
+  bool is_object_key_ = false;
+  std::string key_literal_buffer_;  // Contains a partial key string literal.
+  bool is_in_match_ = false;
+  bool has_any_matches_ = false;
+  int64_t match_depth_ = 0;
+  bool is_in_string_ = false;
+  bool is_in_escape_ = false;
 };
 
 // Converts a stream of compactified newline-separated JSON values into a
