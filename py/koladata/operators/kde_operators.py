@@ -42,6 +42,7 @@ kde = arolla.OperatorsContainer(
         'kd.ids',
         'kd.iterables',
         'kd.json',
+        'kd.json_stream',
         'kd.lists',
         'kd.masking',
         'kd.math',

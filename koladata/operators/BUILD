@@ -52,6 +52,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = operator_list + [
         ":json",
+        ":json_stream",
         ":lib",
         ":proto",
         "//koladata:arolla_utils",
@@ -61,6 +62,8 @@ cc_library(
         "//koladata:jagged_shape_qtype",
         "//koladata:object_factories",
         "//koladata:subslice_utils",
+        "//koladata/functor/parallel:executor",
+        "//koladata/functor/parallel:stream_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:non_deterministic_token",
@@ -334,6 +337,28 @@ cc_library(
         "@com_google_protobuf//:json_util",
         "@com_google_protobuf//:protobuf",
         "@com_google_protobuf//:protobuf_headers",
+    ],
+)
+
+cc_library(
+    name = "json_stream",
+    srcs = ["json_stream.cc"],
+    hdrs = ["json_stream.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/functor/parallel:basic_routine",
+        "//koladata/functor/parallel:executor",
+        "//koladata/functor/parallel:stream",
+        "//koladata/internal:dtype",
+        "//koladata/internal/op_utils:json_stream",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 

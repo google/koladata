@@ -34,6 +34,7 @@ from koladata.operators import ids as _
 from koladata.operators import iterables as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import json as _
+from koladata.operators import json_stream as _
 from koladata.operators import koda_internal as _
 from koladata.operators import koda_internal_iterables as _
 from koladata.operators import koda_internal_parallel as _

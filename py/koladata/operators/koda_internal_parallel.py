@@ -3511,6 +3511,14 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
       arguments: NON_DETERMINISTIC_TOKEN
     }
   }
+  operator_replacements {
+    from_op: "kd.json_stream.salvage"
+    to_op: "kd.json_stream._salvage_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
 """
 
 _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC = py_expr_eval_py_ext.eval_expr(

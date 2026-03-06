@@ -137,6 +137,7 @@ py_library(
         ":iterables",
         ":jagged_shape",
         ":json",
+        ":json_stream",
         ":koda_internal",
         ":koda_internal_iterables",
         ":koda_internal_parallel",
@@ -981,6 +982,21 @@ py_library(
         "//py:python_path",
         "//py/koladata/expr:view",
         "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "json_stream",
+    srcs = ["json_stream.py"],
+    deps = [
+        ":koda_internal_parallel",
+        ":optools",
+        ":qtype_utils",
+        ":streams",
+        ":view_overloads",
+        "//py:python_path",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

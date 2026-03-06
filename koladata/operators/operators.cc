@@ -18,6 +18,8 @@
 
 #include "absl/strings/string_view.h"
 #include "arolla/qexpr/operator_factory.h"
+#include "arolla/qexpr/qexpr_operator_signature.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/arolla_utils.h"
@@ -25,6 +27,8 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
@@ -40,6 +44,7 @@
 #include "koladata/operators/flatten_cyclic_references.h"
 #include "koladata/operators/ids.h"
 #include "koladata/operators/json.h"
+#include "koladata/operators/json_stream.h"
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
@@ -58,8 +63,9 @@ namespace {
 
 #define OPERATOR KODA_QEXPR_OPERATOR
 #define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
+#define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
 
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY NOLINT
+// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY,OPERATOR_WITH_SIGNATURE NOLINT
 OPERATOR("kd.allocation.new_dictid_like", NewDictIdLike);
 OPERATOR("kd.allocation.new_dictid_shaped", NewDictIdShaped);
 OPERATOR("kd.allocation.new_itemid_like", NewItemIdLike);
@@ -169,6 +175,19 @@ OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
 OPERATOR("kd.json.from_json", FromJson);
 OPERATOR("kd.json.to_json", ToJson);
+//
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._salvage_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+            arolla::GetQType<DataSlice>(),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamSalvageStream);
 //
 OPERATOR_FAMILY("kd.lists._concat",
                 arolla::MakeVariadicInputOperatorFamily(ConcatLists));

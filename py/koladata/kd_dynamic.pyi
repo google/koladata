@@ -36,6 +36,7 @@ from koladata.operators import ids as _operators_ids
 from koladata.operators import iterables as _operators_iterables
 from koladata.operators import jagged_shape as _operators_jagged_shape
 from koladata.operators import json as _operators_json
+from koladata.operators import json_stream as _operators_json_stream
 from koladata.operators import koda_internal_parallel as _operators_koda_internal_parallel
 from koladata.operators import lists as _operators_lists
 from koladata.operators import masking as _operators_masking
@@ -274,6 +275,11 @@ class iterables:
 class json:
   from_json = _operators_json.from_json
   to_json = _operators_json.to_json
+
+
+@_dataclass
+class json_stream:
+  salvage = _operators_json_stream.salvage
 
 
 @_dataclass

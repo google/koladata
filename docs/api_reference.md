@@ -25,6 +25,7 @@ Category  | Subcategory | Description
  | [ids](#kd.ids) | Operators that work with ItemIds.
  | [iterables](#kd.iterables) | Operators that work with iterables. These APIs are in active development and might change often.
  | [json](#kd.json) | JSON serialization operators.
+ | [json_stream](#kd.json_stream) | JSON text stream transformation operators.
  | [lists](#kd.lists) | Operators working with lists.
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
@@ -3580,6 +3581,90 @@ Args:
   include_missing_values: A BOOLEAN DataItem. If `False`, attributes with
     missing values will be omitted from entity JSON objects. Defaults to
     `True`.</code></pre>
+
+</section>
+
+### kd.json_stream {#kd.json_stream}
+
+JSON text stream transformation operators.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.json_stream.salvage(input_chunks, /, *, allow_nan=False, ensure_ascii=False, max_depth=100)` {#kd.json_stream.salvage}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Normalizes a chunked string containing JSON-like syntax to JSON.
+
+This operator tries its best to interpret the input chunks as JSON, while
+minimially delaying the output chunks. In parallel mode, this means that the
+output stream is minimally delayed, which is much more useful.
+
+Basic guarantees:
+- The (concatenated) output is always a sequence of &#39;\n&#39;-newline-separated
+  valid JSON values.
+- If the (concatenated) input is a sequence of ASCII-whitespace-separated
+  valid JSON values with container nesting depth at most `max_depth`, the
+  output is JSON-value-equivalent to the input.
+  - Strings are equivalent by sequence of represented unicode code points,
+    and numbers are equivalent by numeric value with unlimited precision.
+
+Supports the following additional syntax, to tolerate &#34;variant&#34; JSON:
+- All of JSON5 according to https://spec.json5.org/
+  - Non-decimal integer literal magnitudes (ignoring sign) are 64 bit.
+  - Decimal number literals use unlimited precision.
+- Additional syntax from Python (not covered by JSON5):
+  - Line comments starting with a single hash character `#`.
+  - False, True, and None (as true, false, and null).
+  - Tuple literals (interpreted as arrays).
+  - &#39;&#39;&#39;...&#39;&#39;&#39; and \&#34;&#34;&#34;...\&#34;&#34;&#34; triple-quoted strings.
+  - \a string escape interpreted as U+0007.
+  - \o \oo \ooo octal string escapes.
+  - \UXXXXXXXX 32-bit hexadecimal string escapes.
+  - u&#34;&#34; and b&#34;&#34; string prefixes (accepted and ignored).
+  - Underscores in numeric literals (like 123_456).
+  - Octal (0o) and binary (0b) integer literals.
+    - Magnitudes (ignoring sign) are 64 bit.
+  - l and L integer suffixes (accepted and ignored).
+- Additional syntax from JavaScript (not covered by Python/JSON5):
+  - \u{...} variable-length hexadecimal string escapes.
+  - n integer suffix (accepted and ignored).
+
+All other input is handled in an implementation-defined way and is subject
+to change in future versions.
+
+Example:
+
+  ```
+  {a: True, `b`: &#39;&#39;&#39;ship
+  it \u{1f60a}&#39;&#39;&#39;, 100: [-0x200, +300e10000,]}   0o100007
+     false
+  ```
+  -&gt;
+  ```
+  {&#34;a&#34;:true,&#34;b&#34;:&#34;ship\nit 🚀&#34;,&#34;100&#34;:[-512,300e10000]}
+  32775
+  false
+  ```
+
+Args:
+  input_chunks: An iterable of STRING DataItems. The input is the
+    concatenation of these string chunks. Missing DataItems are treated as
+    empty strings.
+  allow_nan: A BOOLEAN DataItem. If true, like in python `json.dumps`, the
+    non-standard JSON number literals `NaN` and `Infinity` and `-Infinity` are
+    allowed in the output.
+  ensure_ascii: A BOOLEAN DataItem. If `True`, the output will contain only
+    ASCII-range characters. If `False` (the default), non-ASCII code points in
+    output JSON strings will use UTF-8 instead of JSON escape sequences.
+  max_depth: A present INT32 or INT64 DataItem. If the input contains nested
+    containers deeper than `max_depth`, the output is no longer guaranteed to
+    match the input value, even if the input is valid JSON. This is mainly a
+    safeguard to prevent unbounded memory usage on large inputs.
+
+Returns:
+  An iterable of present STRING DataItems. The output is the concatenation of
+  these string chunks.</code></pre>
 
 </section>
 
