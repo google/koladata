@@ -15,6 +15,7 @@
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
+from koladata.ext.persisted_data import global_cache_flags
 from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import lru_size_tracking_cache
 
@@ -34,7 +35,7 @@ class GlobalCacheLibTest(absltest.TestCase):
   def test_global_cache_default_max_size(self):
     self.assertEqual(
         global_cache_lib.get_global_cache().get_max_total_bytes_of_entries_in_cache(),
-        global_cache_lib._DEFAULT_MAX_SIZE_MB * 1024 * 1024,
+        global_cache_flags.DEFAULT_MAX_SIZE_MB * 1024 * 1024,
     )
 
   @flagsaver.flagsaver()

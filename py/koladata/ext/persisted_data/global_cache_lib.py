@@ -16,16 +16,10 @@
 
 from absl import flags
 from koladata import kd
+from koladata.ext.persisted_data import global_cache_flags as _global_cache_flags
 from koladata.ext.persisted_data import lru_size_tracking_cache as _lru_size_tracking_cache
 
-_DEFAULT_MAX_SIZE_MB = 1024 * 10  # 10 GiB
 _mb_to_bytes = lambda mb: mb * 1024 * 1024
-
-KD_EXT_PERSISTED_DATA_GLOBAL_CACHE_MAX_SIZE_MB = flags.DEFINE_integer(
-    'kd_ext_persisted_data_global_cache_max_size_mb',
-    _DEFAULT_MAX_SIZE_MB,
-    'The maximum size of the kd_ext.persisted_data global cache in megabytes.',
-)
 
 
 def _kd_ext_persisted_data_global_cache_max_size_mb_validator(
@@ -53,7 +47,15 @@ Cache = _lru_size_tracking_cache.LruSizeTrackingCache
 CacheEntryMetadata = _lru_size_tracking_cache.CacheEntryMetadata
 
 _CACHE: Cache[str, CACHE_VALUE_TYPE] = Cache(
-    max_total_bytes_of_entries_in_cache=_mb_to_bytes(_DEFAULT_MAX_SIZE_MB)
+    max_total_bytes_of_entries_in_cache=_mb_to_bytes(
+        # Use the flag value if it is present, i.e. if flag parsing is done and
+        # the flag was provided. Otherwise, use the default value of the flag,
+        # which we obtain via DEFAULT_MAX_SIZE_MB and not via the flag because
+        # flag parsing did not necessarily happen yet.
+        _global_cache_flags.KD_EXT_PERSISTED_DATA_GLOBAL_CACHE_MAX_SIZE_MB.value
+        if _global_cache_flags.KD_EXT_PERSISTED_DATA_GLOBAL_CACHE_MAX_SIZE_MB.present
+        else _global_cache_flags.DEFAULT_MAX_SIZE_MB
+    )
 )
 
 
