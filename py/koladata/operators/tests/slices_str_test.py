@@ -65,6 +65,12 @@ class SlicesStrTest(parameterized.TestCase):
         ),
     )
 
+  def test_binding_args(self):
+    testing.assert_equal(
+        kde.slices.str(I.x),
+        arolla.abc.bind_op(kde.slices.str, I.x),
+    )
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(

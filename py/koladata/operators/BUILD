@@ -649,7 +649,6 @@ py_library(
         ":schema",
         ":view_overloads",
         "//py:python_path",
-        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

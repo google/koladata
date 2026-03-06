@@ -16,7 +16,6 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
-from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
@@ -2064,7 +2063,8 @@ arolla.abc.set_expr_view_for_aux_policy(slice_, view.KodaView)
 
 def _typed_slice_bind_args(x, schema):
   """Binding policy for typed slice operators."""
-  return (eval_clib.eval_or_bind_op('kd.slices.slice', x, schema),)
+  bound_x, _ = slice_bind_args(x, schema)
+  return (bound_x,)
 
 
 @optools.add_to_registry(aliases=['kd.int32'], via_cc_operator_package=True)

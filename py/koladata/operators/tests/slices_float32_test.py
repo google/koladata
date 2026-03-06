@@ -64,6 +64,12 @@ class SlicesFloat32Test(parameterized.TestCase):
         ),
     )
 
+  def test_binding_args(self):
+    testing.assert_equal(
+        kde.slices.float32(I.x),
+        arolla.abc.bind_op(kde.slices.float32, I.x),
+    )
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
