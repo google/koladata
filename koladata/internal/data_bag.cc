@@ -2554,6 +2554,15 @@ absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
       std::optional<DataItem> res,
       GetSchemaAttrAllowMissingWithRemoved(schema_item, attr, fallbacks));
   if (!res.has_value() || !res->has_value()) {
+    ASSIGN_OR_RETURN(std::optional<DataItem> is_list,
+                     GetSchemaAttrAllowMissingWithRemoved(
+                         schema_item, schema::kListItemsSchemaAttr, fallbacks));
+    if (is_list.has_value()) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "cannot get attribute from list. Perhaps you want to get attribute "
+          "from list items but forgot to explode the list. For example, ds[:].",
+          attr));
+    }
     return absl::InvalidArgumentError(absl::StrCat(
         "the attribute '", attr,
         "' is missing on the schema.\n\nIf it is not a typo, perhaps ignore "

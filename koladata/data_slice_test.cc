@@ -1501,6 +1501,17 @@ TEST(DataSliceTest, GetAttrErrors) {
             "failed to get attribute 'a': primitives do not have attributes, "
             "got OBJECT DataItem with primitive 1"));
   }
+  {  // List data item.
+    auto db = DataBag::EmptyMutable();
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         CreateEmptyList(db));
+    EXPECT_THAT(
+        ds.GetAttr("field_a"),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "failed to get attribute 'field_a': cannot get attribute from "
+                 "list. Perhaps you want to get attribute from list items but "
+                 "forgot to explode the list. For example, ds[:].field_a"));
+  }
 }
 
 TEST(DataSliceTest, GetAttrNames_SchemaItem) {

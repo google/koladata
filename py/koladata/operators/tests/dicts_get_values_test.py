@@ -162,7 +162,7 @@ class DictsGetValuesTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape("the attribute '__values__' is missing"),
+        re.escape('cannot get attribute from list'),
     ):
       eval_op('kd.get_values', db.list([1, 2, 3]))
 
