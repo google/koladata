@@ -54,5 +54,5 @@ cc_shared_library(
 bzl_library(
     name = "py_extension_bzl",
     srcs = ["py_extension.bzl"],
-    visibility = ["//koladata:internal"],
+    visibility = ["//visibility:private"],
 )
