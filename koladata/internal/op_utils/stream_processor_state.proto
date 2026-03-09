@@ -37,6 +37,14 @@ message JsonSalvageStateProto {
   int32 json_string_utf16_first_surrogate = 10;
 }
 
+// Internal to JsonHeadStreamProcessor. Do not use directly.
+message JsonHeadStateProto {
+  // Must match options passed to processor.
+  int64 n = 1;
+
+  int64 line_number = 2;
+}
+
 // Internal to JsonPrettifyStreamProcessor. Do not use directly.
 message JsonPrettifyStateProto {
   // Must match options passed to processor.
@@ -60,17 +68,17 @@ message JsonCompactifyStateProto {
 // Internal to JsonSelectNonemptyObjectsStreamProcessor. Do not use directly.
 message JsonSelectNonemptyObjectsProto {
   int32 state = 1;
-};
+}
 
 // Internal to JsonSelectNonemptyArraysStreamProcessor. Do not use directly.
 message JsonSelectNonemptyArraysProto {
   int32 state = 1;
-};
+}
 
 // Internal to JsonSelectNonnullStreamProcessor. Do not use directly.
 message JsonSelectNonnullProto {
   int32 state = 1;
-};
+}
 
 // Internal to JsonExtractValuesStreamProcessor. Do not use directly.
 message JsonExtractValuesStateProto {

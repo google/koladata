@@ -235,6 +235,47 @@ class JsonSalvageStreamProcessor {
   std::string output_;
 };
 
+struct JsonHeadOptions {
+  int64_t n = 1;
+};
+
+// Emits the first `n` top-level JSON values in a stream, ending the output
+// stream as soon as the `n`th top-level value is emitted. If there are fewer
+// than `n` top-level objects, all of those top-level values are emitted.
+//
+// If the input is not compactified JSON, the output is unspecified.
+class JsonHeadStreamProcessor {
+ public:
+  explicit JsonHeadStreamProcessor(const JsonHeadOptions& options)
+      : options_(options) {}
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid or does not match the options passed to the
+  // constructor.
+  [[nodiscard]] bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
+
+ private:
+  const JsonHeadOptions options_;
+
+  int64_t line_number_ = 0;
+};
+
 struct JsonPrettifyOptions {
   // The character sequence to use as a single indent. Must be valid UTF-8.
   std::string indent_string = "  ";

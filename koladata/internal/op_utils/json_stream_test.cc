@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <variant>
 
 #include "gtest/gtest.h"
@@ -31,24 +32,29 @@ template <typename ProcessorT, typename... OptionsT>
 std::string RunProcessor(std::string input, const OptionsT&... options) {
   ProcessorT processor(options...);
   auto [output, end] = processor.Process(input, true);
+  EXPECT_TRUE(end);
 
   std::string byte_streamed_output;
   processor.Reset();
   std::string state = processor.ToState();
+  bool end_of_output = false;
   for (char c : input) {
     std::string input_chunk;
     input_chunk.push_back(c);
     {
       ProcessorT tmp_processor(options...);
       EXPECT_TRUE(tmp_processor.LoadState(state));
-      auto [chunk_output, chunk_end] =
+      std::string output_chunk;
+      std::tie(output_chunk, end_of_output) =
           tmp_processor.Process(input_chunk, false);
-      EXPECT_FALSE(chunk_end);
-      byte_streamed_output += chunk_output;
+      byte_streamed_output += output_chunk;
       state = tmp_processor.ToState();
+      if (end_of_output) {
+        break;
+      }
     }
   }
-  {
+  if (!end_of_output) {
     ProcessorT tmp_processor(options...);
     EXPECT_TRUE(tmp_processor.LoadState(state));
     auto [end_output, end_flag] = tmp_processor.Process("", true);
@@ -846,6 +852,72 @@ TEST(JsonStreamTest, SalvageStreamProcessorLoadStateFailure) {
     JsonSalvageStateProto proto;
     proto.ParseFromString(processor.ToState());
     proto.set_state(11);
+    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
+  }
+}
+
+std::string RunHead(std::string input, int64_t n) {
+  return RunProcessor<JsonHeadStreamProcessor>(input, JsonHeadOptions{.n = n});
+}
+
+TEST(JsonStreamTest, HeadStreamProcessor) {
+  EXPECT_EQ(RunHead("", 0), "");
+  EXPECT_EQ(RunHead("", 1), "");
+  EXPECT_EQ(RunHead("", 5), "");
+
+  EXPECT_EQ(RunHead("123\n", 0), "");
+  EXPECT_EQ(RunHead("123\n", 1), "123\n");
+  EXPECT_EQ(RunHead("123\n", 2), "123\n");
+
+  EXPECT_EQ(RunHead("1\n2\n3\n", 0), "");
+  EXPECT_EQ(RunHead("1\n2\n3\n", 1), "1\n");
+  EXPECT_EQ(RunHead("1\n2\n3\n", 2), "1\n2\n");
+  EXPECT_EQ(RunHead("1\n2\n3\n", 3), "1\n2\n3\n");
+  EXPECT_EQ(RunHead("1\n2\n3\n", 4), "1\n2\n3\n");
+  EXPECT_EQ(RunHead("1\n2\n3\n", 100), "1\n2\n3\n");
+
+  EXPECT_EQ(RunHead("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n", 1), "{\"a\":1}\n");
+  EXPECT_EQ(RunHead("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n", 2),
+            "{\"a\":1}\n{\"b\":2}\n");
+  EXPECT_EQ(RunHead("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n", 3),
+            "{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n");
+
+  EXPECT_EQ(RunHead("[1,2,3]\n[4,5]\n", 1), "[1,2,3]\n");
+  EXPECT_EQ(RunHead("[1,2,3]\n[4,5]\n", 2), "[1,2,3]\n[4,5]\n");
+
+  EXPECT_EQ(RunHead("\"abc\\ndef\"\n\"ghi\"\n", 1), "\"abc\\ndef\"\n");
+}
+
+TEST(JsonStreamTest, HeadStreamProcessorEarlyEnd) {
+  JsonHeadStreamProcessor processor({.n = 2});
+  auto [out1, end1] = processor.Process("123", false);
+  EXPECT_EQ(out1, "123");
+  EXPECT_FALSE(end1);
+
+  auto [out2, end2] = processor.Process("\n", false);
+  EXPECT_EQ(out2, "\n");
+  EXPECT_FALSE(end2);
+
+  auto [out3, end3] = processor.Process("456", false);
+  EXPECT_EQ(out3, "456");
+  EXPECT_FALSE(end3);
+
+  auto [out4, end4] = processor.Process("\n", false);
+  EXPECT_EQ(out4, "\n");
+  EXPECT_TRUE(end4);
+}
+
+TEST(JsonStreamTest, HeadStreamProcessorLoadStateFailure) {
+  JsonHeadStreamProcessor processor({.n = 1});
+
+  EXPECT_FALSE(processor.LoadState(""));
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+  EXPECT_FALSE(
+      processor.LoadState(JsonHeadStreamProcessor({.n = 2}).ToState()));
+  {
+    JsonHeadStateProto proto;
+    proto.set_n(1);
+    proto.set_line_number(-1);
     EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
   }
 }

@@ -1107,6 +1107,49 @@ std::string JsonSalvageStreamProcessor::ConsumeOutput() {
   return output;
 }
 
+void JsonHeadStreamProcessor::Reset() { line_number_ = 0; }
+
+bool JsonHeadStreamProcessor::LoadState(std::string_view state) {
+  Reset();
+  JsonHeadStateProto proto;
+  if (!proto.ParseFromString(state)) {
+    return false;
+  }
+  if (proto.n() != options_.n) {
+    return false;
+  }
+  if (proto.line_number() < 0) {
+    return false;
+  }
+  line_number_ = proto.line_number();
+  return true;
+}
+
+std::string JsonHeadStreamProcessor::ToState() const {
+  JsonHeadStateProto proto;
+  proto.set_n(options_.n);
+  proto.set_line_number(line_number_);
+  return proto.SerializeAsString();
+}
+
+std::tuple<std::string, bool> JsonHeadStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
+  std::string output;
+  if (line_number_ >= options_.n) {
+    return std::make_tuple(std::move(output), true);
+  }
+  for (char c : input_chunk) {
+    output.push_back(c);
+    if (c == '\n') {
+      ++line_number_;
+      if (line_number_ >= options_.n) {
+        return std::make_tuple(std::move(output), true);
+      }
+    }
+  }
+  return std::make_tuple(std::move(output), end_of_input);
+}
+
 void JsonPrettifyStreamProcessor::Reset() {
   container_depth_ = 0;
   has_contents_ = false;
