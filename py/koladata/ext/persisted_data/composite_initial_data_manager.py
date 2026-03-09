@@ -195,10 +195,6 @@ class CompositeInitialDataManager(
     )
 
   def copy(self) -> CompositeInitialDataManager:
-    # TODO: Once all DataSliceManager and InitialDataManager
-    # implementations are thread-safe, we can completely remove the copy()
-    # method from InitialDataManagerInterface and simply share references to the
-    # InitialDataManager instances.
     return CompositeInitialDataManager(
         internal_call=_INTERNAL_CALL,
         # Use new manager instances. An instance is not thread-safe, creating
