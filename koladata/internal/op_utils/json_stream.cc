@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <variant>
 
@@ -209,20 +210,16 @@ std::string JsonSalvageStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonSalvageStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonSalvageStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   DCHECK(output_.empty());
   for (char c : input_chunk) {
     ProcessInputByte(static_cast<uint8_t>(c));
   }
-  return ConsumeOutput();
-}
-
-std::string JsonSalvageStreamProcessor::ProcessEnd() {
-  ProcessInputEndInternal();
-  auto output = ConsumeOutput();
-  Reset();
-  return output;
+  if (end_of_input) {
+    ProcessInputEndInternal();
+  }
+  return std::make_tuple(ConsumeOutput(), end_of_input);
 }
 
 void JsonSalvageStreamProcessor::ProcessInputByte(uint8_t c) {
@@ -1112,6 +1109,7 @@ std::string JsonSalvageStreamProcessor::ConsumeOutput() {
 
 void JsonPrettifyStreamProcessor::Reset() {
   container_depth_ = 0;
+  has_contents_ = false;
   is_in_string_ = false;
   is_in_escape_ = false;
   needs_newline_and_indent_ = false;
@@ -1147,8 +1145,8 @@ std::string JsonPrettifyStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonPrettifyStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonPrettifyStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
 
   auto emit_newline_and_indent_if_needed = [&]() {
@@ -1217,10 +1215,8 @@ std::string JsonPrettifyStreamProcessor::ProcessInputChunk(
     }
   }
 
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonPrettifyStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonCompactifyStreamProcessor::Reset() {
   container_depth_ = 0;
@@ -1253,8 +1249,8 @@ std::string JsonCompactifyStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonCompactifyStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonCompactifyStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
 
   auto emit_newline_if_needed = [&]() {
@@ -1297,14 +1293,10 @@ std::string JsonCompactifyStreamProcessor::ProcessInputChunk(
       }
     }
   }
-  return output;
-}
-
-std::string JsonCompactifyStreamProcessor::ProcessEnd() {
-  if (is_in_value_) {
-    return "\n";
+  if (end_of_input && is_in_value_) {
+    output.push_back('\n');
   }
-  return "";
+  return std::make_tuple(std::move(output), end_of_input);
 }
 
 void JsonSelectNonemptyObjectsStreamProcessor::Reset() {
@@ -1337,8 +1329,8 @@ std::string JsonSelectNonemptyObjectsStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonSelectNonemptyObjectsStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonSelectNonemptyObjectsStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     switch (state_) {
@@ -1371,11 +1363,7 @@ std::string JsonSelectNonemptyObjectsStreamProcessor::ProcessInputChunk(
         break;
     }
   }
-  return output;
-}
-
-std::string JsonSelectNonemptyObjectsStreamProcessor::ProcessEnd() {
-  return "";
+  return std::make_tuple(std::move(output), end_of_input);
 }
 
 void JsonSelectNonemptyArraysStreamProcessor::Reset() {
@@ -1408,8 +1396,8 @@ std::string JsonSelectNonemptyArraysStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonSelectNonemptyArraysStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonSelectNonemptyArraysStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     switch (state_) {
@@ -1442,10 +1430,8 @@ std::string JsonSelectNonemptyArraysStreamProcessor::ProcessInputChunk(
         break;
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonSelectNonemptyArraysStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonSelectNonnullStreamProcessor::Reset() { state_ = State::kStart; }
 
@@ -1473,8 +1459,8 @@ std::string JsonSelectNonnullStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonSelectNonnullStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonSelectNonnullStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     switch (state_) {
@@ -1499,10 +1485,8 @@ std::string JsonSelectNonnullStreamProcessor::ProcessInputChunk(
         break;
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonSelectNonnullStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonExtractValuesStreamProcessor::Reset() {
   container_path_stack_.clear();
@@ -1574,14 +1558,12 @@ std::string JsonExtractValuesStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonExtractValuesStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonExtractValuesStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
 
   auto run_processor = [&](auto processor, std::string input) -> std::string {
-    std::string output = processor.ProcessInputChunk(std::move(input));
-    output.append(processor.ProcessEnd());
-    return output;
+    return std::get<0>(processor.Process(std::move(input), true));
   };
 
   auto emit_path_array = [&]() {
@@ -1729,10 +1711,8 @@ std::string JsonExtractValuesStreamProcessor::ProcessInputChunk(
       }
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonExtractValuesStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonImplodeArrayStreamProcessor::Reset() {
   emitted_opening_square_bracket_ = false;
@@ -1756,8 +1736,8 @@ std::string JsonImplodeArrayStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonImplodeArrayStreamProcessor::ProcessInputChunk(
-    std::string_view input) {
+std::tuple<std::string, bool> JsonImplodeArrayStreamProcessor::Process(
+    std::string_view input, bool end_of_input) {
   std::string output;
   if (!emitted_opening_square_bracket_) {
     output.push_back('[');
@@ -1774,11 +1754,14 @@ std::string JsonImplodeArrayStreamProcessor::ProcessInputChunk(
       output.push_back(c);
     }
   }
-  return output;
-}
-
-std::string JsonImplodeArrayStreamProcessor::ProcessEnd() {
-  return emitted_opening_square_bracket_ ? "]\n" : "[]\n";
+  if (end_of_input) {
+    if (emitted_opening_square_bracket_) {
+      output.append("]\n");
+    } else {
+      output.append("[]\n");
+    }
+  }
+  return std::make_tuple(std::move(output), end_of_input);
 }
 
 void JsonExplodeArrayStreamProcessor::Reset() {
@@ -1815,8 +1798,8 @@ std::string JsonExplodeArrayStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonExplodeArrayStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonExplodeArrayStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     auto emit_c_if_matched = [&]() {
@@ -1874,10 +1857,8 @@ std::string JsonExplodeArrayStreamProcessor::ProcessInputChunk(
       }
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonExplodeArrayStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonGetArrayNthValueStreamProcessor::Reset() {
   container_depth_ = 0;
@@ -1922,8 +1903,8 @@ std::string JsonGetArrayNthValueStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonGetArrayNthValueStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonGetArrayNthValueStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     auto emit_c_if_matched = [&]() {
@@ -2018,10 +1999,8 @@ std::string JsonGetArrayNthValueStreamProcessor::ProcessInputChunk(
       }
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonGetArrayNthValueStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonUnquoteStreamProcessor::Reset() {
   is_in_string_ = false;
@@ -2045,8 +2024,8 @@ std::string JsonUnquoteStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonUnquoteStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonUnquoteStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   for (char c : input_chunk) {
     if (is_in_string_) {
@@ -2123,10 +2102,8 @@ std::string JsonUnquoteStreamProcessor::ProcessInputChunk(
       is_in_string_ = true;
     }
   }
-  return output;
+  return std::make_tuple(std::move(output), end_of_input);
 }
-
-std::string JsonUnquoteStreamProcessor::ProcessEnd() { return ""; }
 
 void JsonQuoteStreamProcessor::Reset() { emitted_opening_quote_ = false; }
 
@@ -2145,8 +2122,8 @@ std::string JsonQuoteStreamProcessor::ToState() const {
   return proto.SerializeAsString();
 }
 
-std::string JsonQuoteStreamProcessor::ProcessInputChunk(
-    std::string_view input_chunk) {
+std::tuple<std::string, bool> JsonQuoteStreamProcessor::Process(
+    std::string_view input_chunk, bool end_of_input) {
   std::string output;
   if (!emitted_opening_quote_) {
     output.push_back('"');
@@ -2173,14 +2150,14 @@ std::string JsonQuoteStreamProcessor::ProcessInputChunk(
       output.push_back(c);
     }
   }
-  return output;
-}
-
-std::string JsonQuoteStreamProcessor::ProcessEnd() {
-  if (!emitted_opening_quote_) {
-    return "\"\"";
+  if (end_of_input) {
+    if (!emitted_opening_quote_) {
+      output.append("\"\"");
+    } else {
+      output.push_back('"');
+    }
   }
-  return "\"";
+  return std::make_tuple(std::move(output), end_of_input);
 }
 
 }  // namespace koladata::internal

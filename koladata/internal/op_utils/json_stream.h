@@ -21,8 +21,10 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <variant>
 #include <vector>
+
 #include "absl/types/span.h"
 
 namespace koladata::internal {
@@ -96,11 +98,14 @@ class JsonSalvageStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   enum class ContainerType : uint8_t {
@@ -274,11 +279,14 @@ class JsonPrettifyStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   const JsonPrettifyOptions options_;
@@ -309,11 +317,14 @@ class JsonCompactifyStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Process a chunk of input bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // End the input.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   int64_t container_depth_ = 0;
@@ -341,11 +352,14 @@ class JsonSelectNonemptyObjectsStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -377,11 +391,14 @@ class JsonSelectNonemptyArraysStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -413,11 +430,14 @@ class JsonSelectNonnullStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -468,11 +488,14 @@ class JsonExtractValuesStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   const JsonExtractValuesOptions options_;
@@ -518,11 +541,14 @@ class JsonImplodeArrayStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Process a chunk of input bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // End the input.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   bool emitted_opening_square_bracket_ = false;
@@ -565,11 +591,14 @@ class JsonExplodeArrayStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Process a chunk of input bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // End the input.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   int64_t container_depth_ = 0;
@@ -622,11 +651,14 @@ class JsonGetArrayNthValueStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Process a chunk of input bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // End the input.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   const JsonGetArrayNthValueOptions options_;
@@ -664,11 +696,14 @@ class JsonUnquoteStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   bool is_in_string_ = false;
@@ -694,11 +729,14 @@ class JsonQuoteStreamProcessor {
   // processor.
   std::string ToState() const;
 
-  // Processes a chunk of input bytes, returning a chunk of output bytes.
-  std::string ProcessInputChunk(std::string_view input_chunk);
-
-  // Ends the input, returning a chunk of output bytes.
-  std::string ProcessEnd();
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunk, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunk; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool end_of_input);
 
  private:
   bool emitted_opening_quote_ = false;

@@ -30,13 +30,8 @@ namespace {
 template <typename ProcessorT, typename... OptionsT>
 std::string RunProcessor(std::string input, const OptionsT&... options) {
   ProcessorT processor(options...);
-  std::string output;
-  output += processor.ProcessInputChunk(input);
-  output += processor.ProcessEnd();
+  auto [output, end] = processor.Process(input, true);
 
-  // Also run the processor on a single byte of input at a time, serializing
-  // and deserializing in between each byte. This should produce the same
-  // concatenated result.
   std::string byte_streamed_output;
   processor.Reset();
   std::string state = processor.ToState();
@@ -46,14 +41,19 @@ std::string RunProcessor(std::string input, const OptionsT&... options) {
     {
       ProcessorT tmp_processor(options...);
       EXPECT_TRUE(tmp_processor.LoadState(state));
-      byte_streamed_output += tmp_processor.ProcessInputChunk(input_chunk);
+      auto [chunk_output, chunk_end] =
+          tmp_processor.Process(input_chunk, false);
+      EXPECT_FALSE(chunk_end);
+      byte_streamed_output += chunk_output;
       state = tmp_processor.ToState();
     }
   }
   {
     ProcessorT tmp_processor(options...);
     EXPECT_TRUE(tmp_processor.LoadState(state));
-    byte_streamed_output += tmp_processor.ProcessEnd();
+    auto [end_output, end_flag] = tmp_processor.Process("", true);
+    EXPECT_TRUE(end_flag);
+    byte_streamed_output += end_output;
   }
 
   EXPECT_EQ(byte_streamed_output, output);
@@ -720,54 +720,58 @@ TEST(JsonStreamTest, SalvageStreamProcessorMinimallyDelayed) {
   JsonSalvageStreamProcessor processor(kDefaultJsonSalvageOptions);
   // {"a": 123, "b\u2660c": ['''xyz''', 12.34e56]}
 
+  auto p = [&](std::string_view chunk) {
+    return std::get<0>(processor.Process(chunk, false));
+  };
+
   // Note: separators (',' ':') are delayed slightly because it's impossible to
   // do removal of trailing commas without waiting for the next value or end of
   // container.
-  EXPECT_EQ(processor.ProcessInputChunk("{"), "{");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("a"), "a");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk(":"), "");
-  EXPECT_EQ(processor.ProcessInputChunk(" "), "");
-  EXPECT_EQ(processor.ProcessInputChunk("1"), ":1");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
-  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "");
-  EXPECT_EQ(processor.ProcessInputChunk(" "), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), ",\"");
-  EXPECT_EQ(processor.ProcessInputChunk("b"), "b");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("u"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("0"), "♠");
-  EXPECT_EQ(processor.ProcessInputChunk("c"), "c");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk(":"), "");
-  EXPECT_EQ(processor.ProcessInputChunk(" "), "");
-  EXPECT_EQ(processor.ProcessInputChunk("["), ":[");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("x"), "x");
-  EXPECT_EQ(processor.ProcessInputChunk("y"), "y");
-  EXPECT_EQ(processor.ProcessInputChunk("z"), "z");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("'"), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "");
-  EXPECT_EQ(processor.ProcessInputChunk(" "), "");
-  EXPECT_EQ(processor.ProcessInputChunk("1"), ",1");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
-  EXPECT_EQ(processor.ProcessInputChunk("."), ".");
-  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
-  EXPECT_EQ(processor.ProcessInputChunk("4"), "4");
-  EXPECT_EQ(processor.ProcessInputChunk("e"), "e");
-  EXPECT_EQ(processor.ProcessInputChunk("5"), "5");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "6");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
-  EXPECT_EQ(processor.ProcessInputChunk("}"), "}");
+  EXPECT_EQ(p("{"), "{");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("a"), "a");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p(":"), "");
+  EXPECT_EQ(p(" "), "");
+  EXPECT_EQ(p("1"), ":1");
+  EXPECT_EQ(p("2"), "2");
+  EXPECT_EQ(p("3"), "3");
+  EXPECT_EQ(p(","), "");
+  EXPECT_EQ(p(" "), "");
+  EXPECT_EQ(p("\""), ",\"");
+  EXPECT_EQ(p("b"), "b");
+  EXPECT_EQ(p("\\"), "");
+  EXPECT_EQ(p("u"), "");
+  EXPECT_EQ(p("2"), "");
+  EXPECT_EQ(p("6"), "");
+  EXPECT_EQ(p("6"), "");
+  EXPECT_EQ(p("0"), "♠");
+  EXPECT_EQ(p("c"), "c");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p(":"), "");
+  EXPECT_EQ(p(" "), "");
+  EXPECT_EQ(p("["), ":[");
+  EXPECT_EQ(p("'"), "\"");
+  EXPECT_EQ(p("'"), "");
+  EXPECT_EQ(p("'"), "");
+  EXPECT_EQ(p("x"), "x");
+  EXPECT_EQ(p("y"), "y");
+  EXPECT_EQ(p("z"), "z");
+  EXPECT_EQ(p("'"), "");
+  EXPECT_EQ(p("'"), "");
+  EXPECT_EQ(p("'"), "\"");
+  EXPECT_EQ(p(","), "");
+  EXPECT_EQ(p(" "), "");
+  EXPECT_EQ(p("1"), ",1");
+  EXPECT_EQ(p("2"), "2");
+  EXPECT_EQ(p("."), ".");
+  EXPECT_EQ(p("3"), "3");
+  EXPECT_EQ(p("4"), "4");
+  EXPECT_EQ(p("e"), "e");
+  EXPECT_EQ(p("5"), "5");
+  EXPECT_EQ(p("6"), "6");
+  EXPECT_EQ(p("]"), "]");
+  EXPECT_EQ(p("}"), "}");
 }
 
 TEST(JsonStreamTest, SalvageStreamProcessorLoadStateFailure) {
@@ -1412,30 +1416,33 @@ TEST(JsonStreamTest, ImplodeArrayStreamProcessorLoadStateFailure) {
 TEST(JsonStreamTest, ImplodeArrayStreamProcessorMinimallyDelayed) {
   JsonImplodeArrayStreamProcessor processor;
   // 123\n"456"\n[789]\n"\\\""\n
-  EXPECT_EQ(processor.ProcessInputChunk("1"), "[1");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
-  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
-  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), ",\"");
-  EXPECT_EQ(processor.ProcessInputChunk("4"), "4");
-  EXPECT_EQ(processor.ProcessInputChunk("5"), "5");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "6");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("["), ",[");
-  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
-  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
-  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
-  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), ",\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\n"), "");
-  EXPECT_EQ(processor.ProcessEnd(), "]\n");
+  auto p = [&](std::string_view chunk) {
+    return std::get<0>(processor.Process(chunk, false));
+  };
+  EXPECT_EQ(p("1"), "[1");
+  EXPECT_EQ(p("2"), "2");
+  EXPECT_EQ(p("3"), "3");
+  EXPECT_EQ(p("\n"), "");
+  EXPECT_EQ(p("\""), ",\"");
+  EXPECT_EQ(p("4"), "4");
+  EXPECT_EQ(p("5"), "5");
+  EXPECT_EQ(p("6"), "6");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("\n"), "");
+  EXPECT_EQ(p("["), ",[");
+  EXPECT_EQ(p("7"), "7");
+  EXPECT_EQ(p("8"), "8");
+  EXPECT_EQ(p("9"), "9");
+  EXPECT_EQ(p("]"), "]");
+  EXPECT_EQ(p("\n"), "");
+  EXPECT_EQ(p("\""), ",\"");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("\n"), "");
+  EXPECT_EQ(std::get<0>(processor.Process("", true)), "]\n");
 }
 
 std::string RunExplodeArray(std::string input) {
@@ -1469,31 +1476,34 @@ TEST(JsonStreamTest, ExplodeArrayStreamProcessorLoadStateFailure) {
 TEST(JsonStreamTest, ExplodeArrayStreamProcessorMinimallyDelayed) {
   JsonExplodeArrayStreamProcessor processor;
   // [123,"456",[789],"\\\""]
-  EXPECT_EQ(processor.ProcessInputChunk("["), "");
-  EXPECT_EQ(processor.ProcessInputChunk("1"), "1");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "2");
-  EXPECT_EQ(processor.ProcessInputChunk("3"), "3");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("4"), "4");
-  EXPECT_EQ(processor.ProcessInputChunk("5"), "5");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "6");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
-  EXPECT_EQ(processor.ProcessInputChunk("["), "[");
-  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
-  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
-  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "\\");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "\"");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "\n");
-  EXPECT_EQ(processor.ProcessEnd(), "");
+  auto p = [&](std::string_view chunk) {
+    return std::get<0>(processor.Process(chunk, false));
+  };
+  EXPECT_EQ(p("["), "");
+  EXPECT_EQ(p("1"), "1");
+  EXPECT_EQ(p("2"), "2");
+  EXPECT_EQ(p("3"), "3");
+  EXPECT_EQ(p(","), "\n");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("4"), "4");
+  EXPECT_EQ(p("5"), "5");
+  EXPECT_EQ(p("6"), "6");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p(","), "\n");
+  EXPECT_EQ(p("["), "[");
+  EXPECT_EQ(p("7"), "7");
+  EXPECT_EQ(p("8"), "8");
+  EXPECT_EQ(p("9"), "9");
+  EXPECT_EQ(p("]"), "]");
+  EXPECT_EQ(p(","), "\n");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\\"), "\\");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("\""), "\"");
+  EXPECT_EQ(p("]"), "\n");
+  EXPECT_EQ(std::get<0>(processor.Process("", true)), "");
 }
 
 std::string RunGetArrayNthValue(std::string input, int n) {
@@ -1551,31 +1561,34 @@ TEST(JsonStreamTest, GetArrayNthValueStreamProcessorLoadStateFailure) {
 TEST(JsonStreamTest, GetArrayNthValueStreamProcessorMinimallyDelayed) {
   JsonGetArrayNthValueStreamProcessor processor({.n = 2});
   // [123,"456",[789],"\\\""]
-  EXPECT_EQ(processor.ProcessInputChunk("["), "");
-  EXPECT_EQ(processor.ProcessInputChunk("1"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("2"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("3"), "");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
-  EXPECT_EQ(processor.ProcessInputChunk("4"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("5"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("6"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "");
-  EXPECT_EQ(processor.ProcessInputChunk("["), "[");
-  EXPECT_EQ(processor.ProcessInputChunk("7"), "7");
-  EXPECT_EQ(processor.ProcessInputChunk("8"), "8");
-  EXPECT_EQ(processor.ProcessInputChunk("9"), "9");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "]");
-  EXPECT_EQ(processor.ProcessInputChunk(","), "\n");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\\"), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
-  EXPECT_EQ(processor.ProcessInputChunk("\""), "");
-  EXPECT_EQ(processor.ProcessInputChunk("]"), "");
-  EXPECT_EQ(processor.ProcessEnd(), "");
+  auto p = [&](std::string_view chunk) {
+    return std::get<0>(processor.Process(chunk, false));
+  };
+  EXPECT_EQ(p("["), "");
+  EXPECT_EQ(p("1"), "");
+  EXPECT_EQ(p("2"), "");
+  EXPECT_EQ(p("3"), "");
+  EXPECT_EQ(p(","), "");
+  EXPECT_EQ(p("\""), "");
+  EXPECT_EQ(p("4"), "");
+  EXPECT_EQ(p("5"), "");
+  EXPECT_EQ(p("6"), "");
+  EXPECT_EQ(p("\""), "");
+  EXPECT_EQ(p(","), "");
+  EXPECT_EQ(p("["), "[");
+  EXPECT_EQ(p("7"), "7");
+  EXPECT_EQ(p("8"), "8");
+  EXPECT_EQ(p("9"), "9");
+  EXPECT_EQ(p("]"), "]");
+  EXPECT_EQ(p(","), "\n");
+  EXPECT_EQ(p("\""), "");
+  EXPECT_EQ(p("\\"), "");
+  EXPECT_EQ(p("\\"), "");
+  EXPECT_EQ(p("\\"), "");
+  EXPECT_EQ(p("\""), "");
+  EXPECT_EQ(p("\""), "");
+  EXPECT_EQ(p("]"), "");
+  EXPECT_EQ(std::get<0>(processor.Process("", true)), "");
 }
 
 std::string RunUnquote(std::string input) {

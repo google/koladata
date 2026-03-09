@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -90,15 +91,22 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
                             item_slice.GetShape().rank())));
       }
       if (!item_slice.IsEmpty()) {
-        write_output(processor_->ProcessInputChunk(
-            item_slice.item().value<arolla::Text>()));
+        auto [output, is_end_of_output] =
+            processor_->Process(item_slice.item().value<arolla::Text>(), false);
+        write_output(std::move(output));
+        if (is_end_of_output) {
+          writer_->TryClose(absl::OkStatus());
+          return nullptr;
+        }
       }
 
       try_read_result = reader->TryRead();
     }
     if (absl::Status* status = try_read_result.close_status()) {
       if (status->ok()) {
-        write_output(processor_->ProcessEnd());
+        auto [output, is_end_of_output] = processor_->Process("", true);
+        DCHECK(is_end_of_output);
+        write_output(std::move(output));
       }
       writer_->TryClose(std::move(*status));
       return nullptr;

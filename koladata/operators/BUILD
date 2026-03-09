@@ -353,6 +353,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal/op_utils:json_stream",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
