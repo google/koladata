@@ -622,6 +622,111 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ShallowCloneTest, ObjectsWithImplicitSchemas) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(5);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto a3 = obj_ids[3];
+  auto a4 = obj_ids[4];
+  auto schema0 = DataItem(internal::CreateUuidWithMainObject<
+                          internal::ObjectId::kUuidImplicitSchemaFlag>(
+      a0.value<ObjectId>(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  auto schema1 = DataItem(internal::CreateUuidWithMainObject<
+                          internal::ObjectId::kUuidImplicitSchemaFlag>(
+      a1.value<ObjectId>(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  auto schema2 = DataItem(internal::CreateUuidWithMainObject<
+                          internal::ObjectId::kUuidImplicitSchemaFlag>(
+      a2.value<ObjectId>(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  auto schema3 = DataItem(internal::CreateUuidWithMainObject<
+                          internal::ObjectId::kUuidImplicitSchemaFlag>(
+      a3.value<ObjectId>(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  auto schema4 = DataItem(internal::CreateUuidWithMainObject<
+                          internal::ObjectId::kUuidImplicitSchemaFlag>(
+      a4.value<ObjectId>(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  TriplesT data_triples = {
+      {a0, {{schema::kSchemaAttr, schema0}, {"x", DataItem(1)}}},
+      {a1,
+       {{schema::kSchemaAttr, schema1},
+        {"x", DataItem(2)},
+        {"name", DataItem("a1")}}},
+      {a2, {{schema::kSchemaAttr, schema2}, {"y", DataItem(3)}, {"self", a2}}},
+      {a3, {{schema::kSchemaAttr, schema3}, {"x", DataItem(4)}}},
+      {a4, {{schema::kSchemaAttr, schema4}, {"name", DataItem("a4")}}},
+  };
+  TriplesT schema_triples = {
+      {schema0, {{"x", DataItem(schema::kInt32)}}},
+      {schema1,
+       {{"x", DataItem(schema::kInt32)}, {"name", DataItem(schema::kString)}}},
+      {schema2,
+       {{"y", DataItem(schema::kInt32)}, {"self", DataItem(schema::kObject)}}},
+      {schema3, {{"x", DataItem(schema::kInt32)}}},
+      {schema4, {{"name", DataItem(schema::kString)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+
+  auto itemid = NewIdsLike(obj_ids);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result_slice, result_schema]),
+      ShallowCloneOp(result_db.get())(obj_ids, itemid,
+                                      DataItem(schema::kObject), *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
+  EXPECT_EQ(result_slice.size(), obj_ids.size());
+  auto result_a0 = result_slice[0];
+  auto result_a1 = result_slice[1];
+  auto result_a2 = result_slice[2];
+  auto result_a3 = result_slice[3];
+  auto result_a4 = result_slice[4];
+  ASSERT_OK_AND_ASSIGN(auto result_schemas,
+                       result_db->GetAttr(result_slice, schema::kSchemaAttr));
+  EXPECT_EQ(result_schemas.size(), obj_ids.size());
+  EXPECT_EQ(result_schema, DataItem(schema::kObject));
+  auto result_u0 = result_schemas[0];
+  auto result_u1 = result_schemas[1];
+  auto result_u2 = result_schemas[2];
+  auto result_u3 = result_schemas[3];
+  auto result_u4 = result_schemas[4];
+  EXPECT_TRUE(result_u0.is_implicit_schema());
+  EXPECT_TRUE(result_u1.is_implicit_schema());
+  EXPECT_TRUE(result_u2.is_implicit_schema());
+  EXPECT_TRUE(result_u3.is_implicit_schema());
+  EXPECT_TRUE(result_u4.is_implicit_schema());
+  TriplesT expected_data_triples = {
+      {result_a0, {{schema::kSchemaAttr, result_u0}, {"x", DataItem(1)}}},
+      {result_a1,
+       {{schema::kSchemaAttr, result_u1},
+        {"x", DataItem(2)},
+        {"name", DataItem("a1")}}},
+      {result_a2,
+       {{schema::kSchemaAttr, result_u2}, {"y", DataItem(3)}, {"self", a2}}},
+      {result_a3, {{schema::kSchemaAttr, result_u3}, {"x", DataItem(4)}}},
+      {result_a4, {{schema::kSchemaAttr, result_u4}, {"name", DataItem("a4")}}},
+  };
+  TriplesT expected_schema_triples = {
+      {result_u0, {{"x", DataItem(schema::kInt32)}}},
+      {result_u1,
+       {{"x", DataItem(schema::kInt32)}, {"name", DataItem(schema::kString)}}},
+      {result_u2,
+       {{"y", DataItem(schema::kInt32)}, {"self", DataItem(schema::kObject)}}},
+      {result_u3, {{"x", DataItem(schema::kInt32)}}},
+      {result_u4, {{"name", DataItem(schema::kString)}}}};
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ShallowCloneTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();

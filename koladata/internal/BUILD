@@ -659,6 +659,7 @@ cc_test(
         ":dtype",
         ":object_id",
         ":schema_attrs",
+        ":types_buffer",
         ":uuid_object",
         "//koladata/internal/testing:matchers",
         "@com_google_absl//absl/base:no_destructor",

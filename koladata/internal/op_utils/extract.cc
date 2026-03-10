@@ -557,8 +557,7 @@ class CopyingProcessor {
       }
       if (attr_schemas[i] != copied_schemas[i]) {
         return absl::InvalidArgumentError(absl::StrFormat(
-            "conflicting values for some of schemas %v attribute %s: %v != "
-            "%v",
+            "conflicting values for some of schemas %v attribute %s: %v != %v",
             old_schemas, attr_name, copied_schemas, attr_schemas));
       }
     }
@@ -1028,22 +1027,32 @@ class CopyingProcessor {
     }
     // Create new implicit schemas and keep allocated explicit schemas unchanged
     arolla::DenseArrayBuilder<arolla::Unit> implicit_mask_bldr(ds.slice.size());
+    int cnt_implicit_schemas = 0;
     old_schemas.values<ObjectId>().ForEachPresent(
         [&](size_t idx, const ObjectId& schema) {
           if (schema.IsImplicitSchema()) {
+            ++cnt_implicit_schemas;
             implicit_mask_bldr.Set(idx, arolla::kPresent);
           }
         });
-    ASSIGN_OR_RETURN(
-        auto implicit_slice,
-        PresenceAndOp()(ds.slice, DataSliceImpl::Create(
-                                      std::move(implicit_mask_bldr).Build())));
-    ASSIGN_OR_RETURN(
-        auto new_implicit_schemas,
-        CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
-            implicit_slice, schema::kImplicitSchemaSeed));
-    ASSIGN_OR_RETURN(auto new_schemas, PresenceOrOp</*disjoint=*/false>()(
-                                           new_implicit_schemas, old_schemas));
+    DataSliceImpl new_schemas = old_schemas;
+    if (cnt_implicit_schemas > 0) {
+      ASSIGN_OR_RETURN(
+          auto implicit_slice,
+          PresenceAndOp()(
+              ds.slice,
+              DataSliceImpl::Create(std::move(implicit_mask_bldr).Build())));
+      ASSIGN_OR_RETURN(
+          auto new_implicit_schemas,
+          CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+              implicit_slice, schema::kImplicitSchemaSeed));
+      if (cnt_implicit_schemas == old_schemas.size()) {
+        new_schemas = std::move(new_implicit_schemas);
+      } else {
+        ASSIGN_OR_RETURN(new_schemas, PresenceOrOp</*disjoint=*/false>()(
+                                          new_implicit_schemas, old_schemas));
+      }
+    }
     RETURN_IF_ERROR(
         new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, new_schemas));
     RETURN_IF_ERROR(SetMappingToInitialIds(new_schemas, old_schemas));

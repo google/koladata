@@ -290,6 +290,10 @@ class CoreShallowCloneTest(parameterized.TestCase):
     ):
       kd.shallow_clone(o)
 
+  def test_slice_with_implicit_schemas(self):
+    a = kd.obj_shaped_as(kd.item(1).repeat(int(5))).with_attrs(x=1)
+    _ = a.S[0].shallow_clone()
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.shallow_clone(I.x)))
 
