@@ -399,6 +399,32 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "stream_filter_json",
+    srcs = ["stream_filter_json.cc"],
+    hdrs = ["stream_filter_json.h"],
+    deps = [
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "stream_filter_json_test",
+    srcs = ["stream_filter_json_test.cc"],
+    deps = [
+        ":stream_filter_json",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "stream_map_test",
     srcs = ["stream_map_test.cc"],
