@@ -110,9 +110,6 @@ py_library(
 py_library(
     name = "py_conversions",
     srcs = ["py_conversions.py"],
-    visibility = [
-        "//koladata:internal",
-    ],
     deps = [
         "//py:python_path",
         "//py/koladata/base/py_conversions:clib",
@@ -130,6 +127,7 @@ py_library(
     srcs = ["s11n.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata/file_io",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:extension_type_registry",

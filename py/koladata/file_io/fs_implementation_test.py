@@ -16,8 +16,8 @@ import os
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.ext.persisted_data import fs_implementation
-from koladata.ext.persisted_data import fs_interface
+from koladata.file_io import fs_implementation
+from koladata.file_io import fs_interface
 
 
 class FsImplementationTest(parameterized.TestCase):

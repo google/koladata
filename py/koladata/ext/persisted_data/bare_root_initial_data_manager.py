@@ -20,8 +20,6 @@ import os
 from typing import Collection, Self, cast
 
 from koladata import kd
-from koladata.ext.persisted_data import fs_interface
-from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import initial_data_manager_with_schema_helper
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
@@ -98,7 +96,7 @@ class BareRootInitialDataManager(
     return self._schema_helper
 
   def serialize(
-      self, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      self, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ):
     if not fs.exists(persistence_dir):
       fs.make_dirs(persistence_dir)
@@ -106,24 +104,22 @@ class BareRootInitialDataManager(
       raise ValueError(
           f'the given persistence_dir {persistence_dir} is not empty'
       )
-    fs_util.write_slice_to_file(
-        fs,
+    kd.s11n.internal_dump(
         self._root_item,
         _get_root_dataslice_filepath(persistence_dir),
+        fs,
     )
 
   @classmethod
   def deserialize(
-      cls, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      cls, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ) -> BareRootInitialDataManager:
     filepath = _get_root_dataslice_filepath(persistence_dir)
     if not fs.exists(filepath):
       if not fs.exists(persistence_dir):
         raise ValueError(f'persistence_dir not found: {persistence_dir}')
       raise ValueError(f'file not found: {filepath}')
-    root_item = cast(
-        kd.types.DataItem, fs_util.read_slice_from_file(fs, filepath)
-    )
+    root_item = cast(kd.types.DataItem, kd.s11n.internal_load(filepath, fs)[0])
     return BareRootInitialDataManager(
         internal_call=_INTERNAL_CALL,
         root_item=root_item,

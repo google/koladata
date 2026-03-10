@@ -19,7 +19,6 @@ from absl.testing import absltest
 from koladata import kd
 from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import schema_helper
 
 BareRootInitialDataManager = (
@@ -55,14 +54,12 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
       )
 
       persistence_dir = self.create_tempdir().full_path
-      manager.serialize(
-          persistence_dir, fs=fs_implementation.FileSystemInteraction()
-      )
+      manager.serialize(persistence_dir, fs=kd.file_io.FileSystemInteraction())
 
       # New managers initialized from the pre-populated persistence directory
       # also use the user-provided root item.
       new_manager = BareRootInitialDataManager.deserialize(
-          persistence_dir, fs=fs_implementation.FileSystemInteraction()
+          persistence_dir, fs=kd.file_io.FileSystemInteraction()
       )
       kd.testing.assert_equivalent(
           new_manager.get_schema(), root_item.get_schema(), ids_equality=True
@@ -151,9 +148,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ValueError,
         re.escape(f'the given persistence_dir {persistence_dir} is not empty'),
     ):
-      manager.serialize(
-          persistence_dir, fs=fs_implementation.FileSystemInteraction()
-      )
+      manager.serialize(persistence_dir, fs=kd.file_io.FileSystemInteraction())
 
   def test_deserialization_with_non_existing_dir_or_file_raises_error(self):
     persistence_dir = self.create_tempdir().full_path
@@ -164,7 +159,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ),
     ):
       BareRootInitialDataManager.deserialize(
-          persistence_dir, fs=fs_implementation.FileSystemInteraction()
+          persistence_dir, fs=kd.file_io.FileSystemInteraction()
       )
 
     non_existing_dir = os.path.join(persistence_dir, 'non_existing_dir')
@@ -173,7 +168,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         re.escape(f'persistence_dir not found: {non_existing_dir}'),
     ):
       BareRootInitialDataManager.deserialize(
-          non_existing_dir, fs=fs_implementation.FileSystemInteraction()
+          non_existing_dir, fs=kd.file_io.FileSystemInteraction()
       )
 
   def test_root_with_itemid_minted_for_a_list(self):

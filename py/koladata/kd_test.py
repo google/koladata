@@ -844,5 +844,14 @@ class KdTest(absltest.TestCase):
         x=10,
     ), kd.item(110))
 
+  def test_dump_and_load(self):
+    temp_dir = self.create_tempdir().full_path
+    x = kd.obj(a=kd.slice([1, 2, 3]), b='hello')
+    path = f'{temp_dir}/x.kd'
+    kd.dump(x, path)
+    y = kd.load(path)
+    kd.testing.assert_equivalent(y, x)
+
+
 if __name__ == '__main__':
   absltest.main()

@@ -17,6 +17,7 @@
 from typing import Any
 
 from arolla import arolla
+from koladata.file_io import file_io
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import extension_type_registry
@@ -138,3 +139,97 @@ def experimental_safer_loads(x: bytes) -> arolla.AnyQValue:
   if not _isinstance_of_supported_type(result):
     raise ValueError(_LOADS_ERROR_PREFIX + f', got {type(result)}')
   return result
+
+
+def internal_dump(
+    x: data_slice.DataSlice | data_bag.DataBag,
+    path: str,
+    fs: Any,
+    /,
+    *,
+    overwrite: bool = False,
+    riegeli_options: str | None = None,
+) -> int:
+  """Serializes a DataSlice or a DataBag to a file.
+
+  Args:
+    x: DataSlice or DataBag to serialize.
+    path: Path to the file to write.
+    fs: FileSystemInterface to use for file I/O.
+    overwrite: If True, overwrites the file if it already exists.
+    riegeli_options: A string with riegeli/records writer options.
+
+  Returns:
+    Number of bytes written.
+  """
+  if fs.exists(path):
+    if overwrite:
+      fs.remove(path)
+    else:
+      raise ValueError(f'File {path} already exists.')
+  data = dumps(x, riegeli_options=riegeli_options)
+  with fs.open(path, 'wb') as f:
+    f.write(data)
+  return len(data)
+
+
+def internal_load(
+    path: str,
+    fs: Any,
+    /,
+) -> tuple[arolla.AnyQValue, int]:
+  """Deserializes a DataSlice or a DataBag from a file.
+
+  Args:
+    path: Path to the file to read.
+    fs: FileSystemInterface to use for file I/O.
+
+  Returns:
+    A tuple of (deserialized value, number of bytes read).
+  """
+  with fs.open(path, 'rb') as f:
+    data = f.read()
+  return loads(data), len(data)
+
+
+def dump(
+    x: data_slice.DataSlice | data_bag.DataBag,
+    path: str,
+    /,
+    *,
+    overwrite: bool = False,
+    riegeli_options: str | None = None,
+) -> None:
+  """Serializes a DataSlice or a DataBag to a file.
+
+  In case of a DataSlice, we try to use `x.extract()` to avoid serializing
+  unnecessary DataBag data. If this is undesirable, consider serializing the
+  DataBag directly.
+
+  Args:
+    x: DataSlice or DataBag to serialize.
+    path: Path to the file to write.
+    overwrite: If True, overwrites the file if it already exists.
+    riegeli_options: A string with riegeli/records writer options. See
+      https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
+        for details. If not provided, 'snappy' will be used.
+  """
+  internal_dump(
+      x,
+      path,
+      file_io.get_default_file_system_interaction(),
+      overwrite=overwrite,
+      riegeli_options=riegeli_options,
+  )
+
+
+def load(path: str, /) -> arolla.AnyQValue:
+  """Deserializes a DataSlice or a DataBag from a file.
+
+  Args:
+    path: Path to the file to read.
+
+  Returns:
+    Deserialized data.
+  """
+  return internal_load(path, file_io.get_default_file_system_interaction())[0]

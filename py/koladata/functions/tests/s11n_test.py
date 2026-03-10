@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 
 from absl.testing import absltest
@@ -19,6 +20,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
 from koladata.extension_types import extension_types
+from koladata.file_io import file_io
 from koladata.functions import s11n
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -272,6 +274,63 @@ class ExperimentalSaferLoadsTest(parameterized.TestCase):
         ),
     ):
       s11n.experimental_safer_loads(data)
+
+
+class DumpLoadTest(absltest.TestCase):
+
+  def test_dump_load_data_slice(self):
+    ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    s11n.dump(ds_input, path)
+    loaded = s11n.load(path)
+    testing.assert_equal(loaded, ds_input)
+
+  def test_dump_load_data_bag(self):
+    bag = data_bag.DataBag.empty_mutable()
+    bag.obj(a=data_slice.DataSlice.from_vals([1, 2, 3]))
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    s11n.dump(bag, path)
+    loaded = s11n.load(path)
+    testing.assert_equivalent(loaded, bag)
+
+  def test_dump_load_with_riegeli_options(self):
+    ds_input = data_slice.DataSlice.from_vals(list(range(1000)))
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    s11n.dump(ds_input, path, riegeli_options='brotli')
+    loaded = s11n.load(path)
+    testing.assert_equal(loaded, ds_input)
+
+  def test_internal_dump_returns_size(self):
+    ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    fs = file_io.get_default_file_system_interaction()
+    num_bytes = s11n.internal_dump(ds_input, path, fs)
+    self.assertGreater(num_bytes, 0)
+    self.assertEqual(num_bytes, os.path.getsize(path))
+
+  def test_internal_load_returns_size(self):
+    ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    fs = file_io.get_default_file_system_interaction()
+    s11n.internal_dump(ds_input, path, fs)
+    loaded, num_bytes = s11n.internal_load(path, fs)
+    testing.assert_equal(loaded, ds_input)
+    self.assertGreater(num_bytes, 0)
+    self.assertEqual(num_bytes, os.path.getsize(path))
+
+  def test_dump_overwrite_false_raises(self):
+    ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    s11n.dump(ds_input, path)
+    with self.assertRaisesRegex(ValueError, 'already exists'):
+      s11n.dump(ds_input, path)
+
+  def test_dump_overwrite_true(self):
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    s11n.dump(data_slice.DataSlice.from_vals([1, 2, 3]), path)
+    ds_new = data_slice.DataSlice.from_vals([4, 5, 6])
+    s11n.dump(ds_new, path, overwrite=True)
+    testing.assert_equal(s11n.load(path), ds_new)
 
 
 if __name__ == '__main__':

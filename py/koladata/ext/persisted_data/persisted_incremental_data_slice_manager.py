@@ -32,8 +32,6 @@ from koladata import kd
 from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import fs_interface
-from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import initial_data_manager_interface
 from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as dbm
@@ -172,7 +170,7 @@ class PersistedIncrementalDataSliceManager(
       cls,
       persistence_dir: str,
       *,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
       description: str | None = None,
       initial_data_manager: (
           initial_data_manager_interface.InitialDataManagerInterface | None
@@ -194,7 +192,7 @@ class PersistedIncrementalDataSliceManager(
     Returns:
       A new manager.
     """
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
     initial_data_manager = initial_data_manager or (
         bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
     )
@@ -239,12 +237,10 @@ class PersistedIncrementalDataSliceManager(
         snn: kd.list([], item_schema=kd.STRING)
         for snn in schema_helper.get_all_schema_node_names()
     })
-    fs_util.write_slice_to_file(
-        fs,
+    kd.s11n.internal_dump(
         initial_schema_node_name_to_data_bag_names,
-        filepath=_get_initial_schema_node_name_to_bag_names_filepath(
-            persistence_dir
-        ),
+        _get_initial_schema_node_name_to_bag_names_filepath(persistence_dir),
+        fs,
     )
     schema_node_name_to_data_bags_updates_manager = (
         dbm.PersistedIncrementalDataBagManager.create_new(
@@ -295,7 +291,7 @@ class PersistedIncrementalDataSliceManager(
       *,
       at_revision_history_index: int | None = None,
       read_only: bool = False,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
   ) -> PersistedIncrementalDataSliceManager:
     """Initializes a manager from an existing persistence directory.
 
@@ -319,7 +315,7 @@ class PersistedIncrementalDataSliceManager(
       fs: All interactions with the file system will go through this instance.
         If None, then the default interaction with the file system is used.
     """
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
 
     if not fs.glob(os.path.join(persistence_dir, '*')):
       raise ValueError(
@@ -352,12 +348,12 @@ class PersistedIncrementalDataSliceManager(
     )
     initial_schema_node_name_to_data_bag_names = cast(
         kd.types.DictItem,
-        fs_util.read_slice_from_file(
-            fs,
+        kd.s11n.internal_load(
             _get_initial_schema_node_name_to_bag_names_filepath(
                 persistence_dir
             ),
-        ),
+            fs,
+        )[0],
     )
     schema_node_name_to_data_bags_updates_manager = (
         dbm.PersistedIncrementalDataBagManager.create_from_dir(
@@ -385,7 +381,7 @@ class PersistedIncrementalDataSliceManager(
       internal_call: object,
       persistence_dir: str,
       read_only: bool,
-      fs: fs_interface.FileSystemInterface,
+      fs: kd.file_io.FileSystemInterface,
       initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface,
       data_bag_manager: dbm.PersistedIncrementalDataBagManager,
       schema_bag_manager: dbm.PersistedIncrementalDataBagManager,
@@ -1070,7 +1066,7 @@ class PersistedIncrementalDataSliceManager(
       output_dir: str,
       *,
       revision_history_index: int = -1,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
       description: str | None = None,
   ) -> PersistedIncrementalDataSliceManager:
     """Creates a branch of the state of this manager.
@@ -1146,12 +1142,10 @@ class PersistedIncrementalDataSliceManager(
         os.path.join(output_dir, 'initial_data'), fs=branch_fs
     )
     branch_initial_data_manager = self._initial_data_manager.copy()
-    fs_util.write_slice_to_file(
-        branch_fs,
+    kd.s11n.internal_dump(
         self._initial_schema_node_name_to_data_bag_names,
-        filepath=_get_initial_schema_node_name_to_bag_names_filepath(
-            output_dir
-        ),
+        _get_initial_schema_node_name_to_bag_names_filepath(output_dir),
+        branch_fs,
     )
     branch_initial_schema_node_name_to_data_bag_names = (
         self._initial_schema_node_name_to_data_bag_names
@@ -1407,7 +1401,7 @@ def _get_metadata_filepath(persistence_dir: str, at_version: int) -> str:
 
 
 def _get_latest_metadata_version(
-    fs: fs_interface.FileSystemInterface,
+    fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
 ) -> int:
   update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
@@ -1422,7 +1416,7 @@ def _get_latest_metadata_version(
 
 
 def _persist_metadata(
-    fs: fs_interface.FileSystemInterface,
+    fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
     metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata,
 ):
@@ -1465,7 +1459,7 @@ def _persist_metadata(
 
 
 def _read_metadata(
-    fs: fs_interface.FileSystemInterface,
+    fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
     at_revision_history_index: int | None,
 ) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:

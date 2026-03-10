@@ -18,7 +18,7 @@ import glob
 import os
 from typing import Collection, IO
 
-from koladata.ext.persisted_data import fs_interface
+from koladata.file_io import fs_interface
 
 
 class FileSystemInteraction(fs_interface.FileSystemInterface):

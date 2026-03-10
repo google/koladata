@@ -27,6 +27,7 @@ from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.extension_types import extension_types as _extension_types
 from koladata.extension_types import functions as _extension_type_functions
+from koladata.file_io import file_io as _file_io
 from koladata.functions import attrs as _attrs
 from koladata.functions import functions as _functions
 from koladata.functions import object_factories as _object_factories
@@ -137,6 +138,7 @@ optools.eager.EagerOperator = _eager_op_utils.EagerOperator
 # go/keep-sorted start
 del_attr = _eager_only(_attrs.del_attr)
 dir = _eager_only(_attrs.dir)  # pylint: disable=redefined-builtin
+dump = _eager_only(_s11n.dump)
 dumps = _eager_only(_s11n.dumps)
 embed_schema = _eager_only(_attrs.embed_schema)
 experimental_safer_loads = _eager_only(_s11n.experimental_safer_loads)
@@ -149,6 +151,7 @@ from_pytree = _eager_only(_py_conversions.from_py)
 is_expr = _eager_only(_predicates.is_expr)
 is_item = _eager_only(_predicates.is_item)
 is_slice = _eager_only(_predicates.is_slice)
+load = _eager_only(_s11n.load)
 loads = _eager_only(_s11n.loads)
 mutable_bag = _eager_only(_object_factories.mutable_bag)
 py_fn = _same_when_tracing(_functor_factories.py_fn)
@@ -172,6 +175,26 @@ parallel = _eager_only(
         call_multithreaded=_parallel.call_multithreaded,
         yield_multithreaded=_parallel.yield_multithreaded,
         transform=_parallel.transform,
+    )
+)
+
+file_io = _eager_only(
+    _py_types.SimpleNamespace(
+        get_default_file_system_interaction=_file_io.get_default_file_system_interaction,
+        FileSystemInterface=_file_io.fs_interface.FileSystemInterface,
+        FileSystemInteraction=_file_io.fs_implementation.FileSystemInteraction,
+    )
+)
+
+s11n = _eager_only(
+    _py_types.SimpleNamespace(
+        internal_dump=_s11n.internal_dump,
+        internal_load=_s11n.internal_load,
+        dump=_s11n.dump,
+        load=_s11n.load,
+        dumps=_s11n.dumps,
+        loads=_s11n.loads,
+        experimental_safer_loads=_s11n.experimental_safer_loads,
     )
 )
 

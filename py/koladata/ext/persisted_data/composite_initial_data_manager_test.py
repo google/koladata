@@ -23,7 +23,6 @@ from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import composite_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_view as data_slice_manager_view_lib
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as pidsm
 from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
 
@@ -616,7 +615,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         re.escape(f'the given persistence_dir {persistence_dir} is not empty'),
     ):
       manager.serialize(
-          persistence_dir, fs=fs_util.get_default_file_system_interaction()
+          persistence_dir, fs=kd.file_io.get_default_file_system_interaction()
       )
 
   def test_get_data_bag_for_invalid_schema_node_names_raises(self):

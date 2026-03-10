@@ -21,6 +21,7 @@ Category  | Subcategory | Description
  | [entities](#kd.entities) | Operators that work solely with entities.
  | [expr](#kd.expr) | Expr utilities.
  | [extension_types](#kd.extension_types) | Extension type functionality.
+ | [file_io](#kd.file_io) | File I/O utilities.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
  | [iterables](#kd.iterables) | Operators that work with iterables. These APIs are in active development and might change often.
@@ -36,6 +37,7 @@ Category  | Subcategory | Description
  | [py](#kd.py) | Operators that call Python functions.
  | [random](#kd.random) | Random and sampling operators.
  | [schema](#kd.schema) | Schema-related operators.
+ | [s11n](#kd.s11n) | Serialization and deserialization utilities.
  | [shapes](#kd.shapes) | Operators that work on shapes
  | [slices](#kd.slices) | Operators that perform DataSlice transformations.
  | [strings](#kd.strings) | Operators that work with strings data.
@@ -2214,6 +2216,27 @@ Args:
 ### `kd.extension_types.wrap(x: Any, qtype: QType) -> Any` {#kd.extension_types.wrap}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
+
+</section>
+
+### kd.file_io {#kd.file_io}
+
+File I/O utilities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.file_io.FileSystemInteraction()` {#kd.file_io.FileSystemInteraction}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interacts with the file system.</code></pre>
+
+### `kd.file_io.FileSystemInterface()` {#kd.file_io.FileSystemInterface}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface to interact with the file system.</code></pre>
+
+### `kd.file_io.get_default_file_system_interaction() -> FileSystemInterface` {#kd.file_io.get_default_file_system_interaction}
+*No description*
 
 </section>
 
@@ -6417,6 +6440,120 @@ Args:
 
 </section>
 
+### kd.s11n {#kd.s11n}
+
+Serialization and deserialization utilities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.s11n.dump(x: DataSlice | DataBag, path: str, /, *, overwrite: bool = False, riegeli_options: str | None = None) -> None` {#kd.s11n.dump}
+Aliases:
+
+- [kd.dump](#kd.dump)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes a DataSlice or a DataBag to a file.
+
+In case of a DataSlice, we try to use `x.extract()` to avoid serializing
+unnecessary DataBag data. If this is undesirable, consider serializing the
+DataBag directly.
+
+Args:
+  x: DataSlice or DataBag to serialize.
+  path: Path to the file to write.
+  overwrite: If True, overwrites the file if it already exists.
+  riegeli_options: A string with riegeli/records writer options. See
+    https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
+      for details. If not provided, &#39;snappy&#39; will be used.</code></pre>
+
+### `kd.s11n.dumps(x: DataSlice | DataBag, /, *, riegeli_options: str | None = None) -> bytes` {#kd.s11n.dumps}
+Aliases:
+
+- [kd.dumps](#kd.dumps)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes a DataSlice or a DataBag.
+
+In case of a DataSlice, we try to use `x.extract()` to avoid serializing
+unnecessary DataBag data. If this is undesirable, consider serializing the
+DataBag directly.
+
+Due to current limitations of the underlying implementation, this can
+only serialize data slices with up to roughly 10**8 items.
+
+Args:
+  x: DataSlice or DataBag to serialize.
+  riegeli_options: A string with riegeli/records writer options. See
+    https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
+      for details. If not provided, &#39;snappy&#39; will be used.
+
+Returns:
+  Serialized data.</code></pre>
+
+### `kd.s11n.experimental_safer_loads(x: bytes) -> Any` {#kd.s11n.experimental_safer_loads}
+Aliases:
+
+- [kd.experimental_safer_loads](#kd.experimental_safer_loads)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">(experimental) Deserializes a DataSlice or a DataBag.
+
+IMPORTANT: This experimental function restricts the allowed codecs to exclude
+PICKLE_PY_OBJECT_CODEC and similar unsafe codecs. However, this restriction
+alone does NOT make it safe for use with untrusted data.
+
+Args:
+  x: Serialized data.
+
+Returns:
+  Deserialized data.</code></pre>
+
+### `kd.s11n.internal_dump(x: DataSlice | DataBag, path: str, fs: Any, /, *, overwrite: bool = False, riegeli_options: str | None = None) -> int` {#kd.s11n.internal_dump}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes a DataSlice or a DataBag to a file.
+
+Args:
+  x: DataSlice or DataBag to serialize.
+  path: Path to the file to write.
+  fs: FileSystemInterface to use for file I/O.
+  overwrite: If True, overwrites the file if it already exists.
+  riegeli_options: A string with riegeli/records writer options.
+
+Returns:
+  Number of bytes written.</code></pre>
+
+### `kd.s11n.internal_load(path: str, fs: Any, /) -> tuple[Any, int]` {#kd.s11n.internal_load}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag from a file.
+
+Args:
+  path: Path to the file to read.
+  fs: FileSystemInterface to use for file I/O.
+
+Returns:
+  A tuple of (deserialized value, number of bytes read).</code></pre>
+
+### `kd.s11n.load(path: str, /) -> Any` {#kd.s11n.load}
+Aliases:
+
+- [kd.load](#kd.load)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag from a file.
+
+Args:
+  path: Path to the file to read.
+
+Returns:
+  Deserialized data.</code></pre>
+
+### `kd.s11n.loads(x: bytes) -> Any` {#kd.s11n.loads}
+Aliases:
+
+- [kd.loads](#kd.loads)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag.</code></pre>
+
+</section>
+
 ### kd.shapes {#kd.shapes}
 
 Operators that work on shapes
@@ -9793,25 +9930,13 @@ Args:
 Returns:
   A duck type constraint to be used in kd.check_inputs or kd.check_output.</code></pre>
 
+### `kd.dump(x: DataSlice | DataBag, path: str, /, *, overwrite: bool = False, riegeli_options: str | None = None) -> None` {#kd.dump}
+
+Alias for [kd.s11n.dump](#kd.s11n.dump) operator.
+
 ### `kd.dumps(x: DataSlice | DataBag, /, *, riegeli_options: str | None = None) -> bytes` {#kd.dumps}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes a DataSlice or a DataBag.
-
-In case of a DataSlice, we try to use `x.extract()` to avoid serializing
-unnecessary DataBag data. If this is undesirable, consider serializing the
-DataBag directly.
-
-Due to current limitations of the underlying implementation, this can
-only serialize data slices with up to roughly 10**8 items.
-
-Args:
-  x: DataSlice or DataBag to serialize.
-  riegeli_options: A string with riegeli/records writer options. See
-    https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
-      for details. If not provided, &#39;snappy&#39; will be used.
-
-Returns:
-  Serialized data.</code></pre>
+Alias for [kd.s11n.dumps](#kd.s11n.dumps) operator.
 
 ### `kd.embed_schema(x: DataSlice) -> DataSlice` {#kd.embed_schema}
 
@@ -9873,17 +9998,7 @@ Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
 ### `kd.experimental_safer_loads(x: bytes) -> Any` {#kd.experimental_safer_loads}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">(experimental) Deserializes a DataSlice or a DataBag.
-
-IMPORTANT: This experimental function restricts the allowed codecs to exclude
-PICKLE_PY_OBJECT_CODEC and similar unsafe codecs. However, this restriction
-alone does NOT make it safe for use with untrusted data.
-
-Args:
-  x: Serialized data.
-
-Returns:
-  Deserialized data.</code></pre>
+Alias for [kd.s11n.experimental_safer_loads](#kd.s11n.experimental_safer_loads) operator.
 
 ### `kd.explode(x, ndim=1)` {#kd.explode}
 
@@ -10397,9 +10512,13 @@ Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
 Alias for [kd.lists.size](#kd.lists.size) operator.
 
+### `kd.load(path: str, /) -> Any` {#kd.load}
+
+Alias for [kd.s11n.load](#kd.s11n.load) operator.
+
 ### `kd.loads(x: bytes) -> Any` {#kd.loads}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Deserializes a DataSlice or a DataBag.</code></pre>
+Alias for [kd.s11n.loads](#kd.s11n.loads) operator.
 
 ### `kd.map(fn, *args, include_missing=False, **kwargs)` {#kd.map}
 
@@ -11465,42 +11584,6 @@ Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Tools for persisted incremental data.</code></pre>
 
-
-<section class="zippy open">
-
-**Namespaces**
-
-#### kd_ext.persisted_data.fs_interface {#kd_ext.persisted_data.fs_interface}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface to interact with the file system.</code></pre>
-
-<section class="zippy closed">
-
-**Operators**
-
-### `kd_ext.persisted_data.fs_interface.Collection(*args, **kwargs)` {#kd_ext.persisted_data.fs_interface.Collection}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">A generic version of collections.abc.Collection.</code></pre>
-
-### `kd_ext.persisted_data.fs_interface.FileSystemInterface()` {#kd_ext.persisted_data.fs_interface.FileSystemInterface}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Interface to interact with the file system.</code></pre>
-
-### `kd_ext.persisted_data.fs_interface.IO()` {#kd_ext.persisted_data.fs_interface.IO}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Generic base class for TextIO and BinaryIO.
-
-This is an abstract, generic version of the return of open().
-
-NOTE: This does not distinguish between the different possible
-classes (text vs. binary, read vs. write vs. read/write,
-append-only, unbuffered).  The TextIO and BinaryIO subclasses
-below capture the distinctions between text vs. binary, which is
-pervasive in the interface; however we currently do not offer a
-way to track the other distinctions in the type system.</code></pre>
-
-</section>
-</section>
 <section class="zippy closed">
 
 **Operators**
@@ -11557,7 +11640,7 @@ why the is_view_valid() method is not simply called is_valid() or valid().</code
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A data slice path.</code></pre>
 
-### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(*, internal_call: object, persistence_dir: str, read_only: bool, fs: fs_interface.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DictItem, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
+### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(*, internal_call: object, persistence_dir: str, read_only: bool, fs: kd.file_io.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DictItem, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataSlice that is assembled from multiple smaller data slices.
 

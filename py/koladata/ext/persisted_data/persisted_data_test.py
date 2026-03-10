@@ -23,16 +23,8 @@ class PersistedDataTest(absltest.TestCase):
 
   def test_contains_modules(self):
     modules = dir(persisted_data)
-    self.assertIn('fs_interface', modules)
-    self.assertIn('fs_implementation', modules)
-    self.assertIn('fs_util', modules)
     self.assertIn('data_slice_path', modules)
     self.assertIn('persisted_incremental_data_slice_manager', modules)
-
-  def test_fs_implementation(self):
-    fs = persisted_data.fs_util.get_default_file_system_interaction()
-    dirname = self.create_tempdir().full_path
-    self.assertTrue(fs.exists(dirname))
 
   def test_data_slice_manager_functionality(self):
     self.assertTrue(

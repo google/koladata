@@ -49,6 +49,7 @@ py_library(
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/extension_types",
         "//py/koladata/extension_types:functions",
+        "//py/koladata/file_io",
         "//py/koladata/functions",
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:object_factories",

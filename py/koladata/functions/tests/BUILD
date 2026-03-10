@@ -633,6 +633,7 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/extension_types",
+        "//py/koladata/file_io",
         "//py/koladata/functions:s11n",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",

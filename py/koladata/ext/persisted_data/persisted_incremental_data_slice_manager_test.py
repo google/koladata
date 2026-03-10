@@ -25,7 +25,6 @@ from koladata import kd
 from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import initial_data_manager_interface
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager
@@ -117,9 +116,11 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       return
     actual = {
         snn: len(bag_names)
-        for snn, bag_names in manager._get_schema_node_name_to_data_bag_names()
-        .to_py(max_depth=-1)
-        .items()
+        for snn, bag_names in (
+            manager._get_schema_node_name_to_data_bag_names()
+            .to_py(max_depth=-1)
+            .items()
+        )
     }
     expected = dict(expected_schema_node_names_to_num_bags)
     self.assertEqual(len(expected), len(expected_schema_node_names_to_num_bags))
@@ -1253,9 +1254,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       manager.update(at_path=child_path, attr_name='parent', attr_value=parents)
     self.assertEqual(num_parent_updates, 2)
 
-    ds = manager.get_data_slice(
-        populate_including_descendants=[parse_dsp('')]
-    )
+    ds = manager.get_data_slice(populate_including_descendants=[parse_dsp('')])
     self.assertEqual(
         ds.tree_root.children[:].parent.value.to_py(),
         ['tree_root', 'tree_root'],
@@ -3473,7 +3472,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   @parameterized.parameters(True, False)
   def test_branch_with_and_without_fs(self, use_new_fs: bool):
     trunk_dir = self.create_tempdir().full_path
-    trunk_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+    trunk_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
     trunk_manager = PersistedIncrementalDataSliceManager.create_new(
         trunk_dir, fs=trunk_fs
     )
@@ -3490,7 +3489,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     branch_dir = self.create_tempdir().full_path
     if use_new_fs:
-      branch_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      branch_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       branch_manager = trunk_manager.branch(branch_dir, fs=branch_fs)
       used_fs = branch_fs
     else:
@@ -3543,7 +3542,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Metadata is written to disk:
     self.assertEqual(
         persisted_incremental_data_slice_manager._read_metadata(
-            fs_implementation.FileSystemInteraction(),
+            kd.file_io.FileSystemInteraction(),
             persistence_dir,
             at_revision_history_index=None,
         ),
@@ -3594,7 +3593,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Metadata is written to disk:
     self.assertEqual(
         persisted_incremental_data_slice_manager._read_metadata(
-            fs_implementation.FileSystemInteraction(),
+            kd.file_io.FileSystemInteraction(),
             persistence_dir,
             at_revision_history_index=None,
         ),
@@ -3638,7 +3637,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Metadata is written to disk:
     self.assertEqual(
         persisted_incremental_data_slice_manager._read_metadata(
-            fs_implementation.FileSystemInteraction(),
+            kd.file_io.FileSystemInteraction(),
             branch_dir,
             at_revision_history_index=None,
         ),
@@ -3692,7 +3691,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Metadata is written to disk:
     self.assertEqual(
         persisted_incremental_data_slice_manager._read_metadata(
-            fs_implementation.FileSystemInteraction(),
+            kd.file_io.FileSystemInteraction(),
             branch_dir,
             at_revision_history_index=None,
         ),
@@ -3714,7 +3713,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(manager._metadata.revision_history[1], revision_1)
     self.assertEqual(
         persisted_incremental_data_slice_manager._read_metadata(
-            fs_implementation.FileSystemInteraction(),
+            kd.file_io.FileSystemInteraction(),
             persistence_dir,
             at_revision_history_index=None,
         ),
@@ -4081,10 +4080,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ids_equality=True,
     )
 
-  @parameterized.named_parameters(
-      ('file_system_interaction', fs_implementation.FileSystemInteraction),
-  )
-  def test_keyboard_interrupt_during_update(self, fs_factory):
+  def test_keyboard_interrupt_during_update(self):
+    fs_factory = kd.file_io.get_default_file_system_interaction
 
     def rename_then_keyboard_interrupt(
         frompath,
@@ -4631,7 +4628,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       )
 
   def test_bags_are_shared_between_trunk_and_branch(self):
-    mock_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+    mock_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
     persistence_dir = self.create_tempdir().full_path
     trunk_manager = PersistedIncrementalDataSliceManager.create_new(
         persistence_dir, fs=mock_fs
@@ -4675,17 +4672,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Ask the trunk for some data. This time it triggers file system reads, and
     # it populates the global cache.
-    trunk_manager.get_data_slice(
-        populate={parse_dsp('.query[:].query_id')}
-    )
+    trunk_manager.get_data_slice(populate={parse_dsp('.query[:].query_id')})
     mock_fs.open.assert_called()
     mock_fs.reset_mock()
 
     # Ask the branch for the same data. It's taken from the global cache, so no
     # file system reads are triggered this time.
-    branch_manager.get_data_slice(
-        populate={parse_dsp('.query[:].query_id')}
-    )
+    branch_manager.get_data_slice(populate={parse_dsp('.query[:].query_id')})
     mock_fs.open.assert_not_called()
 
     # If we ask the branch for other data, then it triggers a file system read.
@@ -4696,9 +4689,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     mock_fs.reset_mock()
 
     # If we ask the trunk for some of that data, then there is a cache hit again
-    trunk_manager.get_data_slice(
-        populate={parse_dsp('.query[:].doc')}
-    )
+    trunk_manager.get_data_slice(populate={parse_dsp('.query[:].doc')})
     mock_fs.open.assert_not_called()
 
 

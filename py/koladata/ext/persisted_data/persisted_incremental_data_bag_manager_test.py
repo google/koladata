@@ -20,7 +20,6 @@ from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
-from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
@@ -353,7 +352,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     with self.subTest('EmptyInitialPersistenceDir'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       _ = PersistedIncrementalDataBagManager.create_new(
           persistence_dir, fs=mocked_fs
       )
@@ -377,7 +376,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       _ = PersistedIncrementalDataBagManager.create_new(persistence_dir)
 
       # Start a new manager with the already initialized persistence_dir.
-      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       _ = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=mocked_fs
       )
@@ -394,7 +393,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
 
     with self.subTest('add_bags'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = PersistedIncrementalDataBagManager.create_new(
           persistence_dir, fs=mocked_fs
       )
@@ -425,7 +424,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
       manager.add_bags([BagToAdd('bag2', kd.bag(), dependencies=())])
 
-      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=mocked_fs
       )
@@ -436,9 +435,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       global_cache_lib.get_global_cache().clear()
       manager.get_minimal_bag({'bag1', 'bag2'})
       method_names_called = [c[0] for c in mocked_fs.method_calls]
-      self.assertEqual(
-          method_names_called, ['open'] * 2  # Read the two bags.
-      )
+      self.assertEqual(method_names_called, ['open'] * 2)  # Read the two bags.
 
     # This is the most interesting subtest. The reason is that extract_bags()
     # uses two file system interaction objects: one for the original
@@ -450,7 +447,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
 
-      original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      original_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=original_fs
       )
@@ -460,7 +457,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       global_cache_lib.get_global_cache().clear()
 
       output_dir = self.create_tempdir().full_path
-      output_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      output_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager.extract_bags(
           bag_names=['bag1'], output_dir=output_dir, fs=output_fs
       )
@@ -513,14 +510,14 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       )
       manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
 
-      original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      original_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = PersistedIncrementalDataBagManager.create_from_dir(
           persistence_dir, fs=original_fs
       )
       original_fs.reset_mock()
 
       output_dir = self.create_tempdir().full_path
-      output_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
+      output_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager.create_branch(
           bag_names=['bag1'], output_dir=output_dir, fs=output_fs
       )
@@ -984,10 +981,8 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
     # bag3 is not available.
     self.assertEqual(manager.get_available_bag_names(), {'bag1'})
 
-  @parameterized.named_parameters(
-      ('file_system_interaction', fs_implementation.FileSystemInteraction),
-  )
-  def test_keyboard_interrupt_during_add_bags(self, fs_factory):
+  def test_keyboard_interrupt_during_add_bags(self):
+    fs_factory = kd.file_io.get_default_file_system_interaction
 
     def rename_then_keyboard_interrupt(
         frompath,
@@ -1114,7 +1109,7 @@ class PersistedIncrementalDatabagManagerTest(parameterized.TestCase):
       PersistedIncrementalDataBagManager(
           internal_call=object(),
           persistence_dir=self.create_tempdir().full_path,
-          fs=fs_implementation.FileSystemInteraction(),
+          fs=kd.file_io.FileSystemInteraction(),
           metadata=metadata_pb2.PersistedIncrementalDataBagManagerMetadata(),
       )
 

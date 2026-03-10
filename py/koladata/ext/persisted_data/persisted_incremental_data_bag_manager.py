@@ -28,8 +28,6 @@ from typing import AbstractSet, Collection, Iterable
 import uuid
 
 from koladata import kd
-from koladata.ext.persisted_data import fs_interface
-from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
@@ -100,7 +98,7 @@ class PersistedIncrementalDataBagManager:
   """
 
   _persistence_dir: str
-  _fs: fs_interface.FileSystemInterface
+  _fs: kd.file_io.FileSystemInterface
   _metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata
 
   @classmethod
@@ -108,7 +106,7 @@ class PersistedIncrementalDataBagManager:
       cls,
       persistence_dir: str,
       *,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
   ) -> PersistedIncrementalDataBagManager:
     """Creates a new manager for the given persistence directory.
 
@@ -123,7 +121,7 @@ class PersistedIncrementalDataBagManager:
       artifacts to the given persistence_dir via the given fs. The managed bag
       is initially empty.
     """
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
 
     if not fs.exists(persistence_dir):
       fs.make_dirs(persistence_dir)
@@ -151,7 +149,7 @@ class PersistedIncrementalDataBagManager:
       cls,
       persistence_dir: str,
       *,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
   ) -> PersistedIncrementalDataBagManager:
     """Initializes a manager from an existing persistence directory.
 
@@ -166,7 +164,7 @@ class PersistedIncrementalDataBagManager:
       A new instance of PersistedIncrementalDataBagManager that is initialized
       from the given persistence directory.
     """
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
 
     if not fs.exists(persistence_dir):
       raise ValueError(
@@ -189,7 +187,7 @@ class PersistedIncrementalDataBagManager:
       *,
       internal_call: object,
       persistence_dir: str,
-      fs: fs_interface.FileSystemInterface,
+      fs: kd.file_io.FileSystemInterface,
       metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
   ):
     """Initializes the manager.
@@ -296,7 +294,7 @@ class PersistedIncrementalDataBagManager:
       *,
       with_all_dependents: bool = False,
       output_dir: str,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
   ):
     """Extracts the requested bags to the given output directory.
 
@@ -321,7 +319,7 @@ class PersistedIncrementalDataBagManager:
     )
     bag_dependencies = self._get_dependency_relation()
 
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
     if not fs.exists(output_dir):
       fs.make_dirs(output_dir)
     if fs.glob(os.path.join(output_dir, '*')):
@@ -354,7 +352,7 @@ class PersistedIncrementalDataBagManager:
       *,
       with_all_dependents: bool = False,
       output_dir: str,
-      fs: fs_interface.FileSystemInterface | None = None,
+      fs: kd.file_io.FileSystemInterface | None = None,
   ):
     """Creates a branch of the current manager in a new persistence directory.
 
@@ -385,7 +383,7 @@ class PersistedIncrementalDataBagManager:
     bags_to_branch = self._get_dependency_closure(
         bag_names, with_all_dependents=with_all_dependents
     )
-    fs = fs or fs_util.get_default_file_system_interaction()
+    fs = fs or kd.file_io.get_default_file_system_interaction()
     if not fs.exists(output_dir):
       fs.make_dirs(output_dir)
     if fs.glob(os.path.join(output_dir, '*')):
@@ -696,8 +694,8 @@ class PersistedIncrementalDataBagManager:
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str) -> int:
     """Returns the size in bytes of the serialized bag written to file."""
-    return fs_util.write_bag_to_file(
-        self._fs, bag, self._get_bag_filepath_from_filename(bag_filename)
+    return kd.s11n.internal_dump(
+        bag, self._get_bag_filepath_from_filename(bag_filename), self._fs
     )
 
   def _get_bag_filepath(self, bag_name: str) -> str:
@@ -712,7 +710,7 @@ class PersistedIncrementalDataBagManager:
   def _read_bag_from_file(self, bag_name: str) -> tuple[kd.types.DataBag, int]:
     """Returns a bag read from file and its serialized size in bytes."""
     bag_filepath = self._get_bag_filepath(bag_name)
-    return fs_util.read_bag_from_file(self._fs, bag_filepath)
+    return kd.s11n.internal_load(bag_filepath, self._fs)
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
     return os.path.join(self._persistence_dir, bag_filename)
@@ -727,7 +725,7 @@ _UPDATE_NUMBER_NUM_DIGITS = 12
 
 
 def _persist_metadata(
-    fs: fs_interface.FileSystemInterface,
+    fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
     metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
 ):
@@ -771,7 +769,7 @@ def _persist_metadata(
 
 
 def _read_latest_metadata(
-    fs: fs_interface.FileSystemInterface,
+    fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
 ) -> metadata_pb2.PersistedIncrementalDataBagManagerMetadata:
   update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS

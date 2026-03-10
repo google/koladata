@@ -32,9 +32,6 @@ py_library(
         ":data_slice_manager_interface",
         ":data_slice_manager_view",
         ":data_slice_path",
-        ":fs_implementation",
-        ":fs_interface",
-        ":fs_util",
         ":global_cache_lib",
         ":persisted_incremental_data_slice_manager",
         "//py:python_path",
@@ -61,8 +58,6 @@ py_library(
         ":bare_root_initial_data_manager",
         ":data_slice_manager_interface",
         ":data_slice_path",
-        ":fs_interface",
-        ":fs_util",
         ":initial_data_manager_interface",
         ":initial_data_manager_registry",
         ":persisted_incremental_data_bag_manager",
@@ -83,7 +78,6 @@ py_test(
         ":bare_root_initial_data_manager",
         ":data_slice_manager_interface",
         ":data_slice_path",
-        ":fs_implementation",
         ":global_cache_lib",
         ":initial_data_manager_interface",
         ":persisted_incremental_data_bag_manager",
@@ -116,8 +110,6 @@ py_library(
     name = "persisted_incremental_data_bag_manager",
     srcs = ["persisted_incremental_data_bag_manager.py"],
     deps = [
-        ":fs_interface",
-        ":fs_util",
         ":global_cache_lib",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",
@@ -129,7 +121,6 @@ py_test(
     name = "persisted_incremental_data_bag_manager_test",
     srcs = ["persisted_incremental_data_bag_manager_test.py"],
     deps = [
-        ":fs_implementation",
         ":global_cache_lib",
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
@@ -159,55 +150,6 @@ py_proto_library(
     name = "persisted_incremental_data_bag_manager_metadata_py_pb2",
     deps = [
         ":persisted_incremental_data_bag_manager_metadata_proto",
-    ],
-)
-
-py_library(
-    name = "fs_interface",
-    srcs = ["fs_interface.py"],
-    deps = ["//py:python_path"],
-)
-
-py_library(
-    name = "fs_implementation",
-    srcs = ["fs_implementation.py"],
-    deps = [
-        ":fs_interface",
-        "//py:python_path",
-    ],
-)
-
-py_test(
-    name = "fs_implementation_test",
-    srcs = ["fs_implementation_test.py"],
-    deps = [
-        ":fs_implementation",
-        ":fs_interface",
-        "//py:python_path",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-    ],
-)
-
-py_library(
-    name = "fs_util",
-    srcs = ["fs_util.py"],
-    deps = [
-        ":fs_implementation",
-        ":fs_interface",
-        "//py:python_path",
-        "//py/koladata:kd",
-    ],
-)
-
-py_test(
-    name = "fs_util_test",
-    srcs = ["fs_util_test.py"],
-    deps = [
-        ":fs_util",
-        "//py:python_path",
-        "//py/koladata:kd",
-        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 
@@ -365,7 +307,6 @@ py_library(
     srcs = ["initial_data_manager_interface.py"],
     deps = [
         ":data_slice_path",
-        ":fs_interface",
         "//py:python_path",
         "//py/koladata:kd",
     ],
@@ -395,8 +336,6 @@ py_library(
     name = "bare_root_initial_data_manager",
     srcs = ["bare_root_initial_data_manager.py"],
     deps = [
-        ":fs_interface",
-        ":fs_util",
         ":initial_data_manager_registry",
         ":initial_data_manager_with_schema_helper",
         ":schema_helper",
@@ -410,7 +349,6 @@ py_library(
     srcs = ["initial_data_manager_with_schema_helper.py"],
     deps = [
         ":data_slice_path",
-        ":fs_interface",
         ":initial_data_manager_interface",
         ":schema_helper",
         ":schema_helper_mixin",
@@ -435,7 +373,6 @@ py_library(
     srcs = ["composite_initial_data_manager.py"],
     deps = [
         ":composite_initial_data_manager_metadata_py_pb2",
-        ":fs_interface",
         ":initial_data_manager_registry",
         ":initial_data_manager_with_schema_helper",
         ":persisted_incremental_data_slice_manager",
@@ -504,7 +441,6 @@ py_test(
         ":composite_initial_data_manager",
         ":data_slice_manager_view",
         ":data_slice_path",
-        ":fs_util",
         ":persisted_incremental_data_slice_manager",
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",
@@ -519,7 +455,6 @@ py_test(
     deps = [
         ":bare_root_initial_data_manager",
         ":data_slice_path",
-        ":fs_implementation",
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",

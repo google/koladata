@@ -20,7 +20,6 @@ from typing import AbstractSet, Collection, Self
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import fs_interface
 
 
 class InitialDataManagerInterface:
@@ -46,14 +45,14 @@ class InitialDataManagerInterface:
     raise NotImplementedError(type(cls))
 
   def serialize(
-      self, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      self, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ):
     """Serializes the initial data and metadata to the given directory."""
     raise NotImplementedError(type(self))
 
   @classmethod
   def deserialize(
-      cls, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      cls, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ) -> InitialDataManagerInterface:
     """Deserializes the initial data and metadata from the given directory."""
     raise NotImplementedError(type(cls))

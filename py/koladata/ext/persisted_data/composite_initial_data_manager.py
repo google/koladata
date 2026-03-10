@@ -21,7 +21,6 @@ from typing import Collection, Self
 
 from koladata import kd
 from koladata.ext.persisted_data import composite_initial_data_manager_metadata_pb2 as metadata_pb2
-from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import initial_data_manager_registry
 from koladata.ext.persisted_data import initial_data_manager_with_schema_helper
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
@@ -105,7 +104,7 @@ class CompositeInitialDataManager(
     return self._schema_helper
 
   def serialize(
-      self, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      self, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ):
     if not fs.exists(persistence_dir):
       fs.make_dirs(persistence_dir)
@@ -129,7 +128,7 @@ class CompositeInitialDataManager(
 
   @classmethod
   def deserialize(
-      cls, persistence_dir: str, *, fs: fs_interface.FileSystemInterface
+      cls, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface
   ) -> CompositeInitialDataManager:
     with fs.open(_get_metadata_filepath(persistence_dir), 'rb') as f:
       metadata = metadata_pb2.CompositeInitialDataManagerMetadata.FromString(
