@@ -1298,23 +1298,6 @@ class PersistedIncrementalDataSliceManager(
         metadata=copy.deepcopy(self._metadata),
     )
 
-  def clear_cache(self):
-    """Clears the internal cache with loaded data of the managed DataSlice.
-
-    Calling this method will typically reduce the memory footprint, unless the
-    data is still referenced in your code (for example, when the result of an
-    earlier call to get_data_slice(...) is still stored in a variable
-    somewhere).
-
-    Calling this method will not affect the functional behavior of this manager.
-    For example, the result of get_schema() will remain unchanged, and calling
-    get_data_slice(...) will simply load the data again and return the same
-    result as before.
-    """
-    # TODO: delete this method once
-    # PersistedIncrementalDataSliceManager uses the global cache.
-    self._initial_data_manager.clear_cache()
-
   def _check_is_not_read_only(self):
     if self.is_read_only:
       raise ValueError('this manager is in read-only mode')

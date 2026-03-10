@@ -211,17 +211,6 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         kd.schema.new_schema(x=kd.STRING),
     )
 
-  def test_clear_cache_is_noop(self):
-    manager = BareRootInitialDataManager.create_new()
-    root = manager.get_data_slice_for_schema_node_names(schema_node_names=set())
-    manager.clear_cache()
-    root_after_clear_cache = manager.get_data_slice_for_schema_node_names(
-        schema_node_names=set()
-    )
-    kd.testing.assert_equivalent(
-        root, root_after_clear_cache, ids_equality=True
-    )
-
   def test_get_description(self):
     manager = BareRootInitialDataManager.create_new()
     self.assertEqual(manager.get_description(), 'an empty root')

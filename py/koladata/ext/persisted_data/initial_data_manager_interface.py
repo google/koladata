@@ -29,14 +29,12 @@ class InitialDataManagerInterface:
   PersistedIncrementalDataSliceManager, and never in this class/subclasses.
 
   Management of the initial data typically involves loading parts of it on
-  demand from the underlying storage. The loaded data is typically cached to
-  speed up subsequent calls to get_data_slice(). For data that can consume
-  significant memory, implementations should take care to cache at most one
-  copy of the data (across locally cached DataBags and deeper caches in the data
-  sourcing infrastructure), because otherwise out-of-memory errors might happen.
-  Clients can also call clear_cache() to remove the cached data; the expectation
-  is that after calling clear_cache(), the memory footprint of an instance
-  should be very small.
+  demand from the underlying storage. The loaded data is typically cached in the
+  global cache to speed up subsequent calls to get_data_slice(). For data that
+  can consume significant memory, implementations should take care to cache at
+  most one copy of the data (across globally cached DataBags and deeper caches
+  in the initial data sourcing infrastructure), because otherwise out-of-memory
+  errors might happen.
   """
 
   @classmethod
@@ -183,22 +181,6 @@ class InitialDataManagerInterface:
     """
     raise NotImplementedError(type(self))
 
-  def clear_cache(self):
-    """Clears the cache of loaded data (if applicable) to release memory.
-
-    Whether and what data is cached is implementation-specific. The expectation
-    is that data that takes up significant memory space should be removed from
-    any caches by this method. When the data is requested again in the future,
-    then it will be loaded from the underlying storage and might be cached
-    again.
-
-    Calling this method will not affect the functional behavior of this manager.
-    For example, the result of get_schema() will remain unchanged, and calling
-    get_data_slice(...) will simply load the data again and return the same
-    result as before.
-    """
-    raise NotImplementedError(type(self))
-
   def get_description(self) -> str:
     """Returns a brief description of the initial data.
 
@@ -216,7 +198,8 @@ class InitialDataManagerInterface:
     manager.
 
     It should be possible to use the copy in another thread. If there is
-    internal mutable state, such as caches, that are shared between this
-    instance and the copy, then that state must be properly synchronized.
+    internal mutable state, such as objects to access data sources, that are
+    shared between this instance and the copy, then that state must be properly
+    synchronized.
     """
     raise NotImplementedError(type(self))

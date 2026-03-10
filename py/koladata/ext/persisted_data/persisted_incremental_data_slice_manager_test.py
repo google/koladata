@@ -3249,25 +3249,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           getattr(PersistedIncrementalDataSliceManager, method_name).__doc__,
       )
 
-  def test_clear_cache_also_clears_initial_data_manager_cache(self):
-    initial_data_manager_mock = mock.Mock(
-        wraps=bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
-    )
-    manager = PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path,
-        initial_data_manager=initial_data_manager_mock,
-    )
-    manager.update(
-        at_path=parse_dsp(''),
-        attr_name='foo',
-        attr_value=kd.item(123),
-    )
-    manager.get_data_slice(populate_including_descendants={parse_dsp('')})
-
-    initial_data_manager_mock.clear_cache.assert_not_called()
-    manager.clear_cache()
-    initial_data_manager_mock.clear_cache.assert_called_once()
-
   def test_branch(self):
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)

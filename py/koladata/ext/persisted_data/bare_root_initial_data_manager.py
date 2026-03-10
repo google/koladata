@@ -155,9 +155,6 @@ class BareRootInitialDataManager(
       )
     return self._root_item.get_bag()
 
-  def clear_cache(self):
-    pass
-
   def get_description(self) -> str:
     return 'an empty root'
 

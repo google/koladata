@@ -441,6 +441,7 @@ py_test(
         ":composite_initial_data_manager",
         ":data_slice_manager_view",
         ":data_slice_path",
+        ":global_cache_lib",
         ":persisted_incremental_data_slice_manager",
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",

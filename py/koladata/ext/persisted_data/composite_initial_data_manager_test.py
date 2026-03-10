@@ -15,7 +15,6 @@
 import os
 import re
 from typing import cast
-from unittest import mock
 
 from absl.testing import absltest
 from koladata import kd
@@ -23,6 +22,7 @@ from koladata.ext.persisted_data import bare_root_initial_data_manager
 from koladata.ext.persisted_data import composite_initial_data_manager
 from koladata.ext.persisted_data import data_slice_manager_view as data_slice_manager_view_lib
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
+from koladata.ext.persisted_data import global_cache_lib
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as pidsm
 from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
 
@@ -56,7 +56,9 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     root = DataSliceManagerView(manager)
     for attr_name in kd.dir(ds):
       setattr(root, attr_name, ds.get_attr(attr_name))
-    manager.clear_cache()
+    # At this point the global cache is populated with all the data of ds. Clear
+    # it to test that the manager can load the data from scratch.
+    global_cache_lib.get_global_cache().clear()
     return manager
 
   def test_simple_glueing(self):
@@ -629,21 +631,6 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         ),
     ):
       manager.get_data_bag_for_schema_node_names(['hohoho!'])
-
-  def test_clear_cache(self):
-    manager1 = self.create_manager(kd.new())
-    manager2 = self.create_manager(kd.new())
-
-    manager = CompositeInitialDataManager.create_new(
-        managers=[manager1, manager2]
-    )
-    manager_mocks = [mock.Mock(wraps=m) for m in manager._managers]
-    manager._managers = manager_mocks
-    manager.clear_cache()
-
-    self.assertLen(manager_mocks, 2)
-    manager_mocks[0].clear_cache.assert_called_once()
-    manager_mocks[1].clear_cache.assert_called_once()
 
   def test_get_description(self):
     manager1 = self.create_manager(kd.new())

@@ -183,10 +183,6 @@ class CompositeInitialDataManager(
         for m in self._managers
     ])
 
-  def clear_cache(self):
-    for manager in self._managers:
-      manager.clear_cache()
-
   def get_description(self) -> str:
     return (
         'a composition of the managers'
