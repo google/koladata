@@ -339,6 +339,16 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(list(df['my_x']), [1, 2, 3])
     self.assertEqual(list(df['my_sum']), [5, 7, 9])
 
+  def test_to_dataframe_use_dict_as_columns(self):
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+    df = pdkd.to_dataframe(
+        ds, cols={'my_x': S.x, 'my_sum': S.x + S.y, 'my_y': 'y'}
+    )
+    self.assertCountEqual(df.columns, ['my_x', 'my_sum', 'my_y'])
+    self.assertEqual(list(df['my_x']), [1, 2, 3])
+    self.assertEqual(list(df['my_y']), [4, 5, 6])
+    self.assertEqual(list(df['my_sum']), [5, 7, 9])
+
   def test_to_dataframe_broadcast_to_common_shape(self):
     ds = kd.new(
         x=kd.slice([1, 2, 3]),

@@ -11479,7 +11479,22 @@ Tools for Pandas <-> Koda interoperability.
 
 **Operators**
 
-### `kd_ext.pdkd.df(ds: DataSlice, cols: list[str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.df}
+### `kd_ext.pdkd.Mapping()` {#kd_ext.pdkd.Mapping}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A Mapping is a generic container for associating key/value
+pairs.
+
+This class provides concrete generic implementations of all
+methods except for __getitem__, __iter__, and __len__.</code></pre>
+
+### `kd_ext.pdkd.Sequence()` {#kd_ext.pdkd.Sequence}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">All the operations on a read-only sequence.
+
+Concrete subclasses must override __new__ or __init__,
+__getitem__, and __len__.</code></pre>
+
+### `kd_ext.pdkd.df(ds: DataSlice, cols: Sequence[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.df}
 Aliases:
 
 - [kd_ext.pdkd.to_dataframe](#kd_ext.pdkd.to_dataframe)
@@ -11512,11 +11527,11 @@ For example,
   to_dataframe(ds) -&gt; extract &#39;x&#39;, &#39;y&#39;
 
 `cols` can be used to specify which data from the DataSlice should be
-extracted as DataFrame columns. It can contain either the string names of
-attributes or Exprs which can be evaluated on the DataSlice. If `ds` has
-OBJECT schema, specified attributes must present in all objects in `ds`. To
-ignore objects which do not have specific attributes, one can use
-`S.maybe(attr)` in `cols`. For example,
+extracted as DataFrame columns. It can be a sequence of string names of
+attributes, sequence of Exprs, or a mapping column names to string names of
+attributes or Exprs. If `ds` has OBJECT schema, specified attributes must
+be present in all objects in `ds`. To ignore objects which do not have
+specific attributes, one can use `S.maybe(attr)` in `cols`. For example,
 
   ds = kd.slice([1, 2, 3])
   to_dataframe(ds) -&gt; extract &#39;self_&#39;
@@ -11524,6 +11539,7 @@ ignore objects which do not have specific attributes, one can use
   ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
   to_dataframe(ds, [&#39;x&#39;]) -&gt; extract &#39;x&#39;
   to_dataframe(ds, [S.x, S.x + S.y]) -&gt; extract &#39;S.x&#39; and &#39;S.x + S.y&#39;
+  to_dataframe(ds, {&#39;my_x&#39;: S.x, &#39;my_y&#39;: &#39;y&#39;}) -&gt; extract &#39;my_x&#39; and &#39;my_y&#39;
 
   ds = kd.slice([kd.obj(x=1, y=&#39;a&#39;), kd.obj(x=2), kd.obj(x=3, y=&#39;c&#39;)])
   to_dataframe(ds, [&#39;x&#39;]) -&gt; extract &#39;x&#39;
@@ -11560,8 +11576,9 @@ The conversion adheres to:
 
 Args:
   ds: DataSlice to convert.
-  cols: list of columns to extract from DataSlice. If None all attributes will
-    be extracted.
+  cols: list of columns to extract or a dictionary mapping output column names
+    to columns to extract from DataSlice. If None all attributes will be
+    extracted.
   include_self: whether to include the &#39;self_&#39; column. &#39;self_&#39; column is
     always included if `cols` is None and `ds` contains primitives/lists/dicts
     or it has ITEMID schema.
@@ -11610,7 +11627,7 @@ Args:
 Returns:
   DataSlice representing the content of the Series.</code></pre>
 
-### `kd_ext.pdkd.to_dataframe(ds: DataSlice, cols: list[str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
+### `kd_ext.pdkd.to_dataframe(ds: DataSlice, cols: Sequence[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.to_dataframe}
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 

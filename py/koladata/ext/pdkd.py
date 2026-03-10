@@ -14,6 +14,8 @@
 
 """Bridge between Pandas and DataSlice."""
 
+from collections.abc import Mapping, Sequence
+
 from arolla import arolla
 from arolla.experimental import numpy_conversion
 from koladata import kd
@@ -154,7 +156,9 @@ def _to_series(ds: kd.types.DataSlice) -> pd.Series:
 
 def to_dataframe(
     ds: kd.types.DataSlice,
-    cols: list[str | arolla.Expr] | None = None,
+    cols: (
+        Sequence[str | arolla.Expr] | Mapping[str, str | arolla.Expr] | None
+    ) = None,
     include_self: bool = False,
 ) -> pd.DataFrame:
   """Creates a pandas DataFrame from the given DataSlice.
@@ -185,11 +189,11 @@ def to_dataframe(
     to_dataframe(ds) -> extract 'x', 'y'
 
   `cols` can be used to specify which data from the DataSlice should be
-  extracted as DataFrame columns. It can contain either the string names of
-  attributes or Exprs which can be evaluated on the DataSlice. If `ds` has
-  OBJECT schema, specified attributes must present in all objects in `ds`. To
-  ignore objects which do not have specific attributes, one can use
-  `S.maybe(attr)` in `cols`. For example,
+  extracted as DataFrame columns. It can be a sequence of string names of
+  attributes, sequence of Exprs, or a mapping column names to string names of
+  attributes or Exprs. If `ds` has OBJECT schema, specified attributes must
+  be present in all objects in `ds`. To ignore objects which do not have
+  specific attributes, one can use `S.maybe(attr)` in `cols`. For example,
 
     ds = kd.slice([1, 2, 3])
     to_dataframe(ds) -> extract 'self_'
@@ -197,6 +201,7 @@ def to_dataframe(
     ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     to_dataframe(ds, ['x']) -> extract 'x'
     to_dataframe(ds, [S.x, S.x + S.y]) -> extract 'S.x' and 'S.x + S.y'
+    to_dataframe(ds, {'my_x': S.x, 'my_y': 'y'}) -> extract 'my_x' and 'my_y'
 
     ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
     to_dataframe(ds, ['x']) -> extract 'x'
@@ -233,8 +238,9 @@ def to_dataframe(
 
   Args:
     ds: DataSlice to convert.
-    cols: list of columns to extract from DataSlice. If None all attributes will
-      be extracted.
+    cols: list of columns to extract or a dictionary mapping output column names
+      to columns to extract from DataSlice. If None all attributes will be
+      extracted.
     include_self: whether to include the 'self_' column. 'self_' column is
       always included if `cols` is None and `ds` contains primitives/lists/dicts
       or it has ITEMID schema.
@@ -246,6 +252,8 @@ def to_dataframe(
     ds = ds.repeat(1)
 
   if cols is not None:
+    if not isinstance(cols, Mapping):
+      cols = list(cols)
     if not ds.has_bag():
       raise ValueError(
           f'Cannot specify columns {cols!r} for a DataSlice without a db.'
@@ -273,29 +281,39 @@ def to_dataframe(
     else:
       cols = ['self_']
 
-  col_dss = []
-  col_names = []
-  for col in cols:
+  def _eval_col(col):
     if isinstance(col, str):
-      if col in _SPECIAL_COLUMN_NAMES:
-        continue
       if col == 'self_':
-        col_dss.append(ds)
-      else:
-        col_dss.append(get_attr_fn(ds, col))
-      col_names.append(col)
+        return ds
+      return get_attr_fn(ds, col)
     elif isinstance(col, arolla.Expr):
       try:
-        col_ds = kdi.eval(col, ds)
+        return kdi.eval(col, ds)
       except ValueError as e:
         raise ValueError(f'Cannot evaluate {col} on {ds!r}.') from e
-      col_dss.append(col_ds)
-      if (expr_name := kdi.expr.get_name(col)) is not None:
-        col_names.append(expr_name)
-      else:
-        col_names.append(str(col))
     else:
       raise ValueError(f'Unsupported attr type: {type(col)}')
+
+  col_dss = []
+  col_names = []
+  if isinstance(cols, Mapping):
+    for col_name, col in cols.items():
+      col_dss.append(_eval_col(col))
+      col_names.append(col_name)
+  else:
+    for col in cols:
+      if isinstance(col, str):
+        if col in _SPECIAL_COLUMN_NAMES:
+          continue
+        col_names.append(col)
+      elif isinstance(col, arolla.Expr):
+        if (expr_name := kdi.expr.get_name(col)) is not None:
+          col_names.append(expr_name)
+        else:
+          col_names.append(str(col))
+      else:
+        pass
+      col_dss.append(_eval_col(col))
 
   try:
     col_dss = kdi.align(*col_dss)
