@@ -21,8 +21,13 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "koladata/data_slice.h"
+#include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 
@@ -202,6 +207,10 @@ class JsonStreamParser {
   bool allow_linebreak_in_strings_ = false;
   bool quote_invalid_tokens_ = false;
 };
+
+absl::StatusOr<StreamPtr> StreamFilterJson(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input,
+    const DataSlice& field_to_extract);
 
 }  // namespace koladata::functor::parallel
 

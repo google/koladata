@@ -8699,6 +8699,21 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_parallel_stream_filter_json_test",
+    srcs = ["koda_internal_parallel_stream_filter_json_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "functor_for_test",
     srcs = ["functor_for_test.py"],
     deps = [

@@ -108,6 +108,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_chain",
                 std::make_unique<StreamChainOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain_from_stream",
                 std::make_unique<StreamChainFromStreamOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.stream_filter_json",
+                std::make_unique<StreamFilterJsonOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_from_future",
                 std::make_unique<StreamFromFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_from_iterable",

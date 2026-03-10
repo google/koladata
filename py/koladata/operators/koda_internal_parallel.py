@@ -872,6 +872,43 @@ def parallel_from_future(executor, arg):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
+    'koda_internal.parallel.stream_filter_json',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        (
+            P.stream == get_stream_qtype(qtypes.DATA_SLICE),
+            (
+                'expected STREAM[DATA_SLICE], got'
+                f' {constraints.name_type_msg(P.stream)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice(P.field_to_extract),
+    ],
+    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
+)
+def stream_filter_json(executor, stream, field_to_extract):
+  """Extracts requested field from streamed JSON.
+
+  It automatically fixes some errors in the input stream: replaces single quotes
+  with double quotes, quotes unquoted keys and values, handles linebreaks in
+  string literals. Also removes all spaces and linebreaks outside of string
+  literals.
+
+  Args:
+    executor: The executor.
+    stream: Input string stream of JSON fragments.
+    field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
+      to extract from the input stream. Only subset of JSONPath features is
+      supported. List index can be specified only as `[*]`.
+
+  Returns:
+    A stream of strings. Each value is a JSON corresponding to given JSONPath.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.parallel.stream_map',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),

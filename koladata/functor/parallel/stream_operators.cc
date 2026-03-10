@@ -50,6 +50,7 @@
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_call.h"
 #include "koladata/functor/parallel/stream_composition.h"
+#include "koladata/functor/parallel/stream_filter_json.h"
 #include "koladata/functor/parallel/stream_for.h"
 #include "koladata/functor/parallel/stream_map.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -81,6 +82,61 @@ absl::StatusOr<StreamPtr> StreamFrom1dSlice(const DataSlice& slice) {
   }
   std::move(*writer).Close();
   return std::move(result);
+}
+
+namespace {
+
+class StreamFilterJsonOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_filter_json",
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         fields_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          absl::StatusOr<StreamPtr> res = StreamFilterJson(
+              frame.Get(executor_slot), frame.Get(input_stream_slot),
+              frame.Get(fields_slot));
+          if (res.ok()) {
+            frame.Set(output_slot, *std::move(res));
+          } else {
+            ctx->set_status(std::move(res).status());
+          }
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+StreamFilterJsonOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 3) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (output_type != GetStreamQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "output type must be a stream of DataSlices");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("the first argument must be an executor");
+  }
+  if (input_types[1] != GetStreamQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "the second argument must be a stream of DataSlices");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "the third argument must be a DataSlice");
+  }
+  return std::make_shared<StreamFilterJsonOp>(input_types, output_type);
 }
 
 namespace {
