@@ -29,6 +29,7 @@
 #include "arolla/qtype/qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 
@@ -128,6 +129,8 @@ class DenseSource {
   static absl::StatusOr<std::shared_ptr<DenseSource>> CreateMutable(
       AllocationId alloc, int64_t size,
       const arolla::QType* absl_nullable main_type = nullptr);
+
+  virtual MemoryStatsEntry GetMemoryStats() const = 0;
 
  private:
   // It is private because it can return internal data of a mutable

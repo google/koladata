@@ -28,6 +28,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/buffer.h"
@@ -36,11 +37,15 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
@@ -465,6 +470,27 @@ bool DataSliceImpl::VerifyAllocIdsConsistency() const {
     }
   });
   return res;
+}
+
+MemoryStatsEntry DataSliceImpl::GetMemoryStats() const {
+  size_t shallow_size = internal_->types_buffer.id_to_typeidx.size();
+  size_t strings_size = 0;
+  for (const auto& variant : internal_->values) {
+    std::visit(
+        [&]<class T>(const arolla::DenseArray<T>& array) {
+          shallow_size += array.bitmap.size() * sizeof(arolla::bitmap::Word);
+          if constexpr (std::is_same_v<T, arolla::Text> ||
+                        std::is_same_v<T, arolla::Bytes>) {
+            shallow_size += array.values.offsets().size() *
+                            sizeof(arolla::StringsBuffer::Offsets);
+            strings_size += array.values.characters().size();
+          } else if constexpr (!std::is_same_v<T, arolla::Unit>) {
+            shallow_size += array.values.size() * sizeof(T);
+          }
+        },
+        variant);
+  }
+  return {"DataSliceImpl", shallow_size, strings_size};
 }
 
 }  // namespace koladata::internal

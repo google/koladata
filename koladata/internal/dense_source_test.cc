@@ -981,5 +981,87 @@ TEST(DenseSourceTest, MergeSelfBoolInitialized) {
   EXPECT_EQ(ds->Get(alloc.ObjectByOffset(2)), std::nullopt);
 }
 
+TEST(DenseSourceTest, GetMemoryStats) {
+  AllocationId alloc = Allocate(32);  // TODO
+  {
+    // MultitypeDenseSource
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DenseSource::CreateMutable(alloc, 32, nullptr));
+    ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(int64_t{42})));
+    ASSERT_OK(  // inplace string (strings_size = 0)
+        ds->Set(alloc.ObjectByOffset(2), DataItem(arolla::Text("abcde"))));
+    ASSERT_OK(  // string with separate allocation (strings_size = 25 + \0)
+        ds->Set(alloc.ObjectByOffset(3),
+                DataItem(arolla::Text("abcd abcd abcd abcd abcd "))));
+    auto stats = ds->GetMemoryStats();
+    EXPECT_THAT(stats.container_description, HasSubstr("MultitypeDenseSource"));
+    const int expected_shallow_size =
+        32                            // TypesBuffer
+        + 32 * sizeof(int64_t)        // int64_t ValueBuffer
+        + 32 * sizeof(arolla::Text);  // Text ValueBuffer
+    EXPECT_EQ(stats.shallow_size, expected_shallow_size);
+    EXPECT_EQ(stats.strings_size, 26);
+  }
+  {
+    // TypedDenseSource
+    ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateMutable(
+                                      alloc, 10, arolla::GetQType<int>()));
+    auto stats = ds->GetMemoryStats();
+    EXPECT_THAT(stats.container_description, HasSubstr("TypedDenseSource"));
+    EXPECT_EQ(stats.shallow_size,
+              1 * sizeof(uint32_t)        // presence bitmap
+                  + 1 * sizeof(uint32_t)  // removed values bitmap
+                  + 10 * sizeof(int)      // values
+    );
+    EXPECT_EQ(stats.strings_size, 0);
+  }
+  {
+    // TypedReadOnlyDenseSource, arolla::Bytes
+    auto array = arolla::CreateFullDenseArray<arolla::Bytes>({"abc", "cd", ""});
+    ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateReadonly(
+                                      alloc, DataSliceImpl::Create(array)));
+    auto stats = ds->GetMemoryStats();
+    EXPECT_THAT(stats.container_description,
+                HasSubstr("TypedReadOnlyDenseSource"));
+    EXPECT_EQ(stats.shallow_size, 3 * 16);
+    EXPECT_EQ(stats.strings_size, 5);
+  }
+  {
+    // TypedReadOnlyDenseSource, int
+    auto array = arolla::CreateFullDenseArray<int>({1, 2, 3});
+    ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateReadonly(
+                                      alloc, DataSliceImpl::Create(array)));
+    auto stats = ds->GetMemoryStats();
+    EXPECT_THAT(stats.container_description,
+                HasSubstr("TypedReadOnlyDenseSource"));
+    EXPECT_EQ(stats.shallow_size, 3 * sizeof(int));
+    EXPECT_EQ(stats.strings_size, 0);
+  }
+  {
+    // ReadOnlyDenseSource (mixed)
+    SliceBuilder bldr(128);
+    int str_count = 0;
+    for (int i = 0; i < 128; i += 3) {
+      str_count++;
+      bldr.InsertIfNotSet(i, arolla::Bytes{"abc"});
+    }
+    for (int i = 1; i < 128; i += 3) {
+      bldr.InsertIfNotSet(i, i);
+    }
+    DataSliceImpl slice = std::move(bldr).Build();
+    ASSERT_OK_AND_ASSIGN(auto source,
+                         DenseSource::CreateReadonly(Allocate(128), slice));
+    auto stats = source->GetMemoryStats();
+    EXPECT_THAT(stats.container_description, HasSubstr("ReadOnlyDenseSource"));
+    EXPECT_EQ(stats.shallow_size, 128            // types buffer
+                                      + 128 / 8  // bytes presence bitmap
+                                      + 128 / 8  // int presence bitmap
+                                      + 128 * sizeof(int)  // int values
+                                      + 128 * 16           // bytes shallow size
+    );
+    EXPECT_EQ(stats.strings_size, 3 * str_count);
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal

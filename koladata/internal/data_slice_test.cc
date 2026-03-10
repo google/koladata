@@ -36,6 +36,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
@@ -1277,6 +1278,59 @@ TEST(DataSliceImplDeathTest, TransformValuesDeath) {
                      return CreateDenseArray<int>({0});
                    }),
                "duplicated type.*INT32");
+}
+
+TEST(DataSliceImplTest, GetMemoryStats) {
+  {
+    // Empty unknown type
+    DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(10);
+    auto stats = ds.GetMemoryStats();
+    EXPECT_EQ(stats.container_description, "DataSliceImpl");
+    EXPECT_EQ(stats.shallow_size, 0);
+    EXPECT_EQ(stats.strings_size, 0);
+  }
+  {
+    // Single type (int)
+    arolla::DenseArrayBuilder<int> bldr(512);
+    for (int i = 0; i < 512; i += 2) {
+      bldr.Set(i, i);
+    }
+    DataSliceImpl ds = DataSliceImpl::Create(std::move(bldr).Build());
+    auto stats = ds.GetMemoryStats();
+    EXPECT_EQ(stats.container_description, "DataSliceImpl");
+    EXPECT_EQ(stats.shallow_size, 512 * sizeof(int) + 512 / 8);
+    EXPECT_EQ(stats.strings_size, 0);
+  }
+  {
+    // Text
+    auto array = arolla::CreateFullDenseArray<arolla::Text>(
+        {arolla::Text("abc"), arolla::Text("de"), arolla::Text("")});
+    DataSliceImpl ds = DataSliceImpl::Create(array);
+    auto stats = ds.GetMemoryStats();
+    EXPECT_EQ(stats.container_description, "DataSliceImpl");
+    // no bitmap, 3 offsets * sizeof(pair<uint64_t, uint64_t>)
+    EXPECT_EQ(stats.shallow_size, 3 * 16);
+    EXPECT_EQ(stats.strings_size, 5);
+  }
+  {
+    // Mixed types
+    SliceBuilder bldr(512);
+    for (int i = 0; i < 512; i += 3) {
+      bldr.InsertIfNotSet(i, i);
+    }
+    for (int i = 1; i < 512; i += 3) {
+      bldr.InsertIfNotSet(i, float{i + 0.5f});
+    }
+    DataSliceImpl ds = std::move(bldr).Build();
+    auto stats = ds.GetMemoryStats();
+    EXPECT_EQ(stats.container_description, "DataSliceImpl");
+    int types_buffer_size = 512;
+    int int_dense_array_size = 512 * sizeof(int) + 512 / 8;
+    int float_dense_array_size = 512 * sizeof(float) + 512 / 8;
+    EXPECT_EQ(stats.shallow_size, types_buffer_size + int_dense_array_size +
+                                      float_dense_array_size);
+    EXPECT_EQ(stats.strings_size, 0);
+  }
 }
 
 }  // namespace

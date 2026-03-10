@@ -33,8 +33,11 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 
 // It is a private header, part of dense_source implementation.
@@ -141,6 +144,23 @@ class ValueBuffer : public absl::Span<T> {
   }
 
   ~ValueBuffer() { delete [] this->data(); }
+
+  void AppendMemoryUsage(MemoryStatsEntry& stats) const {
+    if constexpr (!std::is_same_v<T, Unit>) {
+      stats.shallow_size += this->size() * sizeof(T);
+    }
+    if constexpr (std::is_same_v<T, arolla::Text> ||
+                  std::is_same_v<T, arolla::Bytes>) {
+      for (const auto& v : *this) {
+        absl::string_view view(v);
+        if (view.data() < reinterpret_cast<const char*>(&v) ||
+            view.data() >= reinterpret_cast<const char*>(&v) + sizeof(T)) {
+          // String is allocated outside of sizeof(T)
+          stats.strings_size += view.size() + 1;
+        }
+      }
+    }
+  }
 };
 
 template <>
@@ -150,6 +170,7 @@ class ValueBuffer<Unit> {
   explicit ValueBuffer(const arolla::Buffer<Unit>& buf) : size_(buf.size()) {}
   int64_t size() const { return size_; }
   Unit operator[](int64_t offset) const { return Unit{}; }
+  void AppendMemoryUsage(MemoryStatsEntry& stats) const {}
  private:
   int64_t size_;
 };
@@ -270,6 +291,11 @@ class ValueArray {
     for (size_t i = 0; i < presence_.size(); ++i) {
       bitmap[i] |= presence_[i];
     }
+  }
+
+  void AppendMemoryUsage(MemoryStatsEntry& stats) const {
+    stats.shallow_size += presence_.size() * sizeof(Word);
+    values_.AppendMemoryUsage(stats);
   }
 
  private:

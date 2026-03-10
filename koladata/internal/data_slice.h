@@ -50,6 +50,7 @@
 #include "arolla/util/unit.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/types_buffer.h"
 #include "arolla/util/status_macros_backport.h"
@@ -250,6 +251,9 @@ class DataSliceImpl {
   const AllocationIdSet& allocation_ids() const {
     return internal_->allocation_ids;
   }
+
+  // Returns memory statistics for the DataSliceImpl.
+  MemoryStatsEntry GetMemoryStats() const;
 
   // Computes the fingerprint.
   void ArollaFingerprint(arolla::FingerprintHasher* hasher) const;

@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -35,6 +36,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/bitmap.h"
@@ -55,6 +57,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
@@ -370,6 +373,20 @@ class MultitypeDenseSource : public DenseSource {
     return res;
   }
 
+  MemoryStatsEntry GetMemoryStats() const final {
+    MemoryStatsEntry res{absl::StrFormat("MultitypeDenseSource[alloc_id=%v]",
+                                         obj_allocation_id_)};
+    res.shallow_size += types_buffer_.size();
+    for (const auto& val_variant : values_) {
+      std::visit(
+          [&]<class T>(const ValueBuffer<T>& val_buf) {
+            val_buf.AppendMemoryUsage(res);
+          },
+          val_variant);
+    }
+    return res;
+  }
+
  private:
   template <class T>
   friend class TypedDenseSource;
@@ -581,6 +598,18 @@ class TypedDenseSource final : public DenseSource {
   AllocationId allocation_id() const final { return obj_allocation_id_; }
   int64_t size() const final {
     return multitype_ ? multitype_->size() : values_.size();
+  }
+
+  MemoryStatsEntry GetMemoryStats() const final {
+    if (multitype_) {
+      return multitype_->GetMemoryStats();
+    }
+    MemoryStatsEntry res{absl::StrFormat("TypedDenseSource[%v, alloc_id=%v]",
+                                         arolla::GetQType<T>()->name(),
+                                         obj_allocation_id_)};
+    res.shallow_size += values_mask_.size() * sizeof(uint32_t);
+    values_.AppendMemoryUsage(res);
+    return res;
   }
 
   std::optional<DataItem> Get(ObjectId object) const final {
@@ -919,6 +948,13 @@ class ReadOnlyDenseSource : public DenseSource {
 
   int64_t size() const final { return data_.size(); }
 
+  MemoryStatsEntry GetMemoryStats() const override {
+    auto res = data_.GetMemoryStats();
+    res.container_description = absl::StrFormat(
+        "ReadOnlyDenseSource[alloc_id=%v]", obj_allocation_id_);
+    return res;
+  }
+
   std::optional<DataItem> Get(ObjectId object) const override {
     DCHECK(data_.is_mixed_dtype())
         << "for single type use TypedReadOnlyDenseSource";
@@ -1025,6 +1061,22 @@ class TypedReadOnlyDenseSource final : public ReadOnlyDenseSource {
         offset_to_typeidx_(data.types_buffer().id_to_typeidx.empty()
                                ? nullptr
                                : data.types_buffer().id_to_typeidx.data()) {}
+
+  MemoryStatsEntry GetMemoryStats() const final {
+    size_t shallow_size = data_.bitmap.size() * sizeof(arolla::bitmap::Word);
+    size_t strings_size = 0;
+    if constexpr (std::is_same_v<T, arolla::Text> ||
+                  std::is_same_v<T, arolla::Bytes>) {
+      shallow_size += data_.values.offsets().size() *
+                      sizeof(arolla::StringsBuffer::Offsets);
+      strings_size += data_.values.characters().size();
+    } else if constexpr (!std::is_same_v<T, arolla::Unit>) {
+      shallow_size += data_.values.size() * sizeof(T);
+    }
+    return {absl::StrFormat("TypedReadOnlyDenseSource[%v, alloc_id=%v]",
+                            arolla::GetQType<T>()->name(), allocation_id()),
+            shallow_size, strings_size};
+  }
 
   std::optional<DataItem> Get(ObjectId object) const override {
     DCHECK(allocation_id().Contains(object));

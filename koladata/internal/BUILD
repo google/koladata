@@ -82,6 +82,11 @@ cc_library(
 )
 
 cc_library(
+    name = "memory_stats",
+    hdrs = ["memory_stats.h"],
+)
+
+cc_library(
     name = "missing_value",
     hdrs = ["missing_value.h"],
 )
@@ -156,6 +161,7 @@ cc_library(
         ":data_item",
         ":data_slice",
         ":dtype",
+        ":memory_stats",
         ":missing_value",
         ":object_id",
         ":types",
@@ -171,6 +177,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/ops",
@@ -380,6 +387,7 @@ cc_library(
     deps = [
         ":data_item",
         ":dtype",
+        ":memory_stats",
         ":missing_value",
         ":object_id",
         ":types",
