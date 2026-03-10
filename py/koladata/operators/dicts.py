@@ -19,6 +19,7 @@ from arolla.jagged_shape import jagged_shape
 from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
+from koladata.operators import ids as ids_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
@@ -42,6 +43,14 @@ def _shaped(
     shape, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
   """Implementation of `kd.dicts.shaped`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.as_backend_operator('kd.dicts._deterministic_shaped')
+def _deterministic_shaped(
+    shape, keys, values, key_schema, value_schema, schema, itemid
+):  # pylint: disable=unused-argument
+  """Implementation of `kd.dicts.uu` (deterministic, itemid is mandatory)."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -216,6 +225,113 @@ arolla.abc.register_adhoc_aux_binding_policy(
     new, _new_bind_args, make_literal_fn=py_boxing.literal
 )
 arolla.abc.set_expr_view_for_aux_policy(new, view.KodaView)
+
+
+@optools.add_to_registry(
+    aliases=['kd.uudict'],
+    via_cc_operator_package=True,
+)
+@arolla.optools.as_lambda_operator(
+    'kd.dicts.uu',
+    aux_policy='koladata_adhoc_binding_policy[kd.dicts.uu]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.keys),
+        qtype_utils.expect_data_slice(P.values),
+        qtype_utils.expect_data_slice_or_unspecified(P.key_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.value_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.seed),
+    ],
+)
+def uu(
+    keys,
+    values,
+    key_schema,
+    value_schema,
+    schema,
+    seed,
+):  # pylint: disable=g-doc-args
+  """Creates a dict with itemid determined deterministically.
+
+  The dict's ItemId is computed deterministically from the seed, keys, and
+  values using uuid_for_dict.
+
+  Examples:
+  uudict({1: 2, 3: 4}) -> returns a deterministic dict ({1: 2, 3: 4})
+  uudict(kd.slice([1, 2]), kd.slice([3, 4]))
+    -> returns a deterministic dict ({1: 3, 2: 4})
+  uudict(kd.slice([1, 2]), kd.slice([3, 4]), seed='my_seed')
+    -> returns a deterministic dict with a different id than above
+
+  Args:
+    items_or_keys: a Python dict, or a DataSlice with keys.
+    values: a DataSlice with values. Must not be specified if items_or_keys is a
+      Python dict.
+    key_schema: the schema of the dict keys. If not specified, it will be
+      deduced from keys or defaulted to OBJECT.
+    value_schema: the schema of the dict values. If not specified, it will be
+      deduced from values or defaulted to OBJECT.
+    schema: the schema to use for the newly created Dict. If specified, then
+      key_schema and value_schema must not be specified.
+    seed: text seed for the uuid computation.
+
+  Returns:
+    A DataSlice with the dict.
+  """
+  key_schema = M.core.default_if_unspecified(
+      key_schema, data_slice.unspecified()
+  )
+  value_schema = M.core.default_if_unspecified(
+      value_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+
+  itemid = ids_ops.uuid_for_dict(
+      seed=seed,
+      keys=ids_ops.agg_uuid(keys),
+      values=ids_ops.agg_uuid(values),
+  )
+
+  shape = arolla_bridge.from_arolla_jagged_shape(
+      M.jagged.remove_dims(
+          arolla_bridge.to_arolla_jagged_shape(
+              jagged_shape_ops.get_shape(keys)
+          ),
+          from_dim=-1,
+      )
+  )
+
+  return _deterministic_shaped(
+      shape, keys, values, key_schema, value_schema, schema, itemid
+  )
+
+
+def _uu_bind_args(
+    items_or_keys,
+    values=arolla.unspecified(),
+    *,
+    key_schema=arolla.unspecified(),
+    value_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    seed='',
+):
+  """Binding policy for kd.dicts.uu."""
+  keys, values, key_schema, value_schema, schema, _, _ = _new_bind_args(
+      items_or_keys,
+      values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=arolla.unspecified(),
+  )
+  seed = py_boxing.as_qvalue_or_expr(seed)
+  return (keys, values, key_schema, value_schema, schema, seed)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    uu, _uu_bind_args, make_literal_fn=py_boxing.literal
+)
+arolla.abc.set_expr_view_for_aux_policy(uu, view.KodaView)
 
 
 @optools.add_to_registry(

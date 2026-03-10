@@ -57,6 +57,14 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
+// kd.dicts._deterministic_shaped operator.
+// Same as DictShaped but itemid argument is mandatory.
+absl::StatusOr<DataSlice> DictDeterministicShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& keys,
+    const DataSlice& values, const DataSlice& key_schema,
+    const DataSlice& value_schema, const DataSlice& schema,
+    const DataSlice& itemid);
+
 // kd.dicts._like operator.
 absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,

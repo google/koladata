@@ -467,10 +467,8 @@ def switch(
   # up by SWITCH_DEFAULT.
   case_keys = schema.to_object(case_keys)
 
-  # TODO: b/477578091 - If we had a deterministic kd.uudict operator, the dict
-  # creation would be cached by the Expr compiler.
   # TODO: b/477578091 - Check that there are no adoptions in runtime.
-  cases = dicts.new(case_keys, case_fns)
+  cases = dicts.uu(case_keys, case_fns)
 
   fn = masking.coalesce(
       dicts.get_values(cases, key),

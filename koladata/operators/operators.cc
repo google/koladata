@@ -142,6 +142,8 @@ OPERATOR("kd.curves.log_pwl_curve", LogPwlCurve);
 OPERATOR("kd.curves.pwl_curve", PwlCurve);
 OPERATOR("kd.curves.symmetric_log_p1_pwl_curve", SymmetricLogP1PwlCurve);
 //
+OPERATOR("kd.dicts._deterministic_shaped", DictDeterministicShaped,
+         "kd.dicts.uu");
 OPERATOR("kd.dicts._dict_update", DictUpdate, "kd.dicts.dict_update");
 OPERATOR("kd.dicts._get_values", GetValues, "kd.dicts.get_values");
 OPERATOR("kd.dicts._get_values_by_keys", GetValuesByKeys,

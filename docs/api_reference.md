@@ -1722,6 +1722,38 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a Dict.</code></pre>
 
+### `kd.dicts.uu(items_or_keys, values=unspecified, *, key_schema=unspecified, value_schema=unspecified, schema=unspecified, seed='')` {#kd.dicts.uu}
+Aliases:
+
+- [kd.uudict](#kd.uudict)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a dict with itemid determined deterministically.
+
+The dict&#39;s ItemId is computed deterministically from the seed, keys, and
+values using uuid_for_dict.
+
+Examples:
+uudict({1: 2, 3: 4}) -&gt; returns a deterministic dict ({1: 2, 3: 4})
+uudict(kd.slice([1, 2]), kd.slice([3, 4]))
+  -&gt; returns a deterministic dict ({1: 3, 2: 4})
+uudict(kd.slice([1, 2]), kd.slice([3, 4]), seed=&#39;my_seed&#39;)
+  -&gt; returns a deterministic dict with a different id than above
+
+Args:
+  items_or_keys: a Python dict, or a DataSlice with keys.
+  values: a DataSlice with values. Must not be specified if items_or_keys is a
+    Python dict.
+  key_schema: the schema of the dict keys. If not specified, it will be
+    deduced from keys or defaulted to OBJECT.
+  value_schema: the schema of the dict values. If not specified, it will be
+    deduced from values or defaulted to OBJECT.
+  schema: the schema to use for the newly created Dict. If specified, then
+    key_schema and value_schema must not be specified.
+  seed: text seed for the uuid computation.
+
+Returns:
+  A DataSlice with the dict.</code></pre>
+
 ### `kd.dicts.with_dict_update(x, keys, values=unspecified)` {#kd.dicts.with_dict_update}
 Aliases:
 
@@ -11176,6 +11208,10 @@ Alias for [kd.entities.uu](#kd.entities.uu) operator.
 ### `kd.uu_schema(seed='', **kwargs)` {#kd.uu_schema}
 
 Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
+
+### `kd.uudict(items_or_keys, values=unspecified, *, key_schema=unspecified, value_schema=unspecified, schema=unspecified, seed='')` {#kd.uudict}
+
+Alias for [kd.dicts.uu](#kd.dicts.uu) operator.
 
 ### `kd.uuid(seed='', **kwargs)` {#kd.uuid}
 

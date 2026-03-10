@@ -91,6 +91,18 @@ absl::StatusOr<DataSlice> DictShaped(
   return result;
 }
 
+absl::StatusOr<DataSlice> DictDeterministicShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& keys,
+    const DataSlice& values, const DataSlice& key_schema,
+    const DataSlice& value_schema, const DataSlice& schema,
+    const DataSlice& itemid) {
+  if (IsUnspecifiedDataSlice(itemid)) {
+    return absl::InvalidArgumentError("itemid is required");
+  }
+  return DictShaped(shape, keys, values, key_schema, value_schema, schema,
+                    itemid, {});
+}
+
 absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,

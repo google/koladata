@@ -799,6 +799,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":core",
+        ":ids",
         ":jagged_shape",
         ":op_repr",
         ":optools",

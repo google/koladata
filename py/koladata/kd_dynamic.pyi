@@ -179,6 +179,7 @@ class dicts:
   shaped = _operators_dicts.shaped
   shaped_as = _operators_dicts.shaped_as
   size = _operators_dicts.size
+  uu = _operators_dicts.uu
   with_dict_update = _operators_dicts.with_dict_update
 
 
@@ -851,6 +852,7 @@ updated = _operators_core.updated
 updated_bag = _operators_bags.updated
 uu = _operators_entities.uu
 uu_schema = _operators_schema.uu_schema
+uudict = _operators_dicts.uu
 uuid = _operators_ids.uuid
 uuid_for_dict = _operators_ids.uuid_for_dict
 uuid_for_list = _operators_ids.uuid_for_list
