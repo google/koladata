@@ -1033,6 +1033,7 @@ proto_library(
 
 py_proto_library(
     name = "transform_config_py_proto",
+    visibility = ["//visibility:public"],
     deps = [
         ":transform_config_proto",
     ],
