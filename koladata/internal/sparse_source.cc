@@ -23,12 +23,17 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/status.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 
@@ -125,5 +130,25 @@ absl::Status SparseSource::SetUnitAndUpdateMissingObjects(
   return absl::OkStatus();
 }
 
+MemoryStatsEntry SparseSource::GetMemoryStats() const {
+  MemoryStatsEntry stats;
+  if (alloc_id_.has_value()) {
+    stats.container_description =
+        absl::StrFormat("SparseSource[alloc_id=%v]", *alloc_id_);
+  } else {
+    stats.container_description = "SparseSource[small_allocs]";
+  }
+  stats.shallow_size =
+      data_item_map_.size() * (sizeof(ObjectId) + sizeof(DataItem));
+  for (const auto& [_, v] : data_item_map_) {
+    if (v.holds_value<arolla::Text>()) {
+      stats.AppendStringsSize(v.value<arolla::Text>());
+    }
+    if (v.holds_value<arolla::Bytes>()) {
+      stats.AppendStringsSize(v.value<arolla::Bytes>());
+    }
+  }
+  return stats;
+}
 
 }  // namespace koladata::internal

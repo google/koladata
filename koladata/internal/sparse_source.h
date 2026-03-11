@@ -24,6 +24,7 @@
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 
@@ -78,6 +79,8 @@ class SparseSource {
   // Updates missing_objects with the list of objects that were missing.
   absl::Status SetUnitAndUpdateMissingObjects(
       const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects);
+
+  MemoryStatsEntry GetMemoryStats() const;
 
  private:
   bool ObjectBelongs(ObjectId object) const {

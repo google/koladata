@@ -152,12 +152,7 @@ class ValueBuffer : public absl::Span<T> {
     if constexpr (std::is_same_v<T, arolla::Text> ||
                   std::is_same_v<T, arolla::Bytes>) {
       for (const auto& v : *this) {
-        absl::string_view view(v);
-        if (view.data() < reinterpret_cast<const char*>(&v) ||
-            view.data() >= reinterpret_cast<const char*>(&v) + sizeof(T)) {
-          // String is allocated outside of sizeof(T)
-          stats.strings_size += view.size() + 1;
-        }
+        stats.AppendStringsSize(v);
       }
     }
   }

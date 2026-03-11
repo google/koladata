@@ -48,6 +48,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/dict.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/sparse_source.h"
 #include "arolla/util/status_macros_backport.h"
@@ -173,6 +174,12 @@ class DataBagImpl : public arolla::RefcountedBase {
       const DataSliceImpl& objects,
       absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
+
+  // Returns memory usage of all data source which would be used by
+  // DataSliceImpl::GetAttr if called with the same arguments.
+  MemoryStats GetAttrMemoryStats(const DataSliceImpl& objects,
+                                 absl::string_view attr,
+                                 FallbackSpan fallbacks = {}) const;
 
   // Returns DataSliceImpl with attribute for every object.
   // Resulting DataSliceImpl contains types_buffer to distinguish

@@ -63,6 +63,7 @@
 #include "koladata/internal/dict.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/errors.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_attrs.h"
@@ -520,6 +521,38 @@ std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
 
 SparseSource& DataBagImpl::GetMutableSmallAllocSource(absl::string_view attr) {
   return small_alloc_sources_[attr];
+}
+
+MemoryStats DataBagImpl::GetAttrMemoryStats(const DataSliceImpl& objects,
+                                            absl::string_view attr,
+                                            FallbackSpan fallbacks) const {
+  MemoryStats stats;
+  auto next_fallback = [&fallbacks]() -> const DataBagImpl* {
+    if (fallbacks.empty()) {
+      return nullptr;
+    }
+    auto res = fallbacks.front();
+    fallbacks = fallbacks.subspan(1);
+    return res;
+  };
+  for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
+    ConstSparseSourceArray sparse_sources;
+    ConstDenseSourceArray dense_sources;
+    if (objects.allocation_ids().contains_small_allocation_id()) {
+      db->GetSmallAllocDataSources(attr, sparse_sources);
+    }
+    for (AllocationId alloc_id : objects.allocation_ids()) {
+      db->GetAttributeDataSources(alloc_id, attr, dense_sources,
+                                  sparse_sources);
+    }
+    for (const auto& source : sparse_sources) {
+      stats.push_back(source->GetMemoryStats());
+    }
+    for (const auto& source : dense_sources) {
+      stats.push_back(source->GetMemoryStats());
+    }
+  }
+  return stats;
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(

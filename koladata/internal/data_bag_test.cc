@@ -34,17 +34,20 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
@@ -902,6 +905,74 @@ TEST(DataBagTest, SingleSparseSourceToDense) {
         db->GetAttr(DataItem(alloc.ObjectByOffset(kAllocSize - 1)), "a"));
     EXPECT_EQ(item, DataItem(static_cast<int>(kAllocSize - 1)));
   }
+}
+
+TEST(DataBagTest, GetAttrMemoryStats) {
+  constexpr size_t kAllocSize = 64;
+
+  // Note: we use uuid with empty arolla::Fingerprint() to get deterministic
+  // result.
+  DataSliceImpl ds = DataSliceImpl::ObjectsFromAllocation(
+      AllocateUuids(arolla::Fingerprint(), kAllocSize), kAllocSize);
+  DataItem obj =
+      DataItem(CreateUuidObjectWithMetadata(arolla::Fingerprint(), 0));
+  DataSliceImpl ds_with_obj = DataSliceImpl::Create({ds[0], obj});
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(
+      db->SetAttr(ds, "a",
+                  DataSliceImpl::Create(
+                      arolla::CreateConstDenseArray<int>(kAllocSize, 57))));
+  ASSERT_OK(
+      db->SetAttr(ds, "b",
+                  DataSliceImpl::Create(
+                      arolla::CreateConstDenseArray<int>(kAllocSize, 43))));
+
+  auto db2 = db->PartiallyPersistentFork();
+  ASSERT_OK(db2->SetAttr(ds[3], "a",
+                         DataItem(arolla::Bytes("some byte string in db2"))));
+
+  auto db3 = DataBagImpl::CreateEmptyDatabag();
+  {
+    SliceBuilder bldr(kAllocSize);
+    bldr.InsertIfNotSet(0, 123L);
+    bldr.InsertIfNotSet(1, arolla::Text("this is some text in db3"));
+    ASSERT_OK(db3->SetAttr(ds, "a", std::move(bldr).Build()));
+  }
+  ASSERT_OK(db3->SetAttr(obj, "a", DataItem(3.14)));
+
+  auto format_stats = [](const MemoryStats& stats) {
+    std::string res;
+    for (const auto& s : stats) {
+      res.append(absl::StrFormat("%s shallow=%d strings=%d\n",
+                                 s.container_description, s.shallow_size,
+                                 s.strings_size));
+    }
+    return res;
+  };
+
+  auto alloc_str = "alloc_id=Entity:#08FqASSlz8yfK9AEKvBk0G";
+  auto dense1 = absl::StrFormat(
+      "TypedDenseSource[INT32, %s] shallow=272 strings=0\n", alloc_str);
+  auto dense2 = absl::StrFormat(
+      "MultitypeDenseSource[%s] shallow=%d strings=25\n", alloc_str,
+      kAllocSize + kAllocSize * sizeof(123L) +
+          kAllocSize * sizeof(arolla::Text));
+  auto sparse1 =
+      absl::StrFormat("SparseSource[%s] shallow=%d strings=24\n", alloc_str,
+                      1 * (sizeof(ObjectId) + sizeof(DataItem)));
+  auto sparse2 =
+      absl::StrFormat("SparseSource[small_allocs] shallow=%d strings=0\n",
+                      1 * (sizeof(ObjectId) + sizeof(DataItem)));
+
+  EXPECT_EQ(format_stats(db->GetAttrMemoryStats(ds_with_obj, "a", {})), dense1);
+  EXPECT_EQ(format_stats(db2->GetAttrMemoryStats(ds_with_obj, "a", {})),
+            absl::StrCat(sparse1, dense1));
+  EXPECT_EQ(format_stats(db3->GetAttrMemoryStats(ds_with_obj, "a", {})),
+            absl::StrCat(sparse2, dense2));
+  EXPECT_EQ(
+      format_stats(db2->GetAttrMemoryStats(ds_with_obj, "a", {db3.get()})),
+      absl::StrCat(sparse1, dense1, sparse2, dense2));
 }
 
 TEST(DataBagTest, SparseSource) {

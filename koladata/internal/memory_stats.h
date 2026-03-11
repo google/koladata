@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+
 namespace koladata::internal {
 
 struct MemoryStatsEntry {
@@ -32,6 +34,16 @@ struct MemoryStatsEntry {
   // Size of string data of arolla::Text and arolla::Bytes values.
   // Note that it is not included to shallow_size.
   size_t strings_size = 0;
+
+  template <class T>
+  void AppendStringsSize(const T& v) {
+    absl::string_view view(v);
+    if (view.data() < reinterpret_cast<const char*>(&v) ||
+        view.data() >= reinterpret_cast<const char*>(&v) + sizeof(T)) {
+      // String is allocated outside of sizeof(T)
+      strings_size += view.size() + 1;
+    }
+  }
 };
 
 using MemoryStats = std::vector<MemoryStatsEntry>;

@@ -84,6 +84,7 @@ cc_library(
 cc_library(
     name = "memory_stats",
     hdrs = ["memory_stats.h"],
+    deps = ["@com_google_absl//absl/strings:string_view"],
 )
 
 cc_library(
@@ -222,11 +223,14 @@ cc_library(
     deps = [
         ":data_item",
         ":data_slice",
+        ":memory_stats",
         ":missing_value",
         ":object_id",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",
@@ -514,6 +518,7 @@ cc_library(
         ":dict",
         ":dtype",
         ":errors",
+        ":memory_stats",
         ":object_id",
         ":schema_attrs",
         ":sparse_source",
@@ -555,6 +560,7 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":dtype",
+        ":memory_stats",
         ":object_id",
         ":schema_attrs",
         ":types_buffer",
@@ -567,6 +573,7 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/memory",
