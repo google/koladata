@@ -345,6 +345,7 @@ cc_library(
     srcs = ["json_stream.cc"],
     hdrs = ["json_stream.h"],
     deps = [
+        "//koladata:arolla_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor/parallel:basic_routine",
@@ -357,6 +358,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",

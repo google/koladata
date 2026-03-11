@@ -280,7 +280,19 @@ class json:
 
 @_dataclass
 class json_stream:
+  explode_array = _operators_json_stream.explode_array
+  get_array_nth_value = _operators_json_stream.get_array_nth_value
+  get_object_key_value = _operators_json_stream.get_object_key_value
+  get_object_key_values = _operators_json_stream.get_object_key_values
+  head = _operators_json_stream.head
+  implode_array = _operators_json_stream.implode_array
+  prettify = _operators_json_stream.prettify
+  quote = _operators_json_stream.quote
   salvage = _operators_json_stream.salvage
+  select_nonempty_arrays = _operators_json_stream.select_nonempty_arrays
+  select_nonempty_objects = _operators_json_stream.select_nonempty_objects
+  select_nonnull = _operators_json_stream.select_nonnull
+  unquote = _operators_json_stream.unquote
 
 
 @_dataclass

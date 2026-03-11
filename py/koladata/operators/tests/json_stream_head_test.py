@@ -41,23 +41,38 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 # The majority of the logic tests are in optools/json_stream_test.cc. These
 # tests only cover the bindings.
-class JsonStreamSalvageTest(parameterized.TestCase):
+class JsonStreamHeadTest(parameterized.TestCase):
 
   def test_basic(self):
-    result = kd.json_stream.salvage(kd.iterables.make('{"x', '":', ' "y"}'))
-    testing.assert_equal(result, kd.iterables.make('{"x', '"', ':"y"}'))
+    result = kd.json_stream.head(kd.iterables.make('1\n2\n3\n'), n=2)
+    testing.assert_equal(result, kd.iterables.make('1\n2\n'))
+
+  def test_int64_n(self):
+    result = kd.json_stream.head(kd.iterables.make('1\n2\n3\n'), n=kd.int64(2))
+    testing.assert_equal(result, kd.iterables.make('1\n2\n'))
+
+  def test_default_n(self):
+    result = kd.json_stream.head(kd.iterables.make('1\n2\n3\n'))
+    testing.assert_equal(result, kd.iterables.make('1\n'))
 
   def test_parallel_transform(self):
-    result = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.salvage(I.x)),
+    executor = kd_internal.parallel.get_default_executor()
+    config = kd_internal.parallel.create_transform_config(
+        kd_internal.parallel.get_default_transform_config_src().with_attrs(
+            allow_runtime_transforms=False
+        )
+    )
+    result = kd_internal.parallel.transform(
+        config,
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x, n=2)),
     )(
-        kd_internal.parallel.get_default_executor(),
-        x=kd.streams.make('{"x', '":', ' "y"}'),
+        executor,
+        x=kd.streams.make('1\n2\n3\n'),
         return_type_as=kd.streams.make(),
     ).yield_all(
         timeout=1
     )
-    testing.assert_equal(kd.stack(*result), ds(['{"x', '"', ':"y"}']))
+    testing.assert_equal(kd.stack(*result), ds(['1\n2\n']))
 
   def test_bad_arguments(self):
     with self.assertRaisesRegex(
@@ -67,7 +82,7 @@ class JsonStreamSalvageTest(parameterized.TestCase):
             ' INT32 and ndim=0'
         ),
     ):
-      kd.json_stream.salvage(kd.iterables.make(123))
+      kd.json_stream.head(kd.iterables.make(123), n=1)
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -75,92 +90,36 @@ class JsonStreamSalvageTest(parameterized.TestCase):
             ' STRING and ndim=1'
         ),
     ):
-      kd.json_stream.salvage(kd.iterables.make(ds(['x', 'y'])))
+      kd.json_stream.head(kd.iterables.make(ds(['x', 'y'])))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'argument `allow_nan` must be an item holding BOOLEAN, got an item'
-            ' of INT32'
+            'argument `n` must be a slice of integer values, got a slice of'
+            ' STRING'
         ),
     ):
-      kd.json_stream.salvage(kd.iterables.make(), allow_nan=123)
+      kd.json_stream.head(kd.iterables.make(), n='x')
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: argument `allow_nan` must be an'
-            ' item holding BOOLEAN, got missing'
-        ),
+        re.escape('kd.json_stream._head_stream: expected a present value'),
     ):
-      kd.json_stream.salvage(
+      kd.json_stream.head(
           kd.iterables.make(),
-          allow_nan=ds(None, schema=schema_constants.BOOLEAN),
+          n=ds(None, schema=schema_constants.INT32),
       )
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'argument `allow_nan` must be an item holding BOOLEAN, got a slice'
-            ' of rank 1 > 0'
+            'kd.json_stream._head_stream: expected rank 0, but got rank=1'
         ),
     ):
-      kd.json_stream.salvage(kd.iterables.make(), allow_nan=ds([True, False]))
-    with self.assertRaisesRegex(
-        ValueError,
-        'argument `ensure_ascii` must be an item holding BOOLEAN, got an item'
-        ' of INT32',
-    ):
-      kd.json_stream.salvage(kd.iterables.make(), ensure_ascii=123)
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: argument `ensure_ascii` must be an'
-            ' item holding BOOLEAN, got missing'
-        ),
-    ):
-      kd.json_stream.salvage(
-          kd.iterables.make(),
-          ensure_ascii=ds(None, schema=schema_constants.BOOLEAN),
-      )
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'argument `ensure_ascii` must be an item holding BOOLEAN, got a'
-            ' slice of rank 1 > 0'
-        ),
-    ):
-      kd.json_stream.salvage(
-          kd.iterables.make(), ensure_ascii=kd.slice([True, False])
-      )
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: argument `max_depth` must be a'
-            ' slice of integer values, got a slice of STRING'
-        ),
-    ):
-      kd.json_stream.salvage(kd.iterables.make(), max_depth='x')
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: expected a present value'
-        ),
-    ):
-      kd.json_stream.salvage(
-          kd.iterables.make(),
-          max_depth=ds(None, schema=schema_constants.INT32),
-      )
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: expected rank 0, but got rank=1'
-        ),
-    ):
-      kd.json_stream.salvage(kd.iterables.make(), max_depth=ds([123, 456]))
+      kd.json_stream.head(kd.iterables.make(), n=ds([1, 2]))
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation(self):
     stream, _ = stream_clib.Stream.new(DATA_SLICE)
     result_stream = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.salvage(I.x)),
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),
     )(
         kd_internal.parallel.get_default_executor(),
         x=stream,
@@ -173,8 +132,23 @@ class JsonStreamSalvageTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*Boom!'):
       result_stream.read_all(timeout=1)
 
+  @arolla.abc.add_default_cancellation_context
+  def test_early_end(self):
+    stream, writer = stream_clib.Stream.new(DATA_SLICE)
+    result_stream = parallel_fns.transform(
+        functor_factories.expr_fn(returns=kde.json_stream.head(I.x)),
+    )(
+        kd_internal.parallel.get_default_executor(),
+        x=stream,
+        return_type_as=kd.streams.make(),
+    )
+
+    writer.write(ds('[]'))  # Complete value written but writer not closed.
+    result = result_stream.read_all(timeout=1)
+    testing.assert_equal(kd.stack(*result), ds(['[]\n']))
+
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.json_stream.salvage(I.x)))
+    self.assertTrue(view.has_koda_view(kde.json_stream.head(I.x)))
 
 
 if __name__ == '__main__':

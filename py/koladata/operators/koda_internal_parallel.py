@@ -3549,8 +3549,104 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
     }
   }
   operator_replacements {
+    from_op: "kd.json_stream.explode_array"
+    to_op: "kd.json_stream._explode_array_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.get_array_nth_value"
+    to_op: "kd.json_stream._get_array_nth_value_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.get_object_key_value"
+    to_op: "kd.json_stream._get_object_key_value_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.get_object_key_values"
+    to_op: "kd.json_stream._get_object_key_values_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.head"
+    to_op: "kd.json_stream._head_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.implode_array"
+    to_op: "kd.json_stream._implode_array_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.prettify"
+    to_op: "kd.json_stream._prettify_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.quote"
+    to_op: "kd.json_stream._quote_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
     from_op: "kd.json_stream.salvage"
     to_op: "kd.json_stream._salvage_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.select_nonempty_arrays"
+    to_op: "kd.json_stream._select_nonempty_arrays_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.select_nonempty_objects"
+    to_op: "kd.json_stream._select_nonempty_objects_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.select_nonnull"
+    to_op: "kd.json_stream._select_nonnull_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.unquote"
+    to_op: "kd.json_stream._unquote_parallel"
     argument_transformation {
       arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS

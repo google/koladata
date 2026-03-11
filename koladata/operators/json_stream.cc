@@ -14,22 +14,26 @@
 //
 #include "koladata/operators/json_stream.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <utility>
+#include <variant>
 
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/span.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/basic_routine.h"
@@ -43,6 +47,7 @@
 namespace koladata::ops {
 
 using ::koladata::functor::parallel::BasicRoutineHooks;
+using ::koladata::functor::parallel::ExecutorPtr;
 using ::koladata::functor::parallel::MakeStream;
 using ::koladata::functor::parallel::StartBasicRoutine;
 using ::koladata::functor::parallel::StreamPtr;
@@ -54,7 +59,7 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
  public:
   StreamProcessorHooks(StreamWriterPtr absl_nonnull writer,
                        StreamPtr absl_nonnull input_stream,
-                       std::unique_ptr<ProcessorType> processor)
+                       ProcessorType processor)
       : writer_(std::move(writer)),
         input_stream_(std::move(input_stream)),
         processor_(std::move(processor)) {}
@@ -92,7 +97,7 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
       }
       if (!item_slice.IsEmpty()) {
         auto [output, is_end_of_output] =
-            processor_->Process(item_slice.item().value<arolla::Text>(), false);
+            processor_.Process(item_slice.item().value<arolla::Text>(), false);
         write_output(std::move(output));
         if (is_end_of_output) {
           writer_->TryClose(absl::OkStatus());
@@ -104,7 +109,7 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
     }
     if (absl::Status* status = try_read_result.close_status()) {
       if (status->ok()) {
-        auto [output, is_end_of_output] = processor_->Process("", true);
+        auto [output, is_end_of_output] = processor_.Process("", true);
         DCHECK(is_end_of_output);
         write_output(std::move(output));
       }
@@ -122,33 +127,215 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
 
   const StreamWriterPtr absl_nonnull writer_;
   const StreamPtr absl_nonnull input_stream_;
-  const std::unique_ptr<ProcessorType> processor_;
+  ProcessorType processor_;
 };
 
-absl::StatusOr<koladata::functor::parallel::StreamPtr> JsonStreamSalvageStream(
-    functor::parallel::ExecutorPtr absl_nonnull executor,
-    const koladata::functor::parallel::StreamPtr absl_nonnull& input_stream,
+namespace {
+template <typename... Processors>
+class CompositeStreamProcessor {
+ public:
+  template <typename... Args>
+  explicit CompositeStreamProcessor(Args&&... args)
+      : processors_(std::forward<Args>(args)...) {}
+
+  std::tuple<std::string, bool> Process(std::string_view input_chunk,
+                                        bool is_end_of_input) {
+    std::string chunk(input_chunk);
+    bool is_end_of_output = is_end_of_input;
+    // "Loops" over tuple elements. Comma operator forces ordering.
+    std::apply(
+        [&](auto&... ps) {
+          (([&]() {
+             std::tie(chunk, is_end_of_output) =
+                 ps.Process(std::move(chunk), is_end_of_output);
+           }()),
+           ...);
+        },
+        processors_);
+    return std::make_tuple(std::move(chunk), is_end_of_output);
+  }
+
+  std::tuple<Processors...> processors_;
+};
+
+template <typename Processor>
+StreamPtr RunJsonStreamProcessor(ExecutorPtr absl_nonnull executor,
+                                 StreamPtr absl_nonnull input_stream,
+                                 Processor processor) {
+  auto [output_stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
+  StartBasicRoutine(
+      std::move(executor),
+      std::make_unique<StreamProcessorHooks<Processor>>(
+          std::move(writer), std::move(input_stream), std::move(processor)));
+  return std::move(output_stream);
+}
+
+template <typename... Processors>
+StreamPtr RunCompositeJsonStreamProcessor(ExecutorPtr absl_nonnull executor,
+                                          StreamPtr absl_nonnull input_stream,
+                                          Processors... processors) {
+  return RunJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      CompositeStreamProcessor<Processors...>(std::move(processors)...));
+}
+
+}  // namespace
+
+absl::StatusOr<StreamPtr> JsonStreamSalvageStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream,
     const DataSlice& allow_nan, const DataSlice& ensure_ascii,
     const DataSlice& max_depth) {
   RETURN_IF_ERROR(ExpectPresentScalar("allow_nan", allow_nan, schema::kBool));
   RETURN_IF_ERROR(
       ExpectPresentScalar("ensure_ascii", ensure_ascii, schema::kBool));
-  RETURN_IF_ERROR(ExpectPresentScalar("max_depth", max_depth, schema::kInt32));
-  internal::JsonSalvageOptions options = {
-      .allow_nan = allow_nan.item().value<bool>(),
-      .ensure_ascii = ensure_ascii.item().value<bool>(),
-      .max_depth = max_depth.item().value<int32_t>(),
+  RETURN_IF_ERROR(ExpectInteger("max_depth", max_depth));
+  ASSIGN_OR_RETURN(const int64_t max_depth_value,
+                   ToArollaScalar<int64_t>(max_depth));
+  return RunJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonSalvageStreamProcessor(internal::JsonSalvageOptions{
+          .allow_nan = allow_nan.item().value<bool>(),
+          .ensure_ascii = ensure_ascii.item().value<bool>(),
+          .max_depth = max_depth_value,
+      }));
+}
+
+absl::StatusOr<StreamPtr> JsonStreamPrettifyStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream,
+    const DataSlice& indent_string) {
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("indent_string", indent_string, schema::kString));
+  return RunJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonPrettifyStreamProcessor(internal::JsonPrettifyOptions{
+          .indent_string =
+              std::string(indent_string.item().value<arolla::Text>().view()),
+      }));
+}
+
+absl::StatusOr<StreamPtr> JsonStreamHeadStream(ExecutorPtr
+                                               absl_nonnull executor,
+                                               StreamPtr
+                                               absl_nonnull input_stream,
+                                               const DataSlice& n) {
+  RETURN_IF_ERROR(ExpectInteger("n", n));
+  ASSIGN_OR_RETURN(const int64_t n_value, ToArollaScalar<int64_t>(n));
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonHeadStreamProcessor(
+          internal::JsonHeadOptions{.n = n_value}));
+}
+
+absl::StatusOr<StreamPtr> JsonStreamSelectNonemptyObjectsStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonSelectNonemptyObjectsStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamSelectNonemptyArraysStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonSelectNonemptyArraysStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamSelectNonnullStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonSelectNonnullStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamGetObjectKeyValueStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream,
+    const DataSlice& key) {
+  RETURN_IF_ERROR(ExpectPresentScalar("key", key, schema::kString));
+
+  auto path_match_fn =
+      [key_string = std::string(key.item().value<arolla::Text>().view())](
+          absl::Span<const std::variant<int64_t, std::string>> path) -> bool {
+    return path.size() == 1 &&
+           std::holds_alternative<std::string>(path.back()) &&
+           std::get<std::string>(path.back()) == key_string;
   };
 
-  auto [output_stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
-  StartBasicRoutine(
-      std::move(executor),
-      std::make_unique<
-          StreamProcessorHooks<internal::JsonSalvageStreamProcessor>>(
-          std::move(writer), input_stream,
-          std::make_unique<internal::JsonSalvageStreamProcessor>(options)));
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonExtractValuesStreamProcessor(
+          internal::JsonExtractValuesOptions{
+              .path_match_fn = std::move(path_match_fn),
+          }),
+      internal::JsonGetArrayNthValueStreamProcessor(
+          internal::JsonGetArrayNthValueOptions{.n = 0}));
+}
 
-  return std::move(output_stream);
+absl::StatusOr<StreamPtr> JsonStreamGetObjectKeyValuesStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream,
+    const DataSlice& key) {
+  RETURN_IF_ERROR(ExpectPresentScalar("key", key, schema::kString));
+
+  auto path_match_fn =
+      [key_string = std::string(key.item().value<arolla::Text>().view())](
+          absl::Span<const std::variant<int64_t, std::string>> path) -> bool {
+    return path.size() == 1 &&
+           std::holds_alternative<std::string>(path.back()) &&
+           std::get<std::string>(path.back()) == key_string;
+  };
+
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonExtractValuesStreamProcessor(
+          internal::JsonExtractValuesOptions{
+              .path_match_fn = std::move(path_match_fn),
+          }));
+}
+
+absl::StatusOr<StreamPtr> JsonStreamImplodeArrayStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunCompositeJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonCompactifyStreamProcessor(),
+      internal::JsonImplodeArrayStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamExplodeArrayStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunJsonStreamProcessor(std::move(executor), std::move(input_stream),
+                                internal::JsonExplodeArrayStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamGetArrayNthValueStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream,
+    const DataSlice& n) {
+  RETURN_IF_ERROR(ExpectInteger("n", n));
+  ASSIGN_OR_RETURN(const int64_t n_value, ToArollaScalar<int64_t>(n));
+  return RunJsonStreamProcessor(
+      std::move(executor), std::move(input_stream),
+      internal::JsonGetArrayNthValueStreamProcessor(
+          internal::JsonGetArrayNthValueOptions{.n = n_value}));
+}
+
+absl::StatusOr<StreamPtr> JsonStreamUnquoteStream(ExecutorPtr
+                                                  absl_nonnull executor,
+                                                  StreamPtr
+                                                  absl_nonnull input_stream) {
+  return RunJsonStreamProcessor(std::move(executor), std::move(input_stream),
+                                internal::JsonUnquoteStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamQuoteStream(ExecutorPtr
+                                                absl_nonnull executor,
+                                                StreamPtr
+                                                absl_nonnull input_stream) {
+  return RunJsonStreamProcessor(std::move(executor), std::move(input_stream),
+                                internal::JsonQuoteStreamProcessor());
 }
 
 }  // namespace koladata::ops

@@ -179,6 +179,83 @@ OPERATOR("kd.json.from_json", FromJson);
 OPERATOR("kd.json.to_json", ToJson);
 //
 OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._explode_array_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamExplodeArrayStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._get_array_nth_value_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamGetArrayNthValueStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._get_object_key_value_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamGetObjectKeyValueStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._get_object_key_values_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamGetObjectKeyValuesStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._head_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamHeadStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._implode_array_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamImplodeArrayStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._prettify_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+            arolla::GetQType<DataSlice>(),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamPrettifyStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._quote_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamQuoteStream);
+OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._salvage_stream",
     arolla::QExprOperatorSignature::Get(
         {
@@ -190,6 +267,42 @@ OPERATOR_WITH_SIGNATURE(
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
     &JsonStreamSalvageStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._select_nonempty_arrays_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamSelectNonemptyArraysStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._select_nonempty_objects_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamSelectNonemptyObjectsStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._select_nonnull_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamSelectNonnullStream);
+OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._unquote_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamUnquoteStream);
 //
 OPERATOR_FAMILY("kd.lists._concat",
                 arolla::MakeVariadicInputOperatorFamily(ConcatLists));
