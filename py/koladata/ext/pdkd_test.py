@@ -405,6 +405,32 @@ class PdkdTest(parameterized.TestCase):
         res.self_.no_bag(), kd.slice([kd.float32(1.0), kd.int32(1)], kd.OBJECT)
     )
 
+  def test_to_series_primitives(self):
+    ds = kd.slice([1, 2, 3])
+    series = pdkd.to_series(ds)
+    self.assertIsInstance(series, pd.Series)
+    self.assertEqual(series.name, 'self_')
+    self.assertEqual(list(series), [1, 2, 3])
+
+  def test_to_series_multi_dimensional(self):
+    ds = kd.slice([[1, 2], [3], [], [4, 5]])
+    series = pdkd.to_series(ds)
+    self.assertEqual(list(series), [1, 2, 3, 4, 5])
+    self.assertIsInstance(series.index, pd.MultiIndex)
+
+  def test_to_series_with_col(self):
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
+    series = pdkd.to_series(ds, col='x')
+    self.assertEqual(series.name, 'x')
+    self.assertEqual(list(series), [1, 2, 3])
+
+  def test_to_series_multiple_cols_error(self):
+    ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
+    with self.assertRaisesRegex(
+        ValueError, 'to_series requires exactly one column'
+    ):
+      _ = pdkd.to_series(ds)
+
 
 if __name__ == '__main__':
   absltest.main()

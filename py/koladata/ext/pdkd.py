@@ -110,7 +110,7 @@ _PD_FROM_KD = {
 }
 
 
-def _to_series(ds: kd.types.DataSlice) -> pd.Series:
+def _flat_ds_to_series(ds: kd.types.DataSlice) -> pd.Series:
   """Returns `ds` converted to a pd.Series.
 
   Note: this is _not_ a general purpose conversion tool as it expects `ds` to be
@@ -152,6 +152,101 @@ def _to_series(ds: kd.types.DataSlice) -> pd.Series:
     pd_dtype = pd.StringDtype() if dtype == kd.STRING else 'object'
     ds_py = [_normalize(v) for v in ds.internal_as_py()]
     return pd.Series(ds_py, dtype=pd_dtype)
+
+
+def _prepare_cols(
+    ds: kd.types.DataSlice,
+    cols: (
+        Sequence[str | arolla.Expr] | Mapping[str, str | arolla.Expr] | None
+    ) = None,
+    include_self: bool = False,
+) -> tuple[dict[str, pd.Series], pd.Index | None]:
+  """Shared utility to prepare DataFrame columns and index."""
+  if ds.get_ndim() == 0:
+    ds = ds.repeat(1)
+
+  if cols is not None:
+    if not isinstance(cols, Mapping):
+      cols = list(cols)
+    if not ds.has_bag():
+      raise ValueError(
+          f'Cannot specify columns {cols!r} for a DataSlice without a db.'
+      )
+    if include_self:
+      raise ValueError(
+          f'Cannot set `include_self` when specifying columns {cols!r}. Add'
+          " 'self_' to the list of columns instead."
+      )
+
+  get_attr_fn = kdi.get_attr
+  schema = ds.get_schema()
+  if cols is None:
+    if not ds.has_bag():
+      cols = ['self_']
+    elif schema.is_entity_schema():
+      cols = ds.get_attr_names(intersection=True)
+      if include_self:
+        cols.append('self_')
+    elif schema == kd.OBJECT and kd.is_entity(ds):
+      cols = ds.get_attr_names(intersection=False)
+      get_attr_fn = kdi.maybe
+      if include_self:
+        cols.append('self_')
+    else:
+      cols = ['self_']
+
+  def _eval_col(col):
+    if isinstance(col, str):
+      if col == 'self_':
+        return ds
+      return get_attr_fn(ds, col)
+    elif isinstance(col, arolla.Expr):
+      try:
+        return kdi.eval(col, ds)
+      except ValueError as e:
+        raise ValueError(f'Cannot evaluate {col} on {ds!r}.') from e
+    else:
+      raise ValueError(f'Unsupported attr type: {type(col)}')
+
+  col_dss = []
+  col_names = []
+  if isinstance(cols, Mapping):
+    for col_name, col in cols.items():
+      col_dss.append(_eval_col(col))
+      col_names.append(col_name)
+  else:
+    for col in cols:
+      if isinstance(col, str):
+        if col in _SPECIAL_COLUMN_NAMES:
+          continue
+        col_names.append(col)
+      elif isinstance(col, arolla.Expr):
+        if (expr_name := kdi.expr.get_name(col)) is not None:
+          col_names.append(expr_name)
+        else:
+          col_names.append(str(col))
+      else:
+        pass
+      col_dss.append(_eval_col(col))
+
+  try:
+    col_dss = kdi.align(*col_dss)
+  except ValueError as e:
+    raise ValueError('All columns must have compatible shapes.') from e
+
+  col_dict = {
+      name: _flat_ds_to_series(col_ds.flatten()).values
+      for col_ds, name in zip(col_dss, col_names)
+  }
+
+  index = None
+  ds_for_index = col_dss[0]
+  if ds_for_index.get_ndim() > 1:
+    index = pd.MultiIndex.from_arrays(
+        npkd.get_elements_indices_from_ds(ds_for_index)
+    )
+
+  return col_dict, index
 
 
 def to_dataframe(
@@ -248,91 +343,39 @@ def to_dataframe(
   Returns:
     DataFrame with columns from DataSlice fields.
   """
-  if ds.get_ndim() == 0:
-    ds = ds.repeat(1)
-
-  if cols is not None:
-    if not isinstance(cols, Mapping):
-      cols = list(cols)
-    if not ds.has_bag():
-      raise ValueError(
-          f'Cannot specify columns {cols!r} for a DataSlice without a db.'
-      )
-    if include_self:
-      raise ValueError(
-          f'Cannot set `include_self` when specifying columns {cols!r}. Add'
-          " 'self_' to the list of columns instead."
-      )
-
-  get_attr_fn = kdi.get_attr
-  schema = ds.get_schema()
-  if cols is None:
-    if not ds.has_bag():
-      cols = ['self_']
-    elif schema.is_entity_schema():
-      cols = ds.get_attr_names(intersection=True)
-      if include_self:
-        cols.append('self_')
-    elif schema == kd.OBJECT and kd.is_entity(ds):
-      cols = ds.get_attr_names(intersection=False)
-      get_attr_fn = kdi.maybe
-      if include_self:
-        cols.append('self_')
-    else:
-      cols = ['self_']
-
-  def _eval_col(col):
-    if isinstance(col, str):
-      if col == 'self_':
-        return ds
-      return get_attr_fn(ds, col)
-    elif isinstance(col, arolla.Expr):
-      try:
-        return kdi.eval(col, ds)
-      except ValueError as e:
-        raise ValueError(f'Cannot evaluate {col} on {ds!r}.') from e
-    else:
-      raise ValueError(f'Unsupported attr type: {type(col)}')
-
-  col_dss = []
-  col_names = []
-  if isinstance(cols, Mapping):
-    for col_name, col in cols.items():
-      col_dss.append(_eval_col(col))
-      col_names.append(col_name)
-  else:
-    for col in cols:
-      if isinstance(col, str):
-        if col in _SPECIAL_COLUMN_NAMES:
-          continue
-        col_names.append(col)
-      elif isinstance(col, arolla.Expr):
-        if (expr_name := kdi.expr.get_name(col)) is not None:
-          col_names.append(expr_name)
-        else:
-          col_names.append(str(col))
-      else:
-        pass
-      col_dss.append(_eval_col(col))
-
-  try:
-    col_dss = kdi.align(*col_dss)
-  except ValueError as e:
-    raise ValueError('All columns must have compatible shapes.') from e
-
-  col_dict = {
-      name: _to_series(col_ds.flatten()).values
-      for col_ds, name in zip(col_dss, col_names)
-  }
-
-  index = None
-  ds_for_index = col_dss[0]
-  if ds_for_index.get_ndim() > 1:
-    index = pd.MultiIndex.from_arrays(
-        npkd.get_elements_indices_from_ds(ds_for_index)
-    )
-
+  col_dict, index = _prepare_cols(ds, cols, include_self)
   return pd.DataFrame(col_dict, index=index)
+
+
+def to_series(
+    ds: kd.types.DataSlice,
+    col: str | arolla.Expr | None = None,
+) -> pd.Series:
+  """Creates a pandas Series from the given DataSlice.
+
+  If `col` is not provided, it behaves like `to_dataframe` with no columns
+  specified and extracts 'self_' or raises an error if the inference would
+  yield multiple columns.
+
+  Args:
+    ds: DataSlice to convert.
+    col: the column to extract from the DataSlice. If None, inference is used.
+
+  Returns:
+    Series representing the extracted column.
+  """
+  cols = [col] if col is not None else None
+  col_dict, index = _prepare_cols(ds, cols)
+
+  if len(col_dict) != 1:
+    raise ValueError(
+        f'to_series requires exactly one column, got {list(col_dict.keys())}'
+    )
+  return pd.Series(
+      list(col_dict.values())[0],
+      index=index,
+      name=list(col_dict.keys())[0],
+  )
 
 
 df = to_dataframe

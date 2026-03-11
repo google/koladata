@@ -11631,6 +11631,21 @@ Returns:
 
 Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 
+### `kd_ext.pdkd.to_series(ds: DataSlice, col: str | Expr | None = None) -> Series` {#kd_ext.pdkd.to_series}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a pandas Series from the given DataSlice.
+
+If `col` is not provided, it behaves like `to_dataframe` with no columns
+specified and extracts &#39;self_&#39; or raises an error if the inference would
+yield multiple columns.
+
+Args:
+  ds: DataSlice to convert.
+  col: the column to extract from the DataSlice. If None, inference is used.
+
+Returns:
+  Series representing the extracted column.</code></pre>
+
 </section>
 
 ### kd_ext.persisted_data {#kd_ext.persisted_data}
