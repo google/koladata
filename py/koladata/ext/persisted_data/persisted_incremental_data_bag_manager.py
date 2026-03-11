@@ -24,7 +24,7 @@ import collections
 import concurrent.futures
 import dataclasses
 import os
-from typing import AbstractSet, Collection, Iterable
+from typing import AbstractSet, Collection, Iterable, cast
 import uuid
 
 from koladata import kd
@@ -503,14 +503,22 @@ class PersistedIncrementalDataBagManager:
           bag_name=bag_to_add.bag_name,
           bag_filepath=self._get_bag_filepath_from_filename(bag_filename),
       )
-      cache_value = bag_to_add.bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
           serialized_bag_size_in_bytes=bag_name_to_serialized_bag_size_in_bytes[
               bag_to_add.bag_name
           ],
       )
-      cache.set(key=cache_key, value=cache_value, metadata=entry_metadata)
+      # The cache.set() method asks callers to use its return value and not to
+      # use the value passed in argument `value` in subsequent code - this is to
+      # minimize the memory footprint when another thread has set a value for
+      # `cache_key` in the meantime.
+      # Here we do not communicate the return value of cache.set() back to the
+      # caller, because we know it will be identical to `bag_to_add.bag`. The
+      # reason is that no other thread could have set a value for cache_key,
+      # which depends on the bag_filepath and hence bag_filename - a fresh
+      # filename generated privately here and that embodies a fresh UUID.
+      cache.set(key=cache_key, value=bag_to_add.bag, metadata=entry_metadata)
 
   def _make_single_bag(
       self, bag_name_to_bag: dict[str, kd.types.DataBag]
@@ -639,18 +647,19 @@ class PersistedIncrementalDataBagManager:
       ]
     for bag_name, future in zip(needed_bags, futures):
       bag, serialized_bag_size_in_bytes = future.result()
-      result[bag_name] = bag
       cache_key = _get_global_cache_key(
           bag_name=bag_name,
           bag_filepath=self._get_bag_filepath(bag_name),
       )
-      cache_value = bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
           serialized_bag_size_in_bytes=serialized_bag_size_in_bytes,
       )
-      global_cache.set(
-          key=cache_key, value=cache_value, metadata=entry_metadata
+      result[bag_name] = cast(
+          kd.types.DataBag,
+          global_cache.set(
+              key=cache_key, value=bag, metadata=entry_metadata
+          ),
       )
     return result
 

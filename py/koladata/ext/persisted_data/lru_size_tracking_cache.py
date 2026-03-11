@@ -102,33 +102,74 @@ class LruSizeTrackingCache(Generic[K, V]):
       self._cache[key] = value_and_metadata
       return value_and_metadata.value
 
-  def set(self, key: K, value: V, metadata: CacheEntryMetadata) -> None:
-    """Adds the given key-value pair to the cache if capacity allows.
+  def set(self, key: K, value: V, metadata: CacheEntryMetadata) -> V:
+    """Adds the given key-value pair to the cache if applicable.
 
-    If the cache is not accepting new values, calling this method has no effect.
+    This method assumes that the same key is always associated with the same
+    value and metadata. It might happen that two threads simultaneously look up
+    a key in the cache, see that it is not there, proceed to create a large
+    value, and store the key-value pair in the cache. In such a situation the
+    two values are conceptually equivalent, but they will typically be two
+    different objects in memory and each could consume significant amounts of
+    RAM.
 
-    If the key is already in the cache, the existing value and metadata are
-    replaced with the new value and metadata.
-    If the new value is too large to fit in the cache, it is not added.
+    This cache does not try to coordinate between the different threads, i.e. it
+    does not have a mechanism to register the intent to provide a value for a
+    key. Such a scheme is possible, but rather complex to implement, because if
+    the thread that is supposed to create the value fails for some reason, then
+    we need to detect that and notify a waiting thread that it should try to
+    create the value instead.
+
+    So instead of a complex coordination mechanism, we use a simpler protocol:
+    the two threads might both create values, which can temporarily increase the
+    RAM usage. Both threads will call this set method, which uses a lock to let
+    one thread proceed at a time. The first thread to set will actually set the
+    value in the cache. The second thread's value is not set, and the value that
+    is already in the cache is returned. The protocol on the caller side is that
+    it should always use the returned value from this method. In that way, the
+    long term RAM usage will be kept low, because the duplicate value will be
+    available for garbage collection. For example, a typical caller can do:
+
+    value = cache.set(key, value, metadata)
+
+    if the `value` is available in a local variable, and the caller might have
+    to propagate `value` back to its caller in turn, etc.
+
+    To summarize:
+    * If the key is already in the cache, the value is not updated and the
+      existing value is returned.
+    * Else if the new value is too large to fit in the cache, it is not added
+      but simply returned.
+    * Otherwise, the new key-value pair is added to the cache and the value is
+      returned.
+    Callers should always use the returned value from this method, and not hold
+    on to the value that was passed to this method.
 
     Args:
       key: The key to add to the cache.
       value: The value to add to the cache.
       metadata: The metadata associated with the entry.
+
+    Returns:
+      The value that the client should use. This is either the existing value in
+      the cache for `key`, or the new value.
     """
     with self._rlock:
-      self.remove(key)
+      existing_value = self.get(key)
+      if existing_value is not None:
+        return existing_value
       if (
           metadata.num_bytes_estimate
           > self._max_total_bytes_of_entries_in_cache
       ):
-        return  # The entry is too large to fit in the cache.
+        return value  # The entry is too large to fit in the cache.
       self._shrink_cache_to_at_most(
           self._max_total_bytes_of_entries_in_cache
           - metadata.num_bytes_estimate
       )
       self._cache[key] = _CacheValueAndMetadata(value=value, metadata=metadata)
       self._total_bytes_of_entries_in_cache += metadata.num_bytes_estimate
+      return value
 
   def remove(self, key: K) -> None:
     """Removes the given key from the cache if it is present."""

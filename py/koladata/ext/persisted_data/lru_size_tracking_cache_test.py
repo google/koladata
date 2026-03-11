@@ -31,9 +31,9 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     # Real applications would provide estimates of the whole entries, i.e. that
     # includes the key and the value. Here, for simplicity, we use "size
     # estimates" that are simply the values themselves.
-    cache.set('a', 1, bytes_estimate(1))
-    cache.set('b', 2, bytes_estimate(2))
-    cache.set('c', 3, bytes_estimate(3))
+    self.assertEqual(cache.set('a', 1, bytes_estimate(1)), 1)
+    self.assertEqual(cache.set('b', 2, bytes_estimate(2)), 2)
+    self.assertEqual(cache.set('c', 3, bytes_estimate(3)), 3)
     self.assertEqual(cache.get('a'), 1)
     self.assertEqual(cache.get('b'), 2)
     self.assertEqual(cache.get('c'), 3)
@@ -41,7 +41,7 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     self.assertEqual(cache.get_total_bytes_of_entries_in_cache(), 6)
 
     # Add a new entry to reach the maximum size allowed.
-    cache.set('d', 4, bytes_estimate(4))
+    self.assertEqual(cache.set('d', 4, bytes_estimate(4)), 4)
     self.assertEqual(cache.get('a'), 1)
     self.assertEqual(cache.get('b'), 2)
     self.assertEqual(cache.get('c'), 3)
@@ -51,7 +51,7 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
 
     # Adding a new entry now evicts the least recently used entries until the
     # new value fits.
-    cache.set('e', 5, bytes_estimate(5))
+    self.assertEqual(cache.set('e', 5, bytes_estimate(5)), 5)
     self.assertIsNone(cache.get('a'))
     self.assertIsNone(cache.get('b'))
     self.assertIsNone(cache.get('c'))
@@ -60,7 +60,7 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     self.assertEqual(cache.get_total_bytes_of_entries_in_cache(), 9)
 
     # There's still space to add an entry with size 1.
-    cache.set('a', 1, bytes_estimate(1))
+    self.assertEqual(cache.set('a', 1, bytes_estimate(1)), 1)
     self.assertEqual(cache.get('a'), 1)
     self.assertIsNone(cache.get('b'))
     self.assertIsNone(cache.get('c'))
@@ -89,19 +89,27 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     self.assertIsNone(cache.get('d'))
     self.assertEqual(cache.get('e'), 5)
 
-    # We can associate a key with a new value.
-    cache.set('a', 2, bytes_estimate(2))
-    self.assertEqual(cache.get('a'), 2)
+    # We associate 'a' with 1 again, as before:
+    self.assertEqual(cache.set('a', 1, bytes_estimate(1)), 1)
+    self.assertEqual(cache.get('a'), 1)
     self.assertIsNone(cache.get('b'))
     self.assertIsNone(cache.get('c'))
     self.assertIsNone(cache.get('d'))
     self.assertEqual(cache.get('e'), 5)
 
-    # But if the new entry is too large, it is not added to the cache. Any
-    # previous value associated with the key will still be evicted.
-    cache.set('a', 100, bytes_estimate(100))
-    self.assertIsNone(cache.get('a'))
+    # Setting a new value for an existing key returns the existing value.
+    self.assertEqual(cache.set('a', 2, bytes_estimate(2)), 1)
+    self.assertEqual(cache.get('a'), 1)  # The value is not updated.
     self.assertIsNone(cache.get('b'))
+    self.assertIsNone(cache.get('c'))
+    self.assertIsNone(cache.get('d'))
+    self.assertEqual(cache.get('e'), 5)
+
+    # If a new entry is too large, it is not added to the cache but the value
+    # is returned.
+    self.assertEqual(cache.set('b', 100, bytes_estimate(100)), 100)
+    self.assertEqual(cache.get('a'), 1)
+    self.assertIsNone(cache.get('b'))  # The large value is not cached.
     self.assertIsNone(cache.get('c'))
     self.assertIsNone(cache.get('d'))
     self.assertEqual(cache.get('e'), 5)
