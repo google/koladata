@@ -63,6 +63,7 @@ koladata_cc_operator_package(
     visibility = ["//visibility:public"],
     deps = [
         "//koladata/expr:init",
+        "//koladata/functor:operators",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
         "//koladata/iterables:init_expr_operators",
@@ -70,7 +71,9 @@ koladata_cc_operator_package(
         "//koladata/operators",
         "//koladata/s11n",
         "@com_google_arolla//arolla/derived_qtype/operators",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qexpr",
         "@com_google_arolla//arolla/jagged_shape/expr",
+        "@com_google_arolla//arolla/jagged_shape/qexpr",
         "@com_google_arolla//arolla/objects/operators",
         "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",
     ],

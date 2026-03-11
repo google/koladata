@@ -69,10 +69,7 @@ cc_library(
     testonly = True,
     deps = [
         ":test_env",
-        "//koladata:all_qexpr_operators",
-        "//koladata/s11n",
         "//py/koladata/operators:cc_operators",
-        "@com_google_arolla//arolla/qexpr/operators/all",
     ],
 )
 
