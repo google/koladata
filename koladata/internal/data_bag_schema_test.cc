@@ -16,6 +16,7 @@
 #include <functional>
 #include <initializer_list>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -36,6 +37,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
@@ -449,6 +451,35 @@ TEST(DataBagTest, DelSchemaAttr_Item) {
 
   // Deleting on an empty object is a no-op.
   ASSERT_OK(db->DelSchemaAttr(DataItem(), "a"));
+}
+
+TEST(DataBagTest, MissingSchemaAttr_Slice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schemas_alloc = GenerateImplicitSchemas(3);
+  auto small_alloc_schema = AllocateExplicitSchema();
+  auto schemas = DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(
+      {schemas_alloc.ObjectByOffset(0), schemas_alloc.ObjectByOffset(1),
+       schemas_alloc.ObjectByOffset(2), small_alloc_schema}));
+  EXPECT_THAT(db->GetSchemaAttrAllowMissingWithRemoved(schemas[0], "c"),
+              IsOkAndHolds(std::nullopt));
+
+  {
+    ASSERT_OK_AND_ASSIGN(auto schemas_a,
+                         db->GetSchemaAttrAllowMissing(schemas, "a"));
+    EXPECT_EQ(schemas_a.types_buffer().size(), 4);
+    EXPECT_EQ(schemas_a.types_buffer().id_to_typeidx[0], TypesBuffer::kUnset);
+    EXPECT_EQ(schemas_a.types_buffer().id_to_typeidx[3], TypesBuffer::kUnset);
+  }
+  {
+    SliceBuilder bldr(2);
+    bldr.InsertIfNotSetAndUpdateAllocIds(1, DataItem(small_alloc_schema));
+    bldr.GetMutableAllocationIds().Insert(schemas_alloc);
+    ASSERT_OK_AND_ASSIGN(auto schemas_a, db->GetSchemaAttrAllowMissing(
+                                             std::move(bldr).Build(), "a"));
+    EXPECT_EQ(schemas_a.types_buffer().size(), 2);
+    EXPECT_EQ(schemas_a.types_buffer().id_to_typeidx[0], TypesBuffer::kUnset);
+    EXPECT_EQ(schemas_a.types_buffer().id_to_typeidx[1], TypesBuffer::kUnset);
+  }
 }
 
 TEST(DataBagTest, DelSchemaAttr_Slice) {

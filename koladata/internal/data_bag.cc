@@ -42,6 +42,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -2676,7 +2677,32 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
   // dict.
   // TODO: we may consider to change that for a few reasons
   // (including code simplicity).
-  SliceBuilder small_alloc_result_builder(schema_slice.size());
+  SliceBuilder result_builder(schema_slice.size());
+  if (big_alloc_result.has_value()) {
+    big_alloc_result->VisitValues(
+        [&]<class T>(const arolla::DenseArray<T>& arr) {
+          result_builder.InsertIfNotSet<T>(arr.bitmap, arolla::bitmap::Bitmap(),
+                                           arr.values);
+        });
+    result_builder.GetMutableAllocationIds().Insert(
+        big_alloc_result->allocation_ids());
+    const auto& types = big_alloc_result->types_buffer().id_to_typeidx;
+    if (types.size() == schema_slice.size()) {
+      schema_slice.values<ObjectId>().ForEachPresent(
+          [&](int64_t id, ObjectId v) {
+            if (!v.IsSmallAlloc() && types[id] == TypesBuffer::kRemoved) {
+              result_builder.InsertIfNotSet(id, std::nullopt);
+            }
+          });
+    } else {
+      schema_slice.values<ObjectId>().ForEachPresent(
+          [&](int64_t id, ObjectId v) {
+            if (!v.IsSmallAlloc()) {
+              result_builder.InsertIfNotSet(id, std::nullopt);
+            }
+          });
+    }
+  }
   absl::Status status = absl::OkStatus();
   std::optional<ObjectId> last_schema_id;
   std::optional<DataItem> attr_value;
@@ -2700,16 +2726,11 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
           attr_value = std::move(*attr_value_or);
         }
         if (attr_value.has_value()) {
-          small_alloc_result_builder.InsertIfNotSetAndUpdateAllocIds(
-              offset, *attr_value);
+          result_builder.InsertIfNotSetAndUpdateAllocIds(offset, *attr_value);
         }
       });
   RETURN_IF_ERROR(std::move(status));
-  if (!big_alloc_result.has_value()) {
-    return std::move(small_alloc_result_builder).Build();
-  }
-  return PresenceOrOp</*disjoint=*/false>{}(
-      *big_alloc_result, std::move(small_alloc_result_builder).Build());
+  return std::move(result_builder).Build();
 }
 
 namespace {
