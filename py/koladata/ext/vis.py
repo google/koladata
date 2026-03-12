@@ -196,6 +196,10 @@ class DataSliceVisOptions:
   attr_limit: int | None = _DEFAULT_ATTR_LIMIT
   # Item limit for nested parts of an item passed to the repr
   item_limit: int | None = 20
+  # Maximum depth of the representation of an item in a DataSlice with
+  # dimension greater than 0. For DataItems, the depth is 1 higher than this
+  # value.
+  repr_depth: int = 2
 
 
 def _format_item_html(
@@ -219,7 +223,7 @@ def _format_item_html(
       item,
       format_html=True,
       item_limit=options.item_limit,
-      depth=2,
+      depth=options.repr_depth,
       max_str_len=unbounded_type_max_len))
 
   # Unescape whitespace for easier viewing in the detail pane.
@@ -330,7 +334,12 @@ def _create_data_slice_table_data(
   clickable_headers = []
   headers = '[values]'
   if isinstance(ds, kd.types.DataItem):
-    # Allow unbounded types to be shown in full for DataItems.
+    # Increase repr_depth because we are less concerned with outputting too much
+    # data when there is only one item and users can use implode to
+    # view data in a more hierarchical way.
+    options = dataclasses.replace(options, repr_depth=options.repr_depth + 1)
+
+    # Allow unbounded types to be shown in full for DataItems
     joined_data = _format_data_item(
         ds, truncate_unbounded_types=False, options=options)
   else:

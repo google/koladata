@@ -12083,7 +12083,7 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Types of accesses that can appear in an access path.</code></pre>
 
-### `kd_ext.vis.DataSliceVisOptions(num_items: int = 48, unbounded_type_max_len: int = 256, detail_width: int | str | None = None, detail_height: int | str | None = 300, attr_limit: int | None = 20, item_limit: int | None = 20)` {#kd_ext.vis.DataSliceVisOptions}
+### `kd_ext.vis.DataSliceVisOptions(num_items: int = 48, unbounded_type_max_len: int = 256, detail_width: int | str | None = None, detail_height: int | str | None = 300, attr_limit: int | None = 20, item_limit: int | None = 20, repr_depth: int = 2)` {#kd_ext.vis.DataSliceVisOptions}
 Aliases:
 
 - [kd_g3_ext.vis.DataSliceVisOptions](#kd_g3_ext.vis.DataSliceVisOptions)
