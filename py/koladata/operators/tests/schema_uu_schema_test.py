@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -53,7 +55,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           ds('specified_seed'),
           dict(b=schema_constants.FLOAT32, a=schema_constants.INT32),
-      )
+      ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
     lhs = expr_eval.eval(kde.schema.uu_schema(lhs_seed, **lhs_kwargs))
@@ -75,7 +77,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
           '',
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           '',
-          dict(a=schema_constants.INT32, c=schema_constants.FLOAT32)
+          dict(a=schema_constants.INT32, c=schema_constants.FLOAT32),
       ),
       (
           '',
@@ -170,14 +172,13 @@ class KodaUuSchemaTest(parameterized.TestCase):
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected all arguments to be DATA_SLICE, got kwargs:'
-        ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
+        re.escape(
+            'expected all arguments to be DATA_SLICEs, got'
+            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+        ),
     ):
       _ = expr_eval.eval(
-          kde.schema.uu_schema(
-              a=schema_constants.INT32,
-              b=arolla.unspecified(),
-          )
+          kde.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
       )
 
   def test_view(self):

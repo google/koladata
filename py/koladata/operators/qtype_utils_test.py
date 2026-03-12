@@ -203,14 +203,39 @@ class KodaQTypesTest(absltest.TestCase):
     with self.subTest('failure'):
       with self.assertRaisesRegex(
           ValueError,
-          'expected all arguments to be DATA_SLICE, got x:'
-          ' namedtuple<a=DATA_SLICE,b=INT32>',
+          re.escape(
+              'expected all arguments to be DATA_SLICEs, got'
+              ' **x: {a: DATA_SLICE, b: INT32}'
+          ),
       ):
         _op(
             arolla.namedtuple(
                 a=data_slice.DataSlice.from_vals(1), b=arolla.int32(1)
             )
         )
+
+  def test_expect_data_bag_args(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_data_bag_args(arolla.P.x)],
+    )
+    def _op(*x):
+      return x
+
+    with self.subTest('success'):
+      _op()
+      _op(data_bag.DataBag.empty())
+      _op(data_bag.DataBag.empty(), data_bag.DataBag.empty())
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected all arguments to be DATA_BAGs, got'
+              ' *x: (DATA_BAG, INT32)'
+          ),
+      ):
+        _op(data_bag.DataBag.empty(), arolla.int32(1))
 
   def test_expect_non_deterministic(self):
     @arolla.optools.as_lambda_operator(

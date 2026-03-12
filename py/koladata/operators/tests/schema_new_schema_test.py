@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -81,21 +83,24 @@ class KodaNewSchemaTest(parameterized.TestCase):
         ValueError,
         "kd.schema.new_schema: schema's schema must be SCHEMA, got: INT32",
     ):
-      _ = expr_eval.eval(kde.schema.new_schema(
-          a=schema_constants.INT32,
-          b=ds(1),
-      ))
+      _ = expr_eval.eval(
+          kde.schema.new_schema(
+              a=schema_constants.INT32,
+              b=ds(1),
+          )
+      )
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected all arguments to be DATA_SLICE, got kwargs:'
-        ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
+        re.escape(
+            'expected all arguments to be DATA_SLICEs, got'
+            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+        ),
     ):
       _ = expr_eval.eval(
           kde.schema.new_schema(
-              a=schema_constants.INT32,
-              b=arolla.unspecified(),
+              a=schema_constants.INT32, b=arolla.unspecified()
           )
       )
 

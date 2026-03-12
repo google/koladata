@@ -79,8 +79,9 @@ def expect_data_slice_kwargs(param) -> constraints.QTypeConstraint:
           )
       ),
       (
-          'expected all arguments to be DATA_SLICE, got'
-          f' {constraints.name_type_msg(param)}'
+          'expected all arguments to be DATA_SLICEs, got'
+          f' **{param.placeholder_key}:'
+          f' {{{constraints.namedtuple_field_types_msg(param)}}}'
       ),
   )
 
@@ -112,8 +113,8 @@ def expect_data_bag_args(param) -> constraints.QTypeConstraint:
           )
       ),
       (
-          'expected all arguments to be DATA_BAG, got'
-          f' {constraints.name_type_msg(param)}'
+          'expected all arguments to be DATA_BAGs, got'
+          f' {constraints.variadic_name_type_msg(param)}'
       ),
   )
 

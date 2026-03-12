@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -133,13 +135,12 @@ class KodaUuidForDictTest(parameterized.TestCase):
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected all arguments to be DATA_SLICE, got kwargs:'
-        ' namedtuple<a=DATA_SLICE,b=UNSPECIFIED>',
+        re.escape(
+            'expected all arguments to be DATA_SLICEs, got'
+            ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
+        ),
     ):
-      _ = kde.ids.uuid_for_dict(
-          a=ds(1),
-          b=arolla.unspecified(),
-      )
+      _ = kde.ids.uuid_for_dict(a=ds(1), b=arolla.unspecified())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.ids.uuid_for_dict(seed=I.seed)))
