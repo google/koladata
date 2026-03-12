@@ -11623,6 +11623,18 @@ External contributions not necessarily endorsed by Koda.
 
 **Operators**
 
+### `kd_ext.contrib.average_rank(x: DataSlice) -> DataSlice` {#kd_ext.contrib.average_rank}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes average rank natively in koladata.</code></pre>
+
+### `kd_ext.contrib.pearson_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.pearson_correlation}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Pearson correlation for koladata slices x and y.</code></pre>
+
+### `kd_ext.contrib.spearman_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.spearman_correlation}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Spearman correlation using average ranks.</code></pre>
+
 ### `kd_ext.contrib.value_counts(x)` {#kd_ext.contrib.value_counts}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns Dicts mapping entries in `x` to their count over the last dim.

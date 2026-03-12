@@ -29,7 +29,10 @@ licenses(["notice"])
 py_library(
     name = "functions",
     srcs = ["functions.py"],
-    deps = ["//py:python_path"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
 )
 
 py_library(

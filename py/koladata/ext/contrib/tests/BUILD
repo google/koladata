@@ -30,3 +30,27 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "pearson_correlation_test",
+    srcs = ["pearson_correlation_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
+    name = "spearman_correlation_test",
+    srcs = ["spearman_correlation_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
