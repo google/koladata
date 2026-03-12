@@ -49,7 +49,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/objs.h"
 #include "koladata/operators/schema.h"
 #include "koladata/proto/from_proto.h"
 #include "google/protobuf/message.h"
@@ -190,18 +189,6 @@ struct EntityCreatorHelper {
                                adopted_values, schema_arg, overwrite_schema,
                                itemid);
   }
-
-  static absl::StatusOr<DataSlice> FromPyObject(
-      PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
-      const std::optional<DataSlice>& itemid, const DataBagPtr& db,
-      AdoptionQueue& adoption_queue) {
-    if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
-      return DataSliceFromPyValue(py_obj, adoption_queue, schema_arg);
-    }
-
-    return FromPy(py_obj, schema_arg, /*from_dim=*/0,
-                  /*dict_as_obj=*/false, itemid);
-  }
 };
 
 struct ObjectCreatorHelper {
@@ -329,10 +316,13 @@ PyObject* absl_nullable ProcessObjectCreation(
       return nullptr;
     }
     AdoptionQueue adoption_queue;
+    constexpr bool is_object_creator =
+        (std::is_same_v<FactoryHelperT, ObjectCreatorHelper>);
+    DCHECK(is_object_creator);
     ASSIGN_OR_RETURN(
         res,
-        FactoryHelperT::FromPyObject(args.pos_only_args[0], schema_arg, itemid,
-                                     db, adoption_queue),
+        ObjectCreatorHelper::FromPyObject(args.pos_only_args[0], schema_arg,
+                                          itemid, db, adoption_queue),
         arolla::python::SetPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
