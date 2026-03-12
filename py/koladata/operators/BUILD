@@ -722,6 +722,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":core",
         ":dicts",
         ":iterables",
         ":koda_internal_iterables",

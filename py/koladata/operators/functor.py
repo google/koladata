@@ -24,6 +24,7 @@ from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import core
 from koladata.operators import dicts
 from koladata.operators import iterables
 from koladata.operators import koda_internal_iterables
@@ -467,8 +468,11 @@ def switch(
   # up by SWITCH_DEFAULT.
   case_keys = schema.to_object(case_keys)
 
-  # TODO: b/477578091 - Check that there are no adoptions in runtime.
-  cases = dicts.uu(case_keys, case_fns)
+  # Note: when case_keys and case_fns are known in compile time, the dict
+  # creation should be literal folded.
+  # Note: Using no_bag and with_bag later to avoid extraction / adoption of
+  # case_fns.
+  cases = dicts.uu(case_keys, core.no_bag(case_fns))
 
   fn = masking.coalesce(
       dicts.get_values(cases, key),
@@ -479,6 +483,7 @@ def switch(
       masking.has(fn),
       'kd.switch: key not found in cases and no default provided',
   )
+  fn = core.with_bag(fn, core.get_bag(case_fns))
 
   return optools.fix_non_deterministic_tokens(
       arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
