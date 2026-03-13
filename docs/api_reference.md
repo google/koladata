@@ -4363,6 +4363,33 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a List.</code></pre>
 
+### `kd.lists.uu(items=unspecified, *, item_schema=unspecified, schema=unspecified, seed='')` {#kd.lists.uu}
+Aliases:
+
+- [kd.uulist](#kd.uulist)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a list with itemid determined deterministically.
+
+The list&#39;s ItemId is computed deterministically from the seed and items
+using uuid_for_list.
+
+Examples:
+uulist([1, 2, 3]) -&gt; returns a deterministic list ([1, 2, 3])
+uulist(kd.slice([1, 2, 3])) -&gt; returns a deterministic list ([1, 2, 3])
+uulist(kd.slice([1, 2, 3]), seed=&#39;my_seed&#39;)
+  -&gt; returns a deterministic list with a different id than above
+
+Args:
+  items: a Python list, or a DataSlice with items.
+  item_schema: the schema of the list items. If not specified, it will be
+    deduced from items or defaulted to OBJECT.
+  schema: the schema to use for the newly created List. If specified, then
+    item_schema must not be specified.
+  seed: text seed for the uuid computation.
+
+Returns:
+  A DataSlice with the list.</code></pre>
+
 ### `kd.lists.with_list_append_update(x, append)` {#kd.lists.with_list_append_update}
 Aliases:
 
@@ -11572,6 +11599,10 @@ Alias for [kd.ids.uuid_for_list](#kd.ids.uuid_for_list) operator.
 ### `kd.uuids_with_allocation_size(seed='', *, size)` {#kd.uuids_with_allocation_size}
 
 Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size) operator.
+
+### `kd.uulist(items=unspecified, *, item_schema=unspecified, schema=unspecified, seed='')` {#kd.uulist}
+
+Alias for [kd.lists.uu](#kd.lists.uu) operator.
 
 ### `kd.uuobj(seed: str | None = None, **attrs: Any) -> DataSlice` {#kd.uuobj}
 

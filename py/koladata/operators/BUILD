@@ -508,6 +508,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":core",
+        ":ids",
         ":jagged_shape",
         ":koda_internal",
         ":op_repr",
@@ -517,6 +518,7 @@ py_library(
         "//koladata/operators",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",

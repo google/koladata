@@ -314,6 +314,7 @@ class lists:
   shaped = _operators_lists.shaped
   shaped_as = _operators_lists.shaped_as
   size = _operators_lists.size
+  uu = _operators_lists.uu
   with_list_append_update = _operators_lists.with_list_append_update
 
 
@@ -872,6 +873,7 @@ uuid = _operators_ids.uuid
 uuid_for_dict = _operators_ids.uuid_for_dict
 uuid_for_list = _operators_ids.uuid_for_list
 uuids_with_allocation_size = _operators_ids.uuids_with_allocation_size
+uulist = _operators_lists.uu
 uuobj = _operators_objs.uuobj
 val_like = _operators_slices.val_like
 val_shaped = _operators_slices.val_shaped

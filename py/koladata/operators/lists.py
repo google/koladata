@@ -17,8 +17,10 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.expr import py_expr_eval_py_ext as eval_clib
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
+from koladata.operators import ids as ids_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
 from koladata.operators import op_repr
@@ -418,6 +420,104 @@ def _new_bind_args(
 arolla.abc.register_adhoc_aux_binding_policy(
     new, _new_bind_args, make_literal_fn=py_boxing.literal
 )
+
+
+@optools.as_backend_operator('kd.lists._deterministic_shaped')
+def _deterministic_shaped(
+    shape, items, item_schema, schema, itemid
+):  # pylint: disable=unused-argument
+  """Implementation of `kd.lists.uu` (deterministic, itemid is mandatory)."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kd.uulist'],
+    via_cc_operator_package=True,
+)
+@arolla.optools.as_lambda_operator(
+    'kd.lists.uu',
+    aux_policy='koladata_adhoc_binding_policy[kd.lists.uu]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.items),
+        qtype_utils.expect_data_slice_or_unspecified(P.item_schema),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+        qtype_utils.expect_data_slice(P.seed),
+    ],
+)
+def uu(
+    items,
+    item_schema,
+    schema,
+    seed,
+):  # pylint: disable=g-doc-args
+  """Creates a list with itemid determined deterministically.
+
+  The list's ItemId is computed deterministically from the seed and items
+  using uuid_for_list.
+
+  Examples:
+  uulist([1, 2, 3]) -> returns a deterministic list ([1, 2, 3])
+  uulist(kd.slice([1, 2, 3])) -> returns a deterministic list ([1, 2, 3])
+  uulist(kd.slice([1, 2, 3]), seed='my_seed')
+    -> returns a deterministic list with a different id than above
+
+  Args:
+    items: a Python list, or a DataSlice with items.
+    item_schema: the schema of the list items. If not specified, it will be
+      deduced from items or defaulted to OBJECT.
+    schema: the schema to use for the newly created List. If specified, then
+      item_schema must not be specified.
+    seed: text seed for the uuid computation.
+
+  Returns:
+    A DataSlice with the list.
+  """
+  item_schema = M.core.default_if_unspecified(
+      item_schema, data_slice.unspecified()
+  )
+  schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+
+  itemid = ids_ops.uuid_for_list(
+      seed=seed,
+      items=ids_ops.agg_uuid(items),
+  )
+
+  shape = arolla_bridge.from_arolla_jagged_shape(
+      M.jagged.remove_dims(
+          arolla_bridge.to_arolla_jagged_shape(
+              jagged_shape_ops.get_shape(items)
+          ),
+          from_dim=-1,
+      )
+  )
+
+  return _deterministic_shaped(
+      shape, items, item_schema, schema, itemid
+  )
+
+
+def _uu_bind_args(
+    items=arolla.unspecified(),
+    *,
+    item_schema=arolla.unspecified(),
+    schema=arolla.unspecified(),
+    seed='',
+):
+  """Binding policy for kd.lists.uu."""
+  items, item_schema, schema, _, _ = _new_bind_args(
+      items,
+      item_schema=item_schema,
+      schema=schema,
+      itemid=arolla.unspecified(),
+  )
+  seed = py_boxing.as_qvalue_or_expr(seed)
+  return (items, item_schema, schema, seed)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    uu, _uu_bind_args, make_literal_fn=py_boxing.literal
+)
+arolla.abc.set_expr_view_for_aux_policy(uu, view.KodaView)
 
 
 @arolla.optools.as_backend_operator(

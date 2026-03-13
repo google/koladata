@@ -65,6 +65,13 @@ absl::StatusOr<DataSlice> ListShaped(
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
+// kd.lists._deterministic_shaped operator.
+// Same as ListShaped but itemid argument is mandatory.
+absl::StatusOr<DataSlice> ListDeterministicShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid);
+
 // kde.lists.concat operator.
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 

@@ -306,6 +306,8 @@ OPERATOR_WITH_SIGNATURE(
 //
 OPERATOR_FAMILY("kd.lists._concat",
                 arolla::MakeVariadicInputOperatorFamily(ConcatLists));
+OPERATOR("kd.lists._deterministic_shaped", ListDeterministicShaped,
+         "kd.lists.uu");
 OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
 OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");
 OPERATOR("kd.lists._like", ListLike, "kd.lists.like");

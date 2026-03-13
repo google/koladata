@@ -158,6 +158,16 @@ absl::StatusOr<DataSlice> ListShaped(
   return result.UnsafeMakeWholeOnImmutableDb();
 }
 
+absl::StatusOr<DataSlice> ListDeterministicShaped(
+    const DataSlice::JaggedShape& shape, const DataSlice& items,
+    const DataSlice& item_schema, const DataSlice& schema,
+    const DataSlice& itemid) {
+  if (IsUnspecifiedDataSlice(itemid)) {
+    return absl::InvalidArgumentError("itemid is required");
+  }
+  return ListShaped(shape, items, item_schema, schema, itemid, {});
+}
+
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
   const DataBagPtr db = DataBag::EmptyMutable();
   ASSIGN_OR_RETURN(auto result, ConcatLists(db, std::move(lists)));
