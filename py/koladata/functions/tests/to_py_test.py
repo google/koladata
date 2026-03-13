@@ -202,10 +202,10 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(py_obj['a\0b'], 1)
 
   def test_list_obj(self):
-    self.assertEqual(py_conversions.to_py(fns.obj([1, 2])), [1, 2])
+    self.assertEqual(py_conversions.to_py(fns.obj(fns.list([1, 2]))), [1, 2])
 
   def test_dict_obj(self):
-    self.assertEqual(py_conversions.to_py(fns.obj({1: 2})), {1: 2})
+    self.assertEqual(py_conversions.to_py(fns.obj(fns.dict({1: 2}))), {1: 2})
 
   def test_fallbacks(self):
     x = fns.new(x=1)

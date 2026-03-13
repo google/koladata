@@ -457,7 +457,6 @@ cc_library(
         "//py/koladata/base:py_utils",
         "//py/koladata/base:pybind11_protobuf_wrapper",
         "//py/koladata/base:wrap_utils",
-        "//py/koladata/base/py_conversions:from_py",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:function_ref",

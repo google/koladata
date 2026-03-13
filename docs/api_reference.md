@@ -14649,10 +14649,10 @@ Returns:
 Returned DataSlice has OBJECT schema.
 
 Args:
-  arg: optional Python object to be converted to an Object.
+  arg: optional Koda object or Python primitive to be converted to an Object.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    itemid will only be set when the args is not a primitive or primitive slice
-    if args presents.
+    ItemIds will only be set when the arg is not provided, otherwise an error
+      will be raised.
   **attrs: attrs to set on the returned object.
 
 Returns:

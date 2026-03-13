@@ -50,17 +50,21 @@ types can be mixed in the same DataSlice and provide more flexibility.
 ```py {.pycon-doctest}
 >>> from koladata import kd
 >>> # It fails because of incompatible schemas
->>> # kd.slice([1, kd.new(a=1), kd.list([1, 2]), kd.dict({1: 2})])
+>>> kd.slice([1, kd.new(a=1), kd.list([1, 2]), kd.dict({1: 2})])
+Traceback (most recent call last):
+  ...
+ValueError: cannot find a common schema
+  ...
 
 >>> # It works as all items are objects and the resulting DataSlice has OBJECT schema
->>> kd.slice([1, kd.obj(a=1), kd.obj([1, 2]), kd.obj({1: 2})])
+>>> kd.slice([1, kd.obj(a=1), kd.obj(kd.list([1, 2])), kd.obj(kd.dict({1: 2}))])
 DataSlice([1, Obj(a=1), List[1, 2], Dict{1=2}], schema: OBJECT,...)
 ```
 
 To create objects, we can use `kd.obj(input)` API where `input` can be a Python
-primitive, a Python list/dict, a Koda primitive, a entity/list/dict or variadic
-keyword arguments of attributes. When `input` is a entity/list/dict, it embeds
-the schema into the `__schema__` attribute.
+primitive, a Koda primitive, an entity/list/dict or variadic keyword arguments
+of attributes. When `input` is a entity/list/dict, it embeds the schema into the
+`__schema__` attribute.
 
 ```py {.pycon-doctest}
 >>> # Primitive objects
@@ -79,14 +83,19 @@ DataItem(Obj(a=1, b=2), schema: OBJECT,...)
 
 >>> # List objects
 >>> kd.obj([1, 2, 3])
-DataItem(List[1, 2, 3], schema: OBJECT,...)
->>> kd.obj(kd.list([1, 2, 3]))
+Traceback (most recent call last):
+   ...
+ValueError: object with unsupported type: list
+
+>>> kd.obj(kd.list([1, 2, 3])) # do this instead
 DataItem(List[1, 2, 3], schema: OBJECT,...)
 
 >>> # Dict objects
 >>> kd.obj({1: 2})
-DataItem(Dict{1=2}, schema: OBJECT,...)
->>> kd.obj(kd.dict({1: 2}))
+Traceback (most recent call last):
+  ...
+ValueError: object with unsupported type: dict
+>>> kd.obj(kd.dict({1: 2})) # do this instead
 DataItem(Dict{1=2}, schema: OBJECT,...)
 ```
 
@@ -415,14 +424,17 @@ using `kd.obj(py_list)` so that all elements at the leaf level are only contains
 primitives or Koda list objects.
 
 ```py {.pycon-doctest}
->>> kd.list([1, kd.obj([2, 3])])
+>>> kd.list([1, kd.obj(kd.list([2, 3]))])
 DataItem(List[1, List[2, 3]], schema: LIST[OBJECT],...)
 >>> kd.from_py([1, [2, 3]])  # Note that without schema=None, the default is OBJECT.
 DataItem(List[1, List[2, 3]], schema: OBJECT,...)
 
 >>> kd.slice([1, kd.obj([2, 3])])
-DataSlice([1, List[2, 3]], schema: OBJECT,...)
->>> kd.from_py([1, [2, 3]], from_dim=1)  # same as above
+Traceback (most recent call last):
+   ...
+ValueError: object with unsupported type: list
+
+>>> kd.from_py([1, [2, 3]], from_dim=1)
 DataSlice([1, List[2, 3]], schema: OBJECT,...)
 ```
 
@@ -879,7 +891,7 @@ NOTE: They are pointwise operations while `kd.is_primitive(ds)`,
 DataItem.
 
 ```py {.pycon-doctest}
->>> ds = kd.slice([1, '2', None, kd.obj(a=1), kd.obj([1, 2]), kd.obj({1: 2})])
+>>> ds = kd.slice([1, '2', None, kd.obj(a=1), kd.obj(kd.list([1, 2])), kd.obj(kd.dict({1: 2}))])
 
 >>> kd.has_primitive(ds)
 DataSlice([present, present, missing, missing, missing, missing], schema: MASK,...)

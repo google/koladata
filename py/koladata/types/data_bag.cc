@@ -57,7 +57,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/py_args.h"
-#include "py/koladata/base/py_conversions/from_py.h"
 #include "py/koladata/base/py_proto_utils.h"
 #include "py/koladata/base/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
@@ -243,15 +242,9 @@ struct ObjectCreatorHelper {
                                itemid);
   }
 
-  static absl::StatusOr<DataSlice> FromPyObject(
-      PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
-      const std::optional<DataSlice>& itemid, const DataBagPtr& db,
-      AdoptionQueue& adoption_queue) {
-    // Given that "schema" is not listed as a positional-keyword argument, it
-    // will never be passed here.
-    DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
-
-    if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
+  static absl::StatusOr<DataSlice> FromPyObject(PyObject* py_obj,
+                                                const DataBagPtr& db) {
+    if (arolla::python::IsPyQValueInstance(py_obj)) {
       const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
       if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
         const DataSlice& res = typed_value.UnsafeAs<DataSlice>();
@@ -262,13 +255,10 @@ struct ObjectCreatorHelper {
             typed_value.GetType()->name()));
       }
     }
-
     ASSIGN_OR_RETURN(DataSlice schema,
                      DataSlice::Create(internal::DataItem(schema::kObject),
                                        internal::DataItem(schema::kSchema)));
-    ASSIGN_OR_RETURN(DataSlice res,
-                     FromPy(py_obj, std::move(schema), /*from_dim=*/0,
-                            /*dict_as_obj=*/false, itemid));
+    ASSIGN_OR_RETURN(auto res, DataItemFromPyValue(py_obj, std::move(schema)));
     return ObjectCreator::ConvertWithAdoption(db, res);
   }
 };
@@ -308,27 +298,21 @@ PyObject* absl_nullable ProcessObjectCreation(
   // This can happen only for kd.obj.
   if (!args.pos_only_args.empty() && FirstArgProvided(args.pos_only_args[0])) {
     if (!args.kw_values.empty()) {
-      PyErr_SetString(
-          PyExc_TypeError,
-          absl::StrCat("cannot set extra attributes when converting to ",
-                       FactoryHelperT::kKodaName)
-              .c_str());
+      PyErr_SetString(PyExc_TypeError,
+                      "cannot set extra attributes when converting to object");
       return nullptr;
     }
-    AdoptionQueue adoption_queue;
+    if (itemid.has_value()) {
+      PyErr_SetString(PyExc_TypeError,
+                      "cannot use itemid when casting to object");
+      return nullptr;
+    }
     constexpr bool is_object_creator =
         (std::is_same_v<FactoryHelperT, ObjectCreatorHelper>);
     DCHECK(is_object_creator);
     ASSIGN_OR_RETURN(
-        res,
-        ObjectCreatorHelper::FromPyObject(args.pos_only_args[0], schema_arg,
-                                          itemid, db, adoption_queue),
+        res, ObjectCreatorHelper::FromPyObject(args.pos_only_args[0], db),
         arolla::python::SetPyErrFromStatus(_));
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
-        .With([&](const absl::Status& status) {
-          return arolla::python::SetPyErrFromStatus(
-              CreateItemCreationError(status, schema_arg));
-        });
   } else {
     AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(
@@ -1649,10 +1633,10 @@ Returns:
 Returned DataSlice has OBJECT schema.
 
 Args:
-  arg: optional Python object to be converted to an Object.
+  arg: optional Koda object or Python primitive to be converted to an Object.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    itemid will only be set when the args is not a primitive or primitive slice
-    if args presents.
+    ItemIds will only be set when the arg is not provided, otherwise an error
+      will be raised.
   **attrs: attrs to set on the returned object.
 
 Returns:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -28,7 +29,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class ObjTest(absltest.TestCase):
+class ObjTest(parameterized.TestCase):
 
   def test_mutability(self):
     self.assertFalse(fns.obj().is_mutable())
@@ -135,98 +136,7 @@ class ObjTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'assigning a Python dict'):
       fns.obj(x=ds([1, 2, 3]), dct={'a': 42})
 
-  def test_universal_converter_with_itemid(self):
-    itemid = kde.uuid_for_list('obj').eval()
-    res = fns.obj([{'a': 42, 'b': 17}, {'c': 12}], itemid=itemid)
-    child_itemid = kde.uuid(
-        '__from_py_child__',
-        parent=itemid,
-        list_item_index=ds([0, 1], schema_constants.INT64),
-    ).eval()
-
-    dict_item_id = kde.uuid_for_dict(
-        '',
-        base_itemid=child_itemid,
-    ).eval()
-    testing.assert_equal(res.no_bag().get_itemid(), itemid)
-    testing.assert_dicts_keys_equal(
-        res[:], ds([['a', 'b'], ['c']], schema_constants.OBJECT)
-    )
-    testing.assert_equal(res[:].no_bag().get_itemid(), dict_item_id)
-
-    with self.assertRaisesRegex(
-        ValueError, 'itemid argument to list creation, requires List ItemIds'
-    ):
-      _ = fns.obj([1, 2], itemid=kde.allocation.new_itemid().eval())
-
-    with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(2, \[2, 1\]\)'
-    ):
-      _ = fns.obj(ds([[1, 2], [3]]), itemid=kde.allocation.new_itemid().eval())
-
-  def test_universal_converter_primitive(self):
-    item = fns.obj(42)
-    testing.assert_equal(item.no_bag(), ds(42, schema_constants.OBJECT))
-
-  def test_universal_converter_none(self):
-    item = fns.obj(None)
-    testing.assert_equal(item.no_bag(), ds(None, schema_constants.OBJECT))
-
-  def test_universal_converter_list(self):
-    l = fns.obj([1, 2, 3])
-    testing.assert_equal(l.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        l[:], ds([1, 2, 3], schema_constants.OBJECT).with_bag(l.get_bag())
-    )
-
-    l = fns.list([[1, 2], [3]])
-    testing.assert_not_equal(l.get_schema(), schema_constants.OBJECT)
-    obj = fns.obj(l)
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(obj[:][:], ds([[1, 2], [3]]).with_bag(obj.get_bag()))
-
-  def test_universal_converter_empty_list(self):
-    l = fns.obj([])
-    testing.assert_equal(
-        l.get_obj_schema().get_attr('__items__').no_bag(),
-        schema_constants.OBJECT,
-    )
-    testing.assert_equal(l[:].no_bag(), ds([], schema_constants.OBJECT))
-
-  def test_universal_converter_dict(self):
-    d = fns.obj({'a': 42, 'b': ds(37, schema_constants.INT64)})
-    testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(d, ds(['a', 'b'], schema_constants.OBJECT))
-    testing.assert_equal(
-        d[ds(['a', 'b'])],
-        ds(
-            [42, ds(37, schema_constants.INT64)], schema_constants.OBJECT
-        ).with_bag(d.get_bag()),
-    )
-
-    d = fns.dict({'a': 42, 'b': 37})
-    testing.assert_not_equal(d.get_schema(), schema_constants.OBJECT)
-    obj = fns.obj(d)
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['a', 'b']))
-    testing.assert_equal(
-        obj[ds(['a', 'b'])], ds([42, 37]).with_bag(obj.get_bag())
-    )
-
-  def test_universal_converter_empty_dict(self):
-    d = fns.obj({})
-    testing.assert_equal(
-        d.get_obj_schema().get_attr('__keys__').no_bag(),
-        schema_constants.OBJECT,
-    )
-    testing.assert_equal(
-        d.get_obj_schema().get_attr('__values__').no_bag(),
-        schema_constants.OBJECT,
-    )
-    testing.assert_dicts_keys_equal(d, ds([], schema_constants.OBJECT))
-    testing.assert_equal(d[ds([])].no_bag(), ds([], schema_constants.OBJECT))
-
-  def test_universal_converter_entity(self):
+  def test_obj_from_entity(self):
     with self.subTest('item'):
       entity = fns.new(a=42, b='abc')
       obj = fns.obj(entity)
@@ -240,213 +150,42 @@ class ObjTest(absltest.TestCase):
       testing.assert_equal(obj.a, ds([1, 2]).with_bag(obj.get_bag()))
       testing.assert_equal(obj.b, ds(['abc', 'abc']).with_bag(obj.get_bag()))
 
-  def test_universal_converter_object(self):
+  def test_obj_from_object(self):
     obj = fns.obj(a=42, b='abc')
     new_obj = fns.obj(obj)
     testing.assert_equivalent(new_obj, obj)
 
-  def test_nested_universal_converter(self):
-    obj = fns.obj({'a': {'b': [1, 2, 3]}})
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
-    values = obj['a']
-    testing.assert_equal(values.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(values, ds(['b'], schema_constants.OBJECT))
-    nested_values = values['b']
+  @parameterized.named_parameters(
+      ('list', [1, 2, 3], 'object with unsupported type: list'),
+      ('dict', {'a': 42}, 'object with unsupported type: dict'),
+  )
+  def test_obj_fails_with_complex_py_struct(self, input_data, expected_error):
+    with self.assertRaisesRegex(ValueError, expected_error):
+      fns.obj(input_data)
+
+  @parameterized.named_parameters(
+      ('primitive', 42),
+      ('none', None),
+  )
+  def test_boxing(self, input_data):
+    res = fns.obj(input_data)
     testing.assert_equal(
-        nested_values.get_schema().no_bag(), schema_constants.OBJECT
-    )
-    testing.assert_equal(
-        nested_values[:],
-        ds([1, 2, 3], schema_constants.OBJECT).with_bag(obj.get_bag()),
+        res, ds(input_data, schema_constants.OBJECT).with_bag(res.get_bag())
     )
 
-  def test_universal_converter_adopt_bag_data(self):
-    nested = fns.obj(a=42, b='abc')
-    obj = fns.obj([1, 2, nested])
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(nested.get_bag(), obj.get_bag())
-    testing.assert_equal(obj[2].a, ds(42).with_bag(obj.get_bag()))
-
-  def test_universal_converter_list_of_complex(self):
-    obj = fns.obj([
-        {'a': 42},
-        {'b': 57},
-        42,
-        [1, {b'xyz': ds(42, schema_constants.INT64)}, 3]
-    ])
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(obj[0], ds(['a'], schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(obj[1], ds(['b'], schema_constants.OBJECT))
-    testing.assert_equal(
-        obj[2], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-    testing.assert_equal(
-        obj[3][0], ds(1, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-    testing.assert_dicts_keys_equal(
-        obj[3][1], ds([b'xyz'], schema_constants.OBJECT)
-    )
-    testing.assert_equal(
-        obj[3][1].get_schema().no_bag(), schema_constants.OBJECT
-    )
-    testing.assert_equal(
-        obj[3][1][b'xyz'].no_bag(),
-        ds(ds(42, schema_constants.INT64), schema_constants.OBJECT),
-    )
-    testing.assert_equal(
-        obj[3][-1], ds(3, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-
-  def test_universal_converter_list_of_different_primitive_lists(self):
-    obj = fns.obj([[1, 2], [3.14]])
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
-        ds([schema_constants.OBJECT, schema_constants.OBJECT]),
-    )
-    testing.assert_equal(
-        obj[0][:].no_bag(), ds([1, 2], schema_constants.OBJECT)
-    )
-    testing.assert_equal(
-        obj[1][:].no_bag(), ds([3.14], schema_constants.OBJECT)
-    )
-    testing.assert_equal(
-        obj[:][:].no_bag(), ds([[1, 2], [3.14]], schema_constants.OBJECT)
-    )
-
-    obj = fns.obj([[1, 2], ['xyz']])
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        obj[:].get_attr('__schema__').get_attr('__items__').no_bag(),
-        ds([schema_constants.OBJECT, schema_constants.OBJECT]),
-    )
-    testing.assert_equal(obj[:][:].no_bag(), ds([[1, 2], ['xyz']]))
-
-    obj = fns.obj([[1, 2], [3]])
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_equal(
-        obj[:][:].get_schema().no_bag(), schema_constants.OBJECT
-    )
-    testing.assert_equal(
-        obj[:][:].no_bag(), ds([[1, 2], [3]], schema_constants.OBJECT)
-    )
-
-  def test_universal_converter_container_contains_multi_dim_data_slice(self):
-    with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
-    ):
-      fns.obj([ds([1, 2, 3]), 42])
-    with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(3\)'
-    ):
-      fns.obj({42: ds([1, 2, 3])})
-
-  def test_universal_converter_tuple_as_list(self):
-    l = fns.obj(tuple([1, 2, 3]))
-    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT))
-
-  def test_universal_converter_with_cross_ref(self):
-    d1 = {'a': 42}
-    d2 = {'b': 37}
-    d1['d'] = d2
-    d = {'d1': d1, 'd2': d2}
-    obj = fns.obj(d)
-    testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
-    testing.assert_dicts_keys_equal(
-        obj, ds(['d1', 'd2'], schema_constants.OBJECT)
-    )
-    obj_d2 = obj['d2']
-    self.assertNotEqual(obj['d1']['d'].get_itemid(), obj_d2.get_itemid())
-    self.assertEqual(obj['d1']['d'].to_py(), obj_d2.to_py())
-    testing.assert_equal(
-        obj_d2['b'], ds(37, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-    testing.assert_equal(
-        obj['d1']['a'], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-
-  def test_universal_converter_with_reusing_dicts(self):
-    d = {'abc': 123}
-    for _ in range(2):
-      d = {12: d, 42: d}
-    obj = fns.obj(d)
-    testing.assert_dicts_keys_equal(obj, ds([12, 42], schema_constants.OBJECT))
-    d1 = obj[12]
-    testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
-    d2 = obj[42]
-    testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
-    # d1 and d2 are the same, but have different ItemId.
-    self.assertNotEqual(d1.get_itemid(), d2.get_itemid())
-    self.assertEqual(d1.to_py(), d2.to_py())
-    d11 = d1[12]
-    testing.assert_dicts_keys_equal(d11, ds(['abc'], schema_constants.OBJECT))
-    d12 = d1[42]
-    testing.assert_dicts_keys_equal(d12, ds(['abc'], schema_constants.OBJECT))
-    d21 = d1[12]
-    testing.assert_dicts_keys_equal(d21, ds(['abc'], schema_constants.OBJECT))
-    d22 = d1[42]
-    testing.assert_dicts_keys_equal(d22, ds(['abc'], schema_constants.OBJECT))
-
-  def test_universal_converter_with_reusing_lists(self):
-    l = [42, 57]
-    for _ in range(2):
-      l = [l, l]
-    obj = fns.obj(l)
-    testing.assert_equal(
-        obj[:][:][:],
-        ds(
-            [[[42, 57], [42, 57]], [[42, 57], [42, 57]]],
-            schema_constants.OBJECT,
-        ).with_bag(obj.get_bag()),
-    )
-
-  def test_deep_universal_converter(self):
-    d = {'abc': 42}
-    for _ in range(3):
-      d = {12: d}
-    obj = fns.obj(d)
-    testing.assert_dicts_keys_equal(obj, ds([12], schema_constants.OBJECT))
-    d = obj[12]
-    testing.assert_dicts_keys_equal(d, ds([12], schema_constants.OBJECT))
-    d = d[12]
-    testing.assert_dicts_keys_equal(d, ds([12], schema_constants.OBJECT))
-    d = d[12]
-    testing.assert_dicts_keys_equal(d, ds(['abc'], schema_constants.OBJECT))
-    testing.assert_equal(
-        d['abc'], ds(42, schema_constants.OBJECT).with_bag(obj.get_bag())
-    )
-
-  def test_universal_converter_recursive_object_error(self):
-    d = {'a': 42}
-    d['self'] = d
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.obj(d)
-    # Deeper recursion:
-    d2 = {'a': {'b': d}}
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.obj(d2)
-    # Longer cycle:
-    d = {'a': 42}
-    bottom_d = d
-    for i in range(5):
-      d = {f'd{i}': d}
-    level_1_d = d
-    d = {'top': d}
-    bottom_d['cycle'] = level_1_d
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.obj(d)
-    # Cycle in list:
-    l = [[1, 2], 3]
-    l[0].append(l)
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.obj(l)
-
-  def test_universal_converter_with_attrs(self):
+  def test_obj_with_attrs_fails(self):
     with self.assertRaisesRegex(
         TypeError, 'cannot set extra attributes when converting to object'
     ):
-      fns.obj([1, 2, 3], a=42)
+      fns.obj(fns.list([1, 2, 3]), a=42)
+
+  def test_obj_with_itemid_fails(self):
+    input_obj = fns.obj(non_existent=42)
+    itemid = input_obj.get_itemid()
+    with self.assertRaisesRegex(
+        TypeError, 'cannot use itemid when casting to object'
+    ):
+      fns.obj(input_obj, itemid=itemid)
 
   def test_item_none(self):
     testing.assert_equal(

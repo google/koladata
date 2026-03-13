@@ -501,7 +501,7 @@ DataItem(Obj(a=1, b=2), schema: OBJECT,...)
 DataSlice([1, None], schema: OBJECT,...)
 
 # Mix objects with different schemas
->>> kd.slice([kd.obj(1), kd.obj("hello"), kd.obj([1, 2, 3])])
+>>> kd.slice([kd.obj(1), kd.obj("hello"), kd.obj(kd.list([1, 2, 3]))])
 DataSlice([1, 'hello', List[1, 2, 3]], schema: OBJECT,...)
 >>> kd.slice([kd.obj(x=1, y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
 DataSlice([Obj(x=1, y=2), Obj(x='hello', y='world'), 1], schema: OBJECT,...)
