@@ -20,6 +20,7 @@ from koladata.functions import proto_conversions as _functions_proto_conversions
 from koladata.functions import schema as _functions_schema
 from koladata.functor import functor_factories as _functor_functor_factories
 from koladata.functor import tracing_decorator as _functor_tracing_decorator
+from koladata.functor.visitor import visitor as _visitor_visitor
 from koladata.operators import allocation as _operators_allocation
 from koladata.operators import annotation as _operators_annotation
 from koladata.operators import assertion as _operators_assertion
@@ -243,6 +244,8 @@ class functor:
   switch = _operators_functor.switch
   trace_as_fn = _functor_tracing_decorator.TraceAsFnDecorator
   trace_py_fn = _functor_functor_factories.trace_py_fn
+  visit_subfunctors = _visitor_visitor.visit_subfunctors
+  visit_variables = _visitor_visitor.visit_variables
   while_ = _operators_functor.while_
 
 

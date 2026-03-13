@@ -3011,6 +3011,53 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
+### `kd.functor.visit_subfunctors(functor: DataItem, callback_fn: Callable[[DataItem], None])` {#kd.functor.visit_subfunctors}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Traverses the functor and calls callback_fn on sub-functors recursively.
+
+The visit is done using the postorder strategy. Result of `callback_fn` is
+not used.
+
+Args:
+  functor: Root functor to be traversed.
+  callback_fn: callable that accepts a single Koda Functor provided by the
+    caller.</code></pre>
+
+### `kd.functor.visit_variables(functor: DataItem, callback_fn: Callable[[DataItem, dict[str, DataItem | None]], DataItem | None]) -> DataItem | None` {#kd.functor.visit_variables}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Traverses the functor and calls callback_fn on each variable recursively.
+
+`callback_fn` is called on the top-level Functor, as well.
+
+The visit is done using the postorder strategy.
+
+The `callback_fn` provided by the caller is used to compute the new Koda
+Functor using the returned variable values in a bottom-up fashion. If
+`callback_fn` returns `None`, the original value will be passed up.
+
+Example:
+  f = kd.fn(lambda x: kd.V.a * x + kd.V.b).with_attrs(a=42, b=37)
+
+  def transform_fn(fn, sub_vars):
+    if fn == f:
+      return fn.with_attrs(a=12)
+    return fn
+
+  visitor.visit_variables(f, transform_fn)
+  # Returns result equivalent to:
+  # kd.fn(lambda x: kd.V.a * x + kd.V.b).with_attrs(a=12, b=37)
+
+To do a read-only traversal to only collect information, the `callback_fn`
+does not need to return a value or it can return the unmodified variable.
+
+Args:
+  functor: Root functor to be traversed.
+  callback_fn: callable that accepts a single Koda Functor and a dictionary of
+    its variables on which `callback_fn` has already been applied.
+
+Returns:
+  New Koda Functor or None</code></pre>
+
 ### `kd.functor.while_(condition_fn, body_fn, *, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.functor.while_}
 Aliases:
 

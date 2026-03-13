@@ -92,6 +92,7 @@ py_library(
         ":functor_factories",
         ":tracing_decorator",
         "//py:python_path",
+        "//py/koladata/functor/visitor",
         "//py/koladata/types:signature_utils",
     ],
 )
