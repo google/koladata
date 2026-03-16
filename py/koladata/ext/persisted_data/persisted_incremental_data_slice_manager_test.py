@@ -57,14 +57,14 @@ PersistedIncrementalDataSliceManager = (
 SimpleInMemoryDataSliceManager = (
     simple_in_memory_data_slice_manager.SimpleInMemoryDataSliceManager
 )
-DataSliceManager = (
+DataSliceManagerTypes = (
     PersistedIncrementalDataSliceManager | SimpleInMemoryDataSliceManager
 )
 
 
 class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
-  def new_manager(self, dsm_class: Any) -> DataSliceManager:
+  def new_manager(self, dsm_class: Any) -> DataSliceManagerTypes:
     if dsm_class == PersistedIncrementalDataSliceManager:
       persistence_dir = self.create_tempdir().full_path
       return PersistedIncrementalDataSliceManager.create_new(persistence_dir)
@@ -72,7 +72,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     assert dsm_class == SimpleInMemoryDataSliceManager
     return SimpleInMemoryDataSliceManager()
 
-  def copy_manager(self, manager: DataSliceManager) -> DataSliceManager:
+  def copy_manager(
+      self, manager: DataSliceManagerTypes
+  ) -> DataSliceManagerTypes:
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       new_persistence_dir = os.path.join(self.create_tempdir().full_path, 'new')
       shutil.copytree(manager._persistence_dir, new_persistence_dir)  # pylint: disable=protected-access
@@ -88,7 +90,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_available_data_slice_paths(
       self,
-      manager: DataSliceManager,
+      manager: DataSliceManagerTypes,
       expected_available_data_slice_paths: set[str],
       *,
       max_depth_of_data_slice_paths: int = 5,
@@ -111,7 +113,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_schema_node_names_to_num_bags(
       self,
-      manager: DataSliceManager,
+      manager: DataSliceManagerTypes,
       expected_schema_node_names_to_num_bags: list[tuple[str, int]],
   ):
     if isinstance(manager, SimpleInMemoryDataSliceManager):
@@ -130,7 +132,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_state(
       self,
-      manager: DataSliceManager,
+      manager: DataSliceManagerTypes,
       *,
       available_data_slice_paths: set[str],
       data_slice_paths_to_create_pytree: set[str],
