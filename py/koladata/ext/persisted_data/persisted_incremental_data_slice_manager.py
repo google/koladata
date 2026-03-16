@@ -20,6 +20,7 @@ PersistedIncrementalDataSliceManager.
 
 from __future__ import annotations
 
+import base64
 import copy
 import dataclasses
 import datetime
@@ -270,6 +271,7 @@ class PersistedIncrementalDataSliceManager(
         ],
     )
     _persist_metadata(fs, persistence_dir, metadata)
+    fs.make_dirs(_get_branches_dir(persistence_dir))
     return cls(
         internal_call=_INTERNAL_CALL,
         persistence_dir=persistence_dir,
@@ -1063,7 +1065,7 @@ class PersistedIncrementalDataSliceManager(
 
   def branch(
       self,
-      output_dir: str,
+      output_dir: str | None = None,
       *,
       revision_history_index: int = -1,
       fs: kd.file_io.FileSystemInterface | None = None,
@@ -1087,7 +1089,8 @@ class PersistedIncrementalDataSliceManager(
 
     Args:
       output_dir: the new persistence directory to use for the branch. It must
-        not exist yet or it must be empty.
+        not exist yet or it must be empty. If not provided, then a new directory
+        will be created and used for the branch.
       revision_history_index: The index of the revision in the revision history
         of this manager that should be used as the basis for the branch. The
         initial state of the branch manager's DataSlice will be the same as it
@@ -1128,15 +1131,18 @@ class PersistedIncrementalDataSliceManager(
     branch_fs = fs or self._fs
     del fs  # Use branch_fs henceforth.
 
-    if not branch_fs.exists(output_dir):
-      branch_fs.make_dirs(output_dir)
+    if output_dir is not None:
+      if not branch_fs.exists(output_dir):
+        branch_fs.make_dirs(output_dir)
+      else:
+        if not branch_fs.is_dir(output_dir):
+          raise ValueError(
+              f'the output_dir {output_dir} exists but it is not a directory'
+          )
+        if branch_fs.glob(os.path.join(output_dir, '*')):
+          raise ValueError(f'the output_dir {output_dir} is not empty')
     else:
-      if not branch_fs.is_dir(output_dir):
-        raise ValueError(
-            f'the output_dir {output_dir} exists but it is not a directory'
-        )
-      if branch_fs.glob(os.path.join(output_dir, '*')):
-        raise ValueError(f'the output_dir {output_dir} is not empty')
+      output_dir = _get_dir_for_new_branch(self._persistence_dir, branch_fs)
 
     self._initial_data_manager.serialize(
         os.path.join(output_dir, 'initial_data'), fs=branch_fs
@@ -1369,6 +1375,27 @@ def _get_uuid() -> str:
   return str(uuid.uuid1())
 
 
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class _UuidAndShortForm:
+  # A string representation of a UUID generated using `uuid.uuid1()`.
+  uuid: str
+  # A short form of `uuid` that typically has about 11 characters. Note that
+  # collisions are possible.
+  short_form: str
+
+
+def _get_uuid_and_short_form() -> _UuidAndShortForm:
+  new_id = uuid.uuid1()
+  id_bytes = new_id.bytes
+  halfway = len(id_bytes) // 2
+  short_bytes = bytes(
+      x ^ y for x, y in zip(id_bytes[:halfway], id_bytes[halfway:])
+  )
+  # The rstrip('=') is to remove the padding characters:
+  short_id = base64.urlsafe_b64encode(short_bytes).decode('utf-8').rstrip('=')
+  return _UuidAndShortForm(uuid=str(new_id), short_form=short_id)
+
+
 # The update number is padded to 12 digits in filenames.
 _UPDATE_NUMBER_NUM_DIGITS = 12
 
@@ -1477,3 +1504,73 @@ def _read_metadata(
     return metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
         f.read()
     )
+
+
+def _get_branches_dir(persistence_dir: str) -> str:
+  return os.path.join(persistence_dir, 'branches')
+
+
+def _get_dir_for_new_branch(
+    persistence_dir: str, fs: kd.file_io.FileSystemInterface
+) -> str:
+  """Returns a fresh directory name for a new branch.
+
+  The directory is created and its full path is returned.
+
+  Args:
+    persistence_dir: The persistence directory of the trunk manager.
+    fs: The filesystem interface to use.
+
+  Returns:
+    The directory name for the new branch.
+  """
+  # The assumption is that `persistence_dir` and all its contents, including
+  # subdirectories and files, are under the control of this module.
+  # This function does not have to deal with user interference - all user
+  # interactions with the persistence directory are supposed to happen via
+  # this module.
+  branches_dir = _get_branches_dir(persistence_dir)
+  # The branches directory should exist - only some very old instances might not
+  # have it. We create it if it is missing.
+  if not fs.exists(branches_dir):
+    fs.make_dirs(branches_dir)
+
+  # The goal is to find a directory name that is fairly short and not already
+  # used. Shortness is important because many filesystems have limits on the
+  # length of filepaths, and we want to support branches of branches a few
+  # levels deep. Eventually any scheme will hit the limit. We can also change
+  # the scheme in the future. To make that easy, we leave sentinel files to say
+  # which names are taken.
+  while True:
+    ids = _get_uuid_and_short_form()
+    unique_file = os.path.join(branches_dir, ids.uuid)  # Uses the full UUID.
+    # We want to use the directory with the name of the short form. Here is the
+    # sentinel file that indicates whether this name is already taken.
+    sentinel_file = os.path.join(branches_dir, f'{ids.short_form}.txt')
+
+    # If the sentinel file exists, then there is no point to continue with the
+    # `ids` we have, so we loop again to get fresh `ids`.
+    if fs.exists(sentinel_file):
+      continue
+
+    # Otherwise, we create a unique temporary file and atomically rename it to
+    # the sentinel file without overwriting in order to claim the name.
+    with fs.open(unique_file, 'w') as f:
+      f.write('')
+    try:
+      # On many file systems, file-to-file renaming is atomic - if
+      # `overwrite=False`, it will fail if the destination file already exists.
+      # So this is a way to detect if another thread or process has claimed the
+      # same directory name in the meantime.
+      fs.rename(unique_file, sentinel_file, overwrite=False)
+    except BaseException:  # pylint: disable=broad-except
+      # We catch all exceptions - implementations are free to use any mechanism
+      # to detect concurrent writers.
+      fs.remove(unique_file)  # Clean up the temporary file.
+      continue
+
+    # We have successfully written the sentinel file and thus claimed the
+    # `ids.short_form` name successfully. We create the directory and return it.
+    new_branch_dir = os.path.join(branches_dir, ids.short_form)
+    fs.make_dirs(new_branch_dir)
+    return new_branch_dir

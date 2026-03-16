@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import datetime
 import os
 import re
 import shutil
 from typing import Any
 from unittest import mock
+import uuid
 from absl.testing import absltest
 from absl.testing import parameterized
 from google.protobuf import timestamp
@@ -3449,6 +3451,110 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ValueError, 'the output_dir .* exists but it is not a directory'
     ):
       trunk_manager.branch(branch_dir)
+
+  def test_branch_with_implicit_output_dir(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
+    trunk_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='foo',
+        attr_value=kd.list([1, 2, 3]),
+    )
+
+    branch_manager = trunk_manager.branch()
+    branch_dir = branch_manager.get_persistence_directory()
+
+    # The branch directory should be inside the trunk's branches/ directory.
+    branches_dir = os.path.join(trunk_dir, 'branches')
+    self.assertTrue(branch_dir.startswith(branches_dir + os.sep))
+
+    # The sentinel file should exist.
+    short_form = os.path.basename(branch_dir)
+    sentinel_file = os.path.join(branches_dir, f'{short_form}.txt')
+    self.assertTrue(os.path.exists(sentinel_file))
+
+    # The branch should be functional.
+    self.assertEqual(
+        branch_manager.get_data_slice_at(parse_dsp('.foo[:]')).to_pytree(),
+        [1, 2, 3],
+    )
+    branch_manager.update(
+        at_path=parse_dsp(''),
+        attr_name='bar',
+        attr_value=kd.list([4, 5, 6]),
+    )
+    self.assertEqual(
+        branch_manager.get_data_slice_at(parse_dsp('.bar[:]')).to_pytree(),
+        [4, 5, 6],
+    )
+
+  def test_branch_with_implicit_output_dir_concurrent_conflict(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
+
+    # We mock _get_uuid_and_short_form to simulate some conflicts.
+    with mock.patch.object(
+        persisted_incremental_data_slice_manager,
+        '_get_uuid_and_short_form',
+        side_effect=[
+            persisted_incremental_data_slice_manager._UuidAndShortForm(
+                uuid='uuid1', short_form='id1'  # Will conflict with sentinel.
+            ),
+            persisted_incremental_data_slice_manager._UuidAndShortForm(
+                uuid='uuid2', short_form='id2'
+            ),
+            persisted_incremental_data_slice_manager._UuidAndShortForm(
+                uuid='uuid3', short_form='id2'  # Conflicts with previous!
+            ),
+            persisted_incremental_data_slice_manager._UuidAndShortForm(
+                uuid='uuid4', short_form='id4'
+            ),
+        ],
+    ):
+      # Manually create a sentinel file for 'id1' to simulate another instance
+      # claiming it.
+      branches_dir = os.path.join(trunk_dir, 'branches')
+      if not os.path.exists(branches_dir):
+        os.makedirs(branches_dir)
+      with open(os.path.join(branches_dir, 'id1.txt'), 'w') as f:
+        f.write('')
+
+      branch_manager = trunk_manager.branch()
+      branch_dir = branch_manager.get_persistence_directory()
+
+      # The branch should use 'id2' because 'id1' is already taken.
+      self.assertEqual(os.path.basename(branch_dir), 'id2')
+      self.assertTrue(os.path.exists(os.path.join(branches_dir, 'id2.txt')))
+
+      # This branch should use 'id4' because 'uuid3' has a short form 'id2'
+      # which is already taken.
+      another_branch = trunk_manager.branch()
+      another_branch_dir = another_branch.get_persistence_directory()
+      self.assertEqual(os.path.basename(another_branch_dir), 'id4')
+      self.assertTrue(os.path.exists(os.path.join(branches_dir, 'id4.txt')))
+
+  def test_branch_with_implicit_output_dir_short_name(self):
+    trunk_dir = self.create_tempdir().full_path
+    trunk_manager = PersistedIncrementalDataSliceManager.create_new(trunk_dir)
+
+    with mock.patch.object(
+        uuid,
+        'uuid1',
+        side_effect=[
+            uuid.UUID(bytes=b'ExampleUuidBytes'),
+            *[uuid.uuid1() for _ in range(4)],
+        ],
+    ):
+      branch_manager = trunk_manager.branch()
+      branch_dir = branch_manager.get_persistence_directory()
+      self.assertEqual(os.path.basename(branch_dir), 'MBEFLwkYACY')
+
+    # We show how the short name was constructed from the UUID bytes:
+    shortened_bytes = bytes(x ^ y for x, y in zip(b'ExampleU', b'uidBytes'))
+    short_name = (
+        base64.urlsafe_b64encode(shortened_bytes).decode('utf-8').rstrip('=')
+    )
+    self.assertEqual(short_name, 'MBEFLwkYACY')
 
   @parameterized.parameters(True, False)
   def test_branch_with_and_without_fs(self, use_new_fs: bool):
