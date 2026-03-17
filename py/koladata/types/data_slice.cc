@@ -914,23 +914,39 @@ PyObject* absl_nullable PyDataSlice_get_attr_names(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
+  DataSlice::AttrNamesSet attr_names;
   PyObject* py_intersection = args.kw_only_args["intersection"];
-  if (py_intersection == nullptr) {
-    PyErr_SetString(PyExc_TypeError,
-                    "get_attr_names() missing 1 required keyword-only "
-                    "argument: 'intersection'");
-    return nullptr;
-  }
-  if (!PyBool_Check(py_intersection)) {
+  if (py_intersection == nullptr || py_intersection == Py_None) {
+    // TODO: b/394258517 - Avoid calling GetAttrNames twice by adding a mode
+    // that detects conflicts in a single pass.
+    ASSIGN_OR_RETURN(auto intersection_attrs,
+                     UnsafeDataSliceRef(self).GetAttrNames(
+                         /*union_object_attrs=*/false),
+                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(auto union_attrs,
+                     UnsafeDataSliceRef(self).GetAttrNames(
+                         /*union_object_attrs=*/true),
+                     arolla::python::SetPyErrFromStatus(_));
+    if (intersection_attrs != union_attrs) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "get_attr_names() cannot determine attribute names because objects "
+          "have different attributes. Please specify intersection= "
+          "explicitly.");
+      return nullptr;
+    }
+    attr_names = std::move(intersection_attrs);
+  } else if (PyBool_Check(py_intersection)) {
+    ASSIGN_OR_RETURN(attr_names,
+                     UnsafeDataSliceRef(self).GetAttrNames(
+                         /*union_object_attrs=*/PyObject_Not(py_intersection)),
+                     arolla::python::SetPyErrFromStatus(_));
+  } else {
     PyErr_Format(PyExc_TypeError,
                  "get_attr_names() expected bool for `intersection`, got: %s",
                  Py_TYPE(py_intersection)->tp_name);
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto attr_names,
-                   UnsafeDataSliceRef(self).GetAttrNames(
-                       /*union_object_attrs=*/PyObject_Not(py_intersection)),
-                   arolla::python::SetPyErrFromStatus(_));
   auto attr_name_list =
       arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/attr_names.size()));
   int i = 0;
@@ -1199,7 +1215,7 @@ Args:
 )"""},
     {"get_attr_names", (PyCFunction)PyDataSlice_get_attr_names,
      METH_FASTCALL | METH_KEYWORDS,
-     "get_attr_names(*, intersection)\n"
+     "get_attr_names(*, intersection=None)\n"
      "--\n\n"
      R"""(Returns a sorted list of unique attribute names of this DataSlice.
 
@@ -1209,7 +1225,8 @@ schema. In case of primitives, an empty list is returned.
 
 Args:
   intersection: If True, the intersection of all object attributes is returned.
-    Otherwise, the union is returned.
+    If False, the union is returned. If not specified, raises an error if
+    objects have different attributes.
 
 Returns:
   A list of unique attributes sorted by alphabetical order.

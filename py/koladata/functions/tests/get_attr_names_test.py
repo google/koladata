@@ -72,6 +72,20 @@ class GetAttrNamesTest(absltest.TestCase):
     x = ds([1, 2, 3]).with_bag(object_factories.mutable_bag())
     self.assertEqual(fns.get_attr_names(x, intersection=True), [])
 
+  def test_no_intersection_arg(self):
+    db = object_factories.mutable_bag()
+    x = db.obj(a=1, b='abc')
+    self.assertEqual(fns.get_attr_names(x), ['a', 'b'])
+    self.assertEqual(
+        fns.get_attr_names(ds([x, db.obj(a=2, b='def')])), ['a', 'b']
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'get_attr_names\\(\\) cannot determine attribute names because objects'
+        ' have different attributes.',
+    ):
+      fns.get_attr_names(ds([x, db.obj(a='def', c=123)]))
+
   def test_no_bag_error(self):
     db = object_factories.mutable_bag()
     x = db.obj(a=1, b='abc')

@@ -133,7 +133,9 @@ def del_attr(
   x.__delattr__(attr_name)
 
 
-def get_attr_names(x: data_slice.DataSlice, *, intersection: bool) -> list[str]:
+def get_attr_names(
+    x: data_slice.DataSlice, *, intersection: bool | None = None
+) -> list[str]:
   """Returns a sorted list of unique attribute names of the given DataSlice.
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
@@ -143,7 +145,8 @@ def get_attr_names(x: data_slice.DataSlice, *, intersection: bool) -> list[str]:
   Args:
     x: A DataSlice.
     intersection: If True, the intersection of all object attributes is
-      returned. Otherwise, the union is returned.
+      returned. If False, the union is returned. If not specified, raises an
+      error if objects have different attributes.
 
   Returns:
     A list of unique attributes sorted by alphabetical order.

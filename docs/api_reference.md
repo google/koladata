@@ -10626,7 +10626,7 @@ Alias for [kd.comparison.full_equal](#kd.comparison.full_equal) operator.
 
 Alias for [kd.core.get_attr](#kd.core.get_attr) operator.
 
-### `kd.get_attr_names(x: DataSlice, *, intersection: bool) -> list[str]` {#kd.get_attr_names}
+### `kd.get_attr_names(x: DataSlice, *, intersection: bool | None = None) -> list[str]` {#kd.get_attr_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of the given DataSlice.
 
@@ -10637,7 +10637,8 @@ schema. In case of primitives, an empty list is returned.
 Args:
   x: A DataSlice.
   intersection: If True, the intersection of all object attributes is
-    returned. Otherwise, the union is returned.
+    returned. If False, the union is returned. If not specified, raises an
+    error if objects have different attributes.
 
 Returns:
   A list of unique attributes sorted by alphabetical order.</code></pre>
@@ -13502,7 +13503,7 @@ Args:
   default: optional default value to fill missing items.
            Note that this value can be fully omitted.</code></pre>
 
-### `DataSlice.get_attr_names(*, intersection)` {#DataSlice.get_attr_names}
+### `DataSlice.get_attr_names(*, intersection=None)` {#DataSlice.get_attr_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of this DataSlice.
 
@@ -13512,7 +13513,8 @@ schema. In case of primitives, an empty list is returned.
 
 Args:
   intersection: If True, the intersection of all object attributes is returned.
-    Otherwise, the union is returned.
+    If False, the union is returned. If not specified, raises an error if
+    objects have different attributes.
 
 Returns:
   A list of unique attributes sorted by alphabetical order.</code></pre>

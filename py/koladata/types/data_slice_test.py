@@ -1105,14 +1105,17 @@ class DataSliceTest(parameterized.TestCase):
   def test_get_attr_names_call_errors(self):
     db = bag()
     x = db.new(x=1)
+    self.assertEqual(x.get_attr_names(), ['x'])
+    y = db.obj(a=1, b='abc')
+    self.assertEqual(ds([y, db.obj(a=2, b='def')]).get_attr_names(), ['a', 'b'])
     with self.assertRaisesRegex(
-        TypeError,
+        ValueError,
         re.escape(
-            'get_attr_names() missing 1 required keyword-only argument:'
-            " 'intersection'"
+            'get_attr_names() cannot determine attribute names because objects'
+            ' have different attributes.'
         ),
     ):
-      x.get_attr_names()  # pytype: disable=missing-parameter
+      ds([y, db.obj(a='def', c=123)]).get_attr_names()
     with self.assertRaisesRegex(
         TypeError,
         re.escape(
