@@ -114,13 +114,58 @@ def _parameter_from_py_parameter(
 
 
 def from_py_signature(sig: inspect.Signature) -> data_slice.DataSlice:
-  """Converts a Python signature to a Koda functor signature."""
+  """Converts an inspect.Signature to a Koda functor signature."""
   return signature(
       parameters=[
           _parameter_from_py_parameter(param)
           for param in sig.parameters.values()
       ]
   )
+
+
+def _py_parameter_from_parameter(
+    param: data_slice.DataSlice,
+) -> inspect.Parameter:
+  """Converts a Koda functor signature parameter to an inspect.Parameter."""
+  name = param.name.internal_as_py()
+
+  if param.kind == ParameterKind.POSITIONAL_ONLY:
+    kind = inspect.Parameter.POSITIONAL_ONLY
+  elif param.kind == ParameterKind.POSITIONAL_OR_KEYWORD:
+    kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+  elif param.kind == ParameterKind.VAR_POSITIONAL:
+    kind = inspect.Parameter.VAR_POSITIONAL
+  elif param.kind == ParameterKind.KEYWORD_ONLY:
+    kind = inspect.Parameter.KEYWORD_ONLY
+  elif param.kind == ParameterKind.VAR_KEYWORD:
+    kind = inspect.Parameter.VAR_KEYWORD
+  else:
+    raise ValueError(f'unsupported parameter kind: {param.kind}')
+
+  default_value = param.default_value
+  if (
+      not default_value.is_primitive()
+      and default_value.get_itemid() == NO_DEFAULT_VALUE.get_itemid()
+  ):
+    default = inspect.Parameter.empty
+  else:
+    default = default_value
+
+  return inspect.Parameter(name, kind, default=default)
+
+
+def to_inspect_signature(sig: data_slice.DataSlice) -> inspect.Signature:
+  """Converts a Koda functor signature to a Python inspect.Signature."""
+  parameters = []
+  if (
+      not isinstance(sig, data_item.DataItem)
+      or not sig.has_attr('parameters')
+      or not sig.parameters.is_list()
+  ):
+    raise ValueError(f'not a valid Koda Functor signature: {sig}')
+  for param in sig.parameters:
+    parameters.append(_py_parameter_from_parameter(param))
+  return inspect.Signature(parameters=parameters)
 
 
 ARGS_KWARGS_SIGNATURE = signature([

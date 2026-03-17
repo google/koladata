@@ -15,6 +15,7 @@
 import inspect
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators as _
 from koladata.types import data_item
@@ -23,7 +24,7 @@ from koladata.types import schema_constants
 from koladata.types import signature_utils
 
 
-class SignatureUtilsTest(absltest.TestCase):
+class SignatureUtilsTest(parameterized.TestCase):
 
   def test_parameter(self):
     p = signature_utils.parameter(
@@ -143,6 +144,88 @@ class SignatureUtilsTest(absltest.TestCase):
             signature_utils.ParameterKind.VAR_KEYWORD,
         ],
     )
+
+  def test_to_inspect_signature_empty(self):
+    sig = signature_utils.signature([])
+    py_sig = signature_utils.to_inspect_signature(sig)
+    self.assertEqual(py_sig, inspect.Signature())
+
+  @parameterized.parameters([
+      fns.new(a=1),
+      data_slice.DataSlice.from_vals([1, 2, 3]),
+      fns.new(parameters=42),
+  ])
+  def test_to_inspect_signature_invalid_signature(self, sig):
+    with self.assertRaisesRegex(
+        ValueError, 'not a valid Koda Functor signature'
+    ):
+      _ = signature_utils.to_inspect_signature(sig)
+
+  def test_to_inspect_signature_all_kinds(self):
+    sig = signature_utils.signature([
+        signature_utils.parameter(
+            'a', signature_utils.ParameterKind.POSITIONAL_ONLY
+        ),
+        signature_utils.parameter(
+            'b', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+        ),
+        signature_utils.parameter(
+            'c', signature_utils.ParameterKind.VAR_POSITIONAL
+        ),
+        signature_utils.parameter(
+            'd', signature_utils.ParameterKind.KEYWORD_ONLY
+        ),
+        signature_utils.parameter(
+            'e', signature_utils.ParameterKind.VAR_KEYWORD
+        ),
+    ])
+    py_sig = signature_utils.to_inspect_signature(sig)
+
+    expected_params = [
+        inspect.Parameter('a', inspect.Parameter.POSITIONAL_ONLY),
+        inspect.Parameter('b', inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        inspect.Parameter('c', inspect.Parameter.VAR_POSITIONAL),
+        inspect.Parameter('d', inspect.Parameter.KEYWORD_ONLY),
+        inspect.Parameter('e', inspect.Parameter.VAR_KEYWORD),
+    ]
+    expected_sig = inspect.Signature(expected_params)
+    self.assertEqual(py_sig, expected_sig)
+
+  @parameterized.parameters(
+      (data_item.DataItem.from_vals(42),),
+      (fns.new(x=1),),
+  )
+  def test_to_inspect_signature_defaults(self, default_value):
+    sig = signature_utils.signature([
+        signature_utils.parameter(
+            'a',
+            signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD,
+            default_value,
+        ),
+    ])
+    py_sig = signature_utils.to_inspect_signature(sig)
+
+    expected_sig = inspect.signature(lambda a=default_value: None)
+    self.assertEqual(py_sig, expected_sig)
+    py_param = py_sig.parameters['a']
+    self.assertEqual(py_param.default, default_value)
+
+  def test_to_inspect_signature_round_trip(self):
+
+    def foo(
+        a,
+        b=data_item.DataItem.from_vals(1),
+        *args,
+        c,
+        d=fns.new(x=1),
+        **kwargs,
+    ):  # pylint: disable=unused-argument
+      pass
+
+    py_sig_orig = inspect.signature(foo)
+    koda_sig = signature_utils.from_py_signature(py_sig_orig)
+    py_sig_new = signature_utils.to_inspect_signature(koda_sig)
+    self.assertEqual(py_sig_new, inspect.signature(foo))
 
 
 if __name__ == '__main__':
