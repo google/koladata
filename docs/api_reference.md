@@ -48,7 +48,7 @@ Category  | Subcategory | Description
  | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
  | [npkd](#kd_ext.npkd) | Tools for Numpy &lt;-&gt; Koda interoperability.
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas &lt;-&gt; Koda interoperability.
- | [persisted_data](#kd_ext.persisted_data) | Tools for persisted incremental data.
+ | [storage](#kd_ext.storage) | Tools for persisted incremental data.
  | [vis](#kd_ext.vis) | Koda visualization functionality.
  | [kv](#kd_ext.kv) | Experimental Koda View API.
 [DataSlice](#DataSlice) | | `DataSlice` class
@@ -12042,7 +12042,7 @@ Returns:
 
 </section>
 
-### kd_ext.persisted_data {#kd_ext.persisted_data}
+### kd_ext.storage {#kd_ext.storage}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Tools for persisted incremental data.</code></pre>
 
@@ -12050,7 +12050,7 @@ Returns:
 
 **Operators**
 
-### `kd_ext.persisted_data.CompositeInitialDataManager(*, internal_call: object, managers: list[persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager])` {#kd_ext.persisted_data.CompositeInitialDataManager}
+### `kd_ext.storage.CompositeInitialDataManager(*, internal_call: object, managers: list[persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager])` {#kd_ext.storage.CompositeInitialDataManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Initial data that composes several PersistedIncrementalDataSliceManagers.
 
@@ -12068,11 +12068,11 @@ of fallbacks, where the data of the earlier managers in the list will have
 a higher priority than the data of the later managers in the list. That is
 the standard semantics of Koda&#39;s enrichment mechanism.</code></pre>
 
-### `kd_ext.persisted_data.DataSliceManagerInterface()` {#kd_ext.persisted_data.DataSliceManagerInterface}
+### `kd_ext.storage.DataSliceManagerInterface()` {#kd_ext.storage.DataSliceManagerInterface}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Interface for data slice managers.</code></pre>
 
-### `kd_ext.persisted_data.DataSliceManagerView(manager: data_slice_manager_interface.DataSliceManagerInterface, path_from_root: data_slice_path_lib.DataSlicePath = DataSlicePath(''))` {#kd_ext.persisted_data.DataSliceManagerView}
+### `kd_ext.storage.DataSliceManagerView(manager: data_slice_manager_interface.DataSliceManagerInterface, path_from_root: data_slice_path_lib.DataSlicePath = DataSlicePath(''))` {#kd_ext.storage.DataSliceManagerView}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A view of a DataSliceManager from a particular DataSlicePath.
 
@@ -12098,11 +12098,11 @@ with a verb, usually &#39;get&#39;, so we can use e.g. get_title() for the metho
 Reducing the possibility for conflicts with data attributes is also the reason
 why the is_view_valid() method is not simply called is_valid() or valid().</code></pre>
 
-### `kd_ext.persisted_data.DataSlicePath(actions: tuple[DataSliceAction, ...])` {#kd_ext.persisted_data.DataSlicePath}
+### `kd_ext.storage.DataSlicePath(actions: tuple[DataSliceAction, ...])` {#kd_ext.storage.DataSlicePath}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A data slice path.</code></pre>
 
-### `kd_ext.persisted_data.PersistedIncrementalDataSliceManager(*, internal_call: object, persistence_dir: str, read_only: bool, fs: kd.file_io.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DictItem, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.persisted_data.PersistedIncrementalDataSliceManager}
+### `kd_ext.storage.PersistedIncrementalDataSliceManager(*, internal_call: object, persistence_dir: str, read_only: bool, fs: kd.file_io.FileSystemInterface, initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface, data_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_bag_manager: dbm.PersistedIncrementalDataBagManager, schema_helper: schema_helper_lib.SchemaHelper, initial_schema_node_name_to_data_bag_names: kd.types.DictItem, schema_node_name_to_data_bags_updates_manager: dbm.PersistedIncrementalDataBagManager, metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata)` {#kd_ext.storage.PersistedIncrementalDataSliceManager}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Manager of a DataSlice that is assembled from multiple smaller data slices.
 
@@ -12154,7 +12154,7 @@ the update can possibly provide data. When a user requests a subslice,
 the manager consults the index and asks the bag manager to load all the needed
 updates (data bags).</code></pre>
 
-### `kd_ext.persisted_data.get_internal_global_cache() -> LruSizeTrackingCache[str, DataBag | DataSlice]` {#kd_ext.persisted_data.get_internal_global_cache}
+### `kd_ext.storage.get_internal_global_cache() -> LruSizeTrackingCache[str, DataBag | DataSlice]` {#kd_ext.storage.get_internal_global_cache}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the internal global cache.
 

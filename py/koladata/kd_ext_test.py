@@ -26,7 +26,7 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('npkd', modules)
     self.assertIn('pdkd', modules)
     self.assertIn('nested_data', modules)
-    self.assertIn('persisted_data', modules)
+    self.assertIn('storage', modules)
     self.assertIn('contrib', modules)
     self.assertIn('kv', modules)
 
