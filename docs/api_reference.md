@@ -5924,7 +5924,7 @@ Args:
 Returns:
   Result of fn applied on the arguments.</code></pre>
 
-### `kd.py.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, item_completed_callback=None, **kwargs)` {#kd.py.map_py}
+### `kd.py.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.py.map_py}
 Aliases:
 
 - [kd.map_py](#kd.map_py)
@@ -5996,6 +5996,8 @@ Args:
   include_missing: Specifies whether `fn` applies to all items (`=True`) or
     only to items present in all `args` and `kwargs` (`=False`, valid only
     when `ndim=0`); defaults to `False` when `ndim=0`.
+  dict_as_obj: If True, will convert dicts with string keys returned by `fn`
+    into Koda objects instead of Koda dicts.
   item_completed_callback: A callback that will be called after each item is
     processed. It will be called in the original thread that called `map_py`
     in case `max_threads` is greater than 1, as we rely on this property for
@@ -6006,7 +6008,7 @@ Args:
 Returns:
   Result DataSlice.</code></pre>
 
-### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_cond}
+### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_cond}
 Aliases:
 
 - [kd.map_py_on_cond](#kd.map_py_on_cond)
@@ -6029,6 +6031,8 @@ Args:
   *args: Input DataSlices.
   schema: The schema to use for resulting DataSlice.
   max_threads: maximum number of threads to use.
+  dict_as_obj: If True, will convert dicts with string keys returned by
+    `true_fn` and `false_fn` into Koda objects instead of Koda dicts.
   item_completed_callback: A callback that will be called after each item is
     processed. It will be called in the original thread that called
     `map_py_on_cond` in case `max_threads` is greater than 1, as we rely on
@@ -6039,7 +6043,7 @@ Args:
 Returns:
   Result DataSlice.</code></pre>
 
-### `kd.py.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_selected}
+### `kd.py.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.py.map_py_on_selected}
 Aliases:
 
 - [kd.map_py_on_selected](#kd.map_py_on_selected)
@@ -6060,6 +6064,8 @@ Args:
   *args: Input DataSlices.
   schema: The schema to use for resulting DataSlice.
   max_threads: maximum number of threads to use.
+  dict_as_obj: If True, will convert dicts with string keys returned by `fn`
+    into Koda objects instead of Koda dicts.
   item_completed_callback: A callback that will be called after each item is
     processed. It will be called in the original thread that called
     `map_py_on_selected` in case `max_threads` is greater than 1, as we rely
@@ -10928,15 +10934,15 @@ Alias for [kd.s11n.loads](#kd.s11n.loads) operator.
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
 
-### `kd.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, item_completed_callback=None, **kwargs)` {#kd.map_py}
+### `kd.map_py(fn, *args, schema=None, max_threads=1, ndim=0, include_missing=None, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.map_py}
 
 Alias for [kd.py.map_py](#kd.py.map_py) operator.
 
-### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.map_py_on_cond}
+### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=None, max_threads=1, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.map_py_on_cond}
 
 Alias for [kd.py.map_py_on_cond](#kd.py.map_py_on_cond) operator.
 
-### `kd.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, item_completed_callback=None, **kwargs)` {#kd.map_py_on_selected}
+### `kd.map_py_on_selected(fn, cond, *args, schema=None, max_threads=1, dict_as_obj=False, item_completed_callback=None, **kwargs)` {#kd.map_py_on_selected}
 
 Alias for [kd.py.map_py_on_selected](#kd.py.map_py_on_selected) operator.
 

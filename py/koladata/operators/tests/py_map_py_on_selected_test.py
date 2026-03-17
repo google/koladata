@@ -160,6 +160,19 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val.repeat(1) > 2, val))
 
+  def test_dict_as_obj(self):
+    fn = lambda x: {"a": x, "b": x + 1}
+    val = ds([1, 2, 3, 4])
+    cond = val > 2
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_selected(fn, cond, val, dict_as_obj=True)
+    )
+    # Only items where cond is present are processed.
+    self.assertFalse(res.is_dict())
+    testing.assert_equal(res.a.no_bag(), ds([None, None, 3, 4]))
+    testing.assert_equal(res.b.no_bag(), ds([None, None, 4, 5]))
+
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(kde.py.map_py_on_selected(I.fn, I.cond, I.arg))
@@ -175,6 +188,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
         repr(kde.py.map_py_on_selected(I.fn, I.cond, I.x, a=I.a)),
         "kd.py.map_py_on_selected(I.fn, I.cond, I.x, schema=DataItem(None,"
         " schema: NONE), max_threads=DataItem(1, schema: INT32),"
+        " dict_as_obj=DataItem(False, schema: BOOLEAN),"
         " item_completed_callback=DataItem(None, schema: NONE), a=I.a)",
     )
 

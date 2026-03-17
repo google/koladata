@@ -154,6 +154,17 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
 
+  def test_dict_as_obj(self):
+    yes_fn = lambda x: {'a': x + 1, 'b': x + 2}
+    no_fn = lambda x: {'a': x - 1, 'b': x - 2}
+    val = ds([1, 2, 3, 4])
+
+    res = expr_eval.eval(
+        kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val, dict_as_obj=True)
+    )
+    testing.assert_equal(res.a.no_bag(), ds([0, 1, 4, 5]))
+    testing.assert_equal(res.b.no_bag(), ds([-1, 0, 5, 6]))
+
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(kde.py.map_py_on_cond(I.fn, I.cond, I.arg))

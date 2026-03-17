@@ -338,6 +338,60 @@ assigned schema: ENTITY(u=INT64)"""),
     res = kd.py.map_py(lambda x: x if x % 2 else ds(x), ds([1, 2, 3, 4]))
     testing.assert_equal(res.no_bag(), ds([1, 2, 3, 4]))
 
+  def test_map_py_dict_as_obj(self):
+    res = kd.py.map_py(
+        lambda x: {'a': x, 'b': x + 1}, ds([1, 2, 3]), dict_as_obj=True
+    )
+    # With dict_as_obj=True, dicts become objects with attributes.
+    self.assertFalse(res.S[0].is_dict())
+    testing.assert_equal(res.a.no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(res.b.no_bag(), ds([2, 3, 4]))
+    self.assertFalse(res.is_mutable())
+
+  def test_map_py_dict_as_obj_false(self):
+    # Without dict_as_obj (default), dicts are returned as Koda dicts.
+    res = kd.py.map_py(lambda x: {'a': x}, ds([1, 2]))
+    self.assertTrue(res.S[0].is_dict())
+
+  def test_map_py_dict_as_obj_with_ndim(self):
+    res = kd.py.map_py(
+        lambda x: {'sum': sum(v for v in x if v is not None)},
+        ds([[1, 2], [3, 4, 5]]),
+        ndim=1,
+        dict_as_obj=True,
+    )
+    testing.assert_equal(res.sum.no_bag(), ds([3, 12]))
+
+  def test_map_py_dict_as_obj_with_schema(self):
+    schema = kd.schema.new_schema(
+        a=schema_constants.FLOAT32, b=schema_constants.FLOAT32
+    )
+    res = kd.py.map_py(
+        lambda x: {'a': x, 'b': x + 1},
+        ds([1, 2]),
+        dict_as_obj=True,
+        schema=schema,
+    )
+    testing.assert_equal(res.a.no_bag(), ds([1.0, 2.0]))
+    testing.assert_equal(res.b.no_bag(), ds([2.0, 3.0]))
+
+  def test_map_py_dict_as_obj_non_string_key(self):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'dict_as_obj requires keys to be valid unicode objects'
+        ),
+    ):
+      kd.py.map_py(lambda x: {b'key': x}, ds([1]), dict_as_obj=True)
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'dict_as_obj requires keys to be valid unicode objects'
+        ),
+    ):
+      kd.py.map_py(lambda x: {1: x}, ds([1]), dict_as_obj=True)
+
   def test_map_py_invalid_include_missing(self):
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -395,6 +449,7 @@ assigned schema: ENTITY(u=INT64)"""),
         ' max_threads=DataItem(1, schema: INT32),'
         ' ndim=DataItem(0, schema: INT32),'
         ' include_missing=DataItem(None, schema: NONE),'
+        ' dict_as_obj=DataItem(False, schema: BOOLEAN),'
         ' item_completed_callback=DataItem(None, schema: NONE),'
         ' a=I.a'
         ')',

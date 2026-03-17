@@ -279,19 +279,6 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
 #
 
 
-def _from_py(py_obj, *, schema, from_dim):
-  return base_clib._from_py(  # pylint: disable=protected-access
-      py_obj,
-      schema,
-      from_dim,
-      False,  # dict_as_obj=
-      None,  # itemid=
-  )
-
-
-#
-#
-#
 _T = TypeVar('_T')
 
 
@@ -369,6 +356,7 @@ def _basic_map_py(
     ndim: int,
     max_threads: int,
     item_completed_callback: Callable[[Any], None] | None,
+    dict_as_obj: bool,
 ):
   """A basic map_py(...) utility.
 
@@ -391,6 +379,8 @@ def _basic_map_py(
       in case `max_threads` is greater than 1, as we rely on this property for
       cases like progress reporting. As such, it can not be attached to the `fn`
       itself.
+    dict_as_obj: If True, will convert dicts with string keys returned by `fn`
+      into Koda objects instead of Koda dicts.
 
   Returns:
     The resulting DataSlice.
@@ -422,7 +412,13 @@ def _basic_map_py(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
   )
-  result = _from_py(result, schema=schema, from_dim=1)
+  result = base_clib._from_py(  # pylint: disable=protected-access
+      result,
+      schema,
+      1,  # from_dim=
+      dict_as_obj,
+      None,  # itemid=
+  )
   if cond is not None:
     result = eval_op('kd.slices.inverse_select', result, cond)
   return result.reshape(shape[: shape_rank - ndim])
@@ -441,6 +437,7 @@ def _basic_map_py(
         _expect_scalar_integer(P.max_threads),
         _expect_scalar_integer(P.ndim),
         _expect_optional_boolean(P.include_missing),
+        _expect_optional_boolean(P.dict_as_obj),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     custom_boxing_fn_name_per_parameter=dict(
@@ -455,6 +452,7 @@ def map_py(
     max_threads=1,
     ndim=0,
     include_missing=None,
+    dict_as_obj=False,
     item_completed_callback=None,
     **kwargs,
 ):
@@ -525,6 +523,8 @@ def map_py(
     include_missing: Specifies whether `fn` applies to all items (`=True`) or
       only to items present in all `args` and `kwargs` (`=False`, valid only
       when `ndim=0`); defaults to `False` when `ndim=0`.
+    dict_as_obj: If True, will convert dicts with string keys returned by `fn`
+      into Koda objects instead of Koda dicts.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called `map_py`
       in case `max_threads` is greater than 1, as we rely on this property for
@@ -547,6 +547,9 @@ def map_py(
       include_missing = ndim != 0
     elif not include_missing and ndim != 0:
       raise ValueError('`include_missing=False` can only be used with `ndim=0`')
+    dict_as_obj = _unwrap_optional_boolean(
+        dict_as_obj, param_name='dict_as_obj'
+    )
     item_completed_callback = _unwrap_optional_py_callable(
         item_completed_callback, param_name='item_completed_callback'
     )
@@ -572,6 +575,7 @@ def map_py(
         ndim=ndim,
         max_threads=max_threads,
         item_completed_callback=item_completed_callback,
+        dict_as_obj=dict_as_obj,
     )
   except Exception as e:
     e.add_note(f'Error occurred during evaluation of kd.map_py with {fn=}')
@@ -588,6 +592,7 @@ def map_py(
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
         _expect_scalar_integer(P.max_threads),
+        _expect_optional_boolean(P.dict_as_obj),
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -604,6 +609,7 @@ def map_py_on_cond(
     *args,
     schema=None,
     max_threads=1,
+    dict_as_obj=False,
     item_completed_callback=None,
     **kwargs,
 ):
@@ -625,6 +631,8 @@ def map_py_on_cond(
     *args: Input DataSlices.
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
+    dict_as_obj: If True, will convert dicts with string keys returned by
+      `true_fn` and `false_fn` into Koda objects instead of Koda dicts.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called
       `map_py_on_cond` in case `max_threads` is greater than 1, as we rely on
@@ -640,6 +648,9 @@ def map_py_on_cond(
   try:
     schema = _unwrap_optional_schema(schema, param_name='schema')
     max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+    dict_as_obj = _unwrap_optional_boolean(
+        dict_as_obj, param_name='dict_as_obj'
+    )
     item_completed_callback = _unwrap_optional_py_callable(
         item_completed_callback, param_name='item_completed_callback'
     )
@@ -665,6 +676,7 @@ def map_py_on_cond(
           ndim=0,
           max_threads=max_threads,
           item_completed_callback=item_completed_callback,
+          dict_as_obj=dict_as_obj,
       )
     return _basic_map_py(
         lambda task_cond, *task_args: vcall(
@@ -677,6 +689,7 @@ def map_py_on_cond(
         ndim=0,
         max_threads=max_threads,
         item_completed_callback=item_completed_callback,
+        dict_as_obj=dict_as_obj,
     )
   except Exception as e:
     e.add_note(
@@ -695,6 +708,7 @@ def map_py_on_cond(
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
         _expect_scalar_integer(P.max_threads),
+        _expect_optional_boolean(P.dict_as_obj),
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -709,6 +723,7 @@ def map_py_on_selected(
     *args,
     schema=None,
     max_threads=1,
+    dict_as_obj=False,
     item_completed_callback=None,
     **kwargs,
 ):
@@ -728,6 +743,8 @@ def map_py_on_selected(
     *args: Input DataSlices.
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
+    dict_as_obj: If True, will convert dicts with string keys returned by `fn`
+      into Koda objects instead of Koda dicts.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called
       `map_py_on_selected` in case `max_threads` is greater than 1, as we rely
@@ -747,6 +764,7 @@ def map_py_on_selected(
       args=args,
       schema=schema,
       max_threads=max_threads,
+      dict_as_obj=dict_as_obj,
       item_completed_callback=item_completed_callback,
       kwargs=kwargs,
   )
