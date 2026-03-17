@@ -33,8 +33,15 @@ class DirTest(absltest.TestCase):
     x = db.obj(a=1, b='abc')
     self.assertEqual(attrs.dir(x), ['a', 'b'])
     self.assertEqual(attrs.dir(ds([x])), ['a', 'b'])
-    # Returns the intersection of attributes.
-    self.assertEqual(attrs.dir(ds([x, db.obj(a='def', c=123)])), ['a'])
+    self.assertEqual(
+        attrs.dir(ds([x, db.obj(a='def', c=123)]), intersection=True), ['a']
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'get_attr_names\\(\\) cannot determine attribute names because objects'
+        ' have different attributes.',
+    ):
+      attrs.dir(ds([x, db.obj(a='def', c=123)]))
 
   def test_primitives(self):
     x = ds([1, 2, 3]).with_bag(object_factories.mutable_bag())

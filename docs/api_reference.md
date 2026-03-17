@@ -10240,12 +10240,9 @@ Alias for [kd.dicts.size](#kd.dicts.size) operator.
 
 Alias for [kd.dicts.dict_update](#kd.dicts.dict_update) operator.
 
-### `kd.dir(x: DataSlice) -> list[str]` {#kd.dir}
+### `kd.dir(x: DataSlice, *, intersection: bool | None = None) -> list[str]` {#kd.dir}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of the given DataSlice.
-
-This is equivalent to `kd.get_attr_names(ds, intersection=True)`. For more
-finegrained control, use `kd.get_attr_names` directly instead.
 
 In case of OBJECT schema, attribute names are fetched from the `__schema__`
 attribute. In case of Entity schema, the attribute names are fetched from the
@@ -10253,6 +10250,9 @@ schema. In case of primitives, an empty list is returned.
 
 Args:
   x: A DataSlice.
+  intersection: If True, the intersection of all object attributes is
+    returned. If False, the union is returned. If not specified, raises an
+    error if objects have different attributes.
 
 Returns:
   A list of unique attributes sorted by alphabetical order.</code></pre>
