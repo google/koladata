@@ -533,6 +533,23 @@ def get_signature(
   return typing.cast(data_item.DataItem, fn_def.get_attr('__signature__'))
 
 
+def get_inspect_signature(
+    fn_def: data_item.DataItem,
+) -> inspect.Signature:
+  """Retrieves the signature of the given functor as an inspect.Signature.
+
+  This function retrieves the Koda Functor signature attached to the given
+  functor and converts it to a Python `inspect.Signature` object.
+
+  Args:
+    fn_def: The functor to retrieve the signature for.
+
+  Returns:
+    The Python signature derived from the functor's Koda signature.
+  """
+  return signature_utils.to_inspect_signature(get_signature(fn_def))
+
+
 def allow_arbitrary_unused_inputs(
     fn_def: data_item.DataItem,
 ) -> data_item.DataItem:

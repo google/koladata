@@ -232,6 +232,7 @@ class functor:
   fn = _functor_functor_factories.fn
   for_ = _operators_functor.for_
   fstr_fn = _functor_functor_factories.fstr_fn
+  get_inspect_signature = _functor_functor_factories.get_inspect_signature
   get_signature = _functor_functor_factories.get_signature
   has_fn = _operators_functor.has_fn
   if_ = _operators_functor.if_

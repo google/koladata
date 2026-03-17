@@ -2671,6 +2671,19 @@ Args:
   returns: A format string.
   **kwargs: variable assignments.</code></pre>
 
+### `kd.functor.get_inspect_signature(fn_def: DataItem) -> Signature` {#kd.functor.get_inspect_signature}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Retrieves the signature of the given functor as an inspect.Signature.
+
+This function retrieves the Koda Functor signature attached to the given
+functor and converts it to a Python `inspect.Signature` object.
+
+Args:
+  fn_def: The functor to retrieve the signature for.
+
+Returns:
+  The Python signature derived from the functor&#39;s Koda signature.</code></pre>
+
 ### `kd.functor.get_signature(fn_def: DataItem) -> DataItem` {#kd.functor.get_signature}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Retrieves the signature attached to the given functor.

@@ -148,6 +148,7 @@ py_test(
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
 )

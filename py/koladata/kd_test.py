@@ -678,6 +678,23 @@ class KdTest(absltest.TestCase):
     self.assertTrue(kd.is_fn(fn))
     self.assertFalse(kd.is_fn(57))
 
+  def test_functor_get_signature(self):
+    fn = kd.trace_py_fn(lambda x, y: x + y)
+    sig = kd.functor.get_signature(fn)
+    self.assertEqual(
+        sig.parameters[:].name.to_py(),
+        ['x', 'y'],
+    )
+
+  def test_functor_get_inspect_signature(self):
+    fn = kd.trace_py_fn(lambda x, y: x + y)
+    sig = kd.functor.get_inspect_signature(fn)
+    self.assertIsInstance(sig, inspect.Signature)
+    self.assertEqual(
+        list(sig.parameters.keys()),
+        ['x', 'y'],
+    )
+
   def test_functor_factorial(self):
     fn = kd.functor.expr_fn(
         kd.lazy.cond(I.n == 0, V.stop, V.go)(n=I.n),

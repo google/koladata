@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import functools
+import inspect
 import re
 import traceback
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
@@ -90,7 +92,7 @@ def extension_type_fn(x: TestExtension):
   return x.fn(2)
 
 
-class FunctorFactoriesTest(absltest.TestCase):
+class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_expr_fn_simple(self):
     v = fns.new(foo=57)
@@ -1108,6 +1110,59 @@ class FunctorFactoriesTest(absltest.TestCase):
             signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD,
         ]).no_bag(),
     )
+
+  def test_get_inspect_signature(self):
+    fn = functor_factories.expr_fn(I.x + I.y)
+    sig = functor_factories.get_inspect_signature(fn)
+    self.assertIsInstance(sig, inspect.Signature)
+    self.assertEqual(
+        list(sig.parameters.keys()),
+        ['self', 'x', 'y', '__extra_inputs__'],
+    )
+    self.assertEqual(
+        sig.parameters['x'].kind,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
+    self.assertEqual(
+        sig.parameters['y'].kind,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
+
+    fn2 = functor_factories.expr_fn(
+        I.x + I.y,
+        signature=signature_utils.signature([
+            signature_utils.parameter(
+                'x', signature_utils.ParameterKind.POSITIONAL_ONLY
+            ),
+            signature_utils.parameter(
+                'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+            ),
+        ]),
+    )
+    sig2 = functor_factories.get_inspect_signature(fn2)
+    self.assertIsInstance(sig2, inspect.Signature)
+    self.assertEqual(list(sig2.parameters.keys()), ['x', 'y'])
+    self.assertEqual(
+        sig2.parameters['x'].kind,
+        inspect.Parameter.POSITIONAL_ONLY,
+    )
+    self.assertEqual(
+        sig2.parameters['y'].kind,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    )
+
+  @parameterized.parameters(
+      (lambda x, y: x + y,),
+      (lambda x, y=2: x + y,),
+      (lambda x, /, y: x + y,),
+      (lambda x, *, y: x + y,),
+      (lambda x, *unused_args: x,),
+      (lambda x, **unused_kwargs: x,),
+  )
+  def test_get_inspect_signature_traced(self, py_fn):
+    fn_def = functor_factories.fn(py_fn, use_tracing=True)
+    sig = functor_factories.get_inspect_signature(fn_def)
+    self.assertEqual(sig, inspect.signature(py_fn))
 
   def test_allow_arbitrary_unused_inputs(self):
     fn = functor_factories.fn(lambda x, y: x + y)
