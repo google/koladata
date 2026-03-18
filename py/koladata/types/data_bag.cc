@@ -30,7 +30,6 @@
 #include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -59,8 +58,8 @@
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/py_proto_utils.h"
 #include "py/koladata/base/py_utils.h"
-#include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/base/pybind11_protobuf_wrapper.h"
+#include "py/koladata/base/wrap_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
