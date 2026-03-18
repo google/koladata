@@ -27,19 +27,18 @@ needed does not get loaded, then that is a serious bug.
 
 More details will follow below. At this point, it might be helpful to understand
 that the concept of a "data request" exists at 2 distinct levels.
-* On the high level, the user works with a PersistedIncrementalDataSliceManager.
-  A typical request there is: give me the sub-slice at the data_slice_path
-  ".query[:].doc[:].id".
-* The PersistedIncrementalDataSliceManager converts this data_slice_path into a
-  low level "data request" on the level of schema graphs. In particular, it will
-  figure out that the schema node name for the given data_slice_path is
+* On the high level, the user works with a DataSliceManager. A typical request
+  there is: give me the sub-slice at the data_slice_path ".query[:].doc[:].id".
+* The DataSliceManager converts this data_slice_path into a low level
+  "data request" on the level of schema graphs. In particular, it will figure
+  out that the schema node name for the given data_slice_path is
   "doc_item_schema.id:INT64", and it will determine that the ancestors of that
   schema node name in the schema graph are {"root_schema", "query_schema",
   "query_item_schema", "doc_schema", "doc_item_schema"}. It will then consult an
   index to find the set of DataBag names that have been indexed with any of
   {"root_schema", "query_schema", "query_item_schema", "doc_schema",
   "doc_item_schema", "doc_item_schema.id:INT64"}, and it will then ask its
-  PersistedIncrementalDataBagManager to load these bags.
+  DataBagManager to load these bags.
   Note that it won't load the data for "doc_item_schema.title:STRING", unless it
   happens to share a DataBag with some other loaded data.
 * Finally, the manager can now update the root slice with the loaded bags and
@@ -51,7 +50,7 @@ that the concept of a "data request" exists at 2 distinct levels.
   ".query[:].doc[:].title" - we need only the query and doc skeleton to provide
   a minimal context for the signals. The signals DataSlice might in turn be a
   Koda list whose item schema specifies complex Koda entities. If the user asks
-  to load the full contents of the signals, then the data of the decendants of
+  to load the full contents of the signals, then the data of the descendants of
   the schema node name must also be loaded (and of course also the data of all
   their ancestors).
 
@@ -123,8 +122,8 @@ More details about the concepts and utilities provided by this module:
          require collapsing the Schema Graph to a single node, which is not
          desirable. The situation is very much the same as with kd.OBJECT.
       Said otherwise, supporting the behavior of vanilla Koda is problematic for
-      the PersistedIncrementalDataSliceManager, which indexes an update by
-      considering only its schema. In particular, in the case of
+      the DataSliceManager, which indexes an update by considering only its
+      schema. In particular, in the case of
       1. The update has the schema kd.SCHEMA, so on the basis of only that, the
          manager does not know which parts of the schema of the main DataSlice
          are affected and how.

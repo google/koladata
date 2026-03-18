@@ -14,13 +14,12 @@
 
 """Tools for persisted incremental data."""
 
-
 from koladata.ext.storage import composite_initial_data_manager as _composite_initial_data_manager
+from koladata.ext.storage import data_slice_manager as _dsm
 from koladata.ext.storage import data_slice_manager_interface as _data_slice_manager_interface
 from koladata.ext.storage import data_slice_manager_view as _data_slice_manager_view
 from koladata.ext.storage import data_slice_path as _data_slice_path
 from koladata.ext.storage import global_cache_lib as _global_cache_lib
-from koladata.ext.storage import persisted_incremental_data_slice_manager as _pidsm
 
 data_slice_path = _data_slice_path
 DataSlicePath = _data_slice_path.DataSlicePath
@@ -28,10 +27,8 @@ DataSliceManagerInterface = (
     _data_slice_manager_interface.DataSliceManagerInterface
 )
 DataSliceManagerView = _data_slice_manager_view.DataSliceManagerView
-persisted_incremental_data_slice_manager = _pidsm
-PersistedIncrementalDataSliceManager = (
-    _pidsm.PersistedIncrementalDataSliceManager
-)
+data_slice_manager = _dsm
+DataSliceManager = _dsm.DataSliceManager
 CompositeInitialDataManager = (
     _composite_initial_data_manager.CompositeInitialDataManager
 )

@@ -24,20 +24,16 @@ class StorageTest(absltest.TestCase):
   def test_contains_modules(self):
     modules = dir(storage)
     self.assertIn('data_slice_path', modules)
-    self.assertIn('persisted_incremental_data_slice_manager', modules)
+    self.assertIn('data_slice_manager', modules)
 
   def test_data_slice_manager_functionality(self):
-    self.assertTrue(
-        hasattr(storage, 'PersistedIncrementalDataSliceManager')
-    )
+    self.assertTrue(hasattr(storage, 'DataSliceManager'))
     self.assertTrue(hasattr(storage, 'DataSliceManagerInterface'))
     self.assertTrue(hasattr(storage, 'DataSlicePath'))
     self.assertTrue(hasattr(storage, 'DataSliceManagerView'))
 
     persistence_dir = self.create_tempdir().full_path
-    manager = storage.PersistedIncrementalDataSliceManager.create_new(
-        persistence_dir
-    )
+    manager = storage.DataSliceManager.create_new(persistence_dir)
     self.assertIsInstance(manager, storage.DataSliceManagerInterface)
     self.assertEqual(
         storage.DataSlicePath.from_actions([]),

@@ -14,8 +14,7 @@
 
 """Management of a DataBag that is assembled from smaller bags.
 
-The main user-facing abstraction in this module is the class
-PersistedIncrementalDataBagManager.
+The main user-facing abstraction in this module is the class DataBagManager.
 """
 
 from __future__ import annotations
@@ -28,8 +27,8 @@ from typing import AbstractSet, Collection, Iterable, cast
 import uuid
 
 from koladata import kd
+from koladata.ext.storage import data_bag_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.storage import global_cache_lib
-from koladata.ext.storage import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
 _INTERNAL_CALL = object()
@@ -38,13 +37,13 @@ _INTERNAL_CALL = object()
 @dataclasses.dataclass(frozen=True)
 class BagToAdd:
   # For the semantics of the fields, please see the docstring of
-  # PersistedIncrementalDataBagManager.add_bags().
+  # DataBagManager.add_bags().
   bag_name: str
   bag: kd.types.DataBag
   dependencies: tuple[str, ...]
 
 
-class PersistedIncrementalDataBagManager:
+class DataBagManager:
   """Manager of a DataBag that is assembled from multiple smaller bags.
 
   Short version of the contract:
@@ -99,7 +98,7 @@ class PersistedIncrementalDataBagManager:
 
   _persistence_dir: str
   _fs: kd.file_io.FileSystemInterface
-  _metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata
+  _metadata: metadata_pb2.DataBagManagerMetadata
 
   @classmethod
   def create_new(
@@ -107,7 +106,7 @@ class PersistedIncrementalDataBagManager:
       persistence_dir: str,
       *,
       fs: kd.file_io.FileSystemInterface | None = None,
-  ) -> PersistedIncrementalDataBagManager:
+  ) -> DataBagManager:
     """Creates a new manager for the given persistence directory.
 
     Args:
@@ -117,9 +116,8 @@ class PersistedIncrementalDataBagManager:
         None, then the default interaction with the file system is used.
 
     Returns:
-      A new instance of PersistedIncrementalDataBagManager, which writes its
-      artifacts to the given persistence_dir via the given fs. The managed bag
-      is initially empty.
+      A new instance of DataBagManager, which writes its artifacts to the given
+      persistence_dir via the given fs. The managed bag is initially empty.
     """
     fs = fs or kd.file_io.get_default_file_system_interaction()
 
@@ -131,7 +129,7 @@ class PersistedIncrementalDataBagManager:
           f' {persistence_dir}'
       )
 
-    metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
+    metadata = metadata_pb2.DataBagManagerMetadata(
         version='1.0.0',
         metadata_update_number=0,
     )
@@ -150,19 +148,19 @@ class PersistedIncrementalDataBagManager:
       persistence_dir: str,
       *,
       fs: kd.file_io.FileSystemInterface | None = None,
-  ) -> PersistedIncrementalDataBagManager:
+  ) -> DataBagManager:
     """Initializes a manager from an existing persistence directory.
 
     Args:
       persistence_dir: The directory where the small bags and metadata are
         persisted. It must have been populated sometime in the past by an
-        instance of PersistedIncrementalDataBagManager.
+        instance of DataBagManager.
       fs: All interactions with the file system will go through this object. If
         None, then the default interaction with the file system is used.
 
     Returns:
-      A new instance of PersistedIncrementalDataBagManager that is initialized
-      from the given persistence directory.
+      A new instance of DataBagManager that is initialized from the given
+      persistence directory.
     """
     fs = fs or kd.file_io.get_default_file_system_interaction()
 
@@ -188,7 +186,7 @@ class PersistedIncrementalDataBagManager:
       internal_call: object,
       persistence_dir: str,
       fs: kd.file_io.FileSystemInterface,
-      metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
+      metadata: metadata_pb2.DataBagManagerMetadata,
   ):
     """Initializes the manager.
 
@@ -206,9 +204,8 @@ class PersistedIncrementalDataBagManager:
 
     if internal_call is not _INTERNAL_CALL:
       raise ValueError(
-          'please do not call the PersistedIncrementalDataBagManager'
-          ' constructor directly; use the class factory methods create_new() or'
-          ' create_from_dir() instead.'
+          'please do not call the DataBagManager constructor directly; use the'
+          ' class factory methods create_new() or create_from_dir() instead.'
       )
 
     self._persistence_dir = persistence_dir
@@ -331,9 +328,7 @@ class PersistedIncrementalDataBagManager:
     # alternative would be to populate the output_dir directly, i.e. without
     # using a new manager. Or to provide a way to unload the bags from the
     # memory of the new manager.
-    new_manager = PersistedIncrementalDataBagManager.create_new(
-        output_dir, fs=fs
-    )
+    new_manager = DataBagManager.create_new(output_dir, fs=fs)
     bags_to_add = [
         BagToAdd(
             bag_name,
@@ -391,7 +386,7 @@ class PersistedIncrementalDataBagManager:
           f'The output_dir must be empty or not exist yet. Got {output_dir}'
       )
 
-    branch_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
+    branch_metadata = metadata_pb2.DataBagManagerMetadata()
     branch_metadata.version = self._metadata.version
     branch_metadata.metadata_update_number = 0
     # The branch will be consistent with the total order of the bags in the
@@ -459,7 +454,7 @@ class PersistedIncrementalDataBagManager:
           future.result()
       )
 
-    new_metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata()
+    new_metadata = metadata_pb2.DataBagManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
     new_metadata.metadata_update_number += 1
     for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
@@ -657,9 +652,7 @@ class PersistedIncrementalDataBagManager:
       )
       result[bag_name] = cast(
           kd.types.DataBag,
-          global_cache.set(
-              key=cache_key, value=bag, metadata=entry_metadata
-          ),
+          global_cache.set(key=cache_key, value=bag, metadata=entry_metadata),
       )
     return result
 
@@ -736,7 +729,7 @@ _UPDATE_NUMBER_NUM_DIGITS = 12
 def _persist_metadata(
     fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
-    metadata: metadata_pb2.PersistedIncrementalDataBagManagerMetadata,
+    metadata: metadata_pb2.DataBagManagerMetadata,
 ):
   """Persists the given metadata to disk.
 
@@ -780,26 +773,23 @@ def _persist_metadata(
 def _read_latest_metadata(
     fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
-) -> metadata_pb2.PersistedIncrementalDataBagManagerMetadata:
+) -> metadata_pb2.DataBagManagerMetadata:
   update_number_pattern = '[0-9]' * _UPDATE_NUMBER_NUM_DIGITS
   committed_metadata_filepaths = fs.glob(
       os.path.join(persistence_dir, f'metadata-{update_number_pattern}.pb')
   )
   latest_metadata_filepath = max(committed_metadata_filepaths)
   with fs.open(latest_metadata_filepath, 'rb') as f:
-    return metadata_pb2.PersistedIncrementalDataBagManagerMetadata.FromString(
-        f.read()
-    )
+    return metadata_pb2.DataBagManagerMetadata.FromString(f.read())
 
 
 def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
   # We include the bag name in the cache key because users might move
   # manager directories around in the filesystem, and nothing prevents them from
   # swapping the filesystem locations of two unrelated managers. Since the only
-  # client of PersistedIncrementalDataBagManager is
-  # PersistedIncrementalDataSliceManager, which uses UUIDs for bag names, the
-  # scheme used here to generate cache keys is robust with respect to such
-  # moves/swaps/overwrites.
+  # client of DataBagManager is DataSliceManager, which uses UUIDs for bag
+  # names, the scheme used here to generate cache keys is robust with respect to
+  # such moves/swaps/overwrites.
   return f'bag_name:{bag_name} filepath:{bag_filepath}'
 
 

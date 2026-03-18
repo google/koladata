@@ -16,10 +16,10 @@
 
 A stub is essentially a minimal DataSlice. So this module provides functions
 to create minimal slices and bags that are targeted for use by persisted
-incremental dataslices. The PersistedIncrementalDataSliceManager keeps a schema
-separately from the collection of data bags for the managed slice. So the bags
-used in the collection do not have to carry much information about the schema -
-only the bare minimum is kept.
+incremental dataslices. The DataSliceManager keeps a schema separately from the
+collection of data bags for the managed slice. So the bags used in the
+collection do not have to carry much information about the schema - only the
+bare minimum is kept.
 """
 
 from koladata import kd
@@ -120,19 +120,18 @@ def _stubby(
 ) -> kd.types.DataSlice:
   """Helper function to create a stub that is useful for minimal bags.
 
-  The minimal bags are created by PersistedIncrementalDataSliceManager while it
-  traverses an update DataSlice according to its schema. For the most part, the
-  stubs that are used to create these minimal bags can be really minimal, in the
-  sense that they are primitives or itemids without any additional information,
-  not even about the schema (the schema is handled separately by using function
-  `schema_stub()` above). So for the most part, this function simply returns
-  ds.stub().no_bag(). However, there are two Koda schemas that can hide a world
-  of complexity behind them and that are opaque in the sense that traversal
-  based on the schema alone cannot capture the complexity in a step-by-step way.
-  These schemas are kd.OBJECT and kd.SCHEMA. The use of kd.OBJECT is forbidden
-  in persisted incremental dataslices. The use of kd.SCHEMA is allowed; it is
-  handled by keeping the full complexity in a "super stub" that is simply
-  ds.extract().
+  The minimal bags are created by DataSliceManager while it traverses an update
+  DataSlice according to its schema. For the most part, the stubs that are used
+  to create these minimal bags can be really minimal, in the sense that they are
+  primitives or itemids without any additional information, not even about the
+  schema (the schema is handled separately by using function `schema_stub()`
+  above). So for the most part, this function simply returns ds.stub().no_bag().
+  However, there are two Koda schemas that can hide a world of complexity behind
+  them and that are opaque in the sense that traversal based on the schema alone
+  cannot capture the complexity in a step-by-step way. These schemas are
+  kd.OBJECT and kd.SCHEMA. The use of kd.OBJECT is forbidden in managed
+  dataslices. The use of kd.SCHEMA is allowed; it is handled by keeping the full
+  complexity in a "super stub" that is simply ds.extract().
 
   Args:
     ds: the DataSlice to stub.

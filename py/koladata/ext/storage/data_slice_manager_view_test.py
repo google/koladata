@@ -18,9 +18,9 @@ from typing import Callable
 from absl.testing import absltest
 from koladata import kd
 from koladata.ext.storage import bare_root_initial_data_manager
+from koladata.ext.storage import data_slice_manager as dsm
 from koladata.ext.storage import data_slice_manager_view as data_slice_manager_view_lib
 from koladata.ext.storage import data_slice_path as data_slice_path_lib
-from koladata.ext.storage import persisted_incremental_data_slice_manager as pidsm
 
 
 DataSlicePath = data_slice_path_lib.DataSlicePath
@@ -31,7 +31,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_typical_usage(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+    manager = dsm.DataSliceManager.create_new(
         persistence_dir,
         description=(
             'Initial state of manager for playing with queries and docs'
@@ -358,9 +358,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
   def test_wrong_and_acceptable_initialization(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     with self.assertRaisesRegex(
         ValueError, re.escape("invalid data slice path: '.query[:]'")
     ):
@@ -407,9 +405,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_views_that_become_invalid_after_update(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        persistence_dir
-    )
+    manager = dsm.DataSliceManager.create_new(persistence_dir)
 
     root = DataSliceManagerView(manager)
     root.query = kd.list([
@@ -697,11 +693,9 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_branch_and_filter_recipe(self):
 
-    def create_initial_manager() -> pidsm.PersistedIncrementalDataSliceManager:
+    def create_initial_manager() -> dsm.DataSliceManager:
       persistence_dir = self.create_tempdir().full_path
-      manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-          persistence_dir
-      )
+      manager = dsm.DataSliceManager.create_new(persistence_dir)
       root = DataSliceManagerView(manager)
 
       root.query = (
@@ -734,8 +728,8 @@ class DataSliceManagerViewTest(absltest.TestCase):
       return manager
 
     def branch_and_filter(
-        manager: pidsm.PersistedIncrementalDataSliceManager,
-    ) -> pidsm.PersistedIncrementalDataSliceManager:
+        manager: dsm.DataSliceManager,
+    ) -> dsm.DataSliceManager:
       branch_dir = self.create_tempdir().full_path
       manager = manager.branch(
           branch_dir, description='Branch to showcase filtering'
@@ -917,7 +911,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     trunk_initial_data_manager = (
         bare_root_initial_data_manager.BareRootInitialDataManager.create_new()
     )
-    trunk_manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
+    trunk_manager = dsm.DataSliceManager.create_new(
         persistence_dir, initial_data_manager=trunk_initial_data_manager
     )
     trunk_root = DataSliceManagerView(trunk_manager)
@@ -1417,9 +1411,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       )
 
   def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
 
     with self.assertRaisesRegex(
@@ -1471,9 +1463,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     )
 
   def test_getitem_raises_error_for_invalid_argument(self):
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
     root.query = kd.list([
         kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
@@ -1541,9 +1531,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     ])
 
     # Set up a DataSliceManager with the data from above.
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
     root.query = query_ds.implode(ndim=-1)
 
@@ -1690,9 +1678,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     ])
 
     # Set up a DataSliceManager with the data from above.
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
     root.query = query_ds.implode(ndim=-1)
 
@@ -1700,7 +1686,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     self.assertRegex(
         manager_repr,
         re.escape(
-            '<koladata.ext.storage.persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager'
+            '<koladata.ext.storage.data_slice_manager.DataSliceManager'
             ' object at '
         )
         + r'\w+'
@@ -1791,9 +1777,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
         ),
     ])
 
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        self.create_tempdir().full_path
-    )
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root_view = DataSliceManagerView(manager)
     root_view.query = query_list, 'Added queries populated with data'
     query_view = root_view.query[:]
@@ -1875,9 +1859,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
 
   def test_views_are_hashable(self):
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager.create_new(
-        persistence_dir
-    )
+    manager = dsm.DataSliceManager.create_new(persistence_dir)
     root = DataSliceManagerView(manager)
     root.query = (
         kd.list([
@@ -1910,11 +1892,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     my_view_set = {root, query, doc, doc.title, root.query[:].doc[:]}
     self.assertLen(my_view_set, 4)
 
-    another_manager = (
-        pidsm.PersistedIncrementalDataSliceManager.create_from_dir(
-            persistence_dir
-        )
-    )
+    another_manager = dsm.DataSliceManager.create_from_dir(persistence_dir)
     another_root = DataSliceManagerView(another_manager)
 
     self.assertNotEqual(hash(another_root), hash(root))

@@ -18,7 +18,7 @@ package koladata.ext.storage;
 
 import "google/protobuf/timestamp.proto";
 
-message PersistedIncrementalDataSliceManagerMetadata {
+message DataSliceManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
 

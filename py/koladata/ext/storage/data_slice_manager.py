@@ -14,8 +14,7 @@
 
 """Management of a DataSlice that is assembled from smaller slices.
 
-The main user-facing abstraction in this module is the class
-PersistedIncrementalDataSliceManager.
+The main user-facing abstraction in this module is the class DataSliceManager.
 """
 
 from __future__ import annotations
@@ -31,12 +30,12 @@ import uuid
 from google.protobuf import timestamp
 from koladata import kd
 from koladata.ext.storage import bare_root_initial_data_manager
+from koladata.ext.storage import data_bag_manager as dbm
 from koladata.ext.storage import data_slice_manager_interface
+from koladata.ext.storage import data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.storage import data_slice_path as data_slice_path_lib
 from koladata.ext.storage import initial_data_manager_interface
 from koladata.ext.storage import initial_data_manager_registry
-from koladata.ext.storage import persisted_incremental_data_bag_manager as dbm
-from koladata.ext.storage import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.storage import schema_helper as schema_helper_lib
 from koladata.ext.storage import schema_helper_mixin
 from koladata.ext.storage import stubs_and_minimal_bags_lib
@@ -57,7 +56,7 @@ class _BagIdManager:
 
 @dataclasses.dataclass(frozen=True)
 class RevisionMetadata:
-  """Metadata about a revision of a PersistedIncrementalDataSliceManager.
+  """Metadata about a revision of a DataSliceManager.
 
   A revision gets created for each successful write operation, i.e. an operation
   that can mutate the data and/or schema managed by the manager.
@@ -76,13 +75,13 @@ class RevisionMetadata:
   # programmatically generated.
   description: str
   # The timestamp of the revision. The format and timezone are specified in the
-  # arguments of PersistedIncrementalDataSliceManager.get_revision_history().
+  # arguments of DataSliceManager.get_revision_history().
   timestamp: str
 
 
 @dataclasses.dataclass(frozen=True)
 class CreationMetadata(RevisionMetadata):
-  """Metadata about the creation of a PersistedIncrementalDataSliceManager."""
+  """Metadata about the creation of a DataSliceManager."""
 
   pass
 
@@ -111,7 +110,7 @@ class BranchMetadata(RevisionMetadata):
 _INTERNAL_CALL = object()
 
 
-class PersistedIncrementalDataSliceManager(
+class DataSliceManager(
     schema_helper_mixin.SchemaHelperMixin,
     data_slice_manager_interface.DataSliceManagerInterface,
 ):
@@ -176,7 +175,7 @@ class PersistedIncrementalDataSliceManager(
       initial_data_manager: (
           initial_data_manager_interface.InitialDataManagerInterface | None
       ) = None,
-  ) -> PersistedIncrementalDataSliceManager:
+  ) -> DataSliceManager:
     """Creates a new manager with the given initial state.
 
     Args:
@@ -225,10 +224,10 @@ class PersistedIncrementalDataSliceManager(
     initial_data_manager.serialize(
         _get_initial_data_dir(persistence_dir), fs=fs
     )
-    data_bag_manager = dbm.PersistedIncrementalDataBagManager.create_new(
+    data_bag_manager = dbm.DataBagManager.create_new(
         _get_data_bags_dir(persistence_dir), fs=fs
     )
-    schema_bag_manager = dbm.PersistedIncrementalDataBagManager.create_new(
+    schema_bag_manager = dbm.DataBagManager.create_new(
         _get_schema_bags_dir(persistence_dir), fs=fs
     )
     schema_helper = schema_helper_lib.SchemaHelper(
@@ -244,12 +243,12 @@ class PersistedIncrementalDataSliceManager(
         fs,
     )
     schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager.create_new(
+        dbm.DataBagManager.create_new(
             _get_schema_node_name_to_data_bags_updates_dir(persistence_dir),
             fs=fs,
         )
     )
-    metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
+    metadata = metadata_pb2.DataSliceManagerMetadata(
         version='1.0.0',
         initial_data_manager_id=initial_data_manager.get_id(),
         metadata_update_number=0,
@@ -294,15 +293,15 @@ class PersistedIncrementalDataSliceManager(
       at_revision_history_index: int | None = None,
       read_only: bool = False,
       fs: kd.file_io.FileSystemInterface | None = None,
-  ) -> PersistedIncrementalDataSliceManager:
+  ) -> DataSliceManager:
     """Initializes a manager from an existing persistence directory.
 
     Args:
       persistence_dir: The directory that holds the artifacts, persisted
-        previously by a PersistedIncrementalDataSliceManager, from which the new
-        manager should be initialized. Updates to the data and metadata will be
-        persisted to this directory; call returned_manager.branch(...) if you
-        want to persist updates to a different directory.
+        previously by a DataSliceManager, from which the new manager should be
+        initialized. Updates to the data and metadata will be persisted to this
+        directory; call returned_manager.branch(...) if you want to persist
+        updates to a different directory.
       at_revision_history_index: The index of the revision in the revision
         history that should be used as the basis for the resulting manager. The
         initial state of the manager's DataSlice will be the same as it was
@@ -322,7 +321,7 @@ class PersistedIncrementalDataSliceManager(
     if not fs.glob(os.path.join(persistence_dir, '*')):
       raise ValueError(
           f'persistence_dir {persistence_dir} should contain artifacts'
-          ' persisted previously by a PersistedIncrementalDataSliceManager'
+          ' persisted previously by a DataSliceManager'
       )
 
     metadata = _read_metadata(fs, persistence_dir, at_revision_history_index)
@@ -334,10 +333,10 @@ class PersistedIncrementalDataSliceManager(
     initial_data_manager = initial_data_manager_class.deserialize(
         _get_initial_data_dir(persistence_dir), fs=fs
     )
-    data_bag_manager = dbm.PersistedIncrementalDataBagManager.create_from_dir(
+    data_bag_manager = dbm.DataBagManager.create_from_dir(
         _get_data_bags_dir(persistence_dir), fs=fs
     )
-    schema_bag_manager = dbm.PersistedIncrementalDataBagManager.create_from_dir(
+    schema_bag_manager = dbm.DataBagManager.create_from_dir(
         _get_schema_bags_dir(persistence_dir), fs=fs
     )
     schema_bag_names = set()
@@ -358,7 +357,7 @@ class PersistedIncrementalDataSliceManager(
         )[0],
     )
     schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+        dbm.DataBagManager.create_from_dir(
             _get_schema_node_name_to_data_bags_updates_dir(persistence_dir),
             fs=fs,
         )
@@ -385,14 +384,12 @@ class PersistedIncrementalDataSliceManager(
       read_only: bool,
       fs: kd.file_io.FileSystemInterface,
       initial_data_manager: initial_data_manager_interface.InitialDataManagerInterface,
-      data_bag_manager: dbm.PersistedIncrementalDataBagManager,
-      schema_bag_manager: dbm.PersistedIncrementalDataBagManager,
+      data_bag_manager: dbm.DataBagManager,
+      schema_bag_manager: dbm.DataBagManager,
       schema_helper: schema_helper_lib.SchemaHelper,
       initial_schema_node_name_to_data_bag_names: kd.types.DictItem,
-      schema_node_name_to_data_bags_updates_manager: (
-          dbm.PersistedIncrementalDataBagManager
-      ),
-      metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata,
+      schema_node_name_to_data_bags_updates_manager: dbm.DataBagManager,
+      metadata: metadata_pb2.DataSliceManagerMetadata,
   ):
     """Private constructor.
 
@@ -421,9 +418,8 @@ class PersistedIncrementalDataSliceManager(
     """
     if internal_call is not _INTERNAL_CALL:
       raise ValueError(
-          'please do not call the PersistedIncrementalDataSliceManager'
-          ' constructor directly; use the class factory methods create_new() or'
-          ' create_from_dir() instead'
+          'please do not call the DataSliceManager constructor directly; use'
+          ' the class factory methods create_new() or create_from_dir() instead'
       )
 
     self._persistence_dir = persistence_dir
@@ -1023,7 +1019,7 @@ class PersistedIncrementalDataSliceManager(
             dependencies=(),
         )
     ])
-    new_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata()
+    new_metadata = metadata_pb2.DataSliceManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
     new_metadata.metadata_update_number += 1
     new_metadata.revision_history.append(
@@ -1070,7 +1066,7 @@ class PersistedIncrementalDataSliceManager(
       revision_history_index: int = -1,
       fs: kd.file_io.FileSystemInterface | None = None,
       description: str | None = None,
-  ) -> PersistedIncrementalDataSliceManager:
+  ) -> DataSliceManager:
     """Creates a branch of the state of this manager.
 
     It is cheap to create branches. The branch will rely on the data in the
@@ -1174,10 +1170,8 @@ class PersistedIncrementalDataSliceManager(
         output_dir=branch_data_bag_manager_dir,
         fs=branch_fs,
     )
-    branch_data_bag_manager = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
-            branch_data_bag_manager_dir, fs=branch_fs
-        )
+    branch_data_bag_manager = dbm.DataBagManager.create_from_dir(
+        branch_data_bag_manager_dir, fs=branch_fs
     )
     branch_schema_bag_manager_dir = os.path.join(output_dir, 'schema_bags')
     self._schema_bag_manager.create_branch(
@@ -1185,10 +1179,8 @@ class PersistedIncrementalDataSliceManager(
         output_dir=branch_schema_bag_manager_dir,
         fs=branch_fs,
     )
-    branch_schema_bag_manager = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
-            branch_schema_bag_manager_dir, fs=branch_fs
-        )
+    branch_schema_bag_manager = dbm.DataBagManager.create_from_dir(
+        branch_schema_bag_manager_dir, fs=branch_fs
     )
     branch_schema_node_name_to_data_bags_updates_manager_dir = os.path.join(
         output_dir, 'snn_to_data_bags_updates'
@@ -1199,7 +1191,7 @@ class PersistedIncrementalDataSliceManager(
         fs=branch_fs,
     )
     branch_schema_node_name_to_data_bags_updates_manager = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+        dbm.DataBagManager.create_from_dir(
             branch_schema_node_name_to_data_bags_updates_manager_dir,
             fs=branch_fs,
         )
@@ -1211,7 +1203,7 @@ class PersistedIncrementalDataSliceManager(
         )
     )
 
-    branch_metadata = metadata_pb2.PersistedIncrementalDataSliceManagerMetadata(
+    branch_metadata = metadata_pb2.DataSliceManagerMetadata(
         version='1.0.0',
         initial_data_manager_id=self._initial_data_manager.get_id(),
         metadata_update_number=0,
@@ -1233,7 +1225,7 @@ class PersistedIncrementalDataSliceManager(
     )
     _persist_metadata(branch_fs, output_dir, branch_metadata)
 
-    return PersistedIncrementalDataSliceManager(
+    return DataSliceManager(
         internal_call=_INTERNAL_CALL,
         persistence_dir=output_dir,
         read_only=False,
@@ -1247,14 +1239,14 @@ class PersistedIncrementalDataSliceManager(
         metadata=branch_metadata,
     )
 
-  def get_readonly_copy(self) -> PersistedIncrementalDataSliceManager:
+  def get_readonly_copy(self) -> DataSliceManager:
     """Returns a read-only copy of this manager at its current revision.
 
     The copy will use the same persistence directory as this manager. It will
     use the same revision as this manager at the time of copying.
 
     Conceptually, the result is equivalent to calling
-    PersistedIncrementalDataSliceManager.create_from_dir(
+    DataSliceManager.create_from_dir(
         self.get_persistence_dir(),
         at_revision_history_index=len(self.get_revision_history()) - 1,
         read_only=True,
@@ -1268,25 +1260,21 @@ class PersistedIncrementalDataSliceManager(
     internal mutable state, such as caches, that are shared between this
     instance and the copy, then that state must be properly synchronized.
     """
-    data_bag_manager_copy = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
-            _get_data_bags_dir(self._persistence_dir), fs=self._fs
-        )
+    data_bag_manager_copy = dbm.DataBagManager.create_from_dir(
+        _get_data_bags_dir(self._persistence_dir), fs=self._fs
     )
-    schema_bag_manager_copy = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
-            _get_schema_bags_dir(self._persistence_dir), fs=self._fs
-        )
+    schema_bag_manager_copy = dbm.DataBagManager.create_from_dir(
+        _get_schema_bags_dir(self._persistence_dir), fs=self._fs
     )
     schema_node_name_to_data_bags_updates_manager_copy = (
-        dbm.PersistedIncrementalDataBagManager.create_from_dir(
+        dbm.DataBagManager.create_from_dir(
             _get_schema_node_name_to_data_bags_updates_dir(
                 self._persistence_dir
             ),
             fs=self._fs,
         )
     )
-    return PersistedIncrementalDataSliceManager(
+    return DataSliceManager(
         internal_call=_INTERNAL_CALL,
         persistence_dir=self._persistence_dir,
         read_only=True,
@@ -1428,7 +1416,7 @@ def _get_latest_metadata_version(
 def _persist_metadata(
     fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
-    metadata: metadata_pb2.PersistedIncrementalDataSliceManagerMetadata,
+    metadata: metadata_pb2.DataSliceManagerMetadata,
 ):
   """Persists the given metadata to disk.
 
@@ -1472,7 +1460,7 @@ def _read_metadata(
     fs: kd.file_io.FileSystemInterface,
     persistence_dir: str,
     at_revision_history_index: int | None,
-) -> metadata_pb2.PersistedIncrementalDataSliceManagerMetadata:
+) -> metadata_pb2.DataSliceManagerMetadata:
   """Reads the metadata from disk.
 
   If at_revision_history_index is None, the latest metadata is read.
@@ -1501,9 +1489,7 @@ def _read_metadata(
       persistence_dir, at_revision_history_index
   )
   with fs.open(metadata_filepath, 'rb') as f:
-    return metadata_pb2.PersistedIncrementalDataSliceManagerMetadata.FromString(
-        f.read()
-    )
+    return metadata_pb2.DataSliceManagerMetadata.FromString(f.read())
 
 
 def _get_branches_dir(persistence_dir: str) -> str:

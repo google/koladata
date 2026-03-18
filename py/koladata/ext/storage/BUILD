@@ -29,11 +29,11 @@ py_library(
     srcs = ["storage.py"],
     deps = [
         ":composite_initial_data_manager",
+        ":data_slice_manager",
         ":data_slice_manager_interface",
         ":data_slice_manager_view",
         ":data_slice_path",
         ":global_cache_lib",
-        ":persisted_incremental_data_slice_manager",
         "//py:python_path",
     ],
 )
@@ -52,16 +52,16 @@ py_test(
 )
 
 py_library(
-    name = "persisted_incremental_data_slice_manager",
-    srcs = ["persisted_incremental_data_slice_manager.py"],
+    name = "data_slice_manager",
+    srcs = ["data_slice_manager.py"],
     deps = [
         ":bare_root_initial_data_manager",
+        ":data_bag_manager",
         ":data_slice_manager_interface",
+        ":data_slice_manager_metadata_py_pb2",
         ":data_slice_path",
         ":initial_data_manager_interface",
         ":initial_data_manager_registry",
-        ":persisted_incremental_data_bag_manager",
-        ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":schema_helper",
         ":schema_helper_mixin",
         ":stubs_and_minimal_bags_lib",
@@ -72,17 +72,17 @@ py_library(
 )
 
 py_test(
-    name = "persisted_incremental_data_slice_manager_test",
-    srcs = ["persisted_incremental_data_slice_manager_test.py"],
+    name = "data_slice_manager_test",
+    srcs = ["data_slice_manager_test.py"],
     deps = [
         ":bare_root_initial_data_manager",
+        ":data_bag_manager",
+        ":data_slice_manager",
         ":data_slice_manager_interface",
+        ":data_slice_manager_metadata_py_pb2",
         ":data_slice_path",
         ":global_cache_lib",
         ":initial_data_manager_interface",
-        ":persisted_incremental_data_bag_manager",
-        ":persisted_incremental_data_slice_manager",
-        ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":simple_in_memory_data_slice_manager",
         ":test_only_schema_node_name_helper",
         "//py:python_path",
@@ -94,36 +94,36 @@ py_test(
 )
 
 proto_library(
-    name = "persisted_incremental_data_slice_manager_metadata_proto",
-    srcs = ["persisted_incremental_data_slice_manager_metadata.proto"],
+    name = "data_slice_manager_metadata_proto",
+    srcs = ["data_slice_manager_metadata.proto"],
     deps = ["@com_google_protobuf//:timestamp_proto"],
 )
 
 py_proto_library(
-    name = "persisted_incremental_data_slice_manager_metadata_py_pb2",
+    name = "data_slice_manager_metadata_py_pb2",
     deps = [
-        ":persisted_incremental_data_slice_manager_metadata_proto",
+        ":data_slice_manager_metadata_proto",
     ],
 )
 
 py_library(
-    name = "persisted_incremental_data_bag_manager",
-    srcs = ["persisted_incremental_data_bag_manager.py"],
+    name = "data_bag_manager",
+    srcs = ["data_bag_manager.py"],
     deps = [
+        ":data_bag_manager_metadata_py_pb2",
         ":global_cache_lib",
-        ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",
         "//py/koladata:kd",
     ],
 )
 
 py_test(
-    name = "persisted_incremental_data_bag_manager_test",
-    srcs = ["persisted_incremental_data_bag_manager_test.py"],
+    name = "data_bag_manager_test",
+    srcs = ["data_bag_manager_test.py"],
     deps = [
+        ":data_bag_manager",
+        ":data_bag_manager_metadata_py_pb2",
         ":global_cache_lib",
-        ":persisted_incremental_data_bag_manager",
-        ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
@@ -132,8 +132,8 @@ py_test(
 )
 
 proto_library(
-    name = "persisted_incremental_data_bag_manager_metadata_proto",
-    srcs = ["persisted_incremental_data_bag_manager_metadata.proto"],
+    name = "data_bag_manager_metadata_proto",
+    srcs = ["data_bag_manager_metadata.proto"],
 )
 
 proto_library(
@@ -147,9 +147,9 @@ py_proto_library(
 )
 
 py_proto_library(
-    name = "persisted_incremental_data_bag_manager_metadata_py_pb2",
+    name = "data_bag_manager_metadata_py_pb2",
     deps = [
-        ":persisted_incremental_data_bag_manager_metadata_proto",
+        ":data_bag_manager_metadata_proto",
     ],
 )
 
@@ -373,9 +373,9 @@ py_library(
     srcs = ["composite_initial_data_manager.py"],
     deps = [
         ":composite_initial_data_manager_metadata_py_pb2",
+        ":data_slice_manager",
         ":initial_data_manager_registry",
         ":initial_data_manager_with_schema_helper",
-        ":persisted_incremental_data_slice_manager",
         ":schema_helper",
         "//py:python_path",
         "//py/koladata:kd",
@@ -439,10 +439,10 @@ py_test(
     deps = [
         ":bare_root_initial_data_manager",
         ":composite_initial_data_manager",
+        ":data_slice_manager",
         ":data_slice_manager_view",
         ":data_slice_path",
         ":global_cache_lib",
-        ":persisted_incremental_data_slice_manager",
         ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
@@ -468,9 +468,9 @@ py_test(
     srcs = ["data_slice_manager_view_test.py"],
     deps = [
         ":bare_root_initial_data_manager",
+        ":data_slice_manager",
         ":data_slice_manager_view",
         ":data_slice_path",
-        ":persisted_incremental_data_slice_manager",
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",

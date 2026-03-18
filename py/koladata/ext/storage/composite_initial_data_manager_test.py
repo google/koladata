@@ -20,16 +20,14 @@ from absl.testing import absltest
 from koladata import kd
 from koladata.ext.storage import bare_root_initial_data_manager
 from koladata.ext.storage import composite_initial_data_manager
+from koladata.ext.storage import data_slice_manager as dsm
 from koladata.ext.storage import data_slice_manager_view as data_slice_manager_view_lib
 from koladata.ext.storage import data_slice_path as data_slice_path_lib
 from koladata.ext.storage import global_cache_lib
-from koladata.ext.storage import persisted_incremental_data_slice_manager as pidsm
 from koladata.ext.storage import stubs_and_minimal_bags_lib
 
 
-PersistedIncrementalDataSliceManager = (
-    pidsm.PersistedIncrementalDataSliceManager
-)
+DataSliceManager = dsm.DataSliceManager
 DataSliceManagerView = data_slice_manager_view_lib.DataSliceManagerView
 BareRootInitialDataManager = (
     bare_root_initial_data_manager.BareRootInitialDataManager
@@ -44,12 +42,12 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
 
   def create_manager(
       self, ds: kd.types.DataItem
-  ) -> PersistedIncrementalDataSliceManager:
-    """Creates a PersistedIncrementalDataSliceManager with the given data."""
+  ) -> DataSliceManager:
+    """Creates a DataSliceManager with the given data."""
     root_item = ds.with_bag(
         stubs_and_minimal_bags_lib.schema_stub(ds).get_bag()
     )
-    manager = PersistedIncrementalDataSliceManager.create_new(
+    manager = DataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=BareRootInitialDataManager.create_new(root_item),
     )
@@ -81,7 +79,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     manager1 = self.create_manager(ds1)
     manager2 = self.create_manager(ds2)
     glue_manager = self.create_manager(glue_ds)
-    composite_manager = PersistedIncrementalDataSliceManager.create_new(
+    composite_manager = DataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=CompositeInitialDataManager.create_new(
             managers=[glue_manager, manager1, manager2]
@@ -149,7 +147,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # The isolation also holds for copies of the composite initialized from
     # scratch from disk.
     kd.testing.assert_equivalent(
-        PersistedIncrementalDataSliceManager.create_from_dir(
+        DataSliceManager.create_from_dir(
             composite_manager.get_persistence_directory(),
         ).get_data_slice(populate_including_descendants={parse_dsp('')}),
         glue_ds.enriched(ds1.get_bag(), ds2.get_bag()),
@@ -191,7 +189,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # It persisted the updates immediately, as usual. New instances initialized
     # from disk will have the same data and metadata.
     kd.testing.assert_equivalent(
-        PersistedIncrementalDataSliceManager.create_from_dir(
+        DataSliceManager.create_from_dir(
             composite_manager.get_persistence_directory(),
         ).get_data_slice(populate_including_descendants={parse_dsp('')}),
         glue_ds.enriched(ds1.get_bag(), ds2.get_bag()).updated(
@@ -200,7 +198,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         ids_equality=True,
     )
     self.assertEqual(
-        PersistedIncrementalDataSliceManager.create_from_dir(
+        DataSliceManager.create_from_dir(
             composite_manager.get_persistence_directory(),
         ).get_revision_history(),
         composite_manager.get_revision_history(),
@@ -332,12 +330,11 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         )
     )
     #
-    # Step 3. Create a new PersistedIncrementalDataSliceManager from the join
-    # skeleton.
+    # Step 3. Create a new DataSliceManager from the join skeleton.
     left_join_skeleton_manager = self.create_manager(left_join_skeleton)
     #
     # Step 4. Create a composite manager that glues everything together.
-    left_join_manager = PersistedIncrementalDataSliceManager.create_new(
+    left_join_manager = DataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=CompositeInitialDataManager.create_new(
             managers=[left_join_skeleton_manager, manager1, manager2]
@@ -447,12 +444,11 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         )
     )
     #
-    # Step 3. Create a new PersistedIncrementalDataSliceManager from the join
-    # skeleton.
+    # Step 3. Create a new DataSliceManager from the join skeleton.
     right_join_skeleton_manager = self.create_manager(right_join_skeleton)
     #
     # Step 4. Create a composite manager that glues everything together.
-    right_join_manager = PersistedIncrementalDataSliceManager.create_new(
+    right_join_manager = DataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=CompositeInitialDataManager.create_new(
             managers=[right_join_skeleton_manager, manager1, manager2]
@@ -542,7 +538,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         .implode()
     )
     inner_join_skeleton_manager = self.create_manager(inner_join_skeleton)
-    inner_join_manager = PersistedIncrementalDataSliceManager.create_new(
+    inner_join_manager = DataSliceManager.create_new(
         self.create_tempdir().full_path,
         initial_data_manager=CompositeInitialDataManager.create_new(
             managers=[inner_join_skeleton_manager, manager1, manager2]

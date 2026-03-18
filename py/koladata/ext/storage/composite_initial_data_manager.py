@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initial data that composes several PersistedIncrementalDataSliceManagers."""
+"""Initial data that composes several DataSliceManagers."""
 
 from __future__ import annotations
 
@@ -21,9 +21,9 @@ from typing import Collection, Self
 
 from koladata import kd
 from koladata.ext.storage import composite_initial_data_manager_metadata_pb2 as metadata_pb2
+from koladata.ext.storage import data_slice_manager
 from koladata.ext.storage import initial_data_manager_registry
 from koladata.ext.storage import initial_data_manager_with_schema_helper
-from koladata.ext.storage import persisted_incremental_data_slice_manager
 from koladata.ext.storage import schema_helper as schema_helper_lib
 
 
@@ -33,7 +33,7 @@ _INTERNAL_CALL = object()
 class CompositeInitialDataManager(
     initial_data_manager_with_schema_helper.InitialDataManagerWithSchemaHelper
 ):
-  """Initial data that composes several PersistedIncrementalDataSliceManagers.
+  """Initial data that composes several DataSliceManagers.
 
   The state of the component managers are pinned at the time of the creation of
   the composite manager.
@@ -50,9 +50,7 @@ class CompositeInitialDataManager(
   the standard semantics of Koda's enrichment mechanism.
   """
 
-  _managers: list[
-      persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
-  ]
+  _managers: list[data_slice_manager.DataSliceManager]
   _schema_helper: schema_helper_lib.SchemaHelper
 
   @classmethod
@@ -62,9 +60,7 @@ class CompositeInitialDataManager(
   @classmethod
   def create_new(
       cls,
-      managers: list[
-          persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
-      ],
+      managers: list[data_slice_manager.DataSliceManager],
   ) -> Self:
     if not managers:
       raise ValueError('at least one manager is required')
@@ -82,9 +78,7 @@ class CompositeInitialDataManager(
       self,
       *,
       internal_call: object,
-      managers: list[
-          persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
-      ],
+      managers: list[data_slice_manager.DataSliceManager],
   ):
     if internal_call is not _INTERNAL_CALL:
       raise ValueError(
@@ -136,7 +130,7 @@ class CompositeInitialDataManager(
       )
 
     managers = [
-        persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager.create_from_dir(
+        data_slice_manager.DataSliceManager.create_from_dir(
             component_manager_metadata.persistence_dir,
             at_revision_history_index=component_manager_metadata.revision_history_index,
             fs=fs,

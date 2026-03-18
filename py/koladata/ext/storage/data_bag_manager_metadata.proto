@@ -16,7 +16,7 @@ edition = "2023";
 
 package koladata.ext.storage;
 
-message PersistedIncrementalDataBagManagerMetadata {
+message DataBagManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
 

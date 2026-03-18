@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Interface to manage the initial data of a PersistedIncrementalDataSliceManager."""
+"""Interface to manage the initial data of a DataSliceManager."""
 
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ from koladata.ext.storage import data_slice_path as data_slice_path_lib
 
 
 class InitialDataManagerInterface:
-  """Manages the initial data of a PersistedIncrementalDataSliceManager.
+  """Manages the initial data of a DataSliceManager.
 
   The initial data must be immutable. Updates to it are accepted only by
-  PersistedIncrementalDataSliceManager, and never in this class/subclasses.
+  DataSliceManager, and never in this class/subclasses.
 
   Management of the initial data typically involves loading parts of it on
   demand from the underlying storage. The loaded data is typically cached in the
@@ -96,12 +96,11 @@ class InitialDataManagerInterface:
         included in the returned data slice. Must be a subset of
         self.get_all_schema_node_names(). Care should be taken that the result
         contains only the root and the requested data, and nothing more than
-        that. The reason is that all the data returned by
-        PersistedIncrementalDataSliceManager should be up-to-date. If this
-        manager returns more data than requested, and the extra data has been
-        updated in the meantime, then the extra data will be outdated because
-        PersistedIncrementalDataSliceManager will not apply the updates before
-        returning the data to the user.
+        that. The reason is that all the data returned by DataSliceManager
+        should be up-to-date. If this manager returns more data than requested,
+        and the extra data has been updated in the meantime, then the extra data
+        will be outdated because DataSliceManager will not apply the updates
+        before returning the data to the user.
     """
     raise NotImplementedError(type(self))
 
@@ -119,11 +118,11 @@ class InitialDataManagerInterface:
         included in the returned data bag. Must be a subset of
         self.get_all_schema_node_names(). Care should be taken that the result
         contains only the requested data, and nothing more than that. The reason
-        is that all the data returned by PersistedIncrementalDataSliceManager
-        should be up-to-date. If this manager returns more data than requested,
-        and the extra data has been updated in the meantime, then the extra data
-        will be outdated because PersistedIncrementalDataSliceManager will not
-        apply the updates before returning the data to the user.
+        is that all the data returned by DataSliceManager should be up-to-date.
+        If this manager returns more data than requested, and the extra data has
+        been updated in the meantime, then the extra data will be outdated
+        because DataSliceManager will not apply the updates before returning the
+        data to the user.
     """
     raise NotImplementedError(type(self))
 
@@ -184,9 +183,8 @@ class InitialDataManagerInterface:
   def get_description(self) -> str:
     """Returns a brief description of the initial data.
 
-    If the user does not provide a description when creating a
-    PersistedIncrementalDataSliceManager, then the manager will craft a
-    description of the form
+    If the user does not provide a description when creating a DataSliceManager,
+    then the manager will craft a description of the form
     f'Initial state with {initial_data_manager.get_description()}'.
     """
     raise NotImplementedError(type(self))
