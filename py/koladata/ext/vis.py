@@ -210,14 +210,9 @@ def _format_item_html(
   options = options or DataSliceVisOptions()
   unbounded_type_max_len = options.unbounded_type_max_len
   dtype = item.get_dtype()
-
-  if not dtype.is_empty():
-    if dtype == kd.FLOAT32 or dtype == kd.FLOAT64:
-      # We can just use str here because we know item is a float.
-      return f'<div class="always-elide">{str(item)}</div>'
-    elif ((dtype == kd.STRING or dtype == kd.BYTES)
-          and not truncate_unbounded_types):
-      unbounded_type_max_len = -1
+  if ((dtype == kd.STRING or dtype == kd.BYTES)
+      and not truncate_unbounded_types):
+    unbounded_type_max_len = -1
 
   detail_pane_str = str(kdi.get_repr(
       item,
@@ -257,11 +252,24 @@ def _format_data_item(
   if additional_access:
     for access in additional_access:
       detail_pane_str = f'<div {access}>{detail_pane_str}</div>'
+
+  dtype = item.get_dtype()
+  schema = item.get_schema()
+  # These are types that do not want to tile (i.e. they should always appear on
+  # a single line).
+  if dtype == kd.FLOAT32 or dtype == kd.FLOAT64 or schema == kd.ITEMID:
+    outer_class_attr = 'class="always-elide"'
+  else:
+    outer_class_attr = ''
+
   # The additional div on the outside cleanly represents the slotted element.
   # I.e. the detail pane is content and not the slotted element. This simplifies
   # querySelector on the cell since querySelector ignores the element it is
   # called on.
-  return f'<div><div class="detail-pane">{detail_pane_str}</div></div>'
+  return (
+      f'<div {outer_class_attr}><div class="detail-pane">{detail_pane_str}'
+      '</div></div>'
+  )
 
 
 @dataclasses.dataclass
@@ -869,6 +877,7 @@ def visualize_slice(
           data-headers="{data.headers}"
           data-loaded-range="{data.items_begin},{data.items_end}"
           data-sizes="{data.sizes}"
+          data-max-folds="2"
           {data_item_attr} {no_bag_attr} content-mode="text">
         {data.data}
       </kd-multi-dim-table>
