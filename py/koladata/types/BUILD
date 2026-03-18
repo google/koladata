@@ -590,6 +590,7 @@ py_test(
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/expr:input_container",
+        "//py/koladata/functions:attrs",
         "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

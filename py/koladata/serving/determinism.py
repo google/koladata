@@ -93,7 +93,7 @@ class Determinizer:
       assert kd.is_entity(ds), ds
 
       new_id = self._freeze_itemid(ds.get_itemid())
-      attrs = kd.get_attr_names(ds, intersection=False)
+      attrs = kd.dir(ds)
       attr_to_values = {
           attr: self.make_deterministic(kd.get_attr(ds, attr)) for attr in attrs
       }
@@ -200,7 +200,7 @@ class Determinizer:
 
     self._schemas_being_validated.add(schema)
     try:
-      for attr_name in schema.get_attr_names(intersection=False):
+      for attr_name in kd.dir(schema):
         attr_schema = schema.get_attr(attr_name)
         self._assert_deterministic_schema(attr_schema)
     finally:

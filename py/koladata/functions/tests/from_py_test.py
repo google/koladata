@@ -1590,7 +1590,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     self.assertEqual(x.some_float, 1.0)
     testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
     self.assertCountEqual(
-        x.get_attr_names(intersection=True),
+        attrs.dir(x),
         [
             'some_text',
             'some_float',

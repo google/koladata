@@ -17,6 +17,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -101,7 +102,7 @@ class EntitiesShapedTest(absltest.TestCase):
         ),
         schema=schema,
     ).eval()
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b', 'nested'])
+    self.assertEqual(attrs.dir(x), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -116,7 +117,7 @@ class EntitiesShapedTest(absltest.TestCase):
     x = kde.entities.shaped(
         jagged_shape.create_shape([2]), a=42, schema=schema
     ).eval()
-    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
+    self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -168,7 +169,7 @@ class EntitiesShapedTest(absltest.TestCase):
         schema=schema,
         overwrite_schema=True,
     ).eval()
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))

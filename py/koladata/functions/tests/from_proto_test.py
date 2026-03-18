@@ -15,6 +15,7 @@
 import re
 
 from absl.testing import absltest
+from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
@@ -293,7 +294,7 @@ class FromProtoTest(absltest.TestCase):
 
     x_noext = proto_conversions.from_proto(m)
     self.assertCountEqual(
-        x_noext.get_attr_names(intersection=True),
+        attrs.dir(x_noext),
         [
             'some_text',
             'some_float',
@@ -313,7 +314,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.get_attr_names(intersection=True),
+        attrs.dir(x),
         [
             'some_text',
             'some_float',
@@ -324,7 +325,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.message_set_extensions.get_attr_names(intersection=True),
+        attrs.dir(x.message_set_extensions),
         [
             '(koladata.functions.testing.MessageAExtension.message_set_extension)'
         ],
@@ -337,9 +338,9 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.get_attr(
+        attrs.dir(x.get_attr(
             '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-        ).get_attr_names(intersection=True),
+        )),
         [
             'extra',
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)',
@@ -353,9 +354,9 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.get_attr(
+        attrs.dir(x.get_attr(
             '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-        ).get_attr_names(intersection=True),
+        )),
         [
             'extra',
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)',
@@ -373,7 +374,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.message_b_list[:].get_attr_names(intersection=True),
+        attrs.dir(x.message_b_list[:]),
         [
             'text',
             '(koladata.functions.testing.MessageBExtension.message_b_extension)',
@@ -423,7 +424,7 @@ class FromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        x.get_attr_names(intersection=True),
+        attrs.dir(x),
         [
             'some_text',
             'some_float',
@@ -439,7 +440,7 @@ class FromProtoTest(absltest.TestCase):
         2,
     )
     self.assertCountEqual(
-        x.message_set_extensions.get_attr_names(intersection=True),
+        attrs.dir(x.message_set_extensions),
         [
             '(koladata.functions.testing.MessageAExtension.message_set_extension)'
         ],

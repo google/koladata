@@ -15,6 +15,7 @@
 import re
 
 from absl.testing import absltest
+from koladata.functions import attrs
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators as _
@@ -36,7 +37,7 @@ class SchemaFromProtoTest(absltest.TestCase):
     schema = proto_conversions.schema_from_proto(test_pb2.MessageA)
     self.assertFalse(schema.get_bag().is_mutable())
     self.assertCountEqual(
-        schema.get_attr_names(intersection=True),
+        attrs.dir(schema),
         ['some_text', 'some_float', 'message_b_list', 'message_set_extensions'],
     )
     testing.assert_equal(schema.some_text.no_bag(), schema_constants.STRING)
@@ -53,7 +54,7 @@ class SchemaFromProtoTest(absltest.TestCase):
   def test_fields_no_extensions_with_map_and_oneof(self):
     schema = proto_conversions.schema_from_proto(test_pb2.MessageC)
     self.assertCountEqual(
-        schema.get_attr_names(intersection=True),
+        attrs.dir(schema),
         [
             'message_field',
             'int32_field',
@@ -108,7 +109,7 @@ class SchemaFromProtoTest(absltest.TestCase):
     )
     self.assertFalse(schema.get_bag().is_mutable())
     self.assertCountEqual(
-        schema.get_attr_names(intersection=True),
+        attrs.dir(schema),
         [
             'some_text',
             'some_float',
@@ -119,10 +120,10 @@ class SchemaFromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        getattr(
+        attrs.dir(getattr(
             schema,
             '(koladata.functions.testing.MessageAExtension.message_a_extension)',
-        ).get_attr_names(intersection=True),
+        )),
         [
             'extra',
             '(koladata.functions.testing.MessageAExtensionExtension.message_a_extension_extension)',
@@ -130,16 +131,14 @@ class SchemaFromProtoTest(absltest.TestCase):
     )
 
     self.assertCountEqual(
-        schema.message_set_extensions.get_attr_names(intersection=True),
+        attrs.dir(schema.message_set_extensions),
         [
             '(koladata.functions.testing.MessageAExtension.message_set_extension)'
         ],
     )
 
     self.assertCountEqual(
-        schema.message_b_list.get_item_schema().get_attr_names(
-            intersection=True
-        ),
+        attrs.dir(schema.message_b_list.get_item_schema()),
         [
             'text',
             '(koladata.functions.testing.MessageBExtension.message_b_extension)',

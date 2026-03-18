@@ -15,13 +15,16 @@
 from absl.testing import absltest
 from google.protobuf import descriptor_pool
 from koladata.expr import expr_eval
+from koladata.functions import attrs
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import schema_constants
+
 from google.protobuf import any_pb2
+
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
@@ -152,7 +155,7 @@ class FromProtoAnyTest(absltest.TestCase):
     x = proto_conversions.from_proto_any([any_m1, any_m2], schema=schema)
     self.assertFalse(x.get_bag().is_mutable())
     testing.assert_equal(x.some_text.no_bag(), ds(['thing 1', None]))
-    self.assertCountEqual(x.get_attr_names(intersection=True), ['some_text'])
+    self.assertCountEqual(attrs.dir(x), ['some_text'])
 
   def test_extensions(self):
     m = test_pb2.MessageA(some_text='thing 1')

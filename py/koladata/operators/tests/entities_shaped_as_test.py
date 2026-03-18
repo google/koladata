@@ -14,10 +14,10 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata import kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -25,8 +25,10 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -80,7 +82,8 @@ class EntitiesShapedAsTest(absltest.TestCase):
   def test_no_sparsity_item_with_empty_attr(self):
     x = kde.entities.shaped_as(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds(kd.present, schema_constants.MASK)
+        kde.has(x).eval().no_bag(),
+        ds(mask_constants.present, schema_constants.MASK),
     )
 
   def test_no_sparsity_all_empty_slice(self):
@@ -88,7 +91,10 @@ class EntitiesShapedAsTest(absltest.TestCase):
     x = kde.entities.shaped_as(shape_from, a=42).eval()
     testing.assert_equal(
         kde.has(x).eval().no_bag(),
-        ds([kd.present, kd.present], schema_constants.MASK),
+        ds(
+            [mask_constants.present, mask_constants.present],
+            schema_constants.MASK,
+        ),
     )
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.INT32).with_bag(x.get_bag())
@@ -156,7 +162,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
         schema=schema,
         overwrite_schema=True,
     ).eval()
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))

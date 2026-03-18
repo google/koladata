@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -49,7 +50,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     rhs = expr_eval.eval(kde.schema.named_schema(I.x), x=rhs_name)
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
     self.assertFalse(lhs.is_mutable())
-    self.assertCountEqual(lhs.get_attr_names(intersection=True), [])
+    self.assertCountEqual(attrs.dir(lhs), [])
 
   def test_not_equal(self):
     lhs = expr_eval.eval(kde.schema.named_schema('name1'))

@@ -22,6 +22,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.expr import input_container
+from koladata.functions import attrs
 from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -30,6 +31,7 @@ from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 
@@ -782,7 +784,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
   def test_named_schema(self):
     db = bag()
     x = db.named_schema('name')
-    self.assertCountEqual(x.get_attr_names(intersection=True), [])
+    self.assertCountEqual(attrs.dir(x), [])
     self.assertEqual(x.get_schema(), schema_constants.SCHEMA)
 
     y = db.named_schema('other name')
@@ -1942,7 +1944,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
         x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+        attrs.dir(x_stub.get_obj_schema()), ['__items__']
     )
 
   def test_adopt_stub_dict(self):
@@ -1952,7 +1954,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     testing.assert_equal(x_stub.get_bag(), db)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True),
+        attrs.dir(x_stub.get_schema()),
         ['__keys__', '__values__'],
     )
 

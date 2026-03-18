@@ -184,11 +184,11 @@ def _prepare_cols(
     if not ds.has_bag():
       cols = ['self_']
     elif schema.is_entity_schema():
-      cols = ds.get_attr_names(intersection=True)
+      cols = kd.dir(ds)
       if include_self:
         cols.append('self_')
     elif schema == kd.OBJECT and kd.is_entity(ds):
-      cols = ds.get_attr_names(intersection=False)
+      cols = kd.dir(ds, intersection=False)
       get_attr_fn = kdi.maybe
       if include_self:
         cols.append('self_')

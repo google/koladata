@@ -347,7 +347,7 @@ def _create_data_slice_table_data(
     # Decide attributes to show based on the entire DataSlice rather than items
     # in the selected range.
     all_attrs = (
-        sorted(ds.get_attr_names(intersection=False))
+        sorted(kd.dir(ds, intersection=False))
         if ds.has_bag() and ds.is_entity()
         else []
     )

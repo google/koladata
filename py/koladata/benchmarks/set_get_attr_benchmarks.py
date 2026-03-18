@@ -37,7 +37,7 @@ def get_attr_names_10000_obj(state):
   db = kd.mutable_bag()
   ds = db.obj(val_1=val_1, val_2=val_2, val_3=val_3)
   while state:
-    _ = ds.get_attr_names(intersection=True)
+    _ = kd.dir(ds)
 
 
 @google_benchmark.register

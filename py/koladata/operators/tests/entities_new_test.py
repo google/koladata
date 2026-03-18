@@ -18,6 +18,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -115,7 +116,7 @@ class EntitiesNewTest(absltest.TestCase):
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = kd.entities.new(a=42, b='xyz', schema=schema)
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -134,7 +135,7 @@ class EntitiesNewTest(absltest.TestCase):
         nested=kd.entities.new(p=b'0123', schema=nested_schema),
         schema=schema,
     )
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b', 'nested'])
+    self.assertEqual(attrs.dir(x), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -150,7 +151,7 @@ class EntitiesNewTest(absltest.TestCase):
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.freeze_bag().enriched(fallback_bag)
     x = kd.entities.new(a=42, b='xyz', schema=schema)
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -159,7 +160,7 @@ class EntitiesNewTest(absltest.TestCase):
   def test_schema_arg_implicit_casting(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
     x = kd.entities.new(a=42, schema=schema)
-    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
+    self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds(42, schema_constants.FLOAT32).with_bag(x.get_bag())
     )
@@ -175,7 +176,7 @@ class EntitiesNewTest(absltest.TestCase):
   def test_schema_arg_overwrite_schema(self):
     schema = bag().new_schema(a=schema_constants.FLOAT32)
     x = kd.entities.new(a=42, b='xyz', schema=schema, overwrite_schema=True)
-    self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
@@ -184,7 +185,7 @@ class EntitiesNewTest(absltest.TestCase):
   def test_schema_arg_embed_schema(self):
     schema = bag().new_schema(a=schema_constants.OBJECT)
     x = kd.entities.new(a=kd.entities.new(p=42, q='xyz'), schema=schema)
-    self.assertEqual(x.get_attr_names(intersection=True), ['a'])
+    self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         x.a.get_attr('__schema__').p.no_bag(), schema_constants.INT32

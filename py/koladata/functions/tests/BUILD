@@ -553,6 +553,7 @@ py_test(
         ":test_py_pb2",
         "//py:python_path",
         "//py/koladata/functions",
+        "//py/koladata/functions:attrs",
         "//py/koladata/functions:proto_conversions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -869,6 +870,7 @@ py_test(
     deps = [
         ":test_py_pb2",
         "//py:python_path",
+        "//py/koladata/functions:attrs",
         "//py/koladata/functions:proto_conversions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -980,6 +982,7 @@ py_test(
         ":test_py_pb2",
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
+        "//py/koladata/functions:attrs",
         "//py/koladata/functions:proto_conversions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

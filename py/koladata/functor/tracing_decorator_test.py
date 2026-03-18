@@ -81,7 +81,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(lambda x: f2(f1(x)))
     testing.assert_equal(fn(x=1), ds(4))
     self.assertCountEqual(
-        fn.get_attr_names(intersection=True),
+        user_facing_kd.dir(fn),
         [
             'returns',
             '<lambda>',
@@ -119,7 +119,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(lambda x: f(x=x + 2))
     testing.assert_equal(fn(x=1), ds(4))
     testing.assert_equal(fn.foo(x=1), ds(2))
-    self.assertNotIn('f', fn.get_attr_names(intersection=True))
+    self.assertNotIn('f', user_facing_kd.dir(fn))
 
   def test_py_fn_mode(self):
 
@@ -145,7 +145,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure we have only one copy of 'f' but two versions of 'f_result'.
     self.assertCountEqual(
-        fn.get_attr_names(intersection=True),
+        user_facing_kd.dir(fn),
         [
             'returns',
             'f',

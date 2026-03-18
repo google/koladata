@@ -18,6 +18,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -71,14 +72,14 @@ class CoreAttrsTest(absltest.TestCase):
     testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
     self.assertSameElements(
-        o.get_schema().get_attr_names(intersection=True), ['x', 'y']
+        attrs.dir(o.get_schema()), ['x', 'y']
     )
     self.assertSameElements(
-        o.updated(db2).get_schema().get_attr_names(intersection=True),
+        attrs.dir(o.updated(db2).get_schema()),
         ['x', 'y', 'a', 'b', 'c'],
     )
     self.assertSameElements(
-        o.with_bag(db2).get_schema().get_attr_names(intersection=True),
+        attrs.dir(o.with_bag(db2).get_schema()),
         ['x', 'a', 'b', 'c'],
     )
 
@@ -96,14 +97,14 @@ class CoreAttrsTest(absltest.TestCase):
     testing.assert_equal(o.updated(db2).c[:].no_bag(), ds([1, 2]))
 
     self.assertSameElements(
-        o.get_obj_schema().get_attr_names(intersection=True), ['x', 'y']
+        attrs.dir(o.get_obj_schema()), ['x', 'y']
     )
     self.assertSameElements(
-        o.updated(db2).get_obj_schema().get_attr_names(intersection=True),
+        attrs.dir(o.updated(db2).get_obj_schema()),
         ['x', 'y', 'a', 'b', 'c'],
     )
     self.assertSameElements(
-        o.with_bag(db2).get_obj_schema().get_attr_names(intersection=True),
+        attrs.dir(o.with_bag(db2).get_obj_schema()),
         ['x', 'a', 'b', 'c'],
     )
 

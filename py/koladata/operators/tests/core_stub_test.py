@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import attrs
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -59,7 +60,7 @@ class CoreStubTest(parameterized.TestCase):
     x_stub = kd.core.stub(x)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True), []
+        attrs.dir(x_stub.get_schema()), []
     )
 
   def test_object_primitive(self):
@@ -78,7 +79,7 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True), []
+        attrs.dir(x_stub.get_schema()), []
     )
 
   def test_object_mixed_dtype(self):
@@ -107,7 +108,7 @@ class CoreStubTest(parameterized.TestCase):
     x_stub = kd.core.stub(x)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True), ['__items__']
+        attrs.dir(x_stub.get_schema()), ['__items__']
     )
 
   def test_object_list(self):
@@ -119,7 +120,7 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+        attrs.dir(x_stub.get_obj_schema()), ['__items__']
     )
 
   def test_list_nested(self):
@@ -130,13 +131,10 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
     testing.assert_equal(x_stub[:][:].no_bag(), x[:][:].no_bag())
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True), ['__items__']
+        attrs.dir(x_stub.get_schema()), ['__items__']
     )
     self.assertSameElements(
-        x[:]
-        .get_schema()
-        .with_bag(x_stub.get_bag())
-        .get_attr_names(intersection=True),
+        attrs.dir(x[:].get_schema().with_bag(x_stub.get_bag())),
         ['__items__'],
     )
 
@@ -156,7 +154,7 @@ class CoreStubTest(parameterized.TestCase):
         x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+        attrs.dir(x_stub.get_obj_schema()), ['__items__']
     )
 
   def test_dict(self):
@@ -164,7 +162,7 @@ class CoreStubTest(parameterized.TestCase):
     x_stub = kd.core.stub(x)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     self.assertSameElements(
-        x_stub.get_schema().get_attr_names(intersection=True),
+        attrs.dir(x_stub.get_schema()),
         ['__keys__', '__values__'],
     )
 
@@ -177,7 +175,7 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
     self.assertSameElements(
-        x_stub.get_obj_schema().get_attr_names(intersection=True),
+        attrs.dir(x_stub.get_obj_schema()),
         ['__keys__', '__values__'],
     )
 
