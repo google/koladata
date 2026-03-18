@@ -60,6 +60,19 @@ def to_py_1k_single_int32(state):
 
 
 @google_benchmark.register
+def to_py_1k_single_int32_with_output_class(state):
+
+  @dataclasses.dataclass
+  class ObjWithInt32Field:
+    int32_field: int
+
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  x = kd.slice([kd.new(int32_field=i, schema=schema) for i in range(1000)])
+  while state:
+    _ = kd.to_py(x, output_class=ObjWithInt32Field)
+
+
+@google_benchmark.register
 def to_py_100_of_100_single_int32(state):
   schema = kd.schema.new_schema(repeated_int32_field=kd.list_schema(kd.INT32))
   x = kd.slice([
@@ -67,6 +80,38 @@ def to_py_100_of_100_single_int32(state):
   ])
   while state:
     _ = kd.to_py(x)
+
+
+@google_benchmark.register
+def to_py_100_of_100_single_int32_with_output_class(state):
+  schema = kd.schema.new_schema(repeated_int32_field=kd.list_schema(kd.INT32))
+
+  @dataclasses.dataclass
+  class ObjWithRepeatedInt32Field:
+    repeated_int32_field: list[int]
+
+  x = kd.slice([
+      kd.new(repeated_int32_field=[i] * 100, schema=schema) for i in range(100)
+  ])
+  while state:
+    _ = kd.to_py(x, output_class=ObjWithRepeatedInt32Field)
+
+
+@dataclasses.dataclass
+class EmptyObj:
+  pass
+
+
+@dataclasses.dataclass
+class ComplexObj:
+  message_field: EmptyObj
+  int32_field: int
+  bytes_field: bytes
+  repeated_message_field: list[EmptyObj]
+  repeated_int32_field: list[int]
+  repeated_bytes_field: list[bytes]
+  map_int32_int32_field: dict[int, int]
+  map_int32_message_field: dict[int, EmptyObj]
 
 
 @google_benchmark.register
@@ -87,7 +132,33 @@ def to_py_1k_mixed_primitive_fields(state):
       for _ in range(1000)
   ])
   while state:
-    _ = kd.to_py(x)
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_1k_mixed_primitive_fields_with_output_class(state):
+  schema = kd.schema.new_schema()
+  x = kd.slice([
+      kd.new(
+          message_field=kd.new(schema=schema),
+          int32_field=1,
+          bytes_field=b'a',
+          repeated_message_field=[kd.new(schema=schema)],
+          repeated_int32_field=[1, 2, 3],
+          repeated_bytes_field=[b'a', b'b', b'c'],
+          map_int32_int32_field={1: 2, 3: 4},
+          map_int32_message_field={1: kd.new(schema=schema)},
+          schema=schema,
+      )
+      for _ in range(1000)
+  ])
+  while state:
+    _ = kd.to_py(x, output_class=ComplexObj, max_depth=-1)
+
+
+@dataclasses.dataclass
+class SimpleObj:
+  int32_field: int
 
 
 @google_benchmark.register
@@ -95,16 +166,43 @@ def to_py_100_of_100_deep(state):
   schema = kd.schema.new_schema(int32_field=kd.INT32)
   schema = schema.with_attrs(message_field=schema)
   bag = kd.mutable_bag()
-  x = kd.slice([bag.new(schema=schema) for _ in range(100)])
+  x = kd.slice([bag.new(int32_field=i, schema=schema) for i in range(100)])
 
   x_leaf = x
   for _ in range(100):
     x_leaf.int32_field = kd.int32(kd.range(100))
-    x_leaf.message_field = kd.slice([kd.new(schema=schema) for _ in range(100)])
+    x_leaf.message_field = kd.slice(
+        [kd.new(int32_field=j, schema=schema) for j in range(100)]
+    )
     x_leaf = x_leaf.message_field
 
   while state:
-    _ = kd.to_py(x)
+    _ = kd.to_py(x, max_depth=-1)
+
+
+@google_benchmark.register
+def to_py_100_of_100_deep_with_output_class(state):
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
+  bag = kd.mutable_bag()
+  x = kd.slice([bag.new(int32_field=i, schema=schema) for i in range(100)])
+
+  obj = SimpleObj
+
+  x_leaf = x
+  for i in range(100):
+    x_leaf.int32_field = kd.int32(kd.range(100))
+    x_leaf.message_field = kd.slice(
+        [kd.new(int32_field=j, schema=schema) for j in range(100)]
+    )
+    x_leaf = x_leaf.message_field
+
+    obj = dataclasses.make_dataclass(
+        f'Obj{i}', [('int32_field', int), ('message_field', obj)]
+    )
+
+  while state:
+    _ = kd.to_py(x, output_class=obj, max_depth=-1)
 
 
 _SCHEMA_ARG = {
