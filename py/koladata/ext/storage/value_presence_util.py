@@ -54,7 +54,7 @@ def _get_present_sentinel_value(
     schema: kd.types.DataSlice,
 ) -> kd.types.DataItem:
   """Returns a present sentinel value for the given schema."""
-  # OBJECT schemas are not supported in persisted incremental data slices:
+  # OBJECT schemas are not supported in managed data slices:
   assert schema != kd.OBJECT
   # NONE schema is not inhabited by any present value:
   assert schema != kd.NONE
