@@ -639,61 +639,58 @@ class KodaViewTest(parameterized.TestCase):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
 
     @arolla.optools.add_to_registry(if_present='unsafe_override')
-    @arolla.optools.as_lambda_operator('test_make_tuple')
+    @arolla.optools.as_lambda_operator(
+        'test_make_tuple',
+        # Assigning Koda AUX policy will make KodaView methods (including
+        # _arolla_sequence_getitem_) available on the operator.
+        aux_policy='koladata_classic_aux_policy',
+    )
     def test_make_tuple(*args):
       return arolla.optools.fix_trace_args(args)
 
     arolla.abc.set_expr_view_for_registered_operator(
-        test_make_tuple, view.KodaView
+        test_make_tuple, view.UnpackableWithSameArityView
     )
 
-    expr = arolla.M.annotation.name(
-        test_make_tuple(I.x, I.y), 'test_make_tuple'
+    @arolla.optools.add_to_registry(if_present='unsafe_override')
+    @arolla.optools.as_lambda_operator(
+        'test_identity',
+        # Assigning Koda AUX policy will make KodaView methods (including
+        # _arolla_sequence_getitem_) available on the operator.
+        aux_policy='koladata_classic_aux_policy',
     )
+    def test_identity(x):
+      return x
+
+    arolla.abc.set_expr_view_for_registered_operator(
+        test_identity, view.UnpackableAnnotationView
+    )
+
+    expr = test_identity(test_make_tuple(I.x, I.y))
 
     x, y = expr
-    self.assertTrue(view.has_koda_view(x))
-    self.assertTrue(view.has_koda_view(y))
     self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
     self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
-
-    self.assert_exprs_equal(x, expr[ds(0)])
-    self.assert_exprs_equal(y, expr[1])  # auto-boxing
 
     x_val = data_slice.DataSlice.from_vals(1)
     y_val = data_slice.DataSlice.from_vals(2)
     testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
-  def test_unpacking_by_qtype(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-
-    expr = arolla.M.annotation.qtype(
-        I.t, arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
-    )
-
-    x, y = expr
-    self.assertTrue(view.has_koda_view(x))
-    self.assertTrue(view.has_koda_view(y))
-    self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
-    self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
-
-    self.assert_exprs_equal(x, expr[ds(0)])
-    self.assert_exprs_equal(y, expr[1])  # auto-boxing
-
-    x_val = arolla.int32(1)
-    y_val = arolla.int32(2)
-    testing.assert_equal(x.eval(t=arolla.tuple_(x_val, y_val)), x_val)
-    testing.assert_equal(y.eval(t=arolla.tuple_(x_val, y_val)), y_val)
-
   def test_unpacking_not_supported(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     expr = I.x + I.y
 
     with self.assertRaisesRegex(
-        ValueError,
-        'tuple unpacking is only supported for nodes with known QType or for a'
-        ' few selected operators',
+        NotImplementedError, 'Tuple unpacking is not supported for'
+    ):
+      _, _ = expr
+
+    expr = arolla.M.annotation.qtype(
+        I.t, arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
+    )
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Tuple unpacking is not supported for'
     ):
       _, _ = expr
 

@@ -175,6 +175,17 @@ class CoreWithPrintTest(parameterized.TestCase):
           data_bag.DataBag.empty(),
       )
 
+  @parameterized.parameters(kde.core.with_print, kde.with_print)
+  def test_tuple_unpacking(self, with_print):
+    expr = kde.tuple(I.x, I.y)
+    wrapped = with_print(expr, 'msg')
+
+    x, y = wrapped
+    x_val = ds(1)
+    y_val = ds(2)
+    testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
+    testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.core.with_print(I.x, I.y)))
 

@@ -469,6 +469,7 @@ py_library(
         ":qtype_utils",
         ":view_overloads",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -493,6 +494,7 @@ py_library(
         ":view_overloads",
         "//koladata/operators",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -760,6 +762,7 @@ py_library(
     deps = [
         ":optools",
         "//py:python_path",
+        "//py/koladata/expr:view",
         "@com_google_arolla//py/arolla",
     ],
 )

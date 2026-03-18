@@ -15,6 +15,7 @@
 """Annotation Koda operators."""
 
 from arolla import arolla
+from koladata.expr import view
 from koladata.operators import optools
 
 # NOTE: Implemented in C++.
@@ -22,3 +23,13 @@ source_location = arolla.abc.lookup_operator('kd.annotation.source_location')
 with_name = arolla.abc.lookup_operator('kd.annotation.with_name')
 
 optools.add_to_registry('kd.with_name', via_cc_operator_package=True)(with_name)
+
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.annotation.source_location', view.UnpackableAnnotationView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.annotation.with_name', view.UnpackableAnnotationView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.with_name', view.UnpackableAnnotationView
+)

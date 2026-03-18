@@ -76,6 +76,13 @@ class SlicesAlignTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
 
+    # Also test alias.
+    x_tuple = kde.align(ix, iy)
+    self.assertTrue(view.has_koda_view(x_tuple))
+    x, y = x_tuple
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
+
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.slices.align, kde.align))
 

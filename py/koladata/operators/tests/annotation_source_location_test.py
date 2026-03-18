@@ -138,6 +138,18 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     self.assertRegex(tb, 'file.py.*line 58.*outer_lambda')
     self.assertNotIn('line 59', tb)
 
+  def test_tuple_unpacking(self):
+    expr = kde.tuple(I.x, I.y)
+    wrapped = kde.annotation.source_location(
+        expr, 'test', 'test.py', 1, 1, 'code'
+    )
+
+    x, y = wrapped
+    x_val = data_item.DataItem.from_vals(1)
+    y_val = data_item.DataItem.from_vals(2)
+    kd_testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
+    kd_testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
+
   def test_repr(self):
     expr = kde.annotation.source_location(
         I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'

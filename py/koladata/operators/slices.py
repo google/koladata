@@ -269,6 +269,14 @@ def align(*args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.slices.align', view.UnpackableWithSameArityView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.align', view.UnpackableWithSameArityView
+)
+
+
 @optools.as_backend_operator(
     'kd.slices._collapse', qtype_inference_expr=qtypes.DATA_SLICE
 )

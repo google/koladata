@@ -86,23 +86,6 @@ class ListSlicingHelper:
     return _aux_bind_op('kd.slices.subslice', self._ds, s, ...)
 
 
-# List of operators that have the same arity as their resulting tuple.
-# TODO: Remove this once we have proper support for tuple size
-# detection.
-_OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING = frozenset([
-    # go/keep-sorted start
-    'kd.align',
-    'kd.core.with_timestamp',
-    'kd.slices.align',
-    'kd.tuple',
-    'kd.tuples.slice',
-    'kd.tuples.tuple',
-    'kd.with_timestamp',
-    'test_make_tuple',
-    # go/keep-sorted end
-])
-
-
 class BaseKodaView(arolla.abc.ExprView):
   """ExprView applicable to all Koda types - including extension types."""
 
@@ -558,33 +541,22 @@ class KodaView(BaseKodaView):
   def is_primitive_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.schema.is_primitive_schema', self)
 
-  # Support sequence contract, for tuple unpacking.
-  def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
-    if self.qtype is not None and arolla.types.is_tuple_qtype(self.qtype):
-      tuple_size = len(arolla.abc.get_field_qtypes(self.qtype))
-    else:
-      # Try guessing tuple size from the expression.
-      # TODO: Use QType to determine tuple size instead.
-      node = self
-      while arolla.abc.is_annotation_operator(node.op):
-        node = node.node_deps[0]
-      if (
-          node.op is None
-          or not isinstance(node.op, arolla.types.RegisteredOperator)
-          or node.op.display_name not in _OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING
-      ):
-        raise ValueError(
-            'tuple unpacking is only supported for nodes with known QType or '
-            f'for a few selected operators, but got: {node}\n'
-            'for a quick fix, consider using'
-            ' arolla.M.annotation.QType(arolla.make_tuple_qtype(...)) to'
-            ' explicitly specify the tuple qtype'
-        )
-      tuple_size = len(node.node_deps)
+  def _koladata_get_output_arity(self) -> int:
+    """Returns the number of elements in the output tuple of the operator.
 
-    if index < 0 or index >= tuple_size:
-      raise IndexError('tuple index out of range')
-    return self[index]
+    To be overridden by operator-specific views.
+    """
+    raise NotImplementedError(
+        f'Tuple unpacking is not supported for {self.op} operator. If you know '
+        'it is a tuple, assign it to a variable and use kd.tuples.get_nth on '
+        'it.'
+    )
+
+  def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
+    arity = self._koladata_get_output_arity()
+    if index < 0 or index >= arity:
+      raise IndexError('Tuple index out of range')
+    return _aux_bind_op('koda_internal.view.get_item', self, index)
 
   # Eager-only DataSlice methods.
   def append(self, *args, **kwargs):  # pylint: disable=unused-argument
@@ -751,6 +723,39 @@ class KodaView(BaseKodaView):
 
   def uuobj(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('uuobj', 'DataBag')
+
+
+class UnpackableWithSameArityView(arolla.abc.ExprView):
+  """View mixin that supports tuple unpacking based on operator arity.
+
+  Intended for operators whose output tuple size equals the number of their
+  inputs.
+  """
+
+  def _koladata_get_output_arity(self) -> int:
+    return len(self.node_deps)
+
+
+class UnpackableAnnotationView(arolla.abc.ExprView):
+  """View mixin that is transparent for tuple unpacking.
+
+  Intended for annotation-like operators that return the same type as their
+  first input.
+  """
+
+  def _koladata_get_output_arity(self) -> int:
+    if not self.node_deps:
+      raise TypeError(
+          'Annotation-like operators must have at least one argument'
+      )
+    dep = self.node_deps[0]
+    if not hasattr(dep, '_koladata_get_output_arity'):
+      raise TypeError(
+          f'Unable to deduce arity of the result of operator {dep.op}. If'
+          ' you know it is a tuple, assign it to a variable and use'
+          ' kd.tuples.get_nth on it.'
+      )
+    return dep._koladata_get_output_arity()  # pylint: disable=protected-access
 
 
 class ArollaView(BaseKodaView, arolla.expr.DefaultExprView):

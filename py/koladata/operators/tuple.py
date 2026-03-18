@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import aux_policies
 from koladata.operators import optools
@@ -40,6 +41,14 @@ def tuple_(*args):
   return arolla.optools.fix_trace_args(args)
 
 
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.tuples.tuple', view.UnpackableWithSameArityView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.tuple', view.UnpackableWithSameArityView
+)
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.tuples.slice')
 def slice_(
@@ -55,6 +64,11 @@ def slice_(
     step: (optional) Indexing step size.
   """
   return arolla.M.core.make_slice(start, stop, step)
+
+
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.tuples.slice', view.UnpackableWithSameArityView
+)
 
 
 @optools.add_to_registry(

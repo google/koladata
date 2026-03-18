@@ -101,13 +101,20 @@ class TuplesTupleTest(parameterized.TestCase):
     testing.assert_equal(kde.tuple(42).node_deps[0].qvalue, ds(42))
 
   def test_view(self):
-    x_tuple = kde.tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)
     self.assertTrue(view.has_koda_view(x_tuple))
     self.assertLen(x_tuple.node_deps, 2)
 
-    x_tuple = kde.tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)
     self.assertTrue(view.has_koda_view(x_tuple[0]))
     self.assertTrue(view.has_koda_view(x_tuple[1]))
+    x, y = x_tuple
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
+
+    # Also test alias.
+    x_tuple = kde.tuple(I.x, I.y)
+    self.assertTrue(view.has_koda_view(x_tuple))
     x, y = x_tuple
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))

@@ -18,6 +18,7 @@ from typing import Any
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.expr import view
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import aux_policies
@@ -1462,6 +1463,14 @@ def with_print(x, *args, sep=' ', end='\n'):  # pylint: disable=unused-argument,
   raise NotImplementedError('implemented in the backend')
 
 
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.core.with_print', view.UnpackableAnnotationView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.with_print', view.UnpackableAnnotationView
+)
+
+
 @optools.add_to_registry(
     aliases=['kd.with_timestamp'], via_cc_operator_package=True
 )
@@ -1480,3 +1489,13 @@ def with_timestamp(x):  # pylint: disable=unused-argument,redefined-outer-name
     since the Unix epoch.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+# NOTE: with_timestamp accepts an invisible non-deterministic token, so we are
+# using this coincidence to use "same arity" view.
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.core.with_timestamp', view.UnpackableWithSameArityView
+)
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.with_timestamp', view.UnpackableWithSameArityView
+)
