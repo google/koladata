@@ -38,6 +38,10 @@ namespace koladata::functor::parallel {
 // the errors can be specific to one of many tasks executed by the same
 // executor. The error propagation should be done inside the task function.
 //
+// Implementation Note: To prevent resource leaks, the executor must not retain
+// tasks indefinitely. In particular, the executor must destroy all tasks upon
+// shutdown. This is necessary because a task may hold a reference to the
+// executor, creating a circular dependency that pins both objects in memory.
 class Executor : public std::enable_shared_from_this<Executor> {
  public:
   using ContextGuardInitializer = absl::AnyInvocable<void(ContextGuard&) const>;

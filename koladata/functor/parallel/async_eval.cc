@@ -45,7 +45,7 @@ namespace {
 // the evaluation of the expression when all tasks are ready.
 class AsyncCountdown {
  public:
-  AsyncCountdown(int64_t remaining_tasks, ExecutorPtr::weak_type executor,
+  AsyncCountdown(int64_t remaining_tasks, ExecutorPtr executor,
                  arolla::expr::ExprOperatorPtr op,
                  std::vector<std::optional<arolla::TypedValue>> input_values,
                  FutureWriter result_writer)
@@ -104,16 +104,7 @@ class AsyncCountdown {
       input_values.swap(input_values_);
     }
 
-    auto executor = executor_.lock();
-    if (executor == nullptr) {
-      std::move(result_writer_)
-          .SetValue(
-              absl::InvalidArgumentError("the executor was destroyed while the "
-                                         "async eval was still pending"));
-      return;
-    }
-
-    executor->Schedule([op = op_, input_values = std::move(input_values),
+    executor_->Schedule([op = op_, input_values = std::move(input_values),
                         result_writer = std::move(result_writer_),
                         cancelation_context =
                             std::move(cancellation_context_)]() mutable {
@@ -145,15 +136,11 @@ class AsyncCountdown {
  private:
   int64_t remaining_tasks_ ABSL_GUARDED_BY(lock_);
   bool error_reported_ ABSL_GUARDED_BY(lock_) = false;
-  // This is a weak pointer to avoid the following circular reference:
-  // - executor has a list of pending/executing tasks
-  // - any task has a shared pointer to the Future it writes to.
-  // - the Future has a list of consumers
-  // - a consumer has a shared pointer to the AsyncCountdown
-  // - the AsyncCountdown has a shared pointer to the executor.
-  // Therefore if the executor is destroyed while this task is still pending,
-  // we will get an error since we can no longer schedule it.
-  ExecutorPtr::weak_type executor_;
+  // At any given point, circular ownership may exist: the executor may hold
+  // a task that owns an AsyncCountdown instance, which in turn owns
+  // the executor. However, the executor only retains the task until it is
+  // executed or cancelled, at which point the cycle is guaranteed to break.
+  ExecutorPtr executor_;
   arolla::expr::ExprOperatorPtr op_;
   std::vector<std::optional<arolla::TypedValue>> input_values_
       ABSL_GUARDED_BY(lock_);
@@ -197,8 +184,9 @@ absl::StatusOr<FuturePtr> AsyncEvalWithCompilationCache(
   // - countdown stores a shared pointer to future2.
   // This guarantees that whenever future1's consumers are invoked, the
   // downstream futures still exist and can consume. At the same time, there
-  // are no cycles, so if for example executor is interrupted, the futures
-  // will be destroyed automatically via the shared pointers.
+  // are no cycles, so if for example executor is interrupted, its tasks will be
+  // deleted and the futures will be destroyed automatically via the shared
+  // pointers.
   AsyncCountdownPtr countdown = std::make_shared<AsyncCountdown>(
       remaining_tasks, executor, op, std::move(ready_input_values),
       std::move(result_writer));
@@ -211,8 +199,8 @@ absl::StatusOr<FuturePtr> AsyncEvalWithCompilationCache(
         const FuturePtr& future = input_values[i].UnsafeAs<FuturePtr>();
         future->AddConsumer(
             [countdown, i](absl::StatusOr<arolla::TypedValue> value) {
-              countdown->SetInput(i, std::move(value));
-            });
+          countdown->SetInput(i, std::move(value));
+        });
       }
     }
   }

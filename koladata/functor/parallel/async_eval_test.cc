@@ -371,4 +371,33 @@ TEST(AsyncEvalTest, CancellationContextPropagation) {
   }
 }
 
+TEST(AsyncEvalTest, ExecutorDestroyedBeforeAsyncEvalCompletes) {
+  auto executor = MakeExecutor(1);
+  ASSERT_OK_AND_ASSIGN(auto op, LookupOperator("kd.math.add"));
+  auto [input_future, input_writer] = MakeFuture(GetQType<DataSlice>());
+  auto input_future_value = MakeFutureQValue(input_future);
+  auto x = DataSlice::CreatePrimitive(1);
+
+  ASSERT_OK_AND_ASSIGN(
+      auto res_future,
+      AsyncEvalWithCompilationCache(
+          executor, op, {input_future_value.AsRef(), TypedRef::FromValue(x)},
+          GetQType<DataSlice>()));
+
+  executor.reset();
+
+  auto notification = std::make_shared<absl::Notification>();
+  res_future->AddConsumer([&](absl::StatusOr<arolla::TypedValue> value) {
+    EXPECT_THAT(res_future->GetValueForTesting(),
+                IsOkAndHolds(QValueWith<DataSlice>(
+                    IsEquivalentTo(DataSlice::CreatePrimitive(3)))));
+    notification->Notify();
+  });
+
+  std::move(input_writer)
+      .SetValue(TypedValue::FromValue(DataSlice::CreatePrimitive(2)));
+
+  notification->WaitForNotification();
+}
+
 }  // namespace koladata::functor::parallel
