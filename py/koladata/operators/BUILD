@@ -674,6 +674,7 @@ py_library(
     srcs = ["koda_internal.py"],
     deps = [
         ":optools",
+        ":qtype_utils",
         "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],

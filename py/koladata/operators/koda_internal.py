@@ -16,6 +16,10 @@
 
 from arolla import arolla
 from koladata.operators import optools
+from koladata.operators import qtype_utils
+
+
+P = arolla.P
 
 
 @optools.add_to_registry(via_cc_operator_package=True)
@@ -56,5 +60,27 @@ def non_deterministic_identity(x, /):  # pylint: disable=unused-argument
 
   Returns:
     The argument.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'koda_internal.get_attr_memory_stats',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.attr),
+    ]
+)
+def get_attr_memory_stats(ds, attr):  # pylint: disable=unused-argument
+  """Returns memory usage of data sources affected when accessing `ds.attr`.
+
+  Args:
+    ds: DataSlice with objects or entities.
+    attr: Attr name (STRING).
+
+  Returns:
+    DataSlice with 3 attributes: container (STRING), shallow_size (INT64), and
+    strings_size (INT64).
   """
   raise NotImplementedError('implemented in the backend')

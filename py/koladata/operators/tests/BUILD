@@ -703,6 +703,21 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_get_attr_memory_stats_test",
+    srcs = ["koda_internal_get_attr_memory_stats_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "core_is_entity_test",
     srcs = ["core_is_entity_test.py"],
     deps = [

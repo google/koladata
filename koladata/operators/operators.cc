@@ -48,6 +48,7 @@
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
+#include "koladata/operators/memory.h"
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/objs.h"
 #include "koladata/operators/predicates.h"
@@ -498,6 +499,7 @@ OPERATOR("kd.strings.upper", Upper);
 OPERATOR_FAMILY("koda_internal.arolla_expr_eval",
                 std::make_unique<ArollaExprEvalOperatorFamily>());
 OPERATOR("koda_internal.create_metadata", CreateMetadata);
+OPERATOR("koda_internal.get_attr_memory_stats", GetAttrMemoryStats);
 OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR_FAMILY("koda_internal.non_deterministic_identity",
                 std::make_unique<NonDeterministicIdentityOpFamily>());
