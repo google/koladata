@@ -538,7 +538,7 @@ class _DataSliceViewState:
       match entry['type']:
         case AccessType.FLAT_SLICE_INDEX.value:
           if not isinstance(next_ds, kd.types.DataItem):
-            next_ds = next_ds.take(int(value))
+            next_ds = next_ds.flatten().take(int(value))
             crumbs.append(f'.flatten().S[{value}]')
         case AccessType.SCHEMA_ATTR.value:
           next_ds = next_ds.get_attr(value)
