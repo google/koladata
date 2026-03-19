@@ -32,6 +32,7 @@ from koladata.types import jagged_shape
 kde = kde_operators.kde
 koda_internal = kde_operators.internal
 C = input_container.InputContainer('C')
+I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 
@@ -53,18 +54,16 @@ class BaseKodaViewTest(parameterized.TestCase):
     super().tearDown()
 
   def test_eval(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.x).eval(x=1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+        arolla.tuple(ds(1)),
     )
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.self).eval(1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+        arolla.tuple(ds(1)),
     )
 
   def test_inputs(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
 
   def test_with_name(self):
@@ -104,18 +103,16 @@ class KodaViewTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(C.x))
 
   def test_eval(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.x).eval(x=1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+        arolla.tuple(ds(1)),
     )
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         op(I.self).eval(1),
-        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+        arolla.tuple(ds(1)),
     )
 
   def test_inputs(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
 
   def test_with_name(self):
@@ -636,7 +633,6 @@ class KodaViewTest(parameterized.TestCase):
     )
 
   def test_unpacking_by_operator(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
 
     @arolla.optools.add_to_registry(if_present='unsafe_override')
     @arolla.optools.as_lambda_operator(
@@ -672,13 +668,12 @@ class KodaViewTest(parameterized.TestCase):
     self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
     self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
 
-    x_val = data_slice.DataSlice.from_vals(1)
-    y_val = data_slice.DataSlice.from_vals(2)
+    x_val = ds(1)
+    y_val = ds(2)
     testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   def test_unpacking_not_supported(self):
-    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     expr = I.x + I.y
 
     with self.assertRaisesRegex(
@@ -686,13 +681,13 @@ class KodaViewTest(parameterized.TestCase):
     ):
       _, _ = expr
 
-    expr = arolla.M.annotation.qtype(
-        I.t, arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
-    )
-    with self.assertRaisesRegex(
-        NotImplementedError, 'Tuple unpacking is not supported for'
-    ):
-      _, _ = expr
+  def test_unpacking_kd_call_with_return_type_as(self):
+    # Operators that accept return_type_as= argument should automatically
+    # support tuple unpacking when the return_type_as is a tuple.
+    expr = kde.call(I.fn, return_type_as=arolla.tuple(ds(1), ds(2)))
+    x, y = expr
+    self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
+    self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
 
   @parameterized.parameters(
       # Slicing helper.

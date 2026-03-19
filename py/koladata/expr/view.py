@@ -544,8 +544,14 @@ class KodaView(BaseKodaView):
   def _koladata_get_output_arity(self) -> int:
     """Returns the number of elements in the output tuple of the operator.
 
-    To be overridden by operator-specific views.
+    If the node's qtype is deduced to a tuple, its field count is returned
+    automatically.
+
+    To support unpacking for other cases, override this method in an
+    operator-specific view.
     """
+    if self.qtype is not None and arolla.is_tuple_qtype(self.qtype):
+      return len(arolla.abc.get_field_qtypes(self.qtype))
     raise NotImplementedError(
         f'Tuple unpacking is not supported for {self.op} operator. If you know '
         'it is a tuple, assign it to a variable and use kd.tuples.get_nth on '
