@@ -822,13 +822,7 @@ void BM_SetInDicts(benchmark::State& state) {
 BENCHMARK(BM_SetInDict);
 BENCHMARK(BM_SetInDicts)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
 
-template <MergeOptions::ConflictHandlingOption kDataConflictPolicy>
-void BM_MergeIntoEmpty(benchmark::State& state) {
-  int64_t alloc_size = state.range(0);
-  MergeOptions merge_options = {.data_conflict_policy = kDataConflictPolicy};
-
-  auto db = DataBagImpl::CreateEmptyDatabag();
-
+void AddDataToBag(DataBagImplPtr& db, int64_t alloc_size) {
   {  // objects
     AllocationId alloc = Allocate(alloc_size);
     DataSliceImpl objects =
@@ -857,6 +851,15 @@ void BM_MergeIntoEmpty(benchmark::State& state) {
     CHECK_OK(db->SetInDict(dicts, zeroes, ones));
     CHECK_OK(db->SetInDict(dicts, ones, zeroes));
   }
+}
+
+template <MergeOptions::ConflictHandlingOption kDataConflictPolicy>
+void BM_MergeIntoEmpty(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  MergeOptions merge_options = {.data_conflict_policy = kDataConflictPolicy};
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AddDataToBag(db, alloc_size);
 
   for (auto _ : state) {
     benchmark::DoNotOptimize(db);
@@ -877,6 +880,29 @@ BENCHMARK(BM_MergeIntoEmpty<MergeOptions::kOverwrite>)
     ->Apply(apply_merge_sizes);
 BENCHMARK(BM_MergeIntoEmpty<MergeOptions::kKeepOriginal>)
     ->Apply(apply_merge_sizes);
+
+// Merging unmodified forks and/or the same bags.
+template <MergeOptions::ConflictHandlingOption kDataConflictPolicy>
+void BM_MergeCornerCase(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  MergeOptions merge_options = {.data_conflict_policy = kDataConflictPolicy};
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AddDataToBag(db, alloc_size);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(db);
+    CHECK_OK(db->MergeInplace(*db, merge_options));
+    auto db_fork = db->PartiallyPersistentFork();
+    CHECK_OK(db_fork->MergeInplace(*db, merge_options));
+    CHECK_OK(db->MergeInplace(*db_fork, merge_options));
+    benchmark::DoNotOptimize(db_fork);
+  }
+}
+
+BENCHMARK(BM_MergeCornerCase<MergeOptions::kRaiseOnConflict>)->Arg(1000);
+BENCHMARK(BM_MergeCornerCase<MergeOptions::kOverwrite>)->Arg(1000);
+BENCHMARK(BM_MergeCornerCase<MergeOptions::kKeepOriginal>)->Arg(1000);
 
 template <typename OverwriteOrSet>
 void BM_SetSchemaFields(benchmark::State& state) {
