@@ -667,10 +667,19 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // ********* Utility functions
 
-  // Approximate total size of the DataBag.
+  // Approximate total size of the DataBag in triples.
   //
   // This is an estimate because some allocs are counted not precisely.
   int64_t GetApproxTotalSize() const;
+
+  // Approximate total size of the DataBag in bytes.
+  //
+  // It is more expensive than GetApproxTotalSize because it iterates over
+  // values and searches for string allocations.
+  // It doesn't traverse ExprQuote values which can potentially hold something
+  // big. Also note that immutable buffers might be shared between different
+  // data sources, so in some cases we may calculate them several times.
+  int64_t GetApproxTotalByteSize() const;
 
  private:
   DataBagImpl() = default;

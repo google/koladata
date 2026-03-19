@@ -37,6 +37,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
@@ -294,6 +295,9 @@ class DataListVector {
     }
     return lp.list;
   }
+
+  // Note: it doesn't include parent's size.
+  void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
  private:
   struct ListAndPtr {

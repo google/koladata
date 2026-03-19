@@ -140,12 +140,7 @@ MemoryStatsEntry SparseSource::GetMemoryStats() const {
   stats.shallow_size =
       data_item_map_.size() * (sizeof(ObjectId) + sizeof(DataItem));
   for (const auto& [_, v] : data_item_map_) {
-    if (v.holds_value<arolla::Text>()) {
-      stats.AppendStringsSize(v.value<arolla::Text>());
-    }
-    if (v.holds_value<arolla::Bytes>()) {
-      stats.AppendStringsSize(v.value<arolla::Bytes>());
-    }
+    stats.AppendStringsSize(v);
   }
   return stats;
 }

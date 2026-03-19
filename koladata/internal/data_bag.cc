@@ -66,7 +66,6 @@
 #include "koladata/internal/errors.h"
 #include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/sparse_source.h"
@@ -3714,6 +3713,52 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
     }
     for (const auto& [key, source] : db->small_alloc_sources_) {
       add_sparse_source(source);
+    }
+    for (const auto& [key, lists] : db->lists_) {
+      add_lists(*lists);
+    }
+    for (const auto& [key, dicts] : db->dicts_) {
+      add_dicts(*dicts);
+    }
+  }
+  return size;
+}
+
+int64_t DataBagImpl::GetApproxTotalByteSize() const {
+  int64_t size = 0;
+
+  auto add_source = [&size]<class T>(const T* s) {
+    if (s != nullptr) {
+      MemoryStatsEntry stats = s->GetMemoryStats();
+      size += stats.shallow_size + stats.strings_size;
+    }
+  };
+  auto add_collection = [&add_source](const SourceCollection& collection) {
+    add_source(collection.mutable_dense_source.get());
+    add_source(collection.const_dense_source.get());
+    add_source(collection.mutable_sparse_source.get());
+  };
+
+  auto add_lists = [&size](const DataListVector& lists) {
+    MemoryStatsEntry stats;
+    lists.AppendMemoryStats(stats);
+    size += stats.shallow_size + stats.strings_size;
+  };
+
+  auto add_dicts = [&size](const DictVector& dicts) {
+    MemoryStatsEntry stats;
+    for (size_t i = 0; i < dicts.size(); ++i) {
+      dicts[i].AppendMemoryStats(stats);
+    }
+    size += stats.shallow_size + stats.strings_size;
+  };
+
+  for (const auto* db = this; db != nullptr; db = db->parent_data_bag_.get()) {
+    for (const auto& [key, source_collection] : db->sources_) {
+      add_collection(source_collection);
+    }
+    for (const auto& [key, source] : db->small_alloc_sources_) {
+      add_source(&source);
     }
     for (const auto& [key, lists] : db->lists_) {
       add_lists(*lists);

@@ -84,7 +84,11 @@ cc_library(
 cc_library(
     name = "memory_stats",
     hdrs = ["memory_stats.h"],
-    deps = ["@com_google_absl//absl/strings:string_view"],
+    deps = [
+        ":data_item",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+    ],
 )
 
 cc_library(
@@ -230,7 +234,6 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",
@@ -282,6 +285,7 @@ cc_library(
         ":data_item",
         ":data_slice",
         ":dtype",
+        ":memory_stats",
         ":missing_value",
         ":object_id",
         "@com_google_absl//absl/base:nullability",
@@ -315,6 +319,7 @@ cc_library(
     hdrs = ["dict.h"],
     deps = [
         ":data_item",
+        ":memory_stats",
         ":missing_value",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
@@ -524,7 +529,6 @@ cc_library(
         ":sparse_source",
         ":types_buffer",
         ":uuid_object",
-        "//koladata/internal/op_utils:presence_or",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",

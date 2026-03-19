@@ -25,6 +25,7 @@
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/memory_stats.h"
 
 namespace koladata::internal {
 
@@ -126,6 +127,15 @@ std::vector<DataItem> Dict::GetSortedByKeyValues(
   sorted_values.reserve(keys.size());
   for (size_t i : indices) sorted_values.push_back(std::move(values[i]));
   return sorted_values;
+}
+
+void Dict::AppendMemoryStats(MemoryStatsEntry& stats) const {
+  stats.shallow_size +=
+      data_.size() * (sizeof(DataItem) + sizeof(DataItem));
+  for (const auto& [k, v] : data_) {
+    stats.AppendStringsSize(k);
+    stats.AppendStringsSize(v);
+  }
 }
 
 const absl::NoDestructor<DataItem> Dict::empty_item_;

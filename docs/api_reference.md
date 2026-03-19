@@ -14474,9 +14474,13 @@ Returns:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataBag equivalent to `self`.</code></pre>
 
+### `DataBag.get_approx_byte_size()` {#DataBag.get_approx_byte_size}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in bytes.</code></pre>
+
 ### `DataBag.get_approx_size()` {#DataBag.get_approx_size}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in triples.</code></pre>
 
 ### `DataBag.implode(self: DataBag, x: _DataSlice, /, ndim: int | _DataSlice = 1, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.implode}
 

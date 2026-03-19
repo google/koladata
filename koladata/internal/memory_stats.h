@@ -20,6 +20,9 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "koladata/internal/data_item.h"
 
 namespace koladata::internal {
 
@@ -37,11 +40,20 @@ struct MemoryStatsEntry {
 
   template <class T>
   void AppendStringsSize(const T& v) {
-    absl::string_view view(v);
-    if (view.data() < reinterpret_cast<const char*>(&v) ||
-        view.data() >= reinterpret_cast<const char*>(&v) + sizeof(T)) {
-      // String is allocated outside of sizeof(T)
-      strings_size += view.size() + 1;
+    if constexpr (std::is_same_v<T, DataItem>) {
+      if (v.template holds_value<arolla::Text>()) {
+        AppendStringsSize(v.template value<arolla::Text>());
+      }
+      if (v.template holds_value<arolla::Bytes>()) {
+        AppendStringsSize(v.template value<arolla::Bytes>());
+      }
+    } else {
+      absl::string_view view(v);
+      if (view.data() < reinterpret_cast<const char*>(&v) ||
+          view.data() >= reinterpret_cast<const char*>(&v) + sizeof(T)) {
+        // String is allocated outside of sizeof(T)
+        strings_size += view.size() + 1;
+      }
     }
   }
 };

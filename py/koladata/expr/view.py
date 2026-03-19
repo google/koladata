@@ -679,6 +679,9 @@ class KodaView(BaseKodaView):
   def get_approx_size(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('get_approx_size', 'DataBag')
 
+  def get_approx_byte_size(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('get_approx_byte_size', 'DataBag')
+
   def list(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('list', 'DataBag')
 

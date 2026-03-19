@@ -2220,6 +2220,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     db = bag()
     db_fallback = bag()
     self.assertEqual(db.get_approx_size(), 0)
+    self.assertEqual(db.get_approx_byte_size(), 0)
     for _ in range(1000):
       _ = db.new(a=1)
       db_fallback.obj(q=1)
@@ -2229,12 +2230,19 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
 
     # for each object we also store a schema
     self.assertEqual(db.get_approx_size(), 2000)
+    db_size = db.get_approx_byte_size()  # 112000
+    self.assertGreater(db_size, 20000)
+
     # for each object we store a schema and object has an attributed pointing
     # to the schema.
     self.assertEqual(db_fallback.get_approx_size(), 3000)
+    fb_size = db.get_approx_byte_size()
+    self.assertGreater(fb_size, 30000)
 
     db <<= db_fallback
     self.assertEqual(db.get_approx_size(), 5000)
+    merged_size = db.get_approx_byte_size()  # 272000
+    self.assertGreaterEqual(merged_size, db_size + fb_size)
 
     with self.subTest('with duplicated fallbacks'):
       db_new = bag()

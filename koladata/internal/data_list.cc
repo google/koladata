@@ -26,6 +26,7 @@
 #include "arolla/util/meta.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 
@@ -185,6 +186,18 @@ void DataList::ConvertToDataItems() {
       },
       data_);
   data_ = std::move(new_data);
+}
+
+void DataListVector::AppendMemoryStats(MemoryStatsEntry& stats) const {
+  for (const ListAndPtr& lptr : data_) {
+    if (lptr.ptr != &lptr.list) {
+      continue;  // link to parent
+    }
+    stats.shallow_size += lptr.list.size() * sizeof(DataItem);
+    for (const auto& v : lptr.list) {
+      stats.AppendStringsSize(v);
+    }
+  }
 }
 
 }  // namespace koladata::internal

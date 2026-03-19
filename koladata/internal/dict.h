@@ -31,6 +31,7 @@
 #include "arolla/expr/quote.h"
 #include "arolla/util/meta.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/memory_stats.h"
 #include "koladata/internal/missing_value.h"
 
 namespace koladata::internal {
@@ -154,6 +155,9 @@ class Dict {
     }
     return dict->GetKeys().size();
   }
+
+  // Note: it doesn't include parent's size
+  void AppendMemoryStats(MemoryStatsEntry& stats) const;
 
  private:
   friend class DictVector;

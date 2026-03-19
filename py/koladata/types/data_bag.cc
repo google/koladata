@@ -1544,6 +1544,20 @@ PyObject* absl_nullable PyDataBag_get_approx_size(PyObject* self, PyObject*) {
   return PyLong_FromLongLong(size);
 }
 
+PyObject* absl_nullable PyDataBag_get_approx_byte_size(PyObject* self,
+                                                       PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  FlattenFallbackFinder fallback_finder(*db);
+  int64_t size = db->GetImpl().GetApproxTotalByteSize();
+  for (const internal::DataBagImpl* fallback :
+       fallback_finder.GetFlattenFallbacks()) {
+    size += fallback->GetApproxTotalByteSize();
+  }
+  return PyLong_FromLongLong(size);
+}
+
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
      "is_mutable()\n"
@@ -1871,7 +1885,11 @@ Returns:
     {"get_approx_size", PyDataBag_get_approx_size, METH_NOARGS,
      "get_approx_size()\n"
      "--\n\n"
-     "Returns approximate size of the DataBag."},
+     "Returns approximate size of the DataBag in triples."},
+    {"get_approx_byte_size", PyDataBag_get_approx_byte_size, METH_NOARGS,
+     "get_approx_byte_size()\n"
+     "--\n\n"
+     "Returns approximate size of the DataBag in bytes."},
     {nullptr} /* sentinel */
 };
 
