@@ -14,6 +14,7 @@
 //
 #include "koladata/data_slice_repr.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -1163,6 +1164,11 @@ TEST(DataSliceReprTest, CycleInDict) {
       IsOkAndHolds(MatchesRegex(
           R"regex(DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, DICT\{INT32, #[0-9a-zA-Z]{22}\}\}\}\}\})regex")));
 
+  EXPECT_THAT(
+      DataSliceToStr(schema, {.depth = size_t(-1)}),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(DICT\{INT32, #[0-9a-zA-Z]{22}\})regex")));
+
   // Set dict value to self.
   ASSERT_OK(dict.SetInDict(key_item, dict));
 
@@ -1171,9 +1177,9 @@ TEST(DataSliceReprTest, CycleInDict) {
       IsOkAndHolds(MatchesRegex(
           R"regex(Dict\{1=Dict\{1=Dict\{1=Dict\{1=Dict\{1=\$[0-9a-zA-Z]{22}\}\}\}\}\})regex")));
 
-  EXPECT_THAT(DataSliceToStr(dict, {.depth = 2}),
+  EXPECT_THAT(DataSliceToStr(dict, {.depth = size_t(-1)}),
               IsOkAndHolds(MatchesRegex(
-                  R"regex(Dict\{1=Dict\{1=\$[0-9a-zA-Z]{22}\}\})regex")));
+                  R"regex(Dict\{1=\$[0-9a-zA-Z]{22}\})regex")));
 }
 
 TEST(DataSliceReprTest, CycleInList) {
@@ -1191,12 +1197,22 @@ TEST(DataSliceReprTest, CycleInList) {
       IsOkAndHolds(MatchesRegex(
           R"regex(LIST\[LIST\[LIST\[LIST\[LIST\[#[0-9a-zA-Z]{22}\]\]\]\]\])regex")));
 
+  EXPECT_THAT(
+      DataSliceToStr(schema, {.depth = size_t(-1)}),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(LIST\[#[0-9a-zA-Z]{22}\])regex")));
+
   ASSERT_OK(list.SetInList(test::DataItem(0), list));
 
   EXPECT_THAT(
       DataSliceToStr(list),
       IsOkAndHolds(MatchesRegex(
           R"regex(List\[List\[List\[List\[List\[\$[0-9a-zA-Z]{22}\]\]\]\]\])regex")));
+
+  EXPECT_THAT(
+      DataSliceToStr(list, {.depth = size_t(-1)}),
+      IsOkAndHolds(MatchesRegex(
+          R"regex(List\[\$[0-9a-zA-Z]{22}\])regex")));
 }
 
 TEST(DataSliceReprTest, CycleInEntity) {
@@ -1214,11 +1230,18 @@ TEST(DataSliceReprTest, CycleInEntity) {
       IsOkAndHolds(MatchesRegex(
           R"regex(ENTITY\(a=ENTITY\(a=ENTITY\(a=ENTITY\(a=ENTITY\(a=\$[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
 
+  EXPECT_THAT(DataSliceToStr(schema, {.depth = size_t(-1)}),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(ENTITY\(a=[#\$][0-9a-zA-Z]{22}\))regex")));
+
   ASSERT_OK(entity.SetAttr("a", entity));
   EXPECT_THAT(
       DataSliceToStr(entity),
       IsOkAndHolds(MatchesRegex(
           R"regex(Entity\(a=Entity\(a=Entity\(a=Entity\(a=Entity\(a=\$[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
+  EXPECT_THAT(
+      DataSliceToStr(entity, {.depth = size_t(-1)}),
+      IsOkAndHolds(MatchesRegex(R"regex(Entity\(a=\$[0-9a-zA-Z]{22}\))regex")));
 }
 
 TEST(DataSliceReprTest, CycleInObject) {
@@ -1230,17 +1253,22 @@ TEST(DataSliceReprTest, CycleInObject) {
   ASSERT_OK_AND_ASSIGN(DataSlice schema, obj.GetAttr(schema::kSchemaAttr));
 
   ASSERT_OK(schema.SetAttr("a", schema));
-
   EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds(MatchesRegex(
                                           R"regex(IMPLICIT_ENTITY\(
   a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=#[0-9a-zA-Z]{22}\)\)\)\),
 \))regex")));
+  EXPECT_THAT(DataSliceToStr(schema, {.depth = size_t(-1)}),
+              IsOkAndHolds(MatchesRegex(
+                  R"regex(IMPLICIT_ENTITY\(a=#[0-9a-zA-Z]{22}\))regex")));
 
   ASSERT_OK(obj.SetAttr("a", obj));
   EXPECT_THAT(
       DataSliceToStr(obj),
       IsOkAndHolds(MatchesRegex(
           R"regex(Obj\(a=Obj\(a=Obj\(a=Obj\(a=Obj\(a=\$[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
+  EXPECT_THAT(
+      DataSliceToStr(obj, {.depth = size_t(-1)}),
+      IsOkAndHolds(MatchesRegex(R"regex(Obj\(a=\$[0-9a-zA-Z]{22}\))regex")));
 }
 
 TEST(DataSliceReprTest, DictExceedReprItemLimit) {

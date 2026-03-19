@@ -265,6 +265,14 @@ class SlicesGetReprTest(parameterized.TestCase):
     res = eval_op('kd.slices.get_repr', x).internal_as_py()
     self.assertRegex(res, expected_regex)
 
+  def test_infinite_loop(self):
+    x = db.new(schema='x')
+    x.foo = db.new(bar=x, baz=x)
+    self.assertRegex(
+        eval_op('kd.slices.get_repr', x, depth=-1).internal_as_py(),
+        r'Entity\(foo=Entity\(bar=\$.{22}, baz=\$.{22}\)',
+    )
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.get_repr(I.x)))
 

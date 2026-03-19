@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
@@ -67,6 +68,8 @@ constexpr absl::string_view kTruncationInfix = "'...'";
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
     "<span class=\"attr\">%s</span>=%s";
+
+constexpr size_t kMinDepthForCycleDetection = 10;
 
 struct FormatOptions {
   absl::string_view prefix = "";
@@ -281,31 +284,31 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
   return absl::StrCat(joined_parts, suffix);
 }
 
-// Returns the string representation for the DataSlice. It requires the
-// DataSlice contains only DataItem.
-absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
-                                          const DataItem& schema,
-                                          const absl_nullable DataBagPtr& db,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping);
+absl::StatusOr<std::string> DataItemToStr(
+    const DataItem& data_item, const DataItem& schema,
+    const absl_nullable DataBagPtr& db, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids);
 // Helper function for calling above function. Requires `item` to hold a
 // DataItem.
-absl::StatusOr<std::string> DataItemToStr(const DataSlice& item,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> DataItemToStr(
+    const DataSlice& item, const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   DCHECK(item.is_item());
-  return DataItemToStr(item.item(), item.GetSchemaImpl(), item.GetBag(),
-                       option, wrapping);
+  return DataItemToStr(item.item(), item.GetSchemaImpl(), item.GetBag(), option,
+                       wrapping, visited_object_ids);
 }
 
-std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
-                              const DataBagPtr& bag, const ReprOption& option,
-                              WrappingBehavior& wrapping) {
+std::string DataSliceItemRepr(
+    const DataItem& item, const DataItem& schema, const DataBagPtr& bag,
+    const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   if (option.show_attributes) {
     ReprOption next_option = option;
     // Show quotes on Text for non item slice.
     next_option.strip_quotes = false;
-    if (auto content = DataItemToStr(item, schema, bag, next_option, wrapping);
+    if (auto content = DataItemToStr(item, schema, bag, next_option, wrapping,
+                                     visited_object_ids);
         content.ok()) {
       return *std::move(content);
     }
@@ -341,10 +344,9 @@ std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
         .max_expr_quote_len = option.max_expr_quote_len}));
 }
 
-// Returns the string for python __str__ and part of __repr__.
-// The DataSlice must have at least 1 dimension.
-std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
-                               WrappingBehavior& wrapping) {
+std::string DataSliceImplToStr(
+    const DataSlice& ds, const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   const auto& shape = ds.GetShape();
   size_t total_item_limit = option.item_limit;
   bool should_enforce_item_limit = ds.size() > total_item_limit;
@@ -364,7 +366,8 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
       for (int64_t group : included_groups) {
         result.push_back(DataSliceItemRepr(ds.slice()[group],
                                            ds.GetSchemaImpl(), ds.GetBag(),
-                                           option, wrapping));
+                                           option, wrapping,
+                                           visited_object_ids));
       }
       total_item_limit -= result.size();
       return result;
@@ -426,30 +429,27 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
   return std::move(result[0]);
 }
 
-// Returns the string representation of list schema. `schema` must be schema
-// type and DataItem. Returns empty string if it doesn't contain list item
-// schema attr.
-absl::StatusOr<std::string> ListSchemaStr(const DataSlice& schema,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> ListSchemaStr(
+    const DataSlice& schema, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   ASSIGN_OR_RETURN(DataSlice attr,
                    schema.GetAttrOrMissing(schema::kListItemsSchemaAttr));
   if (attr.IsEmpty()) {
     return "";
   }
 
-  ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, option, wrapping));
+  ASSIGN_OR_RETURN(std::string str, DataItemToStr(attr, option, wrapping,
+                                                  visited_object_ids));
   return absl::StrCat(
       "LIST[", wrapping.MaybeAnnotateSchemaAccess(
           "item-schema", std::move(str)), "]");
 }
 
-// Returns the string representation of list schema. `schema` must be schema
-// type and DataItem. Returns empty string if it doesn't contain list item
-// schema attr.
-absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> DictSchemaStr(
+    const DataSlice& schema, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   ASSIGN_OR_RETURN(DataSlice key_attr,
                    schema.GetAttrOrMissing(schema::kDictKeysSchemaAttr));
   ASSIGN_OR_RETURN(DataSlice value_attr,
@@ -459,9 +459,11 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
   }
 
   ASSIGN_OR_RETURN(std::string key_attr_str,
-                   DataItemToStr(key_attr, option, wrapping));
+                   DataItemToStr(key_attr, option, wrapping,
+                                 visited_object_ids));
   ASSIGN_OR_RETURN(std::string value_attr_str,
-                   DataItemToStr(value_attr, option, wrapping));
+                   DataItemToStr(value_attr, option, wrapping,
+                                 visited_object_ids));
   return absl::StrCat(
       "DICT{",
       wrapping.MaybeAnnotateSchemaAccess("key-schema", std::move(key_attr_str)),
@@ -472,11 +474,10 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
 }
 
 // Returns the string representation of list item.
-absl::StatusOr<std::string> ListToStr(const DataItem& item,
-                                      const DataItem& schema,
-                                      const DataBagPtr& db,
-                                      const ReprOption& option,
-                                      WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> ListToStr(
+    const DataItem& item, const DataItem& schema, const DataBagPtr& db,
+    const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   DCHECK(db != nullptr);
   auto get_list_and_schema =
       [&]() -> absl::StatusOr<std::pair<internal::DataSliceImpl, DataItem>> {
@@ -510,7 +511,8 @@ absl::StatusOr<std::string> ListToStr(const DataItem& item,
         break;
       }
       ASSIGN_OR_RETURN(std::string item_str,
-                       DataItemToStr(item, item_schema, db, option, wrapping));
+                       DataItemToStr(item, item_schema, db, option, wrapping,
+                                     visited_object_ids));
       elements.emplace_back(
           wrapping.MaybeAnnotateListIndex(std::move(item_str), i));
       ++item_count;
@@ -524,11 +526,10 @@ absl::StatusOr<std::string> ListToStr(const DataItem& item,
 }
 
 // Returns the string representation of dict item.
-absl::StatusOr<std::string> DictToStr(const DataItem& item,
-                                      const DataItem& schema,
-                                      const DataBagPtr& db,
-                                      const ReprOption& option,
-                                      WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> DictToStr(
+    const DataItem& item, const DataItem& schema, const DataBagPtr& db,
+    const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   DCHECK(db != nullptr);
   auto get_keys_values_and_schemas =
       [&]() -> absl::StatusOr<
@@ -571,9 +572,11 @@ absl::StatusOr<std::string> DictToStr(const DataItem& item,
     const DataItem& key = keys_impl[i];
     const DataItem& value = values_impl[i];
     ASSIGN_OR_RETURN(std::string key_str,
-                     DataItemToStr(key, key_schema, db, key_option, wrapping));
+                     DataItemToStr(key, key_schema, db, key_option, wrapping,
+                                   visited_object_ids));
     ASSIGN_OR_RETURN(std::string value_str,
-                     DataItemToStr(value, value_schema, db, option, wrapping));
+                     DataItemToStr(value, value_schema, db, option, wrapping,
+                                   visited_object_ids));
 
     elements.emplace_back(absl::StrCat(
         wrapping.MaybeAnnotateDictKeyIndex(std::move(key_str), i),
@@ -592,6 +595,7 @@ absl::StatusOr<std::string> DictToStr(const DataItem& item,
 absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     const DataItem& item, const DataItem& schema, const DataBagPtr& db,
     const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids,
     absl::flat_hash_set<std::string> ignore_attrs = {}) {
   if (!schema.has_value()) {
     return std::vector<std::string>();
@@ -617,7 +621,7 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     if (!value.IsEmpty() || !skip_none_values) {
       ASSIGN_OR_RETURN(std::string value_str,
                        DataItemToStr(value.item(), value.GetSchemaImpl(), db,
-                                     option, wrapping));
+                                     option, wrapping, visited_object_ids));
       parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
           attr_name, value_str, value.item().is_list()));
       ++item_count;
@@ -627,16 +631,17 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
   return parts;
 }
 
-absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
-                                          const DataItem& schema,
-                                          const absl_nullable DataBagPtr& db,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping);
+absl::StatusOr<std::string> DataItemToStr(
+    const DataItem& data_item, const DataItem& schema,
+    const absl_nullable DataBagPtr& db, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids);
 
 // Returns the string representation of a functor signature.
 absl::StatusOr<std::string> FunctorSignatureToStr(
     const koladata::functor::Signature& signature, const ReprOption& option,
-    WrappingBehavior& wrapping) {
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   std::string result;
   for (size_t i = 0; i < signature.parameters().size(); ++i) {
     if (i > 0) {
@@ -668,7 +673,8 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
         ASSIGN_OR_RETURN(
             std::string default_value_repr,
             DataItemToStr(default_value.item(), default_value.GetSchemaImpl(),
-                          default_value.GetBag(), option, wrapping));
+                          default_value.GetBag(), option, wrapping,
+                          visited_object_ids));
         absl::StrAppend(&result, "=", default_value_repr);
       }
     }
@@ -685,9 +691,10 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
   return result;
 }
 
-absl::StatusOr<std::string> FunctorItemToStr(const DataSlice& functor,
-                                             const ReprOption& option,
-                                             WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> FunctorItemToStr(
+    const DataSlice& functor, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   DCHECK(functor.is_item());
   ASSIGN_OR_RETURN(DataSlice signature,
                    functor.GetAttr(functor::kSignatureAttrName));
@@ -697,6 +704,7 @@ absl::StatusOr<std::string> FunctorItemToStr(const DataSlice& functor,
   ASSIGN_OR_RETURN(std::vector<std::string> attr_parts,
                    AttrsToStrParts(functor.item(), functor.GetSchemaImpl(),
                                    functor.GetBag(), option, wrapping,
+                                   visited_object_ids,
                                    /*ignore_attrs=*/
                                    {std::string(functor::kSignatureAttrName),
                                     std::string(functor::kQualnameAttrName),
@@ -708,7 +716,8 @@ absl::StatusOr<std::string> FunctorItemToStr(const DataSlice& functor,
     name = absl::StrCat(" ", name_slice.item().value<arolla::Text>().view());
   }
   ASSIGN_OR_RETURN(std::string signature_str,
-                   FunctorSignatureToStr(cpp_signature, option, wrapping));
+                   FunctorSignatureToStr(cpp_signature, option, wrapping,
+                                         visited_object_ids));
   return PrettyFormatStr(
       attr_parts,
       {.prefix = absl::StrCat("Functor", name, "[", signature_str, "]("),
@@ -737,10 +746,10 @@ std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
 
 // Return the schema metadata from __schema_metadata__ attribute. The metadata
 // must hold an ObjectId and bag must not be null.
-std::string GetSchemaMetadataOrEmpty(const DataBagPtr& bag,
-                                     const DataItem& schema,
-                                     const ReprOption& option,
-                                     WrappingBehavior& wrapping) {
+std::string GetSchemaMetadataOrEmpty(
+    const DataBagPtr& bag, const DataItem& schema, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   DCHECK(bag != nullptr);
   DCHECK(schema.holds_value<ObjectId>());
   const internal::DataBagImpl& bag_impl = bag->GetImpl();
@@ -755,16 +764,16 @@ std::string GetSchemaMetadataOrEmpty(const DataBagPtr& bag,
   }
   ASSIGN_OR_RETURN(std::string metadata_str,
                    DataItemToStr(schema_metadata, DataItem(schema::kObject),
-                                 bag, option, wrapping),
+                                 bag, option, wrapping, visited_object_ids),
                    [](const absl::Status& status) { return ""; }(_));
   return metadata_str;
 }
 
-absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
-                                          const DataItem& schema,
-                                          const absl_nullable DataBagPtr& db,
-                                          const ReprOption& option,
-                                          WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> DataItemToStr(
+    const DataItem& data_item, const DataItem& schema,
+    const absl_nullable DataBagPtr& db, const ReprOption& option,
+    WrappingBehavior& wrapping,
+    absl::flat_hash_set<internal::ObjectId>& visited_object_ids) {
   // Helper that applies the wrapping to DataItemRepr to be used when
   // the item holds an ObjectId.
   auto repr_with_wrapping = [&option, &wrapping](const DataItem& item) {
@@ -795,6 +804,19 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     }
     DCHECK(data_item.holds_value<ObjectId>());
     const ObjectId& obj = data_item.value<ObjectId>();
+    // Only do cycle detection when the depth is non-trivial.
+    if (option.depth >= kMinDepthForCycleDetection) {
+      if (visited_object_ids.contains(obj)) {
+        return ObjectIdStr(obj);
+      }
+      visited_object_ids.insert(obj);
+    }
+    absl::Cleanup visited_cleanup = [&visited_object_ids, &obj, &option] {
+      if (option.depth >= kMinDepthForCycleDetection) {
+        visited_object_ids.erase(obj);
+      }
+    };
+
     if (db == nullptr) {
       return ObjectIdStr(obj);
     }
@@ -809,10 +831,10 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
         auto ds,
         DataSlice::Create(data_item, internal::DataItem(schema::kSchema), db));
     if (ds.IsListSchema()) {
-      return ListSchemaStr(ds, next_option, wrapping);
+      return ListSchemaStr(ds, next_option, wrapping, visited_object_ids);
     }
     if (ds.IsDictSchema()) {
-      return DictSchemaStr(ds, next_option, wrapping);
+      return DictSchemaStr(ds, next_option, wrapping, visited_object_ids);
     }
     std::string prefix = "";
     std::string schema_name = GetSchemaNameOrEmpty(db, data_item);
@@ -827,9 +849,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     ASSIGN_OR_RETURN(
         std::vector<std::string> schema_parts,
         AttrsToStrParts(data_item, internal::DataItem(schema::kSchema), db,
-                        next_option, wrapping));
-    std::string metadata =
-        GetSchemaMetadataOrEmpty(db, data_item, next_option, wrapping);
+                        next_option, wrapping, visited_object_ids));
+    std::string metadata = GetSchemaMetadataOrEmpty(
+        db, data_item, next_option, wrapping, visited_object_ids);
     if (!metadata.empty()) {
       schema_parts.push_back(wrapping.FormatSchemaAttrAndValue(
           schema::kSchemaMetadataAttr, metadata, /*is_list=*/false));
@@ -855,16 +877,31 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     }
 
     const ObjectId& obj = data_item.value<ObjectId>();
+    // Only do cycle detection when the depth is non-trivial.
+    if (option.depth > kMinDepthForCycleDetection) {
+      if (visited_object_ids.contains(obj)) {
+        return ObjectIdStr(obj);
+      }
+      visited_object_ids.insert(obj);
+    }
+    absl::Cleanup visited_cleanup = [&visited_object_ids, &obj, &option] {
+      if (option.depth > kMinDepthForCycleDetection) {
+        visited_object_ids.erase(obj);
+      }
+    };
+
     if (schema.holds_value<ObjectId>() &&
         schema.value<ObjectId>().IsNoFollowSchema()) {
       return absl::StrCat("Nofollow(",
                           ObjectIdStr(obj, /*show_flag_prefix=*/true), ")");
     }
     if (obj.IsList()) {
-      return ListToStr(data_item, schema, db, next_option, wrapping);
+      return ListToStr(data_item, schema, db, next_option, wrapping,
+                       visited_object_ids);
     }
     if (obj.IsDict()) {
-      return DictToStr(data_item, schema, db, next_option, wrapping);
+      return DictToStr(data_item, schema, db, next_option, wrapping,
+                       visited_object_ids);
     }
 
     if (schema.is_schema()) {
@@ -873,7 +910,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
           DataSlice::Create(data_item, schema, db));
       ASSIGN_OR_RETURN(bool is_functor, functor::IsFunctor(data_slice));
       if (is_functor) {
-        return FunctorItemToStr(data_slice, next_option, wrapping);
+        return FunctorItemToStr(data_slice, next_option, wrapping,
+                                visited_object_ids);
       }
     }
 
@@ -881,7 +919,8 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     size_t initial_html_char_count = wrapping.html_char_count;
     ASSIGN_OR_RETURN(
         std::vector<std::string> attr_parts,
-        AttrsToStrParts(data_item, schema, db, next_option, wrapping));
+        AttrsToStrParts(data_item, schema, db, next_option, wrapping,
+                        visited_object_ids));
     // Append ItemId if there is no attribute
     if (attr_parts.empty()) {
       return absl::StrCat(prefix, "):", ObjectIdStr(obj));
@@ -906,18 +945,21 @@ absl::StatusOr<std::string> DataItemToStr(const internal::DataItem& data_item,
                                           const ReprOption& option) {
   DCHECK_GE(option.depth, 0);
   WrappingBehavior wrapping{.format_html = option.format_html};
-  return DataItemToStr(data_item, schema, db, option, wrapping);
+  absl::flat_hash_set<internal::ObjectId> visited_object_ids;
+  return DataItemToStr(data_item, schema, db, option, wrapping,
+                       visited_object_ids);
 }
 
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
                                            const ReprOption& option) {
   DCHECK_GE(option.depth, 0);
   WrappingBehavior wrapping{.format_html = option.format_html};
-  return ds.VisitImpl([&ds, &option, &wrapping]<typename T>(
-      const T& impl) {
+  absl::flat_hash_set<internal::ObjectId> visited_object_ids;
+  return ds.VisitImpl([&ds, &option, &wrapping,
+                       &visited_object_ids]<typename T>(const T& impl) {
     return std::is_same_v<T, DataItem>
-        ? DataItemToStr(ds, option, wrapping)
-        : DataSliceImplToStr(ds, option, wrapping);
+               ? DataItemToStr(ds, option, wrapping, visited_object_ids)
+               : DataSliceImplToStr(ds, option, wrapping, visited_object_ids);
   });
 }
 
