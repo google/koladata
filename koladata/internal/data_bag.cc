@@ -430,6 +430,7 @@ internal::DataBagMergeConflictError MakeListItemMergeError(
               .second_conflicting_item = second_list_item,
           }};
 }
+
 }  // namespace
 
 MergeOptions ReverseMergeOptions(const MergeOptions& options) {
@@ -3329,13 +3330,21 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
   return absl::OkStatus();
 }
 
+bool DataBagImpl::IsUnmodifiedForkOf(const DataBagImpl& other) const {
+  if (parent_data_bag_.get() != &other) {
+    return false;
+  }
+  return IsPristine();
+}
+
 // Merge additional attributes and objects from `other`.
 // Returns non-ok Status on conflict.
 absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
                                        MergeOptions options) {
   arolla::profiling::TraceMe traceme(
       "::koladata::internal::DataBagImpl::MergeInplace");
-  if (this == &other) {
+  if (this == &other || IsUnmodifiedForkOf(other) ||
+      other.IsUnmodifiedForkOf(*this)) {
     return absl::OkStatus();
   }
   // sources_

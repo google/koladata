@@ -225,6 +225,13 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
     EXPECT_THAT(db_fork->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
   }
 
+  // merging unmodified fork into self
+  {
+    auto db_fork = db->PartiallyPersistentFork();
+    ASSERT_OK(db->MergeInplace(*db_fork));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
+  }
+
   // merging into modified fork
   {
     auto db_fork = db->PartiallyPersistentFork();

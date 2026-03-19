@@ -684,6 +684,8 @@ class DataBagImpl : public arolla::RefcountedBase {
  private:
   DataBagImpl() = default;
 
+  bool IsUnmodifiedForkOf(const DataBagImpl& other) const;
+
   // Search attribute value for the given object in small_alloc_sources_
   // including parents.
   ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
