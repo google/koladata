@@ -200,6 +200,9 @@ class DataSliceVisOptions:
   # dimension greater than 0. For DataItems, the depth is 1 higher than this
   # value.
   repr_depth: int = 2
+  # Maximum number of folds that an attribute can have. The maximum tiling
+  # or number of rows that an attribute can have is 2**max_folds.
+  max_folds: int = 2
 
 
 def _format_item_html(
@@ -877,7 +880,7 @@ def visualize_slice(
           data-headers="{data.headers}"
           data-loaded-range="{data.items_begin},{data.items_end}"
           data-sizes="{data.sizes}"
-          data-max-folds="2"
+          data-max-folds="{options.max_folds}"
           {data_item_attr} {no_bag_attr} content-mode="text">
         {data.data}
       </kd-multi-dim-table>
