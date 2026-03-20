@@ -46,7 +46,9 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",  # buildcleaner: keep
         "//py/koladata:kd_ext",  # buildcleaner: keep
-        requirement("numpy"),  # buildcleaner: keep
+        "//py/koladata/ext:npkd",  # buildcleaner: keep
+        "//py/koladata/ext:pdkd",  # buildcleaner: keep
         "@com_google_absl_py//absl/testing:absltest",
+        requirement("numpy"),  # buildcleaner: keep
     ],
 )

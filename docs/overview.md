@@ -366,9 +366,8 @@ DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema: Foo(x=INT32),...)
 >>> a.x
 DataSlice([1, 2, 3], schema: INT32,...)
 
->>> a = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
->>> a
-DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema: Foo(x=INT32),...)
+>>> a2 = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
+>>> kd.testing.assert_equivalent(a, a2)
 
 >>> b = kd.slice([kd.new(x=1, schema='Foo'),
 ...               kd.new(schema='Foo'),
@@ -522,25 +521,28 @@ DataSlice([IMPLICIT_ENTITY(x=INT32, y=INT32), IMPLICIT_ENTITY(x=STRING, y=STRING
 Similar to entities, objects can be modified with a cost of O(1), cloned or deep
 cloned.
 
-```py
-x = kd.obj(x=2, y=kd.obj(z=3))
-x = x.with_attrs(a=4)  # add attribute
-x = x.updated(kd.attrs(x.y, z=5))  # update nested attribute
+```py {.pycon-doctest}
+>>> x = kd.obj(x=2, y=kd.obj(z=3))
+>>> x = x.with_attrs(a=4)  # add attribute
+>>> x = x.updated(kd.attrs(x.y, z=5))  # update nested attribute
 
-x1 = x.clone(z=4)
-x2 = x.deep_clone(z=5)
+>>> x1 = x.clone(z=4)
+>>> x2 = x.deep_clone(z=5)
 ```
 
 Entities and objects can be converted to each other.
 
-```py
-x, y = kd.new(a=1), kd.new(b=2)
-kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
+```py {.pycon-doctest}
+>>> x, y = kd.new(a=1), kd.new(b=2)
+>>> kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
+DataSlice([Obj(a=1), Obj(b=2)], schema: OBJECT,...)
 
 # Objects can be converted to entities
-my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
-kd.obj(x=1, y=2).with_schema(my_schema)
-kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
+>>> my_schema = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+>>> a = kd.obj(x=1, y=2).with_schema(my_schema); a
+DataItem(Entity(x=1, y=2), schema: Point(x=INT32, y=INT32),...)
+>>> a2 = kd.from_py({'x': 1, 'y': 2}, dict_as_obj=True).with_schema(my_schema)  # the same as above
+>>> kd.testing.assert_equivalent(a, a2)
 ```
 
 Note: Compared to entities, objects have a higher **performance overhead**
@@ -551,36 +553,46 @@ recommended for faster execution.
 
 Similar to entities, lists and dicts can be objects too.
 
-```py
-l1 = kd.list([1, 2])
-l2 = kd.list(['3', '4'])
-l_objs = kd.slice([kd.obj(l1), kd.obj(l2)])
-l_objs[:]  # [[1, 2], ['3', '4']]
-assert l_objs.get_schema() == kd.OBJECT
-l_objs.get_obj_schema()  # [LIST[INT32], LIST[STRING]]
+```py {.pycon-doctest}
+>>> l1 = kd.list([1, 2])
+>>> l2 = kd.list(['3', '4'])
+>>> l_objs = kd.slice([kd.obj(l1), kd.obj(l2)])
+>>> l_objs[:]
+DataSlice([[1, 2], ['3', '4']], schema: OBJECT,...)
 
-d1 = kd.dict({'a': 1})
-d2 = kd.dict({2: True})
-d_objs = kd.slice([kd.obj(d1), kd.obj(d2)])
-d_objs[:]  # [{'a': 1}, {2: True}]
-assert d_objs.get_schema() == kd.OBJECT
-d_objs.get_obj_schema()  # [DICT{STRING, INT32}, DICT{INT32, BOOLEAN}]
+>>> assert l_objs.get_schema() == kd.OBJECT
+>>> l_objs.get_obj_schema()
+DataSlice([LIST[INT32], LIST[STRING]]...)
+
+>>> d1 = kd.dict({'a': 1})
+>>> d2 = kd.dict({2: True})
+>>> d_objs = kd.slice([kd.obj(d1), kd.obj(d2)])
+>>> d_objs[:]
+DataSlice([[1], [True]], schema: OBJECT, present: 2/2,...)
+
+>>> assert d_objs.get_schema() == kd.OBJECT
+>>> d_objs.get_obj_schema()
+DataSlice([DICT{STRING, INT32}, DICT{INT32, BOOLEAN}], schema: SCHEMA,...)
 ```
 
 Primitives are also objects. Their schemas are inferred from their values.
 
-```py
-kd.obj(1)
-kd.obj(kd.int64(1))
-kd.obj('hello')
+```py {.pycon-doctest}
+>>> kd.obj(1)
+DataItem(1, schema: OBJECT,...)
+>>> kd.obj(kd.int64(1))
+DataItem(int64{1}, schema: OBJECT,...)
+>>> kd.obj('hello')
+DataItem('hello', schema: OBJECT,...)
 
-assert kd.obj(1).get_schema() == kd.OBJECT
-assert kd.obj(1).get_obj_schema() == kd.INT32
+>>> assert kd.obj(1).get_schema() == kd.OBJECT
+>>> assert kd.obj(1).get_obj_schema() == kd.INT32
 
 # Dict values are objects
 # No need to wrap them using kd.obj
-d = kd.dict({'a': 1, 'b': '2'})
-d.get_schema()  # DICT{STRING, OBJECT}
+>>> d = kd.dict({'a': 1, 'b': '2'})
+>>> d.get_schema()
+DataItem(DICT{STRING, OBJECT}, schema: SCHEMA...)
 ```
 
 Another way to define custom structured data types in Koda is by using
@@ -588,17 +600,17 @@ Another way to define custom structured data types in Koda is by using
 you to create user-defined data structures which look like Python dataclasses
 but integrate deeply with Koda's advanced features.
 
-```
-@kd.extension_type()
-class Point:
-  x: kd.FLOAT32
-  y: kd.FLOAT32
+```py {.pycon-doctest}
+>>> @kd.extension_type()
+... class Point:
+...   x: kd.FLOAT32
+...   y: kd.FLOAT32
+...   def norm(self):
+...     return (self.x**2 + self.y**2)**0.5
 
-  def norm(self):
-      return (self.x**2 + self.y**2)**0.5
-
-p = Point(x=3.0, y=4.0)
-p.norm()  #  5.0
+>>> p = Point(x=3.0, y=4.0)
+>>> p.norm()
+DataItem(5.0, schema: FLOAT32)
 ```
 
 ## Sparsity and Masks
@@ -606,22 +618,28 @@ p.norm()  #  5.0
 **Sparsity** is a first-class concept in Koda. Every item in a DataSlice can be
 present or missing and all operators support missing values.
 
-```py
-a = kd.slice([[1, None], [4]])
-b = kd.slice([[None, kd.obj(x=1)], [kd.obj(x=2)]])
-a + b.x  # [[None, None], [6]]
-kd.agg_any(kd.has(a)) # [present, present]
-kd.agg_all(kd.has(a)) # [missing, present]
+```py {.pycon-doctest}
+>>> a = kd.slice([[1, None], [4]])
+>>> b = kd.slice([[None, kd.obj(x=1)], [kd.obj(x=2)]])
+>>> a + b.x
+DataSlice([[None, None], [6]], schema: INT32, present: 1/3)
+>>> kd.agg_any(kd.has(a))
+DataSlice([present, present], schema: MASK, present: 2/2)
+>>> kd.agg_all(kd.has(a))
+DataSlice([missing, present], schema: MASK, present: 1/2)
 ```
 
 **Masks** are used to represent present/missing state. They are also used in
 comparison and logical operations.
 
-```py
+```py {.pycon-doctest}
 # Get the sparsity of a DataSlice
-kd.has(kd.slice([[1, None], [4]])) # [[present, missing], [present]]
-kd.slice([1, None, 3, 4]) != 3  # [present, missing, missing, present]
-kd.slice([1, 2, 3, 4]) > 2  # [missing, missing, present, present]
+>>> kd.has(kd.slice([[1, None], [4]]))
+DataSlice([[present, missing], [present]], schema: MASK, present: 2/3)
+>>> kd.slice([1, None, 3, 4]) != 3
+DataSlice([present, missing, missing, present], schema: MASK, present: 2/4)
+>>> kd.slice([1, 2, 3, 4]) > 2
+DataSlice([missing, missing, present, present], schema: MASK, present: 2/4)
 ```
 
 Using masks instead of Booleans in comparison and logical operations is useful
@@ -634,37 +652,50 @@ difference is that filtering does not change the shape of the DataSlice and
 filtered out items become missing, while selection changes the shape by only
 keeping selected items in the resulting DataSlice.
 
-```py
-x = kd.slice([1, 2, 3, 4])
-y = kd.slice([4, 5, 6, 7])
+```py {.pycon-doctest}
+>>> x = kd.slice([1, 2, 3, 4])
+>>> y = kd.slice([4, 5, 6, 7])
 
 # To filter a DataSlice based on masks, use kd.apply_mask or & as shortcut
-kd.apply_mask(x, y >= 6)
-x & (y >= 6) # ([None, None, 3, 4]
+>>> kd.apply_mask(x, y >= 6)
+DataSlice([None, None, 3, 4], schema: INT32, present: 2/4)
+>>> x & (y >= 6)
+DataSlice([None, None, 3, 4], schema: INT32, present: 2/4)
 
-a = kd.obj(x=kd.slice([1,2,3]))
-a.x >= 2  # [missing, present, present]
-a &= a.x >= 2  # [None, kd.obj(x=2), kd.obj(x=3)]
+>>> a = kd.obj(x=kd.slice([1,2,3]))
+>>> a.x >= 2
+DataSlice([missing, present, present], schema: MASK, present: 2/3)
+>>> a &= a.x >= 2
+>>> a
+DataSlice([None, Obj(x=2), Obj(x=3)], schema: OBJECT, present: 2/3,...)
 
 # Can use 'select' to filter DataSlices
-a = kd.slice([kd.obj(x=1), kd.obj(x=2), kd.obj(x=3)])
-a1 = a.select(a.x >= 2)  # [Obj(x=2), Obj(x=3)]
-a1 = a.select(lambda u: u.x >= 2)  # the same as above
-a1 = (a & (a.x >= 2)).select_present()  # the same as above
+>>> a = kd.slice([kd.obj(x=1), kd.obj(x=2), kd.obj(x=3)])
+>>> a1 = a.select(a.x >= 2); a1
+DataSlice([Obj(x=2), Obj(x=3)], schema: OBJECT, present: 2/2,...)
+>>> a2 = a.select(lambda u: u.x >= 2); # the same as above
+>>> a3 = (a & (a.x >= 2)).select_present(); # the same as above
+>>> kd.testing.assert_equal(a1, a2); kd.testing.assert_equal(a1, a3)
 
 # Can update attributes only of selected entities/objects
-a.updated(kd.attrs(a1, y=a1.x*2))  # [Obj(x=1), Obj(x=2, y=4), Obj(x=3, y=6)]
+>>> a.updated(kd.attrs(a1, y=a1.x*2))  # [Obj(x=1), Obj(x=2, y=4), Obj(x=3, y=6)]
+DataSlice([Obj(x=1), Obj(x=2, y=4), Obj(x=3, y=6)], schema: OBJECT, present: 3/3,...)
 ```
 
 **DataSlices** with compatible shapes can **coalesced** (i.e., missing items are
 replaced by corresponding items of the other DataSlice).
 
-```py
-kd.str(None)  # "None" string
-kd.str(None) | 'hello'  # 'hello'
+```py {.pycon-doctest}
+>>> kd.str(None)
+DataItem(None, schema: STRING)
+>>> kd.str(None) | 'hello'
+DataItem('hello', schema: STRING)
 
-kd.coalesce(kd.slice([1, None, 3]), kd.slice([4,5,6]))  # [1,5,3]
-kd.slice([1, None, 3]) | kd.slice([4,5,6])  # the same as above
+>>> a = kd.coalesce(kd.slice([1, None, 3]), kd.slice([4,5,6])); a
+DataSlice([1, 5, 3], schema: INT32,...)
+
+>>> a2 = kd.slice([1, None, 3]) | kd.slice([4,5,6])  # the same as above
+>>> kd.testing.assert_equal(a, a2)
 ```
 
 ## Immutable Workflows and Bags (Collections of Attributes)
@@ -682,28 +713,51 @@ NOTE: Mutable APIs is available only in advanced, high-performance workflows,
 but with trade-offs. They require a deeper understanding of Koda data model and
 it is easier to make mistakes which can be hard to debug.
 
-```py
-a = kd.new(x=2, y=kd.new(z=3))
+```py {.pycon-doctest}
+>>> a = kd.new(x=2, y=kd.new(z=3)); a
+DataItem(Entity(x=2, y=Entity(z=3)),...)
+
 # update existing attribute and add a new attribute
-a1 = a.with_attrs(x=4, u=5)  # Entity(u=5, x=4, y=Entity(z=3))
+>>> a1 = a.with_attrs(x=4, u=5); a1
+DataItem(Entity(u=5, x=4, y=Entity(z=3)),...)
+
 # a stays the same as it is immutable
-a # Entity(x=2, y=Entity(z=3))
+>>> a
+DataItem(Entity(x=2, y=Entity(z=3)),...)
 
-b = kd.dict({'a': 1, 'b': 2})
+
+>>> b = kd.dict({'a': 1, 'b': 2})
+
+# dict keys order is non-deterministic
+>>> to_sorted = lambda d: kd.zip(keys:=kd.sort(d.get_keys()), d[keys])
+
 # update with a new key/value pair
-b1 = b.with_dict_update('a', 2) # Dict{'a'=2, 'b'=2}
-# update with another dict
-b2 = b.with_dict_update(kd.dict({'a': 3, 'c': 4})) # Dict{'c'=4, 'a'=3, 'b'=2}
-# b stays the same as it is immutable
-b # Dict{'a'=1, 'b'=2}
+>>> b1 = b.with_dict_update('a', 2); to_sorted(b1)
+DataSlice([['a', 2], ['b', 2]],...)
 
-c = kd.list([1, 2, 3])
+# update with another dict
+>>> b2 = b.with_dict_update(kd.dict({'a': 3, 'c': 4}))
+>>> to_sorted(b2)
+DataSlice([['a', 3], ['b', 2], ['c', 4]],...)
+
+# b stays the same as it is immutable
+>>> to_sorted(b)
+DataSlice([['a', 1], ['b', 2]],...)
+
+
+>>> c = kd.list([1, 2, 3])
+
 # Create a new list with a distinct ItemId by concatenating two lists
-c1 = kd.concat_lists(c, kd.list([4, 5]))  # List[1, 2, 3, 4, 5]
+>>> c1 = kd.concat_lists(c, kd.list([4, 5])); c1
+DataItem(List[1, 2, 3, 4, 5],...)
+
 # Or create a new list with a distinct ItemId by appending a DataSlice
-c2 = kd.appended_list(c, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+>>> c2 = kd.appended_list(c, kd.slice([4, 5])); c2
+DataItem(List[1, 2, 3, 4, 5],...)
+
 # c stays the same as it is immutable
-c # List[1, 2, 3]
+>>> c
+DataItem(List[1, 2, 3],...)
 ```
 
 ### Bags
@@ -723,21 +777,39 @@ higher lookup performance is required.
 NOTE: Almost all data (e.g. entities, dicts, lists, objects, schemas) are stored
 as attributes in bags.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3))
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3))
 
 # Get the bag associated with a DataSlice
-db = a.get_bag()
+>>> db = a.get_bag()
+
 # Get quick stats of a bag, use its repr
-db
+>>> db
+DataBag ...
+  2 Entities/Objects with 3 values in 3 attrs
+  0 non empty Lists with 0 items
+  0 non empty Dicts with 0 key/value entries
+  2 schemas with 3 values...
+Top attrs:
+  z: 1 values
+  y: 1 values
+  x: 1 values
+
 # Print out all attributes
-db.contents_repr()
+>>> db.contents_repr()
+DataBag...
+
 # Print out only data attributes
-db.data_triples_repr()
+>>> db.data_triples_repr()
+DataBag...
+
 # Print out only schema attributes
-db.schema_triples_repr()
+>>> db.schema_triples_repr()
+SchemaBag...
+
 # Get approximate size (e.g. number of attributes)
-db.get_approx_size()
+>>> db.get_approx_size()
+8
 ```
 
 <section class='zippy'>
@@ -839,25 +911,35 @@ Instead of creating a modified object/dict/list directly, we typically create a
 the fallback mechanism described above. Updates overwrite existing attributes or
 add new ones.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3))
-# update existing attribute and add a new attribute
-upd = kd.attrs(a, x=4, u=5)
-# To see its contents, you can do
-upd.contents_repr()
-a1 = a.updated(upd) # Obj(u=5, x=4, y=Obj(z=3))
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3))
 
-b = kd.dict({'a': 1, 'b': 2})
+# update existing attribute and add a new attribute
+>>> upd = kd.attrs(a, x=4, u=5)
+
+# To see its contents, you can do
+>>> upd.contents_repr()
+DataBag...
+
+>>> a.updated(upd)
+DataItem(Obj(u=5, x=4, y=Obj(z=3)),...)
+
+>>> b = kd.dict({'a': 1, 'b': 2})
+
 # update with a new key/value pair
-upd = kd.dict_update(b, 'a', 2)
-b1 = b.updated(upd) # Dict{'a'=2, 'b'=2}
+>>> upd = kd.dict_update(b, 'a', 2)
+>>> b.updated(upd)
+DataItem(Dict{'a'=2, 'b'=2},...)
+
 # update with another dict
-upd = kd.dict_update(b, kd.dict({'a': 3, 'c': 4}))
-b2 = b.updated(upd) # Dict{'c'=4, 'a'=3, 'b'=2}
+>>> upd = kd.dict_update(b, kd.dict({'a': 3, 'c': 4}))
+>>> b2 = b.updated(upd); to_sorted(b2)
+DataSlice([['a', 3], ['b', 2], ['c', 4]],...)
 
 # Schemas are stored and can be updated in the same way
-a = kd.new(x=1, schema='MySchema')
-a.updated(kd.attrs(a.get_schema(), y=kd.INT32))  # update the schema
+>>> a = kd.new(x=1, schema='MySchema')
+>>> a.updated(kd.attrs(a.get_schema(), y=kd.INT32))  # update the schema
+DataItem(Entity(x=1), schema: MySchema(x=INT32, y=INT32),...)
 ```
 
 <section class='zippy'>
@@ -926,42 +1008,50 @@ upd.contents_repr()
 
 Here is a more complex example that puts everything together.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1,2,3]))
-upd = kd.attrs(a, x=4, u=5)  # create data update
-a1 = a.updated(upd)
-a1 = a.with_attrs(x=4, u=5)  # a shortcut for above
-a2 = a.updated(kd.attrs(a.y, z=5))  # update a deep attribute a.y.z
-a3 = a.updated(kd.dict_update(a.z, 'b', 3))  # update dict
-a4 = a.updated(kd.dict_update(a.z, kd.dict({'b': 3, 'c': 4})))  # multi-update dict
-a5 = a.with_attrs(t=kd.concat_lists(a.t, kd.list([4, 5])))  # lists need to be updated as whole
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1,2,3]))
+>>> upd = kd.attrs(a, x=4, u=5)  # create data update
+>>> a1 = a.updated(upd)
+>>> a2 = a.with_attrs(x=4, u=5)  # a shortcut for above
+>>> kd.testing.assert_equivalent(a1, a2)
+
+>>> a2 = a.updated(kd.attrs(a.y, z=5))  # update a deep attribute a.y.z
+>>> a3 = a.updated(kd.dict_update(a.z, 'b', 3))  # update dict
+>>> a4 = a.updated(kd.dict_update(a.z, kd.dict({'b': 3, 'c': 4})))  # multi-update dict
+>>> a5 = a.with_attrs(t=kd.concat_lists(a.t, kd.list([4, 5])))  # lists need to be updated as whole
 ```
 
 Instead of being applied immediately, updates can be accumulated and applied
 later.
 
-```py
+```py {.pycon-doctest}
 # Updates can be composed using << and >>, which defines what overwrites what
-kd.attrs(a, x=3, y=4) << kd.attrs(a, x=5, u=6)  # == kd.attrs(a, x=5, y=4, u=6)
-kd.attrs(a, x=3, y=4) >> kd.attrs(a, x=5, u=6)  # == kd.attrs(a, x=3, y=4, u=6)
+>>> upd = kd.attrs(a, x=3, y=4) << kd.attrs(a, x=5, u=6) # equivalent to kd.attrs(a, x=5, y=4, u=6)
+>>> upd = kd.attrs(a, x=3, y=4) >> kd.attrs(a, x=5, u=6)  # equivalent to kd.attrs(a, x=3, y=4, u=6)
 
 # Updates can be accumulated and applied later
-a = kd.obj(x=2, y=kd.obj(z=3))
-upd = kd.bag()  # empty update
-upd <<= kd.attrs(a, x=a.x + 1)
-upd <<= kd.attrs(a, x=a.updated(upd).x + 2)  # can use a.x with an update
-upd <<= kd.attrs(a, u=a.y.z + a.updated(upd).x)
-a6 = a.updated(upd)  # Obj(x=5, y=Obj(z=3), u=8)
+>>> a = kd.obj(x=2, y=kd.obj(z=3))
+>>> upd = kd.bag()  # empty update
+>>> upd <<= kd.attrs(a, x=a.x + 1)
+>>> upd <<= kd.attrs(a, x=a.updated(upd).x + 2)  # can use a.x with an update
+>>> upd <<= kd.attrs(a, u=a.y.z + a.updated(upd).x)
+>>> a6 = a.updated(upd); a6
+DataItem(Obj(u=8, x=5, y=Obj(z=3)), schema: OBJECT,...)
 ```
 
 All APIs and concepts mentioned above support vectorization using DataSlice.
 
-```py
-a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # [Entity(x=1, y=4), Entity(x=2, y=5), Entity(x=3, y=6)]
-a.with_attrs(z=kd.slice([7, 8, 9]))  # [Entity(x=1, y=4, z=7), Entity(x=2, y=5, z=8), Entity(x=3, y=6, z=9)]
-a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))  # [Entity(x=10, y=4), Entity(x=11, y=5), Entity(x=12, y=6)]
+```py {.pycon-doctest}
+>>> a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])); a
+DataSlice([Entity(x=1, y=4), Entity(x=2, y=5), Entity(x=3, y=6)], schema: ENTITY(x=INT32, y=INT32),...)
+>>> a.with_attrs(z=kd.slice([7, 8, 9]))
+DataSlice([Entity(x=1, y=4, z=7), Entity(x=2, y=5, z=8), Entity(x=3, y=6, z=9)], schema: ENTITY(x=INT32, y=INT32, z=INT32),...)
+>>> a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))
+ DataSlice([Entity(x=10, y=4), Entity(x=11, y=5), Entity(x=12, y=6)], schema: ENTITY(x=INT32, y=INT32),...)
+
 # Updates can target a subset of entities by utilizing sparsity
-a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7, 8, 9]))).z  # [None, 8, 9]
+>>> a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7, 8, 9]))).z
+DataSlice([None, 8, 9], schema: INT32,...)
 ```
 
 ### Enrichments
@@ -974,12 +1064,15 @@ TIP: The key difference between update and enrichment is that update overrides
 existing attributes while enrichment does not. Enrichment augments the
 attributes using the fallback mechanism described above.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3))
-a_attrs = kd.attrs(a, x=1, u=5)
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3))
+>>> a_attrs = kd.attrs(a, x=1, u=5)
 
-a.updated(a_attrs) # Obj(u=5, x=1, y=Obj(z=3))
-a.enriched(a_attrs) # Obj(u=5, x=2, y=Obj(z=3))
+>>> a.updated(a_attrs)
+DataItem(Obj(u=5, x=1, y=Obj(z=3)), schema: OBJECT,...)
+
+>>> a.enriched(a_attrs)
+DataItem(Obj(u=5, x=2, y=Obj(z=3)), schema: OBJECT,...)
 ```
 
 ### Extraction
@@ -991,24 +1084,32 @@ allows extracting a bag containing only relevant attributes (those recursively
 accessible from `ds`). `ds.extract()` is equivalent to
 `ds.with_bag(ds.extract_update())`.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
-a.get_bag().get_approx_size()  # 20
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
+>>> a.get_bag().get_approx_size()
+20
 
-ay1 = a.y.with_attrs(z=4, zz=5)  # Modify ay1 on its own
-ay1.get_bag().get_approx_size()  # 25, as it contains all attributes from a
+>>> ay1 = a.y.with_attrs(z=4, zz=5)  # Modify ay1 on its own
+>>> ay1.get_bag().get_approx_size()  # 25, as it contains all attributes from a
+25
 
-extracted_bag = ay1.extract_update()
-extracted_bag.get_approx_size()  # 5, only it only contain ay1 attributes
+>>> extracted_bag = ay1.extract_update()
+>>> extracted_bag.get_approx_size()  # 5, only it only contain ay1 attributes
+5
 
-a.updated(extracted_bag)  # Apply the attributes from ay1 to a
-a.enriched(extracted_bag)  # Instead, this augments the data without overwriting
+>>> a.updated(extracted_bag)  # Apply the attributes from ay1 to a
+DataItem(Obj(t=List[1, 2, 3], x=2, y=Obj(z=4, zz=5), z=Dict{...'b'=2...}), schema: OBJECT,...)
+
+>>> a.enriched(extracted_bag)  # Instead, this augments the data without overwriting
+DataItem(Obj(t=List[1, 2, 3], x=2, y=Obj(z=3, zz=5), z=Dict{...'b'=2...}), schema: OBJECT,...)
 
 # If data is enriched with unrelated data, we can use extract to remove it
 
-b = kd.obj(x=1, y=2)
-a9 = a.enriched(kd.attrs(b, z=3))  # adding an unrelated attribute
-a9.extract()  # == a9 with inaccessible attributes removed
+>>> b = kd.obj(x=1, y=2)
+>>> a9 = a.enriched(kd.attrs(b, z=3))  # adding an unrelated attribute
+>>> a9.extract()  # == a9 with inaccessible attributes removed
+DataItem(Obj(t=List[1, 2, 3], x=2, y=Obj(z=3), z=Dict{...'b'=2...}), schema: OBJECT,...)
+>>> kd.testing.assert_equivalent(a9.extract(), a9)
 ```
 
 ### Cloning
@@ -1016,12 +1117,15 @@ a9.extract()  # == a9 with inaccessible attributes removed
 Cloning is another way to work in immutable way, but it allocates new ItemIds.
 Thus, it is more expensive and data cannot be joined later.
 
-```py
-a = kd.obj(x=2, y=kd.obj(z=3))
-a.clone(x=3).get_itemid() != a.get_itemid()  # yes
-a.with_attrs(x=3).get_itemid() == a.get_itemid()  # yes
-a.updated(a.clone(x=3).get_bag())  # doesn't overwrite x
-a.updated(a.with_attrs(x=3).get_bag())  # overwrites x
+```py {.pycon-doctest}
+>>> a = kd.obj(x=2, y=kd.obj(z=3))
+>>> assert(a.clone(x=3).get_itemid() != a.get_itemid())
+>>> assert(a.with_attrs(x=3).get_itemid() == a.get_itemid())
+>>> a.updated(a.clone(x=3).get_bag())  # doesn't overwrite x
+DataItem(Obj(x=2, y=Obj(z=3)), schema: OBJECT, bag_id:...)
+
+>>> a.updated(a.with_attrs(x=3).get_bag())  # overwrites x
+DataItem(Obj(x=3, y=Obj(z=3)), schema: OBJECT, bag_id:...)
 ```
 
 ## Functors and Lazy Evaluation
@@ -1051,50 +1155,62 @@ and `while`) is executed only during tracing - the resulting functors will
 depend on the Python control flow but will not include operators that mimic the
 Python control flow. To trace a Python function, we wrap it with `kd.fn(py_fn)`.
 
-```py
+```py {.pycon-doctest}
 # Convert python functions into functors
-fn = kd.fn(lambda x, y: x+y, y=1)
-fn(kd.slice([1, 2, 3]))  # [2, 3, 4]
-fn(kd.slice([1, 2, 3]), y=10)  # [11, 12, 13]
+>>> fn = kd.fn(lambda x, y: x+y, y=1)
+>>> fn(kd.slice([1, 2, 3]))
+DataSlice([2, 3, 4], schema: INT32,...)
+
+>>> fn(kd.slice([1, 2, 3]), y=10)
+DataSlice([11, 12, 13], schema: INT32,...)
 
 # Functors can be used as normal Koda objects (assigned and stored)
-fns = kd.obj(fn1=fn, fn2=fn.bind(y=5))
-fns.fn2(kd.slice([1, 2, 3]))  # [6, 7, 8]
+>>> fns = kd.obj(fn1=fn, fn2=fn.bind(y=5))
+>>> fns.fn2(kd.slice([1, 2, 3]))  # [6, 7, 8]
+DataSlice([6, 7, 8], schema: INT32,...)
 
 # Functors can be serialized
-kd.dumps(fn)
+>>> x = kd.dumps(fn)
 ```
 
 **kd.py_fn** can be used in interactive workflows to wrap python functions
 without tracing, which can make debugging in certain situations easier.
 
-```py
+```py {.pycon-doctest}
 # kd.fn uses tracing, and kd.py_fn wraps a Python functions "as-is", which is
 # useful because not everything can be traced
-fn = kd.py_fn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
-fn(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5]))  # [4, 5]
+>>> fn = kd.py_fn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
+>>> fn(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5]))
+DataSlice([4, 5], schema: INT32,...)
 ```
 
 You can annotate functions that call other functors with **@kd.trace_as_fn**.
 When such an annotated function is traced to produce a functor, then the inner
 functors can be accessed as attributes.
 
-```py
+```py {.pycon-doctest}
 # functor_factory=kd.py_fn because the Python `while` cannot be traced properly.
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def my_op(x, y):
-  while (x > 0): y += x; x -= 1
-  return y
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def my_op(x, y):
+...   while (x > 0): y += x; x -= 1
+...   return y
 
-@kd.trace_as_fn()
-def final(x, y, z): return my_op(my_op(x, y), z)
+>>> @kd.trace_as_fn()
+... def final(x, y, z): return my_op(my_op(x, y), z)
 
-fn = kd.fn(final)
-fn(2, 3, 4)  # 9 = (2 + 3) + 4
-fn.final(2, 3, 4)  # the same as above
-fn.final.my_op(2, 3)  # 5 - access of the deeper functor
+>>> fn = kd.fn(final)
+>>> fn(2, 3, 4)  # my_op(2,3) => 3+(2+1) => 6; my_op(6, 4) => 4+(6+5+4+3+2+1) => 25
+DataItem(25, schema: INT32)
+
+>>> fn.final(2, 3, 4)  # the same as above
+DataItem(25, schema: INT32)
+
+>>> fn.final.my_op(2, 3)  # 6 - access of the deeper functor
+DataItem(6, schema: INT32)
+
 # "replace" the inner functor my_op
-fn.updated(kd.attrs(fn.final, my_op=kd.fn(lambda x, y: x * y)))(2, 3, 4)  # 24 = (2 * 3) * 4
+>>> fn.updated(kd.attrs(fn.final, my_op=kd.fn(lambda x, y: x * y)))(2, 3, 4)  # (2 * 3) * 4
+DataItem(24, schema: INT32)
 ```
 
 ## Convenience Features
@@ -1103,66 +1219,81 @@ Koda provides a comprehensive list of convenience features including:
 
 **String manipulations**
 
-```py
-x, y = kd.slice([1, 2, 3]), kd.slice(["a", "b", "c"])
-kd.fstr(f"i{x:i}-{y:s}")  # ['i1-a', 'i2-b', 'i3-c']
-kd.strings.format("i{x}-{y}", x=x, y=y)  # the same as above
-kd.strings.split(kd.slice(["a b", "c d e"]))  # [['a', 'b'], ['c', 'd', 'e']]
-ds = kd.slice([['aa', 'bbb'], ['ccc', 'dd']])
-kd.strings.agg_join(ds, '-')  # ['aa-bbb', 'ccc-dd']
-kd.strings.agg_join(ds, '-', ndim=2)  # ['aa-bbb-ccc-dd']
-kd.strings.length(ds)  # [[2, 3], [3, 2]]
+```py {.pycon-doctest}
+>>> x, y = kd.slice([1, 2, 3]), kd.slice(["a", "b", "c"])
+>>> kd.fstr(f"i{x:i}-{y:s}")
+DataSlice(['i1-a', 'i2-b', 'i3-c'], schema: STRING,...)
+
+>>> kd.strings.format("i{x}-{y}", x=x, y=y)  # the same as above
+DataSlice(['i1-a', 'i2-b', 'i3-c'], schema: STRING,...)
+
+>>> kd.strings.split(kd.slice(["a b", "c d e"]))
+DataSlice([['a', 'b'], ['c', 'd', 'e']], schema: STRING,...)
+
+>>> ds = kd.slice([['aa', 'bbb'], ['ccc', 'dd']])
+
+>>> kd.strings.agg_join(ds, '-')
+DataSlice(['aa-bbb', 'ccc-dd'], schema: STRING...)
+
+>>> kd.strings.agg_join(ds, '-', ndim=2)
+DataItem('aa-bbb-ccc-dd', schema: STRING)
+
+>>> kd.strings.length(ds)
+DataSlice([[2, 3], [3, 2]], schema: INT64...)
 ```
 
 **Math operators**
 
-```py
+```py {.pycon-doctest}
 # Math
-x = kd.slice([[3., -1., 2.], [0.5, -0.7]])
-y = kd.slice([[1., 2., 0.5], [0.9, 0.3]])
-x * y
-kd.math.agg_mean(x)
-kd.math.log10(x)
-kd.math.pow(x,y)
-```
+>>> x = kd.slice([[3., -1., 2.], [0.5, -0.7]])
+>>> y = kd.slice([[1., 2., 0.5], [0.9, 0.3]])
+>>> x * y
+DataSlice([[3.0, -2.0, 1.0], [0.45, -0.21...]], schema: FLOAT32,...)
 
-**Random Numbers & Sampling**
+>>> kd.math.agg_mean(x)
+DataSlice([1.333..., -0.0999...], schema: FLOAT32,...)
 
-```py
-x = kd.slice([[1., 2., 3.], [4., 5.]])
-# Generate random integers
-kd.randint_like(x, seed=123)  # fix seed
-kd.sample(x, ratio=0.7, seed=42)
-kd.sample_n(x, n=2, seed=342)
+>>> kd.math.log10(x)
+DataSlice([[0.477..., nan, 0.301...], [-0.301..., nan]], schema: FLOAT32,...)
+
+>>> kd.math.pow(x,y)
+DataSlice([[3.0, 1.0, 1.414...], [0.535..., nan]], schema: FLOAT32,...)
 ```
 
 **Ranking**
 
-```py
-x = kd.slice([[5., 4., 6., 4., 5.], [8., None, 2.]])
-kd.ordinal_rank(x)  # [[2, 0, 4, 1, 3], [1, None, 0]]
-kd.ordinal_rank(x, descending=True)  # [[1, 3, 0, 4, 2], [0, None, 1]]
-kd.dense_rank(x)  # [[1, 0, 2, 0, 1], [1, None, 0]]
+```py {.pycon-doctest}
+>>> x = kd.slice([[5., 4., 6., 4., 5.], [8., None, 2.]])
+>>> kd.ordinal_rank(x)
+DataSlice([[2, 0, 4, 1, 3], [1, None, 0]], schema: INT64,...)
+
+>>> kd.ordinal_rank(x, descending=True)
+DataSlice([[1, 3, 0, 4, 2], [0, None, 1]], schema: INT64,...)
+
+>>> kd.dense_rank(x)
+DataSlice([[1, 0, 2, 0, 1], [1, None, 0]], schema: INT64,...)
 ```
 
 **Serialization**
 
-```py
+```py {.pycon-doctest}
 # DataSlice
-serialized_bytes = kd.dumps(ds)
-ds = kd.loads(serialized_bytes)
+>>> serialized_bytes = kd.dumps(ds)
+>>> ds = kd.loads(serialized_bytes)
 
 # Bag
-serialized_bytes = kd.dumps(db)
-db = kd.loads(serialized_bytes)
+>>> serialized_bytes = kd.dumps(db)
+>>> db = kd.loads(serialized_bytes)
 ```
 
 **Multi-threading**
 
-```py
-def call_slow_fn(prompt):
-  return slow_fn(prompt)
-kd.map_py(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
+```py {.pycon-doctest}
+>>> def call_slow_fn(prompt):
+...   return prompt + prompt
+>>> kd.map_py(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
+DataSlice(['hellohello', None, 'worldworld'], schema: STRING,...)
 ```
 
 ## Mutable Workflows
@@ -1181,21 +1312,21 @@ pieces of a bag.
 Please keep in mind that mutable workflows are not supported in tracing. They
 consequently have more limited options for productionization.
 
-```py
+```py {.pycon-doctest}
 # Modify the same dict many times
-d = kd.dict()  # immutable
-d = d.fork_bag()  # mutable
-for i in range(100):
-  # Insert random x=>y mappings (10 at a time)
-  k = kd.random.randint_shaped(kd.shapes.new(10))
-  v = kd.random.randint_shaped(kd.shapes.new(10))
-  d[k] = v
-d = d.freeze_bag()  # immutable
+>>> d = kd.dict()  # immutable
+>>> d = d.fork_bag()  # mutable
+>>> for i in range(100):
+...   # Insert random x=>y mappings (10 at a time)
+...   k = kd.random.randint_shaped(kd.shapes.new(10))
+...   v = kd.random.randint_shaped(kd.shapes.new(10))
+...   d[k] = v
+>>> d = d.freeze_bag()  # immutable
 
-a = kd.obj(x=1, y=2).fork_bag()
-a.y = 3
-a.z = 4
-a = a.freeze_bag()
+>>> a = kd.obj(x=1, y=2).fork_bag()
+>>> a.y = 3
+>>> a.z = 4
+>>> a = a.freeze_bag()
 ```
 
 ## Interoperability
@@ -1204,61 +1335,51 @@ Koda can easily interoperate with normal Python, Pandas, Numpy and Proto.
 
 **From/to standard Python data structures**
 
-```py
-kd.obj(x=1, y=2).x.to_py()
-kd.slice([[1, 2], [3, 4]]).to_py()
-kd.obj(x=1, y=kd.obj(z=kd.obj(a=1))).to_py(max_depth=-1)
-kd.list([1, 2, 3]).to_py()
-kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
-kd.to_py(kd.dict({'a': [1, 2, 3], 'b': [4, 5, 6]}))  # {'a': [1, 2, 3], 'b': [4, 5, 6]}
+```py {.pycon-doctest}
+>>> kd.obj(x=1, y=2).x.to_py()
+1
+
+>>> kd.slice([[1, 2], [3, 4]]).to_py()
+[[1, 2], [3, 4]]
+
+>>> kd.obj(x=1, y=kd.obj(z=kd.obj(a=1))).to_py(max_depth=-1)
+Obj(x=1, y=Obj(z=Obj(a=1)))
+
+>>> kd.list([1, 2, 3]).to_py()
+[1, 2, 3]
+
+>>> kd.from_py([{'a': [1, 2, 3], 'b': [4, 5, 6]}, {'a': 3, 'b': 4}])
+DataItem(List[Dict{...'b'=List[4, 5, 6]...}, Dict{...'b'=4...}], schema: OBJECT, bag_id:...)
+
+>>> kd.to_py(kd.list([1, 2, 3]))
+[1, 2, 3]
 ```
 
 **From/to Pandas DataFrames**
 
-```py
-import pandas as pd
-from koladata.ext import pdkd
+```py {.pycon-doctest}
+>>> import pandas as pd
+>>> from koladata.ext import pdkd
 
-pdkd.from_dataframe(pd.DataFrame(dict(x=[1, 2, 3], y=[10, 20, 30])))
-pdkd.to_dataframe(kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])), cols=['x', 'y'])
+>>> pdkd.from_dataframe(pd.DataFrame(dict(x=[1, 2, 3], y=[10, 20, 30])))
+DataSlice([Entity(x=1, y=10), Entity(x=2, y=20), Entity(x=3, y=30)], schema: ENTITY(x=INT64, y=INT64),...)
+
+>>> pdkd.to_dataframe(kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])), cols=['x', 'y'])
+   x  y
+0  1  4
+1  2  5
+2  3  6
 ```
 
 **From/to Numpy Arrays**
 
-```py
-import numpy as np
-from koladata.ext import npkd
+```py {.pycon-doctest}
+>>> import numpy as np
+>>> from koladata.ext import npkd
 
-npkd.to_array(kd.slice([1, 2, None, 3]))
-npkd.from_array(np.array([1, 2, 0, 3]))
-```
+>>> npkd.to_array(kd.slice([1, 2, None, 3]))
+array([1, 2, 0, 3], dtype=int32)
 
-**From/to Proto**
-
-```proto
-message MessageA {
-  optional string text = 1;
-  optional MessageB b = 2;
-  repeated MessageB b_list = 3;
-}
-
-message MessageB {
-  optional int32 int = 1;
-}
-```
-
-```py
-p1 = MessageA(text='txt1', b_list=[MessageB(int=1), MessageB(int=2)])
-p2 = MessageA(ext='txt2', b=MessageB(int=3))
-
-ds1 = kd.from_proto(p1) # Entity(text='txt1', b_list=List[Entity(int=1), Entity(int=2)])
-ds2 = kd.from_proto([p1, None, p2])
-# [
-#   Entity(text='txt1', b_list=List[Entity(int=1), Entity(int=2)]),
-#   missing,
-#   Entity(text='txt2', b=Entity(int=3)),
-# ]
-
-p = kd.to_proto(ds1, MessageA)
-p_list = kd.to_proto(ds2, MessageA)
+>>> npkd.from_array(np.array([1, 2, 0, 3]))
+DataSlice([1, 2, 0, 3], schema: INT64,...)
 ```
