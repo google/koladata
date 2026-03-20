@@ -16,6 +16,7 @@ from absl.testing import absltest
 from koladata.functions import attrs
 from koladata.functions import object_factories
 from koladata.types import data_slice
+from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
 
@@ -27,6 +28,8 @@ class DirTest(absltest.TestCase):
     x = db.new(a=1, b='abc')
     self.assertEqual(attrs.dir(x), ['a', 'b'])
     self.assertEqual(attrs.dir(ds([x])), ['a', 'b'])
+    self.assertEqual(attrs.dir(ds([x]), intersection=True), ['a', 'b'])
+    self.assertEqual(attrs.dir(ds([x]), intersection=False), ['a', 'b'])
 
   def test_object(self):
     db = object_factories.mutable_bag()
@@ -36,24 +39,59 @@ class DirTest(absltest.TestCase):
     self.assertEqual(
         attrs.dir(ds([x, db.obj(a='def', c=123)]), intersection=True), ['a']
     )
+    self.assertEqual(
+        attrs.dir(ds([x, db.obj(a='def', c=123)]), intersection=False),
+        ['a', 'b', 'c'],
+    )
     with self.assertRaisesRegex(
         ValueError,
-        'get_attr_names\\(\\) cannot determine attribute names because objects'
-        ' have different attributes.',
+        r'dir\(\) cannot determine attribute names because objects'
+        r' have different attributes\. Please specify intersection='
+        r' explicitly\.',
     ):
       attrs.dir(ds([x, db.obj(a='def', c=123)]))
 
   def test_primitives(self):
     x = ds([1, 2, 3]).with_bag(object_factories.mutable_bag())
-    self.assertEqual(attrs.dir(x), [])
+    self.assertEqual(attrs.dir(x, intersection=True), [])
 
-  def test_no_bag_error(self):
+  def test_schema(self):
+    db = object_factories.mutable_bag()
+    self.assertEqual(
+        attrs.dir(schema_constants.INT32.with_bag(db), intersection=True),
+        [],
+    )
+    schema1 = db.new_schema(
+        a=schema_constants.INT32, b=schema_constants.FLOAT32
+    )
+    schema2 = db.new_schema(
+        a=schema_constants.INT32, c=schema_constants.FLOAT32
+    )
+    schemas = ds([schema1, schema2])
+    self.assertEqual(attrs.dir(schemas, intersection=True), ['a'])
+    self.assertEqual(attrs.dir(schemas, intersection=False), ['a', 'b', 'c'])
+
+  def test_reserved_names_intersection(self):
+    db = object_factories.mutable_bag()
+    x = db.new(_x=1, getdoc=2, reshape=3)
+    self.assertEqual(
+        attrs.dir(x, intersection=True), ['_x', 'getdoc', 'reshape']
+    )
+
+  def test_errors(self):
     db = object_factories.mutable_bag()
     x = db.obj(a=1, b='abc')
     with self.assertRaisesRegex(
         ValueError, 'cannot get available attributes without a DataBag'
     ):
       attrs.dir(x.no_bag())
+    with self.assertRaisesRegex(
+        ValueError, 'object schema is missing for the DataItem'
+    ):
+      attrs.dir(
+          db.new(a=1, b='abc').with_schema(schema_constants.OBJECT),
+          intersection=True,
+      )
 
 
 if __name__ == '__main__':

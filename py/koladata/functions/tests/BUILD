@@ -815,18 +815,6 @@ py_test(
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:object_factories",
         "//py/koladata/types:data_slice",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
-    name = "get_attr_names_test",
-    srcs = ["get_attr_names_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/functions",
-        "//py/koladata/functions:object_factories",
-        "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],

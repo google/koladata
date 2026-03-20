@@ -902,10 +902,10 @@ PyObject* absl_nullable PyDataSlice_embed_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
-PyObject* absl_nullable PyDataSlice_get_attr_names(PyObject* self,
-                                                   PyObject* const* py_args,
-                                                   Py_ssize_t nargs,
-                                                   PyObject* py_kwnames) {
+PyObject* absl_nullable PyDataSlice_dir_impl(PyObject* self,
+                                             PyObject* const* py_args,
+                                             Py_ssize_t nargs,
+                                             PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor parser(FastcallArgParser(
@@ -928,11 +928,10 @@ PyObject* absl_nullable PyDataSlice_get_attr_names(PyObject* self,
                          /*union_object_attrs=*/true),
                      arolla::python::SetPyErrFromStatus(_));
     if (intersection_attrs != union_attrs) {
-      PyErr_SetString(
-          PyExc_ValueError,
-          "get_attr_names() cannot determine attribute names because objects "
-          "have different attributes. Please specify intersection= "
-          "explicitly.");
+      PyErr_SetString(PyExc_ValueError,
+                      "dir() cannot determine attribute names because objects "
+                      "have different attributes. Please specify intersection= "
+                      "explicitly.");
       return nullptr;
     }
     attr_names = std::move(intersection_attrs);
@@ -943,7 +942,7 @@ PyObject* absl_nullable PyDataSlice_get_attr_names(PyObject* self,
                      arolla::python::SetPyErrFromStatus(_));
   } else {
     PyErr_Format(PyExc_TypeError,
-                 "get_attr_names() expected bool for `intersection`, got: %s",
+                 "dir() expected bool for `intersection`, got: %s",
                  Py_TYPE(py_intersection)->tp_name);
     return nullptr;
   }
@@ -1213,15 +1212,13 @@ Args:
 * For Entities schema is stored as '__schema__' attribute.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.
 )"""},
-    {"get_attr_names", (PyCFunction)PyDataSlice_get_attr_names,
+    {"_dir_impl", (PyCFunction)PyDataSlice_dir_impl,
      METH_FASTCALL | METH_KEYWORDS,
-     "get_attr_names(*, intersection=None)\n"
+     "_dir_impl(*, intersection=None)\n"
      "--\n\n"
      R"""(Returns a sorted list of unique attribute names of this DataSlice.
 
-In case of OBJECT schema, attribute names are fetched from the `__schema__`
-attribute. In case of Entity schema, the attribute names are fetched from the
-schema. In case of primitives, an empty list is returned.
+Used internally by kd.dir and __dir__.
 
 Args:
   intersection: If True, the intersection of all object attributes is returned.

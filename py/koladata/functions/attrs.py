@@ -133,27 +133,6 @@ def del_attr(
   x.__delattr__(attr_name)
 
 
-def get_attr_names(
-    x: data_slice.DataSlice, *, intersection: bool | None = None
-) -> list[str]:
-  """Returns a sorted list of unique attribute names of the given DataSlice.
-
-  In case of OBJECT schema, attribute names are fetched from the `__schema__`
-  attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of primitives, an empty list is returned.
-
-  Args:
-    x: A DataSlice.
-    intersection: If True, the intersection of all object attributes is
-      returned. If False, the union is returned. If not specified, raises an
-      error if objects have different attributes.
-
-  Returns:
-    A list of unique attributes sorted by alphabetical order.
-  """
-  return x.get_attr_names(intersection=intersection)
-
-
 def dir_(
     x: data_slice.DataSlice, *, intersection: bool | None = None
 ) -> list[str]:
@@ -172,7 +151,7 @@ def dir_(
   Returns:
     A list of unique attributes sorted by alphabetical order.
   """
-  return x.get_attr_names(intersection=intersection)
+  return x._dir_impl(intersection=intersection)  # pylint: disable=protected-access
 
 
 dir = dir_  # pylint: disable=redefined-builtin

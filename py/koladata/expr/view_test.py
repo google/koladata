@@ -842,7 +842,6 @@ class KodaViewTest(parameterized.TestCase):
               'dict_like',
               'dict_schema',
               'dict_shaped',
-              'get_attr_names',
               'list',
               'list_like',
               'list_schema',

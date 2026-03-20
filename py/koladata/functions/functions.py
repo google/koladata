@@ -17,7 +17,6 @@
 import types as _py_types
 
 from koladata.fstring import fstring as _fstring
-from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
 from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
@@ -111,7 +110,6 @@ annotation = _py_types.SimpleNamespace(
     with_name=_general_eager_ops.with_name,
 )
 
-get_attr_names = _attrs.get_attr_names
 # TODO: b/435124266 - Add to_proto explicitly to kd.py.
 to_proto = _proto_conversions.to_proto
 to_proto_any = _proto_conversions.to_proto_any

@@ -830,6 +830,9 @@ Returns:
   DataSlice</code></pre>
 
 ### `kd.core.get_attr_names(x, intersection)` {#kd.core.get_attr_names}
+Aliases:
+
+- [kd.get_attr_names](#kd.get_attr_names)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with sorted unique attribute names of `x`.
 
@@ -10645,22 +10648,9 @@ Alias for [kd.comparison.full_equal](#kd.comparison.full_equal) operator.
 
 Alias for [kd.core.get_attr](#kd.core.get_attr) operator.
 
-### `kd.get_attr_names(x: DataSlice, *, intersection: bool | None = None) -> list[str]` {#kd.get_attr_names}
+### `kd.get_attr_names(x, intersection)` {#kd.get_attr_names}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of the given DataSlice.
-
-In case of OBJECT schema, attribute names are fetched from the `__schema__`
-attribute. In case of Entity schema, the attribute names are fetched from the
-schema. In case of primitives, an empty list is returned.
-
-Args:
-  x: A DataSlice.
-  intersection: If True, the intersection of all object attributes is
-    returned. If False, the union is returned. If not specified, raises an
-    error if objects have different attributes.
-
-Returns:
-  A list of unique attributes sorted by alphabetical order.</code></pre>
+Alias for [kd.core.get_attr_names](#kd.core.get_attr_names) operator.
 
 ### `kd.get_bag(ds)` {#kd.get_bag}
 
@@ -13521,22 +13511,6 @@ Args:
   attr_name: name of the attribute to get.
   default: optional default value to fill missing items.
            Note that this value can be fully omitted.</code></pre>
-
-### `DataSlice.get_attr_names(*, intersection=None)` {#DataSlice.get_attr_names}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a sorted list of unique attribute names of this DataSlice.
-
-In case of OBJECT schema, attribute names are fetched from the `__schema__`
-attribute. In case of Entity schema, the attribute names are fetched from the
-schema. In case of primitives, an empty list is returned.
-
-Args:
-  intersection: If True, the intersection of all object attributes is returned.
-    If False, the union is returned. If not specified, raises an error if
-    objects have different attributes.
-
-Returns:
-  A list of unique attributes sorted by alphabetical order.</code></pre>
 
 ### `DataSlice.get_bag()` {#DataSlice.get_bag}
 

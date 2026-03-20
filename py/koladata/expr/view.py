@@ -586,9 +586,6 @@ class KodaView(BaseKodaView):
   def from_vals(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('from_vals', 'DataSlice')
 
-  def get_attr_names(self, *args, **kwargs):  # pylint: disable=unused-argument
-    _raise_eager_only_method('get_attr_names', 'DataSlice')
-
   def internal_as_arolla_value(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('internal_as_arolla_value', 'DataSlice')
 

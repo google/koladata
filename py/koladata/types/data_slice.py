@@ -145,10 +145,9 @@ def _dir(self) -> list[str]:
   """Returns the list of attrs accessible through `getattr(slice, my_attr)`."""
   attrs = []
   try:
-    attrs = self.get_attr_names(intersection=True)
+    attrs = self._dir_impl(intersection=True)  # pylint: disable=protected-access
   except ValueError:
     pass
-  # We only include those attributes that can be called through `slice.my_attr`.
   attrs = {
       attr for attr in attrs
       if _data_slice_py_ext.internal_is_compliant_attr_name(attr)

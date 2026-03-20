@@ -26,7 +26,6 @@ py_library(
     name = "functions",
     srcs = ["functions.py"],
     deps = [
-        ":attrs",
         ":object_factories",
         ":proto_conversions",
         ":py_conversions",
