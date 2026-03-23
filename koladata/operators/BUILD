@@ -310,6 +310,31 @@ cc_library(
 )
 
 cc_library(
+    name = "json_stream_parser",
+    srcs = ["json_stream_parser.cc"],
+    hdrs = ["json_stream_parser.h"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "json_stream_parser_test",
+    srcs = ["json_stream_parser_test.cc"],
+    deps = [
+        ":json_stream_parser",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "proto",
     srcs = ["proto.cc"],
     hdrs = ["proto.h"],

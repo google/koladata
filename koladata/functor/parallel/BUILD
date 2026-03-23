@@ -409,27 +409,13 @@ cc_library(
         ":stream",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/operators:json_stream_parser",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
-cc_test(
-    name = "stream_filter_json_test",
-    srcs = ["stream_filter_json_test.cc"],
-    deps = [
-        ":stream_filter_json",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 

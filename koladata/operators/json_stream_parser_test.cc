@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/stream_filter_json.h"
+#include "koladata/operators/json_stream_parser.h"
 
 #include <string>
 #include <utility>
@@ -24,7 +24,7 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/string_view.h"
 
-namespace koladata::functor::parallel {
+namespace koladata::ops {
 namespace {
 
 using ::absl_testing::IsOk;
@@ -495,4 +495,4 @@ TEST(JsonStreamParserTest, ConsumeChunkWithQuoting) {
 }
 
 }  // namespace
-}  // namespace koladata::functor::parallel
+}  // namespace koladata::ops
