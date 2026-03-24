@@ -448,11 +448,9 @@ class DataBagManager:
           executor.submit(self._write_bag_to_file, bag, bag_filename)
           for bag, bag_filename in zip(bags, bag_filenames)
       ]
-    bag_name_to_serialized_bag_size_in_bytes = {}
-    for bag_to_add, future in zip(bags_to_add, futures):
-      bag_name_to_serialized_bag_size_in_bytes[bag_to_add.bag_name] = (
-          future.result()
-      )
+    # Make sure all the writes completed successfully.
+    for future in futures:
+      future.result()
 
     new_metadata = metadata_pb2.DataBagManagerMetadata()
     new_metadata.CopyFrom(self._metadata)
@@ -498,11 +496,10 @@ class DataBagManager:
           bag_name=bag_to_add.bag_name,
           bag_filepath=self._get_bag_filepath_from_filename(bag_filename),
       )
+      cache_value = bag_to_add.bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
-          serialized_bag_size_in_bytes=bag_name_to_serialized_bag_size_in_bytes[
-              bag_to_add.bag_name
-          ],
+          cache_value=cache_value,
       )
       # The cache.set() method asks callers to use its return value and not to
       # use the value passed in argument `value` in subsequent code - this is to
@@ -513,7 +510,7 @@ class DataBagManager:
       # reason is that no other thread could have set a value for cache_key,
       # which depends on the bag_filepath and hence bag_filename - a fresh
       # filename generated privately here and that embodies a fresh UUID.
-      cache.set(key=cache_key, value=bag_to_add.bag, metadata=entry_metadata)
+      cache.set(key=cache_key, value=cache_value, metadata=entry_metadata)
 
   def _make_single_bag(
       self, bag_name_to_bag: dict[str, kd.types.DataBag]
@@ -641,18 +638,21 @@ class DataBagManager:
           for bag_name in needed_bags
       ]
     for bag_name, future in zip(needed_bags, futures):
-      bag, serialized_bag_size_in_bytes = future.result()
+      bag = future.result()
       cache_key = _get_global_cache_key(
           bag_name=bag_name,
           bag_filepath=self._get_bag_filepath(bag_name),
       )
+      cache_value = bag
       entry_metadata = _make_cache_entry_metadata(
           cache_key=cache_key,
-          serialized_bag_size_in_bytes=serialized_bag_size_in_bytes,
+          cache_value=cache_value,
       )
       result[bag_name] = cast(
           kd.types.DataBag,
-          global_cache.set(key=cache_key, value=bag, metadata=entry_metadata),
+          global_cache.set(
+              key=cache_key, value=cache_value, metadata=entry_metadata
+          ),
       )
     return result
 
@@ -694,9 +694,9 @@ class DataBagManager:
     session_id = _get_uuid()
     return [f'bag-{session_id}-{i:012d}.kd' for i in range(num_filenames)]
 
-  def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str) -> int:
-    """Returns the size in bytes of the serialized bag written to file."""
-    return kd.s11n.internal_dump(
+  def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
+    """Serializes the given bag and writes it to file."""
+    kd.s11n.internal_dump(
         bag, self._get_bag_filepath_from_filename(bag_filename), self._fs
     )
 
@@ -709,10 +709,11 @@ class DataBagManager:
     else:
       return self._get_bag_filepath_from_filename(bag_metadata.filename)
 
-  def _read_bag_from_file(self, bag_name: str) -> tuple[kd.types.DataBag, int]:
-    """Returns a bag read from file and its serialized size in bytes."""
+  def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
+    """Returns a bag read from file."""
     bag_filepath = self._get_bag_filepath(bag_name)
-    return kd.s11n.internal_load(bag_filepath, self._fs)
+    bag, _ = kd.s11n.internal_load(bag_filepath, self._fs)
+    return bag
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
     return os.path.join(self._persistence_dir, bag_filename)
@@ -794,12 +795,8 @@ def _get_global_cache_key(*, bag_name: str, bag_filepath: str) -> str:
 
 
 def _make_cache_entry_metadata(
-    *, cache_key: str, serialized_bag_size_in_bytes: int
+    *, cache_key: str, cache_value: kd.types.DataBag
 ) -> global_cache_lib.CacheEntryMetadata:
-  # Ideally we would use the number of bytes of memory that the deserialized
-  # bag occupies. At the moment we don't have a way to obtain that, so we use
-  # the size of the serialized bag as an approximation.
-  # TODO: Use the size of the deserialized bag instead.
   return global_cache_lib.CacheEntryMetadata(
-      num_bytes_estimate=len(cache_key) + serialized_bag_size_in_bytes,
+      num_bytes_estimate=len(cache_key) + cache_value.get_approx_byte_size(),
   )

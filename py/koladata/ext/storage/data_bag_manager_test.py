@@ -1095,7 +1095,7 @@ class DataBagManagerTest(parameterized.TestCase):
     self.assertIs(value_and_metadata.value, bag1)
     self.assertEqual(
         value_and_metadata.metadata.num_bytes_estimate,
-        len(key) + len(kd.dumps(bag1)),
+        len(key) + bag1.get_approx_byte_size(),
     )
 
     # Clear the global cache to force loading from the persistence dir.
@@ -1111,7 +1111,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # The size estimate is the same as when we added the bag to the cache.
     self.assertEqual(
         value_and_metadata.metadata.num_bytes_estimate,
-        len(key) + len(kd.dumps(bag1)),
+        len(key) + bag1.get_approx_byte_size(),
     )
 
 
