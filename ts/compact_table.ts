@@ -40,13 +40,14 @@ export interface HoverCellDetail {
  */
 export class CompactTable extends NanoElement {
   static override get shadowStyle() {
-    const cellPaddingY = '2px';
     return `
       :host {
         --background: var(--kd-compact-table-background, white);
         --col-hover-background: color-mix(in srgb, orange 12%, var(--background));
         --deemph-color: color-mix(in srgb, currentcolor 26.6%, var(--background));
         --row-hover-background: color-mix(in srgb, currentcolor 7%, var(--background));
+        --slotted-padding-y: var(--kd-compact-table-slotted-padding-y, 2px);
+        --slotted-padding-x: var(--kd-compact-table-slotted-padding-x, 8px);
         --stripe-0: color-mix(in srgb, currentcolor 4%, var(--background));
         --stripe-1: var(--background);
         --stripe-background: repeating-linear-gradient(
@@ -58,7 +59,7 @@ export class CompactTable extends NanoElement {
 
       ::slotted(*) {
         overflow: hidden;
-        padding: ${cellPaddingY} 8px;
+        padding: var(--slotted-padding-y) var(--slotted-padding-x);
         padding-right: 0;  /* No padding since ellipsis gives enough space. */
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -88,7 +89,7 @@ export class CompactTable extends NanoElement {
       th > * {
         border-right: 2px solid currentcolor;
         height: 100%;
-        padding: ${cellPaddingY} 8px;
+        padding: var(--slotted-padding-y) var(--slotted-padding-x);
       }
 
       td {
@@ -102,7 +103,7 @@ export class CompactTable extends NanoElement {
 
       td > div {
         /* Restrict content to one line. */
-        max-height: calc(1lh + 2 * ${cellPaddingY});
+        max-height: calc(1lh + 2 * var(--slotted-padding-y));
         overflow: hidden;
       }
 

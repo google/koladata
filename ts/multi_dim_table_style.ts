@@ -20,6 +20,8 @@ export function shadow() {
       --kd-multi-dim-nav-current-visibility: hidden;
       --kd-multi-dim-nav-cursor-background: var(--background);
       --kd-multi-dim-nav-current-background: color-mix(in srgb, var(--background), orange 25%);
+      --kd-compact-table-slotted-padding-y: 2px;
+      --kd-compact-table-slotted-padding-x: 8px;
       background: var(--background);
       display: inline-block;
       position: relative;

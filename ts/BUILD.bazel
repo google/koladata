@@ -27,6 +27,7 @@ esbuild(
         "multi_dim_nav.ts",
         "multi_dim_table.ts",
         "multi_dim_table_handlers.ts",
+        "multi_dim_table_infer.ts",
         "multi_dim_table_render.ts",
         "multi_dim_table_style.ts",
         "multi_index_flag.ts",

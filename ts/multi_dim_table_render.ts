@@ -17,16 +17,19 @@ import {html} from './nano_element';
  * Renders selector for choosing the cell width. This appears in the view
  * options section.
  */
-export function cellWidthSelect(cellWidth: number, dataset: DOMStringMap) {
+export function cellWidthSelect(
+    cellWidth: string|undefined, dataset: DOMStringMap) {
   const cellWidthSelect = html.tag<HTMLSelectElement>(
       'select',
       html.id('cell-width-select'),
+      html.tag('option', 'auto'),
+      html.tag('option', '30'),
       html.tag('option', '60'),
       html.tag('option', '120'),
       html.tag('option', '240'),
   );
 
-  cellWidthSelect.value = String(cellWidth || 120);
+  cellWidthSelect.value = cellWidth || '120';
   cellWidthSelect.addEventListener('change', (e) => {
     if (e.target instanceof HTMLSelectElement) {
       dataset['cellWidth'] = String(e.target.value);
@@ -74,7 +77,7 @@ export function tilingSelect(maxFolds: number, dataset: DOMStringMap) {
  * This section contains both the view options and the message slot.
  */
 export function infoBar(
-    dataset: DOMStringMap, cellWidth: number, maxFolds: number) {
+    dataset: DOMStringMap, cellWidth: string|undefined, maxFolds: number) {
   const overflowCheckboxElement = overflowCheckbox();
   const viewOptions = html.tag(
       'div',
@@ -108,7 +111,7 @@ export function dataRegionParts(dataset: DOMStringMap, maxFolds: number) {
   const shadeBefore = html.tag('div', html.class('shade'));
   const shadeAfter = html.tag('div', html.class('shade'));
   const dimNav = html.tag<MultiDimNav>(
-      'kd-multi-dim-nav', html.data('sizes', dataset['sizes']),
+      'kd-multi-dim-nav', html.data('sizes', dataset['sizes'] || '[]'),
       html.data('rowHeight', '20'), html.data('layout', 'small'), viewElement,
       shadeBefore, shadeAfter);
   dimNav.setAttribute('compact', '');

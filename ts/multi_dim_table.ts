@@ -10,9 +10,14 @@ import './multi_dim_nav';
 import {CompactTable, HoverCellDetail} from './compact_table';
 import {ChangeCurrentDetail, MultiDimNav} from './multi_dim_nav';
 import * as multiDimTableHandlers from './multi_dim_table_handlers';
+import {inferCellWidth} from './multi_dim_table_infer';
 import * as multiDimTableRender from './multi_dim_table_render';
 import * as multiDimTableStyle from './multi_dim_table_style';
 import {NanoElement} from './nano_element';
+
+
+const DEFAULT_CELL_WIDTH = 120;
+
 
 declare interface MultiDimTableInterface {
   get visibleRange(): [number, number];
@@ -78,7 +83,11 @@ export class MultiDimTable
       newValue: string,
   ) {
     if (name === 'data-cell-width') {
-      this.style.setProperty('--kd-compact-table-td-width', `${newValue}px`);
+      if (newValue === 'auto') {
+        this.inferredCellWidth = undefined;
+        await this.calculateInferredCellWidth();
+      }
+      this.updateCellWidthCssVar();
       this.compactTable?.clearSpanCounts();
       await this.compactTable?.render();
       this.syncViewWithVisibleRange();
@@ -130,6 +139,7 @@ export class MultiDimTable
   override connectedCallback() {
     super.connectedCallback();
     const resizeCallback = () => {
+      if (!this.isConnected) return;
       this.syncViewWithVisibleRange();
       this.updateShades();
     };
@@ -143,7 +153,23 @@ export class MultiDimTable
   }
 
   get cellWidth() {
-    return Number(this.dataset['cellWidth'] || 120);
+    const attr = this.dataset['cellWidth'];
+    if (attr === 'auto') {
+      return this.inferredCellWidth || DEFAULT_CELL_WIDTH;
+    }
+    return Number(attr || DEFAULT_CELL_WIDTH);
+  }
+
+  private inferredCellWidth?: number;
+
+  private async calculateInferredCellWidth(): Promise<number> {
+    if (this.inferredCellWidth !== undefined) {
+      return this.inferredCellWidth;
+    }
+
+    this.inferredCellWidth = await inferCellWidth(
+        Array.from(this.children), this, DEFAULT_CELL_WIDTH);
+    return this.inferredCellWidth;
   }
 
   get maxFolds() {
@@ -351,6 +377,11 @@ export class MultiDimTable
         '--main-height', `${this.main?.offsetHeight ?? 0}px`);
   }
 
+  private updateCellWidthCssVar() {
+    this.style.setProperty(
+        '--kd-compact-table-td-width', `${this.cellWidth}px`);
+  }
+
   private applyHoveredContent() {
     const {detailPane, compactTable, hoverCoords, dimNav} = this;
     if (!detailPane || !compactTable || !dimNav) {
@@ -392,9 +423,13 @@ export class MultiDimTable
     const {shadowRoot} = this;
     if (!shadowRoot) return;
     const existingScrollLeft = this.dimNav?.scrollLeft || 0;
+
+    if (this.dataset['cellWidth'] === 'auto') {
+      await this.calculateInferredCellWidth();
+    }
+    this.updateCellWidthCssVar();
+
     shadowRoot.textContent = '';
-
-
 
     // Render all main data region components.
     const dataRegionParts =
@@ -435,7 +470,7 @@ export class MultiDimTable
 
     // Construct info bar that contains the view options.
     const infoBarParts = multiDimTableRender.infoBar(
-        this.dataset, this.cellWidth, this.maxFolds);
+        this.dataset, this.dataset['cellWidth'], this.maxFolds);
     shadowRoot.appendChild(infoBarParts.infoBar);
     infoBarParts.overflowCheckbox.addEventListener(
         'change',
