@@ -1486,7 +1486,7 @@ Assigned schema for keys: INT32""",
       db.list(42)
     with self.assertRaisesRegex(
         TypeError,
-        'kd.list does not accept DataSlice as an input, please use kd.implode',
+        'kd.list takes a Python list rather than DataSlice as an input',
     ):
       db.list(data_item.DataItem.from_vals('a'))
     with self.assertRaisesRegex(

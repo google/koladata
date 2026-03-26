@@ -379,7 +379,8 @@ def _new_bind_args(
 
   if isinstance(items, data_slice.DataSlice):
     raise ValueError(
-        'kd.list does not accept DataSlice as an input, please use kd.implode'
+        'kd.list takes a Python list rather than DataSlice as an input, '
+        'please use kd.implode(ds) to create lists from ds'
     )
 
   schema_to_use = arolla.unspecified()

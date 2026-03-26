@@ -185,7 +185,8 @@ class ListTest(parameterized.TestCase):
 
   def test_wrong_arg_types(self):
     with self.assertRaisesRegex(
-        TypeError, 'does not accept DataSlice as an input'
+        TypeError,
+        'kd.list takes a Python list rather than DataSlice as an input',
     ):
       fns.list(ds([1, 2, 3]))
     with self.assertRaisesRegex(

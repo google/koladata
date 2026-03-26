@@ -126,7 +126,7 @@ class ListsListTest(parameterized.TestCase):
   def test_eval_data_slice_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'kd.list does not accept DataSlice as an input',
+        'kd.list takes a Python list rather than DataSlice as an input',
     ):
       _ = expr_eval.eval(kde.lists.new(ds([1, 2, 3])))
 

@@ -1008,8 +1008,8 @@ PyObject* absl_nullable PyDataBag_list(PyObject* self, PyObject* const* args,
             arolla::GetQType<DataSlice>()) {
       PyErr_SetString(
           PyExc_TypeError,
-          "kd.list does not accept DataSlice as an input, please use "
-          "kd.implode");
+          "kd.list takes a Python list rather than DataSlice as an input, "
+          "please use kd.implode(ds) to create lists from ds");
       return nullptr;
     }
     AdoptionQueue adoption_queue;
