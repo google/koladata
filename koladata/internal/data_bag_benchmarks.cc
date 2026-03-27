@@ -900,9 +900,17 @@ void BM_MergeCornerCase(benchmark::State& state) {
     auto db_fork2 = db->PartiallyPersistentFork();
     auto db_fork3 = db->PartiallyPersistentFork();
     CHECK_OK(db_fork2->MergeInplace(*db_fork3, merge_options));
+    // Merging a modified sibling fork into an unmodified one.
+    auto db_fork4 = db->PartiallyPersistentFork();
+    auto db_fork5 = db->PartiallyPersistentFork();
+    CHECK_OK(db_fork5->SetAttr(DataItem(AllocateSingleObject()), "x",
+                               DataItem(42)));
+    CHECK_OK(db_fork4->MergeInplace(*db_fork5, merge_options));
     benchmark::DoNotOptimize(db_fork);
     benchmark::DoNotOptimize(db_fork2);
     benchmark::DoNotOptimize(db_fork3);
+    benchmark::DoNotOptimize(db_fork4);
+    benchmark::DoNotOptimize(db_fork5);
   }
 }
 
