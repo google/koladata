@@ -1943,9 +1943,6 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     testing.assert_equal(
         x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
-    self.assertSameElements(
-        attrs.dir(x_stub.get_obj_schema()), ['__items__']
-    )
 
   def test_adopt_stub_dict(self):
     x = bag().dict({1: 2, 3: 4})
@@ -1953,10 +1950,6 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     x_stub = db.adopt_stub(x)
     testing.assert_equal(x_stub.get_bag(), db)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
-    self.assertSameElements(
-        attrs.dir(x_stub.get_schema()),
-        ['__keys__', '__values__'],
-    )
 
   def test_lshift(self):
     db1 = bag()

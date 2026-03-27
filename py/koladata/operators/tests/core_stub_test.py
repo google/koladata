@@ -107,8 +107,10 @@ class CoreStubTest(parameterized.TestCase):
     x = bag().list([1, 2, 3])
     x_stub = kd.core.stub(x)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
-    self.assertSameElements(
-        attrs.dir(x_stub.get_schema()), ['__items__']
+    testing.assert_equal(
+        # List item schema is available in the stub.
+        x_stub.get_schema().get_item_schema().no_bag(),
+        x.get_schema().get_item_schema().no_bag(),
     )
 
   def test_object_list(self):
@@ -119,8 +121,9 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
-    self.assertSameElements(
-        attrs.dir(x_stub.get_obj_schema()), ['__items__']
+    testing.assert_equal(
+        x_stub.get_obj_schema().get_attr('__items__').no_bag(),
+        x.get_obj_schema().get_attr('__items__').no_bag()
     )
 
   def test_list_nested(self):
@@ -130,12 +133,10 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
     testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
     testing.assert_equal(x_stub[:][:].no_bag(), x[:][:].no_bag())
-    self.assertSameElements(
-        attrs.dir(x_stub.get_schema()), ['__items__']
-    )
-    self.assertSameElements(
-        attrs.dir(x[:].get_schema().with_bag(x_stub.get_bag())),
-        ['__items__'],
+    testing.assert_equal(
+        # List item schema is available in the stub.
+        x_stub.get_schema().get_item_schema().no_bag(),
+        x.get_schema().get_item_schema().no_bag(),
     )
 
   def test_object_list_nested(self):
@@ -153,17 +154,24 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
     )
-    self.assertSameElements(
-        attrs.dir(x_stub.get_obj_schema()), ['__items__']
+    testing.assert_equal(
+        x_stub.get_obj_schema().get_attr('__items__').no_bag(),
+        x.get_obj_schema().get_attr('__items__').no_bag()
     )
 
   def test_dict(self):
     x = bag().dict({1: 2, 3: 4})
     x_stub = kd.core.stub(x)
     testing.assert_equal(x_stub.no_bag(), x.no_bag())
-    self.assertSameElements(
-        attrs.dir(x_stub.get_schema()),
-        ['__keys__', '__values__'],
+    testing.assert_equal(
+        # Dict key schema is available in the stub.
+        x_stub.get_schema().get_key_schema().no_bag(),
+        x.get_schema().get_key_schema().no_bag(),
+    )
+    testing.assert_equal(
+        # Dict value schema is available in the stub.
+        x_stub.get_schema().get_value_schema().no_bag(),
+        x.get_schema().get_value_schema().no_bag(),
     )
 
   def test_object_dict(self):
@@ -174,9 +182,13 @@ class CoreStubTest(parameterized.TestCase):
     testing.assert_equal(
         x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
-    self.assertSameElements(
-        attrs.dir(x_stub.get_obj_schema()),
-        ['__keys__', '__values__'],
+    testing.assert_equal(
+        x_stub.get_obj_schema().get_attr('__keys__').no_bag(),
+        x.get_obj_schema().get_attr('__keys__').no_bag()
+    )
+    testing.assert_equal(
+        x_stub.get_obj_schema().get_attr('__values__').no_bag(),
+        x.get_obj_schema().get_attr('__values__').no_bag()
     )
 
   def test_object_ref(self):

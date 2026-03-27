@@ -260,6 +260,9 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
       });
   result.erase(schema::kSchemaNameAttr);
   result.erase(schema::kSchemaMetadataAttr);
+  result.erase(schema::kListItemsSchemaAttr);
+  result.erase(schema::kDictKeysSchemaAttr);
+  result.erase(schema::kDictValuesSchemaAttr);
   return result;
 }
 
@@ -306,6 +309,9 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
   }
   // kSchemaNameAttr can only be present in a small allocation.
   result.erase(schema::kSchemaMetadataAttr);
+  result.erase(schema::kListItemsSchemaAttr);
+  result.erase(schema::kDictKeysSchemaAttr);
+  result.erase(schema::kDictValuesSchemaAttr);
   return result;
 }
 

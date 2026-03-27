@@ -590,8 +590,6 @@ TEST(FromProtoTest, ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto repeated_int32_field,
                        result.GetAttr("repeated_int32_field"));
   EXPECT_EQ(repeated_int32_field.GetSchemaImpl(), schema::kObject);
-  EXPECT_THAT(repeated_int32_field.GetObjSchema()->GetAttrNames(),
-              IsOkAndHolds(UnorderedElementsAreArray({"__items__"})));
   EXPECT_THAT(repeated_int32_field.ExplodeList(0, std::nullopt),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>(
                   {1, 2, 3},
@@ -604,9 +602,6 @@ TEST(FromProtoTest, ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto map_int32_int32_field,
                        result.GetAttr("map_int32_int32_field"));
   EXPECT_EQ(map_int32_int32_field.GetSchemaImpl(), schema::kObject);
-  EXPECT_THAT(
-      map_int32_int32_field.GetObjSchema()->GetAttrNames(),
-      IsOkAndHolds(UnorderedElementsAreArray({"__keys__", "__values__"})));
   EXPECT_THAT(map_int32_int32_field.GetFromDict(test::DataSlice<int32_t>(
                   {1, 2, 3},
                   *DataSlice::JaggedShape::FromEdges({

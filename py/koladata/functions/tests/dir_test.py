@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from koladata.functions import attrs
+from koladata.functions import functions as fns
 from koladata.functions import object_factories
 from koladata.types import data_slice
 from koladata.types import schema_constants
@@ -77,6 +78,39 @@ class DirTest(absltest.TestCase):
     self.assertEqual(
         attrs.dir(x, intersection=True), ['_x', 'getdoc', 'reshape']
     )
+
+  def test_object_with_missing(self):
+    db = object_factories.mutable_bag()
+    x = ds([db.obj(a=1, b='abc'), None])
+    self.assertEqual(attrs.dir(x), ['a', 'b'])
+
+  def test_object_with_missing_different_attrs(self):
+    db = object_factories.mutable_bag()
+    x = ds([db.obj(a=1, b='abc'), None, db.obj(a='def', c=123)])
+    self.assertEqual(attrs.dir(x, intersection=True), ['a'])
+    self.assertEqual(attrs.dir(x, intersection=False), ['a', 'b', 'c'])
+
+  def test_list(self):
+    x = fns.list([1, 2, 3])
+    self.assertEqual(attrs.dir(x), [])
+    # Note: consider changing the behaviour for list schemas to return
+    # __items__.
+    self.assertEqual(attrs.dir(x.get_schema()), [])
+
+  def test_list_object(self):
+    x = fns.obj(fns.list([1, 2, 3]))
+    self.assertEqual(attrs.dir(x), [])
+
+  def test_dict(self):
+    x = fns.dict({'a': 1, 'b': 2})
+    self.assertEqual(attrs.dir(x), [])
+    # Note: consider changing the behaviour for dict schemas to return
+    # __keys__ and __values__.
+    self.assertEqual(attrs.dir(x.get_schema()), [])
+
+  def test_dict_object(self):
+    x = fns.obj(fns.dict({'a': 1, 'b': 2}))
+    self.assertEqual(attrs.dir(x), [])
 
   def test_errors(self):
     db = object_factories.mutable_bag()

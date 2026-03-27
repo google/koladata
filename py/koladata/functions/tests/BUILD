@@ -812,6 +812,7 @@ py_test(
     srcs = ["dir_test.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata/functions",
         "//py/koladata/functions:attrs",
         "//py/koladata/functions:object_factories",
         "//py/koladata/types:data_slice",
