@@ -3330,11 +3330,22 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
   return absl::OkStatus();
 }
 
-bool DataBagImpl::IsUnmodifiedForkOf(const DataBagImpl& other) const {
-  if (parent_data_bag_.get() != &other) {
+bool DataBagImpl::IsUnmodifiedForkOf(const DataBagImpl* other) const {
+  if (parent_data_bag_.get() != other) {
     return false;
   }
   return IsPristine();
+}
+
+bool DataBagImpl::IsSubsetOf(const DataBagImpl& other) const {
+  if (this == &other) {
+    return true;
+  }
+  if (!IsPristine()) {
+    return other.IsUnmodifiedForkOf(this);
+  }
+  return parent_data_bag_.get() == &other ||
+         other.IsUnmodifiedForkOf(parent_data_bag_.get());
 }
 
 // Merge additional attributes and objects from `other`.
@@ -3343,8 +3354,7 @@ absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
                                        MergeOptions options) {
   arolla::profiling::TraceMe traceme(
       "::koladata::internal::DataBagImpl::MergeInplace");
-  if (this == &other || IsUnmodifiedForkOf(other) ||
-      other.IsUnmodifiedForkOf(*this)) {
+  if (other.IsSubsetOf(*this)) {
     return absl::OkStatus();
   }
   // sources_

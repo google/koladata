@@ -684,7 +684,11 @@ class DataBagImpl : public arolla::RefcountedBase {
  private:
   DataBagImpl() = default;
 
-  bool IsUnmodifiedForkOf(const DataBagImpl& other) const;
+  bool IsUnmodifiedForkOf(const DataBagImpl* other) const;
+
+  // Returns true if this DataBagImpl has no additional data compared
+  // to `other`. It is a fast check and a false positive is possible.
+  bool IsSubsetOf(const DataBagImpl& other) const;
 
   // Search attribute value for the given object in small_alloc_sources_
   // including parents.

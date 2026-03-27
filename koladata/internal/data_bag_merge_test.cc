@@ -1382,5 +1382,43 @@ TEST(DataBagTest, DataBagSmallRemoveOverwriteTest) {
   EXPECT_THAT(db->GetAttr(b, "a"), IsOkAndHolds(DataItem()));
 }
 
+TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto a = DataItem(this->AllocSingle());
+  auto b = DataItem(this->AllocSingle());
+
+  ASSERT_OK(db->SetAttr(a, "x", DataItem(57)));
+  ASSERT_OK(db->SetAttr(b, "y", DataItem(75.0)));
+
+  // Two forks of the same parent.
+  auto fork1 = db->PartiallyPersistentFork();
+  auto fork2 = db->PartiallyPersistentFork();
+
+  // Merging unmodified sibling fork should be a no-op.
+  {
+    ASSERT_OK(fork1->MergeInplace(*fork2));
+    EXPECT_THAT(fork1->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
+    EXPECT_THAT(fork1->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
+  }
+
+  // Modify fork2 and merge into fork1 — should pick up the new data.
+  {
+    ASSERT_OK(fork2->SetAttr(a, "z", DataItem(99)));
+    ASSERT_OK(fork1->MergeInplace(*fork2));
+    EXPECT_THAT(fork1->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
+    EXPECT_THAT(fork1->GetAttr(a, "z"), IsOkAndHolds(DataItem(99)));
+    EXPECT_THAT(fork1->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
+  }
+
+  // Merge modified fork1 into a fresh fork3 (unmodified sibling of fork2).
+  {
+    auto fork3 = db->PartiallyPersistentFork();
+    ASSERT_OK(fork3->MergeInplace(*fork1));
+    EXPECT_THAT(fork3->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
+    EXPECT_THAT(fork3->GetAttr(a, "z"), IsOkAndHolds(DataItem(99)));
+    EXPECT_THAT(fork3->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal
