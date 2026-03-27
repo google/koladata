@@ -76,6 +76,77 @@ P = arolla.P
 
 
 @optools.as_backend_operator(
+    'kd.json_stream._chunk_values_stream',
+    qtype_inference_expr=streams.get_stream_qtype(qtypes.DATA_SLICE),
+)
+def _chunk_values_stream(executor, stream):
+  """Backend operator for chunk_values."""
+  del executor, stream
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.json_stream._chunk_values_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+    ],
+)
+def _chunk_values_parallel(executor, stream):
+  """Parallel operator for chunk_values."""
+  return koda_internal_parallel.unwrap_future_to_stream(
+      koda_internal_parallel.async_eval(
+          executor, _chunk_values_stream, executor, stream
+      )
+  )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.json_stream.chunk_values',
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.input_chunks),
+    ],
+)
+def chunk_values(input_chunks, /):
+  r"""Aligns chunk boundaries to top-level JSON values in the stream.
+
+  Each output chunk will contain exactly one top-level JSON value followed by
+  exactly one '\n' character, without changing the logical JSON content.
+  Whitespace outside of strings is removed.
+
+  For example, if the input chunked string stream has the logical value:
+
+    `1 [2,3] {"x":4}`
+
+  Then the output will have chunks:
+
+    `1\n` `[2,3]\n` `{"x":4}\n`
+
+  See the module docstring for more details about the input and output format.
+
+  Args:
+    input_chunks: An iterable of STRING DataItems. The logical input is the
+      concatenation of these string chunks.
+
+  Returns:
+    An iterable of present STRING DataItems. Each chunk contains exactly one
+    top-level JSON value followed by a newline.
+  """
+  return koda_internal_parallel.unsafe_blocking_wait(
+      koda_internal_parallel.stream_from_future(
+          koda_internal_parallel.future_iterable_from_stream(
+              _chunk_values_stream(
+                  streams.get_eager_executor(),
+                  koda_internal_parallel.stream_from_iterable(input_chunks),
+              )
+          )
+      )
+  )
+
+
+@optools.as_backend_operator(
     'kd.json_stream._explode_array_stream',
     qtype_inference_expr=streams.get_stream_qtype(qtypes.DATA_SLICE),
 )

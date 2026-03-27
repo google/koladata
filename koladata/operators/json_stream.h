@@ -111,6 +111,13 @@ absl::StatusOr<koladata::functor::parallel::StreamPtr> JsonStreamQuoteStream(
     koladata::functor::parallel::ExecutorPtr absl_nonnull executor,
     koladata::functor::parallel::StreamPtr absl_nonnull input_stream);
 
+// kd.json_stream._chunk_values_stream
+absl::StatusOr<koladata::functor::parallel::StreamPtr>
+JsonStreamChunkValuesStream(koladata::functor::parallel::ExecutorPtr
+                            absl_nonnull executor,
+                            koladata::functor::parallel::StreamPtr
+                            absl_nonnull input_stream);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_JSON_STREAM_H_

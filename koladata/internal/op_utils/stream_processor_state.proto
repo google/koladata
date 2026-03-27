@@ -140,3 +140,9 @@ message JsonUnquoteStateProto {
 message JsonQuoteStateProto {
   bool emitted_opening_quote = 1;
 }
+
+// Internal to JsonChunkValuesStreamProcessor. Do not use directly.
+message JsonChunkValuesStateProto {
+  bytes compactify_state = 1;
+  bytes buffer = 2;
+}

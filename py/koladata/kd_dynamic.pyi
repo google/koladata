@@ -284,6 +284,7 @@ class json:
 
 @_dataclass
 class json_stream:
+  chunk_values = _operators_json_stream.chunk_values
   explode_array = _operators_json_stream.explode_array
   get_array_nth_value = _operators_json_stream.get_array_nth_value
   get_object_key_value = _operators_json_stream.get_object_key_value

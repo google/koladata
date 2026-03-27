@@ -18,10 +18,13 @@
 #include <functional>
 #include <string>
 #include <string_view>
-#include <tuple>
+#include <utility>
 #include <variant>
+#include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_join.h"
 #include "absl/types/span.h"
 #include "koladata/internal/op_utils/stream_processor_state.pb.h"
 
@@ -31,8 +34,12 @@ namespace {
 template <typename ProcessorT, typename... OptionsT>
 std::string RunProcessor(std::string input, const OptionsT&... options) {
   ProcessorT processor(options...);
-  auto [output, end] = processor.Process(input, true);
+  auto [output_chunks, end] = processor.Process(input, true);
   EXPECT_TRUE(end);
+  std::string output;
+  for (auto& chunk : output_chunks) {
+    output += chunk;
+  }
 
   std::string byte_streamed_output;
   processor.Reset();
@@ -44,11 +51,12 @@ std::string RunProcessor(std::string input, const OptionsT&... options) {
     {
       ProcessorT tmp_processor(options...);
       EXPECT_TRUE(tmp_processor.LoadState(state));
-      std::string output_chunk;
-      std::tie(output_chunk, end_of_output) =
-          tmp_processor.Process(input_chunk, false);
-      byte_streamed_output += output_chunk;
+      auto [chunks, chunk_end] = tmp_processor.Process(input_chunk, false);
+      for (auto& chunk : chunks) {
+        byte_streamed_output += chunk;
+      }
       state = tmp_processor.ToState();
+      end_of_output = chunk_end;
       if (end_of_output) {
         break;
       }
@@ -57,9 +65,11 @@ std::string RunProcessor(std::string input, const OptionsT&... options) {
   if (!end_of_output) {
     ProcessorT tmp_processor(options...);
     EXPECT_TRUE(tmp_processor.LoadState(state));
-    auto [end_output, end_flag] = tmp_processor.Process("", true);
+    auto [end_chunks, end_flag] = tmp_processor.Process("", true);
     EXPECT_TRUE(end_flag);
-    byte_streamed_output += end_output;
+    for (auto& chunk : end_chunks) {
+      byte_streamed_output += chunk;
+    }
   }
 
   EXPECT_EQ(byte_streamed_output, output);
@@ -727,7 +737,7 @@ TEST(JsonStreamTest, SalvageStreamProcessorMinimallyDelayed) {
   // {"a": 123, "b\u2660c": ['''xyz''', 12.34e56]}
 
   auto p = [&](std::string_view chunk) {
-    return std::get<0>(processor.Process(chunk, false));
+    return absl::StrJoin(processor.Process(chunk, false).chunks, "");
   };
 
   // Note: separators (',' ':') are delayed slightly because it's impossible to
@@ -891,19 +901,19 @@ TEST(JsonStreamTest, HeadStreamProcessor) {
 TEST(JsonStreamTest, HeadStreamProcessorEarlyEnd) {
   JsonHeadStreamProcessor processor({.n = 2});
   auto [out1, end1] = processor.Process("123", false);
-  EXPECT_EQ(out1, "123");
+  EXPECT_EQ(absl::StrJoin(out1, ""), "123");
   EXPECT_FALSE(end1);
 
   auto [out2, end2] = processor.Process("\n", false);
-  EXPECT_EQ(out2, "\n");
+  EXPECT_EQ(absl::StrJoin(out2, ""), "\n");
   EXPECT_FALSE(end2);
 
   auto [out3, end3] = processor.Process("456", false);
-  EXPECT_EQ(out3, "456");
+  EXPECT_EQ(absl::StrJoin(out3, ""), "456");
   EXPECT_FALSE(end3);
 
   auto [out4, end4] = processor.Process("\n", false);
-  EXPECT_EQ(out4, "\n");
+  EXPECT_EQ(absl::StrJoin(out4, ""), "\n");
   EXPECT_TRUE(end4);
 }
 
@@ -1224,8 +1234,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
                              match_depth_1),
             "[{\"x\":[1,2]},[3,{\"y\":4}]]\n");
 
-  EXPECT_EQ(
-      RunExtractValues("{\"a\\\"b\":1}\n", match_depth_1), "[1]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\\\"b\":1}\n", match_depth_1), "[1]\n");
   auto match_escaped_key =
       [](absl::Span<const std::variant<int64_t, std::string>> path) {
         return path.size() == 1 &&
@@ -1269,8 +1278,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
 
   auto match_index_0 =
       [](absl::Span<const std::variant<int64_t, std::string>> path) {
-        return path.size() == 1 &&
-               std::holds_alternative<int64_t>(path[0]) &&
+        return path.size() == 1 && std::holds_alternative<int64_t>(path[0]) &&
                std::get<int64_t>(path[0]) == 0;
       };
   EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_0), "[10]\n");
@@ -1280,8 +1288,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
 
   auto match_index_1 =
       [](absl::Span<const std::variant<int64_t, std::string>> path) {
-        return path.size() == 1 &&
-               std::holds_alternative<int64_t>(path[0]) &&
+        return path.size() == 1 && std::holds_alternative<int64_t>(path[0]) &&
                std::get<int64_t>(path[0]) == 1;
       };
   EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_1), "[20]\n");
@@ -1292,8 +1299,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
 
   auto match_index_2 =
       [](absl::Span<const std::variant<int64_t, std::string>> path) {
-        return path.size() == 1 &&
-               std::holds_alternative<int64_t>(path[0]) &&
+        return path.size() == 1 && std::holds_alternative<int64_t>(path[0]) &&
                std::get<int64_t>(path[0]) == 2;
       };
   EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_2), "[30]\n");
@@ -1308,9 +1314,9 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
   EXPECT_EQ(RunExtractValues("{\"a\":\"x\\\\y\"}\n", match_depth_1),
             "[\"x\\\\y\"]\n");
 
-  EXPECT_EQ(RunExtractValues("{\"a\":null,\"b\":true,\"c\":false}\n",
-                             match_depth_1),
-            "[null,true,false]\n");
+  EXPECT_EQ(
+      RunExtractValues("{\"a\":null,\"b\":true,\"c\":false}\n", match_depth_1),
+      "[null,true,false]\n");
 
   EXPECT_EQ(RunExtractValues("\"hello\"\n", match_none), "[]\n");
   EXPECT_EQ(RunExtractValues("true\n", match_none), "[]\n");
@@ -1318,14 +1324,12 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
 
   EXPECT_EQ(RunExtractValues("{\"a\":[[1,2],[3,4]]}\n", match_depth_1),
             "[[[1,2],[3,4]]]\n");
-  EXPECT_EQ(
-      RunExtractValues("{\"a\":{\"x\":{\"y\":1}}}\n", match_depth_1),
-      "[{\"x\":{\"y\":1}}]\n");
+  EXPECT_EQ(RunExtractValues("{\"a\":{\"x\":{\"y\":1}}}\n", match_depth_1),
+            "[{\"x\":{\"y\":1}}]\n");
 
   EXPECT_EQ(
-      RunExtractValues(
-          "{\"a\":[{\"x\":1},{\"y\":2}],\"b\":{\"c\":[3,4]}}\n",
-          match_depth_1),
+      RunExtractValues("{\"a\":[{\"x\":1},{\"y\":2}],\"b\":{\"c\":[3,4]}}\n",
+                       match_depth_1),
       "[[{\"x\":1},{\"y\":2}],{\"c\":[3,4]}]\n");
 
   EXPECT_EQ(RunExtractValues("[\"a\",null,true,false,123]\n", match_depth_1),
@@ -1347,8 +1351,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessor) {
   EXPECT_EQ(RunExtractValues("{\"a\":[],\"b\":{}}\n", match_depth_1),
             "[[],{}]\n");
 
-  EXPECT_EQ(RunExtractValues("[1]\n\n[2]\n", match_depth_1),
-            "[1]\n[]\n[2]\n");
+  EXPECT_EQ(RunExtractValues("[1]\n\n[2]\n", match_depth_1), "[1]\n[]\n[2]\n");
 }
 
 TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
@@ -1392,8 +1395,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
   EXPECT_EQ(RunExtractValues("[]\n", match_depth_1, true), "[]\n");
 
   EXPECT_EQ(RunExtractValues("null\n", match_all, true), "[[[],null]]\n");
-  EXPECT_EQ(RunExtractValues("\"abc\"\n", match_all, true),
-            "[[[],\"abc\"]]\n");
+  EXPECT_EQ(RunExtractValues("\"abc\"\n", match_all, true), "[[[],\"abc\"]]\n");
   EXPECT_EQ(RunExtractValues("true\n", match_all, true), "[[[],true]]\n");
   EXPECT_EQ(RunExtractValues("false\n", match_all, true), "[[[],false]]\n");
 
@@ -1402,8 +1404,7 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
 
   auto match_key_with_path = [](std::string key) {
     return [key](absl::Span<const std::variant<int64_t, std::string>> path) {
-      return path.size() == 1 &&
-             std::holds_alternative<std::string>(path[0]) &&
+      return path.size() == 1 && std::holds_alternative<std::string>(path[0]) &&
              std::get<std::string>(path[0]) == key;
     };
   };
@@ -1416,23 +1417,18 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
 
   auto match_index_0_with_path =
       [](absl::Span<const std::variant<int64_t, std::string>> path) {
-        return path.size() == 1 &&
-               std::holds_alternative<int64_t>(path[0]) &&
+        return path.size() == 1 && std::holds_alternative<int64_t>(path[0]) &&
                std::get<int64_t>(path[0]) == 0;
       };
-  EXPECT_EQ(
-      RunExtractValues("[10,20,30]\n", match_index_0_with_path, true),
-      "[[[0],10]]\n");
-  EXPECT_EQ(
-      RunExtractValues("[[1,2],20]\n", match_index_0_with_path, true),
-      "[[[0],[1,2]]]\n");
-  EXPECT_EQ(
-      RunExtractValues("[{\"x\":1},20]\n", match_index_0_with_path, true),
-      "[[[0],{\"x\":1}]]\n");
+  EXPECT_EQ(RunExtractValues("[10,20,30]\n", match_index_0_with_path, true),
+            "[[[0],10]]\n");
+  EXPECT_EQ(RunExtractValues("[[1,2],20]\n", match_index_0_with_path, true),
+            "[[[0],[1,2]]]\n");
+  EXPECT_EQ(RunExtractValues("[{\"x\":1},20]\n", match_index_0_with_path, true),
+            "[[[0],{\"x\":1}]]\n");
 
   EXPECT_EQ(
-      RunExtractValues(
-          "{\"key\":{\"inner\":[1,2,3]}}\n", match_depth_2, true),
+      RunExtractValues("{\"key\":{\"inner\":[1,2,3]}}\n", match_depth_2, true),
       "[[[\"key\",\"inner\"],[1,2,3]]]\n");
   EXPECT_EQ(RunExtractValues("[[10,20],[30]]\n", match_depth_2, true),
             "[[[0,0],10],[[0,1],20],[[1,0],30]]\n");
@@ -1489,7 +1485,7 @@ TEST(JsonStreamTest, ImplodeArrayStreamProcessorMinimallyDelayed) {
   JsonImplodeArrayStreamProcessor processor;
   // 123\n"456"\n[789]\n"\\\""\n
   auto p = [&](std::string_view chunk) {
-    return std::get<0>(processor.Process(chunk, false));
+    return absl::StrJoin(processor.Process(chunk, false).chunks, "");
   };
   EXPECT_EQ(p("1"), "[1");
   EXPECT_EQ(p("2"), "2");
@@ -1514,7 +1510,7 @@ TEST(JsonStreamTest, ImplodeArrayStreamProcessorMinimallyDelayed) {
   EXPECT_EQ(p("\""), "\"");
   EXPECT_EQ(p("\""), "\"");
   EXPECT_EQ(p("\n"), "");
-  EXPECT_EQ(std::get<0>(processor.Process("", true)), "]\n");
+  EXPECT_EQ(absl::StrJoin(processor.Process("", true).chunks, ""), "]\n");
 }
 
 std::string RunExplodeArray(std::string input) {
@@ -1549,7 +1545,7 @@ TEST(JsonStreamTest, ExplodeArrayStreamProcessorMinimallyDelayed) {
   JsonExplodeArrayStreamProcessor processor;
   // [123,"456",[789],"\\\""]
   auto p = [&](std::string_view chunk) {
-    return std::get<0>(processor.Process(chunk, false));
+    return absl::StrJoin(processor.Process(chunk, false).chunks, "");
   };
   EXPECT_EQ(p("["), "");
   EXPECT_EQ(p("1"), "1");
@@ -1575,7 +1571,7 @@ TEST(JsonStreamTest, ExplodeArrayStreamProcessorMinimallyDelayed) {
   EXPECT_EQ(p("\""), "\"");
   EXPECT_EQ(p("\""), "\"");
   EXPECT_EQ(p("]"), "\n");
-  EXPECT_EQ(std::get<0>(processor.Process("", true)), "");
+  EXPECT_EQ(absl::StrJoin(processor.Process("", true).chunks, ""), "");
 }
 
 std::string RunGetArrayNthValue(std::string input, int n) {
@@ -1634,7 +1630,7 @@ TEST(JsonStreamTest, GetArrayNthValueStreamProcessorMinimallyDelayed) {
   JsonGetArrayNthValueStreamProcessor processor({.n = 2});
   // [123,"456",[789],"\\\""]
   auto p = [&](std::string_view chunk) {
-    return std::get<0>(processor.Process(chunk, false));
+    return absl::StrJoin(processor.Process(chunk, false).chunks, "");
   };
   EXPECT_EQ(p("["), "");
   EXPECT_EQ(p("1"), "");
@@ -1660,7 +1656,7 @@ TEST(JsonStreamTest, GetArrayNthValueStreamProcessorMinimallyDelayed) {
   EXPECT_EQ(p("\""), "");
   EXPECT_EQ(p("\""), "");
   EXPECT_EQ(p("]"), "");
-  EXPECT_EQ(std::get<0>(processor.Process("", true)), "");
+  EXPECT_EQ(absl::StrJoin(processor.Process("", true).chunks, ""), "");
 }
 
 std::string RunUnquote(std::string input) {
@@ -1751,6 +1747,92 @@ TEST(JsonStreamTest, QuoteStreamProcessor) {
 
 TEST(JsonStreamTest, QuoteStreamProcessorLoadStateFailure) {
   JsonQuoteStreamProcessor processor;
+
+  EXPECT_FALSE(processor.LoadState("GARBAGE"));
+}
+
+std::vector<std::string> RunChunkValues(std::string input) {
+  JsonChunkValuesStreamProcessor processor;
+  auto [output, end] = processor.Process(input, true);
+  EXPECT_TRUE(end);
+
+  std::vector<std::string> output_vec(output.begin(), output.end());
+
+  std::vector<std::string> byte_streamed_output;
+  processor.Reset();
+  std::string state = processor.ToState();
+  bool end_of_output = false;
+  for (char c : input) {
+    std::string input_chunk;
+    input_chunk.push_back(c);
+    {
+      JsonChunkValuesStreamProcessor tmp_processor;
+      EXPECT_TRUE(tmp_processor.LoadState(state));
+      auto [output_chunks, chunk_end] =
+          tmp_processor.Process(input_chunk, false);
+      for (auto& chunk : output_chunks) {
+        byte_streamed_output.push_back(std::move(chunk));
+      }
+      state = tmp_processor.ToState();
+      end_of_output = chunk_end;
+      if (end_of_output) {
+        break;
+      }
+    }
+  }
+  if (!end_of_output) {
+    JsonChunkValuesStreamProcessor tmp_processor;
+    EXPECT_TRUE(tmp_processor.LoadState(state));
+    auto [end_chunks, end_flag] = tmp_processor.Process("", true);
+    EXPECT_TRUE(end_flag);
+    for (auto& chunk : end_chunks) {
+      byte_streamed_output.push_back(std::move(chunk));
+    }
+  }
+
+  EXPECT_EQ(byte_streamed_output, output_vec);
+
+  return output_vec;
+}
+
+TEST(JsonStreamTest, ChunkValuesStreamProcessor) {
+  EXPECT_THAT(RunChunkValues(""), testing::IsEmpty());
+  EXPECT_THAT(RunChunkValues("null\n"), testing::ElementsAre("null\n"));
+  EXPECT_THAT(RunChunkValues("true\n"), testing::ElementsAre("true\n"));
+  EXPECT_THAT(RunChunkValues("123\n"), testing::ElementsAre("123\n"));
+  EXPECT_THAT(RunChunkValues("\"abc\"\n"), testing::ElementsAre("\"abc\"\n"));
+
+  EXPECT_THAT(RunChunkValues("1\n2\n3\n"),
+              testing::ElementsAre("1\n", "2\n", "3\n"));
+  EXPECT_THAT(RunChunkValues("null\ntrue\nfalse\n"),
+              testing::ElementsAre("null\n", "true\n", "false\n"));
+
+  EXPECT_THAT(RunChunkValues("[1,2,3]\n"), testing::ElementsAre("[1,2,3]\n"));
+  EXPECT_THAT(RunChunkValues("{\"x\":1}\n{\"y\":2}\n"),
+              testing::ElementsAre("{\"x\":1}\n", "{\"y\":2}\n"));
+
+  EXPECT_THAT(RunChunkValues("[1,2]\n{\"a\":\"b\"}\nnull\n"),
+              testing::ElementsAre("[1,2]\n", "{\"a\":\"b\"}\n", "null\n"));
+
+  EXPECT_THAT(RunChunkValues("  1  \n  2  \n"),
+              testing::ElementsAre("1\n", "2\n"));
+
+  EXPECT_THAT(RunChunkValues("  {  \"x\" : 1  }  \n"),
+              testing::ElementsAre("{\"x\":1}\n"));
+}
+
+TEST(JsonStreamTest, ChunkValuesStreamProcessorMultipleChunks) {
+  JsonChunkValuesStreamProcessor processor;
+  EXPECT_THAT(processor.Process("123\n4", false),
+              testing::FieldsAre(testing::ElementsAre("123\n"), false));
+  EXPECT_THAT(processor.Process("5", false),
+              testing::FieldsAre(testing::IsEmpty(), false));
+  EXPECT_THAT(processor.Process("6\n789\n", true),
+              testing::FieldsAre(testing::ElementsAre("456\n", "789\n"), true));
+}
+
+TEST(JsonStreamTest, ChunkValuesStreamProcessorLoadStateFailure) {
+  JsonChunkValuesStreamProcessor processor;
 
   EXPECT_FALSE(processor.LoadState("GARBAGE"));
 }

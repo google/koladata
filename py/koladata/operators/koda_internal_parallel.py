@@ -3549,6 +3549,14 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
     }
   }
   operator_replacements {
+    from_op: "kd.json_stream.chunk_values"
+    to_op: "kd.json_stream._chunk_values_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
     from_op: "kd.json_stream.explode_array"
     to_op: "kd.json_stream._explode_array_parallel"
     argument_transformation {

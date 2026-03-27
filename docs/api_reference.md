@@ -3710,6 +3710,32 @@ JSON text stream transformation operators.
 
 **Operators**
 
+### `kd.json_stream.chunk_values(input_chunks, /)` {#kd.json_stream.chunk_values}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns chunk boundaries to top-level JSON values in the stream.
+
+Each output chunk will contain exactly one top-level JSON value followed by
+exactly one &#39;\n&#39; character, without changing the logical JSON content.
+Whitespace outside of strings is removed.
+
+For example, if the input chunked string stream has the logical value:
+
+  `1 [2,3] {&#34;x&#34;:4}`
+
+Then the output will have chunks:
+
+  `1\n` `[2,3]\n` `{&#34;x&#34;:4}\n`
+
+See the module docstring for more details about the input and output format.
+
+Args:
+  input_chunks: An iterable of STRING DataItems. The logical input is the
+    concatenation of these string chunks.
+
+Returns:
+  An iterable of present STRING DataItems. Each chunk contains exactly one
+  top-level JSON value followed by a newline.</code></pre>
+
 ### `kd.json_stream.explode_array(input_chunks, /)` {#kd.json_stream.explode_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts contents of all top-level JSON arrays as separate values.

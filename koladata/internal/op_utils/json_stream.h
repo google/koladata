@@ -21,13 +21,18 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <variant>
 #include <vector>
 
+#include "absl/container/inlined_vector.h"
 #include "absl/types/span.h"
 
 namespace koladata::internal {
+
+struct JsonStreamProcessResult {
+  absl::InlinedVector<std::string, 1> chunks;
+  bool is_end;
+};
 
 struct JsonSalvageOptions {
   // If true, like in python `json.dumps`, the non-standard non-finite number
@@ -104,8 +109,8 @@ class JsonSalvageStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   enum class ContainerType : uint8_t {
@@ -267,8 +272,8 @@ class JsonHeadStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   const JsonHeadOptions options_;
@@ -326,8 +331,8 @@ class JsonPrettifyStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   const JsonPrettifyOptions options_;
@@ -364,8 +369,8 @@ class JsonCompactifyStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   int64_t container_depth_ = 0;
@@ -399,8 +404,8 @@ class JsonSelectNonemptyObjectsStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -438,8 +443,8 @@ class JsonSelectNonemptyArraysStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -477,8 +482,8 @@ class JsonSelectNonnullStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   enum class State : uint8_t {
@@ -535,8 +540,8 @@ class JsonExtractValuesStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   const JsonExtractValuesOptions options_;
@@ -588,8 +593,8 @@ class JsonImplodeArrayStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   bool emitted_opening_square_bracket_ = false;
@@ -638,8 +643,8 @@ class JsonExplodeArrayStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   int64_t container_depth_ = 0;
@@ -698,8 +703,8 @@ class JsonGetArrayNthValueStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   const JsonGetArrayNthValueOptions options_;
@@ -743,8 +748,8 @@ class JsonUnquoteStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   bool is_in_string_ = false;
@@ -776,11 +781,46 @@ class JsonQuoteStreamProcessor {
   // output_chunk; afterward, this processor has unspecified behavior until it
   // is reset. If end_of_input is true, then end_of_output is guaranteed to be
   // true.
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool end_of_input);
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
 
  private:
   bool emitted_opening_quote_ = false;
+};
+
+// Aligns the chunk boundaries of the output stream with the top-level JSON
+// values in the input stream, without changing the JSON value of the stream.
+// Each output chunk will contain exactly one top-level JSON value followed by
+// exactly one '\n' character.
+//
+// If the input is not valid UTF-8, the output is unspecified.
+class JsonChunkValuesStreamProcessor {
+ public:
+  JsonChunkValuesStreamProcessor() = default;
+
+  // Resets to the initial state.
+  void Reset();
+
+  // Initializes from a state string. Returns true if successful, or false if
+  // the state string is invalid.
+  bool LoadState(std::string_view state);
+
+  // Returns a state string that can be used to recreate the state of the
+  // processor.
+  std::string ToState() const;
+
+  // Processes a chunk of the input stream and optionally ends the input stream,
+  // returning (output_chunks, end_of_output) for the output stream. If
+  // end_of_output is true, the output stream should be closed after emitting
+  // output_chunks; afterward, this processor has unspecified behavior until it
+  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
+  // true.
+  JsonStreamProcessResult Process(std::string_view input_chunk,
+                                  bool end_of_input);
+
+ private:
+  JsonCompactifyStreamProcessor compactify_;
+  std::string buffer_;
 };
 
 }  // namespace koladata::internal

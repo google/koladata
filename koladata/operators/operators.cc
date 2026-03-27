@@ -180,6 +180,15 @@ OPERATOR("kd.json.from_json", FromJson);
 OPERATOR("kd.json.to_json", ToJson);
 //
 OPERATOR_WITH_SIGNATURE(
+    "kd.json_stream._chunk_values_stream",
+    arolla::QExprOperatorSignature::Get(
+        {
+            arolla::GetQType<functor::parallel::ExecutorPtr>(),
+            functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
+        },
+        functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
+    &JsonStreamChunkValuesStream);
+OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._explode_array_stream",
     arolla::QExprOperatorSignature::Get(
         {

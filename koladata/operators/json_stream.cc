@@ -19,11 +19,11 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <variant>
 
 #include "absl/base/nullability.h"
+#include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -75,12 +75,13 @@ class StreamProcessorHooks final : public BasicRoutineHooks {
 
   StreamReaderPtr absl_nullable Resume(StreamReaderPtr
                                        absl_nonnull reader) final {
-    const auto write_output = [&](std::string output) {
-      if (!output.empty()) {
+    const auto write_output = [&](absl::InlinedVector<std::string, 1> output) {
+      for (auto& output_chunk : output) {
         (void)writer_->TryWrite(arolla::TypedRef::FromValue(
-            DataSlice::CreatePrimitive(arolla::Text(std::move(output)))));
+            DataSlice::CreatePrimitive(arolla::Text(std::move(output_chunk)))));
       }
     };
+
     auto try_read_result = reader->TryRead();
     while (arolla::TypedRef* item = try_read_result.item()) {
       if (Interrupted()) {
@@ -139,21 +140,40 @@ class CompositeStreamProcessor {
   explicit CompositeStreamProcessor(Args&&... args)
       : processors_(std::forward<Args>(args)...) {}
 
-  std::tuple<std::string, bool> Process(std::string_view input_chunk,
-                                        bool is_end_of_input) {
-    std::string chunk(input_chunk);
-    bool is_end_of_output = is_end_of_input;
-    // "Loops" over tuple elements. Comma operator forces ordering.
+  internal::JsonStreamProcessResult Process(std::string_view input_chunk,
+                                            bool is_end_of_input) {
+    absl::InlinedVector<std::string, 1> chunks = {std::string(input_chunk)};
+    bool is_end = is_end_of_input;
     std::apply(
         [&](auto&... ps) {
           (([&]() {
-             std::tie(chunk, is_end_of_output) =
-                 ps.Process(std::move(chunk), is_end_of_output);
+             absl::InlinedVector<std::string, 1> next_chunks;
+             bool next_end = false;
+             for (auto& chunk : chunks) {
+               if (next_end) break;
+               auto [out_chunks, out_end] = ps.Process(chunk, false);
+               for (auto& c : out_chunks) {
+                 next_chunks.push_back(std::move(c));
+               }
+               if (out_end) {
+                 next_end = true;
+               }
+             }
+             if (is_end && !next_end) {
+               auto [out_chunks, out_end] = ps.Process("", true);
+               DCHECK(out_end);
+               for (auto& c : out_chunks) {
+                 next_chunks.push_back(std::move(c));
+               }
+               next_end = true;
+             }
+             chunks = std::move(next_chunks);
+             is_end = next_end;
            }()),
            ...);
         },
         processors_);
-    return std::make_tuple(std::move(chunk), is_end_of_output);
+    return {std::move(chunks), is_end};
   }
 
   std::tuple<Processors...> processors_;
@@ -337,6 +357,12 @@ absl::StatusOr<StreamPtr> JsonStreamQuoteStream(ExecutorPtr
                                                 absl_nonnull input_stream) {
   return RunJsonStreamProcessor(std::move(executor), std::move(input_stream),
                                 internal::JsonQuoteStreamProcessor());
+}
+
+absl::StatusOr<StreamPtr> JsonStreamChunkValuesStream(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input_stream) {
+  return RunJsonStreamProcessor(std::move(executor), std::move(input_stream),
+                                internal::JsonChunkValuesStreamProcessor());
 }
 
 }  // namespace koladata::ops
