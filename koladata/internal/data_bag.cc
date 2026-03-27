@@ -3080,6 +3080,9 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
 
       ConstSparseSourceArray this_sources;
       GetSmallAllocDataSources(attr_name, this_sources);
+      if (this_sources == other_sources) {
+        continue;
+      }
 
       if (this_sources.empty() && other_sources.size() == 1) {
         // Copy entire source
@@ -3147,6 +3150,11 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
       ConstSparseSourceArray this_sparse_sources;
       GetAttributeDataSources(alloc, attr_name, this_dense_sources,
                               this_sparse_sources);
+
+      if (this_dense_sources == other_dense_sources &&
+          this_sparse_sources == other_sparse_sources) {
+        continue;
+      }
 
       SourceCollection& this_collection =
           GetOrCreateSourceCollection(alloc, attr_name);
@@ -3247,6 +3255,11 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       if (!used_keys.insert(alloc_id).second) {
         continue;
       }
+      const auto* const_this_lists = GetConstListsOrNull(alloc_id);
+      if (const_this_lists != nullptr &&
+          const_this_lists->get() == other_lists.get()) {
+        continue;
+      }
       auto& this_lists = GetOrCreateMutableLists(alloc_id);
       for (size_t i = 0; i < other_lists->size(); ++i) {
         const auto* other_list = other_lists->Get(i);
@@ -3298,6 +3311,11 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
       const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
                                         ? options.schema_conflict_policy
                                         : options.data_conflict_policy;
+      const auto* const_this_dicts = GetConstDictsOrNull(alloc_id);
+      if (const_this_dicts != nullptr &&
+          const_this_dicts->get() == other_dicts.get()) {
+        continue;
+      }
       auto& this_dicts = GetOrCreateMutableDicts(alloc_id);
       for (size_t i = 0; i < other_dicts->size(); ++i) {
         const auto& other_dict = (*other_dicts)[i];

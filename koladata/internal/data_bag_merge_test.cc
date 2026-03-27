@@ -1420,5 +1420,94 @@ TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
   }
 }
 
+TYPED_TEST(DataBagAllocatorTest, MergeModifiedSiblingForks_Modified) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto object_f1 = DataItem(this->AllocSingle());
+  auto object_f2 = DataItem(this->AllocSingle());
+  auto object_none = DataItem(this->AllocSingle());
+
+  auto list_f1 = DataItem(this->AllocSingleList());
+  auto list_f2 = DataItem(this->AllocSingleList());
+  auto list_none = DataItem(this->AllocSingleList());
+
+  auto dict_f1 = DataItem(this->AllocSingleDict());
+  auto dict_f2 = DataItem(this->AllocSingleDict());
+  auto dict_none = DataItem(this->AllocSingleDict());
+
+  ASSERT_OK(db->SetAttr(object_f1, "val", DataItem(1)));
+  ASSERT_OK(db->SetAttr(object_f2, "val", DataItem(2)));
+  ASSERT_OK(db->SetAttr(object_none, "val", DataItem(3)));
+
+  ASSERT_OK(db->AppendToList(list_f1, DataItem(1)));
+  ASSERT_OK(db->AppendToList(list_f2, DataItem(2)));
+  ASSERT_OK(db->AppendToList(list_none, DataItem(3)));
+
+  ASSERT_OK(db->SetInDict(dict_f1, DataItem("k1"), DataItem(1)));
+  ASSERT_OK(db->SetInDict(dict_f2, DataItem("k2"), DataItem(2)));
+  ASSERT_OK(db->SetInDict(dict_none, DataItem("k3"), DataItem(3)));
+
+  auto fork1 = db->PartiallyPersistentFork();
+  auto fork2 = db->PartiallyPersistentFork();
+
+  // Modify *f1 objects in fork1
+  ASSERT_OK(fork1->SetAttr(object_f1, "val2", DataItem(11)));
+  ASSERT_OK(fork1->AppendToList(list_f1, DataItem(11)));
+  ASSERT_OK(fork1->SetInDict(dict_f1, DataItem("k11"), DataItem(11)));
+
+  // Add completely new objects in fork1
+  auto new_obj_f1 = DataItem(this->AllocSingle());
+  auto new_list_f1 = DataItem(this->AllocSingleList());
+  auto new_dict_f1 = DataItem(this->AllocSingleDict());
+  ASSERT_OK(fork1->SetAttr(new_obj_f1, "val", DataItem(111)));
+  ASSERT_OK(fork1->AppendToList(new_list_f1, DataItem(111)));
+  ASSERT_OK(fork1->SetInDict(new_dict_f1, DataItem("x"), DataItem(111)));
+
+  // Modify *f2 objects in fork2
+  ASSERT_OK(fork2->SetAttr(object_f2, "val2", DataItem(22)));
+  ASSERT_OK(fork2->AppendToList(list_f2, DataItem(22)));
+  ASSERT_OK(fork2->SetInDict(dict_f2, DataItem("k22"), DataItem(22)));
+
+  // Add completely new objects in fork2
+  auto new_obj_f2 = DataItem(this->AllocSingle());
+  auto new_list_f2 = DataItem(this->AllocSingleList());
+  auto new_dict_f2 = DataItem(this->AllocSingleDict());
+  ASSERT_OK(fork2->SetAttr(new_obj_f2, "val", DataItem(222)));
+  ASSERT_OK(fork2->AppendToList(new_list_f2, DataItem(222)));
+  ASSERT_OK(fork2->SetInDict(new_dict_f2, DataItem("y"), DataItem(222)));
+
+  // Merge fork2 into fork1 with Overwrite to bypass SameAlloc list conflicts
+  ASSERT_OK(fork1->MergeInplace(
+      *fork2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+
+  // Assert unmodified objects are broadly unchanged
+  EXPECT_THAT(fork1->GetAttr(object_none, "val"), IsOkAndHolds(DataItem(3)));
+  EXPECT_THAT(fork1->GetAttr(object_none, "val2"),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(fork1->GetFromDict(dict_none, DataItem("k3")),
+              IsOkAndHolds(DataItem(3)));
+
+  // Assert objects updated in fork1 are still there (Objects merge granularly)
+  EXPECT_THAT(fork1->GetAttr(object_f1, "val"), IsOkAndHolds(DataItem(1)));
+  EXPECT_THAT(fork1->GetAttr(object_f1, "val2"), IsOkAndHolds(DataItem(11)));
+  EXPECT_THAT(fork1->GetAttr(new_obj_f1, "val"), IsOkAndHolds(DataItem(111)));
+  EXPECT_THAT(fork1->GetListSize(new_list_f1),
+              testing::AnyOf(IsOkAndHolds(DataItem(1)),
+                             IsOkAndHolds(DataItem(2))));
+  EXPECT_THAT(fork1->GetFromDict(new_dict_f1, DataItem("x")),
+              IsOkAndHolds(DataItem(111)));
+
+  // Assert objects updated in fork2 were successfully merged into fork1
+  EXPECT_THAT(fork1->GetAttr(object_f2, "val"), IsOkAndHolds(DataItem(2)));
+  EXPECT_THAT(fork1->GetAttr(object_f2, "val2"), IsOkAndHolds(DataItem(22)));
+  EXPECT_THAT(fork1->GetListSize(list_f2),
+              testing::AnyOf(IsOkAndHolds(DataItem(1)),
+                             IsOkAndHolds(DataItem(2))));
+  EXPECT_THAT(fork1->GetFromDict(dict_f2, DataItem("k22")),
+              IsOkAndHolds(DataItem(22)));
+  EXPECT_THAT(fork1->GetAttr(new_obj_f2, "val"),
+              IsOkAndHolds(DataItem(222)));
+}
+
 }  // namespace
 }  // namespace koladata::internal
