@@ -183,8 +183,8 @@ kd.dir(e) # ['x', 'y']
 # Or
 # As all entities share the same schema,
 # the intersection of attribute names is the same
-e.get_attr_names(intersection=True) # ['x', 'y']
-e.get_attr_names(intersection=False) # ['x', 'y']
+kd.get_attr_names(e, intersection=True) # ['x', 'y']
+kd.get_attr_names(e, intersection=False) # ['x', 'y']
 
 # Access attribute
 e.x # 1
@@ -406,8 +406,8 @@ os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
 # Attributes present in all objects
 kd.dir(os1) # ['x']
 # Or
-os1.get_attr_names(intersection=True) # ['x']
-os1.get_attr_names(intersection=False) # ['x', 'y']
+kd.get_attr_names(os1, intersection=True) # ['x']
+kd.get_attr_names(os1, intersection=False) # ['x', 'y']
 
 # Access attribute
 o.x # 1
@@ -2836,7 +2836,7 @@ obj = kd.obj(x=1, y=kd.obj(z=1))
 # Create a obj stub without attributes
 obj2 = obj.stub()
 assert obj2.get_itemid() == obj.get_itemid()
-assert not obj2.get_attr_names(intersection=False) # []
+assert not kd.get_attr_names(obj2, intersection=False) # []
 
 # Create a list stub with list item stubs
 l = kd.list([kd.obj(x=1), kd.obj(x=2)])
@@ -2844,7 +2844,7 @@ l2 = l.stub()
 assert l2.get_itemid() == l.get_itemid()
 # List items are stubbed as well
 assert kd.agg_all(l2[:] == l[:])
-assert not l2[:].get_attr_names(intersection=False) # []
+assert not kd.get_attr_names(l2[:], intersection=False) # []
 
 # Create a dict stub without entries
 d = kd.dict({'a': kd.obj(x=1), 'b': kd.obj(x=2)})
