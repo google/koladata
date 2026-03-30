@@ -43,6 +43,7 @@ package_group(
 package_group(
     name = "experimental_users",
     packages = [
+        "//py/koladata/ext/...",
     ],
 )
 

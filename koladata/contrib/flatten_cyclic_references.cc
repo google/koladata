@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/flatten_cyclic_references.h"
+#include "koladata/contrib/flatten_cyclic_references.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -48,7 +48,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "arolla/util/status_macros_backport.h"
 
-namespace koladata::ops {
+namespace koladata::contrib {
 
 namespace {
 
@@ -326,4 +326,4 @@ absl::StatusOr<DataSlice> FlattenCyclicReferences(
   });
 }
 
-}  // namespace koladata::ops
+}  // namespace koladata::contrib

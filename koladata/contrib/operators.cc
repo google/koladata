@@ -12,22 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_TRANSFORM_H_
-#define KOLADATA_OPERATORS_TRANSFORM_H_
+#include "koladata/contrib/flatten_cyclic_references.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 
-#include <cstdint>
+namespace koladata::contrib {
+namespace {
 
-#include "absl/status/statusor.h"
-#include "koladata/data_slice.h"
-#include "koladata/internal/non_deterministic_token.h"
+KODA_QEXPR_OPERATOR("kd_ext.contrib._flatten_cyclic_references",
+                    FlattenCyclicReferences,
+                    "kd_ext.contrib.flatten_cyclic_references");
 
-namespace koladata::ops {
-
-// kd.core.flatten_cyclic_references
-absl::StatusOr<DataSlice> FlattenCyclicReferences(
-    const DataSlice& ds, int64_t max_recursion_depth,
-    internal::NonDeterministicToken = {});
-
-}  // namespace koladata::ops
-
-#endif  // KOLADATA_OPERATORS_TRANSFORM_H_
+}  // namespace
+}  // namespace koladata::contrib

@@ -14,30 +14,24 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.expr import input_container
-from koladata.expr import view
-from koladata.operators import eager_op_utils
-from koladata.operators import kde_operators
-from koladata.testing import testing
-from koladata.types import data_bag
-from koladata.types import data_slice
+from koladata import kd
+from koladata import kd_ext
 
-I = input_container.InputContainer('I')
+I = kd.I
 
-kd = eager_op_utils.operators_container('kd')
-kde = kde_operators.kde
-bag = data_bag.DataBag.empty_mutable
-ds = data_slice.DataSlice.from_vals
+kde = kd_ext.lazy
+bag = kd.mutable_bag
+ds = kd.slice
 
 
-class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
+class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
 
   def test_entity(self):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -50,14 +44,14 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_depth_3(self):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=3)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=3)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -78,14 +72,14 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_depth_5(self):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=5)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=5)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -114,7 +108,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_entity_unbalanced(self):
     db = bag()
@@ -122,7 +116,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', ds([o.S[0], o.S[2], o.S[1]]))
     o.S[1].set_attr('self', o.S[2])
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -148,14 +142,14 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_zero_depth(self):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=0)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -164,14 +158,14 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.new(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_objec(self):
     db = bag()
     b_slice = db.obj(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -184,14 +178,14 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
         b=db.obj(a=ds([1, None, 2])),
         c=ds(['foo', 'bar', 'baz']),
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_list(self):
     db = bag()
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.implode(db.new(b=b_slice, c=ds(['foo', 'bar', 'baz'])))
     o[:].set_attr('self', o[:])
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -206,7 +200,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
             c=ds(['foo', 'bar', 'baz']),
         )
     )
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_dict(self):
     db = bag()
@@ -215,7 +209,7 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     o['b'] = b_slice
     o['c'] = ds(['foo', 'bar', 'baz'])
     o['self'] = o
-    result = kd.core.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -227,25 +221,22 @@ class CoreFlattenCyclicReferencesTest(parameterized.TestCase):
     expected_ds['self'] = expected_self
     expected_ds['b'] = b_slice
     expected_ds['c'] = ds(['foo', 'bar', 'baz'])
-    testing.assert_equivalent(result, expected_ds, schemas_equality=False)
+    kd.testing.assert_equivalent(result, expected_ds, schemas_equality=False)
 
   def test_view(self):
-    self.assertTrue(
-        view.has_koda_view(
-            kde.core.flatten_cyclic_references(
-                I.x, max_recursion_depth=I.max_recursion_depth
-            )
-        )
+    expr = kde.contrib.flatten_cyclic_references(
+        I.x, max_recursion_depth=I.max_recursion_depth
     )
+    self.assertTrue(kd.is_expr(expr))
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.core.flatten_cyclic_references(
+            kde.contrib.flatten_cyclic_references(
                 I.x, max_recursion_depth=I.max_recursion_depth
             )
         ),
-        'kd.core.flatten_cyclic_references(I.x,'
+        'kd_ext.contrib.flatten_cyclic_references(I.x,'
         ' max_recursion_depth=I.max_recursion_depth)',
     )
 

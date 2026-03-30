@@ -109,7 +109,7 @@ py_library(
         "//py/koladata/ext:py_cloudpickle",
         "//py/koladata/ext:vis",
         "//py/koladata/ext/contrib:functions",
-        "//py/koladata/ext/operators:kde_operators",
+        "//py/koladata/ext/contrib:kde_operators",
         "//py/koladata/ext/pseudo_random",
         "//py/koladata/ext/storage",
         "//py/koladata/ext/view:kv",

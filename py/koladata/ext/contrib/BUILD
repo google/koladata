@@ -14,41 +14,92 @@
 
 # External contributions to Koda.
 
-load(
-    "@com_google_arolla//py/arolla/optools:optools.bzl",
-    "arolla_operator_package_snapshot",
-)
+load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load("@rules_python//python:defs.bzl", "py_library")
+load("//py/koladata/operators:optools.bzl", "koladata_cc_operator_package")
 
-package(default_visibility = [
-    "//koladata:internal",
-])
+package(default_visibility = ["//visibility:private"])
 
 licenses(["notice"])
 
-py_library(
-    name = "functions",
-    srcs = ["functions.py"],
+# C++-only kd_ext.contrib operator package. Use this one for serving.
+# In Python `from koladata import kd_ext` instead.
+koladata_cc_operator_package(
+    name = "cc_operators",
+    arolla_initializer = {
+        "name": "arolla_operators/kd_ext_contrib",
+        "deps": ["arolla_operators/koda_base"],
+    },
+    imports = [
+        "koladata.ext.contrib.build_cc_operators",
+    ],
+    preimports = ["koladata.kd"],
+    tool_deps = [
+        ":build_cc_operators",
+        "//py/koladata:kd",
+    ],
+    visibility = ["//visibility:public"],
     deps = [
+        "//koladata/contrib:operators",
+        "//py/koladata/operators:cc_operators",
+    ],
+)
+
+arolla_py_cc_deps(
+    name = "cc_operators_py_clib",
+    dynamic_deps = [
+        "//py/koladata/dynamic_deps:koladata_so",
+        "//py/koladata/dynamic_deps:koladata_operators_so",
+    ],
+    deps = [
+        ":cc_operators",
+    ],
+)
+
+py_library(
+    name = "kde_operators",
+    srcs = ["kde_operators.py"],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata:__subpackages__",
+    ],
+    deps = [
+        ":cc_operators_py_clib",
+        ":operators",
         "//py:python_path",
         "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "build_cc_operators",
+    srcs = ["build_cc_operators.py"],
+    deps = [
+        ":operators",
+        "//py:python_path",
+        "//py/koladata/operators:optools",
     ],
 )
 
 py_library(
     name = "operators",
     srcs = ["operators.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "functions",
+    srcs = ["functions.py"],
     visibility = [
         "//koladata:internal",
-        "//py/koladata/ext/operators:__pkg__",
+        "//py/koladata:__subpackages__",
     ],
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
     ],
-)
-
-arolla_operator_package_snapshot(
-    name = "operator_package.pb2",
-    imports = [],
 )

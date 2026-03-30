@@ -83,6 +83,7 @@ arolla_py_cc_deps(
     name = "cc_operators_py_clib",
     dynamic_deps = [
         "//py/koladata/dynamic_deps:koladata_so",
+        "//py/koladata/dynamic_deps:koladata_operators_so",
     ],
     deps = [
         ":cc_operators",
@@ -256,7 +257,10 @@ py_test(
 py_library(
     name = "optools",
     srcs = ["optools.py"],
-    visibility = ["//koladata:internal"],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
+    ],
     deps = [
         ":aux_policies",
         ":op_repr",
@@ -302,6 +306,7 @@ py_library(
     srcs = ["qtype_utils.py"],
     visibility = [
         "//koladata:internal",
+        "//py/koladata/ext:__subpackages__",
     ],
     deps = [
         "//koladata/functor/parallel:init_expr_operators",

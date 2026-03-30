@@ -15,8 +15,9 @@ To add an *operator* that becomes available in both eager and tracing modes,
 you should:
 
 1.  Add the operator definition to
-    py/koladata/ext/contrib/operators.py under the
-    `"kd_ext.contrib"` namespace.
+    py/koladata/ext/contrib/ under the `"kd_ext.contrib"`
+    namespace. If you create a new module, import it in kde_operators.py
+    and build_cc_operators.py.
     *   See go/koda-apis#kd.optools for operator definition alternatives.
 1.  Add an operator test in the
     py/koladata/ext/contrib/tests directory.

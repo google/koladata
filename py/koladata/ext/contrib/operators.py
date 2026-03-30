@@ -14,10 +14,51 @@
 
 """Contrib operators."""
 
+from arolla import arolla
 from koladata import kd
 
+P = arolla.P
+to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
 
-@kd.optools.add_to_registry()
+
+@kd.optools.as_backend_operator('kd_ext.contrib._flatten_cyclic_references')
+def _flatten_cyclic_references(x, max_recursion_depth, non_deterministic):  # pylint: disable=unused-argument
+  """Creates a DataSlice with tree-like copy of the input DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_lambda_operator(
+    'kd_ext.contrib.flatten_cyclic_references',
+    qtype_constraints=[
+        kd.optools.constraints.expect_data_slice(P.x),
+        kd.optools.constraints.expect_data_slice(P.max_recursion_depth),
+    ],
+)
+def flatten_cyclic_references(x, *, max_recursion_depth):  # pylint: disable=unused-argument
+  """Creates a DataSlice with tree-like copy of the input DataSlice.
+
+  The entities themselves and all their attributes including both top-level and
+  non-top-level attributes are cloned (with new ItemIds) while creating the
+  tree-like copy. The max_recursion_depth argument controls the maximum number
+  of times the same entity can occur on the path from the root to a leaf.
+  Note: resulting DataBag might have an exponential size, compared to the input
+  DataBag.
+
+  Args:
+    x: DataSlice to flatten.
+    max_recursion_depth: Maximum recursion depth.
+
+  Returns:
+    A DataSlice with tree-like attributes structure.
+  """
+  max_recursion_depth = to_arolla_int64(max_recursion_depth)
+  return _flatten_cyclic_references(
+      P.x, max_recursion_depth, kd.eager.optools.unified_non_deterministic_arg()
+  )
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
 @kd.optools.as_lambda_operator('kd_ext.contrib.value_counts')
 def value_counts(x):
   """Returns Dicts mapping entries in `x` to their count over the last dim.

@@ -12,9 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes Koda extension operators."""
+"""Initializes Koda extension operators.
+
+Do not use directly, use `from koladata import kd_ext` instead.
+"""
 
 from koladata import kd
-from koladata.ext.contrib import operators as _
+from koladata.ext.contrib import cc_operators_py_clib as _
+
+# The Expr operators are coming from :cc_operators package, importing this
+# module in order to register Koda-specific parts like view and repr.
+from koladata.ext.contrib import operators as _  # pylint: disable=g-bad-import-order
 
 kde_ext = kd.optools.make_operators_container('kd_ext', 'kd_ext.contrib').kd_ext

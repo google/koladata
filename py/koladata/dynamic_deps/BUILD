@@ -51,6 +51,20 @@ cc_shared_library(
     ],
 )
 
+cc_shared_library(
+    name = "koladata_operators_so",
+    dynamic_deps = [
+        "//py/koladata/dynamic_deps:koladata_so",
+    ],
+    exports_filter = [
+        "//py/koladata/operators:__subpackages__",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//py/koladata/operators:cc_operators",
+    ],
+)
+
 bzl_library(
     name = "py_extension_bzl",
     srcs = ["py_extension.bzl"],

@@ -27,7 +27,7 @@ from koladata.ext import pdkd as _pdkd
 from koladata.ext import py_cloudpickle as _py_cloudpickle
 from koladata.ext import vis as _vis
 from koladata.ext.contrib import functions as _contrib_functions
-from koladata.ext.operators import kde_operators as _kde_operators
+from koladata.ext.contrib import kde_operators as _kde_operators
 from koladata.ext.pseudo_random import pseudo_random as _pseudo_random
 from koladata.ext.storage import storage as _storage
 from koladata.ext.view import kv as _kv

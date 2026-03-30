@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# kd_ext operator tests.
+"""Building block for :cc_operators package."""
 
-licenses(["notice"])
+from koladata.operators import optools
 
-##### Tests for public operators #####
+# pylint: disable=g-import-not-at-top
+
+with optools.building_cc_operator_package():
+  from koladata.ext.contrib import operators as _
