@@ -909,6 +909,49 @@ def stream_filter_json(executor, stream, field_to_extract):
 
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
+    'koda_internal.parallel.stream_string_from_json',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        (
+            P.stream == get_stream_qtype(qtypes.DATA_SLICE),
+            (
+                'expected STREAM[DATA_SLICE], got'
+                f' {constraints.name_type_msg(P.stream)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice(P.field_to_extract),
+    ],
+    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
+)
+def stream_string_from_json(executor, stream, field_to_extract):
+  r"""Extracts requested string value from streamed JSON.
+
+  Example
+    stream:
+      [ {"id":1, "str":"some\nstring"}, {"id": 2, "str":"another string"} ]
+    field_to_extract: $[*].str
+    output stream:
+      some
+      string
+
+  Note that if there are several values matching `field_to_extract`, only
+  the first one is used.
+
+  Args:
+    executor: The executor.
+    stream: Input string stream of JSON fragments.
+    field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
+      to extract from the input stream. Only subset of JSONPath features is
+      supported. List index can be specified only as `[*]`.
+
+  Returns:
+    A stream of strings.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
     'koda_internal.parallel.stream_map',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
@@ -3565,6 +3608,14 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
     }
   }
   operator_replacements {
+    from_op: "kd.json_stream.filter_json"
+    to_op: "kd.json_stream._filter_json_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
     from_op: "kd.json_stream.get_array_nth_value"
     to_op: "kd.json_stream._get_array_nth_value_parallel"
     argument_transformation {
@@ -3647,6 +3698,14 @@ _DEFAULT_PARALLEL_TRANSFORM_CONFIG_SRC_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.json_stream.select_nonnull"
     to_op: "kd.json_stream._select_nonnull_parallel"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.json_stream.stream_string_value"
+    to_op: "kd.json_stream._stream_string_value_parallel"
     argument_transformation {
       arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS

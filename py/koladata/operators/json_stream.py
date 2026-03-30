@@ -75,6 +75,121 @@ M = arolla.M
 P = arolla.P
 
 
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator('kd.json_stream.filter_json')
+def filter_json(input_chunks, field_to_extract):
+  """Extracts requested field from streamed JSON.
+
+  It automatically fixes some errors in the input stream: replaces single quotes
+  with double quotes, quotes unquoted keys and values, handles linebreaks in
+  string literals. Also removes all spaces and linebreaks outside of string
+  literals.
+
+  Args:
+    input_chunks: An iterable of STRING DataItems with JSON fragments.
+    field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
+      to extract from the input stream. Only subset of JSONPath features is
+      supported. List index can be specified only as `[*]`.
+
+  Returns:
+    An iterable of STRING DataItems. Each value is a JSON corresponding
+    to the given JSONPath.
+  """
+  return koda_internal_parallel.unsafe_blocking_wait(
+      koda_internal_parallel.stream_from_future(
+          koda_internal_parallel.future_iterable_from_stream(
+              koda_internal_parallel.stream_filter_json(
+                  streams.get_eager_executor(),
+                  koda_internal_parallel.stream_from_iterable(input_chunks),
+                  field_to_extract,
+              )
+          )
+      )
+  )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator('kd.json_stream.stream_string_value')
+def stream_string_value(input_chunks, field_to_extract):
+  r"""Extracts requested string value from streamed JSON.
+
+  Example
+    input:
+      [ {"id":1, "str":"some\nstring"}, {"id": 2, "str":"another string"} ]
+    field_to_extract: $[*].str
+    output:
+      some
+      string
+
+  Note that if there are several values matching `field_to_extract`, only
+  the first one is used.
+
+  Args:
+    input_chunks: An iterable of STRING DataItems with JSON fragments.
+    field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
+      to extract from the input stream. Only subset of JSONPath features is
+      supported. List index can be specified only as `[*]`.
+
+  Returns:
+    An iterable of STRING DataItems.
+  """
+  return koda_internal_parallel.unsafe_blocking_wait(
+      koda_internal_parallel.stream_from_future(
+          koda_internal_parallel.future_iterable_from_stream(
+              koda_internal_parallel.stream_string_from_json(
+                  streams.get_eager_executor(),
+                  koda_internal_parallel.stream_from_iterable(input_chunks),
+                  field_to_extract,
+              )
+          )
+      )
+  )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.json_stream._filter_json_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_future(P.field_to_extract),
+    ],
+)
+def _filter_json_parallel(executor, stream, field_to_extract):
+  """Parallel operator for filter_json."""
+  return koda_internal_parallel.unwrap_future_to_stream(
+      koda_internal_parallel.async_eval(
+          executor,
+          koda_internal_parallel.stream_filter_json,
+          executor,
+          stream,
+          field_to_extract,
+      )
+  )
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_lambda_operator(
+    'kd.json_stream._stream_string_value_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_future(P.field_to_extract),
+    ],
+)
+def _stream_string_value_parallel(executor, stream, field_to_extract):
+  """Parallel operator for stream_string_value."""
+  return koda_internal_parallel.unwrap_future_to_stream(
+      koda_internal_parallel.async_eval(
+          executor,
+          koda_internal_parallel.stream_string_from_json,
+          executor,
+          stream,
+          field_to_extract,
+      )
+  )
+
+
 @optools.as_backend_operator(
     'kd.json_stream._chunk_values_stream',
     qtype_inference_expr=streams.get_stream_qtype(qtypes.DATA_SLICE),

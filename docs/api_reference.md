@@ -3778,6 +3778,25 @@ Returns:
   An iterable of present STRING DataItems. The output is the concatenation of
   these string chunks.</code></pre>
 
+### `kd.json_stream.filter_json(input_chunks, field_to_extract)` {#kd.json_stream.filter_json}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts requested field from streamed JSON.
+
+It automatically fixes some errors in the input stream: replaces single quotes
+with double quotes, quotes unquoted keys and values, handles linebreaks in
+string literals. Also removes all spaces and linebreaks outside of string
+literals.
+
+Args:
+  input_chunks: An iterable of STRING DataItems with JSON fragments.
+  field_to_extract: JSONPath string (e.g. &#34;$.docs[*].name&#34;), specifies a field
+    to extract from the input stream. Only subset of JSONPath features is
+    supported. List index can be specified only as `[*]`.
+
+Returns:
+  An iterable of STRING DataItems. Each value is a JSON corresponding
+  to the given JSONPath.</code></pre>
+
 ### `kd.json_stream.get_array_nth_value(input_chunks, /, *, n)` {#kd.json_stream.get_array_nth_value}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts the `n`th element from all top-level JSON arrays.
@@ -4095,6 +4114,30 @@ Args:
 Returns:
   An iterable of present STRING DataItems. The output is the concatenation of
   these string chunks.</code></pre>
+
+### `kd.json_stream.stream_string_value(input_chunks, field_to_extract)` {#kd.json_stream.stream_string_value}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts requested string value from streamed JSON.
+
+Example
+  input:
+    [ {&#34;id&#34;:1, &#34;str&#34;:&#34;some\nstring&#34;}, {&#34;id&#34;: 2, &#34;str&#34;:&#34;another string&#34;} ]
+  field_to_extract: $[*].str
+  output:
+    some
+    string
+
+Note that if there are several values matching `field_to_extract`, only
+the first one is used.
+
+Args:
+  input_chunks: An iterable of STRING DataItems with JSON fragments.
+  field_to_extract: JSONPath string (e.g. &#34;$.docs[*].name&#34;), specifies a field
+    to extract from the input stream. Only subset of JSONPath features is
+    supported. List index can be specified only as `[*]`.
+
+Returns:
+  An iterable of STRING DataItems.</code></pre>
 
 ### `kd.json_stream.unquote(input_chunks, /)` {#kd.json_stream.unquote}
 

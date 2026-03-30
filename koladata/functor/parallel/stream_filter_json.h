@@ -27,6 +27,10 @@ absl::StatusOr<StreamPtr> StreamFilterJson(
     ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input,
     const DataSlice& field_to_extract);
 
+absl::StatusOr<StreamPtr> StreamStringFromJson(
+    ExecutorPtr absl_nonnull executor, StreamPtr absl_nonnull input,
+    const DataSlice& field_to_extract);
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_FILTER_JSON_H_

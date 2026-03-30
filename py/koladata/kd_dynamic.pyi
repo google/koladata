@@ -287,6 +287,7 @@ class json:
 class json_stream:
   chunk_values = _operators_json_stream.chunk_values
   explode_array = _operators_json_stream.explode_array
+  filter_json = _operators_json_stream.filter_json
   get_array_nth_value = _operators_json_stream.get_array_nth_value
   get_object_key_value = _operators_json_stream.get_object_key_value
   get_object_key_values = _operators_json_stream.get_object_key_values
@@ -298,6 +299,7 @@ class json_stream:
   select_nonempty_arrays = _operators_json_stream.select_nonempty_arrays
   select_nonempty_objects = _operators_json_stream.select_nonempty_objects
   select_nonnull = _operators_json_stream.select_nonnull
+  stream_string_value = _operators_json_stream.stream_string_value
   unquote = _operators_json_stream.unquote
 
 

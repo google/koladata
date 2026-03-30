@@ -143,6 +143,14 @@ class StreamReduceStackOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.stream_string_from_json operator.
+class StreamStringFromJsonOperatorFamily final
+    : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // koda_internal.parallel.stream_while_returns operator.
 class StreamWhileReturnsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

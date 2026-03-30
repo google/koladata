@@ -130,6 +130,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_concat",
                 std::make_unique<StreamReduceConcatOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_stack",
                 std::make_unique<StreamReduceStackOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.stream_string_from_json",
+                std::make_unique<StreamStringFromJsonOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.sync_wait",
                 std::make_unique<SyncWaitOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.transform_many",
