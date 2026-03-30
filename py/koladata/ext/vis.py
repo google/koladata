@@ -765,7 +765,7 @@ def visualize_slice(
 
     kd-event-reinterpret {
       display: block;
-      --kd-ds-vis-message-height: 100px;
+      --kd-ds-vis-message-height: 300px;
       /*
         Extra 20px is to avoid having an extra scrollbar when we have a data
         item and a large message.
