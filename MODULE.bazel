@@ -19,7 +19,7 @@ bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20250210-f02a2b7")
 bazel_dep(name = "re2", version = "2025-08-12", repo_name = "com_googlesource_code_re2")
 bazel_dep(name = "riegeli", version = "0.0.0-20250822-9f2744d", repo_name = "com_google_riegeli")
 bazel_dep(name = "rules_cc", version = "0.2.12")
-bazel_dep(name = "rules_python", version = "1.6.3")
+bazel_dep(name = "rules_python", version = "1.9.0")
 
 # Note: We would like to use the latest version of Arolla during development.
 archive_override(
@@ -47,16 +47,19 @@ python.toolchain(
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip", dev_dependency = True)
 pip.parse(
+    extra_pip_args = ["--no-cache-dir"],
     hub_name = "koladata_pip_deps",
     python_version = "3.11",
     requirements_lock = "//:requirements_lock.txt",
 )
 pip.parse(
+    extra_pip_args = ["--no-cache-dir"],
     hub_name = "koladata_pip_deps",
     python_version = "3.12",
     requirements_lock = "//:requirements_lock.txt",
 )
 pip.parse(
+    extra_pip_args = ["--no-cache-dir"],
     hub_name = "koladata_pip_deps",
     python_version = "3.13",
     requirements_lock = "//:requirements_lock.txt",
