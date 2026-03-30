@@ -91,24 +91,11 @@ class JsonSalvageStreamProcessor {
   explicit JsonSalvageStreamProcessor(const JsonSalvageOptions& options)
       : options_(options) {}
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid or does not match the options passed to the
-  // constructor.
-  [[nodiscard]] bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -254,24 +241,11 @@ class JsonHeadStreamProcessor {
   explicit JsonHeadStreamProcessor(const JsonHeadOptions& options)
       : options_(options) {}
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid or does not match the options passed to the
-  // constructor.
-  [[nodiscard]] bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -313,24 +287,11 @@ class JsonPrettifyStreamProcessor {
   explicit JsonPrettifyStreamProcessor(const JsonPrettifyOptions& options)
       : options_(options) {}
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid or does not match the options passed to the
-  // constructor.
-  [[nodiscard]] bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -352,23 +313,11 @@ class JsonCompactifyStreamProcessor {
  public:
   JsonCompactifyStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -387,23 +336,11 @@ class JsonSelectNonemptyObjectsStreamProcessor {
  public:
   JsonSelectNonemptyObjectsStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -426,23 +363,11 @@ class JsonSelectNonemptyArraysStreamProcessor {
  public:
   JsonSelectNonemptyArraysStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -465,23 +390,11 @@ class JsonSelectNonnullStreamProcessor {
  public:
   JsonSelectNonnullStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -523,23 +436,11 @@ class JsonExtractValuesStreamProcessor {
   explicit JsonExtractValuesStreamProcessor(JsonExtractValuesOptions options)
       : options_(options) {}
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -576,23 +477,11 @@ class JsonImplodeArrayStreamProcessor {
  public:
   JsonImplodeArrayStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -626,23 +515,11 @@ class JsonExplodeArrayStreamProcessor {
  public:
   JsonExplodeArrayStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -686,23 +563,11 @@ class JsonGetArrayNthValueStreamProcessor {
       const JsonGetArrayNthValueOptions& options)
       : options_(options) {}
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -731,23 +596,11 @@ class JsonUnquoteStreamProcessor {
  public:
   JsonUnquoteStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -764,23 +617,11 @@ class JsonQuoteStreamProcessor {
  public:
   JsonQuoteStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunk, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunk; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunk; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 
@@ -798,23 +639,11 @@ class JsonChunkValuesStreamProcessor {
  public:
   JsonChunkValuesStreamProcessor() = default;
 
-  // Resets to the initial state.
-  void Reset();
-
-  // Initializes from a state string. Returns true if successful, or false if
-  // the state string is invalid.
-  bool LoadState(std::string_view state);
-
-  // Returns a state string that can be used to recreate the state of the
-  // processor.
-  std::string ToState() const;
-
   // Processes a chunk of the input stream and optionally ends the input stream,
   // returning (output_chunks, end_of_output) for the output stream. If
   // end_of_output is true, the output stream should be closed after emitting
-  // output_chunks; afterward, this processor has unspecified behavior until it
-  // is reset. If end_of_input is true, then end_of_output is guaranteed to be
-  // true.
+  // output_chunks; afterward, this processor has unspecified behavior. If
+  // end_of_input is true, then end_of_output is guaranteed to be true.
   JsonStreamProcessResult Process(std::string_view input_chunk,
                                   bool end_of_input);
 

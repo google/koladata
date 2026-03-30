@@ -26,7 +26,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
-#include "koladata/internal/op_utils/stream_processor_state.pb.h"
 
 namespace koladata::internal {
 namespace {
@@ -42,30 +41,21 @@ std::string RunProcessor(std::string input, const OptionsT&... options) {
   }
 
   std::string byte_streamed_output;
-  processor.Reset();
-  std::string state = processor.ToState();
+  ProcessorT streaming_processor(options...);
   bool end_of_output = false;
   for (char c : input) {
-    std::string input_chunk;
-    input_chunk.push_back(c);
-    {
-      ProcessorT tmp_processor(options...);
-      EXPECT_TRUE(tmp_processor.LoadState(state));
-      auto [chunks, chunk_end] = tmp_processor.Process(input_chunk, false);
-      for (auto& chunk : chunks) {
-        byte_streamed_output += chunk;
-      }
-      state = tmp_processor.ToState();
-      end_of_output = chunk_end;
-      if (end_of_output) {
-        break;
-      }
+    std::string input_chunk(1, c);
+    auto [chunks, chunk_end] = streaming_processor.Process(input_chunk, false);
+    for (auto& chunk : chunks) {
+      byte_streamed_output += chunk;
+    }
+    end_of_output = chunk_end;
+    if (end_of_output) {
+      break;
     }
   }
   if (!end_of_output) {
-    ProcessorT tmp_processor(options...);
-    EXPECT_TRUE(tmp_processor.LoadState(state));
-    auto [end_chunks, end_flag] = tmp_processor.Process("", true);
+    auto [end_chunks, end_flag] = streaming_processor.Process("", true);
     EXPECT_TRUE(end_flag);
     for (auto& chunk : end_chunks) {
       byte_streamed_output += chunk;
@@ -790,81 +780,6 @@ TEST(JsonStreamTest, SalvageStreamProcessorMinimallyDelayed) {
   EXPECT_EQ(p("}"), "}");
 }
 
-TEST(JsonStreamTest, SalvageStreamProcessorLoadStateFailure) {
-  JsonSalvageStreamProcessor processor(kDefaultJsonSalvageOptions);
-
-  EXPECT_FALSE(processor.LoadState(""));
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  EXPECT_FALSE(processor.LoadState(
-      JsonSalvageStreamProcessor(kAllowNanJsonSalvageOptions).ToState()));
-
-  {
-    JsonSalvageStateProto proto;
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    for (int i = 0; i < 4; ++i) {
-      proto.mutable_utf8_buffer()->push_back('A');
-    }
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    for (int i = 0; i < 101; ++i) {
-      proto.add_container_stack(0);
-    }
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    proto.add_container_stack(3);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    proto.add_container_stack(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    for (int i = 0; i < 101; ++i) {
-      proto.add_buffer(0);
-    }
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    proto.add_buffer(0x110000);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    proto.add_buffer(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    processor.Reset();
-    JsonSalvageStateProto proto;
-    proto.ParseFromString(processor.ToState());
-    proto.set_state(11);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunHead(std::string input, int64_t n) {
   return RunProcessor<JsonHeadStreamProcessor>(input, JsonHeadOptions{.n = n});
@@ -917,20 +832,6 @@ TEST(JsonStreamTest, HeadStreamProcessorEarlyEnd) {
   EXPECT_TRUE(end4);
 }
 
-TEST(JsonStreamTest, HeadStreamProcessorLoadStateFailure) {
-  JsonHeadStreamProcessor processor({.n = 1});
-
-  EXPECT_FALSE(processor.LoadState(""));
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  EXPECT_FALSE(
-      processor.LoadState(JsonHeadStreamProcessor({.n = 2}).ToState()));
-  {
-    JsonHeadStateProto proto;
-    proto.set_n(1);
-    proto.set_line_number(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunPrettify(std::string input, std::string indent_string = "  ") {
   return RunProcessor<JsonPrettifyStreamProcessor, JsonPrettifyOptions>(
@@ -1022,20 +923,6 @@ TEST(JsonStreamTest, PrettifyStreamProcessor) {
       "\"e\": [\n    2\n  ],\n  \"f\": {\n    \"g\": 3\n  }\n}");
 }
 
-TEST(JsonStreamTest, PrettifyStreamProcessorLoadStateFailure) {
-  JsonPrettifyStreamProcessor processor({.indent_string = "  "});
-
-  EXPECT_FALSE(processor.LoadState(""));
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  EXPECT_FALSE(processor.LoadState(
-      JsonPrettifyStreamProcessor({.indent_string = " "}).ToState()));
-  {
-    JsonPrettifyStateProto proto;
-    proto.set_indent_string("  ");
-    proto.set_container_depth(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunCompactify(std::string input) {
   return RunProcessor<JsonCompactifyStreamProcessor>(input);
@@ -1071,16 +958,6 @@ TEST(JsonStreamTest, CompactifyStreamProcessor) {
   EXPECT_EQ(RunCompactify("{\"a\": 1, \"b\": 2}"), "{\"a\":1,\"b\":2}\n");
 }
 
-TEST(JsonStreamTest, CompactifyStreamProcessorLoadStateFailure) {
-  JsonCompactifyStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonCompactifyStateProto proto;
-    proto.set_container_depth(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunSelectNonemptyObjects(std::string input) {
   return RunProcessor<JsonSelectNonemptyObjectsStreamProcessor>(input);
@@ -1093,16 +970,6 @@ TEST(JsonStreamTest, SelectNonemptyObjectsStreamProcessor) {
             "{\"a\":\"b\"}\n{\"c\":\"d\"}\n");
 }
 
-TEST(JsonStreamTest, SelectNonemptyObjectsStreamProcessorLoadStateFailure) {
-  JsonSelectNonemptyObjectsStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonSelectNonemptyObjectsProto proto;
-    proto.set_state(4);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunSelectNonemptyArrays(std::string input) {
   return RunProcessor<JsonSelectNonemptyArraysStreamProcessor>(input);
@@ -1115,16 +982,6 @@ TEST(JsonStreamTest, SelectNonemptyArraysStreamProcessor) {
             "[\"x\"]\n[1,2,3]\n");
 }
 
-TEST(JsonStreamTest, SelectNonemptyArraysStreamProcessorLoadStateFailure) {
-  JsonSelectNonemptyArraysStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonSelectNonemptyArraysProto proto;
-    proto.set_state(4);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunSelectNonnull(std::string input) {
   return RunProcessor<JsonSelectNonnullStreamProcessor>(input);
@@ -1138,16 +995,6 @@ TEST(JsonStreamTest, SelectNonnullStreamProcessor) {
       "123\n{}\n{\"a\":\"b\"}\n[]\n[1,2,3]\n{\"c\":\"d\"}\n");
 }
 
-TEST(JsonStreamTest, SelectNonnullStreamProcessorLoadStateFailure) {
-  JsonSelectNonnullStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonSelectNonnullProto proto;
-    proto.set_state(4);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunExtractValues(
     std::string input,
@@ -1437,31 +1284,6 @@ TEST(JsonStreamTest, ExtractValuesStreamProcessorWithPath) {
             "[[[],null]]\n[[[],123]]\n[[[],\"x\"]]\n");
 }
 
-TEST(JsonStreamTest, ExtractValuesStreamProcessorLoadStateFailure) {
-  auto match_fn = [](absl::Span<const std::variant<int64_t, std::string>>) {
-    return true;
-  };
-  JsonExtractValuesStreamProcessor processor(
-      {.path_match_fn = match_fn, .with_path = false});
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  EXPECT_FALSE(
-      processor.LoadState(JsonExtractValuesStreamProcessor(
-                              {.path_match_fn = match_fn, .with_path = true})
-                              .ToState()));
-  {
-    JsonExtractValuesStateProto proto;
-    proto.set_with_path(false);
-    proto.set_match_depth(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  {
-    JsonExtractValuesStateProto proto;
-    proto.set_with_path(false);
-    proto.add_container_path_stack();
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 std::string RunImplodeArray(std::string input) {
   return RunProcessor<JsonImplodeArrayStreamProcessor>(input);
@@ -1475,11 +1297,6 @@ TEST(JsonStreamTest, ImplodeArrayStreamProcessor) {
             "[\"abc]\\\\def\\\"[ghi\"]\n");
 }
 
-TEST(JsonStreamTest, ImplodeArrayStreamProcessorLoadStateFailure) {
-  JsonImplodeArrayStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-}
 
 TEST(JsonStreamTest, ImplodeArrayStreamProcessorMinimallyDelayed) {
   JsonImplodeArrayStreamProcessor processor;
@@ -1530,16 +1347,6 @@ TEST(JsonStreamTest, ExplodeArrayStreamProcessor) {
             "\"abc\"\n\"\\\\\\\"\"\n\"def\"\n");
 }
 
-TEST(JsonStreamTest, ExplodeArrayStreamProcessorLoadStateFailure) {
-  JsonExplodeArrayStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonExplodeArrayStateProto proto;
-    proto.set_container_depth(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-}
 
 TEST(JsonStreamTest, ExplodeArrayStreamProcessorMinimallyDelayed) {
   JsonExplodeArrayStreamProcessor processor;
@@ -1612,19 +1419,6 @@ TEST(JsonStreamTest, GetArrayNthValueStreamProcessor) {
             "null\nnull\nnull\n");
 }
 
-TEST(JsonStreamTest, GetArrayNthValueStreamProcessorLoadStateFailure) {
-  JsonGetArrayNthValueStreamProcessor processor({.n = 0});
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-  {
-    JsonGetArrayNthValueStateProto proto;
-    proto.set_n(0);
-    proto.set_container_depth(-1);
-    EXPECT_FALSE(processor.LoadState(proto.SerializeAsString()));
-  }
-  EXPECT_FALSE(processor.LoadState(
-      JsonGetArrayNthValueStreamProcessor({.n = 1}).ToState()));
-}
 
 TEST(JsonStreamTest, GetArrayNthValueStreamProcessorMinimallyDelayed) {
   JsonGetArrayNthValueStreamProcessor processor({.n = 2});
@@ -1712,11 +1506,6 @@ TEST(JsonStreamTest, UnquoteStreamProcessor) {
   EXPECT_EQ(RunUnquote("\"?\\ud83d\\udeua?\""), "?\ufffda?");
 }
 
-TEST(JsonStreamTest, UnquoteStreamProcessorLoadStateFailure) {
-  JsonUnquoteStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-}
 
 std::string RunQuote(std::string input) {
   return RunProcessor<JsonQuoteStreamProcessor>(input);
@@ -1745,12 +1534,6 @@ TEST(JsonStreamTest, QuoteStreamProcessor) {
   EXPECT_EQ(RunQuote("\\u2660"), "\"\\\\u2660\"");
 }
 
-TEST(JsonStreamTest, QuoteStreamProcessorLoadStateFailure) {
-  JsonQuoteStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
-}
-
 std::vector<std::string> RunChunkValues(std::string input) {
   JsonChunkValuesStreamProcessor processor;
   auto [output, end] = processor.Process(input, true);
@@ -1759,31 +1542,22 @@ std::vector<std::string> RunChunkValues(std::string input) {
   std::vector<std::string> output_vec(output.begin(), output.end());
 
   std::vector<std::string> byte_streamed_output;
-  processor.Reset();
-  std::string state = processor.ToState();
+  JsonChunkValuesStreamProcessor streaming_processor;
   bool end_of_output = false;
   for (char c : input) {
-    std::string input_chunk;
-    input_chunk.push_back(c);
-    {
-      JsonChunkValuesStreamProcessor tmp_processor;
-      EXPECT_TRUE(tmp_processor.LoadState(state));
-      auto [output_chunks, chunk_end] =
-          tmp_processor.Process(input_chunk, false);
-      for (auto& chunk : output_chunks) {
-        byte_streamed_output.push_back(std::move(chunk));
-      }
-      state = tmp_processor.ToState();
-      end_of_output = chunk_end;
-      if (end_of_output) {
-        break;
-      }
+    std::string input_chunk(1, c);
+    auto [output_chunks, chunk_end] =
+        streaming_processor.Process(input_chunk, false);
+    for (auto& chunk : output_chunks) {
+      byte_streamed_output.push_back(std::move(chunk));
+    }
+    end_of_output = chunk_end;
+    if (end_of_output) {
+      break;
     }
   }
   if (!end_of_output) {
-    JsonChunkValuesStreamProcessor tmp_processor;
-    EXPECT_TRUE(tmp_processor.LoadState(state));
-    auto [end_chunks, end_flag] = tmp_processor.Process("", true);
+    auto [end_chunks, end_flag] = streaming_processor.Process("", true);
     EXPECT_TRUE(end_flag);
     for (auto& chunk : end_chunks) {
       byte_streamed_output.push_back(std::move(chunk));
@@ -1829,12 +1603,6 @@ TEST(JsonStreamTest, ChunkValuesStreamProcessorMultipleChunks) {
               testing::FieldsAre(testing::IsEmpty(), false));
   EXPECT_THAT(processor.Process("6\n789\n", true),
               testing::FieldsAre(testing::ElementsAre("456\n", "789\n"), true));
-}
-
-TEST(JsonStreamTest, ChunkValuesStreamProcessorLoadStateFailure) {
-  JsonChunkValuesStreamProcessor processor;
-
-  EXPECT_FALSE(processor.LoadState("GARBAGE"));
 }
 
 }  // namespace

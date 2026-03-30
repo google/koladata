@@ -23,7 +23,6 @@
 #include <variant>
 #include <vector>
 
-#include "absl/cleanup/cleanup.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/strings/ascii.h"
@@ -35,7 +34,6 @@
 #include "unicode/utf16.h"
 #include "unicode/utf8.h"
 #include "unicode/utypes.h"
-#include "koladata/internal/op_utils/stream_processor_state.pb.h"
 
 namespace koladata::internal {
 namespace {
@@ -118,107 +116,6 @@ JsonStreamProcessResult FromSingleStringOutput(std::string output, bool end) {
 }
 
 }  // namespace
-
-void JsonSalvageStreamProcessor::Reset() {
-  utf8_buffer_.clear();
-  container_stack_.clear();
-  needs_leading_separator_ = false;
-  is_object_key_ = false;
-  buffer_.clear();
-  state_ = State::kBase;
-  json_string_utf16_first_surrogate_.reset();
-  output_.clear();
-}
-
-bool JsonSalvageStreamProcessor::LoadState(std::string_view state) {
-  Reset();
-  auto reset_on_failure = absl::MakeCleanup([this] { Reset(); });
-
-  JsonSalvageStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (options_.allow_nan != proto.allow_nan() ||
-      options_.ensure_ascii != proto.ensure_ascii() ||
-      options_.max_depth != proto.max_depth()) {
-    return false;
-  }
-  if (proto.utf8_buffer().size() > 3 ||
-      proto.container_stack_size() > options_.max_depth ||
-      proto.buffer_size() > kMaxBufferSize) {
-    return false;
-  }
-  for (char c : proto.utf8_buffer()) {
-    utf8_buffer_.push_back(static_cast<uint8_t>(c));
-  }
-  for (int32_t x : proto.container_stack()) {
-    switch (static_cast<ContainerType>(x)) {
-      case ContainerType::kArray:
-      case ContainerType::kObject:
-        container_stack_.push_back(static_cast<ContainerType>(x));
-        break;
-      default:
-        return false;
-    }
-  }
-  needs_leading_separator_ = proto.needs_leading_separator();
-  is_object_key_ = proto.is_object_key();
-  for (int32_t c : proto.buffer()) {
-    if (c < 0 || !IsEncodableCodePoint(c)) {
-      return false;
-    }
-    buffer_.push_back(c);
-  }
-  switch (static_cast<State>(proto.state())) {
-    case State::kBase:
-    case State::kStringDoubleQuote:
-    case State::kStringSingleQuote:
-    case State::kStringBacktick:
-    case State::kStringTripleDoubleQuote:
-    case State::kStringTripleSingleQuote:
-    case State::kStringUnquoted:
-    case State::kCommentSingleLine:
-    case State::kCommentMultiLine:
-    case State::kNumberBuffered:
-    case State::kNumberDecimal:
-      state_ = static_cast<State>(proto.state());
-      break;
-    default:
-      return false;
-  }
-
-  if (proto.has_json_string_utf16_first_surrogate()) {
-    json_string_utf16_first_surrogate_ =
-        proto.json_string_utf16_first_surrogate();
-  }
-
-  std::move(reset_on_failure).Cancel();
-  return true;
-}
-
-std::string JsonSalvageStreamProcessor::ToState() const {
-  JsonSalvageStateProto proto;
-  proto.set_allow_nan(options_.allow_nan);
-  proto.set_ensure_ascii(options_.ensure_ascii);
-  proto.set_max_depth(options_.max_depth);
-  for (auto c : utf8_buffer_) {
-    proto.mutable_utf8_buffer()->push_back(static_cast<char>(c));
-  }
-  for (auto container_type : container_stack_) {
-    proto.add_container_stack(static_cast<int32_t>(container_type));
-  }
-  proto.set_needs_leading_separator(needs_leading_separator_);
-  proto.set_is_object_key(is_object_key_);
-  for (auto c : buffer_) {
-    proto.add_buffer(c);
-  }
-  proto.set_state(static_cast<int32_t>(state_));
-  if (json_string_utf16_first_surrogate_.has_value()) {
-    proto.set_json_string_utf16_first_surrogate(
-        json_string_utf16_first_surrogate_.value());
-  }
-  return proto.SerializeAsString();
-}
 
 JsonStreamProcessResult JsonSalvageStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
@@ -1117,31 +1014,6 @@ std::string JsonSalvageStreamProcessor::ConsumeOutput() {
   return output;
 }
 
-void JsonHeadStreamProcessor::Reset() { line_number_ = 0; }
-
-bool JsonHeadStreamProcessor::LoadState(std::string_view state) {
-  Reset();
-  JsonHeadStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.n() != options_.n) {
-    return false;
-  }
-  if (proto.line_number() < 0) {
-    return false;
-  }
-  line_number_ = proto.line_number();
-  return true;
-}
-
-std::string JsonHeadStreamProcessor::ToState() const {
-  JsonHeadStateProto proto;
-  proto.set_n(options_.n);
-  proto.set_line_number(line_number_);
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonHeadStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -1158,44 +1030,6 @@ JsonStreamProcessResult JsonHeadStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonPrettifyStreamProcessor::Reset() {
-  container_depth_ = 0;
-  has_contents_ = false;
-  is_in_string_ = false;
-  is_in_escape_ = false;
-  needs_newline_and_indent_ = false;
-}
-
-bool JsonPrettifyStreamProcessor::LoadState(std::string_view state) {
-  JsonPrettifyStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.container_depth() < 0) {
-    return false;
-  }
-  if (proto.indent_string() != options_.indent_string) {
-    return false;
-  }
-  container_depth_ = proto.container_depth();
-  has_contents_ = proto.has_contents();
-  is_in_string_ = proto.is_in_string();
-  is_in_escape_ = proto.is_in_escape();
-  needs_newline_and_indent_ = proto.needs_newline_and_indent();
-  return true;
-}
-
-std::string JsonPrettifyStreamProcessor::ToState() const {
-  JsonPrettifyStateProto proto;
-  proto.set_indent_string(options_.indent_string);
-  proto.set_container_depth(container_depth_);
-  proto.set_has_contents(has_contents_);
-  proto.set_is_in_string(is_in_string_);
-  proto.set_is_in_escape(is_in_escape_);
-  proto.set_needs_newline_and_indent(needs_newline_and_indent_);
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonPrettifyStreamProcessor::Process(
@@ -1271,37 +1105,6 @@ JsonStreamProcessResult JsonPrettifyStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonCompactifyStreamProcessor::Reset() {
-  container_depth_ = 0;
-  is_in_value_ = false;
-  is_in_string_ = false;
-  is_in_escape_ = false;
-}
-
-bool JsonCompactifyStreamProcessor::LoadState(std::string_view state) {
-  JsonCompactifyStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.container_depth() < 0) {
-    return false;
-  }
-  container_depth_ = proto.container_depth();
-  is_in_value_ = proto.is_in_value();
-  is_in_string_ = proto.is_in_string();
-  is_in_escape_ = proto.is_in_escape();
-  return true;
-}
-
-std::string JsonCompactifyStreamProcessor::ToState() const {
-  JsonCompactifyStateProto proto;
-  proto.set_container_depth(container_depth_);
-  proto.set_is_in_value(is_in_value_);
-  proto.set_is_in_string(is_in_string_);
-  proto.set_is_in_escape(is_in_escape_);
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonCompactifyStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -1352,36 +1155,6 @@ JsonStreamProcessResult JsonCompactifyStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonSelectNonemptyObjectsStreamProcessor::Reset() {
-  state_ = State::kStart;
-}
-
-bool JsonSelectNonemptyObjectsStreamProcessor::LoadState(
-    std::string_view state) {
-  JsonSelectNonemptyObjectsProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  switch (static_cast<State>(proto.state())) {
-    case State::kStart:
-    case State::kOpenBrace:
-    case State::kDropLine:
-    case State::kKeepLine:
-      state_ = static_cast<State>(proto.state());
-      break;
-    default:
-      Reset();
-      return false;
-  }
-  return true;
-}
-
-std::string JsonSelectNonemptyObjectsStreamProcessor::ToState() const {
-  JsonSelectNonemptyObjectsProto proto;
-  proto.set_state(static_cast<int32_t>(state_));
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonSelectNonemptyObjectsStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -1417,36 +1190,6 @@ JsonStreamProcessResult JsonSelectNonemptyObjectsStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonSelectNonemptyArraysStreamProcessor::Reset() {
-  state_ = State::kStart;
-}
-
-bool JsonSelectNonemptyArraysStreamProcessor::LoadState(
-    std::string_view state) {
-  JsonSelectNonemptyArraysProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  switch (static_cast<State>(proto.state())) {
-    case State::kStart:
-    case State::kOpenSquareBracket:
-    case State::kDropLine:
-    case State::kKeepLine:
-      state_ = static_cast<State>(proto.state());
-      break;
-    default:
-      Reset();
-      return false;
-  }
-  return true;
-}
-
-std::string JsonSelectNonemptyArraysStreamProcessor::ToState() const {
-  JsonSelectNonemptyArraysProto proto;
-  proto.set_state(static_cast<int32_t>(state_));
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonSelectNonemptyArraysStreamProcessor::Process(
@@ -1486,32 +1229,6 @@ JsonStreamProcessResult JsonSelectNonemptyArraysStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonSelectNonnullStreamProcessor::Reset() { state_ = State::kStart; }
-
-bool JsonSelectNonnullStreamProcessor::LoadState(std::string_view state) {
-  JsonSelectNonnullProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  switch (static_cast<State>(proto.state())) {
-    case State::kStart:
-    case State::kDropLine:
-    case State::kKeepLine:
-      state_ = static_cast<State>(proto.state());
-      break;
-    default:
-      Reset();
-      return false;
-  }
-  return true;
-}
-
-std::string JsonSelectNonnullStreamProcessor::ToState() const {
-  JsonSelectNonnullProto proto;
-  proto.set_state(static_cast<int32_t>(state_));
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonSelectNonnullStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -1539,76 +1256,6 @@ JsonStreamProcessResult JsonSelectNonnullStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonExtractValuesStreamProcessor::Reset() {
-  container_path_stack_.clear();
-  is_object_key_ = false;
-  key_literal_buffer_.clear();
-  is_in_match_ = false;
-  has_any_matches_ = false;
-  match_depth_ = 0;
-  is_in_string_ = false;
-  is_in_escape_ = false;
-}
-
-bool JsonExtractValuesStreamProcessor::LoadState(std::string_view state) {
-  Reset();
-  auto reset_on_failure = absl::MakeCleanup([this] { Reset(); });
-
-  JsonExtractValuesStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.with_path() != options_.with_path) {
-    return false;
-  }
-  if (proto.match_depth() < 0) {
-    return false;
-  }
-  for (const auto& path_part : proto.container_path_stack()) {
-    switch (path_part.kind_case()) {
-      case JsonExtractValuesStateProto::PathPart::kArrayIndex:
-        container_path_stack_.push_back(path_part.array_index());
-        break;
-      case JsonExtractValuesStateProto::PathPart::kObjectKey:
-        container_path_stack_.push_back(std::string(path_part.object_key()));
-        break;
-      default:
-        return false;
-    }
-  }
-  is_object_key_ = proto.is_object_key();
-  key_literal_buffer_ = proto.key_literal_buffer();
-  is_in_match_ = proto.is_in_match();
-  has_any_matches_ = proto.has_any_matches();
-  match_depth_ = proto.match_depth();
-  is_in_string_ = proto.is_in_string();
-  is_in_escape_ = proto.is_in_escape();
-
-  std::move(reset_on_failure).Cancel();
-  return true;
-}
-
-std::string JsonExtractValuesStreamProcessor::ToState() const {
-  JsonExtractValuesStateProto proto;
-  proto.set_with_path(options_.with_path);
-  for (const auto& path_part : container_path_stack_) {
-    auto* pp = proto.add_container_path_stack();
-    if (const auto* index = std::get_if<int64_t>(&path_part)) {
-      pp->set_array_index(*index);
-    } else if (const auto* key = std::get_if<std::string>(&path_part)) {
-      pp->set_object_key(*key);
-    }
-  }
-  proto.set_is_object_key(is_object_key_);
-  proto.set_key_literal_buffer(key_literal_buffer_);
-  proto.set_is_in_match(is_in_match_);
-  proto.set_has_any_matches(has_any_matches_);
-  proto.set_match_depth(match_depth_);
-  proto.set_is_in_string(is_in_string_);
-  proto.set_is_in_escape(is_in_escape_);
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonExtractValuesStreamProcessor::Process(
@@ -1768,28 +1415,6 @@ JsonStreamProcessResult JsonExtractValuesStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonImplodeArrayStreamProcessor::Reset() {
-  emitted_opening_square_bracket_ = false;
-  needs_leading_comma_ = false;
-}
-
-bool JsonImplodeArrayStreamProcessor::LoadState(std::string_view state) {
-  JsonImplodeArrayStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  emitted_opening_square_bracket_ = proto.emitted_opening_square_bracket();
-  needs_leading_comma_ = proto.needs_leading_comma();
-  return true;
-}
-
-std::string JsonImplodeArrayStreamProcessor::ToState() const {
-  JsonImplodeArrayStateProto proto;
-  proto.set_emitted_opening_square_bracket(emitted_opening_square_bracket_);
-  proto.set_needs_leading_comma(needs_leading_comma_);
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonImplodeArrayStreamProcessor::Process(
     std::string_view input, bool end_of_input) {
   std::string output;
@@ -1816,40 +1441,6 @@ JsonStreamProcessResult JsonImplodeArrayStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonExplodeArrayStreamProcessor::Reset() {
-  container_depth_ = 0;
-  is_top_level_array_ = false;
-  has_contents_ = false;
-  is_in_string_ = false;
-  is_in_escape_ = false;
-}
-
-bool JsonExplodeArrayStreamProcessor::LoadState(std::string_view state) {
-  JsonExplodeArrayStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.container_depth() < 0) {
-    return false;
-  }
-  container_depth_ = proto.container_depth();
-  is_top_level_array_ = proto.is_top_level_array();
-  has_contents_ = proto.has_contents();
-  is_in_string_ = proto.is_in_string();
-  is_in_escape_ = proto.is_in_escape();
-  return true;
-}
-
-std::string JsonExplodeArrayStreamProcessor::ToState() const {
-  JsonExplodeArrayStateProto proto;
-  proto.set_container_depth(container_depth_);
-  proto.set_is_top_level_array(is_top_level_array_);
-  proto.set_has_contents(has_contents_);
-  proto.set_is_in_string(is_in_string_);
-  proto.set_is_in_escape(is_in_escape_);
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonExplodeArrayStreamProcessor::Process(
@@ -1912,49 +1503,6 @@ JsonStreamProcessResult JsonExplodeArrayStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonGetArrayNthValueStreamProcessor::Reset() {
-  container_depth_ = 0;
-  is_top_level_array_ = false;
-  top_level_array_value_index_ = 0;
-  emitted_value_ = false;
-  is_in_string_ = false;
-  is_in_escape_ = false;
-}
-
-bool JsonGetArrayNthValueStreamProcessor::LoadState(std::string_view state) {
-  JsonGetArrayNthValueStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (proto.container_depth() < 0) {
-    return false;
-  }
-  if (proto.n() != options_.n) {
-    return false;
-  }
-  container_depth_ = proto.container_depth();
-  is_top_level_array_ = proto.is_top_level_array();
-  top_level_array_value_index_ = proto.top_level_array_value_index();
-  has_contents_ = proto.has_contents();
-  emitted_value_ = proto.emitted_value();
-  is_in_string_ = proto.is_in_string();
-  is_in_escape_ = proto.is_in_escape();
-  return true;
-}
-
-std::string JsonGetArrayNthValueStreamProcessor::ToState() const {
-  JsonGetArrayNthValueStateProto proto;
-  proto.set_n(options_.n);
-  proto.set_container_depth(container_depth_);
-  proto.set_is_top_level_array(is_top_level_array_);
-  proto.set_top_level_array_value_index(top_level_array_value_index_);
-  proto.set_has_contents(has_contents_);
-  proto.set_emitted_value(emitted_value_);
-  proto.set_is_in_string(is_in_string_);
-  proto.set_is_in_escape(is_in_escape_);
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonGetArrayNthValueStreamProcessor::Process(
@@ -2056,28 +1604,6 @@ JsonStreamProcessResult JsonGetArrayNthValueStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonUnquoteStreamProcessor::Reset() {
-  is_in_string_ = false;
-  escape_buffer_.clear();
-}
-
-bool JsonUnquoteStreamProcessor::LoadState(std::string_view state) {
-  JsonUnquoteStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  is_in_string_ = proto.is_in_string();
-  escape_buffer_ = proto.escape_buffer();
-  return true;
-}
-
-std::string JsonUnquoteStreamProcessor::ToState() const {
-  JsonUnquoteStateProto proto;
-  proto.set_is_in_string(is_in_string_);
-  proto.set_escape_buffer(escape_buffer_);
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonUnquoteStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -2159,23 +1685,6 @@ JsonStreamProcessResult JsonUnquoteStreamProcessor::Process(
   return FromSingleStringOutput(std::move(output), end_of_input);
 }
 
-void JsonQuoteStreamProcessor::Reset() { emitted_opening_quote_ = false; }
-
-bool JsonQuoteStreamProcessor::LoadState(std::string_view state) {
-  JsonQuoteStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  emitted_opening_quote_ = proto.emitted_opening_quote();
-  return true;
-}
-
-std::string JsonQuoteStreamProcessor::ToState() const {
-  JsonQuoteStateProto proto;
-  proto.set_emitted_opening_quote(emitted_opening_quote_);
-  return proto.SerializeAsString();
-}
-
 JsonStreamProcessResult JsonQuoteStreamProcessor::Process(
     std::string_view input_chunk, bool end_of_input) {
   std::string output;
@@ -2212,30 +1721,6 @@ JsonStreamProcessResult JsonQuoteStreamProcessor::Process(
     }
   }
   return FromSingleStringOutput(std::move(output), end_of_input);
-}
-
-void JsonChunkValuesStreamProcessor::Reset() {
-  compactify_.Reset();
-  buffer_.clear();
-}
-
-bool JsonChunkValuesStreamProcessor::LoadState(std::string_view state) {
-  JsonChunkValuesStateProto proto;
-  if (!proto.ParseFromString(state)) {
-    return false;
-  }
-  if (!compactify_.LoadState(proto.compactify_state())) {
-    return false;
-  }
-  buffer_ = std::move(*proto.mutable_buffer());
-  return true;
-}
-
-std::string JsonChunkValuesStreamProcessor::ToState() const {
-  JsonChunkValuesStateProto proto;
-  proto.set_compactify_state(compactify_.ToState());
-  proto.set_buffer(buffer_);
-  return proto.SerializeAsString();
 }
 
 JsonStreamProcessResult JsonChunkValuesStreamProcessor::Process(
