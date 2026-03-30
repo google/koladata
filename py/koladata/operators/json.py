@@ -25,6 +25,35 @@ from koladata.types import schema_constants
 P = arolla.P
 
 
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.json.filter_json',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.field_to_extract),
+    ],
+)
+def filter_json(x, field_to_extract):  # pylint: disable=unused-argument
+  """Extracts requested field from given JSONs.
+
+  It automatically fixes some errors in the input JSON: replaces single quotes
+  with double quotes, quotes unquoted keys and values, handles linebreaks in
+  string literals. Also removes all spaces and linebreaks outside of string
+  literals.
+
+  Args:
+    x: Slice of strings, each one is a separate JSON.
+    field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
+      to extract from the input JSONs. Only a subset of JSONPath features is
+      supported. List indices can be specified only as `[*]`.
+
+  Returns:
+    A slice of strings with one dimension more than `x`. Each value is a JSON
+    corresponding to the given JSONPath.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.from_json'], via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.json.from_json',

@@ -3456,6 +3456,25 @@ JSON serialization operators.
 
 **Operators**
 
+### `kd.json.filter_json(x, field_to_extract)` {#kd.json.filter_json}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts requested field from given JSONs.
+
+It automatically fixes some errors in the input JSON: replaces single quotes
+with double quotes, quotes unquoted keys and values, handles linebreaks in
+string literals. Also removes all spaces and linebreaks outside of string
+literals.
+
+Args:
+  x: Slice of strings, each one is a separate JSON.
+  field_to_extract: JSONPath string (e.g. &#34;$.docs[*].name&#34;), specifies a field
+    to extract from the input JSONs. Only a subset of JSONPath features is
+    supported. List indices can be specified only as `[*]`.
+
+Returns:
+  A slice of strings with one dimension more than `x`. Each value is a JSON
+  corresponding to the given JSONPath.</code></pre>
+
 ### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, present: 0/0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
 Aliases:
 

@@ -276,6 +276,7 @@ cc_library(
     srcs = ["json.cc"],
     hdrs = ["json.h"],
     deps = [
+        ":json_stream_parser",
         ":lib",
         "//koladata:data_bag",
         "//koladata:data_slice",

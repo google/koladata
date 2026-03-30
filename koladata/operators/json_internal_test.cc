@@ -493,5 +493,68 @@ TEST(JsonInternalTest, AttrsOrder) {
 
 
 
+TEST(JsonInternalTest, FilterJson) {
+  {
+    // Scalar input
+    ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                         FilterJson(test::DataItem("{\"a\": 1, \"b\": 2}"),
+                                    test::DataItem("$.a")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("['1']"));
+  }
+  {
+    // Multiple matches
+    ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                         FilterJson(test::DataItem("{\"a\": [1, 2], \"b\": 3}"),
+                                    test::DataItem("$.a[*]")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("['1', '2']"));
+  }
+  {
+    // DataSlice input
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataSlice<arolla::Text>({"{\"a\": 1}", "{\"a\": 2}"}),
+                   test::DataItem("$.a")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[['1'], ['2']]"));
+  }
+  {
+    // Multidimensional DataSlice input
+    auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataSlice<arolla::Text>(
+                       {"{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}"}, shape),
+                   test::DataItem("$.a")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[[['1']], [['2'], ['3']]]"));
+  }
+  {
+    // Missing values
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataSlice<arolla::Text>({"{\"a\": 1}", std::nullopt}),
+                   test::DataItem("$.a")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[['1'], []]"));
+  }
+  {
+    // No matches
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataItem("{\"a\": 1}"), test::DataItem("$.b")));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[]"));
+  }
+  {
+    // Error: non-string input
+    EXPECT_THAT(FilterJson(test::DataItem(1), test::DataItem("$.a")),
+                StatusIs(absl::StatusCode::kInvalidArgument));
+  }
+  {
+    // Error: non-scalar filter
+    EXPECT_THAT(FilterJson(test::DataItem("{\"a\": 1}"),
+                           test::DataSlice<arolla::Text>({"$.a"})),
+                StatusIs(absl::StatusCode::kInvalidArgument));
+  }
+}
+
+
 }  // namespace
 }  // namespace koladata::ops::json_internal
+

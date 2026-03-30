@@ -39,6 +39,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/operators/strings/strings.h"
 #include "arolla/qtype/base_types.h"
@@ -64,6 +65,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/metadata_utils.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/json_stream_parser.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -1370,6 +1372,70 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
   return DataSlice::Create(
       internal::DataSliceImpl::Create(std::move(result_builder).Build()),
       x.GetShape(), internal::DataItem(schema::kString));
+}
+
+absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter) {
+  RETURN_IF_ERROR(ExpectString("x", x));
+  RETURN_IF_ERROR(ExpectPresentScalar("filter", filter, schema::kString));
+  absl::string_view filter_str = filter.item().value<arolla::Text>().view();
+
+  std::vector<int64_t> split_points;
+  split_points.reserve(x.size() + 1);
+  split_points.push_back(0);
+
+  std::vector<arolla::Text> results;
+
+  auto process_json = [&](absl::string_view json_str) -> absl::Status {
+    JsonStreamParser parser;
+    parser.AllowLinebreakInStrings(true);
+    parser.AllowSingleQuotes(true);
+    parser.AllowUnquotedKeys(true);
+    parser.EnableQuotingInvalidTokens(true);
+    parser.SetSeparatorPolicy(JsonStreamParser::SeparatorPolicy::REMOVE);
+    parser.SetValueEndCallback(
+        [&](absl::string_view path, absl::string_view content) {
+          if (path == filter_str) {
+            results.emplace_back(content);
+          }
+        });
+    RETURN_IF_ERROR(parser.AddChunk(json_str));
+    return parser.Finalize();
+  };
+
+  if (x.is_item()) {
+    if (x.item().holds_value<arolla::Text>()) {
+      RETURN_IF_ERROR(process_json(x.item().value<arolla::Text>()));
+    }
+    split_points.push_back(results.size());
+  } else if (x.slice().is_empty_and_unknown()) {
+    for (int64_t i = 0; i < x.size(); ++i) {
+      split_points.push_back(0);
+    }
+  } else {
+    absl::Status st = absl::OkStatus();
+    x.slice().values<arolla::Text>().ForEach(
+        [&](int64_t i, bool present, absl::string_view v) {
+          if (!st.ok()) {
+            return;
+          }
+          st = process_json(v);
+          split_points.push_back(results.size());
+        });
+    RETURN_IF_ERROR(std::move(st));
+  }
+
+  arolla::DenseArrayBuilder<arolla::Text> results_builder(results.size());
+  for (size_t i = 0; i < results.size(); ++i) {
+    results_builder.Set(i, std::move(results[i]));
+  }
+
+  ASSIGN_OR_RETURN(
+      auto edge,
+      arolla::DenseArrayEdge::FromSplitPoints(
+          arolla::CreateFullDenseArray<int64_t>(std::move(split_points))));
+  ASSIGN_OR_RETURN(auto res_shape, x.GetShape().AddDims({std::move(edge)}));
+  return DataSlice::CreatePrimitive(std::move(results_builder).Build(),
+                                    std::move(res_shape));
 }
 
 }  // namespace koladata::ops

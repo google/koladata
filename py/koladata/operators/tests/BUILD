@@ -8157,6 +8157,18 @@ py_test(
 )
 
 py_test(
+    name = "json_filter_json_test",
+    srcs = ["json_filter_json_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "json_from_json_test",
     srcs = ["json_from_json_test.py"],
     deps = [

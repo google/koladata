@@ -278,6 +278,7 @@ class iterables:
 
 @_dataclass
 class json:
+  filter_json = _operators_json.filter_json
   from_json = _operators_json.from_json
   to_json = _operators_json.to_json
 
