@@ -136,13 +136,25 @@ def get_class_field_type(
     raise ValueError(f"field '{attr_name}' has unsupported type: {t}")
 
   if origin_type := typing.get_origin(py_obj):
-    # `list[Obj]`
+    # `list[Obj] or `tuple[Obj, ...]`
     if (
         attr_name == '__items__'
         and isinstance(origin_type, type)
         and issubclass(origin_type, typing.Sequence)
     ):
-      return typing.get_args(py_obj)[0]
+      args = typing.get_args(py_obj)
+      if len(args) == 0:
+        raise ValueError(
+            'expected list/tuple/Sequence; got instead:'
+            f' {typing.get_origin(py_obj)}'
+        )
+      if origin_type is tuple:
+        if len(args) != 2 or args[1] is not Ellipsis:
+          raise ValueError(
+              'only tuple[T, ...] is supported; got instead:'
+              f' {typing.get_origin(py_obj)}'
+          )
+      return args[0]
 
     if isinstance(origin_type, type) and issubclass(
         origin_type, typing.Mapping
@@ -155,9 +167,13 @@ def get_class_field_type(
         args = typing.get_args(py_obj)
         if len(args) != 2:
           raise ValueError(
-              f'Expected dict; got instead: {typing.get_origin(py_obj)}'
+              f'expected dict; got instead: {typing.get_origin(py_obj)}'
           )
         return args[1]
+    if attr_name == '__keys__' or attr_name == '__values__':
+      raise ValueError(f'expected dict class; got instead: {py_obj}')
+    if attr_name == '__items__':
+      raise ValueError(f'expected list class; got instead: {py_obj}')
     raise ValueError(
         f'unsupported GenericAlias {py_obj} for attribute {attr_name}'
     )
@@ -173,11 +189,30 @@ def has_optional_field(
     attr_name: str,
     type_hints_cache: dict[_Type, dict[str, _Type]],
 ) -> bool:
-  """Returns whether the given attribute exists and is optional."""
+  """Returns whether the given attribute is present and is optional.
+
+  If the attribute is not present, returns False.
+  If the attribute is present but is not optional, raises ValueError.
+
+  Args:
+    py_class: The class to inspect.
+    attr_name: The name of the attribute to inspect.
+    type_hints_cache: A cache of type hints for dataclasses.
+
+  Raises:
+    ValueError: If the attribute is present but is not optional.
+
+  Returns:
+    True if the given attribute exists and is optional, False otherwise.
+  """
   if not dataclasses.is_dataclass(py_class):
     return False
   field = _get_field_type_annotation(py_class, attr_name, type_hints_cache)
-  return _get_underlying_optional_type(field) is not None
+  if field is None:
+    return False
+  if _get_underlying_optional_type(field) is None:
+    raise ValueError(f'field cannot have missing values: {attr_name}')
+  return True
 
 
 _simple_namespace_class = types.SimpleNamespace

@@ -17,7 +17,8 @@ import gc
 import importlib
 import math
 import sys
-from typing import Any
+import types as _py_types
+from typing import Any, Optional
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -36,6 +37,28 @@ ds = data_slice.DataSlice.from_vals
 
 def mutable_obj():
   return object_factories.mutable_bag().obj()
+
+
+@dataclasses.dataclass(frozen=True)
+class Obj1:
+  a: int = 123
+  b: str = 'abc'
+
+
+@dataclasses.dataclass
+class A:
+  y: int
+
+
+@dataclasses.dataclass
+class B:
+  x: int
+
+
+@dataclasses.dataclass
+class C:
+  a: A
+  b: B
 
 
 class ToPyTest(parameterized.TestCase):
@@ -123,7 +146,11 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(id(res.d1), id(res.d2))
     self.assertNotEqual(id(res.p1), id(res.p2))
 
-  def test_dict(self):
+  @parameterized.named_parameters(
+      ('other_class', False),
+      ('same_class', True),
+  )
+  def test_dict(self, pass_class):
     root = mutable_obj()
     root.dict_value = fns.dict()
     root.dict_value['key_1'] = 'value_1'
@@ -132,18 +159,533 @@ class ToPyTest(parameterized.TestCase):
 
     @dataclasses.dataclass
     class Obj:
-      dict_value: dict[str, str]
-      empty_dict: dict[str, str]
+      dict_value: Optional[dict[str, str]] = None
+      empty_dict: Optional[dict[str, str]] = None
 
     expected = Obj(
         dict_value={'key_1': 'value_1', 'key_2': 'value_2'},
         empty_dict={},
     )
 
-    py_obj = py_conversions.to_py(root, max_depth=-1)
+    output_class = Obj if pass_class else None
+
+    py_obj = py_conversions.to_py(root, max_depth=-1, output_class=output_class)
 
     self.assertEqual(expected, py_obj)
     self.assertEqual(py_obj, expected)
+
+  def test_output_class(self):
+    @dataclasses.dataclass
+    class Obj2:
+      o1: Obj1
+      o2: Obj1
+      i: int
+
+    root = fns.new(
+        o1=fns.obj(a=1, b='x'), o2=fns.obj(a=2, b='y'), i=fns.int64(3)
+    )
+
+    o1 = Obj1(a=1, b='x')
+    o2 = Obj1(a=2, b='y')
+    root_obj = Obj2(o1=o1, o2=o2, i=3)
+
+    converted = py_conversions.to_py(root, output_class=Obj2)
+    self.assertEqual(root_obj, converted)
+
+  def test_output_class_empty_entity(self):
+    @dataclasses.dataclass
+    class SomeClass:
+      y: int | None = None
+
+    converted = py_conversions.to_py(fns.new(), output_class=SomeClass)
+    self.assertEqual(converted, SomeClass(y=None))
+
+  def test_same_koda_object_mapped_to_different_python_classes_fails(self):
+
+    a = fns.new(x=1, y=2)
+
+    with self.assertRaisesRegex(
+        ValueError, 'same object is reached with different classes: . and .'
+    ):
+      _ = py_conversions.to_py(fns.new(a=a, b=a), output_class=C)
+
+  def test_output_class_primitive_types_in_dataclass(self):
+    @dataclasses.dataclass
+    class Obj:
+      x1: int
+      x2: int
+      y: float
+
+    root = fns.obj(x1=123, x2=456, y='abc')
+    with self.assertRaisesRegex(
+        ValueError, 'value is text, but requested output class is not str'
+    ):
+      _ = py_conversions.to_py(root, output_class=Obj)
+
+    converted = py_conversions.to_py(
+        fns.obj(x1=123, x2=fns.int64(456), y=3.0), output_class=Obj
+    )
+    self.assertAlmostEqual(converted, Obj(x1=123, x2=456, y=3.0))
+
+  def test_output_class_optional(self):
+    @dataclasses.dataclass
+    class ObjWithOptional:
+      o1: Optional[Obj1]
+      o2: Obj1 | None
+
+    root = fns.obj(o1=fns.obj(a=1, b='x'), o2=fns.obj(a=1, b='x'))
+
+    o1 = Obj1(a=1, b='x')
+    root_obj = ObjWithOptional(o1=o1, o2=o1)
+
+    converted = py_conversions.to_py(root, output_class=ObjWithOptional)
+
+    self.assertEqual(converted, root_obj)
+
+  def test_output_class_missing_data_raises(self):
+    @dataclasses.dataclass
+    class ObjTwoAttrs:
+      a: int
+      b: int
+
+    o = fns.obj(a=fns.int32(None))
+    with self.assertRaisesRegex(
+        ValueError, 'field cannot have missing values: a'
+    ):
+      _ = py_conversions.to_py(o, output_class=ObjTwoAttrs)
+
+    with self.assertRaisesRegex(
+        TypeError, "missing 1 required positional argument: 'b'"
+    ):
+      _ = py_conversions.to_py(fns.obj(a=123), output_class=ObjTwoAttrs)
+
+  def test_output_class_missing_data_works_with_optional(self):
+    @dataclasses.dataclass
+    class ObjWithOptional:
+      a: int | None
+
+    o = fns.obj(a=fns.int32(None))
+    x = py_conversions.to_py(o, output_class=ObjWithOptional)
+    self.assertEqual(x, ObjWithOptional(a=None))
+
+  def test_output_class_default_value(self):
+    @dataclasses.dataclass
+    class ObjWithDefaultValue:
+      x: int
+      y: str = 'y'
+
+    @dataclasses.dataclass
+    class ObjWithDefaultValue2:
+      x: int = 1
+
+    root = fns.obj(
+        x=1,
+    )
+    expected = ObjWithDefaultValue(x=1, y='y')
+
+    converted = py_conversions.to_py(root, output_class=ObjWithDefaultValue)
+    self.assertIs(converted.__class__, expected.__class__)
+    self.assertEqual(expected, converted)
+
+    with self.assertRaisesRegex(
+        ValueError, 'field cannot have missing values: x'
+    ):
+      _ = py_conversions.to_py(
+          fns.new(x=None), output_class=ObjWithDefaultValue2
+      )
+    with self.assertRaisesRegex(
+        ValueError, 'field cannot have missing values: x'
+    ):
+      _ = py_conversions.to_py(
+          fns.new(x=fns.int32(None)), output_class=ObjWithDefaultValue2
+      )
+
+  def test_output_class_union_not_supported(self):
+    @dataclasses.dataclass
+    class ObjWithUnion:
+      o1: Obj1 | int
+
+    root = fns.obj(o1=fns.obj(a=1, b='x'))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'only unions `SomeType | None` are supported ; got instead:'
+        ' __main__.Obj1 | int',
+    ):
+      _ = py_conversions.to_py(root, output_class=ObjWithUnion)
+
+  def test_output_class_any_raises(self):
+    @dataclasses.dataclass
+    class ObjWithUnion:
+      o1: Any
+
+    root = fns.obj(o1=fns.obj(a=1, b='x'))
+
+    with self.assertRaisesRegex(
+        ValueError, "field 'o1' has unsupported type: typing.Any"
+    ):
+      _ = py_conversions.to_py(root, output_class=ObjWithUnion)
+
+  def test_output_class_list(self):
+
+    obj = fns.obj(a=1, b='x')
+    root = fns.obj(obj_list=fns.list([obj, obj]))
+
+    o1 = Obj1(a=1, b='x')
+
+    @dataclasses.dataclass
+    class ObjWithList:
+      obj_list: list[Obj1]
+
+    root_obj = ObjWithList(obj_list=[o1, o1])
+
+    converted = py_conversions.to_py(
+        root, max_depth=4, output_class=ObjWithList
+    )
+    self.assertIs(converted.__class__, root_obj.__class__)
+    self.assertIs(converted.obj_list[0].__class__, o1.__class__)
+
+    self.assertEqual(converted, root_obj)
+    self.assertEqual(root_obj, converted)
+
+  def test_output_class_dict_values(self):
+
+    obj = fns.obj(a=1, b='x')
+    root = fns.obj(
+        obj_dict_values=fns.dict({'c': obj, 'd': obj}),
+    )
+
+    o1 = Obj1(a=1, b='x')
+
+    @dataclasses.dataclass
+    class ObjWithDict:
+      obj_dict_values: dict[str, Obj1]
+
+    root_obj = ObjWithDict(obj_dict_values={'c': o1, 'd': o1})
+
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=ObjWithDict
+    )
+    self.assertIs(converted.__class__, root_obj.__class__)
+    self.assertIs(converted.obj_dict_values['c'].__class__, o1.__class__)
+
+    self.assertEqual(converted, root_obj)
+    self.assertEqual(root_obj, converted)
+
+  def test_output_class_dict_keys(self):
+    root = mutable_obj()
+    root.obj_dict_keys = fns.dict()
+    root.obj_dict_keys[fns.obj(a=1, b='x')] = 'c'
+
+    o1 = Obj1(a=1, b='x')
+
+    @dataclasses.dataclass
+    class ObjWithDict:
+      obj_dict_keys: dict[Obj1, str]
+
+    root_obj = ObjWithDict(obj_dict_keys={o1: 'c'})
+
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=root_obj.__class__
+    )
+    self.assertIs(converted.__class__, root_obj.__class__)
+    self.assertIs(
+        list(converted.obj_dict_keys.keys())[0].__class__, o1.__class__
+    )
+
+    self.assertEqual(converted, root_obj)
+    self.assertEqual(root_obj, converted)
+
+  def test_output_class_dict(self):
+
+    root = fns.obj(
+        obj_dict_values=fns.dict({'c': fns.obj(a=1, b='x')}),
+        obj_dict_keys=fns.dict(fns.obj(a=2, b='y'), 'c'),
+    )
+
+    o1 = Obj1(a=1, b='x')
+    o2 = Obj1(a=2, b='y')
+
+    @dataclasses.dataclass
+    class ObjWithDict:
+      obj_dict_values: dict[str, Obj1]
+      obj_dict_keys: dict[Obj1, str]
+
+    root_obj = ObjWithDict(obj_dict_values={'c': o1}, obj_dict_keys={o2: 'c'})
+
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=root_obj.__class__
+    )
+    self.assertIs(converted.__class__, root_obj.__class__)
+    self.assertIs(converted.obj_dict_values['c'].__class__, o1.__class__)
+    self.assertIs(
+        list(converted.obj_dict_keys.keys())[0].__class__, o1.__class__
+    )
+
+    self.assertEqual(converted, root_obj)
+    self.assertEqual(root_obj, converted)
+
+  def test_output_class_shallow(self):
+
+    root = fns.obj(a=1, b='x')
+
+    root_obj = Obj1(a=1, b='x')
+
+    converted = py_conversions.to_py(root, output_class=Obj1)
+    self.assertIs(converted.__class__, root_obj.__class__)
+
+  def test_output_class_in_slice(self):
+
+    root = fns.slice([fns.obj(a=1, b='x'), fns.obj(a=2, b='y')])
+
+    converted = py_conversions.to_py(root, output_class=Obj1)
+    self.assertEqual(converted, [Obj1(a=1, b='x'), Obj1(a=2, b='y')])
+
+  def test_same_obj_in_slice(self):
+    o1 = fns.obj(a=1, b='x')
+
+    root = fns.slice([o1, o1])
+
+    root_obj = Obj1(a=1, b='x')
+
+    converted = py_conversions.to_py(root, output_class=Obj1)
+    self.assertEqual(converted, [root_obj, root_obj])
+
+  def test_output_class_primitive(self):
+    converted = py_conversions.to_py(fns.float32(3.14), output_class=float)
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    converted = py_conversions.to_py(fns.float64(3.14), output_class=float)
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    converted = py_conversions.to_py(
+        fns.item(3.14, schema=schema_constants.OBJECT), output_class=float
+    )
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is float, but requested output class is not float'
+    ):
+      _ = py_conversions.to_py(fns.float32(3.14), output_class=str)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is float, but requested output class is not float'
+    ):
+      _ = py_conversions.to_py(fns.float32(3.14), output_class=int)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is int32, but requested output class is not int'
+    ):
+      _ = py_conversions.to_py(fns.int32(3), output_class=float)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is missing, but requested output class is not None'
+    ):
+      _ = py_conversions.to_py(ds(None), output_class=int)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is missing, but requested output class is not None'
+    ):
+      _ = py_conversions.to_py(fns.item(None), output_class=int | None)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is bool, but requested output class is not bool'
+    ):
+      _ = py_conversions.to_py(fns.bool(True), output_class=int)
+
+  def test_output_class_list_with_primitive(self):
+    root = fns.list([1, 2, 3])
+
+    converted = py_conversions.to_py(root, output_class=list[int])
+    self.assertEqual(converted, [1, 2, 3])
+    self.assertIs(converted.__class__, list)
+
+    converted = py_conversions.to_py(
+        root, output_class=_py_types.SimpleNamespace
+    )
+    self.assertEqual(converted, [1, 2, 3])
+    self.assertIs(converted.__class__, list)
+
+    converted = py_conversions.to_py(root, output_class=tuple[int, ...])
+    self.assertEqual(converted, (1, 2, 3))
+    self.assertIs(converted.__class__, tuple)
+
+    with self.assertRaisesRegex(
+        ValueError, 'value is int32, but requested output class is not int'
+    ):
+      _ = py_conversions.to_py(root, output_class=list[str])
+    with self.assertRaisesRegex(
+        ValueError, 'only dataclasses or SimpleNamespace are supported'
+    ):
+      _ = py_conversions.to_py(root, output_class=int)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected list class; got instead: dict.int. str.',
+    ):
+      _ = py_conversions.to_py(root, output_class=dict[int, str])
+
+  def test_output_class_dict_with_primitive(self):
+    root = fns.dict({'a': 1, 'b': 2})
+    converted = py_conversions.to_py(root, output_class=dict[str, int])
+    self.assertEqual(converted, {'a': 1, 'b': 2})
+    self.assertIs(converted.__class__, dict)
+
+    converted = py_conversions.to_py(
+        root, output_class=_py_types.SimpleNamespace
+    )
+    self.assertEqual(converted, {'a': 1, 'b': 2})
+    self.assertIs(converted.__class__, dict)
+
+    with self.assertRaisesRegex(
+        ValueError, r'expected dict class; got instead: list.int.'
+    ):
+      _ = py_conversions.to_py(root, output_class=list[int])
+
+  def test_output_class_dict_fails_with_non_dict(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected dict class; got instead: list.int.'
+    ):
+      _ = py_conversions.to_py(
+          fns.dict({'a': 1, 'b': 2}), output_class=list[int]
+      )
+    with self.assertRaisesRegex(
+        ValueError, 'expected dict class; got instead: list.int.'
+    ):
+      _ = py_conversions.to_py(fns.dict(), output_class=list[int])
+
+  def test_output_class_extra_data_is_dropped(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+
+    result = py_conversions.to_py(
+        fns.obj(a=1, b='x', c=2, d=None),
+        output_class=Obj,
+    )
+    self.assertEqual(result, Obj(a=1, b='x'))
+
+  def test_output_class_too_many_args_works_with_missing(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+
+    x = py_conversions.to_py(
+        fns.new(a=1, b='x', c=1.0),
+        output_class=Obj,
+    )
+    self.assertEqual(x, Obj(a=1, b='x'))
+
+  def test_output_class_too_few_args(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+      c: float
+
+    with self.assertRaisesRegex(
+        TypeError, "missing 1 required positional argument: 'c'"
+    ):
+      _ = py_conversions.to_py(
+          fns.obj(a=1, b='x'),
+          output_class=Obj,
+      )
+
+  def test_output_class_too_few_args_works_with_default_value(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+      c: float = 3.14
+
+    x = py_conversions.to_py(
+        fns.obj(a=1, b='x'),
+        output_class=Obj,
+    )
+    self.assertEqual(x, Obj(a=1, b='x'))
+
+  def test_output_class_unsupported_type(self):
+    class Obj:
+      a: Obj1
+
+    with self.assertRaisesRegex(
+        ValueError, 'only dataclasses or SimpleNamespace are supported'
+    ):
+      _ = py_conversions.to_py(
+          fns.obj(a=fns.obj(a=1)),
+          output_class=Obj,
+      )
+
+  def test_output_class_simple_namespace_in_dataclass(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+      c: _py_types.SimpleNamespace
+
+    root = fns.obj(a=1, b='x', c=fns.obj(d=2, e='y', f=fns.obj(g=3, h='z')))
+    output_obj = Obj(
+        a=1,
+        b='x',
+        c=_py_types.SimpleNamespace(
+            d=2, e='y', f=_py_types.SimpleNamespace(g=3, h='z')
+        ),
+    )
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=output_obj.__class__
+    )
+    self.assertEqual(converted, output_obj)
+
+  def test_output_class_simple_namespace_in_simple_namespace(self):
+
+    root = fns.obj(a=1, b='x', c=fns.obj(d=2, e='y', f=fns.obj(g=3, h='z')))
+    output_object = _py_types.SimpleNamespace(
+        a=1,
+        b='x',
+        c=_py_types.SimpleNamespace(
+            d=2, e='y', f=_py_types.SimpleNamespace(g=3, h='z')
+        ),
+    )
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=output_object.__class__
+    )
+    self.assertEqual(converted, output_object)
+
+  def test_output_class_simple_namespace_in_list(self):
+
+    root = fns.obj(l=fns.list([fns.obj(g=3, h='z')]))
+    output_class = _py_types.SimpleNamespace(
+        l=[_py_types.SimpleNamespace(g=3, h='z')]
+    )
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=_py_types.SimpleNamespace
+    )
+    self.assertIs(converted.__class__, _py_types.SimpleNamespace)
+    self.assertIs(converted.l[0].__class__, _py_types.SimpleNamespace)
+    self.assertEqual(converted, output_class)
+
+  def test_output_class_simple_namespace_in_dict(self):
+    root = fns.obj(d=fns.dict({'a': fns.obj(g=3, h='z')}))
+    output_class = _py_types.SimpleNamespace(
+        d={'a': _py_types.SimpleNamespace(g=3, h='z')}
+    )
+    converted = py_conversions.to_py(
+        root, max_depth=5, output_class=_py_types.SimpleNamespace
+    )
+    self.assertIs(converted.__class__, _py_types.SimpleNamespace)
+    self.assertIs(converted.d['a'].__class__, _py_types.SimpleNamespace)
+    self.assertEqual(converted, output_class)
+
+  def test_output_class_converts_empty_obj_to_int(self):
+    self.assertEqual(py_conversions.to_py(fns.new(), output_class=int), 0)
+
+  def test_output_class_fails_with_object_id(self):
+    with self.assertRaisesRegex(
+        ValueError, 'object_id is not supported with output_primitive_type'
+    ):
+      _ = py_conversions.to_py(fns.new().no_bag(), output_class=int)
 
   def test_dict_with_obj_keys(self):
     root = mutable_obj()
@@ -402,7 +944,7 @@ class ToPyTest(parameterized.TestCase):
       x: Any
 
     @dataclasses.dataclass
-    class Obj1:
+    class Obj1:  # pylint: disable=redefined-outer-name
       y: Any
 
     @dataclasses.dataclass
@@ -494,6 +1036,14 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(py_conversions.to_py(entity), {})
     self.assertEqual(py_conversions.to_py(entity, obj_as_dict=True), {})
 
+  def test_obj_as_dict_with_output_class(self):
+    x = fns.list([1, 2])
+    with self.assertRaisesRegex(
+        ValueError,
+        'obj_as_dict cannot be used with output_class',
+    ):
+      _ = py_conversions.to_py(x, obj_as_dict=True, output_class=list[int])
+
   def test_named_schema(self):
     x = fns.new(x=123, schema='named_schema')
     self.assertEqual(
@@ -546,6 +1096,21 @@ class ToPyTest(parameterized.TestCase):
     ).get_itemid().eval()
 
     self.assertEqual(a.to_py(), a)
+
+  def test_itemid_not_supported_with_output_class(self):
+    a = fns.new(x=1).get_itemid()
+    b = fns.new(x=2).get_itemid()
+    x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+    with self.assertRaisesRegex(
+        ValueError,
+        'itemid is not supported together with output_class',
+    ):
+      _ = py_conversions.to_py(a, output_class=str)
+    with self.assertRaisesRegex(
+        ValueError,
+        'itemid is not supported together with output_class',
+    ):
+      _ = py_conversions.to_py(x, output_class=list[int])
 
   def test_no_bag(self):
     x = fns.list([1, 2]).no_bag()

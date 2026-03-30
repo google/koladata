@@ -109,6 +109,7 @@ class DataclassesUtilTest(absltest.TestCase):
 
     self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
     self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
+    self.assertIsNone(util.get_class_field_type(Obj2, 'b', True))
 
   def test_get_class_field_type_optional(self):
     util = testing_clib.DataClassesUtil()
@@ -121,18 +122,25 @@ class DataclassesUtilTest(absltest.TestCase):
     self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
     self.assertEqual(util.get_class_field_type(Obj2, 'b', False), Obj1)
 
-  def test_get_class_field_list(self):
+  def test_get_class_field_list_tuple(self):
     util = testing_clib.DataClassesUtil()
 
     @dataclasses.dataclass
     class Obj2:
       a: list[Obj1]
+      b: tuple[Obj1, ...]
 
     list_type = util.get_class_field_type(Obj2, 'a', False)
+    tuple_type = util.get_class_field_type(Obj2, 'b', False)
     self.assertEqual(list_type, list[Obj1])
+    self.assertEqual(tuple_type, tuple[Obj1, ...])
     self.assertEqual(
         util.get_class_field_type(list_type, '__items__', False), Obj1
     )
+    with self.assertRaisesRegex(ValueError, 'only tuple.T, .... is supported'):
+      _ = util.get_class_field_type(tuple[Obj1, Obj1], '__items__', False)
+    with self.assertRaisesRegex(ValueError, 'only tuple.T, .... is supported'):
+      _ = util.get_class_field_type(tuple[Obj1], '__items__', False)
 
   def test_get_class_field_dict(self):
     util = testing_clib.DataClassesUtil()
@@ -192,6 +200,21 @@ class DataclassesUtilTest(absltest.TestCase):
     ):
       _ = util.get_class_field_type(int, 'a', False)
 
+    with self.assertRaisesRegex(
+        ValueError, 'expected dict class; got instead: list.int.'
+    ):
+      _ = util.get_class_field_type(list[int], '__keys__', False)
+
+    with self.assertRaisesRegex(
+        ValueError, 'expected dict class; got instead: list.int.'
+    ):
+      _ = util.get_class_field_type(list[int], '__values__', False)
+
+    with self.assertRaisesRegex(
+        ValueError, 'expected list class; got instead: dict.int. int.'
+    ):
+      _ = util.get_class_field_type(dict[int, int], '__items__', False)
+
   def test_has_optional_field(self):
     util = testing_clib.DataClassesUtil()
 
@@ -205,17 +228,36 @@ class DataclassesUtilTest(absltest.TestCase):
       bad_0: int | Any
       bad_1: int | float | None
       bad_2: None | int
+      g: int = 1
 
     self.assertTrue(util.has_optional_field(Obj2, 'a'))
     self.assertFalse(util.has_optional_field(Obj2, 'b'))
     self.assertTrue(util.has_optional_field(Obj2, 'c'))
-    self.assertFalse(util.has_optional_field(Obj2, 'd'))
-    self.assertFalse(util.has_optional_field(Obj2, 'e'))
-    self.assertFalse(util.has_optional_field(Obj2, 'f'))
+    with self.assertRaisesRegex(
+        ValueError,
+        'field cannot have missing values: d',
+    ):
+      _ = util.has_optional_field(Obj2, 'd')
+    with self.assertRaisesRegex(
+        ValueError,
+        'field cannot have missing values: e',
+    ):
+      _ = util.has_optional_field(Obj2, 'e')
+    with self.assertRaisesRegex(
+        ValueError,
+        'field cannot have missing values: f',
+    ):
+      _ = util.has_optional_field(Obj2, 'f')
+    with self.assertRaisesRegex(
+        ValueError,
+        'field cannot have missing values: g',
+    ):
+      _ = util.has_optional_field(Obj2, 'g')
     self.assertFalse(util.has_optional_field(int, 'non_existent_field'))
     with self.assertRaisesRegex(
         ValueError,
-        'only unions `SomeType | None` are supported ; got instead: int | Any',
+        'only unions `SomeType | None` are supported ; got instead: int |'
+        ' typing.Any',
     ):
       _ = util.has_optional_field(Obj2, 'bad_0')
 
@@ -236,13 +278,6 @@ class DataclassesUtilTest(absltest.TestCase):
     util = testing_clib.DataClassesUtil()
     obj = util.create_class_instance_kwargs(Obj1, ['a', 'b'], [123, 'abc'])
     self.assertEqual(obj, Obj1(a=123, b='abc'))
-
-  def test_create_class_instance_args(self):
-    util = testing_clib.DataClassesUtil()
-    obj = util.create_class_instance_args(list, [1, 2, 3])
-    self.assertEqual(obj, list([1, 2, 3]))
-    obj2 = util.create_class_instance_args(tuple, [1, 2, 3])
-    self.assertEqual(obj2, tuple([1, 2, 3]))
 
   def test_get_simple_namespace_class(self):
     util = testing_clib.DataClassesUtil()

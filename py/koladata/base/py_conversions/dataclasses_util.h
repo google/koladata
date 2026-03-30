@@ -92,12 +92,6 @@ class DataClassesUtil {
       absl::Span<const std::string> attr_names,
       absl::Span<const arolla::python::PyObjectPtr absl_nonnull> attr_values);
 
-  // Creates a class instance with the given args.
-  // Returned value is owned by DataClassesUtil.
-  absl::StatusOr<arolla::python::PyObjectPtr> CreateClassInstanceArgs(
-      arolla::python::PyObjectPtr absl_nonnull py_class,
-      absl::Span<const arolla::python::PyObjectPtr absl_nonnull> args);
-
   // Returns a new reference to the SimpleNamespace class.
   absl::StatusOr<arolla::python::PyObjectPtr> GetSimpleNamespaceClass();
 

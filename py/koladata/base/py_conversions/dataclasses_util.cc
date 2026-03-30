@@ -184,33 +184,6 @@ DataClassesUtil::CreateClassInstanceKwargs(
 }
 
 absl::StatusOr<arolla::python::PyObjectPtr>
-DataClassesUtil::CreateClassInstanceArgs(
-    PyObjectPtr absl_nonnull py_class,
-    absl::Span<const arolla::python::PyObjectPtr absl_nonnull> args) {
-  PyObjectPtr py_tuple = PyObjectPtr::Own(PyTuple_New(args.size()));
-  if (py_tuple == nullptr) {
-    return arolla::python::StatusCausedByPyErr(
-        absl::StatusCode::kInternal,
-        absl::StrFormat("could not create a new tuple of size %d",
-                        args.size()));
-  }
-  for (size_t i = 0; i < args.size(); ++i) {
-    PyTuple_SET_ITEM(py_tuple.get(), i, Py_NewRef(args[i].get()));
-  }
-
-  PyObjectPtr py_instance =
-      PyObjectPtr::Own(PyObject_CallOneArg(py_class.get(), py_tuple.get()));
-
-  if (py_instance == nullptr) {
-    return arolla::python::StatusWithRawPyErr(
-        absl::StatusCode::kInvalidArgument,
-        "could not create a new instance of the class");
-  }
-
-  return py_instance;
-}
-
-absl::StatusOr<arolla::python::PyObjectPtr>
 DataClassesUtil::GetSimpleNamespaceClass() {
   RETURN_IF_ERROR(InitFns());
   return simple_namespace_class_;

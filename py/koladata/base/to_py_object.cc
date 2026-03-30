@@ -47,46 +47,109 @@ namespace {
 
 using arolla::python::PyObjectPtr;
 
+// Sets an error that value type does not match the requested output type and
+// returns nullptr.
+PyObject* SetErrorForOutputTypeAndReturnNull(absl::string_view value_type,
+                                             absl::string_view output_type) {
+  PyErr_SetString(
+      PyExc_ValueError,
+      absl::StrFormat("value is %s, but requested output class is not %s",
+                      value_type, output_type)
+          .c_str());
+  return nullptr;
+}
+
 // The following functions Return a new reference to a Python object, equivalent
 // to `value`.
-PyObject* PyObjectFromValue(int value) { return PyLong_FromLongLong(value); }
-
-PyObject* PyObjectFromValue(int64_t value) {
+// If `output_primitive_type` is not Py_None, it must be a Python type
+// corresponding to the C++ type of `value`, otherwise an error is returned.
+PyObject* PyObjectFromValue(int32_t value, PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyLong_Type) {
+    return SetErrorForOutputTypeAndReturnNull("int32", "int");
+  }
   return PyLong_FromLongLong(value);
 }
 
-PyObject* PyObjectFromValue(float value) { return PyFloat_FromDouble(value); }
-
-PyObject* PyObjectFromValue(double value) { return PyFloat_FromDouble(value); }
-
-PyObject* PyObjectFromValue(bool value) { return PyBool_FromLong(value); }
-
-PyObject* PyObjectFromValue(arolla::Unit value) {
-  auto ds_or = DataSlice::Create(internal::DataItem(value),
-                                 internal::DataItem(schema::kMask));
-  // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
-  // would not even be created.
-  DCHECK_OK(ds_or);
-  return WrapPyDataSlice(*std::move(ds_or));
+PyObject* PyObjectFromValue(int64_t value, PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyLong_Type) {
+    return SetErrorForOutputTypeAndReturnNull("int64", "int");
+  }
+  return PyLong_FromLongLong(value);
 }
 
-PyObject* PyObjectFromValue(const arolla::Text& value) {
+PyObject* PyObjectFromValue(float value, PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyFloat_Type) {
+    return SetErrorForOutputTypeAndReturnNull("float", "float");
+  }
+  return PyFloat_FromDouble(value);
+}
+
+PyObject* PyObjectFromValue(double value, PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyFloat_Type) {
+    return SetErrorForOutputTypeAndReturnNull("float64", "float");
+  }
+  return PyFloat_FromDouble(value);
+}
+
+PyObject* PyObjectFromValue(bool value, PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyBool_Type) {
+    return SetErrorForOutputTypeAndReturnNull("bool", "bool");
+  }
+  return PyBool_FromLong(value);
+}
+
+PyObject* PyObjectFromValue(arolla::Unit value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None) {
+    return SetErrorForOutputTypeAndReturnNull("unit", "None");
+  }
+  return WrapPyDataSlice(DataSlice::CreatePrimitive(value));
+}
+
+PyObject* PyObjectFromValue(const arolla::Text& value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyUnicode_Type) {
+    return SetErrorForOutputTypeAndReturnNull("text", "str");
+  }
+
   absl::string_view text_view = value;
   return PyUnicode_DecodeUTF8(text_view.data(), text_view.size(), nullptr);
 }
 
-PyObject* PyObjectFromValue(const ::arolla::Bytes& value) {
+PyObject* PyObjectFromValue(const ::arolla::Bytes& value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None &&
+      ((PyTypeObject*)output_primitive_type) != &PyBytes_Type) {
+    return SetErrorForOutputTypeAndReturnNull("bytes", "bytes");
+  }
+
   absl::string_view bytes_view = value;
   return PyBytes_FromStringAndSize(bytes_view.data(), bytes_view.size());
 }
 
-PyObject* PyObjectFromValue(const arolla::expr::ExprQuote& value) {
+PyObject* PyObjectFromValue(const arolla::expr::ExprQuote& value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None) {
+    PyErr_SetString(PyExc_ValueError,
+                    "cannot convert expr_quote when output class is specified");
+    return nullptr;
+  }
   return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(value));
 }
 
 // NOTE: Although DType is also a QValue, we don't want to expose it to user, as
 // it is an internal type.
-PyObject* PyObjectFromValue(schema::DType value) {
+PyObject* PyObjectFromValue(schema::DType value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None) {
+    return SetErrorForOutputTypeAndReturnNull("dtype", "None");
+  }
   auto ds_or = DataSlice::Create(internal::DataItem(value),
                                  internal::DataItem(schema::kSchema));
   // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
@@ -95,14 +158,19 @@ PyObject* PyObjectFromValue(schema::DType value) {
   return WrapPyDataSlice(*std::move(ds_or));
 }
 
-PyObject* PyObjectFromValue(const internal::MissingValue& value) {
+PyObject* PyObjectFromValue(internal::MissingValue value,
+                            PyObject* output_primitive_type) {
+  if (output_primitive_type != Py_None) {
+    return SetErrorForOutputTypeAndReturnNull("missing", "None");
+  }
   return Py_NewRef(Py_None);
 }
 
-ItemToPyConverter GetDataItemConverter(const DataSlice& ds) {
-  return [schema = ds.GetSchemaImpl(),
-          bag = ds.GetBag()](const internal::DataItem& item) {
-    return PyObjectFromDataItem(item, schema, bag);
+ItemToPyConverter GetDataItemConverter(
+    const DataSlice& ds, PyObject* output_primitive_type = Py_None) {
+  return [schema = ds.GetSchemaImpl(), bag = ds.GetBag(),
+          output_primitive_type](const internal::DataItem& item) {
+    return PyObjectFromDataItem(item, schema, bag, output_primitive_type);
   };
 }
 
@@ -112,11 +180,15 @@ ItemToPyConverter GetDataItemConverter(const DataSlice& ds) {
 // a `internal::DataItem`.
 absl::StatusOr<PyObjectPtr> PyObjectFromDataItem(
     const internal::DataItem& item, const internal::DataItem& schema,
-    const DataBagPtr& db) {
+    const DataBagPtr& db, PyObject* output_primitive_type) {
   return item.VisitValue([&](const auto& value) -> absl::StatusOr<PyObjectPtr> {
     using T = std::decay_t<decltype(value)>;
     PyObjectPtr res;
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      if (output_primitive_type != Py_None) {
+        return absl::InvalidArgumentError(
+            "object_id is not supported with output_primitive_type");
+      }
       ASSIGN_OR_RETURN(
           DataSlice ds,
           DataSlice::Create(internal::DataItem(value), schema, db));
@@ -124,7 +196,7 @@ absl::StatusOr<PyObjectPtr> PyObjectFromDataItem(
       // DataSlice would not even be created.
       res = PyObjectPtr::Own(WrapPyDataSlice(std::move(ds)));
     } else {
-      res = PyObjectPtr::Own(PyObjectFromValue(value));
+      res = PyObjectPtr::Own(PyObjectFromValue(value, output_primitive_type));
     }
     if (res == nullptr) {
       return arolla::python::StatusWithRawPyErr(
@@ -137,12 +209,14 @@ absl::StatusOr<PyObjectPtr> PyObjectFromDataItem(
 }
 
 absl::StatusOr<PyObjectPtr> PyObjectFromDataSlice(
-    const DataSlice& ds, const ItemToPyConverter& optional_converter) {
+    const DataSlice& ds, const ItemToPyConverter& optional_converter,
+    PyObject* output_primitive_type) {
   arolla::python::DCheckPyGIL();
 
-  const ItemToPyConverter item_to_py_converter = optional_converter == nullptr
-                                                     ? GetDataItemConverter(ds)
-                                                     : optional_converter;
+  const ItemToPyConverter item_to_py_converter =
+      optional_converter == nullptr
+          ? GetDataItemConverter(ds, output_primitive_type)
+          : optional_converter;
 
   if (ds.is_item()) {
     DCHECK_EQ(ds.size(), 1);  // Invariant ensured by DataSlice creation.

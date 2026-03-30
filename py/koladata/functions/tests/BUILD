@@ -615,6 +615,24 @@ py_test(
 )
 
 py_test(
+    name = "to_py_with_annotations_test",
+    srcs = ["to_py_with_annotations_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/base/py_conversions:dataclasses_py_util",
+        "//py/koladata/functions",
+        "//py/koladata/functions:object_factories",
+        "//py/koladata/functions:py_conversions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "update_schema_test",
     srcs = ["update_schema_test.py"],
     deps = [

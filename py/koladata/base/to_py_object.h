@@ -34,15 +34,21 @@ using ItemToPyConverter =
         const internal::DataItem& item)>;
 // Returns a new reference to a Python object, equivalent to the value stored in
 // a `internal::DataItem`. Ensures that the returned value is not nullptr.
+// If `output_primitive_type` is not Py_None, it must be a Python type
+// corresponding to the C++ type of `item`, otherwise an error is returned.
 absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataItem(
     const internal::DataItem& item, const internal::DataItem& schema,
-    const DataBagPtr& db);
+    const DataBagPtr& db, PyObject* output_primitive_type = Py_None);
 
 // Converts a DataSlice `ds` to an equivalent Python value. In case of presence
 // of multiple dimensions, a nested list of items is returned. Returns a new
 // reference to a Python object. Ensures that the returned value is not nullptr.
+// If `output_primitive_type` is not Py_None, it must be a Python type
+// corresponding to the C++ type of the DataSlice, otherwise an error is
+// returned.
 absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataSlice(
-    const DataSlice& ds, const ItemToPyConverter& optional_converter = nullptr);
+    const DataSlice& ds, const ItemToPyConverter& optional_converter = nullptr,
+    PyObject* output_primitive_type = Py_None);
 
 }  // namespace koladata::python
 

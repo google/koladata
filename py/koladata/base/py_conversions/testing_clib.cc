@@ -85,21 +85,6 @@ PYBIND11_MODULE(testing_clib, m) {
                      attr_names_vec, attr_values_ptrs));
              return py::reinterpret_steal<py::object>(res.release());
            })
-      .def("create_class_instance_args",
-           [](DataClassesUtil& self, py::handle py_class,
-              absl::Span<const py::handle> attr_values) -> py::object {
-             std::vector<arolla::python::PyObjectPtr> attr_values_ptrs;
-             for (const auto& attr_value : attr_values) {
-               attr_values_ptrs.push_back(
-                   arolla::python::PyObjectPtr::NewRef(attr_value.ptr()));
-             }
-
-             auto res = arolla::python::pybind11_unstatus_or(
-                 self.CreateClassInstanceArgs(
-                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                     attr_values_ptrs));
-             return py::reinterpret_steal<py::object>(res.release());
-           })
       .def("get_simple_namespace_class",
            [](DataClassesUtil& self) -> py::object {
              arolla::python::PyObjectPtr py_obj =
