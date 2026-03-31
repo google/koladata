@@ -47,6 +47,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
@@ -55,8 +56,10 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::PayloadIs;
+using ::koladata::internal::testing::DataBagEqual;
 using ::testing::_;
 using ::testing::AllOf;
+using ::testing::AnyOf;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
@@ -100,18 +103,28 @@ struct DataBagAllocatorTest : public ::testing::Test {
   ObjectId AllocSingleDict() { return Allocator().AllocSingleDict(); }
 };
 
-constexpr size_t kDataBagMergeParamCount = 3;
+constexpr size_t kDataBagMergeParamCount = 4;
 template <typename AllocatorWithId>
 struct DataBagMergeTest
     : public DataBagAllocatorTest<std::tuple_element_t<0, AllocatorWithId>> {
+  static constexpr int kOptId = std::tuple_element_t<1, AllocatorWithId>();
+
+  absl::Status MergeInplaceWithOptions(DataBagImpl& db1,
+                                       const DataBagImpl& db2) {
+    if constexpr (kOptId == 3) {
+      ASSIGN_OR_RETURN(auto update, db1.CreateOverwritingMergeUpdate(db2));
+      return db1.MergeInplace(*update, merge_options());
+    }
+    return db1.MergeInplace(db2, merge_options());
+  }
+
   MergeOptions merge_options() const {
-    constexpr int opt_id = std::tuple_element_t<1, AllocatorWithId>();
     static constexpr std::array<MergeOptions, kDataBagMergeParamCount>
         merge_options = {
-            MergeOptions(),
             MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite},
+            MergeOptions(),
             MergeOptions{.data_conflict_policy = MergeOptions::kKeepOriginal}};
-    return merge_options[opt_id];
+    return merge_options[kOptId == 3 ? 0 : kOptId];
   }
 };
 
@@ -187,12 +200,12 @@ struct AllocsWithIndex {
 TYPED_TEST_SUITE(DataBagMergeTest,
                  typename AllocsWithIndex<kDataBagMergeParamCount>::Params);
 
-TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
+TYPED_TEST(DataBagMergeTest, MergeObjectsOnly) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   {
-    ASSERT_OK(db->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->MergeInplace(*db2));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db2));
   }
 
   auto [a, b, c] = std::array{
@@ -203,17 +216,17 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
 
   ASSERT_OK(db->SetAttr(a, "a", DataItem(57)));
   {
-    ASSERT_OK(db->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db));
     EXPECT_THAT(db2->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
   }
 
   {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetAttr(b, "a", DataItem(37)));
-    ASSERT_OK(db2->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db));
     EXPECT_THAT(db2->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db2->GetAttr(b, "a"), IsOkAndHolds(DataItem(37)));
   }
@@ -221,7 +234,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
   // merging into unmodified fork
   {
     auto db_fork = db->PartiallyPersistentFork();
-    ASSERT_OK(db_fork->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     EXPECT_THAT(db_fork->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
   }
 
@@ -237,12 +250,12 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
     auto db_fork = db->PartiallyPersistentFork();
     ASSERT_OK(db_fork->SetAttr(b, "a", DataItem(arolla::Text("ba"))));
     ASSERT_OK(db_fork->SetAttr(b, "b", DataItem(75.0)));
-    ASSERT_OK(db_fork->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     EXPECT_THAT(db_fork->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db_fork->GetAttr(b, "b"), IsOkAndHolds(DataItem(75.0)));
     EXPECT_THAT(db_fork->GetAttr(b, "a"), IsOkAndHolds(arolla::Text("ba")));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->MergeInplace(*db_fork));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
     EXPECT_THAT(db2->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db2->GetAttr(b, "b"), IsOkAndHolds(DataItem(75.0)));
     EXPECT_THAT(db2->GetAttr(b, "a"), IsOkAndHolds(arolla::Text("ba")));
@@ -255,7 +268,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
     ASSERT_OK(db_fork->SetAttr(c, "a", DataItem(arolla::Bytes("NOT_USED"))));
     db_fork = db_fork->PartiallyPersistentFork();
     ASSERT_OK(db_fork->SetAttr(c, "a", DataItem(arolla::Bytes("ca"))));
-    ASSERT_OK(db_fork->MergeInplace(*db));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     auto check_attrs = [&](auto db) {
       EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(DataItem(57)));
       EXPECT_THAT(db->GetAttr(b, "a"), IsOkAndHolds(arolla::Text("ba")));
@@ -265,7 +278,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
 
     {
       auto db2 = DataBagImpl::CreateEmptyDatabag();
-      ASSERT_OK(db2->MergeInplace(*db_fork));
+      ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
       check_attrs(db2);
     }
     {
@@ -273,45 +286,16 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnly) {
       ASSERT_OK(db2->SetAttr(b, "a", DataItem(arolla::Text("NOT_USED"))));
       db2 = db2->PartiallyPersistentFork();
       ASSERT_OK(db2->SetAttr(b, "a", DataItem(arolla::Text("ba"))));
-      ASSERT_OK(db2->MergeInplace(*db_fork));
+      ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
       check_attrs(db2);
     }
   }
 }
 
-TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
+TEST(DataBagTest, MergeObjectsOnlyDenseSourcesPerPolicy) {
   constexpr int64_t kSize = 179;
   auto a = DataSliceImpl::AllocateEmptyObjects(kSize);
   auto a_value = DataSliceImpl::AllocateEmptyObjects(kSize);
-
-  {  // merge dense with sparse
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db->SetAttr(a, "a", a_value));
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-    ASSERT_OK(db2->SetAttr(a[5], "a", a_value[5]));
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
-  {  // merge const dense with sparse
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK_AND_ASSIGN(auto x, db->CreateObjectsFromFields({"a"}, {a_value}));
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-    ASSERT_OK(db2->SetAttr(x[5], "a", a_value[5]));
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
-  {  // merge sparse with dense
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->SetAttr(a, "a", a_value));
-    ASSERT_OK(db->SetAttr(a[5], "a", a_value[5]));
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
   {  // merge sparse with dense overwrite
     auto db = DataBagImpl::CreateEmptyDatabag();
     auto db2 = DataBagImpl::CreateEmptyDatabag();
@@ -325,33 +309,6 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
-  {  // merge sparse with const dense
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK_AND_ASSIGN(auto x,
-                         db2->CreateObjectsFromFields({"a"}, {a_value}));
-    ASSERT_OK(db->SetAttr(x[5], "a", a_value[5]));
-    ASSERT_OK(db2->MergeInplace(*db));
-    EXPECT_THAT(db2->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
-  {
-    SCOPED_TRACE("merge dense with dense");
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db->SetAttr(a, "a", a_value));
-    ASSERT_OK(db2->SetAttr(a, "a", a_value));
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
-  }
-  {
-    SCOPED_TRACE("merge empty with const dense");
-    auto db = DataBagImpl::CreateEmptyDatabag();
-    auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK_AND_ASSIGN(
-        auto obj, db2->CreateObjectsFromFields({"a"}, {std::cref(a_value)}));
-    ASSERT_OK(db->MergeInplace(*db2));
-    EXPECT_THAT(db->GetAttr(obj, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
   }
   {
     SCOPED_TRACE("merge dense with dense conflict");
@@ -389,12 +346,21 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
   }
 
   // merge dense with many sparse
-  for (bool left : {true, false}) {
-    for (int conflict_layer : {0, 1, 2, -1}) {
-      for (MergeOptions merge_options :
-           {MergeOptions(),
-            MergeOptions{.data_conflict_policy = MergeOptions::kKeepOriginal},
-            MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}}) {
+  for (auto [merge_options, via_update] :
+       std::vector<std::pair<MergeOptions, bool>>{
+           {MergeOptions(), false},
+           {MergeOptions{.data_conflict_policy = MergeOptions::kKeepOriginal},
+            false},
+           {MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite},
+            false},
+           {MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite},
+            true},
+       }) {
+    for (bool left : {true, false}) {
+      if (via_update && !left) {
+        continue;
+      }
+      for (int conflict_layer : {0, 1, 2, -1}) {
         SCOPED_TRACE(absl::StrCat("merge dense with many sparse: ", left, " ",
                                   conflict_layer, " ",
                                   merge_options.data_conflict_policy));
@@ -430,7 +396,13 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
                                  HasSubstr("conflict")));
             continue;
           }
-          ASSERT_OK(db->MergeInplace(*db2, merge_options));
+          if (via_update) {
+            ASSERT_OK_AND_ASSIGN(auto update,
+                                 db->CreateOverwritingMergeUpdate(*db2));
+            ASSERT_OK(db->MergeInplace(*update, merge_options));
+          } else {
+            ASSERT_OK(db->MergeInplace(*db2, merge_options));
+          }
           EXPECT_THAT(db->GetAttr(a, "a"),
                       IsOkAndHolds(ElementsAreArray(a_value_expected)));
         } else {
@@ -452,7 +424,167 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
   }
 }
 
-TEST(DataBagTest, MergeToDenseAllRemoved) {
+TYPED_TEST(DataBagMergeTest, MergeObjectsOnlyDenseSources) {
+  constexpr int64_t kSize = 179;
+  auto a = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto a_value = DataSliceImpl::AllocateEmptyObjects(kSize);
+
+  {  // merge dense with sparse
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", a_value));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+    ASSERT_OK(db2->SetAttr(a[5], "a", a_value[5]));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {  // merge const dense with sparse
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(auto x, db->CreateObjectsFromFields({"a"}, {a_value}));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+    ASSERT_OK(db2->SetAttr(x[5], "a", a_value[5]));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {  // merge sparse with dense
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(a, "a", a_value));
+    ASSERT_OK(db->SetAttr(a[5], "a", a_value[5]));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {  // merge sparse with const dense
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(auto x,
+                         db2->CreateObjectsFromFields({"a"}, {a_value}));
+    ASSERT_OK(db->SetAttr(x[5], "a", a_value[5]));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db));
+    EXPECT_THAT(db2->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {
+    SCOPED_TRACE("merge dense with dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", a_value));
+    ASSERT_OK(db2->SetAttr(a, "a", a_value));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {
+    SCOPED_TRACE("merge empty with const dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, db2->CreateObjectsFromFields({"a"}, {std::cref(a_value)}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
+    EXPECT_THAT(db->GetAttr(obj, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+}
+
+TYPED_TEST(DataBagAllocatorTest, MergeObjectsOnlyViaUpdate) {
+  const auto empty_db = DataBagImpl::CreateEmptyDatabag();
+  {
+    SCOPED_TRACE("merge empty with empty");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(auto update1, db->CreateOverwritingMergeUpdate(*db));
+    EXPECT_THAT(update1, DataBagEqual(empty_db));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(auto update2, db->CreateOverwritingMergeUpdate(*db2));
+    EXPECT_THAT(update2, DataBagEqual(empty_db));
+  }
+  {
+    SCOPED_TRACE("merge with new attribute");
+    auto obj = DataItem(this->AllocSingle());
+
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(obj, "b", DataItem(42)));
+    auto db_fork = db->PartiallyPersistentFork();
+    ASSERT_OK(db_fork->SetAttr(obj, "a", DataItem(57)));
+    ASSERT_OK_AND_ASSIGN(auto update,
+                         db->CreateOverwritingMergeUpdate(*db_fork));
+    EXPECT_THAT(db->GetAttr(obj, "b"), IsOkAndHolds(DataItem(42)))
+        << "db should not be modified";
+    auto expected_update = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(expected_update->SetAttr(obj, "a", DataItem(57)));
+
+    EXPECT_THAT(update, DataBagEqual(expected_update));
+  }
+  {
+    SCOPED_TRACE("merge with overwritten attribute");
+    auto obj = DataItem(this->AllocSingle());
+
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(obj, "b", DataItem(42)));
+    auto original_db = db->PartiallyPersistentFork();
+    auto db_fork = db->PartiallyPersistentFork();
+    ASSERT_OK(db_fork->SetAttr(obj, "b", DataItem(57)));
+    ASSERT_OK_AND_ASSIGN(auto update,
+                         db->CreateOverwritingMergeUpdate(*db_fork));
+    EXPECT_THAT(db->GetAttr(obj, "b"), IsOkAndHolds(DataItem(42)))
+        << "db should not be modified";
+    auto expected_update = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(expected_update->SetAttr(obj, "b", DataItem(57)));
+
+    EXPECT_THAT(update, DataBagEqual(expected_update));
+  }
+}
+
+TYPED_TEST(DataBagAllocatorTest, MergeListsOnlyViaUpdate) {
+  constexpr int64_t kSize = 7;
+  {
+    SCOPED_TRACE("merge with non existing");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    std::vector<DataItem> lists(kSize);
+    for (int64_t i = 0; i < kSize; ++i) {
+      lists[i] = DataItem(this->AllocSingleList());
+      ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto update, db->CreateOverwritingMergeUpdate(*db2));
+    EXPECT_THAT(update, DataBagEqual(db2));
+  }
+  {
+    SCOPED_TRACE("merge with existing");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    std::vector<DataItem> lists(kSize);
+    for (int64_t i = 0; i < kSize; ++i) {
+      lists[i] = DataItem(this->AllocSingleList());
+      ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
+      ASSERT_OK(db2->AppendToList(lists[i], DataItem(i + kSize)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto update, db->CreateOverwritingMergeUpdate(*db2));
+    EXPECT_THAT(update, DataBagEqual(db2));
+  }
+  {
+    SCOPED_TRACE("merge with fork");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    std::vector<DataItem> lists(kSize);
+    for (int64_t i = 0; i < kSize; i += 2) {
+      lists[i] = DataItem(this->AllocSingleList());
+      ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
+    }
+    auto db2 = db->PartiallyPersistentFork();
+    for (int64_t i = 1; i < kSize; i += 2) {
+      lists[i] = DataItem(this->AllocSingleList());
+      ASSERT_OK(db2->AppendToList(lists[i], DataItem(i + kSize)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto update, db->CreateOverwritingMergeUpdate(*db2));
+    // Update must contain new data, but may contain old data as well.
+    for (int64_t i = 1; i < kSize; i += 2) {
+      EXPECT_THAT(update->GetListSize(lists[i]), IsOkAndHolds(DataItem(1)));
+      EXPECT_THAT(update->GetFromList(lists[i], 0),
+                  IsOkAndHolds(DataItem(i + kSize)));
+    }
+  }
+}
+
+TYPED_TEST(DataBagMergeTest, MergeToDenseAllRemoved) {
   for (int64_t size : {1, 3, 16, 37, 128, 512, 1034}) {
     auto a = DataSliceImpl::AllocateEmptyObjects(size);
     auto a_value = DataSliceImpl::CreateEmptyAndUnknownType(size);
@@ -466,12 +598,15 @@ TEST(DataBagTest, MergeToDenseAllRemoved) {
     // Now remove the value in sparse source.
     ASSERT_OK(db2->SetAttr(a[0], "a", a_value[0]));
 
-    ASSERT_OK(db->MergeInplace(*db2));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
   }
 }
 
-TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
+TYPED_TEST(DataBagMergeTest, MergeObjectsOverwriteOnlyDenseSources) {
+  if (this->merge_options().data_conflict_policy != MergeOptions::kOverwrite) {
+    GTEST_SKIP() << "Only test overwrite policy";
+  }
   constexpr int64_t kSize = 179;
   auto a = DataSliceImpl::AllocateEmptyObjects(kSize);
   auto a_value = DataSliceImpl::AllocateEmptyObjects(kSize);
@@ -497,8 +632,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     ASSERT_OK(db2->SetAttr(a[2], "a", DataItem(17.0)));
     ASSERT_OK(db2->SetAttr(a[3], "a", DataItem()));
     ASSERT_OK(db2->SetAttr(a[5], "a", DataItem(57)));
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     std::vector<DataItem> a_value_expected(a_value.begin(), a_value.end());
     a_value_expected[2] = DataItem(17.0);
     a_value_expected[3] = DataItem();
@@ -511,8 +645,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     auto db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
   }
   {
@@ -522,8 +655,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
     ASSERT_OK(db2->SetAttr(a, "a", b_value));
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(b_value)));
   }
   {
@@ -540,8 +672,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
       }
     }
     ASSERT_OK(db2->SetAttr(std::move(a_but_one).Build(), "a", b_value));
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
 
     std::vector<DataItem> a_value_expected(b_value.begin(), b_value.end());
     a_value_expected[5] = a_value[5];
@@ -564,8 +695,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     ASSERT_OK(db2->SetAttr(std::move(a_but_one).Build(), "a", b_value));
     ASSERT_OK(db2->SetAttr(a[1], "a", DataItem(27.0)));
     ASSERT_OK(db2->SetAttr(a[3], "a", DataItem(57)));
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
 
     std::vector<DataItem> a_value_expected(b_value.begin(), b_value.end());
     a_value_expected[1] = DataItem(27.0);
@@ -582,15 +712,18 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     ASSERT_OK(db2->SetAttr(a, "a", DataSliceImpl::AllocateEmptyObjects(kSize)));
     ASSERT_OK(
         db2->SetAttr(a, "a", DataSliceImpl::CreateEmptyAndUnknownType(kSize)));
-    ASSERT_OK(db->MergeInplace(
-        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     EXPECT_THAT(db->GetAttr(a, "a"),
                 IsOkAndHolds(ElementsAreArray(
                     std::vector<DataItem>(kSize, DataItem()))));
   }
 }
 
-TEST(DataBagTest, MergeObjectsOverwriteDenseSparseInNonForkedRhsBag) {
+TYPED_TEST(DataBagMergeTest,
+           MergeObjectsOverwriteDenseSparseInNonForkedRhsBag) {
+  if (this->merge_options().data_conflict_policy != MergeOptions::kOverwrite) {
+    GTEST_SKIP() << "Only test overwrite policy";
+  }
   constexpr int64_t kSize = 179;
   auto a_value = DataSliceImpl::AllocateEmptyObjects(kSize);
   auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
@@ -611,7 +744,10 @@ TEST(DataBagTest, MergeObjectsOverwriteDenseSparseInNonForkedRhsBag) {
               IsOkAndHolds(ElementsAreArray(a_value_expected)));
 }
 
-TEST(DataBagTest, MergeObjectsOverwriteDenseSparseInForkedRhsBag) {
+TYPED_TEST(DataBagMergeTest, MergeObjectsOverwriteDenseSparseInForkedRhsBag) {
+  if (this->merge_options().data_conflict_policy != MergeOptions::kOverwrite) {
+    GTEST_SKIP() << "Only test overwrite policy";
+  }
   constexpr int64_t kSize = 179;
   auto a = DataSliceImpl::AllocateEmptyObjects(kSize);
   auto a_value = DataSliceImpl::AllocateEmptyObjects(kSize);
@@ -675,7 +811,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyConflictsAllowed) {
   }
 }
 
-TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyLongForks) {
+TYPED_TEST(DataBagMergeTest, MergeObjectAttrsOnlyLongForks) {
   constexpr int64_t kMaxForks = 20;
   std::vector<DataItem> objs_a(kMaxForks);
   std::vector<DataItem> objs_b(kMaxForks);
@@ -716,7 +852,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyLongForks) {
     ASSERT_OK(
         db2->SetAttr(y, "overwite_b" + std::to_string(i), DataItem(i * 5)));
   }
-  ASSERT_OK(db1->MergeInplace(*db2));
+  ASSERT_OK(this->MergeInplaceWithOptions(*db1, *db2));
   for (int64_t i = 0; i < kMaxForks; ++i) {
     int64_t expected_i = kMaxForks - i - 1;
     EXPECT_THAT(db1->GetAttr(objs_a[i], "xa" + std::to_string(i)),
@@ -750,7 +886,6 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
                       std::vector<int64_t>(expected_size, i | value_or))));
     }
   };
-  MergeOptions merge_options = this->merge_options();
   {
     SCOPED_TRACE("merge with non existing");
     auto db = DataBagImpl::CreateEmptyDatabag();
@@ -760,7 +895,7 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       lists[i] = DataItem(this->AllocSingleList());
       ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
   {
@@ -800,7 +935,7 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
         ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
       }
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
   {
@@ -813,7 +948,7 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
       ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
   {
@@ -826,7 +961,8 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       ASSERT_OK(db->AppendToList(lists[i], DataItem(i | 1)));
       ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
     }
-    auto status = db->MergeInplace(*db2, merge_options);
+    auto status = this->MergeInplaceWithOptions(*db, *db2);
+    auto merge_options = this->merge_options();
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -854,7 +990,8 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
       ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
     }
-    auto status = db->MergeInplace(*db2, merge_options);
+    auto status = this->MergeInplaceWithOptions(*db, *db2);
+    auto merge_options = this->merge_options();
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -883,7 +1020,7 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
         db2 = db2->PartiallyPersistentFork();
       }
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
   {
@@ -902,7 +1039,7 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
         db2 = db2->PartiallyPersistentFork();
       }
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
   {
@@ -928,14 +1065,12 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
     ASSERT_OK(db->SetInList(lists.back(), 0, DataItem(kSize - 1)));
     ASSERT_OK(db2->SetInList(lists[kSize - 2], 0, DataItem(kSize - 2)));
     ASSERT_OK(db2->SetInList(lists.back(), 0, DataItem(kSize - 1)));
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
     verify_lists(lists, db.get());
   }
 }
 
 TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
-  MergeOptions merge_options = this->merge_options();
-
   auto [a, b, c, k, k2] = std::array{
       DataItem(this->AllocSingleDict()), DataItem(this->AllocSingleDict()),
       DataItem(this->AllocSingleDict()), DataItem(this->AllocSingle()),
@@ -945,10 +1080,10 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
   {
     auto db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetInDict(a, k, DataItem(57)));
-    ASSERT_OK(db->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db, *db));
     EXPECT_THAT(db->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db));
     EXPECT_THAT(db2->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
   }
 
@@ -957,7 +1092,7 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     ASSERT_OK(db->SetInDict(a, k, DataItem(57)));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetInDict(b, k, DataItem(37)));
-    ASSERT_OK(db2->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db));
     EXPECT_THAT(db2->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db2->GetFromDict(b, k), IsOkAndHolds(DataItem(37)));
   }
@@ -967,7 +1102,7 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     auto db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetInDict(a, k, DataItem(57)));
     auto db_fork = db->PartiallyPersistentFork();
-    ASSERT_OK(db_fork->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     EXPECT_THAT(db_fork->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
   }
 
@@ -978,12 +1113,12 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     auto db_fork = db->PartiallyPersistentFork();
     ASSERT_OK(db_fork->SetInDict(b, k, DataItem(arolla::Text("ba"))));
     ASSERT_OK(db_fork->SetInDict(b, k2, DataItem(75.0)));
-    ASSERT_OK(db_fork->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     EXPECT_THAT(db_fork->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db_fork->GetFromDict(b, k2), IsOkAndHolds(DataItem(75.0)));
     EXPECT_THAT(db_fork->GetFromDict(b, k), IsOkAndHolds(arolla::Text("ba")));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->MergeInplace(*db_fork, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
     EXPECT_THAT(db2->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(db2->GetFromDict(b, k2), IsOkAndHolds(DataItem(75.0)));
     EXPECT_THAT(db2->GetFromDict(b, k), IsOkAndHolds(arolla::Text("ba")));
@@ -995,7 +1130,8 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     ASSERT_OK(db->SetInDict(a, k, DataItem(57)));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetInDict(a, k, DataItem(75)));
-    auto status = db->MergeInplace(*db2, merge_options);
+    auto status = this->MergeInplaceWithOptions(*db, *db2);
+    auto merge_options = this->merge_options();
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
       EXPECT_THAT(
           status,
@@ -1025,7 +1161,7 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     ASSERT_OK(db_fork->SetInDict(c, k, DataItem(arolla::Bytes("NOT_USED"))));
     db_fork = db_fork->PartiallyPersistentFork();
     ASSERT_OK(db_fork->SetInDict(c, k, DataItem(arolla::Bytes("ca"))));
-    ASSERT_OK(db_fork->MergeInplace(*db, merge_options));
+    ASSERT_OK(this->MergeInplaceWithOptions(*db_fork, *db));
     auto check_dicts = [&](auto db) {
       EXPECT_THAT(db->GetFromDict(a, k), IsOkAndHolds(DataItem(57)));
       EXPECT_THAT(db->GetFromDict(b, k), IsOkAndHolds(arolla::Text("ba")));
@@ -1035,7 +1171,7 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
 
     {
       auto db2 = DataBagImpl::CreateEmptyDatabag();
-      ASSERT_OK(db2->MergeInplace(*db_fork, merge_options));
+      ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
       check_dicts(db2);
     }
     {
@@ -1043,14 +1179,55 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
       ASSERT_OK(db2->SetInDict(b, k, DataItem(arolla::Text("NOT_USED"))));
       db2 = db2->PartiallyPersistentFork();
       ASSERT_OK(db2->SetInDict(b, k, DataItem(arolla::Text("ba"))));
-      ASSERT_OK(db2->MergeInplace(*db_fork, merge_options));
+      ASSERT_OK(this->MergeInplaceWithOptions(*db2, *db_fork));
       check_dicts(db2);
     }
   }
 }
 
+TYPED_TEST(DataBagAllocatorTest, MergeDictsOnlyViaUpdate) {
+  auto [d, k, k2] =
+      std::array{DataItem(this->AllocSingleDict()),
+                 DataItem(this->AllocSingle()), DataItem(this->AllocSingle())};
+  {
+    SCOPED_TRACE("merge with non existing");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetInDict(d, k, DataItem(57)));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(auto update, db2->CreateOverwritingMergeUpdate(*db));
+    EXPECT_THAT(update, DataBagEqual(db));
+  }
+  {
+    SCOPED_TRACE("merge with existing");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetInDict(d, k, DataItem(57)));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetInDict(d, k2, DataItem(37)));
+    ASSERT_OK_AND_ASSIGN(auto update, db2->CreateOverwritingMergeUpdate(*db));
+    EXPECT_THAT(update, DataBagEqual(db));
+  }
+  {
+    constexpr int64_t kSize = 7;
+    SCOPED_TRACE("merge with fork");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    std::vector<DataItem> dicts(kSize);
+    for (int64_t i = 0; i < kSize; i += 2) {
+      dicts[i] = DataItem(this->AllocSingleDict());
+      ASSERT_OK(db->SetInDict(dicts[i], k, DataItem(i)));
+    }
+    auto db2 = db->PartiallyPersistentFork();
+    for (int64_t i = 1; i < kSize; i += 2) {
+      dicts[i] = DataItem(this->AllocSingleDict());
+      ASSERT_OK(db2->SetInDict(dicts[i], k, DataItem(i)));
+    }
+    ASSERT_OK_AND_ASSIGN(auto update, db->CreateOverwritingMergeUpdate(*db2));
+    for (int64_t i = 1; i < kSize; i += 2) {
+      EXPECT_THAT(update->GetFromDict(dicts[i], k), IsOkAndHolds(DataItem(i)));
+    }
+  }
+}
+
 TYPED_TEST(DataBagMergeTest, MergeDictsOnlyFork) {
-  MergeOptions merge_options = this->merge_options();
   constexpr int64_t kSize = 37;
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto db2 = DataBagImpl::CreateEmptyDatabag();
@@ -1078,7 +1255,7 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnlyFork) {
   ASSERT_OK(db2->SetInDict(dicts.back(), k, DataItem(kSize - 1)));
   ASSERT_OK(db2->SetInDict(dicts[kSize - 2], k, DataItem(kSize - 2)));
   ASSERT_OK(db2->SetInDict(dicts.back(), k, DataItem(kSize - 1)));
-  ASSERT_OK(db->MergeInplace(*db2, merge_options));
+  ASSERT_OK(this->MergeInplaceWithOptions(*db, *db2));
   for (int64_t i = 0; i < kSize; ++i) {
     EXPECT_THAT(
         db->GetDictKeys(dicts[i]),
@@ -1482,8 +1659,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeModifiedSiblingForks_Modified) {
 
   // Assert unmodified objects are broadly unchanged
   EXPECT_THAT(fork1->GetAttr(object_none, "val"), IsOkAndHolds(DataItem(3)));
-  EXPECT_THAT(fork1->GetAttr(object_none, "val2"),
-              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(fork1->GetAttr(object_none, "val2"), IsOkAndHolds(DataItem()));
   EXPECT_THAT(fork1->GetFromDict(dict_none, DataItem("k3")),
               IsOkAndHolds(DataItem(3)));
 
@@ -1492,8 +1668,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeModifiedSiblingForks_Modified) {
   EXPECT_THAT(fork1->GetAttr(object_f1, "val2"), IsOkAndHolds(DataItem(11)));
   EXPECT_THAT(fork1->GetAttr(new_obj_f1, "val"), IsOkAndHolds(DataItem(111)));
   EXPECT_THAT(fork1->GetListSize(new_list_f1),
-              testing::AnyOf(IsOkAndHolds(DataItem(1)),
-                             IsOkAndHolds(DataItem(2))));
+              AnyOf(IsOkAndHolds(DataItem(1)), IsOkAndHolds(DataItem(2))));
   EXPECT_THAT(fork1->GetFromDict(new_dict_f1, DataItem("x")),
               IsOkAndHolds(DataItem(111)));
 
@@ -1501,12 +1676,10 @@ TYPED_TEST(DataBagAllocatorTest, MergeModifiedSiblingForks_Modified) {
   EXPECT_THAT(fork1->GetAttr(object_f2, "val"), IsOkAndHolds(DataItem(2)));
   EXPECT_THAT(fork1->GetAttr(object_f2, "val2"), IsOkAndHolds(DataItem(22)));
   EXPECT_THAT(fork1->GetListSize(list_f2),
-              testing::AnyOf(IsOkAndHolds(DataItem(1)),
-                             IsOkAndHolds(DataItem(2))));
+              AnyOf(IsOkAndHolds(DataItem(1)), IsOkAndHolds(DataItem(2))));
   EXPECT_THAT(fork1->GetFromDict(dict_f2, DataItem("k22")),
               IsOkAndHolds(DataItem(22)));
-  EXPECT_THAT(fork1->GetAttr(new_obj_f2, "val"),
-              IsOkAndHolds(DataItem(222)));
+  EXPECT_THAT(fork1->GetAttr(new_obj_f2, "val"), IsOkAndHolds(DataItem(222)));
 }
 
 }  // namespace

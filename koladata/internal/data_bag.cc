@@ -33,6 +33,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/functional/function_ref.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -215,6 +216,17 @@ std::shared_ptr<SparseSource> MergeToMutableSparseSource(
     }
   }
   return result;
+}
+
+void StripIfFirstArrayIsSuffix(DataBagImpl::ConstSparseSourceArray& a,
+                               DataBagImpl::ConstSparseSourceArray& b) {
+  if (a.size() > b.size()) {
+    return;
+  }
+  if (a == absl::MakeSpan(b).subspan(b.size() - a.size(), a.size())) {
+    b.resize(b.size() - a.size());
+    a.clear();
+  }
 }
 
 // Processes the given sparse sources ordered by priority by calling
@@ -3064,8 +3076,11 @@ absl::StatusOr<DataItem> DataBagImpl::CreateUuSchemaFromFields(
 
 // ********* Merging
 
-absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
-                                                 MergeOptions options) {
+absl::Status DataBagImpl::IterateOverSmallAllocWithNewData(
+    const DataBagImpl& other,
+    absl::FunctionRef<absl::Status(absl::string_view, ConstSparseSourceArray,
+                                   ConstSparseSourceArray)>
+        callback) const {
   for (const DataBagImpl* other_db = &other; other_db != nullptr;
        other_db = other_db->parent_data_bag_.get()) {
     for (const auto& [attr_name, other_source_top] :
@@ -3083,54 +3098,102 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
       if (this_sources == other_sources) {
         continue;
       }
-
-      if (this_sources.empty() && other_sources.size() == 1) {
-        // Copy entire source
-        small_alloc_sources_.emplace(attr_name, other_source_top);
-        continue;
-      }
-      SparseSource* this_mutable_source = nullptr;
-      auto process_other_source = [&](const SparseSource* other_source,
-                                      auto skip_object_id) -> absl::Status {
-        for (const auto& [obj_id, other_item] : other_source->GetAll()) {
-          if (skip_object_id(obj_id)) {
-            continue;
-          }
-          std::optional<DataItem> this_value;
-          if (options.data_conflict_policy != MergeOptions::kOverwrite) {
-            this_value =
-                  GetAttributeFromSources(obj_id, {}, this_sources);
-          }
-          if (this_value.has_value()) {
-            if (options.data_conflict_policy ==
-                    MergeOptions::kRaiseOnConflict &&
-                ValuesAreDifferent(*this_value, other_item)) {
-              return arolla::WithPayload(
-                  absl::FailedPreconditionError(absl::StrCat(
-                      "conflicting values for ", attr_name, " for ", obj_id,
-                      ": ", *this_value, " vs ", other_item)),
-                  MakeEntityOrObjectMergeError(obj_id, attr_name));
-            }
-          } else {
-            if (this_mutable_source == nullptr) {
-              this_mutable_source = &GetMutableSmallAllocSource(attr_name);
-              // NOTE it is fine that this_sources doesn't contain newly created
-              // source, because we never write the same key twice.
-            }
-            this_mutable_source->Set(obj_id, other_item);
-          }
-        }
-        return absl::OkStatus();
-      };
-      RETURN_IF_ERROR(
-          ProcessSparseSources(process_other_source, other_sources));
+      RETURN_IF_ERROR(callback(attr_name, std::move(this_sources),
+                               std::move(other_sources)));
     }
   }
   return absl::OkStatus();
 }
 
-absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
-                                               MergeOptions options) {
+absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
+                                                 MergeOptions options) {
+  return IterateOverSmallAllocWithNewData(
+      other,
+      [&](absl::string_view attr_name, ConstSparseSourceArray this_sources,
+          ConstSparseSourceArray other_sources) -> absl::Status {
+        if (options.data_conflict_policy == MergeOptions::kOverwrite) {
+          StripIfFirstArrayIsSuffix(this_sources, other_sources);
+        }
+        if (this_sources.empty() && other_sources.size() == 1) {
+          // Copy entire source
+          small_alloc_sources_.emplace(attr_name, *other_sources[0]);
+          return absl::OkStatus();
+        }
+        SparseSource* this_mutable_source = nullptr;
+        auto process_other_source = [&](const SparseSource* other_source,
+                                        auto skip_object_id) -> absl::Status {
+          for (const auto& [obj_id, other_item] : other_source->GetAll()) {
+            if (skip_object_id(obj_id)) {
+              continue;
+            }
+            std::optional<DataItem> this_value;
+            if (options.data_conflict_policy != MergeOptions::kOverwrite) {
+              this_value = GetAttributeFromSources(obj_id, {}, this_sources);
+            }
+            if (this_value.has_value()) {
+              if (options.data_conflict_policy ==
+                      MergeOptions::kRaiseOnConflict &&
+                  ValuesAreDifferent(*this_value, other_item)) {
+                return arolla::WithPayload(
+                    absl::FailedPreconditionError(absl::StrCat(
+                        "conflicting values for ", attr_name, " for ", obj_id,
+                        ": ", *this_value, " vs ", other_item)),
+                    MakeEntityOrObjectMergeError(obj_id, attr_name));
+              }
+            } else {
+              if (this_mutable_source == nullptr) {
+                this_mutable_source = &GetMutableSmallAllocSource(attr_name);
+                // NOTE it is fine that this_sources doesn't contain newly
+                // created source, because we never write the same key twice.
+              }
+              this_mutable_source->Set(obj_id, other_item);
+            }
+          }
+          return absl::OkStatus();
+        };
+        return ProcessSparseSources(process_other_source, other_sources);
+      });
+}
+
+absl::Status DataBagImpl::AddSmallAllocOverwritingUpdate(
+    const DataBagImpl& other, DataBagImpl& update) const {
+  DCHECK(IsPristine());
+  return IterateOverSmallAllocWithNewData(
+      other,
+      [&](absl::string_view attr_name, ConstSparseSourceArray this_sources,
+          ConstSparseSourceArray other_sources) -> absl::Status {
+        StripIfFirstArrayIsSuffix(this_sources, other_sources);
+        if (this_sources.empty() && other_sources.size() == 1) {
+          // Copy entire source
+          update.small_alloc_sources_.emplace(attr_name, *other_sources[0]);
+          return absl::OkStatus();
+        }
+        SparseSource* this_mutable_source = nullptr;
+        auto process_other_source = [&](const SparseSource* other_source,
+                                        auto skip_object_id) -> absl::Status {
+          for (const auto& [obj_id, other_item] : other_source->GetAll()) {
+            if (skip_object_id(obj_id)) {
+              continue;
+            }
+            std::optional<DataItem> this_value;
+            if (this_mutable_source == nullptr) {
+              this_mutable_source =
+                  &update.GetMutableSmallAllocSource(attr_name);
+              // NOTE it is fine that this_sources doesn't contain newly created
+              // source, because we never write the same key twice.
+            }
+            this_mutable_source->Set(obj_id, other_item);
+          }
+          return absl::OkStatus();
+        };
+        return ProcessSparseSources(process_other_source, other_sources);
+      });
+}
+
+absl::Status DataBagImpl::MergeBigAllocImpl(
+    const DataBagImpl& other, const MergeOptions& options,
+    absl::FunctionRef<SourceCollection&(AllocationId, absl::string_view)>
+        get_this_collection) const {
   absl::flat_hash_set<SourceKey> used_keys;
   for (const DataBagImpl* other_db = &other; other_db != nullptr;
        other_db = other_db->parent_data_bag_.get()) {
@@ -3156,8 +3219,7 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
         continue;
       }
 
-      SourceCollection& this_collection =
-          GetOrCreateSourceCollection(alloc, attr_name);
+      SourceCollection& this_collection = get_this_collection(alloc, attr_name);
 
       if (this_dense_sources.empty() && this_sparse_sources.empty()) {
         this_collection.lookup_parent = false;
@@ -3246,8 +3308,44 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
   return absl::OkStatus();
 }
 
-absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
-                                            MergeOptions options) {
+absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
+                                               MergeOptions options) {
+  return MergeBigAllocImpl(
+      other, options,
+      [this](AllocationId alloc,
+             absl::string_view attr_name) -> SourceCollection& {
+        return GetOrCreateSourceCollection(alloc, attr_name);
+      });
+}
+
+absl::Status DataBagImpl::AddBigAllocOverwritingUpdate(
+    const DataBagImpl& other, DataBagImpl& update) const {
+  DCHECK(IsPristine());
+  const MergeOptions options = {
+      .data_conflict_policy = MergeOptions::kOverwrite,
+      .schema_conflict_policy = MergeOptions::kOverwrite};
+  // TODO: Consider having an option to use sparse source if if most
+  // of the values are equal and the diff between this and other is small.
+  return MergeBigAllocImpl(
+      other, options,
+      [&update](AllocationId alloc,
+                absl::string_view attr_name) -> SourceCollection& {
+        SourceCollection& this_collection =
+            update.sources_[SourceKeyView{alloc, attr_name}];
+        // this_collection is used both for looking up  data in `this` and to
+        // output the data into update.
+        // We set lookup_parent to true to indicate that the data should be
+        // looked up in parent of `this` DataBag.
+        // Note that `this` DataBag is `pristine`.
+        this_collection = SourceCollection{.lookup_parent = true};
+        return this_collection;
+      });
+}
+
+absl::Status DataBagImpl::IterateOverListsWithNewData(
+    const DataBagImpl& other,
+    absl::FunctionRef<absl::Status(AllocationId, const DataListVector&)>
+        callback) const {
   absl::flat_hash_set<AllocationId> used_keys;
   for (const DataBagImpl* other_db = &other; other_db != nullptr;
        other_db = other_db->parent_data_bag_.get()) {
@@ -3260,47 +3358,80 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
           const_this_lists->get() == other_lists.get()) {
         continue;
       }
-      auto& this_lists = GetOrCreateMutableLists(alloc_id);
-      for (size_t i = 0; i < other_lists->size(); ++i) {
-        const auto* other_list = other_lists->Get(i);
-        if (other_list == nullptr) {
-          continue;
-        }
-        bool this_list_unset = this_lists.Get(i) == nullptr;
-        auto& this_list = this_lists.GetMutable(i);
-        if (options.data_conflict_policy == MergeOptions::kOverwrite ||
-            this_list_unset) {
-          this_list = *other_list;
-          continue;
-        }
-        if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
-          if (this_list.size() != other_list->size()) {
-            return arolla::WithPayload(
-                absl::FailedPreconditionError(
-                    absl::StrCat("conflicting list sizes for ", alloc_id, ": ",
-                                 this_list.size(), " vs ", other_list->size())),
-                MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
-                                       this_list.size(), other_list->size()));
-          }
-          for (size_t j = 0; j < other_list->size(); ++j) {
-            if (ValuesAreDifferent(this_list[j], (*other_list)[j])) {
-              return arolla::WithPayload(
-                  absl::FailedPreconditionError(absl::StrCat(
-                      "conflicting list values for ", alloc_id, "at index ", j,
-                      ": ", this_list[j], " vs ", (*other_list)[j])),
-                  MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
-                                         this_list[j], (*other_list)[j]));
-            }
-          }
-        }
-      }
+      RETURN_IF_ERROR(callback(alloc_id, *other_lists));
     }
   }
   return absl::OkStatus();
 }
 
-absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
+absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
                                             MergeOptions options) {
+  return IterateOverListsWithNewData(
+      other,
+      [this, options](AllocationId alloc_id,
+                      const DataListVector& other_lists) -> absl::Status {
+        auto& this_lists = GetOrCreateMutableLists(alloc_id);
+        for (size_t i = 0; i < other_lists.size(); ++i) {
+          const auto* other_list = other_lists.Get(i);
+          if (other_list == nullptr) {
+            continue;
+          }
+          bool this_list_unset = this_lists.Get(i) == nullptr;
+          auto& this_list = this_lists.GetMutable(i);
+          if (options.data_conflict_policy == MergeOptions::kOverwrite ||
+              this_list_unset) {
+            this_list = *other_list;
+            continue;
+          }
+          if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
+            if (this_list.size() != other_list->size()) {
+              return arolla::WithPayload(
+                  absl::FailedPreconditionError(absl::StrCat(
+                      "conflicting list sizes for ", alloc_id, ": ",
+                      this_list.size(), " vs ", other_list->size())),
+                  MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
+                                         this_list.size(), other_list->size()));
+            }
+            for (size_t j = 0; j < other_list->size(); ++j) {
+              if (ValuesAreDifferent(this_list[j], (*other_list)[j])) {
+                return arolla::WithPayload(
+                    absl::FailedPreconditionError(absl::StrCat(
+                        "conflicting list values for ", alloc_id, "at index ",
+                        j, ": ", this_list[j], " vs ", (*other_list)[j])),
+                    MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
+                                           this_list[j], (*other_list)[j]));
+              }
+            }
+          }
+        }
+        return absl::OkStatus();
+      });
+}
+
+absl::Status DataBagImpl::AddListsOverwritingUpdate(const DataBagImpl& other,
+                                                    DataBagImpl& update) const {
+  DCHECK(IsPristine());
+  return IterateOverListsWithNewData(
+      other,
+      [&update](AllocationId alloc_id,
+                const DataListVector& other_lists) -> absl::Status {
+        auto& this_lists = update.lists_[alloc_id];
+        this_lists = std::make_shared<DataListVector>(other_lists.size());
+        for (size_t i = 0; i < other_lists.size(); ++i) {
+          const auto* other_list = other_lists.Get(i);
+          if (other_list == nullptr) {
+            continue;
+          }
+          this_lists->GetMutable(i) = *other_list;
+        }
+        return absl::OkStatus();
+      });
+}
+
+absl::Status DataBagImpl::IterateOverDictsWithNewData(
+    const DataBagImpl& other,
+    absl::FunctionRef<absl::Status(AllocationId, const DictVector&)> callback)
+    const {
   absl::flat_hash_set<AllocationId> used_keys;
   for (const DataBagImpl* other_db = &other; other_db != nullptr;
        other_db = other_db->parent_data_bag_.get()) {
@@ -3308,44 +3439,75 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
       if (!used_keys.insert(alloc_id).second) {
         continue;
       }
-      const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
-                                        ? options.schema_conflict_policy
-                                        : options.data_conflict_policy;
       const auto* const_this_dicts = GetConstDictsOrNull(alloc_id);
       if (const_this_dicts != nullptr &&
           const_this_dicts->get() == other_dicts.get()) {
         continue;
       }
-      auto& this_dicts = GetOrCreateMutableDicts(alloc_id);
-      for (size_t i = 0; i < other_dicts->size(); ++i) {
-        const auto& other_dict = (*other_dicts)[i];
-        auto& this_dict = this_dicts[i];
-        for (const DataItem& key : other_dict.GetKeys()) {
-          if (conflict_policy == MergeOptions::kOverwrite) {
-            this_dict.Set(key, *other_dict.Get(key));
-            continue;
-          }
-          auto other_value = other_dict.Get(key);
-          if (!other_value.has_value()) {
-            continue;
-          }
-          const DataItem& this_value =
-              this_dict.GetOrAssign(key, other_value->get());
-          if (conflict_policy == MergeOptions::kRaiseOnConflict &&
-              ValuesAreDifferent(this_value, other_value->get())) {
-            internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
-            return arolla::WithPayload(
-                absl::FailedPreconditionError(absl::StrCat(
-                    "conflicting dict values for ", object_id, " key ", key,
-                    ": ", this_value, " vs ", *other_value)),
-                MakeSchemaOrDictMergeError(object_id, key, this_value,
-                                           *other_value));
-          }
-        }
-      }
+      RETURN_IF_ERROR(callback(alloc_id, *other_dicts));
     }
   }
   return absl::OkStatus();
+}
+
+absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
+                                            MergeOptions options) {
+  return IterateOverDictsWithNewData(
+      other,
+      [this, options](AllocationId alloc_id,
+                      const DictVector& other_dicts) -> absl::Status {
+        const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
+                                          ? options.schema_conflict_policy
+                                          : options.data_conflict_policy;
+        auto& this_dicts = GetOrCreateMutableDicts(alloc_id);
+        for (size_t i = 0; i < other_dicts.size(); ++i) {
+          const auto& other_dict = other_dicts[i];
+          auto& this_dict = this_dicts[i];
+          for (const DataItem& key : other_dict.GetKeys()) {
+            if (conflict_policy == MergeOptions::kOverwrite) {
+              this_dict.Set(key, *other_dict.Get(key));
+              continue;
+            }
+            auto other_value = other_dict.Get(key);
+            if (!other_value.has_value()) {
+              continue;
+            }
+            const DataItem& this_value =
+                this_dict.GetOrAssign(key, other_value->get());
+            if (conflict_policy == MergeOptions::kRaiseOnConflict &&
+                ValuesAreDifferent(this_value, other_value->get())) {
+              internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
+              return arolla::WithPayload(
+                  absl::FailedPreconditionError(absl::StrCat(
+                      "conflicting dict values for ", object_id, " key ", key,
+                      ": ", this_value, " vs ", *other_value)),
+                  MakeSchemaOrDictMergeError(object_id, key, this_value,
+                                             *other_value));
+            }
+          }
+        }
+        return absl::OkStatus();
+      });
+}
+
+absl::Status DataBagImpl::AddDictsOverwritingUpdate(const DataBagImpl& other,
+                                                    DataBagImpl& update) const {
+  DCHECK(IsPristine());
+  return IterateOverDictsWithNewData(
+      other,
+      [&update](AllocationId alloc_id,
+                const DictVector& other_dicts) -> absl::Status {
+        std::shared_ptr<DictVector>& this_dicts = update.dicts_[alloc_id];
+        this_dicts = std::make_shared<DictVector>(other_dicts.size());
+        for (size_t i = 0; i < other_dicts.size(); ++i) {
+          const auto& other_dict = other_dicts[i];
+          auto& this_dict = (*this_dicts)[i];
+          for (const DataItem& key : other_dict.GetKeys()) {
+            this_dict.Set(key, *other_dict.Get(key));
+          }
+        }
+        return absl::OkStatus();
+      });
 }
 
 bool DataBagImpl::IsUnmodifiedForkOf(const DataBagImpl* other) const {
@@ -3366,8 +3528,6 @@ bool DataBagImpl::IsSubsetOf(const DataBagImpl& other) const {
          other.IsUnmodifiedForkOf(parent_data_bag_.get());
 }
 
-// Merge additional attributes and objects from `other`.
-// Returns non-ok Status on conflict.
 absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
                                        MergeOptions options) {
   arolla::profiling::TraceMe traceme(
@@ -3384,6 +3544,27 @@ absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
   // dicts_
   RETURN_IF_ERROR(MergeDictsInplace(other, options));
   return absl::OkStatus();
+}
+
+absl::StatusOr<DataBagImplPtr> DataBagImpl::CreateOverwritingMergeUpdate(
+    const DataBagImpl& other) const {
+  arolla::profiling::TraceMe traceme(
+      "::koladata::internal::DataBagImpl::CreateOverwritingMergeUpdate");
+  auto update = DataBagImpl::CreateEmptyDatabag();
+  if (other.IsSubsetOf(*this)) {
+    return update;
+  }
+  // Creating a fork to simplify implementation.
+  auto fork = PartiallyPersistentFork();
+  // sources_
+  RETURN_IF_ERROR(fork->AddBigAllocOverwritingUpdate(other, *update));
+  // small_alloc_sources_
+  RETURN_IF_ERROR(fork->AddSmallAllocOverwritingUpdate(other, *update));
+  // lists_
+  RETURN_IF_ERROR(fork->AddListsOverwritingUpdate(other, *update));
+  // dicts_
+  RETURN_IF_ERROR(fork->AddDictsOverwritingUpdate(other, *update));
+  return update;
 }
 
 // TODO: Consider removing this destructor once databag

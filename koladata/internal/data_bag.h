@@ -32,6 +32,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/functional/function_ref.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -648,10 +649,16 @@ class DataBagImpl : public arolla::RefcountedBase {
   // ********* Merging
 
   // Merge additional attributes and objects from `other`.
-  // If overwrite is false, returns non-ok Status on conflict, otherwise
-  // overwrites the value.
+  // Supports different handling of conflicts, see MergeOptions.
   absl::Status MergeInplace(const DataBagImpl& other,
                             MergeOptions options = MergeOptions());
+
+  // Create a databag with updates from `other`.
+  // Calling MergeInplace with the resulting databag will be functionally
+  // equivalent to calling MergeInplace with `other` (assuming conflict policy
+  // ConflictHandlingOption::kOverwrite).
+  absl::StatusOr<DataBagImplPtr> CreateOverwritingMergeUpdate(
+      const DataBagImpl& other) const;
 
   // Assigns this DataBagImpl to a DataBag. This should called every time a
   // DataBag is created from this DataBagImpl to make sure DataBagImpl is never
@@ -682,6 +689,71 @@ class DataBagImpl : public arolla::RefcountedBase {
   int64_t GetApproxTotalByteSize() const;
 
  private:
+  struct SourceKey {
+    AllocationId alloc;
+    std::string attr;
+
+    friend bool operator==(const SourceKey& lhs, const SourceKey& rhs) {
+      return lhs.alloc == rhs.alloc && lhs.attr == rhs.attr;
+    }
+
+    template <typename H>
+    friend H AbslHashValue(H h, const SourceKey& k) {
+      return H::combine(std::move(h), k.alloc, k.attr);
+    }
+  };
+
+  struct SourceKeyView {
+    AllocationId alloc;
+    absl::string_view attr;
+
+    explicit operator SourceKey() const {
+      return SourceKey{alloc, std::string(attr)};
+    }
+
+    friend bool operator==(const SourceKeyView& lhs, const SourceKeyView& rhs) {
+      return lhs.alloc == rhs.alloc && lhs.attr == rhs.attr;
+    }
+
+    template <typename H>
+    friend H AbslHashValue(H h, const SourceKeyView& k) {
+      return H::combine(std::move(h), k.alloc, k.attr);
+    }
+  };
+
+  struct SourceKeyHashAndEq {
+    using is_transparent = void;  // go/totw/144
+
+    // equality
+    bool operator()(const SourceKey& a, const SourceKey& b) const {
+      return a == b;
+    }
+    bool operator()(const SourceKeyView& a, const SourceKeyView& b) const {
+      return a == b;
+    }
+    bool operator()(const SourceKey& a, const SourceKeyView& b) const {
+      return a.alloc == b.alloc && a.attr == b.attr;
+    }
+
+    // hash
+    size_t operator()(const SourceKey& a) const { return absl::HashOf(a); }
+    size_t operator()(const SourceKeyView& a) const { return absl::HashOf(a); }
+  };
+
+  struct SourceCollection {
+    // Mutable data source that can be modified in place.
+    // "dense" and "sparse" can not present both at the same time.
+    std::shared_ptr<DenseSource> mutable_dense_source;
+    std::shared_ptr<SparseSource> mutable_sparse_source;
+    // DenseSource that can not be modified in-place. E.g., because of
+    // sharing memory with another version of DataBagImpl or a DataSliceImpl.
+    std::shared_ptr<const DenseSource> const_dense_source;
+    // If true, extra data sources from parent_data_bag_ should be requested.
+    // False when data sources from parent were merged or cached in
+    // const_source.
+    bool lookup_parent = true;
+  };
+
   DataBagImpl() = default;
 
   bool IsUnmodifiedForkOf(const DataBagImpl* other) const;
@@ -775,7 +847,26 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Returns a copy of `slice` with all small allocs removed.
   DataSliceImpl WithoutSmallAllocs(const DataSliceImpl& slice) const;
 
-  // *** Merging helpers
+  // *** Merging helpers.
+  absl::Status IterateOverSmallAllocWithNewData(
+      const DataBagImpl& other,
+      absl::FunctionRef<absl::Status(absl::string_view, ConstSparseSourceArray,
+                                     ConstSparseSourceArray)>
+          callback) const;
+  absl::Status MergeBigAllocImpl(
+      const DataBagImpl& other, const MergeOptions& options,
+      absl::FunctionRef<SourceCollection&(AllocationId, absl::string_view)>
+          get_this_collection) const;
+  absl::Status IterateOverListsWithNewData(
+      const DataBagImpl& other,
+      absl::FunctionRef<absl::Status(AllocationId, const DataListVector&)>
+          callback) const;
+  absl::Status IterateOverDictsWithNewData(
+      const DataBagImpl& other,
+      absl::FunctionRef<absl::Status(AllocationId, const DictVector&)>
+          callback) const;
+
+  // *** Inplace merging helpers.
   absl::Status MergeSmallAllocInplace(const DataBagImpl& other,
                                       MergeOptions options);
   absl::Status MergeBigAllocInplace(const DataBagImpl& other,
@@ -785,73 +876,19 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::Status MergeDictsInplace(const DataBagImpl& other,
                                  MergeOptions options);
 
+  // *** Merging update helpers.
+  // These methods expect that "this" was forked.
+  absl::Status AddSmallAllocOverwritingUpdate(const DataBagImpl& other,
+                                              DataBagImpl& update) const;
+  absl::Status AddBigAllocOverwritingUpdate(const DataBagImpl& other,
+                                            DataBagImpl& update) const;
+  absl::Status AddListsOverwritingUpdate(const DataBagImpl& other,
+                                         DataBagImpl& update) const;
+  absl::Status AddDictsOverwritingUpdate(const DataBagImpl& other,
+                                         DataBagImpl& update) const;
+
   DataBagImplConstPtr parent_data_bag_ = nullptr;
   bool is_assigned_ = false;
-
-  struct SourceKey {
-    AllocationId alloc;
-    std::string attr;
-
-    friend bool operator==(const SourceKey& lhs, const SourceKey& rhs) {
-      return lhs.alloc == rhs.alloc && lhs.attr == rhs.attr;
-    }
-
-    template <typename H>
-    friend H AbslHashValue(H h, const SourceKey& k) {
-      return H::combine(std::move(h), k.alloc, k.attr);
-    }
-  };
-
-  struct SourceKeyView {
-    AllocationId alloc;
-    absl::string_view attr;
-
-    explicit operator SourceKey() const {
-      return SourceKey{alloc, std::string(attr)};
-    }
-
-    friend bool operator==(const SourceKeyView& lhs, const SourceKeyView& rhs) {
-      return lhs.alloc == rhs.alloc && lhs.attr == rhs.attr;
-    }
-
-    template <typename H>
-    friend H AbslHashValue(H h, const SourceKeyView& k) {
-      return H::combine(std::move(h), k.alloc, k.attr);
-    }
-  };
-
-  struct SourceKeyHashAndEq {
-    using is_transparent = void;  // go/totw/144
-
-    // equality
-    bool operator()(const SourceKey& a, const SourceKey& b) const {
-      return a == b;
-    }
-    bool operator()(const SourceKeyView& a, const SourceKeyView& b) const {
-      return a == b;
-    }
-    bool operator()(const SourceKey& a, const SourceKeyView& b) const {
-      return a.alloc == b.alloc && a.attr == b.attr;
-    }
-
-    // hash
-    size_t operator()(const SourceKey& a) const { return absl::HashOf(a); }
-    size_t operator()(const SourceKeyView& a) const { return absl::HashOf(a); }
-  };
-
-  struct SourceCollection {
-    // Mutable data source that can be modified in place.
-    // "dense" and "sparse" can not present both at the same time.
-    std::shared_ptr<DenseSource> mutable_dense_source;
-    std::shared_ptr<SparseSource> mutable_sparse_source;
-    // DenseSource that can not be modified in-place. E.g., because of
-    // sharing memory with another version of DataBagImpl or a DataSliceImpl.
-    std::shared_ptr<const DenseSource> const_dense_source;
-    // If true, extra data sources from parent_data_bag_ should be requested.
-    // False when data sources from parent were merged or cached in
-    // const_source.
-    bool lookup_parent = true;
-  };
 
   SourceCollection& GetOrCreateSourceCollection(AllocationId alloc_id,
                                                 absl::string_view attr);
