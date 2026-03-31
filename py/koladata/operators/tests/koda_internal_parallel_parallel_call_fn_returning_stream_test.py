@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import parallel as parallel_fns
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as _
 from koladata.operators import kde_operators
@@ -51,7 +52,6 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_simple_with_replacements(self):
     executor = kde_internal.parallel.get_eager_executor()
-    config = kde_internal.parallel.get_default_transform_config()
     fn = functor_factories.expr_fn(
         kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),
     )
@@ -62,7 +62,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
             y=I.bar,
         )
     )
-    call_expr = kde_internal.parallel.transform(config, call_fn)(
+    call_expr = parallel_fns.transform(call_fn)(
         executor,
         func=kde_internal.parallel.as_future(fn),
         foo=kde_internal.parallel.as_future(I.foo),

@@ -48,13 +48,7 @@ class JsonStreamImplodeArrayTest(parameterized.TestCase):
 
   def test_parallel_transform(self):
     executor = kd_internal.parallel.get_default_executor()
-    config = kd_internal.parallel.create_transform_config(
-        kd_internal.parallel.get_default_transform_config_src().with_attrs(
-            allow_runtime_transforms=False
-        )
-    )
-    result = kd_internal.parallel.transform(
-        config,
+    result = parallel_fns.transform(
         functor_factories.expr_fn(returns=kde.json_stream.implode_array(I.x)),
     )(
         executor,

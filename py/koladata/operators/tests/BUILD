@@ -8723,6 +8723,7 @@ py_test(
         "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
+        "//py/koladata/functions:parallel",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:kde_operators",
