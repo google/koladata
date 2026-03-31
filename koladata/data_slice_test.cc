@@ -5387,6 +5387,12 @@ TEST(DataSliceTest, GetItem_DataItem) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "dict(s) expected, got ENTITY(a=INT32)"));
 
+  ASSERT_OK_AND_ASSIGN(
+      auto object, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+  EXPECT_THAT(object.GetItem(test::DataItem(0)).status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "dict(s) expected, got IMPLICIT_ENTITY(a=INT32)"));
+
   EXPECT_THAT(
       test::DataItem(internal::DataItem(), schema::kNone, db).GetItem(indices),
       IsOkAndHolds(IsEquivalentTo(test::EmptyDataSlice(2, schema::kNone, db))));

@@ -741,8 +741,8 @@ class RhsHandler {
     if (schema_id.IsNoFollowSchema()) {
       return CannotSetAttrOnNoFollowSchemaErrorStatus();
     }
-    if (schema_id.IsImplicitSchema() || overwrite_schema_ ||
-        (context_ == RhsHandlerContext::kAttr &&
+    if (context_ == RhsHandlerContext::kAttr &&
+        (schema_id.IsImplicitSchema() || overwrite_schema_ ||
          !attr_stored_schema.has_value())) {
       if constexpr (is_readonly) {
         return absl::InternalError("cannot update schemas in readonly mode");
