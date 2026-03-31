@@ -331,6 +331,9 @@ export class MultiDimTable
   }
 
   private onCompactTableClick(e: MouseEvent) {
+    const baseTarget = e.composedPath()[0];
+    if (baseTarget instanceof HTMLElement && baseTarget.closest('th')) return;
+
     if (!e.ctrlKey) {
       // If we are clicking on the same content as is currently pinned,
       // toggle the pinned state. Otherwise, pin the new content.
