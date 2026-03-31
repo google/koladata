@@ -33,6 +33,14 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+filegroup(
+    name = "current_generated_docs",
+    srcs = [
+        "api_reference.md",
+    ] + glob(["api/**/*.md"]),
+    visibility = ["//py/koladata/g3doc:__pkg__"],
+)
+
 py_test(
     name = "doc_test",
     srcs = ["doc_test.py"],
