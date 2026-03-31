@@ -742,6 +742,8 @@ def visualize_slice(
       --kd-ds-vis-message-color: lightgray;
       --kd-ds-vis-shadow-color: #181818;
       --kd-multi-dim-table-background: #383838;
+      --emphasized-background-color: #555;
+      --emphasized-border-color: #aaa;
       color: white;
     }
   """
@@ -808,14 +810,32 @@ def visualize_slice(
       visibility: hidden;
     }
 
+    .truncated {
+      background-color: var(--emphasized-background-color, whitesmoke);
+      border-radius: 100px;
+      padding: 0 8px;
+      margin: 0 4px;
+      word-break: normal;
+    }
+
     [kernel-available] {
       .attr,
       .object-id,
       .truncated,
       .limited {
         cursor: pointer;
+      }
+
+      .attr,
+      .object-id,
+      .limited {
         text-decoration: underline;
       }
+
+      .truncated {
+        border: 1px solid var(--emphasized-border-color, gray);
+      }
+
       .attr:active,
       .object-id:active,
       .truncated:active,
