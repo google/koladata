@@ -14,6 +14,7 @@
 
 import os
 import re
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -300,23 +301,78 @@ class DumpLoadTest(absltest.TestCase):
     loaded = s11n.load(path)
     testing.assert_equal(loaded, ds_input)
 
-  def test_internal_dump_returns_size(self):
+  def test_dump_load_with_fs(self):
     ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
     path = os.path.join(self.create_tempdir().full_path, 'test.kd')
-    fs = file_io.get_default_file_system_interaction()
-    num_bytes = s11n.internal_dump(ds_input, path, fs)
-    self.assertGreater(num_bytes, 0)
-    self.assertEqual(num_bytes, os.path.getsize(path))
+    mocked_fs = mock.Mock(wraps=file_io.get_default_file_system_interaction())
 
-  def test_internal_load_returns_size(self):
+    s11n.dump(ds_input, path, fs=mocked_fs)
+    fs_method_names_called = [c[0] for c in mocked_fs.method_calls]
+    self.assertEqual(fs_method_names_called, ['exists', 'open'])
+    mocked_fs.exists.assert_called_once_with(path)
+    mocked_fs.open.assert_called_once_with(path, 'wb')
+    mocked_fs.reset_mock()
+
+    loaded = s11n.load(path, fs=mocked_fs)
+    fs_method_names_called = [c[0] for c in mocked_fs.method_calls]
+    self.assertEqual(fs_method_names_called, ['open'])
+    mocked_fs.open.assert_called_once_with(path, 'rb')
+
+    testing.assert_equal(loaded, ds_input)
+
+  def test_dump_load_data_bag_with_fs(self):
+    bag = data_bag.DataBag.empty_mutable()
+    bag.obj(a=data_slice.DataSlice.from_vals([1, 2, 3]))
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    mocked_fs = mock.Mock(wraps=file_io.get_default_file_system_interaction())
+
+    s11n.dump(bag, path, fs=mocked_fs)
+    fs_method_names_called = [c[0] for c in mocked_fs.method_calls]
+    self.assertEqual(fs_method_names_called, ['exists', 'open'])
+    mocked_fs.exists.assert_called_once_with(path)
+    mocked_fs.open.assert_called_once_with(path, 'wb')
+    mocked_fs.reset_mock()
+
+    loaded = s11n.load(path, fs=mocked_fs)
+    fs_method_names_called = [c[0] for c in mocked_fs.method_calls]
+    self.assertEqual(fs_method_names_called, ['open'])
+    mocked_fs.open.assert_called_once_with(path, 'rb')
+
+    testing.assert_equivalent(loaded, bag)
+
+  def test_dump_overwrite_false_raises_with_fs(self):
     ds_input = data_slice.DataSlice.from_vals([1, 2, 3])
     path = os.path.join(self.create_tempdir().full_path, 'test.kd')
     fs = file_io.get_default_file_system_interaction()
-    s11n.internal_dump(ds_input, path, fs)
-    loaded, num_bytes = s11n.internal_load(path, fs)
+    s11n.dump(ds_input, path, fs=fs)
+    with self.assertRaisesRegex(ValueError, 'already exists'):
+      s11n.dump(ds_input, path, fs=fs)
+
+  def test_dump_overwrite_true_with_fs(self):
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    mocked_fs = mock.Mock(wraps=file_io.get_default_file_system_interaction())
+
+    s11n.dump(data_slice.DataSlice.from_vals([1, 2, 3]), path, fs=mocked_fs)
+    mocked_fs.reset_mock()
+
+    ds_new = data_slice.DataSlice.from_vals([4, 5, 6])
+    s11n.dump(ds_new, path, overwrite=True, fs=mocked_fs)
+    fs_method_names_called = [c[0] for c in mocked_fs.method_calls]
+    self.assertEqual(fs_method_names_called, ['exists', 'remove', 'open'])
+    mocked_fs.exists.assert_called_once_with(path)
+    mocked_fs.remove.assert_called_once_with(path)
+    mocked_fs.open.assert_called_once_with(path, 'wb')
+    mocked_fs.reset_mock()
+
+    testing.assert_equal(s11n.load(path, fs=mocked_fs), ds_new)
+
+  def test_dump_load_with_riegeli_options_and_fs(self):
+    ds_input = data_slice.DataSlice.from_vals(list(range(1000)))
+    path = os.path.join(self.create_tempdir().full_path, 'test.kd')
+    fs = file_io.get_default_file_system_interaction()
+    s11n.dump(ds_input, path, riegeli_options='brotli', fs=fs)
+    loaded = s11n.load(path, fs=fs)
     testing.assert_equal(loaded, ds_input)
-    self.assertGreater(num_bytes, 0)
-    self.assertEqual(num_bytes, os.path.getsize(path))
 
   def test_dump_overwrite_false_raises(self):
     ds_input = data_slice.DataSlice.from_vals([1, 2, 3])

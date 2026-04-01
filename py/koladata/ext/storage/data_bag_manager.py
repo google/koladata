@@ -696,8 +696,8 @@ class DataBagManager:
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
     """Serializes the given bag and writes it to file."""
-    kd.s11n.internal_dump(
-        bag, self._get_bag_filepath_from_filename(bag_filename), self._fs
+    kd.s11n.dump(
+        bag, self._get_bag_filepath_from_filename(bag_filename), fs=self._fs
     )
 
   def _get_bag_filepath(self, bag_name: str) -> str:
@@ -712,7 +712,7 @@ class DataBagManager:
   def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
     """Returns a bag read from file."""
     bag_filepath = self._get_bag_filepath(bag_name)
-    bag, _ = kd.s11n.internal_load(bag_filepath, self._fs)
+    bag = kd.s11n.load(bag_filepath, fs=self._fs)
     return bag
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:

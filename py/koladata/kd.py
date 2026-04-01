@@ -188,8 +188,6 @@ file_io = _eager_only(
 
 s11n = _eager_only(
     _py_types.SimpleNamespace(
-        internal_dump=_s11n.internal_dump,
-        internal_load=_s11n.internal_load,
         dump=_s11n.dump,
         load=_s11n.load,
         dumps=_s11n.dumps,

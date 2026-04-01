@@ -470,7 +470,7 @@ Args:
 Returns:
   A duck type constraint to be used in kd.check_inputs or kd.check_output.</code></pre>
 
-### `kd.dump(x: DataSlice | DataBag, path: str, /, *, overwrite: bool = False, riegeli_options: str | None = None) -> None` {#kd.dump}
+### `kd.dump(x: DataSlice | DataBag, path: str, /, *, overwrite: bool = False, riegeli_options: str | None = None, fs: Any | None = None) -> None` {#kd.dump}
 
 Alias for [kd.s11n.dump](kd/s11n.md#kd.s11n.dump)
 
@@ -1040,7 +1040,7 @@ Alias for [kd.lists.shaped_as](kd/lists.md#kd.lists.shaped_as)
 
 Alias for [kd.lists.size](kd/lists.md#kd.lists.size)
 
-### `kd.load(path: str, /) -> Any` {#kd.load}
+### `kd.load(path: str, /, *, fs: Any | None = None) -> Any` {#kd.load}
 
 Alias for [kd.s11n.load](kd/s11n.md#kd.s11n.load)
 

@@ -104,10 +104,10 @@ class BareRootInitialDataManager(
       raise ValueError(
           f'the given persistence_dir {persistence_dir} is not empty'
       )
-    kd.s11n.internal_dump(
+    kd.s11n.dump(
         self._root_item,
         _get_root_dataslice_filepath(persistence_dir),
-        fs,
+        fs=fs,
     )
 
   @classmethod
@@ -119,7 +119,7 @@ class BareRootInitialDataManager(
       if not fs.exists(persistence_dir):
         raise ValueError(f'persistence_dir not found: {persistence_dir}')
       raise ValueError(f'file not found: {filepath}')
-    root_item = cast(kd.types.DataItem, kd.s11n.internal_load(filepath, fs)[0])
+    root_item = cast(kd.types.DataItem, kd.s11n.load(filepath, fs=fs))
     return BareRootInitialDataManager(
         internal_call=_INTERNAL_CALL,
         root_item=root_item,

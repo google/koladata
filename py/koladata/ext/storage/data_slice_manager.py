@@ -237,10 +237,10 @@ class DataSliceManager(
         snn: kd.list([], item_schema=kd.STRING)
         for snn in schema_helper.get_all_schema_node_names()
     })
-    kd.s11n.internal_dump(
+    kd.s11n.dump(
         initial_schema_node_name_to_data_bag_names,
         _get_initial_schema_node_name_to_bag_names_filepath(persistence_dir),
-        fs,
+        fs=fs,
     )
     schema_node_name_to_data_bags_updates_manager = (
         dbm.DataBagManager.create_new(
@@ -349,12 +349,12 @@ class DataSliceManager(
     )
     initial_schema_node_name_to_data_bag_names = cast(
         kd.types.DictItem,
-        kd.s11n.internal_load(
+        kd.s11n.load(
             _get_initial_schema_node_name_to_bag_names_filepath(
                 persistence_dir
             ),
-            fs,
-        )[0],
+            fs=fs,
+        ),
     )
     schema_node_name_to_data_bags_updates_manager = (
         dbm.DataBagManager.create_from_dir(
@@ -1144,10 +1144,10 @@ class DataSliceManager(
         os.path.join(output_dir, 'initial_data'), fs=branch_fs
     )
     branch_initial_data_manager = self._initial_data_manager.copy()
-    kd.s11n.internal_dump(
+    kd.s11n.dump(
         self._initial_schema_node_name_to_data_bag_names,
         _get_initial_schema_node_name_to_bag_names_filepath(output_dir),
-        branch_fs,
+        fs=branch_fs,
     )
     branch_initial_schema_node_name_to_data_bag_names = (
         self._initial_schema_node_name_to_data_bag_names
