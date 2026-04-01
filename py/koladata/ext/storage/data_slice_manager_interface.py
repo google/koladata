@@ -14,7 +14,7 @@
 
 """Interface for data slice managers."""
 
-from typing import Collection, Generator
+from typing import Collection, Generator, Self
 
 from koladata import kd
 from koladata.ext.storage import data_slice_path as data_slice_path_lib
@@ -209,5 +209,30 @@ class DataSliceManagerInterface:
         mentioned above apply.
       description: A description of the update. Optional. If provided, it will
         be stored in the history metadata of this manager.
+    """
+    raise NotImplementedError(type(self))
+
+  def branch(
+      self,
+      *,
+      description: str | None = None,
+  ) -> Self:
+    """Creates a branch of the current state of this manager.
+
+    The branch will typically reference the (possibly persisted) data of `self`,
+    therefore it is cheap to create. A branch can be branched in turn, which
+    means that a manager relies on the data of all the managers in its branching
+    history.
+
+    Future updates to this manager and its branch are completely independent:
+    * New calls to `update` this manager will not affect the branch.
+    * New calls to `update` the branch will not affect this manager.
+
+    Args:
+      description: A description of the branch. Optional. If provided, it will
+        be stored in the history metadata of the branch.
+
+    Returns:
+      A new branch of this manager.
     """
     raise NotImplementedError(type(self))

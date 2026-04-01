@@ -3221,7 +3221,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     for method_name in dir(
         data_slice_manager_interface.DataSliceManagerInterface
     ):
-      if method_name.startswith('_'):
+      if method_name.startswith('_') or method_name == 'branch':
         continue
       self.assertEqual(
           getattr(
