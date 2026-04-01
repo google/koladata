@@ -234,11 +234,29 @@ class TracingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        "unexpected inputs ['a', 'z'] found during tracing of function:"
+        "Unexpected inputs ['a', 'z'] found during tracing of function:"
         f' `{fn}`. Traced functions must not create new or capture external'
         ' inputs',
     ):
       tracing.trace(fn)
+
+  def test_nested_tracing_capture_name_collision(self):
+    def foo(x):
+      return bar(x)
+
+    def bar(y):
+      def baz(x):  # pylint: disable=unused-argument
+        return y
+
+      return kd.functor.expr_fn(tracing.trace(baz))(y)
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape("Unexpected inputs ['x']")
+        ),
+    ):
+      tracing.trace(foo)
 
   def test_nested_captured_variable_error(self):
     def fn(x, y):
@@ -251,7 +269,7 @@ class TracingTest(absltest.TestCase):
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
-            re.escape("unexpected inputs ['y']")
+            re.escape("Unexpected inputs ['y']")
         ),
     ):
       tracing.trace(fn)

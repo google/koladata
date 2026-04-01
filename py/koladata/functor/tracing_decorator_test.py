@@ -307,7 +307,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):  # pylint: disable=unused-argument
-      return I.x + 1
+      return kd_lazy.math.abs(x)
 
     with self.assertRaisesRegex(
         ValueError, 'computation returned an Expr instead'

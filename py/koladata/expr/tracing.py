@@ -15,8 +15,10 @@
 """Tools to trace functions into Exprs."""
 
 import inspect
+import re
 import types as py_types
 from typing import Any, Callable
+import uuid
 
 from arolla import arolla
 from koladata.expr import input_container
@@ -97,8 +99,28 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
         assert not keyword_params
         positional_params.append(param)
 
-  def _get_arg_value(param: inspect.Parameter) -> Any:
-    arg_value = I[param.name]
+  # To prevent inner traced functions from accidentally capturing inputs from an
+  # outer traced scope when they share the same parameter name (e.g. inner
+  # `f(x)` capturing outer `f(x)`'s `I.x`), we mangle the input names with a
+  # UUID suffix.
+  mangle_suffix = uuid.uuid4().hex
+
+  def mangle_name(name: str) -> str:
+    return f'{name}_{mangle_suffix}'
+
+  def unmangle_name(name: str) -> str:
+    # We don't just apply [:-len(mangle_suffix)] because we want to keep
+    # non-mangled names as is.
+    return re.sub(r'_[a-f0-9]{32}$', '', name)
+
+  passed_arg_names = set()
+  mangled_subs = {}
+
+  def get_arg_value(param: inspect.Parameter) -> Any:
+    mangled_name = mangle_name(param.name)
+    arg_value = I[mangled_name]
+    mangled_subs[arg_value.fingerprint] = I[param.name]
+    passed_arg_names.add(mangled_name)
     if extension_type_registry.is_koda_extension_type(param.annotation):
       ext_qtype = extension_type_registry.get_extension_qtype(param.annotation)
       arg_value = arolla.abc.aux_bind_op(
@@ -109,8 +131,8 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
   try:
     with tracing_mode.enable_tracing():
       res = fn(
-          *(_get_arg_value(p) for p in positional_params),
-          **{p.name: _get_arg_value(p) for p in keyword_params},
+          *(get_arg_value(p) for p in positional_params),
+          **{p.name: get_arg_value(p) for p in keyword_params},
       )
     expr = py_boxing.as_expr(res)
   except Exception as e:
@@ -120,14 +142,15 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
         ' can use `kd.py_fn(fn)` instead.'
     )
     raise
-  if diff := (
-      frozenset(introspection.get_input_names(expr))
-      - frozenset(p.name for p in positional_params)
-      - frozenset(p.name for p in keyword_params)
-  ):
+
+  if diff := frozenset(introspection.get_input_names(expr)) - passed_arg_names:
+    cleaned_diff = {unmangle_name(name) for name in diff}
     raise ValueError(
-        f'unexpected inputs {sorted(diff)} found during tracing of function:'
-        f' `{fn}`. Traced functions must not create new or capture external'
-        ' inputs'
+        f'Unexpected inputs {sorted(cleaned_diff)} found during tracing of'
+        f' function: `{fn}`. Traced functions must not create new or capture'
+        ' external inputs'
     )
+
+  if mangled_subs:
+    expr = arolla.sub_by_fingerprint(expr, mangled_subs)
   return expr
