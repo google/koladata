@@ -32,11 +32,51 @@ Returns:
 
 ### `kd_ext.contrib.pearson_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.pearson_correlation}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Pearson correlation for koladata slices x and y.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Pearson correlation for koladata slices x and y.
+
+Args:
+  x: First DataSlice.
+  y: Second DataSlice.
+
+Returns:
+  A DataSlice containing the correlation.</code></pre>
+
+### `kd_ext.contrib.pearson_correlation_with_ci(x: DataSlice, y: DataSlice, alpha: float = 0.05) -> DataSlice` {#kd_ext.contrib.pearson_correlation_with_ci}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Pearson correlation and confidence interval for koladata slices.
+
+Args:
+  x: First DataSlice.
+  y: Second DataSlice.
+  alpha: Significance level for CI.
+
+Returns:
+  A DataSlice of objects with &#39;correlation&#39;, &#39;lower_ci&#39;, and &#39;upper_ci&#39;
+  attributes.</code></pre>
 
 ### `kd_ext.contrib.spearman_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.spearman_correlation}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Spearman correlation using average ranks.</code></pre>
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Spearman correlation using average ranks.
+
+Args:
+  x: First DataSlice.
+  y: Second DataSlice.
+
+Returns:
+  A DataSlice containing the correlation.</code></pre>
+
+### `kd_ext.contrib.spearman_correlation_with_ci(x: DataSlice, y: DataSlice, alpha: float = 0.05) -> DataSlice` {#kd_ext.contrib.spearman_correlation_with_ci}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Spearman correlation and confidence interval.
+
+Args:
+  x: First DataSlice.
+  y: Second DataSlice.
+  alpha: Significance level for CI.
+
+Returns:
+  A DataSlice of objects with &#39;correlation&#39;, &#39;lower_ci&#39;, and &#39;upper_ci&#39;
+  attributes.</code></pre>
 
 ### `kd_ext.contrib.value_counts(x)` {#kd_ext.contrib.value_counts}
 
