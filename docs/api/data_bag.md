@@ -424,6 +424,24 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
+### `DataBag.overwriting_merge_update(other_db)` {#DataBag.overwriting_merge_update}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with the update from other_db.
+
+db.overwriting_merge_update(other_db) returns a DataBag tht can be passed
+instead of `other_db` to `merge_inplace` to get the same result.
+db.merge_inplace(other_db, allow_schema_conflicts=True).
+
+Notes about the returned DataBag:
+1. It may still contain data that is present in &#34;self&#34;.
+2. It may lack schema information and so it couldn&#39;t be used directly.
+
+Args:
+  other_db: DataBag to overwrite data and schema from.
+
+Returns:
+  DataBag with the update from other_db.</code></pre>
+
 ### `DataBag.schema_triples_repr(self: DataBag, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#DataBag.schema_triples_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of schema triples in the DataBag.</code></pre>

@@ -133,6 +133,12 @@ class DataBag : public arolla::RefcountedBase {
                             bool allow_data_conflicts,
                             bool allow_schema_conflicts);
 
+  // Returns an update that can be used to merge instead of `other_db`.
+  // The update can be applied to the current DataBag using MergeInplace with
+  // overwrite, allow_data_conflicts and allow_schema_conflicts set to true.
+  absl::StatusOr<DataBagPtr> CreateOverwritingMergeUpdate(
+      const DataBagPtr& other_db) const;
+
   // Fingerprint of the DataBag (randomized).
   arolla::Fingerprint fingerprint() const { return fingerprint_; }
 

@@ -1636,6 +1636,57 @@ Assigned schema for keys: INT32""",
     self.assertEqual(x1.a, ds(3))
     self.assertEqual(x1.b, ds(2))
 
+  def test_overwriting_merge_update(self):
+    db1 = bag()
+    x1 = db1.new(a=1, b=2)
+    db2 = bag()
+    x2 = x1.with_bag(db2)
+    x2.set_attr('a', 3)
+    update = db1.overwriting_merge_update(db2)
+    db1.merge_inplace(update)
+    self.assertEqual(x1.a, ds(3))
+
+  def test_overwriting_merge_update_with_fork(self):
+    db1 = bag()
+    x1 = db1.new(a=1)
+    num_items = 200
+    q1 = db1.new(b=ds(list(range(num_items))))
+    db2 = db1.fork()
+    x2 = x1.with_bag(db2)
+    x2.set_attr('a', 3)
+    update = db1.overwriting_merge_update(db2)
+    q1.set_attr('b', 9)
+    db1.merge_inplace(update)
+    self.assertEqual(x1.a, ds(3))
+    # `b` is not part of the update.
+    self.assertEqual(q1.b.to_py(), [9] * num_items)
+    self.assertLess(update.get_approx_size(), num_items / 2)
+
+  def test_overwriting_merge_update_with_fallbacks(self):
+    db_fallback = bag()
+    x_fallback = db_fallback.new(a=1, b=2)
+
+    db = bag()
+    x = x_fallback.with_bag(db)
+    num_items = 200
+    q = db.new(c=ds(list(range(num_items))))
+
+    db2 = db.fork()
+    x2 = x.with_bag(db2)
+    q2 = q.with_bag(db2)
+    x.set_attr('d', 4)
+    db <<= db_fallback
+
+    update = db2.overwriting_merge_update(db)
+    q2.set_attr('c', 9)
+    db2.merge_inplace(update)
+    self.assertEqual(x2.a, ds(1))
+    self.assertEqual(x2.b, ds(2))
+    self.assertEqual(x2.d, ds(4))
+    # `c` is not part of the update.
+    self.assertListEqual(q2.c.to_py(), [9] * num_items)
+    self.assertLess(update.get_approx_size(), num_items / 2)
+
   def test_merge_inplace_no_overwrite(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)

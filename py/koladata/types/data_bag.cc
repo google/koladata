@@ -1302,6 +1302,23 @@ PyObject* absl_nullable PyDataBag_merge_inplace(PyObject* self,
   Py_RETURN_NONE;
 }
 
+PyObject* absl_nullable PyDataBag_overwriting_merge_update(PyObject* self,
+                                                           PyObject* other_db) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const auto& db = UnsafeDataBagPtr(self);
+  auto other = UnwrapDataBagPtr(other_db, "DataBag to be merged");
+  if (other == std::nullopt) return nullptr;
+  if (*other == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "expecting DataBag to be merged to be a DataBag, got None");
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(auto update, db->CreateOverwritingMergeUpdate(*other),
+                   arolla::python::SetPyErrFromStatus(_));
+  return WrapDataBagPtr(std::move(update));
+}
+
 PyObject* absl_nullable PyDataBag_adopt(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
@@ -1812,6 +1829,26 @@ Returns:
      "*bags)\n"
      "--\n\n"
      "DataBag._merge_inplace"},
+    {"overwriting_merge_update",
+     (PyCFunction)PyDataBag_overwriting_merge_update, METH_O,
+     "overwriting_merge_update(other_db)\n"
+     "--\n\n"
+     R"""(Returns a new DataBag with the update from other_db.
+
+  db.overwriting_merge_update(other_db) returns a DataBag tht can be passed
+  instead of `other_db` to `merge_inplace` to get the same result.
+  db.merge_inplace(other_db, allow_schema_conflicts=True).
+
+  Notes about the returned DataBag:
+  1. It may still contain data that is present in "self".
+  2. It may lack schema information and so it couldn't be used directly.
+
+  Args:
+    other_db: DataBag to overwrite data and schema from.
+
+  Returns:
+    DataBag with the update from other_db.
+)"""},
     {"adopt", (PyCFunction)PyDataBag_adopt, METH_O,
      "adopt(slice, /)\n"
      "--\n\n"

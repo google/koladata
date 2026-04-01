@@ -157,6 +157,27 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
   return db_impl.MergeInplace(*other_db_impl, merge_options);
 }
 
+absl::StatusOr<DataBagPtr> DataBag::CreateOverwritingMergeUpdate(
+    const DataBagPtr& other_db) const {
+  if (!GetFallbacks().empty()) {
+    return absl::InvalidArgumentError(
+        "DataBag shouldn't have fallbacks for overwriting merge update. "
+        "Use merge_fallbacks() before creating update.");
+  }
+  const auto& db = GetImpl();
+  auto update_impl = [&]() -> absl::StatusOr<internal::DataBagImplPtr> {
+    if (other_db->GetFallbacks().empty()) {
+      return db.CreateOverwritingMergeUpdate(other_db->GetImpl());
+    }
+    ASSIGN_OR_RETURN(auto other_db_impl, MergeFallbacksToForkedImpl(*other_db));
+    return db.CreateOverwritingMergeUpdate(*other_db_impl);
+  };
+  ASSIGN_OR_RETURN(auto update, update_impl());
+  auto update_db = FromImpl(std::move(update));
+  update_db->UnsafeMakeImmutable();
+  return update_db;
+}
+
 void VisitFallbacks(const DataBag& bag,
                     absl::FunctionRef<void(DataBagPtr)> visit_fn) {
   std::vector<DataBagPtr> stack(bag.GetFallbacks().rbegin(),

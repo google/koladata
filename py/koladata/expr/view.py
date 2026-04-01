@@ -697,6 +697,9 @@ class KodaView(BaseKodaView):
   def merge_inplace(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('merge_inplace', 'DataBag')
 
+  def overwriting_merge_update(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('overwriting_merge_update', 'DataBag')
+
   def named_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('named_schema', 'DataBag')
 
