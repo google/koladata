@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 from typing import Callable
 
@@ -481,6 +482,11 @@ class DataSliceManagerViewTest(absltest.TestCase):
       doc_title.filter(kd.missing)  # Try to filter out all the docs.
     with self.assertRaisesRegex(
         ValueError,
+        re.escape("invalid data slice path: '.query[:].doc[:].title'"),
+    ):
+      doc_title.branch()
+    with self.assertRaisesRegex(
+        ValueError,
         re.escape("invalid data slice path: '.query[:].doc[:]'"),
     ):
       doc.word_count = kd.item(12345)
@@ -567,6 +573,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.__all__,
           # Note no get_parent() or get_grandparent() or get_list_items() here:
           [
+              'branch',
               'find_descendants',
               'get',
               'get_ancestor',
@@ -589,6 +596,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           root.some_list.__all__,
           # Note no get_grandparent() here:
           [
+              'branch',
               'filter',
               'find_descendants',
               'get',
@@ -609,6 +617,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.__all__,
           [
+              'branch',
               'filter',
               'find_descendants',
               'get',
@@ -630,6 +639,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
       self.assertEqual(
           root.query.get_dict_values().__all__,
           [
+              'branch',
               'filter',
               'get',
               'get_ancestor',
@@ -673,6 +683,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
           [
               # Note: no filter here because the root cannot be filtered out.
               # Also, no get_parent or get_grandparent here:
+              'branch',
               'find_descendants',
               'get',
               'get_ancestor',
@@ -1410,6 +1421,132 @@ class DataSliceManagerViewTest(absltest.TestCase):
           ],
       )
 
+  def test_branch(self):
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
+    trunk_root = DataSliceManagerView(manager)
+
+    trunk_root.query = (
+        kd.list([
+            kd.named_schema('query').new(query_id=0, text='How tall is Obama'),
+            kd.named_schema('query').new(
+                query_id=1, text='How high is the Eiffel tower'
+            ),
+        ]),
+        'Added queries with query_id and text',
+    )
+    trunk_query = trunk_root.query[:]
+
+    with self.subTest('branch_from_root'):
+      branch_root = trunk_root.branch()
+      # The branched view has a different manager but the same path.
+      self.assertNotEqual(branch_root.get_manager(), trunk_root.get_manager())
+      self.assertEqual(
+          branch_root.get_path_from_root(), trunk_root.get_path_from_root()
+      )
+      # Since we use DataSliceManager, and did not pass a directory for the
+      # branch, the branch directory is inside the trunk's branches/ directory.
+      self.assertTrue(
+          branch_root.get_manager()
+          .get_persistence_directory()  # pytype: disable=attribute-error
+          .startswith(
+              os.path.join(
+                  trunk_root.get_manager().get_persistence_directory(),  # pytype: disable=attribute-error
+                  'branches',
+                  os.sep,
+              )
+          )
+      )
+      # The data in the branch is the same as in the original.
+      kd.testing.assert_equivalent(
+          branch_root.get_data_slice(
+              populate_including_descendants=[branch_root]
+          ),
+          trunk_root.get_data_slice(
+              populate_including_descendants=[trunk_root]
+          ),
+      )
+
+    with self.subTest('branch_from_non_root_view'):
+      branch_query = trunk_query.branch(description='Branch from queries view')
+      self.assertNotEqual(branch_root.get_manager(), trunk_root.get_manager())
+      # The path is preserved.
+      self.assertEqual(
+          branch_query.get_path_from_root(),
+          trunk_query.get_path_from_root(),
+      )
+      # The data is the same.
+      kd.testing.assert_equivalent(
+          branch_query.get(populate_including_descendants=[branch_query]),
+          trunk_query.get(populate_including_descendants=[trunk_query]),
+      )
+      # The description is used in the revision history of the branch.
+      self.assertEqual(
+          branch_query.get_manager()._metadata.revision_history[0].description,
+          'Branch from queries view',
+      )
+
+    with self.subTest('trunk_updates_do_not_affect_branch'):
+      branch_root = trunk_root.branch(description='Branch isolation test')
+      # Update the trunk.
+      trunk_query.doc = (
+          kd.slice([
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=1, title='Barack Obama'),
+              ]),
+              kd.list([
+                  kd.named_schema('doc').new(doc_id=2, title='Tower of London'),
+              ]),
+          ]),
+          'Added docs to original',
+      )
+      # The branch should not see the new doc attribute.
+      self.assertNotIn('doc', kd.dir(branch_root.query[:].get_schema()))
+
+    with self.subTest('branch_updates_do_not_affect_trunk'):
+      branch_root = trunk_root.branch(description='Trunk isolation test')
+      branch_query = branch_root.query[:]
+      # Update the branch.
+      branch_query.score = (
+          kd.slice([10, 20]),
+          'Added a query score',
+      )
+      # The original should not see the new score attribute.
+      self.assertNotIn('score', kd.dir(trunk_query.get_schema()))
+      # But the branch has the score attribute.
+      self.assertIn('score', kd.dir(branch_root.query[:].get_schema()))
+
+    with self.subTest('branch_a_branch'):
+      branched_root_1 = trunk_root.branch(description='First branch')
+      branched_root_2 = branched_root_1.branch(
+          description='Second branch (branch of branch)',
+      )
+      # Data should be the same across the trunk and both branches.
+      kd.testing.assert_equivalent(
+          branched_root_2.query[:].query_id.get(),
+          trunk_root.query[:].query_id.get(),
+      )
+      # Verify independence: update branch_1; trunk and branch_2 are unaffected.
+      branched_root_1.query[:].label = (
+          kd.slice(['a', 'b']),
+          'Added label to first branch',
+      )
+      self.assertNotIn('label', kd.dir(trunk_root.query[:].get_schema()))
+      self.assertNotIn('label', kd.dir(branched_root_2.query[:].get_schema()))
+
+    with self.subTest('branch_from_invalid_view_raises'):
+      manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
+      root = DataSliceManagerView(manager)
+      root.x = kd.list([kd.named_schema('x').new(a=1)])
+      x_items = root.x[:]
+      # Make the path of x_items invalid by updating the root.
+      root.x = kd.item(42)
+      self.assertFalse(x_items.is_view_valid())
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape("invalid data slice path: '.x[:]'"),
+      ):
+        x_items.branch()
+
   def test_error_messages_when_sugar_does_not_apply_to_attribute_name(self):
     manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
     root = DataSliceManagerView(manager)
@@ -1446,6 +1583,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
     self.assertEqual(
         root.__all__,
         [
+            'branch',
             'find_descendants',
             'get',
             'get_ancestor',

@@ -321,6 +321,39 @@ class DataSliceManagerView:
         raise ValueError(f'unsupported action: {action}')
       current_child_path = parent_path
 
+  # Methods that create branches or operate on branches.
+
+  def branch(
+      self,
+      *,
+      description: str | None = None,
+  ) -> DataSliceManagerView:
+    """Branches the underlying DataSliceManager and returns a view of it.
+
+    It is cheap to create branches. The branch will rely on the data of the
+    DataSliceManager of `self`, so deleting or moving its storage might break
+    the branch. A branch can be branched in turn, which means that a branch
+    manager relies on the data of all the managers in its branching history.
+
+    Future updates to this view's manager and the branch manager are completely
+    independent:
+    * New calls to `update` this view will not affect the branch.
+    * New calls to `update` the branch will not affect this view.
+
+    Args:
+      description: A description of the branch. Optional. If provided, it will
+        be stored in the history metadata of the branched DataSliceManager.
+
+    Returns:
+      A view of the branched manager that uses the same path from the root as
+      this view.
+    """
+    self._check_path_from_root_is_valid()
+    return DataSliceManagerView(
+        self._data_slice_manager.branch(description=description),
+        self._path_from_root,
+    )
+
   # Accessing the state.
 
   def get_path_from_root(self) -> data_slice_path_lib.DataSlicePath:
@@ -654,7 +687,7 @@ class DataSliceManagerView:
     # From here on, we add the attributes that are only available for valid
     # paths.
 
-    attributes.extend(['get_schema', 'get_data_slice', 'get'])
+    attributes.extend(['get_schema', 'get_data_slice', 'get', 'branch'])
 
     schema = self.get_schema()
     if schema.is_struct_schema():
