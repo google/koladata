@@ -460,11 +460,11 @@ export class MultiDimTable
     dimNav.scrollLeft = existingScrollLeft;
 
     dataRegionParts.detailPane.addEventListener('click', (e: MouseEvent) => {
-      const {target} = e;
-      if (target instanceof HTMLSlotElement) {
+      const slot = e.composedPath().find(el => el instanceof HTMLSlotElement);
+      if (slot) {
         // Handle a click to scroll to a cell based on the detail pane.
-        const row = Number(target.dataset['row']);
-        const col = Number(target.dataset['col']);
+        const row = Number(slot.dataset['row']);
+        const col = Number(slot.dataset['col']);
         this.focusDataCell(row, col);
         this.suppressLoadRequests = 1;
         this.scrollToIndex(col + this.loadedRange[0]);

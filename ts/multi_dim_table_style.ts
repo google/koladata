@@ -150,10 +150,6 @@ export function shadow() {
         position: relative;
       }
 
-      slot::slotted(*) {
-        cursor: default;
-      }
-
       /* No pointer when there is only one element. */
       slot:first-child:last-child {
         cursor: default;

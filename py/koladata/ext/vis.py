@@ -836,6 +836,20 @@ def visualize_slice(
         border: 1px solid var(--emphasized-border-color, gray);
       }
 
+      .attr:hover,
+      .object-id:hover,
+      .limited:hover {
+        background-color: color-mix(in srgb, currentcolor, transparent 85%);
+        border-radius: 2px;
+      }
+
+      .truncated:hover {
+        background-color: color-mix(
+            in srgb,
+            var(--emphasized-background-color, whitesmoke),
+            currentcolor 10%);
+      }
+
       .attr:active,
       .object-id:active,
       .truncated:active,
