@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -29,6 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 create_shape = jagged_shape.create_shape
@@ -121,9 +122,7 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, text, regex, replacement, expected):
-    result = expr_eval.eval(
-        kde.strings.regex_replace_all(text, regex, replacement)
-    )
+    result = kd.strings.regex_replace_all(text, regex, replacement)
     testing.assert_equal(result, expected)
 
   def test_regex_incompatible_type_errors(self):
@@ -131,30 +130,24 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
         ValueError,
         'argument `regex` must be an item holding STRING, got an item of BYTES',
     ):
-      expr_eval.eval(
-          kde.strings.regex_replace_all(ds('foo'), ds(b'f'), ds('b'))
-      )
+      kd.strings.regex_replace_all(ds('foo'), ds(b'f'), ds('b'))
 
     with self.assertRaisesRegex(
         ValueError,
         'argument `regex` must be an item holding STRING, got an item of INT32',
     ):
-      expr_eval.eval(
-          kde.strings.regex_replace_all(
-              ds([None], schema_constants.STRING),
-              ds(123),
-              ds(None, schema_constants.STRING),
-          )
+      kd.strings.regex_replace_all(
+          ds([None], schema_constants.STRING),
+          ds(123),
+          ds(None, schema_constants.STRING),
       )
 
     with self.assertRaisesRegex(
         ValueError,
         'argument `regex` must be an item holding STRING, got missing',
     ):
-      expr_eval.eval(
-          kde.strings.regex_replace_all(
-              ds(['foo']), ds(None, schema_constants.STRING), ds('a')
-          )
+      kd.strings.regex_replace_all(
+          ds(['foo']), ds(None, schema_constants.STRING), ds('a')
       )
 
   def test_mixed_slice_errors(self):
@@ -163,18 +156,14 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
         'argument `text` must be a slice of STRING, got a slice of OBJECT'
         ' containing INT32 and STRING values',
     ):
-      expr_eval.eval(
-          kde.strings.regex_replace_all(ds([1, 'fo']), ds('o'), ds('a'))
-      )
+      kd.strings.regex_replace_all(ds([1, 'fo']), ds('o'), ds('a'))
 
     with self.assertRaisesRegex(
         ValueError,
         'argument `replacement` must be a slice of STRING, got a slice of'
         ' OBJECT containing INT32 and STRING values',
     ):
-      expr_eval.eval(
-          kde.strings.regex_replace_all(ds('foo'), ds('o'), ds([1, 'fo']))
-      )
+      kd.strings.regex_replace_all(ds('foo'), ds('o'), ds([1, 'fo']))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

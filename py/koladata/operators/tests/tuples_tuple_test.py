@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -27,6 +27,7 @@ from koladata.types import qtypes
 M = arolla.M
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -84,7 +85,7 @@ class TuplesTupleTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, expected):
-    result = expr_eval.eval(kde.tuple(*args))
+    result = kd.tuple(*args)
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):

@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -106,7 +107,7 @@ class StringsReplaceTest(parameterized.TestCase):
       ),
   )
   def test_three_args(self, s, substr, start, expected):
-    result = expr_eval.eval(kde.strings.replace(s, substr, start))
+    result = kd.strings.replace(s, substr, start)
     testing.assert_equal(result, expected)
 
   def test_three_args_wrong_types(self):
@@ -117,7 +118,7 @@ class StringsReplaceTest(parameterized.TestCase):
             ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
         ),
     ):
-      expr_eval.eval(kde.strings.replace('foo', b'oo', 'ar'))
+      kd.strings.replace('foo', b'oo', 'ar')
 
   @parameterized.parameters(
       (ds('fooaaoo'), ds('oo'), ds('e'), ds(0), ds('fooaaoo')),
@@ -185,7 +186,7 @@ class StringsReplaceTest(parameterized.TestCase):
       ),
   )
   def test_four_args(self, s, substr, start, end, expected):
-    result = expr_eval.eval(kde.strings.replace(s, substr, start, end))
+    result = kd.strings.replace(s, substr, start, end)
     testing.assert_equal(result, expected)
 
   def test_incompatible_types_error(self):
@@ -196,7 +197,7 @@ class StringsReplaceTest(parameterized.TestCase):
             ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
         ),
     ):
-      expr_eval.eval(kde.strings.replace(ds('foo'), ds(b'f'), ds('bar')))
+      kd.strings.replace(ds('foo'), ds(b'f'), ds('bar'))
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
@@ -206,10 +207,9 @@ class StringsReplaceTest(parameterized.TestCase):
             ' either STRING or BYTES, got a slice of INT32'
         ),
     ):
-      expr_eval.eval(
-          kde.strings.replace(
-              ds([None], schema_constants.STRING), ds(123), ds('bar')
-          )
+
+      kd.strings.replace(
+          ds([None], schema_constants.STRING), ds(123), ds('bar')
       )
 
   def test_mixed_slice_error(self):
@@ -219,7 +219,7 @@ class StringsReplaceTest(parameterized.TestCase):
         ' STRING or BYTES, got a slice of OBJECT containing INT32 and STRING'
         ' values',
     ):
-      expr_eval.eval(kde.strings.replace(ds('foo'), ds([1, 'fo']), ds('bar')))
+      kd.strings.replace(ds('foo'), ds([1, 'fo']), ds('bar'))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

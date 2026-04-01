@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -94,7 +95,7 @@ class StringsSplitTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_arg(self, x, expected_value):
-    actual_value = expr_eval.eval(kde.strings.split(x))
+    actual_value = kd.strings.split(x)
     testing.assert_equal(actual_value, expected_value)
 
   @parameterized.parameters(
@@ -147,7 +148,7 @@ class StringsSplitTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_args(self, x, sep, expected_value):
-    actual_value = expr_eval.eval(kde.strings.split(x, sep))
+    actual_value = kd.strings.split(x, sep)
     testing.assert_equal(actual_value, expected_value)
 
   def test_boxing(self):
@@ -184,7 +185,7 @@ class StringsSplitTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected rank(sep) == 0')
     ):
-      expr_eval.eval(kde.strings.split(ds(['foo', 'bar']), sep=ds(['', ''])))
+      kd.strings.split(ds(['foo', 'bar']), sep=ds(['', '']))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.strings.split(I.x)))
