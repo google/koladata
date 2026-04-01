@@ -76,8 +76,7 @@ absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
                                   const DataSlice& attr_name);
 
 // kd.core.get_attr_names
-absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds,
-                                       const DataSlice& intersection);
+absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds);
 
 // kd.core._stub.
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& keep_attrs);

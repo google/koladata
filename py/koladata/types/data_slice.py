@@ -156,6 +156,11 @@ def _dir(self) -> list[str]:
   return sorted(methods | attrs)
 
 
+@add_method(DataSlice, 'get_attr_names', docstring_from='kd.get_attr_names')
+def _get_attr_names(self):
+  return _eval_op('kd.get_attr_names', self)
+
+
 @add_method(DataSlice, 'maybe', docstring_from='kd.maybe')
 def _maybe(self, attr_name: str) -> DataSlice:
   # NOTE: Calling `get_attr`, instead of _eval_op, because it is implemented

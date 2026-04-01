@@ -314,6 +314,13 @@ class DataSlice {
   absl::StatusOr<AttrNamesSet> GetAttrNames(
       bool union_object_attrs = false) const;
 
+  // Returns a DataSlice with sorted attribute names for each item in `x` as a
+  // new dimension. In case of OBJECT schema, attribute names are fetched from
+  // the `__schema__` attribute. In case of Entity schema, the attribute names
+  // are fetched from the schema. In case of primitives, an empty dimension is
+  // returned.
+  absl::StatusOr<DataSlice> GetAttrNamesPerItem() const;
+
   // Returns a new DataSlice containing the values of the attribute `attr_name`
   // on the objects in this DataSlice. The result uses the same DataBag as this
   // DataSlice. If the attribute is not defined in the schema, or the schema is

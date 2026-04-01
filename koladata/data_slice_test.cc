@@ -1463,6 +1463,105 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata_BigAlloc) {
               IsOkAndHolds(ElementsAre("a", "b")));
 }
 
+TEST(DataSliceTest, GetAttrNamesPerItem_ScalarEntity) {
+  auto db = DataBag::EmptyMutable();
+  auto a = test::DataItem(1);
+  auto b = test::DataItem("a");
+  auto c = test::DataItem(3.14);
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
+  ASSERT_OK_AND_ASSIGN(auto attr_names, ds.GetAttrNamesPerItem());
+  EXPECT_EQ(attr_names.GetShape().rank(), 1);
+  EXPECT_EQ(attr_names.size(), 3);
+  EXPECT_THAT(attr_names.slice(),
+              UnorderedElementsAre(DataItemWith<arolla::Text>("a"),
+                                   DataItemWith<arolla::Text>("b"),
+                                   DataItemWith<arolla::Text>("c")));
+  EXPECT_EQ(attr_names.GetSchemaImpl(), schema::kString);
+}
+
+TEST(DataSliceTest, GetAttrNamesPerItem_Entity) {
+  auto db = DataBag::EmptyMutable();
+  auto a = test::DataSlice<int>({1, 2});
+  auto b = test::DataSlice<arolla::Text>({"a", "b"});
+  auto c = test::DataSlice<float>({3.14, 2.71});
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
+  ASSERT_OK_AND_ASSIGN(auto attr_names, ds.GetAttrNamesPerItem());
+  EXPECT_EQ(attr_names.GetShape().rank(), 2);
+  EXPECT_EQ(attr_names.size(), 6);
+  EXPECT_THAT(
+      attr_names.slice(),
+      UnorderedElementsAre(
+          DataItemWith<arolla::Text>("a"), DataItemWith<arolla::Text>("b"),
+          DataItemWith<arolla::Text>("c"), DataItemWith<arolla::Text>("a"),
+          DataItemWith<arolla::Text>("b"), DataItemWith<arolla::Text>("c")));
+  EXPECT_EQ(attr_names.GetSchemaImpl(), schema::kString);
+}
+
+TEST(DataSliceTest, GetAttrNamesPerItem_ScalarObject) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, ObjectCreator::FromAttrs(db, {"a", "b", "c"},
+                                        {test::DataItem(1), test::DataItem("a"),
+                                         test::DataItem(3.14)}));
+  ASSERT_OK_AND_ASSIGN(auto attr_names, ds.GetAttrNamesPerItem());
+  EXPECT_EQ(attr_names.GetShape().rank(), 1);
+  EXPECT_EQ(attr_names.size(), 3);
+  EXPECT_THAT(attr_names.slice(),
+              UnorderedElementsAre(DataItemWith<arolla::Text>("a"),
+                                   DataItemWith<arolla::Text>("b"),
+                                   DataItemWith<arolla::Text>("c")));
+  EXPECT_EQ(attr_names.GetSchemaImpl(), schema::kString);
+}
+
+TEST(DataSliceTest, GetAttrNamesPerItem_Object) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto object_1,
+      ObjectCreator::FromAttrs(
+          db, {"a", "b", "c"},
+          {test::DataItem(1), test::DataItem("a"), test::DataItem(3.14)}));
+  ASSERT_OK_AND_ASSIGN(
+      auto object_2,
+      ObjectCreator::FromAttrs(
+          db, {"a", "b", "d"},
+          {test::DataItem(1), test::DataItem("a"), test::DataItem(3.14)}));
+  auto ds = test::DataSlice<ObjectId>({object_1.item().value<ObjectId>(),
+                                       std::nullopt,
+                                       object_2.item().value<ObjectId>()})
+                .WithBag(db);
+  ASSERT_OK_AND_ASSIGN(auto attr_names, ds.GetAttrNamesPerItem());
+  EXPECT_EQ(attr_names.GetShape().rank(), 2);
+  EXPECT_EQ(attr_names.size(), 6);
+  const auto& edge = attr_names.GetShape().edges().back();
+  EXPECT_EQ(edge.split_size(0), 3);  // object_1: a, b, c
+  EXPECT_EQ(edge.split_size(1), 0);  // missing item: no attrs
+  EXPECT_EQ(edge.split_size(2), 3);  // object_2: a, b, d
+  EXPECT_THAT(
+      attr_names.slice(),
+      UnorderedElementsAre(
+          DataItemWith<arolla::Text>("a"), DataItemWith<arolla::Text>("b"),
+          DataItemWith<arolla::Text>("c"), DataItemWith<arolla::Text>("a"),
+          DataItemWith<arolla::Text>("b"), DataItemWith<arolla::Text>("d")));
+  EXPECT_EQ(attr_names.GetSchemaImpl(), schema::kString);
+}
+
+TEST(DataSliceTest, GetAttrNamesPerItem_Primitives) {
+  auto ds = test::DataSlice<int>({1, 2, 3}).WithBag(DataBag::EmptyMutable());
+  ASSERT_OK_AND_ASSIGN(auto attr_names, ds.GetAttrNamesPerItem());
+  EXPECT_EQ(attr_names.GetShape().rank(), 2);
+  EXPECT_EQ(attr_names.size(), 0);
+  EXPECT_EQ(attr_names.GetSchemaImpl(), schema::kString);
+}
+
+TEST(DataSliceTest, GetAttrNamesPerItem_Errors) {
+  auto ds = test::DataSlice<int>({1, 2, 3});
+  EXPECT_THAT(ds.GetAttrNamesPerItem(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("without a DataBag")));
+}
+
 TEST(DataSliceTest, GetAttrErrors) {
   {
     // No db.

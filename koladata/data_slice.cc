@@ -22,6 +22,7 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
@@ -36,6 +37,7 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/jagged_shape/qexpr/shape_operators.h"
 #include "arolla/memory/optional_value.h"
@@ -1372,7 +1374,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
   const internal::DataBagImpl& db_impl = GetBag()->GetImpl();
   FlattenFallbackFinder fb_finder(*GetBag());
   auto fallbacks = fb_finder.GetFlattenFallbacks();
-  if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
+  if (GetSchemaImpl().is_struct_schema()) {
     // For entities, just process the schema of the DataSlice.
     return GetAttrsFromSchemaItem(GetSchemaImpl(), db_impl, fallbacks);
   }
@@ -1388,6 +1390,119 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
     return KodaErrorCausedByMissingObjectSchemaError(result.status(), *this);
   }
   return result;
+}
+
+absl::StatusOr<DataSlice> DataSlice::GetAttrNamesPerItem() const {
+  if (GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot get available attributes without a DataBag");
+  }
+  const internal::DataBagImpl& db_impl = GetBag()->GetImpl();
+  FlattenFallbackFinder fb_finder(*GetBag());
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+
+  // For entities, all items share the same schema attrs.
+  if (GetSchemaImpl().is_struct_schema()) {
+    ASSIGN_OR_RETURN(
+        auto attrs, GetAttrsFromSchemaItem(GetSchemaImpl(), db_impl, fallbacks),
+        _.With(KodaErrorCausedByMissingObjectSchemaError(*this)));
+    return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+      std::vector<int64_t> split_points;
+      std::vector<arolla::OptionalValue<arolla::Text>> attrs_vec;
+      if constexpr (std::is_same_v<T, internal::DataItem>) {
+        split_points.reserve(2);
+        split_points.push_back(0);
+        if (impl.has_value()) {
+          for (const auto& attr : attrs) {
+            attrs_vec.push_back(arolla::Text(attr));
+          }
+        }
+        split_points.push_back(attrs_vec.size());
+      } else {
+        split_points.reserve(impl.size() + 1);
+        split_points.push_back(0);
+        for (int64_t i = 0; i < impl.size(); ++i) {
+          if (impl[i].has_value()) {
+            for (const auto& attr : attrs) {
+              attrs_vec.push_back(arolla::Text(attr));
+            }
+          }
+          split_points.push_back(attrs_vec.size());
+        }
+      }
+
+      ASSIGN_OR_RETURN(
+          auto edge,
+          arolla::DenseArrayEdge::FromSplitPoints(
+              arolla::CreateFullDenseArray<int64_t>(std::move(split_points))));
+      ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
+
+      internal::DataSliceImpl new_impl;
+      if (attrs_vec.empty()) {
+        new_impl = internal::DataSliceImpl::CreateEmptyAndUnknownType(
+            attrs_vec.size());
+      } else {
+        new_impl = internal::DataSliceImpl::Create(
+            arolla::CreateDenseArray<arolla::Text>(std::move(attrs_vec)));
+      }
+      return DataSlice::Create(std::move(new_impl), std::move(shape),
+                               internal::DataItem(schema::kString), nullptr);
+    });
+  }
+
+  // Object case.
+  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+    std::vector<int64_t> split_points;
+    std::vector<arolla::OptionalValue<arolla::Text>> attrs_vec;
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      split_points.reserve(2);
+    } else {
+      split_points.reserve(impl.size() + 1);
+    }
+    split_points.push_back(0);
+
+    auto process_item = [&](const internal::DataItem& item) -> absl::Status {
+      if (!item.has_value()) {
+        split_points.push_back(attrs_vec.size());
+        return absl::OkStatus();
+      }
+      ASSIGN_OR_RETURN(
+          auto attrs,
+          GetAttrsFromDataItem(item, GetSchemaImpl(), db_impl, fallbacks),
+          _.With(KodaErrorCausedByMissingObjectSchemaError(*this)));
+      for (const auto& attr : attrs) {
+        attrs_vec.push_back(arolla::Text(attr));
+      }
+      split_points.push_back(attrs_vec.size());
+      return absl::OkStatus();
+    };
+
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      RETURN_IF_ERROR(process_item(impl));
+    } else {
+      for (int64_t i = 0; i < impl.size(); ++i) {
+        RETURN_IF_ERROR(process_item(impl[i]));
+      }
+    }
+
+    ASSIGN_OR_RETURN(
+        auto edge,
+        arolla::DenseArrayEdge::FromSplitPoints(
+            arolla::CreateFullDenseArray<int64_t>(std::move(split_points))));
+    ASSIGN_OR_RETURN(auto shape, GetShape().AddDims({std::move(edge)}));
+
+    internal::DataSliceImpl result_impl;
+    if (attrs_vec.empty()) {
+      result_impl =
+          internal::DataSliceImpl::CreateEmptyAndUnknownType(attrs_vec.size());
+    } else {
+      result_impl = internal::DataSliceImpl::Create(
+          arolla::CreateDenseArray<arolla::Text>(std::move(attrs_vec)));
+    }
+
+    return DataSlice::Create(std::move(result_impl), std::move(shape),
+                             internal::DataItem(schema::kString), nullptr);
+  });
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetAttr(
@@ -1664,7 +1779,7 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
     if (GetSchemaImpl() == schema::kObject) {
       RETURN_IF_ERROR(DelObjSchemaAttr(impl, attr_name, db_mutable_impl))
           .With(KodaErrorCausedByMissingObjectSchemaError(*this));
-    } else if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
+    } else if (GetSchemaImpl().is_struct_schema()) {
       // Entity schema.
       RETURN_IF_ERROR(
           DelSchemaAttrItem(GetSchemaImpl(), attr_name, db_mutable_impl));

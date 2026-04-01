@@ -407,6 +407,9 @@ class KodaView(BaseKodaView):
   def get_sizes(self) -> arolla.Expr:
     return _aux_bind_op('kd.shapes.get_sizes', self)
 
+  def get_attr_names(self) -> arolla.Expr:
+    return _aux_bind_op('kd.get_attr_names', self)
+
   def has_attr(self, attr_name: Any) -> arolla.Expr:
     return _aux_bind_op('kd.has_attr', self, attr_name)
 

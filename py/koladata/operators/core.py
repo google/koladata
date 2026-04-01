@@ -150,20 +150,19 @@ def has_attr(x, attr_name):  # pylint: disable=unused-argument
     'kd.core.get_attr_names',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.intersection),
     ],
 )
-def get_attr_names(x, intersection):  # pylint: disable=unused-argument
-  """Returns a DataSlice with sorted unique attribute names of `x`.
+def get_attr_names(x):  # pylint: disable=unused-argument
+  """Returns a DataSlice with sorted attribute names for each item in `x`.
+
+  The result has a new dimension with the attribute names.
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
   attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of primitives, an empty list is returned.
+  schema. In case of primitives, an empty slice is returned.
 
   Args:
     x: A DataSlice.
-    intersection: If True, the intersection of all object attributes is
-      returned. Otherwise, the union is returned.
   """
   return NotImplementedError('implemented in the backend')
 

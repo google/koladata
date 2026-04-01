@@ -763,7 +763,7 @@ Alias for [kd.comparison.full_equal](kd/comparison.md#kd.comparison.full_equal)
 
 Alias for [kd.core.get_attr](kd/core.md#kd.core.get_attr)
 
-### `kd.get_attr_names(x, intersection)` {#kd.get_attr_names}
+### `kd.get_attr_names(x)` {#kd.get_attr_names}
 
 Alias for [kd.core.get_attr_names](kd/core.md#kd.core.get_attr_names)
 

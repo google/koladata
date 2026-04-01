@@ -129,6 +129,11 @@ class KodaViewTest(parameterized.TestCase):
   def test_has_attr(self):
     self.assert_exprs_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))
 
+  def test_get_attr_names(self):
+    self.assert_exprs_equal(
+        C.x.get_attr_names(), kde.get_attr_names(C.x)
+    )
+
   def test_is_empty(self):
     self.assert_exprs_equal(C.x.is_empty(), kde.is_empty(C.x))
 

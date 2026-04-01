@@ -1024,6 +1024,75 @@ class DataSliceTest(parameterized.TestCase):
     # getattr(x, '') and not via x.<smth>.
     self.assertEqual(dir(x), sorted({'y', ''} | set(dir(data_item.DataItem))))
 
+  def test_get_attr_names_entity(self):
+    db = bag()
+    fb = bag()
+    x = db.new(a=1, b='abc')
+    db = db.freeze()
+    testing.assert_equal(x.get_attr_names(), ds(['a', 'b']))
+    testing.assert_equal(ds([x]).get_attr_names(), ds([['a', 'b']]))
+    x.with_bag(fb).set_attr('c', 42)
+    testing.assert_equal(
+        x.with_bag(db).enriched(fb).get_attr_names(),
+        ds(['a', 'b', 'c']),
+    )
+    testing.assert_equal(
+        ds([x]).with_bag(db).enriched(fb).get_attr_names(),
+        ds([['a', 'b', 'c']]),
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'cannot get available attributes without a DataBag'
+    ):
+      x.no_bag().get_attr_names()
+
+  def test_get_attr_names_object(self):
+    db = bag()
+    x = db.obj(a=1, b='abc')
+    testing.assert_equal(x.get_attr_names(), ds(['a', 'b']))
+    testing.assert_equal(ds([x]).get_attr_names(), ds([['a', 'b']]))
+    testing.assert_equal(
+        ds([x, db.obj(a='def', c=123)]).get_attr_names(),
+        ds([['a', 'b'], ['a', 'c']]),
+    )
+    with self.assertRaisesRegex(
+        ValueError, 'cannot get available attributes without a DataBag'
+    ):
+      x.no_bag().get_attr_names()
+    with self.assertRaisesRegex(
+        ValueError, 'object schema is missing for the DataItem'
+    ):
+      db.new(a=1, b='abc').with_schema(schema_constants.OBJECT).get_attr_names()
+
+  def test_get_attr_names_primitive(self):
+    x = ds([1, 2, 3]).with_bag(bag())
+    testing.assert_equal(
+        x.get_attr_names(),
+        ds([[], [], []], schema_constants.STRING),
+    )
+
+  def test_get_attr_names_schema(self):
+    db = bag()
+    testing.assert_equal(
+        schema_constants.INT32.with_bag(db).get_attr_names(),
+        ds([], schema_constants.STRING),
+    )
+    schema1 = db.new_schema(
+        a=schema_constants.INT32, b=schema_constants.FLOAT32
+    )
+    schema2 = db.new_schema(
+        a=schema_constants.INT32, c=schema_constants.FLOAT32
+    )
+    schemas = ds([schema1, schema2])
+    testing.assert_equal(schemas.get_attr_names(), ds([['a', 'b'], ['a', 'c']]))
+
+  def test_get_attr_names_reserved_names(self):
+    db = bag()
+    x = db.new(_x=1, getdoc=2, reshape=3)
+    testing.assert_equal(
+        x.get_attr_names(),
+        ds(['_x', 'getdoc', 'reshape']),
+    )
+
   def test_internal_as_py(self):
     x = ds([[1, 2], [3], [4, 5]])
     self.assertEqual(x.internal_as_py(), [[1, 2], [3], [4, 5]])

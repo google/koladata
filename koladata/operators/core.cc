@@ -684,21 +684,8 @@ absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
                            DataItem(schema::kMask));
 }
 
-absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds,
-                                       const DataSlice& intersection) {
-  ASSIGN_OR_RETURN(bool intersection_arg,
-                   GetBoolArgument(intersection, "intersection"));
-  ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names_set,
-                   ds.GetAttrNames(/*union_object_attrs=*/!intersection_arg));
-  internal::SliceBuilder builder(attr_names_set.size());
-  auto typed_builder = builder.typed<arolla::Text>();
-  int64_t id = 0;
-  for (absl::string_view attr_name : attr_names_set) {
-    typed_builder.InsertIfNotSet(id, attr_name);
-    ++id;
-  }
-  return DataSlice::CreateWithFlatShape(std::move(builder).Build(),
-                                        DataItem(schema::kString));
+absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds) {
+  return ds.GetAttrNamesPerItem();
 }
 
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
