@@ -483,7 +483,7 @@ Sub-slicing slices **all** dimensions of a DataSlice or the last dimension when
 only one dimension is specified. The API is called "subslice" because it slices
 a DataSlice to create a sub-DataSlice.
 
-See [kd.subslice](api_reference.md#kd.slices.subslice) APIs for more details.
+See [kd.subslice](api/kd/slices.md#kd.slices.subslice) APIs for more details.
 
 ```py
 ds = kd.slice([[1, 2, 3], [4, 5]])
@@ -1906,8 +1906,8 @@ debug printing directly into the traced Functor.
 ### Input and Output Schema Validation
 
 To ensure runtime correctness of inputs and outputs, Koda provides the
-[`kd.check_inputs`](api_reference.md#kd.check_inputs) and
-[`kd.check_output`](api_reference.md#kd.check_output) decorators. Their
+[`kd.check_inputs`](api/kd.md#kd.check_inputs) and
+[`kd.check_output`](api/kd.md#kd.check_output) decorators. Their
 functionality is preserved in traced functors, including those decorated with
 `kd.trace_as_fn()`.
 
@@ -1950,7 +1950,7 @@ get_docs(doc)  # Raises TypeError.
 
 In some cases, checking for the exact schema is undesirable as we may only care
 that some specific attributes are present. For this, we can use
-[`kd.duck_type`](api_reference.md#kd.duck_type) and friends.
+[`kd.duck_type`](api/kd.md#kd.duck_type) and friends.
 
 ```py
 # Input: Asserts that `query` has a `docs` attribute that is a LIST of values
@@ -1975,7 +1975,7 @@ get_docs(doc)  # Raises TypeError.
 
 To add arbitrary runtime assertions, in case `kd.check_inputs` and
 `kd.check_outputs` is not enough, Koda provides
-[`kd.with_assertion`](api_reference.md#kd.assertion.with_assertion). This can be
+[`kd.with_assertion`](api/kd/assertion.md#kd.assertion.with_assertion). This can be
 used on any slice with more relaxed restrictions on the condition compared to
 the schema assertion tools.
 
@@ -2063,7 +2063,7 @@ As with `kd.with_assertion`, the operator result *must* be used for it to be
 properly embedded into the traced Functor.
 
 The output may be truncated by default. Use e.g.
-[`kd.slices.get_repr`](api_reference.md#kd.slices.get_repr) to control the repr
+[`kd.slices.get_repr`](api/kd/slices.md#kd.slices.get_repr) to control the repr
 behavior.
 
 </section>

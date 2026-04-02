@@ -337,11 +337,11 @@ Most of the time, these rules can be ignored as implicit casting will be done
 without additional inputs from users. However, the following helpers are also
 available:
 
-*   [`kd.schema.agg_common_schema`](/koladata/g3doc/api_reference.md#kd.schema.agg_common_schema):
+*   [`kd.schema.agg_common_schema`](/koladata/g3doc/api/kd/schema.md#kd.schema.agg_common_schema):
     Computes the common schema across the last `ndim` dimensions of a DataSlice.
-*   [`kd.schema.common_schema`](/koladata/g3doc/api_reference.md#kd.schema.common_schema):
+*   [`kd.schema.common_schema`](/koladata/g3doc/api/kd/schema.md#kd.schema.common_schema):
     Computes the common schema of the entire DataSlice.
-*   [`kd.schema.cast_to_implicit`](/koladata/g3doc/api_reference.md#kd.schema.cast_to_implicit):
+*   [`kd.schema.cast_to_implicit`](/koladata/g3doc/api/kd/schema.md#kd.schema.cast_to_implicit):
     Casts the input to a provided schema if allowed by the type promotion rules.
 
 #### Explicit Casting
@@ -354,10 +354,10 @@ inputs. However, this may fail if the value is too large.
 
 Here are some cases where explicit casting is done:
 
-*   [`kd.schema.cast_to`](/koladata/g3doc/api_reference.md#kd.schema.cast_to):
+*   [`kd.schema.cast_to`](/koladata/g3doc/api/kd/schema.md#kd.schema.cast_to):
     Casts the input to the provided schema using relaxed casting rules (that may
     fail).
-*   [`kd.int64`](/koladata/g3doc/api_reference.md#kd.int64):
+*   [`kd.int64`](/koladata/g3doc/api/kd.md#kd.int64):
     Converts the input to INT64 with relaxed casting rules (that may fail).
 *   `kd.slice(data, schema=kd.INT64)`: Boxes the `data` to an INT64 slice with
     relaxed casting rules (that may fail).
@@ -401,7 +401,7 @@ kd.agg_sum(ints, ndim=kd.item(2, schema=kd.OBJECT))  # DataItem(6, schema=INT32)
 
 Here are some additional helpers to perform narrowing:
 
-*   [`kd.schema.cast_to_narrow`](/koladata/g3doc/api_reference.md#kd.schema.cast_to_narrow):
+*   [`kd.schema.cast_to_narrow`](/koladata/g3doc/api/kd/schema.md#kd.schema.cast_to_narrow):
     Casts the input to the provided schema by first computing the narrowed
     schema of the input and then casting to the provided schema using implicit
     casting rules.
@@ -472,7 +472,6 @@ throughout. The benefit is that the schema is allowed to be dynamic, and to be
 treated as data inside of a DataBag. The downside is that the benefits that
 Arolla can provide, mainly with respect to type safety at compilation time,
 cannot be used. As such, Koda provides optional runtime checks
-([`kd.check_inputs`](/koladata/g3doc/api_reference.md#kd.check_inputs)
-and
-[`kd.check_output`](/koladata/g3doc/api_reference.md#kd.check_output))
+([`kd.check_inputs`](/koladata/g3doc/api/kd.md#kd.check_inputs) and
+[`kd.check_output`](/koladata/g3doc/api/kd.md#kd.check_output))
 that provide type safety.

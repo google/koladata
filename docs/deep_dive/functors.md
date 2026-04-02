@@ -185,18 +185,18 @@ in Koda.
 Functors are typically created in one of three ways:
 
 1.  From an Expression (e.g.
-    [`kd.functor.expr_fn`](/koladata/g3doc/api_reference.md#kd.functor.expr_fn)).
+    [`kd.functor.expr_fn`](/koladata/g3doc/api/kd/functor.md#kd.functor.expr_fn)).
 2.  From tracing a Python callable (e.g.
-    [`kd.trace_py_fn`](/koladata/g3doc/api_reference.md#kd.functor.trace_py_fn)).
+    [`kd.trace_py_fn`](/koladata/g3doc/api/kd/functor.md#kd.functor.trace_py_fn)).
     The resulting Functor will internally use one or more Expressions to
     represent the function's logic.
 3.  From wrapping a Python callable (e.g.
-    [`kd.py_fn`](/koladata/g3doc/api_reference.md#kd.functor.py_fn)).
+    [`kd.py_fn`](/koladata/g3doc/api/kd/functor.md#kd.functor.py_fn)).
     The resulting Functor will store a reference to the Python callable without
     performing tracing.
 
 The general utility to create Functors
-[`kd.fn`](/koladata/g3doc/api_reference.md#kd.functor.fn) combines
+[`kd.fn`](/koladata/g3doc/api/kd/functor.md#kd.functor.fn) combines
 them as follows:
 
 *   If the input is an Expression, it dispatches to `kd.functor.expr_fn`.
@@ -235,10 +235,10 @@ is termed *tracing*. This process involves:
     Python control flow operations are not directly translated into dynamic
     control flow operators within the graph. For graph-level conditional
     execution or iteration, Koda provides specific operators like
-    [`kd.if_`](/koladata/g3doc/api_reference.md#kd.functor.if_),
-    [`kd.for_`](/koladata/g3doc/api_reference.md#kd.functor.for_),
+    [`kd.if_`](/koladata/g3doc/api/kd/functor.md#kd.functor.if_),
+    [`kd.for_`](/koladata/g3doc/api/kd/functor.md#kd.functor.for_),
     and
-    [`kd.while_`](/koladata/g3doc/api_reference.md#kd.functor.while_).
+    [`kd.while_`](/koladata/g3doc/api/kd/functor.md#kd.functor.while_).
 5.  The Expression constructed through this process becomes the functional body
     of the resulting Functor, and is stored in its `returns` attribute.
 6.  If a function being traced calls another function that is decorated with
@@ -432,7 +432,7 @@ Functors created via `kd.fn` offer several capabilities:
     triggers the evaluation of their underlying Expression with the supplied
     arguments.
 *   *Argument Binding*: The
-    [`kd.bind`](/koladata/g3doc/api_reference.md#kd.functor.bind)
+    [`kd.bind`](/koladata/g3doc/api/kd/functor.md#kd.functor.bind)
     function allows for partial application, creating a new Functor with
     specified arguments pre-filled. Note that `kd.bind` has similar behavior to
     `functools.partial` in Python where arguments bound by `kd.bind` can be
@@ -442,9 +442,9 @@ Functors created via `kd.fn` offer several capabilities:
     named expressions (e.g. `x = kd.with_name(I.a + 1, 'x')`) were used during
     tracing, these become accessible as attributes of the Functor (e.g.
     `my_functor.x`). The Expression can be modified using functions such as
-    [`kd.expr.sub_by_name`](/koladata/g3doc/api_reference.md#kd.expr.sub_by_name)
+    [`kd.expr.sub_by_name`](/koladata/g3doc/api/kd/expr.md#kd.expr.sub_by_name)
     or
-    [`kd.expr.sub`](/koladata/g3doc/api_reference.md#kd.expr.sub).
+    [`kd.expr.sub`](/koladata/g3doc/api/kd/expr.md#kd.expr.sub).
 *   *Modularity via `@kd.trace_as_fn`*: Applying the `@kd.trace_as_fn()`
     decorator to a Python function alters its tracing behavior. When such a
     decorated function is called within another function being traced by

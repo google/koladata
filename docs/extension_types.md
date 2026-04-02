@@ -44,7 +44,7 @@ powerful, integrated features of native Koda types.
     simple decorator that handles the underlying complexity. The resulting types
     are fully usable from both Python and C++.
   * **Lower-Level Building Blocks**: [`kd.extension_types` operator
-    module](/koladata/g3doc/api_reference.md#kd.extension_types)
+    module](/koladata/g3doc/api/kd/extension_types.md)
     provides operators that act as lower-level building blocks.
 
 ## Defining and Using an Extension Type

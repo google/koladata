@@ -75,7 +75,7 @@ entity.get_bag().contents_repr()
 # $7IsikvOHuOT4cICNBxM63e.a => INT32
 ```
 
-In the call to [`kd.new`](/koladata/g3doc/api_reference.md#kd.new),
+In the call to [`kd.new`](/koladata/g3doc/api/kd.md#kd.new),
 an ItemId is created to identify the Entity by *dynamically allocating* a unique
 identifier. A second ItemId is created to identify the Schema in a similar
 fashion. To help with organization and subsequent operations, the identifiers
@@ -414,16 +414,16 @@ Updates to data within DataBags in an immutable workflow is typically done by
 creating new bags containing only the changes, which are then combined through
 fallbacks. API examples enabling of such modifications include:
 
-*   [`kd.attrs(ds, **attributes)`](/koladata/g3doc/api_reference.md#kd.core.attrs):
+*   [`kd.attrs(ds, **attributes)`](/koladata/g3doc/api/kd/core.md#kd.core.attrs):
     Creates a new DataBag representing the specified attribute updates for an
     object.
-*   [`kd.updated(ds, *bags)`](/koladata/g3doc/api_reference.md#kd.core.updated):
+*   [`kd.updated(ds, *bags)`](/koladata/g3doc/api/kd/core.md#kd.core.updated):
     Returns a new DataSlice reflecting the application of one or more update
     bags to the original DataSlice's bag.
-*   [`kd.with_attrs(ds, **attributes)`](/koladata/g3doc/api_reference.md#kd.core.with_attrs):
+*   [`kd.with_attrs(ds, **attributes)`](/koladata/g3doc/api/kd/core.md#kd.core.with_attrs):
     A convenience method, equivalent to `kd.updated(ds, kd.attrs(ds,
     **attributes))`.
-*   [`kd.with_merged_bag(ds)`](/koladata/g3doc/api_reference.md#kd.core.with_merged_bag):
+*   [`kd.with_merged_bag(ds)`](/koladata/g3doc/api/kd/core.md#kd.core.with_merged_bag):
     merges all fallbacks into a single DataBag. This can improve lookup
     performance which otherwise degrades with long fallback chains.
 

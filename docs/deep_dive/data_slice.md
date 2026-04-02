@@ -270,7 +270,7 @@ can informally be categorized as:
     the shape of the DataSlices, but not necessarily.
 *   Shape changing operators (see [JaggedShape](jagged_shape.md)): these can
     include broadcasting, reshaping, but also grouping operators, such as
-    [kd.group_by](/koladata/g3doc/api_reference.md#kd.slices.group_by).
+    [kd.group_by](/koladata/g3doc/api/kd/slices.md#kd.slices.group_by).
 *   Structured Data operators: these are operators that either create Entities,
     Lists, Dicts, Objects, etc. or perform a particular operation on them such
     as accessing or updating associated data.

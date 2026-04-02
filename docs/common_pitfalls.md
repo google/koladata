@@ -1546,8 +1546,8 @@ reference captured variables.
 
 ## Conditional Short-Circuiting: `kd.cond` vs `kd.if_`
 
-[`kd.cond`](api_reference.md#kd.masking.cond) and
-[`kd.if_`](api_reference.md#kd.functor.if_) are two similar operators that allow
+[`kd.cond`](api/kd/masking.md#kd.masking.cond) and
+[`kd.if_`](api/kd/functor.md#kd.functor.if_) are two similar operators that allow
 for data selection based on a predicate. They differ in their functionalities,
 especially with regards to short-circuiting.
 

@@ -254,5 +254,5 @@ manually. For this, the following functionality is available:
 *   `kd.shapes.flatten(shape, from_dim=..., to_dim=...)` flattens the shape
     between `from_dim` and `to_dim`.
     *   Other shape operators can be found under the
-        [`kd.shapes`](/koladata/g3doc/api_reference.md#kd.shapes)
+        [`kd.shapes`](/koladata/g3doc/api/kd/shapes.md)
         section of the Koda API Reference.

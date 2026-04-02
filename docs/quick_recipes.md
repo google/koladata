@@ -9,16 +9,16 @@ This guide covers a comprehensive list of useful recipes for common tasks.
 
 ## Use `kd.from_py` as a universal convertor
 
-[`kd.from_py`](api_reference.md#kd.from_py) can be used as a universal convertor
+[`kd.from_py`](api/kd.md#kd.from_py) can be used as a universal convertor
 to create all types of objects including primitives, entities, lists and dicts.
 
 When inputs are Python primitives, `kd.from_py` by default creates corresponding
 Koda items with `OBJECT` schema (unless it is `schema=None` or the actual
 explicit schema).
 When inputs are lists, dicts or dataclasses, `kd.from_py` works similar to
-[`kd.list`](api_reference.md#kd.list),
-[`kd.dict`](api_reference.md#kd.dicts.new) or
-[`kd.new`](api_reference.md#kd.entities.new) but creates objects.
+[`kd.list`](api/kd.md#kd.list),
+[`kd.dict`](api/kd/dicts.md#kd.dicts.new) or
+[`kd.new`](api/kd/entities.md#kd.entities.new) but creates objects.
 
 ```py {.pycon-doctest}
 >>> from koladata import kd
@@ -115,7 +115,7 @@ DataItem(List[1, 2, 3], schema: LIST[INT32], bag_id: ...)
 ```
 
 NOTE: Objects created through the schema embedding share the same schema whereas
-objects created directly from [`kd.obj()`](api_reference.md#kd.objs.new) have
+objects created directly from [`kd.obj()`](api/kd/objs.md#kd.objs.new) have
 different embedded schemas. See
 [link](common_pitfalls.md#kd_obj_vs_kd_obj_kd_new) for details.
 
@@ -182,14 +182,14 @@ DataSlice([Obj(a=1), List[1, 2], Dict{1=3}], schema: OBJECT, ...)
 
 ## Use `kd.from_py(py_list, from_dim=)` to convert py_list dimensions to DataSlice dimensions
 
-[`kd.list(py_list)`](api_reference.md#kd.list) converts the Python list
+[`kd.list(py_list)`](api/kd.md#kd.list) converts the Python list
 structure to corresponding Koda list structure and the result is a list
-DataItem. [`kd.slice(py_list)`](api_reference.md#kd.slices.slice) converts the
+DataItem. [`kd.slice(py_list)`](api/kd/slices.md#kd.slices.slice) converts the
 Python list structure to the jagged shape of the result DataSlice.
 
 What if we want to control what gets converted to Koda lists and what gets
 converted to a jagged shape?
-[`kd.from_py(py_list, from_dim=)`](api_reference.md#kd.from_py) allows us to do
+[`kd.from_py(py_list, from_dim=)`](api/kd.md#kd.from_py) allows us to do
 that. The first `from_dim` dimensions of `py_list` get converted to DataSlice
 jagged shape while remaining dimensions get converted to Koda lists.
 
@@ -437,8 +437,8 @@ items in the new dimension should be empty or not.
 ## Implement cumulative operators using aggregational operators
 
 Koda provides native cumulative operators (e.g.
-[`kd.math.cum_sum`](api_reference.md#kd.math.cum_sum),
-[`kd.math.cum_count`](api_reference.md#kd.slices.cum_count)) for common
+[`kd.math.cum_sum`](api/kd/math.md#kd.math.cum_sum),
+[`kd.math.cum_count`](api/kd/slices.md#kd.slices.cum_count)) for common
 operations. However, Koda does not provide a corresponding cumulative version
 for every aggregational operators (e.g.
 [`kd.strings.agg_join`](api_reference.md#kd.strings.agg_join)).
