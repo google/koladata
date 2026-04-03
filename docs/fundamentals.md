@@ -503,13 +503,9 @@ d.updated(upd1, upd2)  # == kd.dict({'a':1, 'b':2, 'c':4})
 
 upd = kd.dict_update(d, kd.dict({'b': 2, 'c': 4}))
 d.updated(upd)
-```
 
-WARNING: Dicts do not support removing values for now. We are working on it.
-
-```py
 d = kd.dict({'a':1, 'b':2, 'c':4})
-d.with_dict_update('a', None) # Dict{'a'=1, 'b'=2, 'c'=4} rather than Dict{'b'=2, 'c'=4}
+d.with_dict_update('a', None) # Dict{'a'=None, 'b'=2, 'c'=4} rather than Dict{'b'=2, 'c'=4}
 ```
 
 Dicts can be looked up and have `get_keys()` and corresponding `get_values()`,
@@ -1285,7 +1281,7 @@ with the target.
 x = kd.slice([1, 2, 3])
 y = kd.slice([5, 6])
 
-# y.expand_to(x)  # would fail, as x and y shapes are incomptabile
+# y.expand_to(x)  # would fail, as x and y shapes are incompatible
 y.expand_to(x, ndim=1)  # [[5, 6], [5, 6], [5, 6]]
 kd.implode(y, ndim=1).expand_to(x)[:]  # the same as above: implode and explode
 
@@ -1317,8 +1313,8 @@ Input DataSlices used for object creation are auto-aligned.
 ```py
 objs = kd.obj(x=kd.slice([1, 2, 3, 4]), y=1)
 # Object creation auto-aligns inputs:
-ds.x  # [1, 2, 3, 4]
-ds.y  # [1, 1, 1, 1]
+objs.x  # [1, 2, 3, 4]
+objs.y  # [1, 1, 1, 1]
 
 # Note, list attributes can be also 'items' that would be auto-aligned
 objs = kd.obj(x=kd.slice([1, 2, 3, 4]), y=kd.list([5, 6]))
@@ -1410,7 +1406,7 @@ kd.val_shaped_as(kd.collapse(x, ndim=2), 10)  # [10, 10]
 kd.val_shaped_as(kd.agg_has(x, ndim=2), 10)  # the same as above
 kd.val_shaped(x.get_shape()[:-2], 10)  # the same as above
 
-# take 0,1,4 inex items inside the last dimension
+# take 0,1,4 index items inside the last dimension
 a = kd.slice([[4, 3], [5, 7, 6, 8]])
 b = kd.slice([0, 3, 0])
 a.take(b.expand_to(kd.collapse(a), ndim=1))  # [[4, None, 4], [5, 8, 5]]
@@ -1427,7 +1423,7 @@ ds = kd.slice([None, 2, None, 4, None, 6])  # sparse DataSlice
 kd.has(ds)  # [missing, present, missing, present, missing, present]
 kd.has_not(ds)  # [present, missing, present, missing, present, missing]
 ds.get_present_count()  # 3
-kd.count(ds)  # the same as bove
+kd.count(ds)  # the same as above
 kd.sum(ds)  # 12 - ignore missing
 
 ds = kd.slice([[None, 2, None], [None], [4, None, 6]])
@@ -1522,7 +1518,7 @@ x | y  # the same as above
 
 # Replace None with 100
 kd.coalesce(x, 100) # [100, 2, 100, 4, 100, 6]
-x | 100  # the same as aboe
+x | 100  # the same as above
 x | y | 100  # [10, 2, 100, 4, 50, 6]
 ```
 
