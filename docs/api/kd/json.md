@@ -112,7 +112,7 @@ For example:
   kd.from_json(&#39;null&#39;, kd.STRING) -&gt; kd.str(None)
   kd.from_json(&#39;123&#39;, kd.INT32) -&gt; kd.int32(123)
   kd.from_json(&#39;123&#39;, kd.FLOAT32) -&gt; kd.int32(123.0)
-  kd.from_json(&#39;&#34;123&#34;&#39;, kd.STRING) -&gt; kd.string(&#39;123&#39;)
+  kd.from_json(&#39;&#34;123&#34;&#39;, kd.STRING) -&gt; kd.str(&#39;123&#39;)
   kd.from_json(&#39;&#34;123&#34;&#39;, kd.INT32) -&gt; kd.int32(123)
   kd.from_json(&#39;&#34;123&#34;&#39;, kd.FLOAT32) -&gt; kd.float32(123.0)
   kd.from_json(&#39;&#34;MTIz&#34;&#39;, kd.BYTES) -&gt; kd.bytes(b&#39;123&#39;)

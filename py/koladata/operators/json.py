@@ -160,7 +160,7 @@ def from_json(
     kd.from_json('null', kd.STRING) -> kd.str(None)
     kd.from_json('123', kd.INT32) -> kd.int32(123)
     kd.from_json('123', kd.FLOAT32) -> kd.int32(123.0)
-    kd.from_json('"123"', kd.STRING) -> kd.string('123')
+    kd.from_json('"123"', kd.STRING) -> kd.str('123')
     kd.from_json('"123"', kd.INT32) -> kd.int32(123)
     kd.from_json('"123"', kd.FLOAT32) -> kd.float32(123.0)
     kd.from_json('"MTIz"', kd.BYTES) -> kd.bytes(b'123')
