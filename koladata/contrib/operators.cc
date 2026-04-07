@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "koladata/contrib/flatten_cyclic_references.h"
+#include "koladata/contrib/sanitize_names.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 
@@ -22,6 +23,9 @@ namespace {
 KODA_QEXPR_OPERATOR("kd_ext.contrib._flatten_cyclic_references",
                     FlattenCyclicReferences,
                     "kd_ext.contrib.flatten_cyclic_references");
+
+KODA_QEXPR_OPERATOR("kd_ext.contrib.sanitize_names",
+                    SanitizeNames);
 
 }  // namespace
 }  // namespace koladata::contrib

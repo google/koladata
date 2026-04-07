@@ -15,7 +15,12 @@
 """Contrib operators."""
 
 from arolla import arolla
+from arolla.jagged_shape import jagged_shape
 from koladata import kd
+from koladata.operators import qtype_utils
+from koladata.operators import schema as schema_ops
+
+M = arolla.M | jagged_shape.M
 
 P = arolla.P
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
@@ -79,3 +84,33 @@ def value_counts(x):
   """
   grouped = kd.group_by(x)
   return kd.dict(kd.collapse(grouped), kd.agg_count(grouped))
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_backend_operator('kd_ext.contrib.sanitize_names')
+def sanitize_names(x):
+  """Returns a DataSlice which recursivelly sanitizes all attribute names.
+
+  Invalid attribute names (those that are not valid Python identifiers) are
+  replaced with valid ones. Invalid characters are replaced with '_', and
+  modified names are all prefixed with "san_". Collisions are resolved by
+  appending suffixes like '_0', '_1', etc.
+
+  The sanitization is done per-schema: attributes on different schemas are
+  sanitized independently without interfering with each other.
+
+  The returned DataSlice preserves the original Object IDs; only attribute
+  names are changed.
+
+  Example:
+    o = kd.obj(**{'#': 1, '?': 2})
+    result = kd_ext.contrib.sanitize_names(o)
+    # result has attributes 'san__' and 'san___0' (or similar)
+
+  Args:
+    x: DataSlice to sanitize.
+
+  Returns:
+    A new DataSlice with sanitized attribute names in a new immutable DataBag.
+  """
+  raise NotImplementedError('implemented in the backend')

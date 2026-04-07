@@ -87,7 +87,10 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/operators:qtype_utils",
+        "//py/koladata/operators:schema",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 

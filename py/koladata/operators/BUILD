@@ -397,6 +397,7 @@ py_library(
 py_library(
     name = "schema",
     srcs = ["schema.py"],
+    visibility = ["//py/koladata/ext/contrib:__pkg__"],
     deps = [
         ":jagged_shape",
         ":masking",

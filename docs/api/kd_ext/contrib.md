@@ -54,6 +54,32 @@ Returns:
   A DataSlice of objects with &#39;correlation&#39;, &#39;lower_ci&#39;, and &#39;upper_ci&#39;
   attributes.</code></pre>
 
+### `kd_ext.contrib.sanitize_names(x)` {#kd_ext.contrib.sanitize_names}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice which recursivelly sanitizes all attribute names.
+
+Invalid attribute names (those that are not valid Python identifiers) are
+replaced with valid ones. Invalid characters are replaced with &#39;_&#39;, and
+modified names are all prefixed with &#34;san_&#34;. Collisions are resolved by
+appending suffixes like &#39;_0&#39;, &#39;_1&#39;, etc.
+
+The sanitization is done per-schema: attributes on different schemas are
+sanitized independently without interfering with each other.
+
+The returned DataSlice preserves the original Object IDs; only attribute
+names are changed.
+
+Example:
+  o = kd.obj(**{&#39;#&#39;: 1, &#39;?&#39;: 2})
+  result = kd_ext.contrib.sanitize_names(o)
+  # result has attributes &#39;san__&#39; and &#39;san___0&#39; (or similar)
+
+Args:
+  x: DataSlice to sanitize.
+
+Returns:
+  A new DataSlice with sanitized attribute names in a new immutable DataBag.</code></pre>
+
 ### `kd_ext.contrib.spearman_correlation(x: DataSlice, y: DataSlice) -> DataSlice` {#kd_ext.contrib.spearman_correlation}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes Spearman correlation using average ranks.
