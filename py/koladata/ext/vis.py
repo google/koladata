@@ -33,7 +33,8 @@ from koladata import kd
 
 
 _COLAB_REQUIRED_MSG = (
-    'Koda visualization extensions are only supported in Colab.')
+    'Koda visualization extensions are only supported in Colab.'
+)
 
 
 @functools.cache
@@ -118,6 +119,7 @@ DataSliceOrExpr = kd.types.DataSlice | arolla.Expr
 
 class AccessType(enum.Enum):
   """Types of accesses that can appear in an access path."""
+
   FLAT_SLICE_INDEX = 'flat-slice-index'
   SCHEMA_ATTR = 'schema-attr'
   DICT_KEY_INDEX = 'dict-key-index'
@@ -178,12 +180,13 @@ _DEFAULT_ATTR_LIMIT = 20
 _CssLength = int | str
 
 # Type that describes how to get to a particular value in a DataSlice.
-_AccessPath = list[dict[str, str|list[int]]]
+_AccessPath = list[dict[str, str | list[int]]]
 
 
 @dataclasses.dataclass
 class DataSliceVisOptions:
   """Options for visualizing a DataSlice."""
+
   # Size of the window of data to show.
   num_items: int = _DEFAULT_NUM_ITEMS
   # Maximum length of unbounded types such as strings and bytes.
@@ -208,21 +211,24 @@ class DataSliceVisOptions:
 def _format_item_html(
     item: kd.types.DataItem,
     truncate_unbounded_types: bool = True,
-    options: DataSliceVisOptions | None = None) -> str:
+    options: DataSliceVisOptions | None = None,
+) -> str:
   """Returns an html representation of a DataItem."""
   options = options or DataSliceVisOptions()
   unbounded_type_max_len = options.unbounded_type_max_len
   dtype = item.get_dtype()
-  if ((dtype == kd.STRING or dtype == kd.BYTES)
-      and not truncate_unbounded_types):
+  if (dtype == kd.STRING or dtype == kd.BYTES) and not truncate_unbounded_types:
     unbounded_type_max_len = -1
 
-  detail_pane_str = str(kdi.get_repr(
-      item,
-      format_html=True,
-      item_limit=options.item_limit,
-      depth=options.repr_depth,
-      max_str_len=unbounded_type_max_len))
+  detail_pane_str = str(
+      kdi.get_repr(
+          item,
+          format_html=True,
+          item_limit=options.item_limit,
+          depth=options.repr_depth,
+          max_str_len=unbounded_type_max_len,
+      )
+  )
 
   # Unescape whitespace for easier viewing in the detail pane.
   if dtype == kd.STRING:
@@ -234,17 +240,18 @@ def _format_data_item(
     item: kd.types.DataItem,
     additional_access: list[str] | None = None,
     truncate_unbounded_types: bool = True,
-    options: DataSliceVisOptions | None = None) -> str:
+    options: DataSliceVisOptions | None = None,
+) -> str:
   """Returns the top-level html representation of a DataItem for use in table.
 
   Args:
     item: The DataItem to format.
-    additional_access: The HTML string from C++ contains all accesses known
-      to the DataItem on which it is invoked. However, here in python, we also
-      make some accesses. For example, when we show a DataSlice, the HTML for
-      each index is generate separately. This argument allows additional
-      accesses to be wrapped around the HTML string. These should be a complete
-      HTML key-value pair, e.g. 'list-index="1"'.
+    additional_access: The HTML string from C++ contains all accesses known to
+      the DataItem on which it is invoked. However, here in python, we also make
+      some accesses. For example, when we show a DataSlice, the HTML for each
+      index is generate separately. This argument allows additional accesses to
+      be wrapped around the HTML string. These should be a complete HTML
+      key-value pair, e.g. 'list-index="1"'.
     truncate_unbounded_types: When True, unbounded types such as strings and
       bytes are truncated to _DEFAULT_UNBOUNDED_TYPE_MAX_LEN. Otherwise, they
       are shown in full.
@@ -297,7 +304,8 @@ def _is_clickable(ds: kd.types.DataSlice) -> bool:
 
 
 def _focus_data_cell(
-    context: 'Js', instance_id: str, row: int = 0, col: int = 0):
+    context: 'Js', instance_id: str, row: int = 0, col: int = 0
+):
   """Focuses the data cell of the table.
 
   Args:
@@ -307,13 +315,15 @@ def _focus_data_cell(
     col: The column to focus.
   """
   table_elem = context.document.querySelector(
-      f'#{instance_id} kd-multi-dim-table')
+      f'#{instance_id} kd-multi-dim-table'
+  )
   # This is run in a setTimeout to allow the table to render.
   context.setTimeout(table_elem.focusDataCell.bind(table_elem, row, col), 0)
 
 
 def _create_data_slice_table_data(
-    ds: kd.types.DataSlice, items_begin: int = 0,
+    ds: kd.types.DataSlice,
+    items_begin: int = 0,
     options: DataSliceVisOptions | None = None,
 ) -> _DataSliceTableData:
   """Creates the data for a visualization table."""
@@ -330,7 +340,8 @@ def _create_data_slice_table_data(
   )
   message = (
       f'present: {kdi.count(ds)}/{ds.get_size()}, ndims: {ds.get_ndim()}, '
-      f'schema: <span {AccessType.GET_SCHEMA.value}="">{schema_html}</span>')
+      f'schema: <span {AccessType.GET_SCHEMA.value}="">{schema_html}</span>'
+  )
 
   sizes = (
       _jagged_array_sizes_to_py(ds.get_shape()) if ds.get_ndim() != 0 else [[1]]
@@ -339,7 +350,8 @@ def _create_data_slice_table_data(
   items_begin = max(min(items_begin, ds.get_size() - num_items), 0)
   items_end = min(items_begin + num_items, ds.get_size())
   flat_slice_access = (
-      lambda i: f'{AccessType.FLAT_SLICE_INDEX.value}={i+items_begin}')
+      lambda i: f'{AccessType.FLAT_SLICE_INDEX.value}={i+items_begin}'
+  )
 
   footer = ''
   clickable_headers = []
@@ -352,7 +364,8 @@ def _create_data_slice_table_data(
 
     # Allow unbounded types to be shown in full for DataItems
     joined_data = _format_data_item(
-        ds, truncate_unbounded_types=False, options=options)
+        ds, truncate_unbounded_types=False, options=options
+    )
   else:
     all_data = []
     # Decide attributes to show based on the entire DataSlice rather than items
@@ -362,7 +375,7 @@ def _create_data_slice_table_data(
         if ds.has_bag() and ds.is_entity()
         else []
     )
-    attrs_to_show = all_attrs[0:options.attr_limit]
+    attrs_to_show = all_attrs[0 : options.attr_limit]
     ds = kdi.at(ds.flatten(), kdi.range(items_begin, items_end))
 
     if attrs_to_show:
@@ -383,7 +396,8 @@ def _create_data_slice_table_data(
         for i, v in enumerate(ds_attr.L):
           data_items.append(
               _format_data_item(
-                  v, [flat_slice_access(i), attr_access], options=options)
+                  v, [flat_slice_access(i), attr_access], options=options
+              )
           )
         data = ''.join(data_items)
 
@@ -411,11 +425,16 @@ def _create_data_slice_table_data(
     joined_data = ''.join(all_data)
 
   multiline_attr = 'multi-line' if '\n' in message else ''
-  joined_data += (
-      f'<div slot="message" {multiline_attr}>{message}</div></div>')
+  joined_data += f'<div slot="message" {multiline_attr}>{message}</div></div>'
   return _DataSliceTableData(
-      headers, items_begin, items_end, sizes, joined_data,
-      ' '.join(f'{x}:clickable' for x in clickable_headers), footer)
+      headers,
+      items_begin,
+      items_end,
+      sizes,
+      joined_data,
+      ' '.join(f'{x}:clickable' for x in clickable_headers),
+      footer,
+  )
 
 
 @dataclasses.dataclass
@@ -428,7 +447,9 @@ class _DataSliceViewState:
   """Kernel-side state for the DataSlice visualization."""
 
   def __init__(
-      self, ds: kd.types.DataSlice, instance_id: str,
+      self,
+      ds: kd.types.DataSlice,
+      instance_id: str,
       options: DataSliceVisOptions | None = None,
   ):
     self.ds = ds
@@ -441,8 +462,7 @@ class _DataSliceViewState:
     self.breadcrumb_entries = [_BreadcrumbEntry(self.ds, '[root]')]
     self.options = options or DataSliceVisOptions()
 
-  def load_data(
-      self, items_center: int, view_begin: int):
+  def load_data(self, items_center: int, view_begin: int):
     """Updates a multi-dim-table with new data after a request-load event."""
     # Note that we may reload half the items, but this is simpler for now.
     # We currently do not expect the frontend to cache multiple blocks
@@ -452,11 +472,12 @@ class _DataSliceViewState:
     self.items_begin = max(items_center - self.options.num_items // 2, 0)
     self.render_table(view_begin)
 
-  def render_table(self, view_begin: int|None = None):
+  def render_table(self, view_begin: int | None = None):
     """Updates data in the kd-multi-dim-table based on current state."""
     table_elem = self.table_elem
     new_data = _create_data_slice_table_data(
-        self.ds, items_begin=self.items_begin,
+        self.ds,
+        items_begin=self.items_begin,
         options=self.options,
     )
 
@@ -467,8 +488,9 @@ class _DataSliceViewState:
       table_elem.removeAttribute('data-item')
 
     table_elem.innerHTML = ''
-    table_elem.setAttribute('data-loaded-range',
-                            f'{new_data.items_begin},{new_data.items_end}')
+    table_elem.setAttribute(
+        'data-loaded-range', f'{new_data.items_begin},{new_data.items_end}'
+    )
     table_elem.setAttribute('data-headers', new_data.headers)
     table_elem.setAttribute('data-sizes', json.dumps(new_data.sizes))
     table_elem.setAttribute('data-header-classes', new_data.header_classes)
@@ -479,7 +501,8 @@ class _DataSliceViewState:
     # This is because the table may not be rendered yet.
     scroll_to_index = view_begin or self.items_begin
     _js_eval_global().setTimeout(
-        table_elem.scrollToIndex.bind(table_elem, scroll_to_index), 0)
+        table_elem.scrollToIndex.bind(table_elem, scroll_to_index), 0
+    )
 
     if isinstance(self.ds, kd.types.DataItem):
       _focus_data_cell(_js_eval_global(), self.instance_id)
@@ -492,7 +515,8 @@ class _DataSliceViewState:
     parts = []
     for i, entry in enumerate(breadcrumb_entries):
       parts.append(
-          f'<span class="crumb" data-ds-index="{i}">{entry.name}</span>')
+          f'<span class="crumb" data-ds-index="{i}">{entry.name}</span>'
+      )
     self.breadcrumb_elem.innerHTML = ''.join(parts) if len(parts) > 1 else ''
 
   def _update_ds(self, next_ds: kd.types.DataSlice):
@@ -532,7 +556,7 @@ class _DataSliceViewState:
     self.breadcrumb_entries.append(_BreadcrumbEntry(next_ds, '.' + crumb_name))
     self.refresh()
 
-  def _apply_access_path(self, access_path: list[dict[str, str|list[int]]]):
+  def _apply_access_path(self, access_path: list[dict[str, str | list[int]]]):
     """Executes the access path and returns resulting DataSlice and crumbs."""
     next_ds = self.ds
     crumbs = []
@@ -570,22 +594,24 @@ class _DataSliceViewState:
         case AccessType.MULTI_SLICE_INDEX.value:
           joined_multi_index = ','.join(
               str(value[i]) if i < len(value) else ':'
-              for i in range(next_ds.get_ndim()))
+              for i in range(next_ds.get_ndim())
+          )
           next_ds = kd.subslice(next_ds, *value, ...)
           crumbs.append(f'.S[{joined_multi_index}]')
     return next_ds, crumbs
 
   def descend_into_access_path(
-      self, access_path: list[dict[str, str|list[int]]], mode: DescendMode):
+      self, access_path: list[dict[str, str | list[int]]], mode: DescendMode
+  ):
     """Handles a click on a header that represents an expandable attr.
 
     Args:
-      access_path: A list of dicts that encode each DataSlice access. It has
-          the shape {'type': '<access-type>', 'value': '<access-value>'}.
-          'access-type' is one of the possible string values in AccessType.
-      mode: Determines additional actions after the data slice is accessed.
-          If this is ATTR and the DataSlice is a list, then the list is
-          exploded. Otherwise, the DataSlice is rendered as is.
+      access_path: A list of dicts that encode each DataSlice access. It has the
+        shape {'type': '<access-type>', 'value': '<access-value>'}.
+        'access-type' is one of the possible string values in AccessType.
+      mode: Determines additional actions after the data slice is accessed. If
+        this is ATTR and the DataSlice is a list, then the list is exploded.
+        Otherwise, the DataSlice is rendered as is.
     """
     if not access_path:
       return
@@ -601,7 +627,7 @@ class _DataSliceViewState:
 
   def return_to_crumb(self, crumb_index: int):
     self._update_ds(self.breadcrumb_entries[crumb_index].ds)
-    self.breadcrumb_entries = self.breadcrumb_entries[:crumb_index+1]
+    self.breadcrumb_entries = self.breadcrumb_entries[: crumb_index + 1]
     self.refresh()
 
   # Interprets the request-load event from the frontend.
@@ -629,7 +655,8 @@ class _DataSliceViewState:
     # Click on dim index.
     elif 'dim-index' in detail.get('classList', []):
       self._handle_dim_index_click(
-          int(dataset['dimension']), int(dataset['index']))
+          int(dataset['dimension']), int(dataset['index'])
+      )
 
   def _handle_expand_detail(self, detail):
     """Replaces an element with fully expanded version."""
@@ -656,18 +683,19 @@ class _DataSliceViewState:
     """Handles a click on a dim index in the main data table."""
     # Convert the flat index into a multi-index.
     multi_index = []
-    for i in range(dimension+1):
+    for i in range(dimension + 1):
       multi_index.append(kd.index(self.ds, dim=i).flatten().take(flat_index))
     self.descend_into_access_path(
         [{'type': AccessType.MULTI_SLICE_INDEX.value, 'value': multi_index}],
-        DescendMode.VALUE)
+        DescendMode.VALUE,
+    )
 
   def _handle_show_access_path(self, detail):
     """Interprets the show-access-path event from the frontend."""
     original_detail = detail.get('originalDetail', [])
     self.descend_into_access_path(
         original_detail.get('accessPath', []),
-        DescendMode(original_detail.get('mode', ''))
+        DescendMode(original_detail.get('mode', '')),
     )
 
   def _get_listener_id(self, event_name: str) -> str:
@@ -692,14 +720,15 @@ class _DataSliceViewState:
       };
     """)
 
-    for (event_name, handler) in self._get_listener_invocations():
+    for event_name, handler in self._get_listener_invocations():
       listener_id = self._get_listener_id(event_name)
       _colab_output().register_callback(listener_id, handler)
       _js_eval_global().document.addEventListener(
-          event_name, _js_eval_global().makeDsListener(listener_id), True)
+          event_name, _js_eval_global().makeDsListener(listener_id), True
+      )
 
   def remove_listeners(self):
-    for (event_name, _) in self._get_listener_invocations():
+    for event_name, _ in self._get_listener_invocations():
       _colab_output().unregister_callback(self._get_listener_id(event_name))
       # No need to unregister listeners in the output cell since they are
       # not saved.
@@ -725,13 +754,13 @@ def visualize_slice(
   style_dict = {}
   if options.detail_width is not None:
     style_dict['--kd-multi-dim-table-detail-width'] = _css_length_to_string(
-        options.detail_width)
+        options.detail_width
+    )
   if options.detail_height is not None:
     style_dict['--kd-multi-dim-table-detail-height'] = _css_length_to_string(
-        options.detail_height)
-  style_string = ';'.join(
-      f'{key}:{value}' for key, value in style_dict.items()
-  )
+        options.detail_height
+    )
+  style_string = ';'.join(f'{key}:{value}' for key, value in style_dict.items())
 
   # Publish custom element definitions.
   _publish_koda_visualization_library()
@@ -747,7 +776,8 @@ def visualize_slice(
       color: white;
     }
   """
-  _colab_publish().css("""
+  _colab_publish().css(
+      """
     .breadcrumb {
       font-weight: bold;
     }
@@ -891,13 +921,18 @@ def visualize_slice(
     }
 
     [theme="dark"] {
-      """ + dark_mode_css + """
+      """
+      + dark_mode_css
+      + """
     }
 
     @media (prefers-color-scheme: dark) {
-      """ + dark_mode_css + """
+      """
+      + dark_mode_css
+      + """
     }
-  """)
+  """
+  )
 
   # Main HTML output that persists in the notebook even if the kernel is
   # disconnected.
@@ -926,8 +961,7 @@ def visualize_slice(
   # attribute freezes the view when the viewer scrolls into the load margin.
   # When not connected to a kernel, we don't want to freeze since no load
   # can happen.
-  elem = _js_eval_global().document.querySelector(
-      f'#{instance_id}')
+  elem = _js_eval_global().document.querySelector(f'#{instance_id}')
   table_elem = elem.querySelector('kd-multi-dim-table')
   table_elem.setAttribute('one-request-load', '')
   table_elem.setAttribute('data-header-classes', data.header_classes)
@@ -943,9 +977,12 @@ def visualize_slice(
   # assumed in this script should be populated by the C++ code that generates
   # the HTML string.
   access_type_strings = ', '.join(f"'{access.value}'" for access in AccessType)
-  _colab_publish().javascript("""
+  _colab_publish().javascript(
+      """
     const ACCESS_KEYS = new Set([
-        """ + access_type_strings + """
+        """
+      + access_type_strings
+      + """
     ]);
 
     function getAccessPath(e) {
@@ -987,9 +1024,13 @@ def visualize_slice(
 
       let mode = null;
       if (target.matches('.object-id') || target.matches('.truncated')) {
-    """ + f"""mode = '{DescendMode.VALUE.value}';""" + """
+    """
+      + f"""mode = '{DescendMode.VALUE.value}';"""
+      + """
       } else if (target.matches('.attr')) {
-    """ + f"""mode = '{DescendMode.ATTR.value}';""" + """
+    """
+      + f"""mode = '{DescendMode.ATTR.value}';"""
+      + """
       }
       if (!mode) return;
 
@@ -999,7 +1040,8 @@ def visualize_slice(
         composed: true,
       }));
     });
-  """)
+  """
+  )
 
   view_state = _DataSliceViewState(ds, instance_id, options=options)
   view_state.add_listeners()
@@ -1091,7 +1133,8 @@ def unregister_formatters() -> bool:
   # Remove any post_run_cell back from this module.
   post_run_cell_callbacks = shell.events.callbacks['post_run_cell']
   to_remove = [
-      cb for cb in post_run_cell_callbacks
+      cb
+      for cb in post_run_cell_callbacks
       if inspect.ismethod(cb) and cb.__self__.__class__.__module__ == __name__
   ]
   for callback in to_remove:
@@ -1099,4 +1142,3 @@ def unregister_formatters() -> bool:
 
   _WATCHER = None
   return True
-
