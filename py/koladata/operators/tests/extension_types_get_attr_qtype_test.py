@@ -15,10 +15,10 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.extension_types import extension_types
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -29,6 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
@@ -48,22 +49,22 @@ class ExtensionTypesGetAttrQTypeTest(parameterized.TestCase):
 
   def test_get_attr_qtype_ds(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.get_attr_qtype(a, "x"))
+    result = kd.extension_types.get_attr_qtype(a, "x")
     testing.assert_equal(result, qtypes.DATA_SLICE)
 
   def test_get_attr_qtype_ds_attr_name(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.get_attr_qtype(a, ds("x")))
+    result = kd.extension_types.get_attr_qtype(a, ds("x"))
     testing.assert_equal(result, qtypes.DATA_SLICE)
 
   def test_get_attr_qtype_db(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.get_attr_qtype(a, "y"))
+    result = kd.extension_types.get_attr_qtype(a, "y")
     testing.assert_equal(result, qtypes.DATA_BAG)
 
   def test_get_attr_qtype_non_existent_attr(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.get_attr_qtype(a, "z"))
+    result = kd.extension_types.get_attr_qtype(a, "z")
     testing.assert_equal(result, arolla.NOTHING)
 
   def test_view(self):

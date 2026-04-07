@@ -23,6 +23,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -37,6 +38,7 @@ V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 SRC_PIN = optools.SRC_PIN
 
@@ -48,16 +50,16 @@ class FunctorCallTest(parameterized.TestCase):
         returns=I.x + V.foo,
         foo=I.y * I.x,
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, x=2, y=3)), ds(8))
+    testing.assert_equal(kd.call(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
-    testing.assert_equal(expr_eval.eval(kde.call(fn, x=2, y=3, z=4)), ds(8))
+    testing.assert_equal(kd.call(fn, x=2, y=3, z=4), ds(8))
 
   def test_call_with_self(self):
     fn = functor_factories.expr_fn(
         returns=S.x + V.foo,
         foo=S.y * S.x,
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, fns.new(x=2, y=3))), ds(8))
+    testing.assert_equal(kd.call(fn, fns.new(x=2, y=3)), ds(8))
 
   def test_call_explicit_signature(self):
     fn = functor_factories.expr_fn(
@@ -72,12 +74,12 @@ class FunctorCallTest(parameterized.TestCase):
         ]),
         foo=I.y,
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 1, 2)), ds(3))
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 1, y=2)), ds(3))
+    testing.assert_equal(kd.call(fn, 1, 2), ds(3))
+    testing.assert_equal(kd.call(fn, 1, y=2), ds(3))
 
   def test_call_with_no_expr(self):
     fn = functor_factories.expr_fn(57, signature=signature_utils.signature([]))
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
+    testing.assert_equal(kd.call(fn).no_bag(), ds(57))
 
   def test_positional_only(self):
     fn = functor_factories.expr_fn(
@@ -88,11 +90,11 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 57)), ds(57))
+    testing.assert_equal(kd.call(fn, 57), ds(57))
     with self.assertRaisesRegex(
         ValueError, re.escape('unknown keyword arguments: [x]')
     ):
-      _ = expr_eval.eval(kde.call(fn, x=57))
+      _ = kd.call(fn, x=57)
 
   def test_keyword_only(self):
     fn = functor_factories.expr_fn(
@@ -103,9 +105,9 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, x=57)), ds(57))
+    testing.assert_equal(kd.call(fn, x=57), ds(57))
     with self.assertRaisesRegex(ValueError, 'too many positional arguments'):
-      _ = expr_eval.eval(kde.call(fn, 57))
+      _ = kd.call(fn, 57)
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
@@ -116,7 +118,7 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 1, 2, 3)), ds(2))
+    testing.assert_equal(kd.call(fn, 1, 2, 3), ds(2))
 
   def test_var_keyword(self):
     fn = functor_factories.expr_fn(
@@ -127,7 +129,7 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn, x=1, y=2, z=3)), ds(2))
+    testing.assert_equal(kd.call(fn, x=1, y=2, z=3), ds(2))
 
   def test_default_value(self):
     fn = functor_factories.expr_fn(
@@ -141,9 +143,9 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
-    testing.assert_equal(expr_eval.eval(kde.call(fn, ds(43), ds(57))), ds(43))
+    testing.assert_equal(kd.call(fn).no_bag(), ds(57))
+    testing.assert_equal(kd.call(fn, 43), ds(43))
+    testing.assert_equal(kd.call(fn, ds(43), ds(57)), ds(43))
 
   def test_obj_as_default_value(self):
     fn = functor_factories.expr_fn(
@@ -156,8 +158,8 @@ class FunctorCallTest(parameterized.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(expr_eval.eval(kde.call(fn)).foo.no_bag(), ds(57))
-    testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
+    testing.assert_equal(kd.call(fn).foo.no_bag(), ds(57))
+    testing.assert_equal(kd.call(fn, 43), ds(43))
 
   def test_call_eval_error(self):
     fn = functor_factories.expr_fn(
@@ -171,7 +173,7 @@ class FunctorCallTest(parameterized.TestCase):
         ]),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_bag(),
+        kd.call(fn, fns.new(foo=57)).no_bag(),
         ds(57),
     )
     try:
@@ -187,7 +189,7 @@ class FunctorCallTest(parameterized.TestCase):
   def test_call_non_dataslice_inputs(self):
     fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
-        expr_eval.eval(kde.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3)))), ds(2)
+        kd.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3))), ds(2)
     )
 
   def test_call_returns_non_dataslice(self):
@@ -201,25 +203,21 @@ class FunctorCallTest(parameterized.TestCase):
             ' `return_type_as=` parameter to the functor call.'
         ),
     ):
-      _ = expr_eval.eval(kde.call(fn, x=arolla.tuple(1, 2)))
-    res = expr_eval.eval(
-        kde.call(
-            fn,
-            x=arolla.tuple(1, 2),
-            return_type_as=arolla.tuple(5, 7),
-        )
+      _ = kd.call(fn, x=arolla.tuple(1, 2))
+    res = kd.call(
+        fn,
+        x=arolla.tuple(1, 2),
+        return_type_as=arolla.tuple(5, 7),
     )
     testing.assert_equal(res, arolla.tuple(1, 2))
 
   def test_call_returns_databag(self):
     fn = functor_factories.expr_fn(I.x.get_bag())
     obj = fns.obj(x=1)
-    res = expr_eval.eval(
-        kde.call(
-            fn,
-            x=obj,
-            return_type_as=data_bag.DataBag,
-        )
+    res = kd.call(
+        fn,
+        x=obj,
+        return_type_as=data_bag.DataBag,
     )
     testing.assert_equal(res, obj.get_bag())
 
@@ -228,7 +226,7 @@ class FunctorCallTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'object with unsupported type: type'
     ) as cm:
-      _ = expr_eval.eval(kde.call(fn, x=1, return_type_as=int))
+      _ = kd.call(fn, x=1, return_type_as=int)
     self.assertEqual(
         cm.exception.__notes__,
         ['Error occurred while processing argument: `return_type_as`'],

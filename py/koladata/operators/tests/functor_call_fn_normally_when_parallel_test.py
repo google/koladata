@@ -14,11 +14,11 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -31,6 +31,7 @@ V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
@@ -41,16 +42,12 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
         foo=I.y * I.x,
     )
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_normally_when_parallel(fn, x=2, y=3)
-        ),
+        kd.functor.call_fn_normally_when_parallel(fn, x=2, y=3),
         ds(8),
     )
     # Unused inputs are ignored with the "default" signature.
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_normally_when_parallel(fn, x=2, y=3, z=4)
-        ),
+        kd.functor.call_fn_normally_when_parallel(fn, x=2, y=3, z=4),
         ds(8),
     )
 
@@ -60,21 +57,17 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
         foo=S.y * S.x,
     )
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_normally_when_parallel(fn, fns.new(x=2, y=3))
-        ),
+        kd.functor.call_fn_normally_when_parallel(fn, fns.new(x=2, y=3)),
         ds(8),
     )
 
   def test_call_returns_databag(self):
     fn = functor_factories.expr_fn(I.x.get_bag())
     obj1 = fns.obj(x=1)
-    res = expr_eval.eval(
-        kde.functor.call_fn_normally_when_parallel(
-            fn,
-            x=obj1,
-            return_type_as=data_bag.DataBag,
-        )
+    res = kd.functor.call_fn_normally_when_parallel(
+        fn,
+        x=obj1,
+        return_type_as=data_bag.DataBag,
     )
     testing.assert_equal(res, obj1.get_bag())
 

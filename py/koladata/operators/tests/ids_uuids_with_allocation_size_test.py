@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +31,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 QTYPES = frozenset([
@@ -61,12 +62,8 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_size, rhs_seed, rhs_size):
-    lhs = expr_eval.eval(
-        kde.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
-    )
-    rhs = expr_eval.eval(
-        kde.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
-    )
+    lhs = kd.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
+    rhs = kd.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -96,19 +93,15 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_size, rhs_seed, rhs_size):
-    lhs = expr_eval.eval(
-        kde.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
-    )
-    rhs = expr_eval.eval(
-        kde.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
-    )
+    lhs = kd.ids.uuids_with_allocation_size(seed=lhs_seed, size=lhs_size)
+    rhs = kd.ids.uuids_with_allocation_size(seed=rhs_seed, size=rhs_size)
     self.assertNotEqual(lhs.no_bag().fingerprint, rhs.no_bag().fingerprint)
 
   def test_no_size(self):
     with self.assertRaisesRegex(
         TypeError, re.escape("missing 1 required keyword-only argument: 'size'")
     ):
-      _ = expr_eval.eval(kde.ids.uuids_with_allocation_size('foo'))
+      _ = kd.ids.uuids_with_allocation_size('foo')
 
   @parameterized.parameters(
       (
@@ -149,9 +142,7 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(
-          kde.ids.uuids_with_allocation_size(seed=seed, size=size)
-      )
+      _ = kd.ids.uuids_with_allocation_size(seed=seed, size=size)
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(

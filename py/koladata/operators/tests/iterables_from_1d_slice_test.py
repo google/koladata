@@ -18,6 +18,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -27,6 +28,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 kde_internal = kde_operators.internal
 
 
@@ -34,7 +36,7 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
 
   def test_basic(self):
     a = fns.new(x=ds([1, 2, 3]))
-    res = expr_eval.eval(kde.iterables.from_1d_slice(I.arg), arg=a)
+    res = kd.iterables.from_1d_slice(a)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
@@ -45,7 +47,7 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
 
   def test_empty(self):
     a = ds([])
-    res = expr_eval.eval(kde.iterables.from_1d_slice(I.arg), arg=a)
+    res = kd.iterables.from_1d_slice(a)
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
@@ -56,7 +58,7 @@ class IterablesFrom1DSliceTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected a 1D data slice, got 0 dimensions'
     ):
-      _ = expr_eval.eval(kde.iterables.from_1d_slice(I.arg), arg=a)
+      _ = kd.iterables.from_1d_slice(a)
 
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)

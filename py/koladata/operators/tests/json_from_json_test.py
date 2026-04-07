@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -36,6 +35,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 eager = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -345,7 +345,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (ds('not valid json'), {'on_invalid': 'ERROR'}, ds('ERROR', OBJECT)),
   )
   def test_eval_ignore_bag(self, x, kwargs, expected_result):
-    result = expr_eval.eval(kde.json.from_json(x, **kwargs))
+    result = kd.json.from_json(x, **kwargs)
     self.assertIsNone(result.get_bag().is_mutable().to_py())
     testing.assert_equal(
         result.get_schema().no_bag(), expected_result.get_schema().no_bag()
@@ -354,9 +354,7 @@ class JsonFromJsonTest(parameterized.TestCase):
 
   def test_on_invalid_adoption(self):
     on_invalid = fns.obj(x=1)
-    result = expr_eval.eval(
-        kde.json.from_json('not valid json', on_invalid=on_invalid)
-    )
+    result = kd.json.from_json('not valid json', on_invalid=on_invalid)
     self.assertEqual(result.to_py(), on_invalid.to_py())
 
   @parameterized.parameters(
@@ -626,7 +624,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ),
   )
   def test_eval_structure(self, x, kwargs, expected_py_result):
-    result = expr_eval.eval(kde.json.from_json(x, **kwargs))
+    result = kd.json.from_json(x, **kwargs)
     if 'schema' in kwargs:
       self.assertEqual(result.get_schema(), kwargs['schema'])
     py_result = py_conversions.to_pytree(result, max_depth=-1)
@@ -634,13 +632,11 @@ class JsonFromJsonTest(parameterized.TestCase):
 
   def test_eval_dataslice(self):
     json_input = ds(['{"a": 1}', '{"a": 2}'])
-    result = expr_eval.eval(kde.json.from_json(json_input))
+    result = kd.json.from_json(json_input)
     testing.assert_equal(result.a.no_bag(), ds([1, 2], schema_constants.OBJECT))
 
-    result = expr_eval.eval(
-        kde.json.from_json(
-            json_input, schema=kde.schema.new_schema(a=schema_constants.INT32)
-        )
+    result = kd.json.from_json(
+        json_input, schema=kd.schema.new_schema(a=schema_constants.INT32)
     )
     testing.assert_equal(result.a.no_bag(), ds([1, 2]))
 
@@ -649,20 +645,20 @@ class JsonFromJsonTest(parameterized.TestCase):
     # non-primitive values to have embedded schemas, even if they have
     # non-OBJECT schemas. This is necessary because they must be stored in a
     # LIST[OBJECT] in the values attr.
-    schema = kde.schema.new_schema(
-        a=kde.dict_schema(schema_constants.STRING, schema_constants.INT32),
-        b=kde.list_schema(schema_constants.INT32),
-        c=kde.schema.new_schema(
+    schema = kd.schema.new_schema(
+        a=kd.dict_schema(schema_constants.STRING, schema_constants.INT32),
+        b=kd.list_schema(schema_constants.INT32),
+        c=kd.schema.new_schema(
             y=schema_constants.STRING, w=schema_constants.INT32
         ),
         d=schema_constants.INT32,
-        json_object_keys=kde.list_schema(schema_constants.STRING),
-        json_object_values=kde.list_schema(schema_constants.OBJECT),
-    ).eval()
-    result = kde.json.from_json(
+        json_object_keys=kd.list_schema(schema_constants.STRING),
+        json_object_values=kd.list_schema(schema_constants.OBJECT),
+    )
+    result = kd.json.from_json(
         ds('{"a": {"x": 1}, "b": [2, 3], "c": {"y": "z", "w": 4}, "d": 5}'),
         schema=schema,
-    ).eval()
+    )
 
     testing.assert_equal(result.get_schema().no_bag(), schema.no_bag())
     testing.assert_equal(
@@ -677,17 +673,17 @@ class JsonFromJsonTest(parameterized.TestCase):
 
   def test_json_parse_error(self):
     with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
-      _ = kde.json.from_json('{?}').eval()
+      _ = kd.json.from_json('{?}')
 
     with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
-      _ = kde.json.from_json('[').eval()
+      _ = kd.json.from_json('[')
 
     with self.assertRaisesRegex(ValueError, 'json parse error at position 1'):
-      _ = kde.json.from_json('/* comments not allowed */').eval()
+      _ = kd.json.from_json('/* comments not allowed */')
 
   def test_slice_one_element_error(self):
     with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
-      _ = kde.json.from_json(ds(['[]', '[', '[]'])).eval()
+      _ = kd.json.from_json(ds(['[]', '[', '[]']))
 
   @parameterized.parameters(
       ('false', schema_constants.NONE),
@@ -702,13 +698,13 @@ class JsonFromJsonTest(parameterized.TestCase):
       ('""', schema_constants.BOOLEAN),
       # non-exhaustive
       ('[]', schema_constants.INT32),
-      ('[]', kde.dict_schema(schema_constants.STRING, schema_constants.OBJECT)),
+      ('[]', kd.dict_schema(schema_constants.STRING, schema_constants.OBJECT)),
       ('{}', schema_constants.INT32),
-      ('{}', kde.list_schema(schema_constants.INT32)),
+      ('{}', kd.list_schema(schema_constants.INT32)),
   )
   def test_invalid_schema_error(self, value, schema):
     with self.assertRaisesRegex(ValueError, 'json .* invalid for '):
-      _ = kde.json.from_json(value, schema).eval()
+      _ = kd.json.from_json(value, schema)
 
   @parameterized.parameters(
       ('10000000000', schema_constants.INT32),
@@ -719,7 +715,7 @@ class JsonFromJsonTest(parameterized.TestCase):
         ValueError,
         re.escape(f'cannot cast int64{{{value}}} to int32'),
     ):
-      _ = kde.json.from_json(value, schema).eval()
+      _ = kd.json.from_json(value, schema)
 
   @parameterized.parameters(
       ('""', schema_constants.FLOAT64),
@@ -737,7 +733,7 @@ class JsonFromJsonTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'kd.json.from_json: unable to parse '
     ):
-      _ = kde.json.from_json(value, schema).eval()
+      _ = kd.json.from_json(value, schema)
 
   def test_x_arg_error(self):
     with self.assertRaisesRegex(
@@ -745,21 +741,21 @@ class JsonFromJsonTest(parameterized.TestCase):
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of OBJECT containing INT32 values',
     ):
-      _ = kde.json.from_json(kde.obj(1)).eval()
+      _ = kd.json.from_json(kd.obj(1))
 
     with self.assertRaisesRegex(
         ValueError,
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of OBJECT containing INT32 values',
     ):
-      _ = kde.json.from_json(ds([fns.obj(1)])).eval()
+      _ = kd.json.from_json(ds([fns.obj(1)]))
 
     with self.assertRaisesRegex(
         ValueError,
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of BYTES',
     ):
-      _ = kde.json.from_json(ds(b'[]')).eval()
+      _ = kd.json.from_json(ds(b'[]'))
 
   def test_default_number_schema_arg_error(self):
     with self.assertRaisesRegex(
@@ -767,22 +763,20 @@ class JsonFromJsonTest(parameterized.TestCase):
         'expected default_number_schema to be OBJECT or a numeric primitive'
         ' schema',
     ):
-      _ = kde.json.from_json(
-          '1', default_number_schema=schema_constants.STRING
-      ).eval()
+      _ = kd.json.from_json('1', default_number_schema=schema_constants.STRING)
 
   def test_on_invalid_arg_error(self):
     with self.assertRaisesRegex(ValueError, 'on_invalid must be a DataItem'):
-      _ = kde.json.from_json('1', on_invalid=ds([1, 2])).eval()
+      _ = kd.json.from_json('1', on_invalid=ds([1, 2]))
 
     with self.assertRaisesRegex(ValueError, 'no common schema'):
-      _ = kde.json.from_json('1', on_invalid=kde.new().get_itemid()).eval()
+      _ = kd.json.from_json('1', on_invalid=kd.new().get_itemid())
 
   def test_values_attr_arg_error(self):
     with self.assertRaisesRegex(
         ValueError, 'values_attr must be None if keys_attr is None'
     ):
-      _ = kde.json.from_json(ds([]), keys_attr=None).eval()
+      _ = kd.json.from_json(ds([]), keys_attr=None)
 
   @parameterized.parameters(
       ('[null, false, true]',),
@@ -791,9 +785,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ('{"json_object_keys": [7, 100], "json_object_values": {"a": 2}}',),
   )
   def test_json_roundtrip(self, value):
-    self.assertEqual(
-        kde.json.to_json(kde.json.from_json(value)).eval(), ds(value)
-    )
+    self.assertEqual(kd.json.to_json(kd.json.from_json(value)), ds(value))
 
   @parameterized.parameters(
       mask_constants.present,
@@ -813,7 +805,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       (fns.dict({'abc': fns.dict({'def': 'ghi'})}),),
   )
   def test_koda_roundtrip(self, x):
-    x1 = kde.json.from_json(kde.json.to_json(x), kde.get_schema(x)).eval()
+    x1 = kd.json.from_json(kd.json.to_json(x), kd.get_schema(x))
     self.assertEqual(
         py_conversions.to_py(x, max_depth=-1),
         py_conversions.to_py(x1, max_depth=-1),

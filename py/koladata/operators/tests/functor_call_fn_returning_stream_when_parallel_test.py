@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -29,6 +29,7 @@ V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
@@ -38,20 +39,14 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
         returns=kde.iterables.make(I.x + V.foo, I.x * V.foo),
         foo=I.y * I.x,
     )
-    expected = kde.iterables.make(ds(8), ds(12)).eval()
+    expected = kd.iterables.make(ds(8), ds(12))
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_returning_stream_when_parallel(fn, x=2, y=3)
-        ),
+        kd.functor.call_fn_returning_stream_when_parallel(fn, x=2, y=3),
         expected,
     )
     # Unused inputs are ignored with the "default" signature.
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_returning_stream_when_parallel(
-                fn, x=2, y=3, z=4
-            )
-        ),
+        kd.functor.call_fn_returning_stream_when_parallel(fn, x=2, y=3, z=4),
         expected,
     )
 
@@ -60,12 +55,10 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
         returns=kde.iterables.make(S.x + V.foo, S.x * V.foo),
         foo=S.y * S.x,
     )
-    expected = kde.iterables.make(ds(8), ds(12)).eval()
+    expected = kd.iterables.make(ds(8), ds(12))
     testing.assert_equal(
-        expr_eval.eval(
-            kde.functor.call_fn_returning_stream_when_parallel(
-                fn, fns.new(x=2, y=3)
-            )
+        kd.functor.call_fn_returning_stream_when_parallel(
+            fn, fns.new(x=2, y=3)
         ),
         expected,
     )
@@ -76,15 +69,13 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
     )
     obj1 = fns.obj(x=1)
     obj2 = fns.obj(y=1)
-    res = expr_eval.eval(
-        kde.functor.call_fn_returning_stream_when_parallel(
-            fn,
-            x=obj1,
-            y=obj2,
-            return_type_as=kde.iterables.make(data_bag.DataBag).eval(),
-        )
+    res = kd.functor.call_fn_returning_stream_when_parallel(
+        fn,
+        x=obj1,
+        y=obj2,
+        return_type_as=kd.iterables.make(data_bag.DataBag),
     )
-    expected = kde.iterables.make(obj1.get_bag(), obj2.get_bag()).eval()
+    expected = kd.iterables.make(obj1.get_bag(), obj2.get_bag())
     testing.assert_equal(res, expected)
 
   def test_view(self):

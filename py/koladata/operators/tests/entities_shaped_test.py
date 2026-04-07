@@ -19,6 +19,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import attrs
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +32,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -52,20 +54,20 @@ class EntitiesShapedTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    x = kde.entities.shaped(shape).eval()
+    x = kd.entities.shaped(shape)
     testing.assert_equal(x.get_shape(), shape)
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
-    x = kde.entities.shaped(shape).eval()
+    x = kd.entities.shaped(shape)
     self.assertTrue(x.has_bag())
     testing.assert_equal(x.get_shape(), shape)
     self.assertFalse(x.is_mutable())
 
   def test_with_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    x = kde.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
+    x = kd.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
     testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
@@ -78,30 +80,30 @@ class EntitiesShapedTest(absltest.TestCase):
 
   def test_schema_arg_simple(self):
     shape = jagged_shape.create_shape(2, 3)
-    schema = kde.schema.new_schema(
+    schema = kd.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
-    x = kde.entities.shaped(shape, schema=schema).eval()
+    x = kd.entities.shaped(shape, schema=schema)
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = kde.schema.new_schema(p=schema_constants.BYTES)
-    schema = kde.schema.new_schema(
+    nested_schema = kd.schema.new_schema(p=schema_constants.BYTES)
+    schema = kd.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
     )
-    x = kde.entities.shaped(
+    x = kd.entities.shaped(
         jagged_shape.create_shape(),
         a=42,
         b='xyz',
-        nested=kde.new_shaped(
+        nested=kd.new_shaped(
             jagged_shape.create_shape(), p=b'0123', schema=nested_schema
         ),
         schema=schema,
-    ).eval()
+    )
     self.assertEqual(attrs.dir(x), ['a', 'b', 'nested'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -113,10 +115,10 @@ class EntitiesShapedTest(absltest.TestCase):
     )
 
   def test_schema_arg_implicit_casting(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.entities.shaped(
+    schema = kd.schema.new_schema(a=schema_constants.FLOAT32)
+    x = kd.entities.shaped(
         jagged_shape.create_shape([2]), a=42, schema=schema
-    ).eval()
+    )
     self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(
         x.a, ds([42, 42], schema_constants.FLOAT32).with_bag(x.get_bag())
@@ -124,27 +126,27 @@ class EntitiesShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32)
+    schema = kd.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
         "kd.entities.shaped: the schema for attribute 'a' is incompatible",
     ):
-      kde.entities.shaped(
+      kd.entities.shaped(
           jagged_shape.create_shape([2]), a='xyz', schema=schema
-      ).eval()
+      )
 
   def test_str_as_schema_arg(self):
     shape = jagged_shape.create_shape([2])
-    x = kde.entities.shaped(shape, schema='name', a=42).eval()
-    expected_schema = kde.named_schema('name').eval()
+    x = kd.entities.shaped(shape, schema='name', a=42)
+    expected_schema = kd.named_schema('name')
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_str_slice_as_schema_arg(self):
     shape = jagged_shape.create_shape([2])
-    x = kde.entities.shaped(shape, schema=ds('name'), a=42).eval()
-    expected_schema = kde.named_schema('name').eval()
+    x = kd.entities.shaped(shape, schema=ds('name'), a=42)
+    expected_schema = kd.named_schema('name')
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -154,21 +156,21 @@ class EntitiesShapedTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: STRING"
     ):
-      _ = kde.entities.shaped(shape, schema=ds(['name']), a=42).eval()
+      _ = kd.entities.shaped(shape, schema=ds(['name']), a=42)
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      _ = kde.entities.shaped(shape, schema=42, a=42).eval()
+      _ = kd.entities.shaped(shape, schema=42, a=42)
 
   def test_schema_arg_overwrite_schema(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.entities.shaped(
+    schema = kd.schema.new_schema(a=schema_constants.FLOAT32)
+    x = kd.entities.shaped(
         jagged_shape.create_shape([2]),
         a=42,
         b='xyz',
         schema=schema,
         overwrite_schema=True,
-    ).eval()
+    )
     self.assertEqual(attrs.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -181,34 +183,32 @@ class EntitiesShapedTest(absltest.TestCase):
         'argument `overwrite_schema` must be an item holding BOOLEAN, got an '
         'item of INT32',
     ):
-      kde.entities.shaped(
+      kd.entities.shaped(
           jagged_shape.create_shape(),
           schema=schema_constants.INT32,
           overwrite_schema=42,
-      ).eval()
+      )
 
   def test_schema_arg_overwrite_schema_overwriting(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.entities.shaped(
+    schema = kd.schema.new_schema(a=schema_constants.FLOAT32)
+    x = kd.entities.shaped(
         jagged_shape.create_shape(),
         a='xyz',
         schema=schema,
         overwrite_schema=True,
-    ).eval()
+    )
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
-    x = kde.entities.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
+    itemid = kd.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    x = kd.entities.shaped(itemid.get_shape(), a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.has_bag()
-    x = kde.entities.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
+    x = kd.entities.shaped(itemid.get_shape(), a=42, itemid=itemid)
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
         arolla.testing.any_cause_message_regex(
@@ -221,20 +221,16 @@ class EntitiesShapedTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, "missing 1 required positional argument: 'shape'"
     ):
-      _ = kde.entities.shaped().eval()
+      _ = kd.entities.shaped()
 
   def test_fails_with_dataslice_input(self):
     with self.assertRaisesRegex(ValueError, 'expected JAGGED_SHAPE'):
-      _ = kde.entities.shaped(ds(0)).eval()
+      _ = kd.entities.shaped(ds(0))
 
   def test_non_determinism(self):
     shape = jagged_shape.create_shape(2, 3)
-    res_1 = expr_eval.eval(
-        kde.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
-    )
-    res_2 = expr_eval.eval(
-        kde.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
-    )
+    res_1 = kd.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
+    res_2 = kd.entities.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )

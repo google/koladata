@@ -15,10 +15,10 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +31,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -267,7 +268,7 @@ class JsonToJsonTest(parameterized.TestCase):
   )
   def test_eval(self, x, kwargs, expected_result):
     testing.assert_equal(
-        expr_eval.eval(kde.json.to_json(x, **kwargs)),
+        kd.json.to_json(x, **kwargs),
         expected_result,
     )
 
@@ -275,7 +276,7 @@ class JsonToJsonTest(parameterized.TestCase):
     y = fns.new(x=1)
     x = fns.new(a=y, b=y)
     testing.assert_equal(
-        expr_eval.eval(kde.json.to_json(x)),
+        kd.json.to_json(x),
         ds('{"a": {"x": 1}, "b": {"x": 1}}'),
     )
 
@@ -283,53 +284,47 @@ class JsonToJsonTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema SCHEMA for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(ds(schema_constants.INT32)))
+      _ = kd.json.to_json(ds(schema_constants.INT32))
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema SCHEMA for json serialization'
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(kde.schema.new_schema(a=schema_constants.INT32))
-      )
+      _ = kd.json.to_json(kd.schema.new_schema(a=schema_constants.INT32))
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema ITEMID for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(kde.new().get_itemid()))
+      _ = kd.json.to_json(kd.new().get_itemid())
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema EXPR for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(ds(arolla.quote(I.x))))
+      _ = kd.json.to_json(ds(arolla.quote(I.x)))
 
   def test_error_itemid_cycle(self):
-    x = kde.new()
-    x = x.with_attrs(x=x)
+    x = kd.new().fork_bag()
+    x.x = x
     with self.assertRaisesRegex(
         ValueError, 'cycle detected in json serialization at '
     ):
-      _ = expr_eval.eval(kde.json.to_json(x))
+      _ = kd.json.to_json(x)
 
   def test_error_invalid_dict_key_schema(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported dict key schema MASK for json serialization'
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(kde.dict(mask_constants.present, 'b'))
-      )
+      _ = kd.json.to_json(kd.dict(mask_constants.present, 'b'))
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported dict key dtype MASK for json serialization'
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(
-              kde.dict(
-                  mask_constants.present,
-                  'b',
-                  schema=kde.dict_schema(
-                      schema_constants.OBJECT, schema_constants.STRING
-                  ).eval(),
-              )
+      _ = kd.json.to_json(
+          kd.dict(
+              mask_constants.present,
+              'b',
+              schema=kd.dict_schema(
+                  schema_constants.OBJECT, schema_constants.STRING
+              ),
           )
       )
 
@@ -337,18 +332,12 @@ class JsonToJsonTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected json key list to contain STRING, got INT32'
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(kde.new(keys=fns.list([1])), keys_attr='keys')
-      )
+      _ = kd.json.to_json(kd.new(keys=kd.list([1])), keys_attr='keys')
 
     with self.assertRaisesRegex(
         ValueError, 'expected json key list not to have missing items'
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(
-              kde.new(keys=fns.list(['a', None])), keys_attr='keys'
-          )
-      )
+      _ = kd.json.to_json(kd.new(keys=kd.list(['a', None])), keys_attr='keys')
 
   def test_error_invalid_json_value_list(self):
     with self.assertRaisesRegex(
@@ -356,15 +345,13 @@ class JsonToJsonTest(parameterized.TestCase):
         'expected json key list and json value list to have the same length,'
         ' got 2 and 3',
     ):
-      _ = expr_eval.eval(
-          kde.json.to_json(
-              kde.new(
-                  keys=fns.list(['a', 'b']),
-                  values=fns.list([1, 2, 3]),
-              ),
-              keys_attr='keys',
-              values_attr='values',
-          )
+      _ = kd.json.to_json(
+          kd.new(
+              keys=kd.list(['a', 'b']),
+              values=kd.list([1, 2, 3]),
+          ),
+          keys_attr='keys',
+          values_attr='values',
       )
 
   def test_qtype_signatures(self):

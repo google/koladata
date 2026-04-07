@@ -31,6 +31,7 @@ from koladata.types import schema_constants
 eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -130,7 +131,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_obj_respects_schema(self, attrs):
     obj = eager.obj(a=ds([1, None]))
     obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
-    res = expr_eval.eval(kde.maybe(obj, attrs))
+    res = kd.maybe(obj, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(obj.get_bag()))
 
   @parameterized.named_parameters(
@@ -140,7 +141,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_entity_respects_schema(self, attrs):
     entity = eager.new(a=ds([1, None]))
     entity = entity.with_schema(eager.new().get_schema())
-    res = expr_eval.eval(kde.maybe(entity, attrs))
+    res = kd.maybe(entity, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
 
   @parameterized.named_parameters(
@@ -149,7 +150,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_obj_schema_attr(self, attrs):
     obj = eager.obj(a=ds([1, None]))
-    res = expr_eval.eval(kde.maybe(obj, attrs))
+    res = kd.maybe(obj, attrs)
     testing.assert_equal(res, obj.get_obj_schema())
 
   @parameterized.named_parameters(
@@ -158,7 +159,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_entity_schema_attr(self, attrs):
     entity = eager.new(a=ds([1, None]))
-    res = expr_eval.eval(kde.maybe(entity, attrs))
+    res = kd.maybe(entity, attrs)
     testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
 
   def test_attr_name_error(self):
@@ -186,14 +187,13 @@ class CoreGetAttrTest(parameterized.TestCase):
         ValueError,
         'cannot find a common schema',
     ):
-      expr_eval.eval(
-          kde.core.maybe(
-              ds([
-                  eager.new(a=eager.new(y=1), b=1),
-                  eager.new(a=eager.new(y=2), b=2),
-              ]),
-              ds(['a', 'b']),
-          )
+
+      kd.core.maybe(
+          ds([
+              eager.new(a=eager.new(y=1), b=1),
+              eager.new(a=eager.new(y=2), b=2),
+          ]),
+          ds(['a', 'b']),
       )
 
   def test_qtype_signatures(self):

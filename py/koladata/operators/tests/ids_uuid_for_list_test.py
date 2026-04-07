@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -32,6 +32,7 @@ M = arolla.M
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class KodaUuidForListTest(parameterized.TestCase):
@@ -63,8 +64,8 @@ class KodaUuidForListTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs)
     testing.assert_equal(lhs, rhs)
 
   @parameterized.parameters(
@@ -82,25 +83,25 @@ class KodaUuidForListTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.ids.uuid_for_list(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.ids.uuid_for_list(seed=rhs_seed, **rhs_kwargs)
     self.assertNotEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.ids.uuid_for_list(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.ids.uuid_for_list('', a=ds(1), b=ds(2)))
+    lhs = kd.ids.uuid_for_list(a=ds(1), b=ds(2))
+    rhs = kd.ids.uuid_for_list('', a=ds(1), b=ds(2))
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.ids.uuid_for_list())
-    rhs = expr_eval.eval(kde.ids.uuid_for_list(''))
+    lhs = kd.ids.uuid_for_list()
+    rhs = kd.ids.uuid_for_list('')
     self.assertEqual(lhs.fingerprint, rhs.fingerprint)
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.ids.uuid_for_list(ds('1'), ds('a')))
+      _ = kd.ids.uuid_for_list(ds('1'), ds('a'))
 
   @parameterized.parameters(
       (
@@ -130,7 +131,7 @@ class KodaUuidForListTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.ids.uuid_for_list(seed=seed, **kwargs))
+      _ = kd.ids.uuid_for_list(seed=seed, **kwargs)
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(

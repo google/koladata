@@ -16,10 +16,10 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from arolla.objects import objects
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.extension_types import extension_types
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
@@ -49,17 +50,17 @@ class ExtensionTypesHasAttrTest(parameterized.TestCase):
 
   def test_has_attr_present(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.has_attr(a, "x"))
+    result = kd.extension_types.has_attr(a, "x")
     testing.assert_equal(result, mask_constants.present)
 
   def test_has_attr_present_ds_attr(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.has_attr(a, ds("x")))
+    result = kd.extension_types.has_attr(a, ds("x"))
     testing.assert_equal(result, mask_constants.present)
 
   def test_has_attr_missing(self):
     a = A(ds(1), bag())
-    result = expr_eval.eval(kde.extension_types.has_attr(a, "z"))
+    result = kd.extension_types.has_attr(a, "z")
     testing.assert_equal(result, mask_constants.missing)
 
   def test_view(self):
