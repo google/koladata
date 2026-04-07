@@ -20,7 +20,7 @@ from koladata import kd
 def _pearson_correlation_impl(
     x: kd.types.DataSlice,
     y: kd.types.DataSlice,
-) -> tuple[kd.types.DataSlice, kd.types.DataSlice]:
+) -> kd.types.DataSlice:
   """Internal implementation of Pearson correlation.
 
   Assumes x and y are already aligned (i.e. they have the same presence mask).
@@ -30,8 +30,7 @@ def _pearson_correlation_impl(
     y: Second DataSlice.
 
   Returns:
-    A tuple of (correlation, count) where correlation is the Pearson
-    correlation and count is the number of valid pairs.
+    A DataSlice containing the correlation.
   """
   x_mean = kd.math.agg_mean(x)
   y_mean = kd.math.agg_mean(y)
@@ -40,9 +39,7 @@ def _pearson_correlation_impl(
   # Standard deviation (use unbiased=False to match agg_mean's 1/N)
   x_std = kd.math.agg_std(x, unbiased=False)
   y_std = kd.math.agg_std(y, unbiased=False)
-  r = cov / (x_std * y_std)
-  n = kd.agg_count(x)
-  return r, n
+  return cov / (x_std * y_std)
 
 
 def pearson_correlation(
@@ -59,8 +56,7 @@ def pearson_correlation(
     A DataSlice containing the correlation.
   """
   mask = kd.has(x) & kd.has(y)
-  r, _ = _pearson_correlation_impl(x & mask, y & mask)
-  return r
+  return _pearson_correlation_impl(x & mask, y & mask)
 
 
 def pearson_correlation_with_ci(
@@ -80,7 +76,8 @@ def pearson_correlation_with_ci(
     attributes.
   """
   mask = kd.has(x) & kd.has(y)
-  r, n = _pearson_correlation_impl(x & mask, y & mask)
+  r = _pearson_correlation_impl(x & mask, y & mask)
+  n = kd.agg_count(mask)
 
   # Fisher transform
   # Clip r to [-1 + eps, 1 - eps] to avoid log(0)
@@ -97,11 +94,9 @@ def pearson_correlation_with_ci(
   n_safe = kd.cond(can_calculate_ci, kd.cast_to(n, kd.FLOAT32), 4.0)
   se = 1.0 / kd.math.sqrt(n_safe - 3.0)
 
-  # z_{1-alpha/2} using t-distribution with large degrees of freedom (1e6) as
-  # normal approximation.
-  # TODO: b/498709076 - Use normal distribution directly once available.
-  z_crit = kd.math.t_distribution_inverse_cdf(
-      kd.item(1.0 - alpha / 2.0, kd.FLOAT32), kd.item(1e6, kd.FLOAT32)
+  # z_{1-alpha/2} using normal distribution.
+  z_crit = kd.math.normal_distribution_inverse_cdf(
+      kd.item(1.0 - alpha / 2.0, kd.FLOAT32)
   )
   lower_z = z - z_crit * se
   upper_z = z + z_crit * se
@@ -143,8 +138,7 @@ def spearman_correlation(
   mask = kd.has(x) & kd.has(y)
   rank_x = average_rank(x & mask)
   rank_y = average_rank(y & mask)
-  r, _ = _pearson_correlation_impl(rank_x, rank_y)
-  return r
+  return _pearson_correlation_impl(rank_x, rank_y)
 
 
 def spearman_correlation_with_ci(

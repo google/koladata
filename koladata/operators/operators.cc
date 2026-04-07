@@ -366,6 +366,8 @@ OPERATOR("kd.math.minimum", Minimum);
 OPERATOR("kd.math.mod", Mod);
 OPERATOR("kd.math.multiply", Multiply);
 OPERATOR("kd.math.neg", Neg);
+OPERATOR("kd.math.normal_distribution_inverse_cdf",
+             NormalDistributionInverseCdf);
 OPERATOR("kd.math.pos", Pos);
 OPERATOR("kd.math.pow", Pow);
 OPERATOR("kd.math.round", Round);

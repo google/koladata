@@ -31,38 +31,34 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = test_qtypes.DATA_SLICE
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE),
 ])
 
 
-class TDistributionInverseCdfTest(parameterized.TestCase):
+class NormalDistributionInverseCdfTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      *zip([0, 0.01, 0.1, 0.5, 0.9, 0.99, 1], [0.1, 1, 2, 3, 10, 100, 1e6])
-  )
-  def test_eval_numeric_defaults(self, x, degrees_of_freedom):
-    expected = float(stats.t.ppf(x, degrees_of_freedom))
-    result = kd.math.t_distribution_inverse_cdf(x, degrees_of_freedom)
+  @parameterized.parameters([0, 0.01, 0.1, 0.5, 0.9, 0.99, 1])
+  def test_eval_numeric_defaults(self, x):
+    expected = float(stats.norm.ppf(x))
+    result = kd.math.normal_distribution_inverse_cdf(x)
     testing.assert_allclose(result, ds(expected), rtol=1e-6, atol=1e-15)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.t_distribution_inverse_cdf,
+        kde.math.normal_distribution_inverse_cdf,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)),
-        'kd.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)',
+        repr(kde.math.normal_distribution_inverse_cdf(I.x)),
+        'kd.math.normal_distribution_inverse_cdf(I.x)',
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(
-            kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)
-        )
+        view.has_koda_view(kde.math.normal_distribution_inverse_cdf(I.x))
     )
 
 

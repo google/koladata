@@ -381,6 +381,7 @@ class math:
   mod = _operators_math.mod
   multiply = _operators_math.multiply
   neg = _operators_math.neg
+  normal_distribution_inverse_cdf = _operators_math.normal_distribution_inverse_cdf
   pos = _operators_math.pos
   pow = _operators_math.pow
   round = _operators_math.round

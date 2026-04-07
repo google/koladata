@@ -112,9 +112,29 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
     half: A DataSlice of numbers.
     slope: A DataSlice of numbers.
 
-  Return:
+  Returns:
     sigmoid(x) computed with the formula above.
   """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.math.normal_distribution_inverse_cdf',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def normal_distribution_inverse_cdf(x):
+  """Inverse CDF of the standard normal distribution.
+
+  Args:
+    x: A DataSlice of numbers.
+
+  Returns:
+    The quantiles corresponding to the probabilities in `x`.
+  """
+  del x
   raise NotImplementedError('implemented in the backend')
 
 
@@ -126,16 +146,18 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice(P.degrees_of_freedom),
     ],
 )
-def t_distribution_inverse_cdf(x, degrees_of_freedom):  # pylint: disable=unused-argument
-  """Student's t-distribution inverse CDF.
+def t_distribution_inverse_cdf(x, degrees_of_freedom):
+  """Inverse CDF of the Student's t-distribution.
 
   Args:
     x: A DataSlice of numbers.
     degrees_of_freedom: A DataSlice of numbers.
 
-  Return:
-    t_distribution_inverse_cdf(x).
+  Returns:
+    The quantiles corresponding to the probabilities in `x` for the Student's
+    t-distribution with the given degrees of freedom.
   """
+  del x, degrees_of_freedom
   raise NotImplementedError('implemented in the backend')
 
 

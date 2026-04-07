@@ -44,10 +44,8 @@ absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 absl::StatusOr<DataSlice> IsNaN(const DataSlice& x);
 
 // kd.math.sigmoid.
-absl::StatusOr<DataSlice> Sigmoid(
-    const DataSlice& x,
-    const DataSlice& half,
-    const DataSlice& slope);
+absl::StatusOr<DataSlice> Sigmoid(const DataSlice& x, const DataSlice& half,
+                                  const DataSlice& slope);
 
 // kd.math.abs.
 absl::StatusOr<DataSlice> Abs(const DataSlice& x);
@@ -110,9 +108,12 @@ absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights);
 absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                                         const DataSlice& cdf_arg);
 
-// kd.math._t_distribution_inverse_cdf.
+// kd.math.normal_distribution_inverse_cdf.
+absl::StatusOr<DataSlice> NormalDistributionInverseCdf(const DataSlice& x);
+
+// kd.math.t_distribution_inverse_cdf.
 absl::StatusOr<DataSlice> TDistributionInverseCdf(
-  const DataSlice& x, const DataSlice& degrees_of_freedom);
+    const DataSlice& x, const DataSlice& degrees_of_freedom);
 
 // kd.math._agg_mean.
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x);

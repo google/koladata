@@ -370,6 +370,16 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise negation of the input, i.e. -x.</code></pre>
 
+### `kd.math.normal_distribution_inverse_cdf(x)` {#kd.math.normal_distribution_inverse_cdf}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Inverse CDF of the standard normal distribution.
+
+Args:
+  x: A DataSlice of numbers.
+
+Returns:
+  The quantiles corresponding to the probabilities in `x`.</code></pre>
+
 ### `kd.math.pos(x)` {#kd.math.pos}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise positive of the input, i.e. +x.</code></pre>
@@ -405,7 +415,7 @@ Args:
   half: A DataSlice of numbers.
   slope: A DataSlice of numbers.
 
-Return:
+Returns:
   sigmoid(x) computed with the formula above.</code></pre>
 
 ### `kd.math.sign(x)` {#kd.math.sign}
@@ -453,12 +463,13 @@ Args:
 
 ### `kd.math.t_distribution_inverse_cdf(x, degrees_of_freedom)` {#kd.math.t_distribution_inverse_cdf}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Student&#39;s t-distribution inverse CDF.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Inverse CDF of the Student&#39;s t-distribution.
 
 Args:
   x: A DataSlice of numbers.
   degrees_of_freedom: A DataSlice of numbers.
 
-Return:
-  t_distribution_inverse_cdf(x).</code></pre>
+Returns:
+  The quantiles corresponding to the probabilities in `x` for the Student&#39;s
+  t-distribution with the given degrees of freedom.</code></pre>
 

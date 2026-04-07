@@ -96,8 +96,7 @@ struct AddOp {
     if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
       // Use unsigned type to mitigate signed integer overflow UB.
       using UT = std::make_unsigned_t<T>;
-      return static_cast<T>(
-          (static_cast<UT>(lhs) + static_cast<UT>(rhs)));
+      return static_cast<T>((static_cast<UT>(lhs) + static_cast<UT>(rhs)));
     } else {
       return lhs + rhs;
     }
@@ -209,10 +208,8 @@ absl::StatusOr<DataSlice> Log10(const DataSlice& x) {
   return UnaryOpEval<Log10Op>(x, NumericArgs("x"));
 }
 
-absl::StatusOr<DataSlice> Sigmoid(
-    const DataSlice& x,
-    const DataSlice& half,
-    const DataSlice& slope) {
+absl::StatusOr<DataSlice> Sigmoid(const DataSlice& x, const DataSlice& half,
+                                  const DataSlice& slope) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
   RETURN_IF_ERROR(ExpectNumeric("half", half));
   RETURN_IF_ERROR(ExpectNumeric("slope", slope));
@@ -326,15 +323,18 @@ absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                            /*primary_operand_indices=*/{{0}});
 }
 
+absl::StatusOr<DataSlice> NormalDistributionInverseCdf(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x));
+  return SimplePointwiseEval("math.normal_distribution_inverse_cdf", {x});
+}
+
 absl::StatusOr<DataSlice> TDistributionInverseCdf(
-    const DataSlice& x,
-    const DataSlice& degrees_of_freedom) {
+    const DataSlice& x, const DataSlice& degrees_of_freedom) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
   RETURN_IF_ERROR(ExpectNumeric("degrees_of_freedom", degrees_of_freedom));
   return SimplePointwiseEval("math.t_distribution_inverse_cdf",
                              {x, degrees_of_freedom});
 }
-
 
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
