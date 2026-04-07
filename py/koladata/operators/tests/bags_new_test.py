@@ -16,6 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -25,21 +26,22 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 
 class BagsNewTest(absltest.TestCase):
 
   def test_eval(self):
-    self.assertIsInstance(expr_eval.eval(kde.bags.new()), data_bag.DataBag)
+    self.assertIsInstance(kd.bags.new(), data_bag.DataBag)
     testing.assert_equivalent(
-        expr_eval.eval(kde.core.with_bag(ds(42), kde.bags.new())).get_bag(),
+        kd.core.with_bag(ds(42), kd.bags.new()).get_bag(),
         data_bag.DataBag.empty(),
     )
 
   def test_non_determinism(self):
-    res_1 = expr_eval.eval(kde.bags.new())
-    res_2 = expr_eval.eval(kde.bags.new())
+    res_1 = kd.bags.new()
+    res_2 = kd.bags.new()
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
     testing.assert_equivalent(res_1, res_2)
 

@@ -14,9 +14,9 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,6 +29,7 @@ from koladata.types import qtypes
 bag = data_bag.DataBag.empty_mutable
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 DATA_BAG = qtypes.DATA_BAG
@@ -55,18 +56,18 @@ class BagsEnrichedTest(absltest.TestCase):
     o3 = db3.uuobj(x=1)
     o3.x = 1
     o3.y = 4
-    db3 = expr_eval.eval(kde.bags.enriched(I.x, I.y, I.z), x=db1, y=db2, z=db3)
+    db3 = kd.bags.enriched(db1, db2, db3)
     o3 = o1.with_bag(db3)
     testing.assert_equal(o3.x.no_bag(), ds(1))
     testing.assert_equal(o3.y.no_bag(), ds(3))
 
   def test_few_args(self):
-    db = expr_eval.eval(kde.bags.enriched())
+    db = kd.bags.enriched()
     self.assertEqual(db.get_approx_size(), 0)
     self.assertFalse(db.is_mutable())
     db1 = bag()
     o1 = db1.uuobj(x=1)
-    db = expr_eval.eval(kde.bags.enriched(I.x), x=db1)
+    db = kd.bags.enriched(db1)
     self.assertGreater(db.get_approx_size(), 0)
     self.assertFalse(db.is_mutable())
     testing.assert_equal(o1.with_bag(db).x.no_bag(), ds(1))

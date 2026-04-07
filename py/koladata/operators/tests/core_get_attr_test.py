@@ -33,6 +33,7 @@ from koladata.types import schema_constants
 eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 eval_op = py_expr_eval_py_ext.eval_op
@@ -111,7 +112,7 @@ class CoreGetAttrTest(parameterized.TestCase):
     obj = eager.obj(a=ds([1, None]))
     obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
     with self.assertRaisesRegex(ValueError, 'missing'):
-      expr_eval.eval(kde.get_attr(obj, attrs))
+      kd.get_attr(obj, attrs)
 
   @parameterized.named_parameters(
       ('single', ds('a')),
@@ -121,7 +122,7 @@ class CoreGetAttrTest(parameterized.TestCase):
     entity = eager.new(a=ds([1, None]))
     entity = entity.with_schema(eager.new().get_schema())
     with self.assertRaisesRegex(ValueError, 'missing'):
-      expr_eval.eval(kde.get_attr(entity, attrs))
+      kd.get_attr(entity, attrs)
 
   @parameterized.named_parameters(
       ('single', ds('__schema__')),
@@ -129,7 +130,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_obj_schema_attr(self, attrs):
     obj = eager.obj(a=ds([1, None]))
-    res = expr_eval.eval(kde.get_attr(obj, attrs))
+    res = kd.get_attr(obj, attrs)
     testing.assert_equal(res, obj.get_obj_schema())
 
   @parameterized.named_parameters(
@@ -139,7 +140,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_entity_schema_attr(self, attrs):
     entity = eager.new(a=ds([1, None]))
     with self.assertRaisesRegex(ValueError, 'missing'):
-      expr_eval.eval(kde.get_attr(entity, attrs))
+      kd.get_attr(entity, attrs)
 
   def test_type_promotion(self):
     # Regression test for b/407094917.
@@ -200,14 +201,13 @@ class CoreGetAttrTest(parameterized.TestCase):
         ValueError,
         'cannot find a common schema',
     ):
-      expr_eval.eval(
-          kde.core.get_attr(
-              ds([
-                  eager.new(a=eager.new(y=1), b=1),
-                  eager.new(a=eager.new(y=2), b=2),
-              ]),
-              ds(['a', 'b']),
-          )
+
+      kd.core.get_attr(
+          ds([
+              eager.new(a=eager.new(y=1), b=1),
+              eager.new(a=eager.new(y=2), b=2),
+          ]),
+          ds(['a', 'b']),
       )
 
   def test_with_default_extraction(self):

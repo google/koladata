@@ -16,6 +16,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,12 +30,13 @@ from koladata.types import schema_constants
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class AllocationNewListIdTest(absltest.TestCase):
 
   def test_eval(self):
-    listid = expr_eval.eval(kde.allocation.new_listid())
+    listid = kd.allocation.new_listid()
     self.assertIsInstance(listid, list_item.ListItem)
     testing.assert_equal(listid.get_schema(), schema_constants.ITEMID)
     lst = listid.with_bag(bag())
@@ -46,7 +48,7 @@ class AllocationNewListIdTest(absltest.TestCase):
     expr = kde.allocation.new_listid()
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.allocation.new_listid())
+    res3 = kd.allocation.new_listid()
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 

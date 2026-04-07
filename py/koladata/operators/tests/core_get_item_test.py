@@ -33,6 +33,7 @@ eager = eager_op_utils.operators_container('kd')
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 ds = data_slice.DataSlice.from_vals
 
@@ -57,7 +58,7 @@ class CoreGetItemTest(parameterized.TestCase):
         ValueError,
         'unsupported narrowing cast to INT64 for the given OBJECT DataSlice',
     ):
-      expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice('a', 3)))
+      kd.get_item(ds([1, 2, 3]), slice('a', 3))
 
     with self.assertRaisesRegex(
         ValueError,

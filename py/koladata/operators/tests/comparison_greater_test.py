@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import comparison_greater_testdata
@@ -31,6 +31,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -44,7 +45,7 @@ class ComparisonGreaterTest(parameterized.TestCase):
 
   @parameterized.parameters(*comparison_greater_testdata.TEST_CASES)
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.comparison.greater(I.x, I.y), x=x, y=y)
+    result = kd.comparison.greater(x, y)
     testing.assert_equal(result, expected)
 
   def test_qtype_difference(self):
@@ -57,11 +58,8 @@ Schema for `y`: STRING
 Schema for `x`: INT32"""
         ),
     ):
-      expr_eval.eval(
-          kde.comparison.greater(I.x, I.y),
-          x=ds([1, 2, 3]),
-          y=ds(['a', 'b', 'c']),
-      )
+
+      kd.comparison.greater(ds([1, 2, 3]), ds(['a', 'b', 'c']))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -71,11 +69,8 @@ Schema for `y`: BOOLEAN
 Schema for `x`: INT32"""
         ),
     ):
-      expr_eval.eval(
-          kde.comparison.greater(I.x, I.y),
-          x=ds([1, 2, 3]),
-          y=ds([False, True, False]),
-      )
+
+      kd.comparison.greater(ds([1, 2, 3]), ds([False, True, False]))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -85,11 +80,8 @@ Schema for `y`: STRING
 Schema for `x`: BYTES"""
         ),
     ):
-      expr_eval.eval(
-          kde.comparison.greater(I.x, I.y),
-          x=ds([b'1', b'2', b'3']),
-          y=ds(['a', 'b', 'c']),
-      )
+
+      kd.comparison.greater(ds([b'1', b'2', b'3']), ds(['a', 'b', 'c']))
 
   def test_unordered_types(self):
     empty = ds([None, None])
@@ -99,13 +91,13 @@ Schema for `x`: BYTES"""
         'kd.comparison.greater: argument `x` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):
-      expr_eval.eval(kde.comparison.greater(I.x, I.y), x=schemas, y=empty)
+      kd.comparison.greater(schemas, empty)
     with self.assertRaisesRegex(
         ValueError,
         'kd.comparison.greater: argument `y` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):
-      expr_eval.eval(kde.comparison.greater(I.x, I.y), x=empty, y=schemas)
+      kd.comparison.greater(empty, schemas)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

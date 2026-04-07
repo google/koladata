@@ -24,6 +24,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -38,6 +39,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -76,9 +78,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
       (ds(1), arolla.present(), lambda x: 'unused', ds(1)),
   )
   def test_successful_eval(self, x, condition, message_or_fn, *args):
-    result = expr_eval.eval(
-        kde.assertion.with_assertion(x, condition, message_or_fn, *args)
-    )
+    result = kd.assertion.with_assertion(x, condition, message_or_fn, *args)
     testing.assert_equal(result, x)
 
   @parameterized.parameters(
@@ -102,9 +102,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
   )
   def test_failing_eval(self, x, condition, message_or_fn, *args):
     with self.assertRaisesRegex(ValueError, 'with_assertion failure'):
-      expr_eval.eval(
-          kde.assertion.with_assertion(x, condition, message_or_fn, *args)
-      )
+      kd.assertion.with_assertion(x, condition, message_or_fn, *args)
 
   def test_functor_eval_fail(self):
     @functor_factories.py_fn
@@ -187,15 +185,11 @@ class AssertionWithAssertionTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to MASK'
     ):
-      expr_eval.eval(kde.assertion.with_assertion(ds(1), ds(2), 'unused'))
+      kd.assertion.with_assertion(ds(1), ds(2), 'unused')
 
   def test_non_scalar_condition(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(
-          kde.assertion.with_assertion(
-              ds(1), ds([mask_constants.present]), 'unused'
-          )
-      )
+      kd.assertion.with_assertion(ds(1), ds([mask_constants.present]), 'unused')
 
   def test_invalid_qtype_condition(self):
     with self.assertRaisesRegex(
@@ -203,9 +197,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
         'expected a unit scalar, unit optional, or a DataSlice, got condition:'
         ' TEXT',
     ):
-      expr_eval.eval(
-          kde.assertion.with_assertion(ds(1), arolla.text('value'), 'unused')
-      )
+      kd.assertion.with_assertion(ds(1), arolla.text('value'), 'unused')
 
   def test_qtype_signatures(self):
     expected_qtypes = []

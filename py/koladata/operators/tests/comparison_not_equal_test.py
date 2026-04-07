@@ -17,9 +17,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import comparison_not_equal_testdata
@@ -30,6 +30,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -43,7 +44,7 @@ class ComparisonNotEqualTest(parameterized.TestCase):
 
   @parameterized.parameters(*comparison_not_equal_testdata.TEST_CASES)
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.comparison.not_equal(x, y))
+    result = kd.comparison.not_equal(x, y)
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):

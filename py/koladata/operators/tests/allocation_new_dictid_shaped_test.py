@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,6 +31,7 @@ from koladata.types import schema_constants
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class AllocationNewDictIdShapedTest(parameterized.TestCase):
@@ -40,7 +42,7 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
       (jagged_shape.create_shape(), ds(42)),
   )
   def test_eval(self, shape, values):
-    dictid = expr_eval.eval(kde.allocation.new_dictid_shaped(shape))
+    dictid = kd.allocation.new_dictid_shaped(shape)
     testing.assert_equal(dictid.get_schema(), schema_constants.ITEMID)
     dct = dictid.with_bag(bag())
     dct = dct.with_schema(
@@ -56,7 +58,7 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
     expr = kde.allocation.new_dictid_shaped(shape)
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.allocation.new_dictid_shaped(shape))
+    res3 = kd.allocation.new_dictid_shaped(shape)
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 

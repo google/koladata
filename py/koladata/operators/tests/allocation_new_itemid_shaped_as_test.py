@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +32,7 @@ I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class AllocationNewItemIdShapedAsTest(parameterized.TestCase):
@@ -41,7 +43,7 @@ class AllocationNewItemIdShapedAsTest(parameterized.TestCase):
       (ds(1), ds(42)),
   )
   def test_eval(self, shape, attr):
-    itemid = expr_eval.eval(kde.allocation.new_itemid_shaped_as(shape))
+    itemid = kd.allocation.new_itemid_shaped_as(shape)
     testing.assert_equal(itemid.get_schema(), schema_constants.ITEMID)
     entity = itemid.with_bag(bag())
     entity = entity.with_schema(
@@ -54,7 +56,7 @@ class AllocationNewItemIdShapedAsTest(parameterized.TestCase):
     expr = kde.allocation.new_itemid_shaped_as(ds([1, 1]))
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.allocation.new_itemid_shaped_as(ds([1, 1])))
+    res3 = kd.allocation.new_itemid_shaped_as(ds([1, 1]))
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
