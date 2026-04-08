@@ -24,6 +24,10 @@
   -webkit-column-width: 24em;
 }
 
+article {
+  max-width:inherit;
+}
+
 section {
   page-break-inside: avoid;
   -webkit-column-break-inside: avoid;
@@ -87,4 +91,8 @@ h1 + p:after {
 /* Inline code */
 .g3doc-content code {
   color: black;
+}
+
+.g3doc-clipboard-btn {
+  display: none;
 }

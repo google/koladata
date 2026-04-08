@@ -4,67 +4,87 @@
 
 # Koda Cheatsheet
 
-## Koda Setup
+go/koda-cheatsheet
+## Basic APIs
 
 <section>
-
 ### Import
 
-```py
-from koladata import kd
+```py {.pycon-doctest}
+>>> from koladata import kd
 
 # Additional extension libraries if needed
 # E.g. Numpy/Pandas conversions
-from koladata import kd_ext
+>>> from koladata import kd_ext
 ```
 
 </section>
-
-## Basic APIs
 
 <section>
 
 ### Primitives and DataItem
 
-```py
+```py {.pycon-doctest}
 # Primitive dtypes
-kd.INT32
-kd.INT64
-kd.FLOAT32
-kd.FLOAT64
-kd.STRING
-kd.BYTES
-kd.BOOLEAN
-kd.MASK
+>>> kd.INT32
+DataItem(INT32, schema: SCHEMA)
+>>> kd.INT64
+DataItem(INT64, schema: SCHEMA)
+>>> kd.FLOAT32
+DataItem(FLOAT32, schema: SCHEMA)
+>>> kd.FLOAT64
+DataItem(FLOAT64, schema: SCHEMA)
+>>> kd.STRING
+DataItem(STRING, schema: SCHEMA)
+>>> kd.BYTES
+DataItem(BYTES, schema: SCHEMA)
+>>> kd.BOOLEAN
+DataItem(BOOLEAN, schema: SCHEMA)
+>>> kd.MASK
+DataItem(MASK, schema: SCHEMA)
 
 # MASK type values
-kd.present
-kd.missing
+>>> kd.present
+DataItem(present, schema: MASK)
+>>> kd.missing
+DataItem(missing, schema: MASK)
 
 # DataItem creation
-i = kd.item(1)
+>>> i = kd.item(1)
 
-kd.is_item(i)
-kd.is_primitive(i)
-kd.get_dtype(i) # kd.INT32
+>>> assert kd.is_item(i)
+>>> assert kd.is_primitive(i)
+>>> kd.get_dtype(i)
+DataItem(INT32, schema: SCHEMA)
 
 # DataItem creation with explicit dtypes
-kd.int32(1)
-kd.int64(2)
-kd.float32(1.1)
-kd.float64(2.2)
-kd.str('a')
-kd.bytes(b'a')
-kd.bool(True)
-kd.mask(None)
+>>> kd.int32(1)
+DataItem(1, schema: INT32)
+>>> kd.int64(2)
+DataItem(2, schema: INT64)
+>>> kd.float32(1.1)
+DataItem(1.1, schema: FLOAT32)
+>>> kd.float64(2.2)
+DataItem(2.2, schema: FLOAT64)
+>>> kd.str('a')
+DataItem('a', schema: STRING)
+>>> kd.bytes(b'a')
+DataItem(b'a', schema: BYTES)
+>>> kd.bool(True)
+DataItem(True, schema: BOOLEAN)
+>>> kd.mask(None)
+DataItem(missing, schema: MASK)
 
 # Or use kd.item with explicit dtype
-kd.item(1, kd.INT32)
-kd.item(2, kd.INT64)
+>>> kd.item(1, kd.INT32)
+DataItem(1, schema: INT32)
+>>> kd.item(2, kd.INT64)
+DataItem(2, schema: INT64)
 
 # kd.from_py is a universal converter
 # Same as kd.item
-kd.from_py(1)
+>>> kd.from_py(1)
+DataItem(1, schema: OBJECT)
 ```
 
 </section>
@@ -73,66 +93,102 @@ kd.from_py(1)
 
 ### DataSlice
 
-```py
-ds = kd.slice([[1, 2], [3, None, 5]])
-kd.is_slice(ds)
+```py {.pycon-doctest}
+>>> ds = kd.slice([[1, 2], [3, None, 5]])
+>>> assert kd.is_slice(ds)
 
-ds.get_size()
-ds.get_ndim()
-ds.get_shape()
+>>> ds.get_size()
+DataItem(5, schema: INT64)
+>>> ds.get_ndim()
+DataItem(2, schema: INT64)
+>>> ds.get_shape()
+JaggedShape(2, [2, 3])
 
-ds.get_dtype() # kd.INT32
+>>> ds.get_dtype()
+DataItem(INT32, schema: SCHEMA)
 
 # DataSlice creation with explicit dtypes
-kd.int32([[1, 2], [3, None, 5]])
-kd.int64([[1, 2], [3, None, 5]])
-kd.float32([[1., 2.],[3., None, 5.]])
-kd.float64([[1., 2.],[3., None, 5.]])
-kd.str(['a', None, 'b'])
-kd.bytes([b'a', None, b'b'])
-kd.bool([True, None, False])
-kd.mask([kd.present, kd.missing])
+>>> kd.int32([[1, 2], [3, None, 5]])
+DataSlice([[1, 2], [3, None, 5]], schema: INT32, ...)
+>>> kd.int64([[1, 2], [3, None, 5]])
+DataSlice([[1, 2], [3, None, 5]], schema: INT64, ...)
+>>> kd.float32([[1., 2.],[3., None, 5.]])
+DataSlice([[1.0, 2.0], [3.0, None, 5.0]], schema: FLOAT32, ...)
+>>> kd.float64([[1., 2.],[3., None, 5.]])
+DataSlice([[1.0, 2.0], [3.0, None, 5.0]], schema: FLOAT64, ...)
+>>> kd.str(['a', None, 'b'])
+DataSlice(['a', None, 'b'], schema: STRING, ...)
+>>> kd.bytes([b'a', None, b'b'])
+DataSlice([b'a', None, b'b'], schema: BYTES, ...)
+>>> kd.bool([True, None, False])
+DataSlice([True, None, False], schema: BOOLEAN, ...)
+>>> kd.mask([kd.present, kd.missing])
+DataSlice([present, missing], schema: MASK, ...)
 
 # Or use kd.slice with explicit dtype
-kd.slice([[1, 2], [3, None, 5]], kd.INT32)
-kd.slice([[1, 2], [3, None, 5]], kd.INT64)
+>>> kd.slice([[1, 2], [3, None, 5]], kd.INT32)
+DataSlice([[1, 2], [3, None, 5]], schema: INT32, ...)
+>>> kd.slice([[1, 2], [3, None, 5]], kd.INT64)
+DataSlice([[1, 2], [3, None, 5]], schema: INT64, ...)
 
 # kd.from_py is a universal converter
 # Same as kd.slice
-kd.from_py([[1, 2], [3, None, 5]])
+>>> kd.from_py([[1, 2], [3, None, 5]])
+DataItem(List[List[1, 2], List[3, None, 5]], schema: OBJECT, ...)
 
-ds = kd.slice([[1, 2], [3, None, 5]])
+>>> ds = kd.slice([[1, 2], [3, None, 5]])
+
 # Navigate DataSlice as "nested" lists
-ds.L[1].L[2] # 5
+>>> ds.L[1].L[2]
+DataItem(5, schema: INT32)
+
 # Items at idx in the first dims
-ds.L[1] # [3, None, 5]
+>>> ds.L[1]
+DataSlice([3, None, 5], schema: INT32, present: 2/3)
+
 
 # Use in Python for-loop
-for i in ds.L:
-  for j in i.L:
-    print(j)
+>>> for i in ds.L:
+...   for j in i.L:
+...     print(j)
+1
+2
+3
+None
+5
 
 # Subslice
-ds.S[1, 2] # 5
+>>> ds.S[1, 2]
+DataItem(5, schema: INT32)
+
 # Take the third items in the last dimension
-ds.S[2] # [None, 5]
-ds.S[1:, :2] # [[3, None]]
+>>> ds.S[2]
+DataSlice([None, 5], schema: INT32, ...)
+>>> ds.S[1:, :2]
+DataSlice([[3, None]], schema: INT32, ...)
 
 # Get items at idx
-ds.take(2) # [None, 5]
-ds.take(kd.slice([1, 2])) # [2, 5]
+>>> ds.take(2)
+DataSlice([None, 5], schema: INT32, ...)
+>>> ds.take(kd.slice([1, 2]))
+DataSlice([2, 5], schema: INT32, ...)
 
 # Expand the outermost dimension into a list
-kd.to_pylist(ds)
+>>> kd.to_pylist(ds)
+[DataSlice([1, 2], schema: INT32,...), DataSlice([3, None, 5], schema: INT32,...)]
+
 # Convert to a nested Python list
-ds.to_py()
+>>> ds.to_py()
+[[1, 2], [3, None, 5]]
 
 # Reverse the order of items in the last dimension
-kd.reverse(ds) # [[2, 1], [5, None, 3]]
+>>> kd.reverse(ds)
+DataSlice([[2, 1], [5, None, 3]], schema: INT32, ...)
 
 # DataItem is 0-dim DataSlice
-i = kd.slice(1) # same as kd.item(1)
-i.get_ndim() # 0
+>>> i = kd.slice(1)
+>>> i.get_ndim()
+DataItem(0, ...)
 
 # Visualize a DataSlice (go/koda-ds-display)
 ds.display()
@@ -148,79 +204,89 @@ Entities can be thought of as instances of protos or C++ structs. That is, they
 don't directly store their own schema. Instead, their schema is stored at
 DataSlice level and all entities in a DataSlice share the same schema.
 
-```py
+```py {.pycon-doctest}
 # Entity creation with named schema
-e = kd.new(x=1, y=2, schema='Point')
-es = kd.new(x=kd.slice([1, 2, None]),
-            y=kd.slice([4, None, 6]),
-            schema='Point')
+>>> e = kd.new(x=1, y=2, schema='Point')
+>>> es = kd.new(x=kd.slice([1, 2, None]),
+...             y=kd.slice([4, None, 6]),
+...             schema='Point')
 
-e.get_schema()
-assert e.get_schema() == es.get_schema()
+>>> assert e.get_schema() == es.get_schema()
 
-assert e.is_entity()
+>>> assert e.is_entity()
 
 # Use an existing schema
-s = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
-e = kd.new(x=1, y=2, schema=s)
+>>> s = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
+>>> e = kd.new(x=1, y=2, schema=s)
+
 # which is equivalent to
-e = s.new(x=1, y=2)
+>>> e2 = s.new(x=1, y=2)
+>>> kd.testing.assert_equivalent(e, e2)
 
 # When `schema=` is not provided, a new
 # schema is created for each invocation
-e1 = kd.new(x=1, y=2)
-e2 = kd.new(x=1, y=2)
-assert e1.get_schema() != e2.get_schema()
+>>> e1 = kd.new(x=1, y=2)
+>>> e2 = kd.new(x=1, y=2)
+>>> assert e1.get_schema() != e2.get_schema()
 
 # Use provided itemids
-itemid = kd.new_itemid()
-e3 = kd.new(x=1, y=2, itemid=itemid)
-e4 = kd.new(x=1, y=2, itemid=itemid)
-assert e3.get_itemid() == e4.get_itemid()
+>>> itemid = kd.new_itemid()
+>>> e3 = kd.new(x=1, y=2, itemid=itemid)
+>>> e4 = kd.new(x=1, y=2, itemid=itemid)
+>>> assert e3.get_itemid() == e4.get_itemid()
 
 # Get available attributes
-kd.dir(e) # ['x', 'y']
 # As all entities share the same schema,
 # intersection= argument does not matter for them.
+>>> kd.dir(e)
+['x', 'y']
 
 # Access attribute
-e.x # 1
-e.get_attr('y') # 2
-e.maybe('z') # None
-e.get_attr('z', default=0) # 0
-es.get_attr('x', default=0) # [1, 2, 0]
+>>> e.x
+DataItem(1,...)
+>>> e.get_attr('y')
+DataItem(2,...)
+>>> e.maybe('z')
+DataItem(None,...)
+>>> e.get_attr('z', default=0)
+DataItem(0,...)
+>>> es.get_attr('x', default=0)
+DataSlice([1, 2, 0],...)
 
 # Entities are immutable by default, modification is done
 # by creating a new entity with the same ItemId and
 # updated attributes
-e = kd.new(x=1, y=2, schema='Point')
+>>> e = kd.new(x=1, y=2, schema='Point')
 
 # Update attributes
 # Update a single attribute
-e1 = e.with_attr('x', 3)
-e1 = e.with_attr('z', 4)
+>>> e1 = e.with_attr('x', 3)
+>>> e1 = e.with_attr('z', 4)
+
 # Also override schema
-e1 = e.with_attr('y', 'a', overwrite_schema=True)
+>>> e1 = e.with_attr('y', 'a', overwrite_schema=True)
+
 # Remove a single attribute
-e1 = e.with_attr('x', None)
+>>> e1 = e.with_attr('x', None)
 
 # Update/remove multiple attributes
-e2 = e.with_attrs(z=4, x=None)
+>>> e2 = e.with_attrs(z=4, x=None)
+
 # Also override schema for 'y'
-e2 = e.with_attrs(z=4, y='a', overwrite_schema=True)
+>>> e2 = e.with_attrs(z=4, y='a', overwrite_schema=True)
 
 # Create an update and apply it separately
-upd = kd.attrs(e, z=4, y=10)
-e3 = e.updated(upd)
+>>> upd = kd.attrs(e, z=4, y=10)
+>>> e3 = e.updated(upd)
 
 # Allows mixing multiple updates
-e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=None))
+>>> e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=None))
 
 # Update nested attributes
-nested = kd.new(a=kd.new(c=kd.new(e=1), d=2), b=3)
-nested = nested.updated(kd.attrs(nested.a.c, e=4),
-                        kd.attrs(nested.a, d=5),
-                        kd.attrs(nested, b=6))
+>>> nested = kd.new(a=kd.new(c=kd.new(e=1), d=2), b=3)
+>>> nested = nested.updated(kd.attrs(nested.a.c, e=4),
+...                         kd.attrs(nested.a, d=5),
+...                         kd.attrs(nested, b=6))
 ```
 
 </section>
@@ -229,77 +295,98 @@ nested = nested.updated(kd.attrs(nested.a.c, e=4),
 
 ### Lists
 
-```py
+```py {.pycon-doctest}
 # Create a list from a Python list
-l1 = kd.list([1, 2, 3])
-l2 = kd.list([[1, 2], [3], [4, 5]])
+>>> l1 = kd.list([1, 2, 3])
+>>> l2 = kd.list([[1, 2], [3], [4, 5]])
 
 # Create multiple lists by imploding
 # the last dimension of a DataSlice
-l3 = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))
+>>> l3 = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))
 
 # l2 and l3 are different
-kd.is_item(l2)
-l2.get_size() # 1
-l3.get_size() # 3
+>>> assert kd.is_item(l2)
+>>> l2.get_size()
+DataItem(1,...)
+>>> l3.get_size()
+DataItem(3,...)
 
-kd.is_list(l1)
-kd.list_size(l1) # 3
+>>> assert kd.is_list(l1)
+>>> kd.list_size(l1)
+DataItem(3, ...)
 
 # Use provided itemids
-itemid = kd.new_listid()
-l4 = kd.list([1, 2, 3], itemid=itemid)
-l5 = kd.list([4, 5, 6], itemid=itemid)
-assert l4.get_itemid() == l5.get_itemid()
+>>> itemid = kd.new_listid()
+>>> l4 = kd.list([1, 2, 3], itemid=itemid)
+>>> l5 = kd.list([4, 5, 6], itemid=itemid)
+>>> assert l4.get_itemid() == l5.get_itemid()
 
 # Python-like list operations
-l1[0] # 1
-kd.get_item(l1, 0) # 1
-l1[1:] # [2, 3]
+>>> l1[0]
+DataItem(1,...)
+>>> kd.get_item(l1, 0)
+DataItem(1,...)
+>>> l1[1:]
+DataSlice([2, 3],...)
 
 # Slice by a DataSlice
-l1[kd.slice([0, 2])] # [1, 3]
-l1[kd.slice([[2, 1], [0, None]])] # [[3, 2], [1, None]]
+>>> l1[kd.slice([0, 2])]
+DataSlice([1, 3],...)
+>>> l1[kd.slice([[2, 1], [0, None]])]
+DataSlice([[3, 2], [1, None]],...)
 
 # Explode a list
-l1[:] # [1, 2, 3]
-kd.explode(l1) # [1, 2, 3]
+>>> l1[:]
+DataSlice([1, 2, 3],...)
+>>> kd.explode(l1)
+DataSlice([1, 2, 3],...)
 
-kd.explode(l2, ndim=2)
+>>> kd.explode(l2, ndim=2)
+DataSlice([[1, 2], [3], [4, 5]],...)
+
 # Explode all lists repeatedly
-kd.explode(l2, ndim=-1)
+>>> kd.explode(l2, ndim=-1)
+DataSlice([[1, 2], [3], [4, 5]],...)
 
 # Filter out items
-l6 = kd.list([1, 2, None, 4])
-l6.select_items(lambda x: x >= 2) # [2, 4]
+>>> l6 = kd.list([1, 2, None, 4])
+>>> l6.select_items(lambda x: x >= 2)
+DataSlice([2, 4],...)
 
 # Append a single item
-l7 = l1.with_list_append_update(4)
+>>> l7 = l1.with_list_append_update(4)
+
 # Append multiple items
-l8 = l1.with_list_append_update(kd.slice([4, 5]))
+>>> l8 = l1.with_list_append_update(kd.slice([4, 5]))
 
 # Note that list update does not support
 # updating/removing existing items
 
 # Create an update and apply it separately
-upd = kd.list_append_update(l1, 5)
-l1.updated(upd)
+>>> upd = kd.list_append_update(l1, 5)
+>>> l1.updated(upd)
+DataItem(List[1, 2, 3, 5], schema: LIST[INT32],...)
 
 # Accumulating updates is not supported
 # The last update overrides previous ones
 # Note 5 is not appended
-l1.updated(kd.list_append_update(l1, 5),
-           kd.list_append_update(l1, kd.slice([6, 7])))
-# List[1, 2, 3, 6, 7]
+>>> l1.updated(kd.list_append_update(l1, 5),
+...            kd.list_append_update(l1, kd.slice([6, 7])))
+DataItem(List[1, 2, 3, 6, 7], schema: LIST[INT32],...)
 
 # Returns a list with a different ItemId and items
 # concatenated from the list items of arguments
-kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
+>>> kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
+DataItem(List[1, 2, 3, 4], schema: LIST[INT32],...)
 
 # Return a list with a different ItemId and
 # appended items
-kd.appended_list(kd.list([1, 2]), 3)
-kd.appended_list(kd.list([1, 2]), kd.slice([3, 4]))
+>>> kd.appended_list(kd.list([1, 2]), 3)
+DataItem(List[1, 2, 3], schema: LIST[INT32],...)
+
+>>> kd.appended_list(kd.list([1, 2]), kd.slice([3, 4]))
+DataItem(List[1, 2, 3, 4], schema: LIST[INT32],...)
+
 ```
 
 </section>
@@ -308,18 +395,21 @@ kd.appended_list(kd.list([1, 2]), kd.slice([3, 4]))
 
 ### Dicts
 
-```py
+```py {.pycon-doctest}
 # Create a dict from a Python dict
-d1 = kd.dict({'a': 1, 'b': 2})
-d1 = kd.dict(kd.slice(['a', 'b'],
-             kd.slice([1, 2]))) # Same as above
+>>> d1 = kd.dict({'a': 1, 'b': 2})
+>>> d2 = kd.dict(kd.slice(['a', 'b']),
+...              kd.slice([1, 2])) # Same as above
+>>> kd.testing.assert_equivalent(d1, d2)
 
 # Create multiple dicts
-d2 = kd.dict(kd.slice([['a', 'b'], ['c']],
-             kd.slice([[1, 2], [3]])))
+>>> d2 = kd.dict(kd.slice([['a', 'b'], ['c']]),
+...              kd.slice([[1, 2], [3]]))
 
-kd.is_dict(d1)
-d1.dict_size() # 2
+>>> assert kd.is_dict(d1)
+
+>>> d1.dict_size()
+DataItem(2, schema: INT64)
 
 # Use provided itemids
 itemid = kd.new_dictid()
@@ -327,40 +417,52 @@ d3 = kd.dict({'a': 1, 'b': 2}, itemid=itemid)
 d4 = kd.dict({'c': 3, 'd': 4}, itemid=itemid)
 assert d3.get_itemid() == d4.get_itemid()
 
-d1.get_keys() # ['a', 'b']
-d1.get_values() # [1, 2]
-d1['a']
-d1.get_item('a') # Same as above
+>>> k = d1.get_keys(); sorted(k.to_py()) # order of keys/values is arbitrary
+['a', 'b']
+
+>>> v = d1.get_values(); sorted(v.to_py()) # order of keys/values is arbitrary
+[1, 2]
+
+>>> d1['a']
+DataItem(1, schema: INT32,...)
+
+>>> kd.testing.assert_equivalent(kd.get_item(d1, 'a'),d1['a']) # Same as above
 
 # Filter out keys/values
-d1.select_keys(lambda k: k != 'b') # ['a']
-d1.select_values(lambda v: v > 1) # [2]
+>>> d1.select_keys(lambda k: k != 'b')
+DataSlice(['a']...)
+
+>>> d1.select_values(lambda v: v > 1)
+DataSlice([2]...)
 
 # Dicts are immutable by default, modification is done
 # by creating a new dict with the same ItemId and
 # updated key/values
 
 # Update a key/value
-d4 = d1.with_dict_update('c', 5)
+>>> d4 = d1.with_dict_update('c', 5)
+
 # Update multiple key/values
-another_dict = kd.dict({'a': 3, 'c': 5})
-d5 = d1.with_dict_update(another_dict)
-# Same as above
-d5 = d1.with_dict_update(kd.slice(['a', 'c']),
-                         kd.slice([3, 5]))
+>>> another_dict = kd.dict({'a': 3, 'c': 5})
+>>> d5 = d1.with_dict_update(another_dict)
+>>> d6 = d1.with_dict_update(kd.slice(['a', 'c']),
+...                          kd.slice([3, 5])) # Same as above
+>>> kd.testing.assert_equivalent(d5, d6)
 
 # Note that dict update does not support
 # removing values for now
-d1.with_dict_update('a', None)
-# Dict{'a': 1, 'b': 2} rather than Dict{'b': 2}
+>>> d2 = d1.with_dict_update('a', None) # Dict{'a': 1, 'b': 2} rather than Dict{'b': 2}
+>>> sorted(d2.get_keys().to_py())
+['a', 'b']
+
 
 # Create an update and apply it separately
-upd = kd.dict_update(d1, another_dict)
-d6 = d1.updated(upd)
+>>> upd = kd.dict_update(d1, another_dict)
+>>> d6 = d1.updated(upd)
 
 # Allows mixing multiple updates
-d7 = d1.updated(kd.dict_update(d1, 'c', 5),
-                kd.dict_update(d1, another_dict))
+>>> d7 = d1.updated(kd.dict_update(d1, 'c', 5),
+...                 kd.dict_update(d1, another_dict))
 ```
 
 </section>
@@ -376,100 +478,122 @@ Entities, Lists, Dicts and primitives can be objects. Entities, Lists and Dicts
 store their own schema as an internal `__schema__` attribute while primitives'
 schema is determined by the type of their value.
 
-```py
+```py {.pycon-doctest}
 # Entity objects
-o = kd.obj(x=1, y=2)
-os = kd.obj(x=kd.slice([1, 2, None]),
-            y=kd.slice([4, None, 6]))
+>>> o = kd.obj(x=1, y=2)
+>>> os = kd.obj(x=kd.slice([1, 2, None]),
+...             y=kd.slice([4, None, 6]))
 
-os = kd.slice([kd.obj(x=1),
-               kd.obj(y=2.0),
-               kd.obj(x=1.0, y='a')])
+>>> os = kd.slice([kd.obj(x=1),
+...                kd.obj(y=2.0),
+...                kd.obj(x=1.0, y='a')])
 
-os.get_schema() # kd.OBJECT
-os.get_obj_schema()
-# [IMPLICIT_SCHEMA(x=INT32),
-#  IMPLICIT_SCHEMA(y=FLOAT32),
-#  IMPLICIT_SCHEMA(x=INT32, y=STRING)]
+>>> os.get_schema()
+DataItem(OBJECT, schema: SCHEMA, ...)
+>>> os.get_obj_schema()
+DataSlice([
+  IMPLICIT_ENTITY(x=INT32),
+  IMPLICIT_ENTITY(y=FLOAT32),
+  IMPLICIT_ENTITY(x=FLOAT32, y=STRING),
+], schema: SCHEMA, ...)
 
 # Use provided itemids
-itemid = kd.new_itemid()
-o1 = kd.obj(x=1, y=2, itemid=itemid)
-o2 = kd.obj(x=1, y=2, itemid=itemid)
-assert o1.get_itemid() == o2.get_itemid()
+>>> itemid = kd.new_itemid()
+>>> o1 = kd.obj(x=1, y=2, itemid=itemid)
+>>> o2 = kd.obj(x=1, y=2, itemid=itemid)
+>>> assert o1.get_itemid() == o2.get_itemid()
 
 # Get available attributes
-os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
+>>> os1 = kd.slice([kd.obj(x=1), kd.obj(x=1.0, y='a')])
+
 # Attributes present in all objects
-kd.dir(os1) # Raises on inconsistent attributes.
-kd.dir(os1, intersection=True) # ['x']
-kd.dir(os1, intersection=False) # ['x', 'y']
-# Or to get per-object attributes
-kd.get_attr_names(os1) # [[x], ['x', 'y']]
+>>> kd.dir(os1)
+Traceback (most recent call last):
+    ...
+ValueError: dir() cannot determine attribute names because objects have different attributes. Please specify intersection= explicitly.
+
+# Or
+>>> kd.dir(os1, intersection=True)
+['x']
+
+>>> kd.dir(os1, intersection=False)
+['x', 'y']
 
 # Access attribute
-o.x # 1
-o.get_attr('y') # 2
-o.maybe('z') # None
-o.get_attr('z', default=0) # 0
-os.get_attr('x', default=0) # [1, 0, 'a']
+>>> o.x
+DataItem(1, schema: INT32, ...)
+>>> o.get_attr('y')
+DataItem(2, schema: INT32, ...)
+>>> o.maybe('z')
+DataItem(None, schema: NONE, ...)
+>>> o.get_attr('z', default=0)
+DataItem(0, schema: INT32, ...)
+>>> os.get_attr('x', default=0)
+DataSlice([1.0, 0.0, 1.0], schema: FLOAT32, ...)
 
 # Objects are immutable by default, modification is done
 # by creating a new object with the same ItemId and
 # updated attributes
-o = kd.obj(x=1, y=2)
+>>> o = kd.obj(x=1, y=2)
 
 # Update a single attribute
-o1 = o.with_attr('x', 3)
-o1 = o.with_attr('z', 4)
+>>> o1 = o.with_attr('x', 3)
+>>> o1 = o.with_attr('z', 4)
+
 # Also override schema
 # no overwrite_schema=True is needed
-o1 = o.with_attr('y', 'a')
+>>> o1 = o.with_attr('y', 'a')
+
 # Remove a single attribute
-o1 = o.with_attr('x', None)
+>>> o1 = o.with_attr('x', None)
 
 # Update/remove multiple attributes
-o2 = o.with_attrs(z=4, x=None)
+>>> o2 = o.with_attrs(z=4, x=None)
+
 # Also override schema for 'y'
-o2 = o.with_attrs(z=4, y='a')
+>>> o2 = o.with_attrs(z=4, y='a')
 
 # Create an update and apply it separately
-upd = kd.attrs(o, z=4, y=10)
-o3 = o.updated(upd)
+>>> upd = kd.attrs(o, z=4, y=10)
+>>> o3 = o.updated(upd)
 
 # Allows mixing multiple updates
-o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=None))
+>>> o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=None))
 
 # Update nested attributes
-nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
-nested = nested.updated(kd.attrs(nested.a.c, e=4),
-                        kd.attrs(nested.a, d=5),
-                        kd.attrs(nested, b=6))
+>>> nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
+>>> nested = nested.updated(kd.attrs(nested.a.c, e=4),
+...                         kd.attrs(nested.a, d=5),
+...                         kd.attrs(nested, b=6))
 
 # List and dict can be objects too
 # To convert a list/dict to an object,
 # use kd.obj()
-l = kd.list([1, 2, 3])
-l_obj = kd.obj(l)
-l_obj[:] # [1, 2, 3]
+>>> l = kd.list([1, 2, 3])
+>>> l_obj = kd.obj(l)
+>>> l_obj[:]
+DataSlice([1, 2, 3], schema: INT32, ...)
 
-d = kd.dict({'a': 1, 'b': 2})
-d_obj = kd.obj(d)
-d_obj.get_keys() # ['a', 'b']
-d_obj['a'] # 1
+>>> d = kd.dict({'a': 1, 'b': 2})
+>>> d_obj = kd.obj(d)
+>>> kd.sort(d_obj.get_keys())
+DataSlice(['a', 'b'], schema: STRING, ...)
+>>> d_obj['a']
+DataItem(1, schema: INT32, ...)
 
 # Convert an entity to an object
-e = kd.new(x=1, y=2)
-e_obj = kd.obj(e)
+>>> e = kd.new(x=1, y=2)
+>>> e_obj = kd.obj(e)
 
 # Actually, we can pass primitive to kd.obj()
-p_obj = kd.obj(1)
-p_obj = kd.obj('a')
+>>> p_obj = kd.obj(1)
+>>> p_obj = kd.obj('a')
 
 # An OBJECT Dataslice with entity, list,
 # dict and primitive items
-kd.slice([kd.obj(a=1), 1, kd.obj([1, 2]),
-          kd.obj({'a': 1})])
+>>> kd.slice([kd.obj(a=1), 1, kd.obj(kd.list([1, 2])),
+...           kd.obj(kd.dict({'a': 1}))])
+DataSlice([Obj(a=1), 1, List[1, 2], Dict{'a'=1}], schema: OBJECT, ...)
 ```
 
 </section>
@@ -485,51 +609,68 @@ a DataSlice to create a sub-DataSlice.
 
 See [kd.subslice](api/kd/slices.md#kd.slices.subslice) APIs for more details.
 
-```py
-ds = kd.slice([[1, 2, 3], [4, 5]])
+```py {.pycon-doctest}
+>>> ds = kd.slice([[1, 2, 3], [4, 5]])
 
 # Slice by indices
-kd.subslice(ds, 1, 1)
-kd.subslice(ds, 1, -1)
+>>> kd.subslice(ds, 1, 1)
+DataItem(5, schema: INT32)
+>>> kd.subslice(ds, 1, -1)
+DataItem(5, schema: INT32)
 
 # Slice by range
-kd.subslice(ds, 0, slice(1))
-kd.subslice(ds, 0, slice(2, 4))
+>>> kd.subslice(ds, 0, slice(1))
+DataSlice([1], schema: INT32, ...)
+>>> kd.subslice(ds, 0, slice(2, 4))
+DataSlice([3], schema: INT32, ...)
 
 # 'S[]' as Syntactic sugar
-ds.S[1, 1]
-ds.S[0, :2]
+>>> ds.S[1, 1]
+DataItem(5, schema: INT32)
+>>> ds.S[0, :2]
+DataSlice([1, 2], schema: INT32, ...)
 
 # Multi-dimension
-ds = kd.slice([[[1, 2, 3], [4, 5, 6]],
-            [[7, 8, 9], [10, 11, 12]]])
+>>> ds = kd.slice([[[1, 2, 3], [4, 5, 6]],
+...             [[7, 8, 9], [10, 11, 12]]])
 
-ds.S[1] # [[2, 5], [8, 11]]
-ds.S[1:, 0, :2] # [[7, 8]]
-ds.S[0, :2] # [[1, 2], [7, 8]]
-ds.S[kd.slice([[0, 1], [1]]), 1] # [[2, 5], [11]]
+>>> ds.S[1]
+DataSlice([[2, 5], [8, 11]], schema: INT32, ...)
+>>> ds.S[1:, 0, :2]
+DataSlice([[7, 8]], schema: INT32, ...)
+>>> ds.S[0, :2]
+DataSlice([[1, 2], [7, 8]], schema: INT32, ...)
+>>> ds.S[kd.slice([[0, 1], [1]]), 1]
+DataSlice([[2, 5], [11]], schema: INT32, ...)
 
 # Advanced slicing: slice by DataSlice
-ds = kd.slice([[1, 2, 3], [4, 5]])
-ds.S[kd.slice([0, 0]), 1:] # [[[2, 3], [2, 3]]]
-ds.S[kd.slice([[0, 2], [0, 1]]),
-        kd.slice([[0, 0], [1, 0]])]
-# -> [[1, None], [2, 4]]
+>>> ds = kd.slice([[1, 2, 3], [4, 5]])
+>>> ds.S[kd.slice([0, 0]), 1:]
+DataSlice([[2, 3], [2, 3]], schema: INT32, ...)
+>>> ds.S[kd.slice([[0, 2], [0, 1]]),
+...         kd.slice([[0, 0], [1, 0]])]
+DataSlice([[1, None], [2, 4]], schema: INT32, ...)
 
 # slice boundaries can also be DataSlices
-ds = kd.slice([[1, 2, 3], [4, 5]])
-ds.S[kd.slice([0, 0]):kd.slice([2, 1])] # [[1, 2], [4]]
-ds.S[kd.slice([0, 0]):kd.slice([2, 1]), :]
-# -> [[[1, 2, 3], [4, 5]], [[1, 2, 3]]]
-ds.S[:kd.index(ds) + 1] # [[[1], [1, 2], [1, 2, 3]], [[4], [4, 5]]]
-kd.agg_sum(ds.S[:kd.index(ds) + 1]) # [[1, 3, 6], [4, 9]]
+>>> ds = kd.slice([[1, 2, 3], [4, 5]])
+>>> ds.S[kd.slice([0, 0]):kd.slice([2, 1])]
+DataSlice([[1, 2], [4]], schema: INT32, ...)
+>>> ds.S[kd.slice([0, 0]):kd.slice([2, 1]), :]
+DataSlice([[[1, 2, 3], [4, 5]], [[1, 2, 3]]], schema: INT32, ...)
+>>> ds.S[:kd.index(ds) + 1]
+DataSlice([[[1], [1, 2], [1, 2, 3]], [[4], [4, 5]]], schema: INT32, ...)
+>>> kd.agg_sum(ds.S[:kd.index(ds) + 1])
+DataSlice([[1, 3, 6], [4, 9]], schema: INT32, ...)
 
 # Ellipsis
-ds = kd.slice([[[1, 2, 3], [4, 5]],
-                [[6, 7]], [[8], [9, 10]]])
-ds.S[1:, ...] # [[[6, 7]], [[8], [9, 10]]]
-ds.S[1:, ..., :1] # [[[6]], [[8], [9]]]
-ds.S[1:, 0, ..., :1] # [[6], [8]]
+>>> ds = kd.slice([[[1, 2, 3], [4, 5]],
+...                 [[6, 7]], [[8], [9, 10]]])
+>>> ds.S[1:, ...]
+DataSlice([[[6, 7]], [[8], [9, 10]]], schema: INT32, ...)
+>>> ds.S[1:, ..., :1]
+DataSlice([[[6]], [[8], [9]]], schema: INT32, ...)
+>>> ds.S[1:, 0, ..., :1]
+DataSlice([[6], [8]], schema: INT32, ...)
 ```
 
 </section>
@@ -543,23 +684,35 @@ sometimes convenient to slice dimensions one by one similar to how to iterate
 through a nested Python list. DataSlice provides a way to slice the **first**
 dimension using `.L` notation. *L* stands for *Python list*.
 
-```py
-ds = kd.slice([[1, 2, 3], [4, 5]])
+```py {.pycon-doctest}
+>>> ds = kd.slice([[1, 2, 3], [4, 5]])
 
 # Note that 'l' is a one-dim DataSlice
 # and 'i' is a DataItem
-for l in ds.L:
-  print(type(l))
-  for i in l.L:
-    print(type(i))
-    print(i)
+>>> for l in ds.L:
+...   print(type(l))
+...   for i in l.L:
+...     print(type(i))
+...     print(i)
+<class 'koladata.types.data_slice.DataSlice'>
+<class 'koladata.types.data_item.DataItem'>
+1
+<class 'koladata.types.data_item.DataItem'>
+2
+<class 'koladata.types.data_item.DataItem'>
+3
+<class 'koladata.types.data_slice.DataSlice'>
+<class 'koladata.types.data_item.DataItem'>
+4
+<class 'koladata.types.data_item.DataItem'>
+5
 
 # A Python list of one-dim DataSlice
-ds.L[:]
-# [DataSlice([1, 2, 3], ...),
-#  DataSlice([4, 5], ...)]
+>>> ds.L[:]
+DataSlice([[1, 2, 3], [4, 5]], schema: INT32,...)
 
-ds.L[1] # DataSlice([4, 5], ...)
+>>> ds.L[1]
+DataSlice([4, 5], schema: INT32,...)
 ```
 
 </section>
@@ -568,11 +721,12 @@ ds.L[1] # DataSlice([4, 5], ...)
 
 ### Editable Containers
 
-```py
-x = kd.named_container()
-x.a = 1
-x.b = kd.list([1, 2, 3])
-kd.obj(**vars(x))
+```py {.pycon-doctest}
+>>> x = kd.named_container()
+>>> x.a = 1
+>>> x.b = kd.list([1, 2, 3])
+>>> kd.obj(**vars(x))
+DataItem(Obj(a=1, b=List[1, 2, 3]), schema: OBJECT,...)
 ```
 
 </section>
@@ -581,22 +735,27 @@ kd.obj(**vars(x))
 
 ### DataSlice Shape (a.k.a. Partition Tree)
 
-```py
-ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
-shape = ds.get_shape()
-# -> JaggedShape(2, [2, 1], [2, 1, 2])
-
-kd.shapes.ndim(shape) # 3
-kd.shapes.size(shape) # 5
+```py {.pycon-doctest}
+>>> ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
+>>> shape = ds.get_shape()
+>>> shape
+JaggedShape(2, [2, 1], [2, 1, 2])
+>>> kd.shapes.ndim(shape)
+DataItem(3, schema: INT64)
+>>> kd.shapes.size(shape)
+DataItem(5, schema: INT64)
 
 # Get the shape with N-1 dimensions
-shape[:-1] # JaggedShape(1, 2, [2, 1])
+>>> shape[:-1]
+JaggedShape(2, [2, 1])
+
 # Get the shape with first dimension
-shape[:2] # JaggedShape(1, 2)
+>>> shape[:2]
+JaggedShape(2, [2, 1])
 
 # Create a new shape directly
-shape1 = kd.shapes.new(2, [2, 1], [2, 1, 2])
-assert shape1 == shape
+>>> shape1 = kd.shapes.new(2, [2, 1], [2, 1, 2])
+>>> assert shape1 == shape
 ```
 
 </section>
@@ -605,32 +764,47 @@ assert shape1 == shape
 
 ### Changing shape of a DataSlice
 
-```py
-ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
+```py {.pycon-doctest}
+>>> ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
+
 # Flatten all dimensions
-ds.flatten() # [1, 2, 3, 4, 5]
+>>> ds.flatten()
+DataSlice([1, 2, 3, 4, 5], schema: INT32, ...)
+
 # Flatten dimensions from the second to the end
-ds.flatten(2)  # [[1, 2, 3], [4, 5]]
+>>> ds.flatten(2)
+DataSlice([[[1, 2], [3]], [[4, 5]]], schema: INT32, ...)
+
 # Flatten dimensions from the second to the end
-ds.flatten(-2) # [[1, 2, 3], [4, 5]]
+>>> ds.flatten(-2)
+DataSlice([[1, 2, 3], [4, 5]], schema: INT32, ...)
+
 # Flatten dimensions from the first to the third
-ds.flatten(0, 2) # [[1, 2], [3], [4, 5]]
+>>> ds.flatten(0, 2)
+DataSlice([[1, 2], [3], [4, 5]], schema: INT32, ...)
+
 # When the start and end dimensions are the same,
 # insert a new dimension
-ds.flatten(2, 2) # [[[[1, 2]], [[3]]], [[[4, 5]]]]
+>>> ds.flatten(2, 2)
+DataSlice([[[[1, 2]], [[3]]], [[[4, 5]]]], schema: INT32, ...)
 
 # Reshape to the shape of another DataSlice
-ds1 = kd.slice([1, 2, 3, 4, 5])
-ds.reshape_as(ds1)
-ds.reshape(ds1.get_shape())
+>>> ds1 = kd.slice([1, 2, 3, 4, 5])
+>>> ds.reshape_as(ds1)
+DataSlice([1, 2, 3, 4, 5], schema: INT32, ...)
+>>> ds.reshape(ds1.get_shape())
+DataSlice([1, 2, 3, 4, 5], schema: INT32, ...)
+>>> ds2 = kd.slice([1, None, 3])
 
-ds2 = kd.slice([1, None, 3])
 # Repeats values
-ds2.repeat(2) # [[1, 1], [None, None], [3, 3]]
-kd.repeat(ds2, 2) # same as above
+>>> ds2.repeat(2)
+DataSlice([[1, 1], [None, None], [3, 3]], schema: INT32, ...)
+>>> kd.repeat(ds2, 2)
+DataSlice([[1, 1], [None, None], [3, 3]], schema: INT32, ...)
 
 # Repeats present values
-kd.repeat_present(ds2, 2) # [[1, 1], [], [3, 3]]
+>>> kd.repeat_present(ds2, 2)
+DataSlice([[1, 1], [], [3, 3]], schema: INT32, ...)
 ```
 
 </section>
@@ -639,22 +813,28 @@ kd.repeat_present(ds2, 2) # [[1, 1], [], [3, 3]]
 
 ### Broadcasting and Aligning
 
-```py
+```py {.pycon-doctest}
 # Expands x based on the shape of target
-kd.slice([100, 200]).expand_to(
-    kd.slice([[1,2],[3,4,5]]))
+>>> kd.slice([100, 200]).expand_to(
+...     kd.slice([[1,2],[3,4,5]]))
+DataSlice([[100, 100], [200, 200, 200]], schema: INT32, ...)
+
 # Implodes last ndim dimensions into lists,
 # expands the slice of lists, explodes the result
-kd.slice([100, 200]).expand_to(
-    kd.slice([[1,2],[3,4,5]]), ndim=1)
+>>> kd.slice([100, 200]).expand_to(
+...     kd.slice([[1,2],[3,4,5]]), ndim=1)
+DataSlice([[[100, 200], [100, 200]], [[100, 200], [100, 200], [100, 200]]], schema: INT32, ...)
+>>> x=kd.slice([100, 200])
+>>> target=kd.slice([[1,2],[3,4,5]])
+>>> assert kd.is_expandable_to(x, target, 0)
 
-kd.is_expandable_to(x, target, ndim)
 # Whether any of args is expandable to the other
-kd.is_shape_compatible(x, y)
+>>> assert kd.is_shape_compatible(x, target)
 
 # Expands DataSlices to the same common shape
-kd.align(kd.slice([[1, 2, 3], [4, 5]]),
-         kd.slice('a'), kd.slice([1, 2]))
+>>> kd.align(kd.slice([[1, 2, 3], [4, 5]]),
+...          kd.slice('a'), kd.slice([1, 2]))
+(DataSlice([[1, 2, 3], [4, 5]], schema: INT32, ...), DataSlice([['a', 'a', 'a'], ['a', 'a']], schema: STRING, ...), DataSlice([[1, 1, 1], [2, 2]], schema: INT32, ...))
 ```
 
 </section>
@@ -663,88 +843,111 @@ kd.align(kd.slice([[1, 2, 3], [4, 5]]),
 
 ### ItemIds and UUIDs
 
-```py
+```py {.pycon-doctest}
 # A new ItemId is allocated when a new
 # object/entity/list/dict/schema is created
-o1 = kd.obj(x=1, y=2)
-o2 = kd.obj(x=1, y=2)
-assert o1.get_itemid() != o2.get_itemid()
+>>> o1 = kd.obj(x=1, y=2)
+>>> o2 = kd.obj(x=1, y=2)
+>>> assert o1.get_itemid() != o2.get_itemid()
 
 # Get ItemId from object/entity/list/dict
-itemid = o1.get_itemid()
+>>> itemid = o1.get_itemid()
 
 # ItemId is a 128 integer
 # Print out the ItemId in the base-62 format
-str(itemid) # With Entity:$ prefix
-str(kd.list().get_itemid()) # With List:$ prefix
-str(kd.dict().get_itemid()) # With Dict:$ prefix
-str(kd.schema.new_schema().get_itemid())
-# With Schema:$ prefix
+>>> str(itemid)
+'Entity:$...'
+
+>>> str(kd.list().get_itemid())
+'List:$...'
+
+>>> str(kd.dict().get_itemid())
+'Dict:$...'
+
+>>> str(kd.schema.new_schema().get_itemid())
+'Schema:$...'
 
 # Encode to/from base-62 number (as string).
-str_id = kd.encode_itemid(itemid)
-itemid1 = kd.decode_itemid(str_id)
-assert itemid1 == itemid
+>>> str_id = kd.encode_itemid(itemid)
+>>> itemid1 = kd.decode_itemid(str_id)
+>>> assert itemid1 == itemid
 
 # Convert ItemId back to the original
 # object/entity/list/dict
-kd.reify(itemid1, o1)
+>>> kd.reify(itemid1, o1)
+DataItem(Obj(x=1, y=2), schema: OBJECT, ...)
 
 # int64 hash values
-kd.hash_itemid(itemid)
+>>> kd.hash_itemid(itemid)
+DataItem(..., schema: INT64)
 
 # ItemIds can be allocated directly
-kd.new_itemid()
-kd.new_listid()
-kd.new_dictid()
+>>> kd.new_itemid()
+DataItem(Entity:..., schema: ITEMID)
+>>> kd.new_listid()
+DataItem(List:..., schema: ITEMID)
+>>> kd.new_dictid()
+DataItem(Dict:..., schema: ITEMID)
 
 # UUIDs are unique determined
 
 # A new UUID is allocated when a new uu
 # object/entity/schema is created
-o3 = kd.uuobj(x=1, y=2)
-o4 = kd.uuobj(x=1, y=2)
-assert o3.get_itemid() == o4.get_itemid()
+>>> o3 = kd.uuobj(x=1, y=2)
+>>> o4 = kd.uuobj(x=1, y=2)
+>>> assert o3.get_itemid() == o4.get_itemid()
 
-kd.uu(x=1, y=2) # UU Entity
-kd.uuobj(x=1, y=2) # UU Object
-kd.uu_schema(x=kd.INT32, y=kd.INT64) # UU Schema
+>>> kd.uu(x=1, y=2) # UU Entity
+DataItem(Entity(x=1, y=2), schema: ENTITY(x=INT32, y=INT32), ...)
+>>> kd.uuobj(x=1, y=2) # UU Object
+DataItem(Obj(x=1, y=2), schema: OBJECT, ...)
+>>> kd.uu_schema(x=kd.INT32, y=kd.INT64) # UU Schema
+DataItem(ENTITY(x=INT32, y=INT64), schema: SCHEMA, ...)
 
 # UUID has a # prefix compared to $ for ItemId
-str(o3.get_itemid()) # With Entity:# prefix
+>>> str(o3.get_itemid())
+'Entity:#...'
 
 # Compute UUID from attr values
-i1 = kd.uuid(x=1, y=2)
-i2 = kd.uuid(x=1, y=2)
-assert i1 == i2
+>>> i1 = kd.uuid(x=1, y=2)
+>>> i2 = kd.uuid(x=1, y=2)
+>>> assert i1 == i2
 
 # Generate uuids based on the values of the
 # nested contents rather than their ItemId
-kd.deep_uuid(ds)
+>>> kd.deep_uuid(ds)
+DataSlice([
+  [
+    [Entity:#..., Entity:#...],
+    [Entity:#...],
+  ],
+  [[Entity:#..., Entity:#...]],
+], schema: ITEMID, ...)
 
-# Can be use to compare entities/lists/dicts/objects
+# Can be used to compare entities/lists/dicts/objects
 # by value rather than ItemIds
-e1 = kd.new(a=1, b=kd.new(c=2))
-e2 = kd.new(a=1, b=kd.new(c=2))
-assert kd.deep_uuid(e1) == kd.deep_uuid(e2)
+>>> e1 = kd.new(a=1, b=kd.new(c=2))
+>>> e2 = kd.new(a=1, b=kd.new(c=2))
+>>> assert kd.deep_uuid(e1) == kd.deep_uuid(e2)
 
 # Uuid computation does not depend on schemas
 # Note that o1 is an object and e1 is an entity
-o1 = kd.obj(a=1, b=kd.obj(c=2))
-assert kd.deep_uuid(o1) == kd.deep_uuid(e1)
+>>> o1_obj = kd.obj(a=1, b=kd.obj(c=2))
+>>> assert kd.deep_uuid(o1_obj) == kd.deep_uuid(e1)
 
 # A missing/removed attribute is different from
 # an attribute which does not exist
-e3 = kd.new(a=1, b=kd.new(c=2), c=None)
-assert kd.deep_uuid(e1) != kd.deep_uuid(e3)
+>>> e3 = kd.new(a=1, b=kd.new(c=2), c=None)
+>>> assert kd.deep_uuid(e1) != kd.deep_uuid(e3)
 
-l1 = kd.list([kd.obj(a=1), kd.obj(b=2)])
-l2 = kd.list([kd.obj(a=1), kd.obj(b=2)])
-assert kd.deep_uuid(l1) == kd.deep_uuid(l2)
+>>> l1 = kd.list([kd.obj(a=1), kd.obj(b=2)])
+>>> l2 = kd.list([kd.obj(a=1), kd.obj(b=2)])
+>>> assert kd.deep_uuid(l1) == kd.deep_uuid(l2)
 
 # Compute UUIDs by aggregating items
 # over the last dimension
-kd.agg_uuid(kd.slice([[1, 2, 3], [4, 5, 6]]))
+>>> kd.agg_uuid(kd.slice([[1, 2, 3], [4, 5, 6]]))
+DataSlice([Entity:#..., Entity:#...], schema: ITEMID, ...)
 ```
 
 </section>
@@ -767,91 +970,161 @@ DataSlice `x`.
 
 `kd.***_shaped(shape)` creates a DataSlice of *** with the **shape** `shape`.
 
-```py
-x = kd.slice([[1, None], [3, 4]])
-s = x.get_shape()
+```py {.pycon-doctest}
+>>> x = kd.slice([[1, None], [3, 4]])
+>>> s = x.get_shape()
 
-kd.val_like(x, 1) # [[1, None], [1, 1]]
-kd.val_shaped_as(x, 1) # [[1, 1], [1, 1]]
-kd.val_shaped(s, 1) # [[1, 1], [1, 1]]
+>>> kd.val_like(x, 1)
+DataSlice([[1, None], [1, 1]], schema: INT32,...)
+>>> kd.val_shaped_as(x, 1)
+DataSlice([[1, 1], [1, 1]], schema: INT32,...)
+>>> kd.val_shaped(s, 1)
+DataSlice([[1, 1], [1, 1]], schema: INT32,...)
 
 # Note there is kd.present_like
-kd.present_shaped_as(x)
-kd.present_shaped(s)
+>>> kd.present_shaped_as(x)
+DataSlice([[present, present], [present, present]], schema: MASK,...)
+>>> kd.present_shaped(s)
+DataSlice([[present, present], [present, present]], schema: MASK,...)
 
 # Note there is kd.empty_like
-kd.empty_shaped_as(x)
-kd.empty_shaped(s)
+>>> kd.empty_shaped_as(x)
+DataSlice([[missing, missing], [missing, missing]], schema: MASK, present: 0/4)
+>>> kd.empty_shaped(s)
+DataSlice([[missing, missing], [missing, missing]], schema: MASK, present: 0/4)
 
 # Empty Object creation
 # Note obj_xxx does not take schema= argument
-kd.obj_like(x)
-kd.obj_shaped_as(x)
-kd.obj_shaped(s)
+>>> kd.obj_like(x)
+DataSlice([
+  [Obj():..., None],
+  [Obj():..., Obj():...],
+], schema: OBJECT, present: 3/4, bag_id: ...)
+>>> kd.obj_shaped_as(x)
+DataSlice([
+  [Obj():..., Obj():...],
+  [Obj():..., Obj():...],
+], schema: OBJECT, present: 4/4, bag_id: ...)
+>>> kd.obj_shaped(s)
+DataSlice([
+  [Obj():..., Obj():...],
+  [Obj():..., Obj():...],
+], schema: OBJECT, present: 4/4, bag_id: ...)
 
 # Non-empty Object creation
-kd.obj_like(x, **attr_dss)
-kd.obj_shaped_as(x, **attr_dss)
-kd.obj_shaped(s, **attr_dss)
+>>> attr_dss = {'y': kd.slice([[1, 2], [3, 4]])}
+>>> o1 = kd.obj_like(x, **attr_dss); o1 # keeps sparsity of x
+DataSlice([[Obj(y=1), None], [Obj(y=3), Obj(y=4)]], schema: OBJECT, ...)
+
+>>> o2 = kd.obj_shaped_as(x, **attr_dss); o2
+DataSlice([[Obj(y=1), Obj(y=2)], [Obj(y=3), Obj(y=4)]], schema: OBJECT,...)
+
+>>> o3 = kd.obj_shaped(s, **attr_dss)
+>>> kd.testing.assert_equivalent(o2, o3)
 
 # With provided itemids
-kd.obj_like(x, itemid=itemid)
-kd.obj_shaped_as(x, itemid=itemid)
-kd.obj_shaped(s, itemid=itemid)
+>>> itemid = kd.new_itemid_shaped_as(x)
+>>> o1 = kd.obj_like(x, itemid=itemid)
+>>> o2 = kd.obj_shaped_as(x, itemid=itemid)
+>>> o3 = kd.obj_shaped(s, itemid=itemid)
 
 # Empty Entity creation
-kd.new_like(x)
-kd.new_shaped_as(x)
-kd.new_shaped(s)
+>>> kd.new_like(x)
+DataSlice([
+  [Entity():..., None],
+  [Entity():..., Entity():...],
+], schema: ENTITY(), present: 3/4, bag_id: ...)
+>>> kd.new_shaped_as(x)
+DataSlice([
+  [Entity():..., Entity():...],
+  [Entity():..., Entity():...],
+], schema: ENTITY(), present: 4/4, bag_id: ...)
+>>> kd.new_shaped(s)
+DataSlice([
+  [Entity():..., Entity():...],
+  [Entity():..., Entity():...],
+], schema: ENTITY(), present: 4/4, bag_id: ...)
 
 # Non-empty Entity creation
-kd.new_like(x, **attr_dss)
-kd.new_shaped_as(x, **attr_dss)
-kd.new_shaped(s, **attr_dss)
+>>> kd.new_like(x, **attr_dss)
+DataSlice([[Entity(y=1), None], [Entity(y=3), Entity(y=4)]], schema: ENTITY(y=INT32), present: 3/4,...)
+
+>>> e1 = kd.new_shaped_as(x, **attr_dss)
+>>> e2 = kd.new_shaped(s, **attr_dss)
+>>> kd.testing.assert_equivalent(e1, e2.with_schema(e1.get_schema()))
+
 
 # With provided itemids
-kd.new_like(x, itemid=itemid)
-kd.new_shaped_as(x, itemid=itemid)
-kd.new_shaped(s, itemid=itemid)
+>>> itemid = kd.new_itemid_shaped_as(x)
+>>> kd.new_like(x, itemid=itemid)
+DataSlice([
+      [Entity():$..., None],
+      [Entity():$..., Entity():$...],
+    ], schema: ENTITY(), present: 3/4,...)
 
-schema = kd.schema.new_schema(...)
-kd.new_like(x, schema=schema)
+>>> e1 = kd.new_shaped_as(x, itemid=itemid)
+>>> e2 = kd.new_shaped(s, itemid=itemid)
+>>> kd.testing.assert_equivalent(e1, e2.with_schema(e1.get_schema()))
+
+>>> schema = kd.schema.new_schema(y=kd.INT64)
+>>> e = kd.new_like(x, schema=schema)
 
 # Empty List creation
-kd.list_like(x)
-kd.list_shaped_as(x)
-kd.list_shaped(s)
+>>> kd.list_like(x)
+DataSlice([[List[], None], [List[], List[]]], schema: LIST[OBJECT], present: 3/4, bag_id: ...)
+>>> kd.list_shaped_as(x)
+DataSlice([[List[], List[]], [List[], List[]]], schema: LIST[OBJECT], present: 4/4, bag_id: ...)
+>>> kd.list_shaped(s)
+DataSlice([[List[], List[]], [List[], List[]]], schema: LIST[OBJECT], present: 4/4, bag_id: ...)
 
 # Non-empty List creation
-kd.list_like(x, list_item_ds)
-kd.list_shaped_as(x, list_item_ds)
-kd.list_shaped(s, list_item_ds)
+>>> list_item_ds = kd.slice([[[1, 2], [3, 4]],[[5, 6], [7, 8]]])
+>>> kd.list_like(x, list_item_ds)
+DataSlice([[List[1, 2], None], [List[5, 6], List[7, 8]]], schema: LIST[INT32], present: 3/4,...)
+
+>>> l1 = kd.list_shaped_as(x, list_item_ds); l1
+DataSlice([[List[1, 2], List[3, 4]], [List[5, 6], List[7, 8]]], schema: LIST[INT32], present: 4/4,...)
+
+>>> l2 = kd.list_shaped(s, list_item_ds)
+>>> kd.testing.assert_equivalent(l1, l2)
 
 # With provided itemids
-kd.list_like(x, itemid=itemid)
-kd.list_shaped_as(x, itemid=itemid)
-kd.list_shaped(s, itemid=itemid)
+>>> list_itemid = kd.new_listid_shaped_as(x)
+>>> l1 = kd.list_like(x, itemid=list_itemid)
 
-schema = kd.list_schema(...)
-kd.list_like(x, schema=schema)
+>>> l1 = kd.list_shaped_as(x, itemid=list_itemid)
+>>> l2 = kd.list_shaped(s, itemid=list_itemid)
+>>> kd.testing.assert_equivalent(l1, l2)
+
+>>> schema = kd.list_schema(kd.INT64)
+>>> l1 = kd.list_like(x, schema=schema)
 
 # Empty Dict creation
-kd.dict_like(x)
-kd.dict_shaped_as(x)
-kd.dict_shaped(s)
+>>> kd.dict_like(x)
+DataSlice([[Dict{}, None], [Dict{}, Dict{}]], schema: DICT{OBJECT, OBJECT}, present: 3/4, bag_id: ...)
+>>> kd.dict_shaped_as(x)
+DataSlice([[Dict{}, Dict{}], [Dict{}, Dict{}]], schema: DICT{OBJECT, OBJECT}, present: 4/4, bag_id: ...)
+>>> kd.dict_shaped(s)
+DataSlice([[Dict{}, Dict{}], [Dict{}, Dict{}]], schema: DICT{OBJECT, OBJECT}, present: 4/4, bag_id: ...)
 
 # Non-empty Dict creation
-kd.dict_like(x, key_ds, value_ds)
-kd.dict_shaped_as(x, key_ds, value_ds)
-kd.dict_shaped(s, key_ds, value_ds)
+>>> key_ds = kd.slice([['a', 'b'],['c', 'd']])
+>>> value_ds = kd.slice([[1, 2],[3, 4]])
+>>> d1 = kd.dict_like(x, key_ds, value_ds)
+
+>>> d2 = kd.dict_shaped_as(x, key_ds, value_ds)
+>>> d3 = kd.dict_shaped(s, key_ds, value_ds)
+>>> kd.testing.assert_equivalent(d2, d3)
 
 # With provided itemids
-kd.dict_like(x, itemid=itemid)
-kd.dict_shaped_as(x, itemid=itemid)
-kd.dict_shaped(s, itemid=itemid)
+>>> dict_itemid = kd.new_dictid_shaped_as(x)
+>>> d1 = kd.dict_like(x, itemid=dict_itemid)
+>>> d2 = kd.dict_shaped_as(x, itemid=dict_itemid)
+>>> d3 = kd.dict_shaped(s, itemid=dict_itemid)
+>>> kd.testing.assert_equivalent(d2, d3)
 
-schema = kd.dict_schema(...)
-kd.dict_like(x, schema=schema)
+>>> schema = kd.dict_schema(kd.STRING, kd.INT32)
+>>> d4 = kd.dict_like(x, schema=schema)
 ```
 
 </section>
@@ -860,25 +1133,37 @@ kd.dict_like(x, schema=schema)
 
 ### Pointwise Comparison Operators
 
-```py
-a = kd.slice([1, 2, 3])
-b = kd.slice([3, 2, 1])
+```py {.pycon-doctest}
+>>> a = kd.slice([1, 2, 3])
+>>> b = kd.slice([3, 2, 1])
 
 # Use infix operators
-a > b
-a >= b
-a < b
-a <= b
-a == b
-a != b
+>>> a > b
+DataSlice([missing, missing, present], schema: MASK,...)
+>>> a >= b
+DataSlice([missing, present, present], schema: MASK,...)
+>>> a < b
+DataSlice([present, missing, missing], schema: MASK,...)
+>>> a <= b
+DataSlice([present, present, missing], schema: MASK,...)
+>>> a == b
+DataSlice([missing, present, missing], schema: MASK,...)
+>>> a != b
+DataSlice([present, missing, present], schema: MASK,...)
 
 # Use kd operators
-kd.greater(a, b)
-kd.greater_equal(a, b)
-kd.less(a, b)
-kd.less_equal(a, b)
-kd.equal(a, b)
-kd.not_equal(a, b)
+>>> kd.greater(a, b)
+DataSlice([missing, missing, present], schema: MASK,...)
+>>> kd.greater_equal(a, b)
+DataSlice([missing, present, present], schema: MASK,...)
+>>> kd.less(a, b)
+DataSlice([present, missing, missing], schema: MASK,...)
+>>> kd.less_equal(a, b)
+DataSlice([present, present, missing], schema: MASK,...)
+>>> kd.equal(a, b)
+DataSlice([missing, present, missing], schema: MASK,...)
+>>> kd.not_equal(a, b)
+DataSlice([present, missing, present], schema: MASK,...)
 ```
 
 </section>
@@ -887,19 +1172,20 @@ kd.not_equal(a, b)
 
 ### DataSlice Comparison Operator
 
-```py
-a = kd.slice([1, None, 3])
-b = kd.slice([1, None, 3])
+```py {.pycon-doctest}
+>>> a = kd.slice([1, None, 3])
+>>> b = kd.slice([1, None, 3])
 
-kd.full_equal(a, b) # present
+>>> assert kd.full_equal(a, b)
+
 # Note it is different from
-kd.all(a == b) # missing
+>>> assert not kd.all(a == b)
 
 # Auto-alignment rule applies
-kd.full_equal(kd.item(1), kd.slice([1, 1])) # present
+>>> assert kd.full_equal(kd.item(1), kd.slice([1, 1]))
 
 # Type promotion rule applies
-kd.full_equal(kd.item(1), kd.slice([1, 1.0])) # present
+>>> assert kd.full_equal(kd.item(1), kd.slice([1, 1.0]))
 ```
 
 </section>
@@ -908,26 +1194,31 @@ kd.full_equal(kd.item(1), kd.slice([1, 1.0])) # present
 
 ### Mask Operators
 
-```py
+```py {.pycon-doctest}
 # Masking
-a = kd.slice([kd.present, kd.missing, kd.present])
-b = kd.slice([kd.present, kd.missing, kd.missing])
+>>> a = kd.slice([kd.present, kd.missing, kd.present])
+>>> b = kd.slice([kd.present, kd.missing, kd.missing])
 
-a & b  # [present, missing, missing]
-# which is equivalent to
-kd.mask_and(a, b)  # [present, missing, missing]
+>>> res1 = a & b; res1
+DataSlice([present, missing, missing], schema: MASK, present: 1/3)
+>>> res2 = kd.mask_and(a, b)
+>>> kd.testing.assert_equivalent(res1, res2)
 
-a | b  # [present, missing, present]
-# which is equivalent to
-kd.mask_or(a, b)  # [present, missing, present]
 
-a == b  # [present, missing, missing]
-# which is different from
-kd.mask_equal(a, b)  # [present, present, missing]
+>>> res1 = a | b; res1
+DataSlice([present, missing, present], schema: MASK, present: 2/3)
+>>> res2 = kd.mask_or(a, b)
+>>> kd.testing.assert_equivalent(res1, res2)
 
-a != b  # [missing, missing, missing]
-# which is different from
-kd.mask_not_equal(a, b)  # [missing, missing, present]
+>>> a == b
+DataSlice([present, missing, missing], schema: MASK, present: 1/3)
+>>> kd.mask_equal(a, b) # which is different from
+DataSlice([present, present, missing], schema: MASK, present: 2/3)
+
+>>> a != b
+DataSlice([missing, missing, missing], schema: MASK, present: 0/3)
+>>> kd.mask_not_equal(a, b) # which is different from
+DataSlice([missing, missing, present], schema: MASK, present: 1/3)
 ```
 
 </section>
@@ -936,23 +1227,25 @@ kd.mask_not_equal(a, b)  # [missing, missing, present]
 
 ### Presence Checking Operators
 
-```py
-a = kd.slice([1, None, 3])
+```py {.pycon-doctest}
+>>> a = kd.slice([1, None, 3])
 
-kd.has(a) # [present, missing, present]
-kd.has_not(a) # [missing, present, missing]
+>>> kd.has(a)
+DataSlice([present, missing, present], schema: MASK,...)
+>>> kd.has_not(a)
+DataSlice([missing, present, missing], schema: MASK,...)
 
-b = kd.slice([kd.obj(a=1), kd.obj([1, 2]),
-              kd.obj({1: 2}), None, 1])
+>>> b = kd.slice([kd.obj(a=1), kd.obj(kd.list([1, 2])),
+...               kd.obj(kd.dict({1: 2})), None, 1])
 
-kd.has_entity(b)
-# -> [present, missing, missing, missing, missing]
-kd.has_list(b)
-# -> [missing, present, missing, missing, missing]
-kd.has_dict(b)
-# -> [missing, missing, present, missing, missing]
-kd.has_primitive(b)
-# -> [missing, missing, missing, missing, present]
+>>> kd.has_entity(b)
+DataSlice([present, missing, missing, missing, missing], schema: MASK,...)
+>>> kd.has_list(b)
+DataSlice([missing, present, missing, missing, missing], schema: MASK,...)
+>>> kd.has_dict(b)
+DataSlice([missing, missing, present, missing, missing], schema: MASK,...)
+>>> kd.has_primitive(b)
+DataSlice([missing, missing, missing, missing, present], schema: MASK,...)
 ```
 
 </section>
@@ -961,29 +1254,40 @@ kd.has_primitive(b)
 
 ### Masking and Coalesce Operators
 
-```py
+```py {.pycon-doctest}
 # Masking
-a = kd.slice([1, None, 3])
-b = kd.slice([4, 5, 6])
+>>> a = kd.slice([1, None, 3])
+>>> b = kd.slice([4, 5, 6])
 
 # Use infix operator
-a & (a > 1) # [None, None, 3]
-kd.apply_mask(a, a > 1) # Same as above
-b & kd.has(a) # mask b based on a's presence
+>>> a & (a > 1)
+DataSlice([None, None, 3], schema: INT32,...)
+>>> kd.apply_mask(a, a > 1)
+DataSlice([None, None, 3], schema: INT32,...)
+>>> b & kd.has(a)
+DataSlice([4, None, 6], schema: INT32,...)
 
 # Use infix operator
-a | b # [1, 5, 3]
-kd.coalesce(a, b) # Same as above
+>>> a | b
+DataSlice([1, 5, 3], schema: INT32,...)
+>>> kd.coalesce(a, b)
+DataSlice([1, 5, 3], schema: INT32,...)
 
 # Works with a DataSlice with a different schema
-c = kd.slice(['4', '5', '6'])
-a | c # [1, '5', 3]
+>>> c = kd.slice(['4', '5', '6'])
+>>> a | c
+DataSlice([1, '5', 3], schema: OBJECT,...)
 
 # Make sure inputs are disjoint
-kd.disjoint_coalesce(a, c) # failed
+>>> kd.disjoint_coalesce(a, c)
+Traceback (most recent call last):
+    ...
+ValueError: kd.masking.disjoint_coalesce: `x` and `y` cannot overlap, but found the following intersecting values for the flattened and aligned inputs:
+...
 
-d = kd.slice([None, '5', None])
-kd.disjoint_coalesce(a, d) # [1, '5', 3]
+>>> d = kd.slice([None, '5', None])
+>>> kd.disjoint_coalesce(a, d)
+DataSlice([1, '5', 3], schema: OBJECT,...)
 ```
 
 </section>
@@ -992,33 +1296,42 @@ kd.disjoint_coalesce(a, d) # [1, '5', 3]
 
 ### Conditional Selection Operators
 
-```py
-a = kd.slice([1, 2, 3])
-kd.select(a, a > 1)
-a.select(a > 1)
-kd.select(a, lambda x: x > 1) # same as above
+```py {.pycon-doctest}
+>>> a = kd.slice([1, 2, 3])
+>>> kd.select(a, a > 1)
+DataSlice([2, 3], schema: INT32,...)
+>>> a.select(a > 1)
+DataSlice([2, 3], schema: INT32,...)
+>>> kd.select(a, lambda x: x > 1)
+DataSlice([2, 3], schema: INT32,...)
 
 # Use expand_filter=False to avoid expanding
 # the filter to the shape of the DataSlice
 # so that empty dimensions are removed too
-b = kd.slice([[1, None], [None, 4]])
-fltr = kd.slice([kd.present, kd.missing])
-kd.select(b, fltr) # [[1, None], []]
-kd.select(b, fltr, expand_filter=False) # [[1, None]]
+>>> b = kd.slice([[1, None], [None, 4]])
+>>> fltr = kd.slice([kd.present, kd.missing])
+>>> kd.select(b, fltr)
+DataSlice([[1, None], []], schema: INT32,...)
+>>> kd.select(b, fltr, expand_filter=False)
+DataSlice([[1, None]], schema: INT32,...)
 
 # Put items in present positions in filter.
-kd.inverse_select(
-    kd.slice([1, 2]),
-    kd.slice([kd.missing, kd.present, kd.present])
-)
+>>> kd.inverse_select(
+...     kd.slice([1, 2]),
+...     kd.slice([kd.missing, kd.present, kd.present])
+... )
+DataSlice([None, 1, 2], schema: INT32,...)
 
-a = kd.slice([1, None, 3])
-kd.select_present(a)
-kd.select(a, kd.has(a)) # same as above
+>>> a = kd.slice([1, None, 3])
+>>> kd.select_present(a)
+DataSlice([1, 3], schema: INT32,...)
+>>> kd.select(a, kd.has(a))
+DataSlice([1, 3], schema: INT32,...)
 
-b = kd.slice([3, 2, 1])
-c = kd.slice([-1, 0, 1])
-kd.cond(c > 1, a, b)
+>>> b = kd.slice([3, 2, 1])
+>>> c = kd.slice([-1, 0, 1])
+>>> kd.cond(c > 1, a, b)
+DataSlice([3, 2, 1], schema: INT32,...)
 ```
 
 </section>
@@ -1027,12 +1340,13 @@ kd.cond(c > 1, a, b)
 
 ### Range Operator
 
-```py
-kd.range(1, 5) # [1, 2, 3, 4]
-kd.range(1, kd.slice([3, 5]))
-# -> [[1, 2], [1, 2, 3, 4]]
-kd.range(kd.slice([0, 3]), kd.slice([3, 5]))
-# -> [[0, 1, 2], [3, 4]]
+```py {.pycon-doctest}
+>>> kd.range(1, 5)
+DataSlice([1, 2, 3, 4], schema: INT64,...)
+>>> kd.range(1, kd.slice([3, 5]))
+DataSlice([[1, 2], [1, 2, 3, 4]], schema: INT64,...)
+>>> kd.range(kd.slice([0, 3]), kd.slice([3, 5]))
+DataSlice([[0, 1, 2], [3, 4]], schema: INT64,...)
 ```
 
 </section>
@@ -1041,41 +1355,43 @@ kd.range(kd.slice([0, 3]), kd.slice([3, 5]))
 
 ### Math Operators
 
-```py
-x + y  # Short for kd.math.add(x, y)
-x - y  # Short for kd.math.subtract(x, y)
-x * y  # Short for kd.math.multiple(x, y)
-x / y  # Short for kd.math..divide(x, y)
-x % y  # Short for kd.math.mod(x, y)
-x ** y  # Short for kd.math.pow(x, y)
-x // y  # Short for kd.math.floor_divide(x, y)
+```py {.pycon-doctest}
+>>> x = kd.slice([1, 2, 3])
+>>> y = kd.slice([4, 5, 6])
+>>> kd.testing.assert_equivalent(x + y, kd.math.add(x, y))
+>>> kd.testing.assert_equivalent(x - y, kd.math.subtract(x, y))
+>>> kd.testing.assert_equivalent(x * y, kd.math.multiply(x, y))
+>>> kd.testing.assert_equivalent(x / y, kd.math.divide(x, y))
+>>> kd.testing.assert_equivalent(x % y, kd.math.mod(x, y))
+>>> kd.testing.assert_equivalent(x ** y, kd.math.pow(x, y))
+>>> kd.testing.assert_equivalent(x // y, kd.math.floordiv(x, y))
 
-kd.math.log(x)
-kd.math.round(x)
-kd.math.float(x)
-kd.math.ceil(x)
-kd.math.pos(x)
-kd.math.abs(x)
-kd.math.neg(x)
-kd.math.maximum(x, y)
-kd.math.mimimum(x, y)
+>>> _ = kd.math.log(x)
+>>> _ = kd.math.round(x)
+>>> _ = kd.math.floor(x)
+>>> _ = kd.math.ceil(x)
+>>> _ = kd.math.pos(x)
+>>> _ = kd.math.abs(x)
+>>> _ = kd.math.neg(x)
+>>> _ = kd.math.maximum(x, y)
+>>> _ = kd.math.minimum(x, y)
 
-kd.agg_min(x)
-kd.agg_max(x)
-kd.agg_sum(x)
-kd.min(x)
-kd.max(x)
-kd.sum(x)
+>>> _ = kd.agg_min(x)
+>>> _ = kd.agg_max(x)
+>>> _ = kd.agg_sum(x)
+>>> _ = kd.min(x)
+>>> _ = kd.max(x)
+>>> _ = kd.sum(x)
 
-kd.math.cum_min(x)
-kd.math.cum_max(x)
-kd.math.cum_sum(x)
-kd.math.agg_mean(x)
-kd.math.agg_median(x)
-kd.math.agg_std(x)
-kd.math.agg_var(x)
-kd.math.cdf(x)
-kd.math.agg_inverse_cdf(x)
+>>> _ = kd.math.cum_min(x)
+>>> _ = kd.math.cum_max(x)
+>>> _ = kd.math.cum_sum(x)
+>>> _ = kd.math.agg_mean(x)
+>>> _ = kd.math.agg_median(x)
+>>> _ = kd.math.agg_std(x)
+>>> _ = kd.math.agg_var(x)
+>>> _ = kd.math.cdf(x)
+>>> _ = kd.math.agg_inverse_cdf(x, 1e-3)
 ```
 
 </section>
@@ -1084,28 +1400,37 @@ kd.math.agg_inverse_cdf(x)
 
 ### String Operators
 
-```py
-kd.strings.length(x)
-kd.strings.upper(x)
-kd.strings.lower(x)
-kd.strings.split(x, sep)
-kd.strings.contains()
-kd.strings.regex_extract(x, regex)
-kd.strings.regex_match(x, regex)
-kd.strings.find(x, str)
-kd.strings.replace(x, old, new)
-kd.strings.substr(x, start, end)
-kd.strings.count(x, sub)
-kd.strings.agg_join(x, sep)
-kd.strings.join(*args)
+```py {.pycon-doctest}
+>>> x = kd.str('Hello World')
+>>> _ = kd.strings.length(x)
+>>> _ = kd.strings.upper(x)
+>>> _ = kd.strings.lower(x)
+>>> _ = kd.strings.split(x, ' ')
+>>> _ = kd.strings.contains(x, 'ello')
+>>> _ = kd.strings.regex_extract(x, '(Hel+o)')
+>>> _ = kd.strings.regex_match(x, '\.+')
+>>> _ = kd.strings.find(x, 'World')
+>>> _ = kd.strings.replace(x, 'World', 'Earth')
+>>> _ = kd.strings.substr(x, 2, 5)
+>>> _ = kd.strings.count(x, 'o')
+>>> kd.strings.agg_join(kd.slice(['a', 'b']), 'c')
+DataItem('acb', schema: STRING)
 
-kd.strings.encode('abc') # b'abc'
-kd.strings.decode(b'abc') # 'abc'
+>>> kd.strings.join(kd.slice(['a', 'b']), kd.slice(['c', 'd']))
+DataSlice(['ac', 'bd'], schema: STRING,...)
+
+>>> kd.strings.encode('abc')
+DataItem(b'abc', schema: BYTES)
+>>> kd.strings.decode(b'abc')
+DataItem('abc', schema: STRING)
 
 # Encode any bytes into base64 format string
 # Useful for putting bytes into JSON
-kd.strings.encode_base64(b'abc') # 'YWJj'
-kd.strings.decode_base64('YWJj') # b'abc'
+>>> kd.strings.encode_base64(b'abc')
+DataItem('YWJj', schema: STRING)
+
+>>> kd.strings.decode_base64('YWJj')
+DataItem(b'abc', schema: BYTES)
 ```
 
 </section>
@@ -1114,42 +1439,42 @@ kd.strings.decode_base64('YWJj') # b'abc'
 
 ### String Format Operators
 
-```py
-kd.strings.printf('Hello %s', 'World') # 'Hello World'
-
-kd.strings.printf('Hello %s',
-  kd.slice(['World', 'Universe']))
-# -> ['Hello World', 'Hello Universe']
-
-o = kd.obj(greeting='Hello', name='World')
-kd.strings.printf('%s %s', o.greeting, o.name) # 'Hello World'
-
-kd.strings.printf('%s %d', "Hello", 1) # 'Hello 1'
+```py {.pycon-doctest}
+>>> kd.strings.printf('Hello %s', 'World')
+DataItem('Hello World', schema: STRING)
+>>> kd.strings.printf('Hello %s',
+...   kd.slice(['World', 'Universe']))
+DataSlice(['Hello World', 'Hello Universe'], schema: STRING,...)
+>>> o = kd.obj(greeting='Hello', name='World')
+>>> kd.strings.printf('%s %s', o.greeting, o.name)
+DataItem('Hello World', schema: STRING)
+>>> kd.strings.printf('%s %d', "Hello", 1)
+DataItem('Hello 1', schema: STRING)
 
 # Python like f-string Format API
 # Note that ":s" after the DataSlice var name
-name = kd.str('World')
-kd.strings.fstr(f'Hello {name:s}') # 'Hello World'
-
-name = kd.slice(['World', 'Universe'])
-kd.strings.fstr(f'Hello {name:s}')
-# -> ['Hello World', 'Hello Universe']
-
-o=kd.obj(greeting='Hello', name='World')
-kd.strings.fstr(f'{o.greeting:s} {o.name:s}') # 'Hello World'
-
-greeting, count = kd.str('Hello'), kd.int32(1)
-kd.strings.fstr(f'{greeting:s} {count:s}') # 'Hello 1'
+>>> name = kd.str('World')
+>>> kd.strings.fstr(f'Hello {name:s}')
+DataItem('Hello World', schema: STRING)
+>>> name = kd.slice(['World', 'Universe'])
+>>> kd.strings.fstr(f'Hello {name:s}')
+DataSlice(['Hello World', 'Hello Universe'], schema: STRING,...)
+>>> o=kd.obj(greeting='Hello', name='World')
+>>> kd.strings.fstr(f'{o.greeting:s} {o.name:s}')
+DataItem('Hello World', schema: STRING)
+>>> greeting, count = kd.str('Hello'), kd.int32(1)
+>>> kd.strings.fstr(f'{greeting:s} {count:s}')
+DataItem('Hello 1', schema: STRING)
 
 # Use format to specify kwargs
-kd.strings.format('Hello {name}', name='World') # 'Hello World'
-
-kd.strings.format('Hello {name}',
-  name=kd.slice(['World', 'Universe']))
-# -> ['Hello World', 'Hello Universe']
-
-kd.strings.format('{greeting} {count}',
-  greeting='Hello', count=1) # 'Hello 1'
+>>> kd.strings.format('Hello {name}', name='World')
+DataItem('Hello World', schema: STRING)
+>>> kd.strings.format('Hello {name}',
+...   name=kd.slice(['World', 'Universe']))
+DataSlice(['Hello World', 'Hello Universe'], schema: STRING,...)
+>>> kd.strings.format('{greeting} {count}',
+...   greeting='Hello', count=1)
+DataItem('Hello 1', schema: STRING)
 ```
 
 </section>

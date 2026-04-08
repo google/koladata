@@ -46,6 +46,7 @@ py_test(
     srcs = ["doc_test.py"],
     data = [
         ":10_min_intro.md",
+        ":cheatsheet.md",
         ":common_pitfalls.md",
         ":overview.md",
         ":quick_recipes.md",
