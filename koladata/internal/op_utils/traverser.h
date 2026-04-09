@@ -31,6 +31,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -235,6 +236,7 @@ class Traverser {
         absl::flat_hash_set<std::pair<DataItem, DataItem>, PairOfItemsHash>();
 
     while (!previsit_stack_.empty()) {
+      RETURN_IF_ERROR(arolla::CheckCancellation());
       ItemWithSchema item = std::move(previsit_stack_.top());
       previsit_stack_.pop();
       if (!used_items.contains({item.item, item.schema})) {
@@ -316,37 +318,35 @@ class Traverser {
     const auto& attr_names = transitions_set.attr_names();
     arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
     absl::Status status = absl::OkStatus();
-    attr_names.ForEach([&](int64_t i, bool presence,
-                           const std::string_view attr_name) {
-      DCHECK(presence);
-      if (!status.ok()) {
-        return;
-      }
-      auto transition_or =
-          traverse_helper_.SchemaAttributeTransition(item.item, attr_name);
-      if (!transition_or.ok()) {
-        status = transition_or.status();
-        return;
-      }
-      auto value_or = GetValue(transition_or->item, transition_or->schema);
-      if (!value_or.ok()) {
-        status = value_or.status();
-        return;
-      }
-      attr_values.Set(i, *value_or);
-    });
+    attr_names.ForEach(
+        [&](int64_t i, bool presence, const std::string_view attr_name) {
+          DCHECK(presence);
+          if (!status.ok()) {
+            return;
+          }
+          auto transition_or =
+              traverse_helper_.SchemaAttributeTransition(item.item, attr_name);
+          if (!transition_or.ok()) {
+            status = transition_or.status();
+            return;
+          }
+          auto value_or = GetValue(transition_or->item, transition_or->schema);
+          if (!value_or.ok()) {
+            status = value_or.status();
+            return;
+          }
+          attr_values.Set(i, *value_or);
+        });
     if (!status.ok()) {
       return status;
     }
-    return visitor_->VisitorT::VisitSchema(item.item, item.schema,
-                                           /*is_object_schema=*/false,
-                                           attr_names,
-                                           std::move(attr_values).Build());
+    return visitor_->VisitorT::VisitSchema(
+        item.item, item.schema,
+        /*is_object_schema=*/false, attr_names, std::move(attr_values).Build());
   }
 
-  absl::Status VisitList(
-      const ItemWithSchema& item, bool is_object,
-      const TraverseHelper::TransitionsSet& transitions) {
+  absl::Status VisitList(const ItemWithSchema& item, bool is_object,
+                         const TraverseHelper::TransitionsSet& transitions) {
     const auto& list_items = transitions.list_items();
     const auto& list_item_schema = transitions.list_item_schema();
     SliceBuilder list_items_values(list_items.size());
@@ -394,25 +394,25 @@ class Traverser {
     arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
 
     absl::Status status = absl::OkStatus();
-    attr_names.ForEach([&](int64_t i, bool presence,
-                           const std::string_view attr_name) {
-      DCHECK(presence);
-      if (!status.ok()) {
-        return;
-      }
-      auto transition_or = traverse_helper_.AttributeTransition(
-                                            item.item, item.schema, attr_name);
-      if (!transition_or.ok()) {
-        status = transition_or.status();
-        return;
-      }
-      auto value_or = GetValue(transition_or->item, transition_or->schema);
-      if (!value_or.ok()) {
-        status = value_or.status();
-        return;
-      }
-      attr_values.Set(i, *value_or);
-    });
+    attr_names.ForEach(
+        [&](int64_t i, bool presence, const std::string_view attr_name) {
+          DCHECK(presence);
+          if (!status.ok()) {
+            return;
+          }
+          auto transition_or = traverse_helper_.AttributeTransition(
+              item.item, item.schema, attr_name);
+          if (!transition_or.ok()) {
+            status = transition_or.status();
+            return;
+          }
+          auto value_or = GetValue(transition_or->item, transition_or->schema);
+          if (!value_or.ok()) {
+            status = value_or.status();
+            return;
+          }
+          attr_values.Set(i, *value_or);
+        });
     if (!status.ok()) {
       return status;
     }
@@ -431,6 +431,7 @@ class Traverser {
 
   absl::Status VisitInPostOrder() {
     for (const ItemWithSchema& item : topological_order_) {
+      RETURN_IF_ERROR(arolla::CheckCancellation());
       if (item.schema.template holds_value<ObjectId>()) {
         // Entity schema.
         RETURN_IF_ERROR(VisitEntity(item, /*is_object=*/false));
