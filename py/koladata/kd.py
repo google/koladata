@@ -175,6 +175,7 @@ parallel = _eager_only(
         call_multithreaded=_parallel.call_multithreaded,
         yield_multithreaded=_parallel.yield_multithreaded,
         transform=_parallel.transform,
+        get_default_transform_config=_parallel.get_default_transform_config,
     )
 )
 

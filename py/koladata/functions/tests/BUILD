@@ -1054,3 +1054,30 @@ koladata_py_extension(
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
+
+py_test(
+    name = "get_default_transform_config_test",
+    srcs = ["get_default_transform_config_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functions",
+        "//py/koladata/functions:parallel",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

@@ -56,6 +56,10 @@ class ParallelTransformConfig {
     return operator_replacements_;
   }
 
+  void set_allow_runtime_transforms(bool allow_runtime_transforms) {
+    allow_runtime_transforms_ = allow_runtime_transforms;
+  }
+
   // Returns the uuid of the config. This is a randomly generated
   // fingerprint, unique for each instance, that is used to compute
   // the fingerprint of the QValue.

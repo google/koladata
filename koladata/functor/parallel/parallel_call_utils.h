@@ -32,10 +32,6 @@ using CallFn = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
     absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) const>;
 
-// Returns the default execution context.
-absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
-GetDefaultParallelTransformConfig();
-
 // Returns a value converted to a "parallel" type -- future or stream, or
 // a tuple/namedtuple thereof.
 //

@@ -962,6 +962,24 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "transform_config_registry",
+    srcs = ["transform_config_registry.cc"],
+    hdrs = ["transform_config_registry.h"],
+    deps = [
+        ":create_transform_config",
+        ":transform_config",
+        ":transform_config_cc_proto",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
 cc_test(
     name = "transform_config_test",
     srcs = ["transform_config_test.cc"],
@@ -1085,6 +1103,29 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "transform_config_registry_test",
+    srcs = ["transform_config_registry_test.cc"],
+    deps = [
+        ":operators",
+        ":transform_config",
+        ":transform_config_cc_proto",
+        ":transform_config_registry",
+        "//koladata/operators",
+        "//koladata/testing:test_env",
+        "//py/koladata/operators:cc_operators",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/expr/testing:test_operators",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "parallel_call_utils",
     srcs = ["parallel_call_utils.cc"],
@@ -1095,13 +1136,13 @@ cc_library(
         ":operators",
         ":transform",
         ":transform_config",
+        ":transform_config_registry",
         "//koladata:data_slice",
         "//koladata/expr:expr_eval",
         "//koladata/functor:call",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
@@ -1144,6 +1185,7 @@ cc_test(
         ":future",
         ":future_qtype",
         ":parallel_call_utils",
+        ":transform_config_registry",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor",

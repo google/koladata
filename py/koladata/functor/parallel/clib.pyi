@@ -47,3 +47,7 @@ class StreamReader(Generic[QValueT_co]):
   def subscribe_once(
       self, executor: Executor, callback: Callable[[], None]
   ) -> None: ...
+
+def get_default_parallel_transform_config(
+    allow_runtime_transforms: bool,
+) -> arolla.AnyQValue: ...

@@ -35,9 +35,11 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
+#include "koladata/expr/expr_operators.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/transform_config_registry.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
@@ -367,8 +369,10 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelTransform) {
   auto functor_expr = arolla::expr::Literal(functor);
   auto executor_expr =
       arolla::expr::CallOp("koda_internal.parallel.get_eager_executor", {});
-  auto execution_context_expr = arolla::expr::CallOp(
-      "koda_internal.parallel.get_default_transform_config", {});
+  ASSERT_OK_AND_ASSIGN(auto config,
+                       parallel::GetDefaultParallelTransformConfig());
+  auto execution_context_expr =
+      koladata::expr::MakeLiteral(arolla::TypedValue::FromValue(config));
   auto unspecified_expr = arolla::expr::Literal(arolla::GetUnspecifiedQValue());
   auto input_value_expr = arolla::expr::Literal(DataSlice::CreatePrimitive(1));
   auto args_expr = arolla::expr::CallOp(

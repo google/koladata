@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
-#define KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_CONFIG_REGISTRY_H_
+#define KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_CONFIG_REGISTRY_H_
 
-#include "absl/base/nullability.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/data_slice.h"
+#include "absl/strings/string_view.h"
 #include "koladata/functor/parallel/transform_config.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 
 namespace koladata::functor::parallel {
 
-// Creates a ParallelTransformConfig from the given
-// ParallelTransformConfigProto.
-absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
-CreateParallelTransformConfigFromProto(
-    const ParallelTransformConfigProto& config_proto);
+// Returns the parallel transform config complete with all extensions.
+absl::StatusOr<ParallelTransformConfigPtr> GetDefaultParallelTransformConfig(
+    bool allow_runtime_transforms = false);
 
-// Creates a ParallelTransformConfig from the given config_src -- a scalar
-// DataSlice with a structure corresponding to ParallelTransformConfigProto.
-absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
-CreateParallelTransformConfig(DataSlice config_src);
+// Extends the default parallel transform config with new replacements.
+absl::Status ExtendDefaultParallelTransformConfig(absl::string_view text_proto);
 
 }  // namespace koladata::functor::parallel
 
-#endif  // KOLADATA_FUNCTOR_PARALLEL_CREATE_TRANSFORM_CONFIG_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_CONFIG_REGISTRY_H_

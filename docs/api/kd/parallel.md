@@ -42,6 +42,10 @@ Returns:
   is/has a stream, and this method needs to return multiple values at
   different times instead of one value at the end.</code></pre>
 
+### `kd.parallel.get_default_transform_config(*, allow_runtime_transforms: bool = False)` {#kd.parallel.get_default_transform_config}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the default parallel transform config for parallel computation.</code></pre>
+
 ### `kd.parallel.transform(fn: DataItem | function | partial[Any], *, allow_runtime_transforms: bool = False) -> DataItem` {#kd.parallel.transform}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Transforms a functor to run in parallel.

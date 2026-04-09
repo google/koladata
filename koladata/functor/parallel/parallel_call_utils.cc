@@ -21,7 +21,6 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr_operator.h"
@@ -34,6 +33,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/transform.h"
 #include "koladata/functor/parallel/transform_config.h"
+#include "koladata/functor/parallel/transform_config_registry.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -58,22 +58,6 @@ absl::StatusOr<arolla::TypedValue> AsParallel(arolla::TypedRef value) {
   return koladata::expr::EvalOpWithCompilationCache(*kOp, {value});
 }
 
-absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
-GetDefaultParallelTransformConfig() {
-  static const absl::NoDestructor<arolla::expr::ExprOperatorPtr> kOp(
-      std::make_shared<arolla::expr::RegisteredOperator>(
-          "koda_internal.parallel.get_default_transform_config"));
-  ASSIGN_OR_RETURN(auto qvalue,
-                   koladata::expr::EvalOpWithCompilationCache(*kOp, {}));
-  ASSIGN_OR_RETURN(auto config, qvalue.As<ParallelTransformConfigPtr>());
-  if (config == nullptr) {
-    return absl::InternalError(
-        "koda_internal.parallel.get_default_transform_config() returned "
-        "nullptr");
-  }
-  return config;
-}
-
 absl::StatusOr<CallFn> TransformToParallelCallFn(
     const ParallelTransformConfigPtr& config, DataSlice functor) {
   ASSIGN_OR_RETURN(auto parallel_functor,
@@ -88,13 +72,8 @@ absl::StatusOr<CallFn> TransformToParallelCallFn(
 
 absl::StatusOr<CallFn> TransformToSimpleParallelCallFn(
     DataSlice functor, bool allow_runtime_transforms) {
-  ASSIGN_OR_RETURN(auto config, GetDefaultParallelTransformConfig());
-  // A small optimization: Check the default config and create a new one
-  // only if `allow_runtime_transforms` does not match the requirement.
-  if (config->allow_runtime_transforms() != allow_runtime_transforms) {
-    config = std::make_shared<ParallelTransformConfig>(
-        allow_runtime_transforms, config->operator_replacements());
-  }
+  ASSIGN_OR_RETURN(auto config,
+                   GetDefaultParallelTransformConfig(allow_runtime_transforms));
   ASSIGN_OR_RETURN(auto parallel_functor_fn,
                    TransformToParallelCallFn(config, std::move(functor)));
   return CallFn([parallel_functor_fn = std::move(parallel_functor_fn)](

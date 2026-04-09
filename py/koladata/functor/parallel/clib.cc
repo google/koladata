@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "arolla/qtype/qtype_traits.h"
+#include "absl/strings/string_view.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/transform_config_registry.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/koladata/functor/parallel/py_executor.h"
@@ -55,6 +57,15 @@ PYBIND11_MODULE(clib, m) {
           "::koladata::functor::parallel::StreamQType", py_type_stream.ptr())) {
     throw py::error_already_set();
   }
+
+  m.def(
+      "get_default_parallel_transform_config",
+      [](bool allow_runtime_transforms) {
+        return arolla::TypedValue::FromValue(
+            arolla::python::pybind11_unstatus_or(
+                koladata::functor::parallel::GetDefaultParallelTransformConfig(
+                    allow_runtime_transforms)));
+      });
 }
 
 }  // namespace

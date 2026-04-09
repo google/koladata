@@ -34,17 +34,8 @@
 namespace koladata::functor::parallel {
 
 absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
-CreateParallelTransformConfig(DataSlice config_src) {
-  if (config_src.GetShape().rank() != 0) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("config_src must be a scalar, got rank ",
-                     config_src.GetShape().rank()));
-  }
-  ParallelTransformConfigProto config_proto;
-  ASSIGN_OR_RETURN(DataSlice config_1d,
-                   config_src.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
-  RETURN_IF_ERROR(ToProto(config_1d, {&config_proto}));
-
+CreateParallelTransformConfigFromProto(
+    const ParallelTransformConfigProto& config_proto) {
   absl::flat_hash_map<arolla::Fingerprint, ParallelTransformConfig::Replacement>
       operator_replacements;
   operator_replacements.reserve(config_proto.operator_replacements_size());
@@ -72,6 +63,20 @@ CreateParallelTransformConfig(DataSlice config_src) {
   return std::make_shared<ParallelTransformConfig>(
       config_proto.allow_runtime_transforms(),
       std::move(operator_replacements));
+}
+
+absl::StatusOr<ParallelTransformConfigPtr absl_nonnull>
+CreateParallelTransformConfig(DataSlice config_src) {
+  if (config_src.GetShape().rank() != 0) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("config_src must be a scalar, got rank ",
+                     config_src.GetShape().rank()));
+  }
+  ParallelTransformConfigProto config_proto;
+  ASSIGN_OR_RETURN(DataSlice config_1d,
+                   config_src.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
+  RETURN_IF_ERROR(ToProto(config_1d, {&config_proto}));
+  return CreateParallelTransformConfigFromProto(config_proto);
 }
 
 }  // namespace koladata::functor::parallel

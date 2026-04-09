@@ -39,6 +39,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/transform_config_registry.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/signature.h"

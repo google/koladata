@@ -164,6 +164,11 @@ def yield_multithreaded(
   return _wrap_yield_all(executor, res_stream, timeout=timeout)
 
 
+def get_default_transform_config(*, allow_runtime_transforms: bool = False):
+  """Returns the default parallel transform config for parallel computation."""
+  return clib.get_default_parallel_transform_config(allow_runtime_transforms)
+
+
 def transform(
     fn: data_item.DataItem | py_types.FunctionType | functools.partial[Any],
     *,
@@ -186,9 +191,7 @@ def transform(
   """
 
   fn = py_boxing.as_qvalue(fn)
-  config = koda_internal_parallel.create_transform_config(
-      koda_internal_parallel.get_default_transform_config_src().with_attrs(
-          allow_runtime_transforms=allow_runtime_transforms
-      )
+  config = get_default_transform_config(
+      allow_runtime_transforms=allow_runtime_transforms
   )
   return arolla.eval(koda_internal_parallel.transform(config, fn))
