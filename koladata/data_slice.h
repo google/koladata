@@ -374,9 +374,18 @@ class DataSlice {
   // on the schema.
   absl::Status DelAttr(absl::string_view attr_name) const;
 
-  // Returns true if the slice can be considered a list DataSlice. Used to
-  // choose whether to apply list or dict operation.
-  bool ShouldApplyListOp() const;
+  enum class CollectionType {
+    kList,             // Should be treated as a list.
+    kDict,             // Should be treated as a dict.
+    kEmptyAndUnknown,  // Could be either (e.g. empty OBJECT/NONE schema with no
+                       // data present).
+  };
+
+  // Guesses the collection type (dict / list) of this DataSlice, returns an
+  // error if it is clearly neither or a mix.
+  // NOTE: The function does not validate the slice fully, e.g. whether it
+  // does not contain primitives. This should be checked separately.
+  absl::StatusOr<CollectionType> GuessCollectionType() const;
 
   // Returns true iff the schema of this slice is LIST[T], or the schema of this
   // slice is OBJECT and all present items in this slice are lists.

@@ -394,6 +394,7 @@ cc_test(
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/jagged_shape/testing",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",

@@ -584,21 +584,27 @@ PyObject* absl_nullable PyDataSlice_subscript(PyObject* self, PyObject* key) {
                       "Slice with step != 1 is not supported");
       return nullptr;
     }
-    if (self_ds.ShouldApplyListOp()) {
-      ASSIGN_OR_RETURN(auto res,
-                       self_ds.ExplodeList(slice.start.value_or(0), slice.stop),
-                       arolla::python::SetPyErrFromStatus(_));
-      return WrapPyDataSlice(std::move(res));
-    } else {
-      if (slice.start.has_value() || slice.stop.has_value()) {
-        PyErr_SetString(PyExc_ValueError,
-                        "slice with start or stop is not supported for "
-                        "dictionaries");
-        return nullptr;
+    ASSIGN_OR_RETURN(auto collection_type, self_ds.GuessCollectionType(),
+                     arolla::python::SetPyErrFromStatus(_));
+    switch (collection_type) {
+      case DataSlice::CollectionType::kList:
+      case DataSlice::CollectionType::kEmptyAndUnknown: {
+        ASSIGN_OR_RETURN(
+            auto res, self_ds.ExplodeList(slice.start.value_or(0), slice.stop),
+            arolla::python::SetPyErrFromStatus(_));
+        return WrapPyDataSlice(std::move(res));
       }
-      ASSIGN_OR_RETURN(auto res, self_ds.GetDictValues(),
-                       arolla::python::SetPyErrFromStatus(_));
-      return WrapPyDataSlice(std::move(res));
+      case DataSlice::CollectionType::kDict: {
+        if (slice.start.has_value() || slice.stop.has_value()) {
+          PyErr_SetString(PyExc_ValueError,
+                          "slice with start or stop is not supported for "
+                          "dictionaries");
+          return nullptr;
+        }
+        ASSIGN_OR_RETURN(auto res, self_ds.GetDictValues(),
+                         arolla::python::SetPyErrFromStatus(_));
+        return WrapPyDataSlice(std::move(res));
+      }
     }
   }
   ASSIGN_OR_RETURN(auto key_ds, ConvertKeyToDataSlice(key),
@@ -642,27 +648,31 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
           .With(set_py_err_from_status);
     }
   } else {
-    // NOTE: In case of Dicts, key.GetBag(), if key is a DataSlice, gets adopted
-    // inside SetInDict. No adoption needed in case of Lists.
     ASSIGN_OR_RETURN(DataSlice key_ds, ConvertKeyToDataSlice(key),
                      set_py_err_from_status(_));
-    if (self_ds.ShouldApplyListOp()) {
-      if (value_ds.has_value()) {
-        RETURN_IF_ERROR(self_ds.SetInList(key_ds, *value_ds))
+    ASSIGN_OR_RETURN(auto collection_type, self_ds.GuessCollectionType(),
+                     set_py_err_from_status(_));
+    switch (collection_type) {
+      case DataSlice::CollectionType::kList:
+        if (value_ds.has_value()) {
+          RETURN_IF_ERROR(self_ds.SetInList(key_ds, *value_ds))
+              .With(set_py_err_from_status);
+        } else {
+          RETURN_IF_ERROR(self_ds.RemoveInList(key_ds))
+              .With(set_py_err_from_status);
+        }
+        break;
+      case DataSlice::CollectionType::kDict:
+      case DataSlice::CollectionType::kEmptyAndUnknown:
+        if (!value_ds.has_value()) {
+          ASSIGN_OR_RETURN(value_ds,
+                           DataSlice::Create(internal::DataItem(),
+                                             internal::DataItem(schema::kNone)),
+                           set_py_err_from_status(_));
+        }
+        RETURN_IF_ERROR(self_ds.SetInDict(key_ds, *value_ds))
             .With(set_py_err_from_status);
-      } else {
-        RETURN_IF_ERROR(self_ds.RemoveInList(key_ds))
-            .With(set_py_err_from_status);
-      }
-    } else {
-      if (!value_ds.has_value()) {
-        ASSIGN_OR_RETURN(value_ds,
-                         DataSlice::Create(internal::DataItem(),
-                                           internal::DataItem(schema::kNone)),
-                         set_py_err_from_status(_));
-      }
-      RETURN_IF_ERROR(self_ds.SetInDict(key_ds, *value_ds))
-          .With(set_py_err_from_status);
+        break;
     }
   }
   return 0;

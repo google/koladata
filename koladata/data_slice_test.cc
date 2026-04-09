@@ -31,6 +31,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/testing/matchers.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
@@ -5387,79 +5388,105 @@ TEST(DataSliceTest, SetInDict_NoneSchema) {
                                                         schema::kNone, db)));
 }
 
-TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
+TEST(DataSliceTest, GuessCollectionType_DataItem) {
   auto db = DataBag::EmptyMutable();
   auto list_items = test::DataSlice<int>({1, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto list, CreateListsFromLastDimension(db, list_items));
-  EXPECT_TRUE(list.ShouldApplyListOp());
-  EXPECT_TRUE(test::DataItem(internal::DataItem(), list.GetSchemaImpl(), db)
-              .ShouldApplyListOp());
+  EXPECT_THAT(list.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
+  EXPECT_THAT(test::DataItem(internal::DataItem(), list.GetSchemaImpl(), db)
+                  .GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
   ASSERT_OK_AND_ASSIGN(auto list_obj,
                        list.WithSchema(test::Schema(schema::kObject)));
-  EXPECT_TRUE(list_obj.ShouldApplyListOp());
+  EXPECT_THAT(list_obj.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
 
   ASSERT_OK_AND_ASSIGN(auto list_embedded, list.EmbedSchema());
-  EXPECT_TRUE(list_embedded.ShouldApplyListOp());
+  EXPECT_THAT(list_embedded.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
 
-  EXPECT_FALSE(test::DataItem(internal::DataItem(), schema::kObject, db)
-               .ShouldApplyListOp());
+  EXPECT_THAT(test::DataItem(internal::DataItem(), schema::kObject, db)
+                  .GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kEmptyAndUnknown));
 
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
-  EXPECT_FALSE(entity.ShouldApplyListOp());
-  EXPECT_FALSE(test::DataItem(internal::DataItem(), entity.GetSchemaImpl(), db)
-               .ShouldApplyListOp());
+  EXPECT_THAT(entity.GuessCollectionType().status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Expected either a list or a dict slice")));
+  EXPECT_THAT(test::DataItem(internal::DataItem(), entity.GetSchemaImpl(), db)
+                  .GuessCollectionType()
+                  .status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Expected either a list or a dict slice")));
 
   ASSERT_OK_AND_ASSIGN(
       auto dict,
       CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                        /*keys=*/std::nullopt, /*values=*/std::nullopt));
-  EXPECT_FALSE(dict.ShouldApplyListOp());
-  EXPECT_FALSE(test::DataItem(internal::DataItem(), dict.GetSchemaImpl(), db)
-               .ShouldApplyListOp());
+  EXPECT_THAT(dict.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kDict));
+  EXPECT_THAT(test::DataItem(internal::DataItem(), dict.GetSchemaImpl(), db)
+                  .GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kDict));
 
   // NONE schema.
-  EXPECT_FALSE(
-      test::DataItem(internal::DataItem(), schema::kNone).ShouldApplyListOp());
+  EXPECT_THAT(
+      test::DataItem(internal::DataItem(), schema::kNone).GuessCollectionType(),
+      IsOkAndHolds(DataSlice::CollectionType::kEmptyAndUnknown));
 }
 
-TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
+TEST(DataSliceTest, GuessCollectionType_DataSlice) {
   auto db = DataBag::EmptyMutable();
   auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
   ASSERT_OK_AND_ASSIGN(auto lists,
                        CreateListsFromLastDimension(db, list_items));
-  EXPECT_TRUE(lists.ShouldApplyListOp());
-  EXPECT_TRUE(test::EmptyDataSlice(lists.GetShape(), lists.GetSchemaImpl(), db)
-              .ShouldApplyListOp());
+  EXPECT_THAT(lists.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
+  EXPECT_THAT(test::EmptyDataSlice(lists.GetShape(), lists.GetSchemaImpl(), db)
+                  .GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
   ASSERT_OK_AND_ASSIGN(auto lists_obj,
                        lists.WithSchema(test::Schema(schema::kObject)));
-  EXPECT_TRUE(lists_obj.ShouldApplyListOp());
+  EXPECT_THAT(lists_obj.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
 
   ASSERT_OK_AND_ASSIGN(auto lists_embedded, lists.EmbedSchema());
-  EXPECT_TRUE(lists_embedded.ShouldApplyListOp());
+  EXPECT_THAT(lists_embedded.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kList));
 
-  EXPECT_FALSE(test::EmptyDataSlice(3, schema::kObject, db)
-               .ShouldApplyListOp());
+  EXPECT_THAT(
+      test::EmptyDataSlice(3, schema::kObject, db).GuessCollectionType(),
+      IsOkAndHolds(DataSlice::CollectionType::kEmptyAndUnknown));
 
   ASSERT_OK_AND_ASSIGN(
       auto entities,
       EntityCreator::Shaped(
           db, DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
-  EXPECT_FALSE(entities.ShouldApplyListOp());
-  EXPECT_FALSE(
+  EXPECT_THAT(entities.GuessCollectionType().status(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("Expected either a list or a dict slice")));
+  EXPECT_THAT(
       test::EmptyDataSlice(entities.GetShape(), entities.GetSchemaImpl(), db)
-      .ShouldApplyListOp());
+          .GuessCollectionType()
+          .status(),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("Expected either a list or a dict slice")));
 
   ASSERT_OK_AND_ASSIGN(
       auto dicts,
       CreateDictShaped(db, DataSlice::JaggedShape::FlatFromSize(3),
                        /*keys=*/std::nullopt, /*values=*/std::nullopt));
-  EXPECT_FALSE(dicts.ShouldApplyListOp());
-  EXPECT_FALSE(test::EmptyDataSlice(dicts.GetShape(), dicts.GetSchemaImpl(), db)
-                   .ShouldApplyListOp());
+  EXPECT_THAT(dicts.GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kDict));
+  EXPECT_THAT(test::EmptyDataSlice(dicts.GetShape(), dicts.GetSchemaImpl(), db)
+                  .GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kDict));
 
   // NONE schema.
-  EXPECT_FALSE(test::EmptyDataSlice(3, schema::kNone).ShouldApplyListOp());
+  EXPECT_THAT(test::EmptyDataSlice(3, schema::kNone).GuessCollectionType(),
+              IsOkAndHolds(DataSlice::CollectionType::kEmptyAndUnknown));
 }
 
 // More extensive tests are in core_get_item_test.py.
@@ -5482,15 +5509,25 @@ TEST(DataSliceTest, GetItem_DataItem) {
 
   ASSERT_OK_AND_ASSIGN(
       auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
-  EXPECT_THAT(entity.GetItem(test::DataItem("a")),
+  EXPECT_THAT(
+      entity.GetItem(test::DataItem("a")),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "Expected either a list or a dict slice, got ENTITY(a=INT32)"));
+
+  auto mask = test::DataItem(arolla::kPresent, schema::kMask);
+  EXPECT_THAT(list.GetItem(mask),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "dict(s) expected, got ENTITY(a=INT32)"));
+                       "cannot get items from list(s): expected indices to be "
+                       "integers. If you meant to select items in the "
+                       "DataSlice, consider using .select(mask)"));
 
   ASSERT_OK_AND_ASSIGN(
       auto object, ObjectCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
   EXPECT_THAT(object.GetItem(test::DataItem(0)).status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "dict(s) expected, got IMPLICIT_ENTITY(a=INT32)"));
+                       "dict(s) expected, got IMPLICIT_ENTITY(a=INT32). If you "
+                       "meant to index items in the DataSlice, consider using "
+                       ".S[indices]"));
 
   EXPECT_THAT(
       test::DataItem(internal::DataItem(), schema::kNone, db).GetItem(indices),
@@ -5516,9 +5553,10 @@ TEST(DataSliceTest, GetItem_DataSlice) {
   ASSERT_OK_AND_ASSIGN(
       auto entities,
       EntityCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({1, 2, 3})}));
-  EXPECT_THAT(entities.GetItem(test::DataItem("a")),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "dict(s) expected, got ENTITY(a=INT32)"));
+  EXPECT_THAT(
+      entities.GetItem(test::DataItem("a")),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "Expected either a list or a dict slice, got ENTITY(a=INT32)"));
 
   EXPECT_THAT(test::EmptyDataSlice(shape, schema::kNone, db).GetItem(indices),
               IsOkAndHolds(IsEquivalentTo(

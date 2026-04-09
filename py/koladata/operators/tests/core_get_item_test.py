@@ -29,20 +29,19 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
-eager = eager_op_utils.operators_container('kd')
-eval_op = py_expr_eval_py_ext.eval_op
-I = input_container.InputContainer('I')
-kde = kde_operators.kde
-kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 ds = data_slice.DataSlice.from_vals
+eval_op = py_expr_eval_py_ext.eval_op
+I = input_container.InputContainer('I')
+kd = eager_op_utils.operators_container('kd')
+kde = kde_operators.kde
 
 
 class CoreGetItemTest(parameterized.TestCase):
 
   @parameterized.parameters(*core_get_item_testdata.TEST_CASES)
   def test_slice_eval(self, x, keys_or_indices, expected):
-    result = eager.core.get_item(x, keys_or_indices)
+    result = kd.core.get_item(x, keys_or_indices)
     view_result = eval_op('koda_internal.view.get_item', x, keys_or_indices)
     testing.assert_equal(result, expected.with_bag(x.get_bag()))
     testing.assert_equal(view_result, expected.with_bag(x.get_bag()))
@@ -64,7 +63,54 @@ class CoreGetItemTest(parameterized.TestCase):
         ValueError,
         'kd.core.get_item: slice with step != 1 is not supported',
     ):
-      eager.core.get_item(ds([1, 2, 3]), slice(3, 5, 2))
+      kd.core.get_item(ds([1, 2, 3]), slice(3, 5, 2))
+
+  def test_misuse_errors(self):
+    db = fns.bag().fork()
+    ds_obj = db.obj(a=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got IMPLICIT_ENTITY\(a=INT32\)\. If you meant to'
+        r' index items in the DataSlice, consider using \.S\[indices\]',
+    ):
+      kd.core.get_item(ds_obj, 0)
+
+    ds_slice = fns.slice([db.obj(a=1), db.obj(a=2)])
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got an OBJECT DataSlice with the first non-dict'
+        r' schema at ds.flatten\(\)\.S\[1\].*If you meant to index items in the'
+        r' DataSlice, consider using \.S\[indices\]',
+    ):
+      kd.core.get_item(ds_slice, 0)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got an OBJECT DataSlice with the first non-dict'
+        r' schema at ds.flatten\(\)\.S\[1\].*If you meant to select items in'
+        r' the DataSlice, consider using \.select\(mask\)',
+    ):
+      kd.core.get_item(ds_slice, ds_slice.a > 1)
+
+    li = fns.list([1, 2, 3])
+    obj = db.obj(a=1)
+    mask = obj.a == 1
+    with self.assertRaisesRegex(
+        ValueError,
+        r'cannot get items from list\(s\): expected indices to be integers\. '
+        r'If you meant to select items in the DataSlice, consider using'
+        r' \.select\(mask\)',
+    ):
+      kd.core.get_item(li, mask)
+
+    mixed_slice = fns.slice([db.obj(db.dict({0: 1})), db.obj(db.list([3, 4]))])
+    with self.assertRaisesRegex(
+        ValueError,
+        r'Expected either a list or a dict slice, got a mix with schema OBJECT.'
+        r' If you meant to index items in the DataSlice, consider using'
+        r' \.S\[indices\]',
+    ):
+      kd.core.get_item(mixed_slice, 0)
 
   def test_repr(self):
     self.assertEqual(

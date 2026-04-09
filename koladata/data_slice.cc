@@ -1811,24 +1811,43 @@ absl::StatusOr<DataSlice> DataSlice::EmbedSchema(bool overwrite) const {
   return ToObject(*this, /*validate_schema=*/!overwrite);
 }
 
-bool DataSlice::ShouldApplyListOp() const {
+absl::StatusOr<DataSlice::CollectionType> DataSlice::GuessCollectionType()
+    const {
+  // Start with checking actual data.
   if (std::holds_alternative<internal::DataItem>(internal_->impl)) {
-    if (item().is_list()) {
-      return true;
-    }
+    if (item().is_list()) return CollectionType::kList;
+    if (item().is_dict()) return CollectionType::kDict;
   } else {
     if (slice().dtype() == arolla::GetQType<internal::ObjectId>()) {
-      for (auto opt_id : slice().values<internal::ObjectId>()) {
-        if (opt_id.present && opt_id.value.IsList()) {
-          return true;
-        }
+      bool has_list = false;
+      bool has_dict = false;
+      slice().values<internal::ObjectId>().ForEachPresent(
+          [&](size_t idx, const internal::ObjectId& id) {
+            if (id.IsList()) has_list = true;
+            if (id.IsDict()) has_dict = true;
+          });
+      if (has_list && has_dict) {
+        return absl::InvalidArgumentError(
+            absl::StrCat("Expected either a list or a dict slice, got a mix "
+                         "with schema ",
+                         SchemaToStr(GetSchema())));
       }
+      if (has_list) return CollectionType::kList;
+      if (has_dict) return CollectionType::kDict;
     }
   }
-  // Regardless of what the actual data is (in case it is empty_and_unknown,
-  // operation will be successful, if it is non-ObjectId, error will be returned
-  // from the op / method).
-  return GetSchema().IsListSchema();
+  // Fall back to schemas in case if no data.
+  if (impl_empty_and_unknown()) {
+    if (GetSchema().IsListSchema()) return CollectionType::kList;
+    if (GetSchema().IsDictSchema()) return CollectionType::kDict;
+  }
+  // NONE and OBJECT schemas support both list and dict operations.
+  if (GetSchemaImpl() == schema::kNone || GetSchemaImpl() == schema::kObject) {
+    return CollectionType::kEmptyAndUnknown;
+  }
+  return absl::InvalidArgumentError(
+      absl::StrCat("Expected either a list or a dict slice, got ",
+                   SchemaToStr(GetSchema())));
 }
 
 bool DataSlice::IsList() const {
@@ -2351,8 +2370,39 @@ absl::Status DataSlice::RemoveInList(int64_t start,
 
 absl::StatusOr<DataSlice> DataSlice::GetItem(
     const DataSlice& key_or_index) const {
-  return ShouldApplyListOp() ? GetFromList(key_or_index)
-                             : GetFromDict(key_or_index);
+  auto augment_if_error =
+      [&](absl::StatusOr<DataSlice> res) -> absl::StatusOr<DataSlice> {
+    if (res.ok()) return res;
+
+    const auto& sc = key_or_index.GetSchemaImpl();
+    std::string suggestion;
+    if (sc == schema::kMask) {
+      suggestion =
+          ". If you meant to select items in the DataSlice, consider using "
+          ".select(mask)";
+    } else if (sc == schema::kInt32 || sc == schema::kInt64) {
+      suggestion =
+          ". If you meant to index items in the DataSlice, consider using "
+          ".S[indices]";
+    }
+    return !suggestion.empty()
+               ? arolla::WithUpdatedMessage(
+                     res.status(),
+                     absl::StrCat(res.status().message(), suggestion))
+               : res.status();
+  };
+
+  ASSIGN_OR_RETURN(auto collection_type, GuessCollectionType(),
+                   augment_if_error(std::move(_)));
+  switch (collection_type) {
+    case CollectionType::kList: {
+      return augment_if_error(GetFromList(key_or_index));
+    }
+    case CollectionType::kEmptyAndUnknown:
+    case CollectionType::kDict: {
+      return augment_if_error(GetFromDict(key_or_index));
+    }
+  }
 }
 
 absl::Status DataSlice::ClearDictOrList() const {
@@ -2360,17 +2410,24 @@ absl::Status DataSlice::ClearDictOrList() const {
     return absl::InvalidArgumentError(
         "cannot clear lists or dicts without a DataBag");
   }
+  if (present_count() == 0) {
+    return absl::OkStatus();
+  }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  if (ShouldApplyListOp()) {
-    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-      return db_mutable_impl.RemoveInList(impl,
-                                          internal::DataBagImpl::ListRange());
-    });
-  } else {
-    return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-      return db_mutable_impl.ClearDict(impl);
-    });
+  ASSIGN_OR_RETURN(auto collection_type, GuessCollectionType());
+  switch (collection_type) {
+    case CollectionType::kList:
+      return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+        return db_mutable_impl.RemoveInList(impl,
+                                            internal::DataBagImpl::ListRange());
+      });
+    case CollectionType::kDict:
+      return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+        return db_mutable_impl.ClearDict(impl);
+      });
+    case CollectionType::kEmptyAndUnknown:
+      return absl::OkStatus();
   }
 }
 

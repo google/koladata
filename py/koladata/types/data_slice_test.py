@@ -2425,11 +2425,17 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
     with self.assertRaisesRegex(
-        ValueError, re.escape('dict(s) expected, got ENTITY(x=INT32)')
+        ValueError,
+        re.escape(
+            'Expected either a list or a dict slice, got ENTITY(x=INT32)'
+        ),
     ):
       non_dicts['a'] = 'b'
     with self.assertRaisesRegex(
-        ValueError, re.escape('dict(s) expected, got ENTITY(x=INT32)')
+        ValueError,
+        re.escape(
+            'Expected either a list or a dict slice, got ENTITY(x=INT32)'
+        ),
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(
@@ -2453,6 +2459,43 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         ),
     ):
       s['a'] = 1
+
+  def test_getitem_misuse_errors(self):
+    db = bag()
+    obj_item = db.obj(a=1)
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got IMPLICIT_ENTITY\(a=INT32\)\. If you meant to'
+        r' index items in the DataSlice, consider using \.S\[indices\]',
+    ):
+      _ = obj_item[0]
+
+    obj_slice = ds([db.obj(a=1), db.obj(a=2)])
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got an OBJECT DataSlice with the first non-dict'
+        r' schema at ds.flatten\(\)\.S\[1\].*If you meant to index items in the'
+        r' DataSlice, consider using \.S\[indices\]',
+    ):
+      _ = obj_slice[0]
+
+    with self.assertRaisesRegex(
+        ValueError,
+        r'dict\(s\) expected, got an OBJECT DataSlice with the first non-dict'
+        r' schema at ds.flatten\(\)\.S\[1\].*If you meant to select items in'
+        r' the DataSlice, consider using \.select\(mask\)',
+    ):
+      _ = obj_slice[obj_slice.a > 1]
+
+    list_slice = ds([db.list([1, 2]), db.list([3, 4])])
+    mask = obj_slice.a == 1
+    with self.assertRaisesRegex(
+        ValueError,
+        r'cannot get items from list\(s\): expected indices to be integers\. '
+        r'If you meant to select items in the DataSlice, consider using'
+        r' \.select\(mask\)',
+    ):
+      _ = list_slice[mask]
 
   def test_dict_op_schema_errors(self):
     db = bag()
