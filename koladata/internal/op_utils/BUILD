@@ -1230,6 +1230,8 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/internal:schema_attrs",
         "//koladata/internal/testing:deep_op_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/util",

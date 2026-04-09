@@ -423,14 +423,19 @@ class TraverseHelper {
       const DataItem& schema, std::string_view attr_name) {
     ASSIGN_OR_RETURN(DataItem attr_schema,
                      databag_.GetSchemaAttr(schema, attr_name, fallbacks_));
-    schema::DType schema_dtype = schema::kSchema;
-    if (attr_name == schema::kSchemaNameAttr) {
-      schema_dtype = schema::kString;
-    } else if (attr_name == schema::kSchemaMetadataAttr) {
-      schema_dtype = schema::kObject;
+    return Transition({.item = std::move(attr_schema),
+                       .schema = GetSchemaAttrSchema(attr_name)});
+  }
+
+  absl::StatusOr<Transition> SchemaAttributeTransitionAllowMissing(
+      const DataItem& schema, std::string_view attr_name) {
+    ASSIGN_OR_RETURN(auto attr_schema, databag_.GetSchemaAttrAllowMissing(
+                                           schema, attr_name, fallbacks_));
+    if (!attr_schema.has_value()) {
+      return Transition({.item = DataItem(), .schema = DataItem()});
     }
-    return Transition(
-        {.item = std::move(attr_schema), .schema = DataItem(schema_dtype)});
+    return Transition({.item = std::move(attr_schema),
+                       .schema = GetSchemaAttrSchema(attr_name)});
   }
 
   // Returns the schema for the given object.
@@ -439,6 +444,15 @@ class TraverseHelper {
   }
 
  private:
+  DataItem GetSchemaAttrSchema(std::string_view attr_name) {
+    if (attr_name == schema::kSchemaNameAttr) {
+      return DataItem(schema::kString);
+    } else if (attr_name == schema::kSchemaMetadataAttr) {
+      return DataItem(schema::kObject);
+    }
+    return DataItem(schema::kSchema);
+  }
+
   template <typename Fn>
   void ForEachListItemObject(const TransitionsSet& transitions_set, Fn&& fn) {
     const DataSliceImpl& list_items = transitions_set.list_items();

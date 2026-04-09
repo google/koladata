@@ -22,6 +22,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "arolla/util/text.h"
@@ -280,6 +282,84 @@ TEST_P(TraverseHelperTest, GetTransitionsSchema) {
   EXPECT_THAT(transition_values,
               UnorderedElementsAre(DataItem(arolla::Text("x")),
                                    DataItem(arolla::Text("y"))));
+}
+
+TEST_P(TraverseHelperTest, SchemaAttributeTransition) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto schema = AllocateSchema();
+  auto int_dtype = DataItem(schema::kInt32);
+
+  TriplesT schema_triples = {
+      {schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("Point"))},
+        {"x", int_dtype},
+        {"y", int_dtype}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  DataBagImplPtr main_db = GetMainDb(db);
+  auto fallback_db = GetFallbackDb(db);
+  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
+  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
+
+  ASSERT_OK_AND_ASSIGN(auto transition_x,
+                       traverse_helper.SchemaAttributeTransition(
+                           schema, "x"));
+  EXPECT_EQ(transition_x.item, int_dtype);
+  EXPECT_EQ(transition_x.schema, DataItem(schema::kSchema));
+
+  ASSERT_OK_AND_ASSIGN(auto transition_name,
+                       traverse_helper.SchemaAttributeTransition(
+                           schema, schema::kSchemaNameAttr));
+  EXPECT_EQ(transition_name.item, DataItem(arolla::Text("Point")));
+  EXPECT_EQ(transition_name.schema, DataItem(schema::kString));
+
+  EXPECT_THAT(
+      traverse_helper.SchemaAttributeTransition(schema, "z"),
+      ::absl_testing::StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::HasSubstr("the attribute 'z' is missing on the schema")));
+}
+
+TEST_P(TraverseHelperTest, SchemaAttributeTransitionAllowMissing) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto schema = AllocateSchema();
+  auto int_dtype = DataItem(schema::kInt32);
+
+  TriplesT schema_triples = {
+      {schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("Point"))},
+        {"x", int_dtype},
+        {"y", int_dtype}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  DataBagImplPtr main_db = GetMainDb(db);
+  auto fallback_db = GetFallbackDb(db);
+  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
+  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
+
+  ASSERT_OK_AND_ASSIGN(auto transition_x,
+                       traverse_helper.SchemaAttributeTransitionAllowMissing(
+                           schema, "x"));
+  EXPECT_EQ(transition_x.item, int_dtype);
+  EXPECT_EQ(transition_x.schema, DataItem(schema::kSchema));
+
+  ASSERT_OK_AND_ASSIGN(auto transition_name,
+                       traverse_helper.SchemaAttributeTransitionAllowMissing(
+                           schema, schema::kSchemaNameAttr));
+  EXPECT_EQ(transition_name.item, DataItem(arolla::Text("Point")));
+  EXPECT_EQ(transition_name.schema, DataItem(schema::kString));
+
+  ASSERT_OK_AND_ASSIGN(auto transition_foo,
+                       traverse_helper.SchemaAttributeTransitionAllowMissing(
+                           schema, "foo"));
+  EXPECT_EQ(transition_foo.item, DataItem());
+  EXPECT_EQ(transition_foo.schema, DataItem());
 }
 
 TEST_P(TraverseHelperTest, TransitionByKeyEntity) {
