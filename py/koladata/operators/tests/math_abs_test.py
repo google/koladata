@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -126,7 +127,7 @@ class MathAbsTest(parameterized.TestCase):
       ),
   )
   def test_eval_numeric(self, x, expected):
-    result = expr_eval.eval(kde.math.abs(I.x), x=x)
+    result = kd.math.abs(x)
     testing.assert_allclose(result, expected)
 
   # Empty inputs of concrete and None types.
@@ -149,7 +150,7 @@ class MathAbsTest(parameterized.TestCase):
       ),
   )
   def test_eval_non_numeric(self, x, expected):
-    result = expr_eval.eval(kde.math.abs(I.x), x=x)
+    result = kd.math.abs(x)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -160,7 +161,7 @@ class MathAbsTest(parameterized.TestCase):
             ' a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.math.abs(I.x), x=ds(['1', '2', '3']))
+      kd.math.abs(ds(['1', '2', '3']))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -169,7 +170,7 @@ class MathAbsTest(parameterized.TestCase):
             ' a slice of BOOLEAN'
         ),
     ):
-      expr_eval.eval(kde.math.abs(I.x), x=ds([True, False, True]))
+      kd.math.abs(ds([True, False, True]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

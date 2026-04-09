@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -29,6 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -117,7 +118,7 @@ class MathModTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.math.mod(I.x, I.y), x=x, y=y)
+    result = kd.math.mod(x, y)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -130,14 +131,14 @@ class MathModTest(parameterized.TestCase):
             ' a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.math.mod(I.x, I.y), x=x, y=y)
+      kd.math.mod(x, y)
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex('shapes are not compatible'),
     ):
-      expr_eval.eval(kde.math.mod(I.x, I.z), x=x, z=z)
+      kd.math.mod(x, z)
 
     w = ds(0)
     with self.assertRaisesRegex(
@@ -145,7 +146,7 @@ class MathModTest(parameterized.TestCase):
         # TODO: Make errors Koda friendly.
         'division by zero',
     ):
-      expr_eval.eval(kde.math.mod(I.x, I.w), x=x, w=w)
+      kd.math.mod(x, w)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

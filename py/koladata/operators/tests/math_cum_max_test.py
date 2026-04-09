@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -111,7 +112,7 @@ class MathCumMaxTest(parameterized.TestCase):
       ),
   )
   def test_eval_numeric(self, x, expected):
-    result = expr_eval.eval(kde.math.cum_max(I.x), x=x)
+    result = kd.math.cum_max(x)
     testing.assert_allclose(result, expected)
 
   @parameterized.parameters(
@@ -154,7 +155,7 @@ class MathCumMaxTest(parameterized.TestCase):
       ),
   )
   def test_eval_numeric_with_into(self, x, into, expected):
-    result = expr_eval.eval(kde.math.cum_max(x, into))
+    result = kd.math.cum_max(x, into)
     testing.assert_allclose(result, expected)
 
   # Empty inputs of concrete and None types.
@@ -177,7 +178,7 @@ class MathCumMaxTest(parameterized.TestCase):
       ),
   )
   def test_eval_non_numeric(self, x, expected):
-    result = expr_eval.eval(kde.math.cum_max(I.x), x=x)
+    result = kd.math.cum_max(x)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -189,14 +190,14 @@ class MathCumMaxTest(parameterized.TestCase):
             ' got a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.math.cum_max(I.x), x=x)
+      kd.math.cum_max(x)
 
     scalar = ds(-2.0, schema_constants.FLOAT32)
     with self.assertRaisesRegex(
         ValueError,
         re.escape('expected rank(x) > 0'),
     ):
-      expr_eval.eval(kde.math.cum_max(I.x), x=scalar)
+      kd.math.cum_max(scalar)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -28,6 +28,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
@@ -49,7 +50,7 @@ class MaskingPresentShapedTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, shape, expected):
-    res = expr_eval.eval(kde.masking.present_shaped(shape))
+    res = kd.masking.present_shaped(shape)
     testing.assert_equal(res, expected)
 
   def test_qtype_signatures(self):

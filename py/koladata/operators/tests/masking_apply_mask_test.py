@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import masking_apply_mask_testdata
@@ -31,6 +31,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -44,7 +45,7 @@ class LogicalApplyMaskTest(parameterized.TestCase):
 
   @parameterized.parameters(*masking_apply_mask_testdata.TEST_CASES)
   def test_eval(self, values, mask, expected):
-    result = expr_eval.eval(kde.masking.apply_mask(values, mask))
+    result = kd.masking.apply_mask(values, mask)
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
@@ -64,7 +65,7 @@ class LogicalApplyMaskTest(parameterized.TestCase):
             ' got a slice of INT32'
         ),
     ):
-      expr_eval.eval(kde.masking.apply_mask(ds([1, 2, 3]), ds([1, None, 3])))
+      kd.masking.apply_mask(ds([1, 2, 3]), ds([1, None, 3]))
 
   def test_repr(self):
     self.assertEqual(repr(kde.masking.apply_mask(I.x, I.y)), 'I.x & I.y')

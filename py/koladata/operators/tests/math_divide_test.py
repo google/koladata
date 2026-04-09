@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -116,7 +117,7 @@ class MathDivideTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=y)
+    result = kd.math.divide(x, y)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -129,14 +130,14 @@ class MathDivideTest(parameterized.TestCase):
             ' got a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=y)
+      kd.math.divide(x, y)
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex('shapes are not compatible'),
     ):
-      expr_eval.eval(kde.math.divide(I.x, I.z), x=x, z=z)
+      kd.math.divide(x, z)
 
     b = ds([True, False, True])
     with self.assertRaisesRegex(
@@ -146,7 +147,7 @@ class MathDivideTest(parameterized.TestCase):
             ' got a slice of BOOLEAN'
         ),
     ):
-      expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=b)
+      kd.math.divide(x, b)
 
     m = ds(
         [mask_constants.present, mask_constants.missing, mask_constants.present]
@@ -158,7 +159,7 @@ class MathDivideTest(parameterized.TestCase):
             ' got a slice of MASK'
         ),
     ):
-      expr_eval.eval(kde.math.divide(I.x, I.y), x=x, y=m)
+      kd.math.divide(x, m)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
