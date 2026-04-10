@@ -17,7 +17,9 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
+#include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 namespace {
@@ -35,6 +37,26 @@ TEST(SchemaConstants, Schemas) {
                                schema::kBytes, schema::kString, schema::kExpr,
                                schema::kItemId, schema::kObject,
                                schema::kSchema, schema::kNone));
+}
+
+TEST(SchemaConstants, AnyPrimitiveFilter) {
+  const DataSlice& any_primitive = AnyPrimitiveFilter();
+  EXPECT_EQ(any_primitive.GetSchemaImpl(), schema::kSchema);
+  EXPECT_TRUE(any_primitive.is_item());
+  EXPECT_TRUE(any_primitive.item().holds_value<internal::ObjectId>());
+  EXPECT_TRUE(any_primitive.item().value<internal::ObjectId>().IsUuid());
+}
+
+TEST(SchemaConstants, AnySchemaFilter) {
+  const DataSlice& any_schema = AnySchemaFilter();
+  EXPECT_EQ(any_schema.GetSchemaImpl(), schema::kSchema);
+  EXPECT_TRUE(any_schema.is_item());
+  EXPECT_TRUE(any_schema.item().holds_value<internal::ObjectId>());
+  EXPECT_TRUE(any_schema.item().value<internal::ObjectId>().IsUuid());
+}
+
+TEST(SchemaConstants, AnyPrimitiveAndAnySchemaAreDifferent) {
+  EXPECT_NE(AnyPrimitiveFilter().item(), AnySchemaFilter().item());
 }
 
 }  // namespace

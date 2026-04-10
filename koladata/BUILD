@@ -557,7 +557,9 @@ cc_library(
     srcs = ["schema_constants.cc"],
     hdrs = ["schema_constants.h"],
     deps = [
+        ":data_bag",
         ":data_slice",
+        ":object_factories",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "@com_google_absl//absl/base:no_destructor",
@@ -570,8 +572,10 @@ cc_test(
     name = "schema_constants_test",
     srcs = ["schema_constants_test.cc"],
     deps = [
+        ":data_slice",
         ":schema_constants",
         "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_googletest//:gtest_main",
     ],

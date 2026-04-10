@@ -21,6 +21,7 @@ from koladata.types import schema_item as _  # pylint: disable=unused-import
 # NOTE: (Re-)Create schema constants here, when `SchemaItem` is registered,
 # so that they have `SchemaItem` Python type.
 _py_misc_py_ext.add_schema_constants()
+_py_misc_py_ext.add_filter_schema_constants()
 
 
 # Primitive schemas.
@@ -39,3 +40,7 @@ ITEMID = _py_misc_py_ext.ITEMID
 OBJECT = _py_misc_py_ext.OBJECT
 SCHEMA = _py_misc_py_ext.SCHEMA
 NONE = _py_misc_py_ext.NONE
+
+# Filter schema constants.
+ANY_PRIMITIVE_FILTER = _py_misc_py_ext.ANY_PRIMITIVE_FILTER
+ANY_SCHEMA_FILTER = _py_misc_py_ext.ANY_SCHEMA_FILTER

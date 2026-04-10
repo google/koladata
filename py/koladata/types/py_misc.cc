@@ -72,6 +72,31 @@ PyObject* absl_nullable PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
   Py_RETURN_NONE;
 }
 
+PyObject* absl_nullable PyModule_AddFilterSchemaConstants(PyObject* m,
+                                                          PyObject*) {
+  arolla::python::DCheckPyGIL();
+  // Add ANY_PRIMITIVE.
+  auto py_any_primitive = arolla::python::PyObjectPtr::Own(
+      WrapPyDataSlice(DataSlice(AnyPrimitiveFilter())));
+  if (py_any_primitive == nullptr) {
+    return nullptr;
+  }
+  if (PyModule_AddObjectRef(m, "ANY_PRIMITIVE_FILTER", py_any_primitive.get()) <
+      0) {
+    return nullptr;
+  }
+  // Add ANY_SCHEMA.
+  auto py_any_schema = arolla::python::PyObjectPtr::Own(
+      WrapPyDataSlice(DataSlice(AnySchemaFilter())));
+  if (py_any_schema == nullptr) {
+    return nullptr;
+  }
+  if (PyModule_AddObjectRef(m, "ANY_SCHEMA_FILTER", py_any_schema.get()) < 0) {
+    return nullptr;
+  }
+  Py_RETURN_NONE;
+}
+
 PyObject* absl_nullable PyFlattenPyList(PyObject* /*module*/,
                                         PyObject* py_obj) {
   ASSIGN_OR_RETURN((auto [py_objects, shape]), FlattenPyList(py_obj),
@@ -103,6 +128,12 @@ const PyMethodDef kDefPyLiteral = {
 const PyMethodDef kDefPyAddSchemaConstants = {
     "add_schema_constants", PyModule_AddSchemaConstants, METH_NOARGS,
     "Creates schema constants and adds them to the module."};
+
+const PyMethodDef kDefPyAddFilterSchemaConstants = {
+    "add_filter_schema_constants", PyModule_AddFilterSchemaConstants,
+    METH_NOARGS,
+    "Creates filter schema constants (ANY_PRIMITIVE, ANY_SCHEMA) and adds them "
+    "to the module."};
 
 const PyMethodDef kDefPyFlattenPyList = {
     "flatten_py_list", PyFlattenPyList, METH_O,

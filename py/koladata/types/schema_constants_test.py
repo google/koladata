@@ -42,6 +42,20 @@ class SchemaConstantsTest(parameterized.TestCase):
     self.assertEqual(repr(schema), name)
     self.assertEqual(repr(schema.internal_as_py()), name)
 
+  @parameterized.parameters(
+      (schema_constants.ANY_PRIMITIVE_FILTER, '__ANY_PRIMITIVE__'),
+      (schema_constants.ANY_SCHEMA_FILTER, '__ANY_SCHEMA__'),
+  )
+  def test_schema_filters(self, schema_filter, name):
+    self.assertIsInstance(schema_filter, schema_item.SchemaItem)
+    self.assertStartsWith(
+        repr(schema_filter), f'DataItem({name}(), schema: SCHEMA'
+    )
+    self.assertStartsWith(
+        repr(schema_filter.internal_as_py()),
+        f'DataItem({name}(), schema: SCHEMA',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

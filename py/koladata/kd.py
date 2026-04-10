@@ -310,6 +310,15 @@ present = _same_when_tracing(_mask_constants.present)
 functor.SWITCH_DEFAULT = _same_when_tracing(_kde_operators.SWITCH_DEFAULT)  # pylint: disable=undefined-variable
 SWITCH_DEFAULT = functor.SWITCH_DEFAULT  # pylint: disable=undefined-variable
 
+# Schema filter constants.
+schema_filters = _same_when_tracing(_py_types.SimpleNamespace())
+schema_filters.ANY_PRIMITIVE = _same_when_tracing(  # pylint: disable=undefined-variable
+    _schema_constants.ANY_PRIMITIVE_FILTER
+)
+schema_filters.ANY_SCHEMA = _same_when_tracing(  # pylint: disable=undefined-variable
+    _schema_constants.ANY_SCHEMA_FILTER
+)
+
 ### Public submodules.
 
 testing = _eager_only(_testing)

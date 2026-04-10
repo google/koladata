@@ -25,6 +25,9 @@ extern const PyMethodDef kDefPyLiteral;
 // def add_schema_constants(...)
 extern const PyMethodDef kDefPyAddSchemaConstants;
 
+// def add_filter_schema_constants(...)
+extern const PyMethodDef kDefPyAddFilterSchemaConstants;
+
 // def flatten_py_list(...)
 extern const PyMethodDef kDefPyFlattenPyList;
 

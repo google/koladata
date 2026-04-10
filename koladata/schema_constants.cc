@@ -20,9 +20,11 @@
 #include "absl/base/no_destructor.h"
 #include "absl/types/span.h"
 #include "arolla/util/meta.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/object_factories.h"
 
 namespace koladata {
 
@@ -44,6 +46,20 @@ absl::Span<const DataSlice> SupportedSchemas() {
   static const absl::NoDestructor<std::vector<DataSlice>> supported_schemas(
       create_schemas());
   return *supported_schemas;
+}
+
+const DataSlice& AnyPrimitiveFilter() {
+  static const absl::NoDestructor<DataSlice> kSchema(
+      CreateNamedSchema(DataBag::EmptyMutable(), "__ANY_PRIMITIVE__", {}, {})
+          ->FreezeBag());  // NOLINT
+  return *kSchema;
+}
+
+const DataSlice& AnySchemaFilter() {
+  static const absl::NoDestructor<DataSlice> kSchema(
+      CreateNamedSchema(DataBag::EmptyMutable(), "__ANY_SCHEMA__", {}, {})
+          ->FreezeBag());  // NOLINT
+  return *kSchema;
 }
 
 }  // namespace koladata

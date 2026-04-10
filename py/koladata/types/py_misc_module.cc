@@ -27,6 +27,7 @@ PyMODINIT_FUNC PyInit_py_misc_py_ext(void) {
   static PyMethodDef py_methods[] = {
       kDefPyLiteral,
       kDefPyAddSchemaConstants,
+      kDefPyAddFilterSchemaConstants,
       kDefPyFlattenPyList,
       kDefPyGetJaggedShapeQType,
       {nullptr} /* sentinel */

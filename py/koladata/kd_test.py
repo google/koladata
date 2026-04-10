@@ -80,9 +80,15 @@ class KdTest(absltest.TestCase):
   def test_schema_constants(self):
     for const in dir(schema_constants):
       if isinstance(getattr(schema_constants, const), arolla.QValue):
-        kd.testing.assert_equal(
-            getattr(schema_constants, const), getattr(kd, const)
-        )
+        if not const.endswith('_FILTER'):
+          kd.testing.assert_equal(
+              getattr(schema_constants, const), getattr(kd, const)
+          )
+        else:
+          kd.testing.assert_equal(
+              getattr(schema_constants, const),
+              getattr(kd.schema_filters, const[: -len('_FILTER')]),
+          )
 
   def test_mask_constants(self):
     self.assertEqual(kd.present.get_schema(), kd.MASK)

@@ -23,6 +23,14 @@ namespace koladata {
 // Returns all defined Schema constants as Schema slices.
 absl::Span<const DataSlice> SupportedSchemas();
 
+// Returns the ANY_PRIMITIVE filter schema constant as a DataSlice.
+// This is a named schema used in schema filters to match any primitive type.
+const DataSlice& AnyPrimitiveFilter();
+
+// Returns the ANY_SCHEMA filter schema constant as a DataSlice.
+// This is a named schema used in schema filters to match any schema type.
+const DataSlice& AnySchemaFilter();
+
 }  // namespace koladata
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_CONSTANTS_H_
