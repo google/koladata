@@ -17,13 +17,13 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -35,6 +35,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -51,7 +52,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
         m, schema=proto_conversions.schema_from_proto(type(m))
     )
 
-    result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
+    result = kd.proto.get_proto_attr(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds('aaa'))
 
   def test_from_proto_present_uses_value(self):
@@ -60,7 +61,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
         m, schema=proto_conversions.schema_from_proto(type(m))
     )
 
-    result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
+    result = kd.proto.get_proto_attr(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds('hello'))
 
   def test_from_proto_slice(self):
@@ -72,7 +73,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
         schema=proto_conversions.schema_from_proto(test_pb2.MessageA),
     )
 
-    result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
+    result = kd.proto.get_proto_attr(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds(['aaa', 'hello']))
 
   def test_from_proto_object_slice(self):
@@ -86,7 +87,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
         )
     )
 
-    result = expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'some_text'))
+    result = kd.proto.get_proto_attr(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds(['aaa', 'hello']))
 
   def test_from_proto_non_scalar_field(self):
@@ -98,9 +99,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
         schema=proto_conversions.schema_from_proto(test_pb2.MessageA),
     )
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_attr(kd_m, 'message_b_list')[:].text
-    )
+    result = kd.proto.get_proto_attr(kd_m, 'message_b_list')[:].text
     testing.assert_equal(result.no_bag(), ds([[], ['x']]))
 
   def test_from_proto_bool_to_mask(self):
@@ -114,15 +113,15 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
     kd_m_true = proto_conversions.from_proto(m_true, schema=schema)
 
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_unset, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_unset, 'bool_field'),
         mask_constants.missing,
     )
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_false, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_false, 'bool_field'),
         mask_constants.missing,
     )
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_true, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_true, 'bool_field'),
         mask_constants.present,
     )
 
@@ -137,15 +136,15 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
     kd_m_true = proto_conversions.from_proto(m_true, schema=schema)
 
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_unset, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_unset, 'bool_field'),
         mask_constants.missing,
     )
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_false, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_false, 'bool_field'),
         mask_constants.missing,
     )
     testing.assert_equal(
-        expr_eval.eval(kde.proto.get_proto_attr(kd_m_true, 'bool_field')),
+        kd.proto.get_proto_attr(kd_m_true, 'bool_field'),
         mask_constants.present,
     )
 
@@ -158,7 +157,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
             ' SCHEMA DataItem with primitive BOOLEAN'
         ),
     ):
-      expr_eval.eval(kde.proto.get_proto_attr(False, 'field'))
+      kd.proto.get_proto_attr(False, 'field')
 
   def test_nonexistent_field(self):
     m = test_pb2.MessageA()
@@ -172,7 +171,7 @@ class ProtoGetProtoAttrTest(parameterized.TestCase):
             " attribute 'foo' is missing on the schema."
         ),
     ):
-      expr_eval.eval(kde.proto.get_proto_attr(kd_m, 'foo'))
+      kd.proto.get_proto_attr(kd_m, 'foo')
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

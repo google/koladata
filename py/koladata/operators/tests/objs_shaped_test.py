@@ -18,6 +18,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,6 +31,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -50,14 +52,14 @@ class ObjsShapedTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    x = kde.objs.shaped(shape).eval()
+    x = kd.objs.shaped(shape)
     testing.assert_equal(x.get_shape(), shape)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape = jagged_shape.create_shape()
-    x = kde.objs.shaped(shape).eval()
+    x = kd.objs.shaped(shape)
     self.assertTrue(x.has_bag())
     testing.assert_equal(x.get_shape(), shape)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
@@ -65,7 +67,7 @@ class ObjsShapedTest(absltest.TestCase):
 
   def test_with_attrs(self):
     shape = jagged_shape.create_shape(2, 3)
-    x = kde.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6])).eval()
+    x = kd.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
     testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
@@ -78,17 +80,15 @@ class ObjsShapedTest(absltest.TestCase):
     self.assertFalse(x.is_mutable())
 
   def test_itemid(self):
-    itemid = expr_eval.eval(
-        kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
-    )
-    x = kde.objs.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
+    itemid = kd.allocation.new_itemid_shaped_as(ds([[1, 1], [1]]))
+    x = kd.objs.shaped(itemid.get_shape(), a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_itemid_from_different_bag(self):
     itemid = fns.new(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.has_bag()
-    x = kde.objs.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
+    x = kd.objs.shaped(itemid.get_shape(), a=42, itemid=itemid)
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
         arolla.testing.any_cause_message_regex(
@@ -101,20 +101,16 @@ class ObjsShapedTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, "missing 1 required positional argument: 'shape'"
     ):
-      _ = kde.objs.shaped().eval()
+      _ = kd.objs.shaped()
 
   def test_fails_with_dataslice_input(self):
     with self.assertRaisesRegex(ValueError, 'expected JAGGED_SHAPE'):
-      _ = kde.objs.shaped(ds(0)).eval()
+      _ = kd.objs.shaped(ds(0))
 
   def test_non_determinism(self):
     shape = jagged_shape.create_shape(2, 3)
-    res_1 = expr_eval.eval(
-        kde.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
-    )
-    res_2 = expr_eval.eval(
-        kde.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
-    )
+    res_1 = kd.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
+    res_2 = kd.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )

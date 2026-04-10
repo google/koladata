@@ -18,6 +18,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 DATA_SLICE = qtypes.DATA_SLICE
@@ -48,14 +50,14 @@ class ObjsLikeTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape_and_mask_from = ds([6, 7, 8], schema_constants.INT32)
-    x = kde.objs.like(shape_and_mask_from).eval()
+    x = kd.objs.like(shape_and_mask_from)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape_and_mask_from = ds(0)
-    x = kde.objs.like(shape_and_mask_from).eval()
+    x = kd.objs.like(shape_and_mask_from)
     self.assertTrue(x.has_bag())
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
@@ -63,9 +65,9 @@ class ObjsLikeTest(absltest.TestCase):
 
   def test_with_attrs(self):
     shape_and_mask_from = ds([[6, 7, 8], [6, 7, 8]])
-    x = kde.objs.like(
+    x = kd.objs.like(
         shape_and_mask_from, x=2, a=1, b='p', c=fns.list([5, 6])
-    ).eval()
+    )
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
@@ -82,42 +84,42 @@ class ObjsLikeTest(absltest.TestCase):
     self.assertFalse(x.is_mutable())
 
   def test_sparsity_item_with_empty_attr(self):
-    x = kde.objs.like(ds(None), a=42).eval()
+    x = kd.objs.like(ds(None), a=42)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
+        kd.has(x).no_bag(), ds(None, schema_constants.MASK)
     )
 
   def test_sparsity_all_empty_slice(self):
-    x = kde.objs.like(ds([None, None]), a=42).eval()
+    x = kd.objs.like(ds([None, None]), a=42)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)
+        kd.has(x).no_bag(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(x.a, ds([None, None]).with_bag(x.get_bag()))
 
   def test_adopt_bag(self):
-    x = kde.objs.like(ds(1), a='abc').eval()
-    y = kde.objs.like(x, x=x).eval()
+    x = kd.objs.like(ds(1), a='abc')
+    y = kd.objs.like(x, x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_itemid())
+    itemid = kd.allocation.new_itemid()
 
     with self.subTest('present DataItem and present itemid'):
-      x = expr_eval.eval(kde.objs.like(ds(1), a=42, itemid=itemid))
+      x = kd.objs.like(ds(1), a=42, itemid=itemid)
       testing.assert_equal(
           x.no_bag(), itemid.with_schema(x.get_schema()).no_bag()
       )
 
     with self.subTest('missing DataItem and missing itemid'):
-      x = expr_eval.eval(kde.objs.like(ds(None), a=42, itemid=(itemid & None)))
+      x = kd.objs.like(ds(None), a=42, itemid=(itemid & None))
       self.assertTrue(x.is_empty())
 
     with self.subTest('missing DataItem and present itemid'):
-      x = expr_eval.eval(kde.objs.like(ds(None), a=42, itemid=itemid))
+      x = kd.objs.like(ds(None), a=42, itemid=itemid)
       self.assertTrue(x.is_empty())
 
     with self.subTest('present DataItem and missing itemid'):
@@ -125,17 +127,15 @@ class ObjsLikeTest(absltest.TestCase):
           ValueError,
           'kd.objs.like: `itemid` only has 0 present items but 1 are required',
       ):
-        _ = expr_eval.eval(kde.objs.like(ds(1), a=42, itemid=(itemid & None)))
+        _ = kd.objs.like(ds(1), a=42, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_itemid())
-    id2 = expr_eval.eval(kde.allocation.new_itemid())
-    id3 = expr_eval.eval(kde.allocation.new_itemid())
+    id1 = kd.allocation.new_itemid()
+    id2 = kd.allocation.new_itemid()
+    id3 = kd.allocation.new_itemid()
 
     with self.subTest('full DataSlice and full itemid'):
-      x = expr_eval.eval(
-          kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
-      )
+      x = kd.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x.no_bag(),
           ds([id1, id2, id3]).with_schema(x.get_schema()).no_bag(),
@@ -146,23 +146,17 @@ class ObjsLikeTest(absltest.TestCase):
           ValueError,
           'kd.objs.like: `itemid` only has 2 present items but 3 are required',
       ):
-        _ = expr_eval.eval(
-            kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
-        )
+        _ = kd.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
           ValueError,
           'kd.objs.like: `itemid` cannot have duplicate ItemIds',
       ):
-        _ = expr_eval.eval(
-            kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
-        )
+        _ = kd.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
 
     with self.subTest('sparse DataSlice and sparse itemid'):
-      x = expr_eval.eval(
-          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
-      )
+      x = kd.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
       testing.assert_equal(
           x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
@@ -175,14 +169,10 @@ class ObjsLikeTest(absltest.TestCase):
           'kd.objs.like: `itemid` and `shape_and_mask_from` must have the same'
           ' sparsity',
       ):
-        _ = expr_eval.eval(
-            kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
-        )
+        _ = kd.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
 
     with self.subTest('sparse DataSlice and full itemid'):
-      x = expr_eval.eval(
-          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
-      )
+      x = kd.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
       testing.assert_equal(
           x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
@@ -192,16 +182,12 @@ class ObjsLikeTest(absltest.TestCase):
           ValueError,
           'kd.objs.like: `itemid` cannot have duplicate ItemIds',
       ):
-        _ = expr_eval.eval(
-            kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))
-        )
+        _ = kd.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))
 
     with self.subTest(
         'sparse DataSlice and full itemid with unused duplicates'
     ):
-      x = expr_eval.eval(
-          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
-      )
+      x = kd.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
       testing.assert_equal(
           x.no_bag(), ds([id1, None, id3]).with_schema(x.get_schema()).no_bag()
       )
@@ -210,7 +196,7 @@ class ObjsLikeTest(absltest.TestCase):
     itemid = fns.obj(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.has_bag()
     # Successful.
-    x = expr_eval.eval(kde.objs.like(ds([[1, None], [1]]), a=42, itemid=itemid))
+    x = kd.objs.like(ds([[1, None], [1]]), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -225,16 +211,16 @@ class ObjsLikeTest(absltest.TestCase):
         TypeError,
         "missing 1 required positional argument: 'shape_and_mask_from'",
     ):
-      _ = kde.objs.like().eval()
+      _ = kd.objs.like()
 
   def test_fails_with_shape_input(self):
     with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
-      _ = kde.objs.like(ds(0).get_shape()).eval()
+      _ = kd.objs.like(ds(0).get_shape())
 
   def test_non_determinism(self):
     x = ds([1, None, 3])
-    res_1 = expr_eval.eval(kde.objs.like(x, a=5))
-    res_2 = expr_eval.eval(kde.objs.like(x, a=5))
+    res_1 = kd.objs.like(x, a=5)
+    res_2 = kd.objs.like(x, a=5)
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )

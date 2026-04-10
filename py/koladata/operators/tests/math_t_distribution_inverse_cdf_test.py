@@ -26,7 +26,7 @@ from scipy import stats
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = test_qtypes.DATA_SLICE
 

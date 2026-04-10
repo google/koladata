@@ -17,13 +17,13 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -34,6 +34,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -48,89 +49,59 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds('aaa'))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_float')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_float')
     testing.assert_allclose(result.no_bag(), ds(123.4))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
     testing.assert_equivalent(result.no_bag(), ds(None))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
     testing.assert_equivalent(result.no_bag(), ds(None))
 
   def test_from_proto_slice(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto([m, m])
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds(['aaa', 'aaa']))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_float')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_float')
     testing.assert_allclose(result.no_bag(), ds([123.4, 123.4]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
     testing.assert_equivalent(result.no_bag(), ds([None, None]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
     testing.assert_equivalent(result.no_bag(), ds([None, None]))
 
   def test_from_proto_object_slice(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = fns.obj(proto_conversions.from_proto([m, m]))
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_text')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_text')
     testing.assert_equal(result.no_bag(), ds(['aaa', 'aaa']))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'some_float')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'some_float')
     testing.assert_allclose(result.no_bag(), ds([123.4, 123.4]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'message_b_list')
     testing.assert_equivalent(result.no_bag(), ds([None, None]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m, 'nonexistent_field')
     testing.assert_equivalent(result.no_bag(), ds([None, None]))
 
   def test_from_proto_schema(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m.get_schema(), 'some_text')
+    result = kd.proto.get_proto_field_custom_default(
+        kd_m.get_schema(), 'some_text'
     )
     testing.assert_equal(result.no_bag(), ds('aaa'))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            kd_m.get_schema(), 'some_float'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        kd_m.get_schema(), 'some_float'
     )
     testing.assert_allclose(result.no_bag(), ds(123.4))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            kd_m.get_schema(), 'message_b_list'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        kd_m.get_schema(), 'message_b_list'
     )
     testing.assert_equal(result.no_bag(), ds(None))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            kd_m.get_schema(), 'nonexistent_field'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        kd_m.get_schema(), 'nonexistent_field'
     )
     testing.assert_equivalent(result.no_bag(), ds(None))
 
@@ -138,28 +109,20 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
 
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            ds([kd_m.get_schema(), kd_m.get_schema()]), 'some_text'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        ds([kd_m.get_schema(), kd_m.get_schema()]), 'some_text'
     )
     testing.assert_equal(result.no_bag(), ds(['aaa', 'aaa']))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            ds([kd_m.get_schema(), kd_m.get_schema()]), 'some_float'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        ds([kd_m.get_schema(), kd_m.get_schema()]), 'some_float'
     )
     testing.assert_allclose(result.no_bag(), ds([123.4, 123.4]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            ds([kd_m.get_schema(), kd_m.get_schema()]), 'message_b_list'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        ds([kd_m.get_schema(), kd_m.get_schema()]), 'message_b_list'
     )
     testing.assert_equal(result.no_bag(), ds([None, None]))
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(
-            ds([kd_m.get_schema(), kd_m.get_schema()]), 'nonexistent_field'
-        )
+    result = kd.proto.get_proto_field_custom_default(
+        ds([kd_m.get_schema(), kd_m.get_schema()]), 'nonexistent_field'
     )
     testing.assert_equal(result.no_bag(), ds([None, None]))
 
@@ -172,14 +135,12 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
             ' SCHEMA DataItem with primitive BOOLEAN'
         ),
     ):
-      expr_eval.eval(kde.proto.get_proto_attr(False, 'field'))
+      kd.proto.get_proto_attr(False, 'field')
 
   def test_nonexistent_field(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
-    result = expr_eval.eval(
-        kde.proto.get_proto_field_custom_default(kd_m.get_schema(), 'foo')
-    )
+    result = kd.proto.get_proto_field_custom_default(kd_m.get_schema(), 'foo')
     testing.assert_equal(result.no_bag(), ds(None))
 
   def test_qtype_signatures(self):

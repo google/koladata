@@ -17,13 +17,13 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -34,6 +34,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -47,7 +48,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
   def test_from_proto(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
-    result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
+    result = kd.proto.get_proto_full_name(kd_m)
     testing.assert_equal(
         result.no_bag(), ds('koladata.functions.testing.MessageA')
     )
@@ -55,7 +56,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
   def test_from_proto_slice(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto([m, None, m])
-    result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
+    result = kd.proto.get_proto_full_name(kd_m)
     testing.assert_equal(
         result.no_bag(),
         ds([
@@ -73,7 +74,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
         None,
         fns.obj(proto_conversions.from_proto(m2)),
     ])
-    result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m))
+    result = kd.proto.get_proto_full_name(kd_m)
     testing.assert_equal(
         result.no_bag(),
         ds([
@@ -86,7 +87,7 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
   def test_from_proto_schema(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
-    result = expr_eval.eval(kde.proto.get_proto_full_name(kd_m.get_schema()))
+    result = kd.proto.get_proto_full_name(kd_m.get_schema())
     testing.assert_equal(
         result.no_bag(), ds('koladata.functions.testing.MessageA')
     )
@@ -94,10 +95,8 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
   def test_from_proto_schema_slice(self):
     m = test_pb2.MessageA(some_text='hello')
     kd_m = proto_conversions.from_proto(m)
-    result = expr_eval.eval(
-        kde.proto.get_proto_full_name(
-            ds([kd_m.get_schema(), kd_m.get_schema()])
-        )
+    result = kd.proto.get_proto_full_name(
+        ds([kd_m.get_schema(), kd_m.get_schema()])
     )
     testing.assert_equal(
         result.no_bag(),
@@ -109,18 +108,18 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
 
   def test_entity_not_from_proto(self):
     # Regular entity DataSlice
-    result = expr_eval.eval(kde.proto.get_proto_full_name(fns.new()))
+    result = kd.proto.get_proto_full_name(fns.new())
     testing.assert_equal(result.no_bag(), ds(None))
 
   def test_none_not_from_proto(self):
-    result = expr_eval.eval(kde.proto.get_proto_full_name(None))
+    result = kd.proto.get_proto_full_name(None)
     testing.assert_equal(result.no_bag(), ds(None))
 
   def test_non_entity(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('primitives do not have attributes')
     ):
-      expr_eval.eval(kde.proto.get_proto_full_name(123))
+      kd.proto.get_proto_full_name(123)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

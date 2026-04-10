@@ -383,8 +383,10 @@ OPERATOR_FAMILY("kd.objs.shaped",
                      std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
 //
-OPERATOR("kd.proto._from_proto_bytes", FromProtoBytes);
-OPERATOR("kd.proto._from_proto_json", FromProtoJson);
+OPERATOR("kd.proto._from_proto_bytes", FromProtoBytes,
+         "kd.proto.from_proto_bytes");
+OPERATOR("kd.proto._from_proto_json", FromProtoJson,
+         "kd.proto.from_proto_json");
 OPERATOR("kd.proto.get_proto_attr", GetProtoAttr);
 OPERATOR("kd.proto.get_proto_field_custom_default", GetProtoFieldCustomDefault);
 OPERATOR("kd.proto.get_proto_full_name", GetProtoFullName);

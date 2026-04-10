@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -29,6 +30,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -50,10 +52,10 @@ QTYPES = frozenset(generate_qtypes())
 class RandomRandintShapedTest(parameterized.TestCase):
 
   def assert_shape_and_range(self, res, shape, low, high):
-    testing.assert_equal(expr_eval.eval(kde.shapes.get_shape(res)), shape)
+    testing.assert_equal(kd.shapes.get_shape(res), shape)
     # Test all result items are present and within the range[low, high).
-    testing.assert_equal(expr_eval.eval(kde.all(res >= low)), present)
-    testing.assert_equal(expr_eval.eval(kde.all(res < high)), present)
+    testing.assert_equal(kd.all(res >= low), present)
+    testing.assert_equal(kd.all(res < high), present)
 
   @parameterized.parameters(
       (jagged_shape.create_shape(),),
@@ -65,27 +67,27 @@ class RandomRandintShapedTest(parameterized.TestCase):
     high = 500
 
     with self.subTest('without low and high'):
-      res = expr_eval.eval(kde.random.randint_shaped(shape))
+      res = kd.random.randint_shaped(shape)
       self.assert_shape_and_range(res, shape, 0, 2**63 - 1)
 
     with self.subTest('with high'):
       # Set high as positional argument
-      res = expr_eval.eval(kde.random.randint_shaped(shape, high))
+      res = kd.random.randint_shaped(shape, high)
       self.assert_shape_and_range(res, shape, 0, high)
 
       # Set high as keyword argument
-      res = expr_eval.eval(kde.random.randint_shaped(shape, high=high))
+      res = kd.random.randint_shaped(shape, high=high)
       self.assert_shape_and_range(res, shape, 0, high)
 
     with self.subTest('with low and high'):
-      res = expr_eval.eval(kde.random.randint_shaped(shape, low, high))
+      res = kd.random.randint_shaped(shape, low, high)
       self.assert_shape_and_range(res, shape, low, high)
 
   def test_eval_with_seed(self):
     shape = jagged_shape.create_shape([2], [100, 200])
-    res1 = expr_eval.eval(kde.random.randint_shaped(shape, seed=123))
-    res2 = expr_eval.eval(kde.random.randint_shaped(shape, seed=123))
-    res3 = expr_eval.eval(kde.random.randint_shaped(shape, seed=456))
+    res1 = kd.random.randint_shaped(shape, seed=123)
+    res2 = kd.random.randint_shaped(shape, seed=123)
+    res3 = kd.random.randint_shaped(shape, seed=456)
     testing.assert_equal(res1, res2)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
@@ -94,7 +96,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
     expr = kde.random.randint_shaped_as(x)
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
-    res3 = expr_eval.eval(kde.random.randint_shaped_as(x))
+    res3 = kd.random.randint_shaped_as(x)
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
@@ -108,7 +110,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
             'FLOAT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, 0.5))
+      _ = kd.random.randint_shaped(shape, 0.5)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -117,7 +119,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
             'FLOAT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, 0.5, 2))
+      _ = kd.random.randint_shaped(shape, 0.5, 2)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -126,7 +128,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
             'FLOAT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, 5, 10.5))
+      _ = kd.random.randint_shaped(shape, 5, 10.5)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -135,7 +137,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
             'FLOAT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, seed=10.5))
+      _ = kd.random.randint_shaped(shape, seed=10.5)
 
   def test_invalid_range(self):
     shape = jagged_shape.create_shape([2], [2, 1])
@@ -143,12 +145,12 @@ class RandomRandintShapedTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('low=10 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, 10, 10))
+      _ = kd.random.randint_shaped(shape, 10, 10)
 
     with self.assertRaisesRegex(
         ValueError, re.escape('low=20 must be less than high=10')
     ):
-      _ = expr_eval.eval(kde.random.randint_shaped(shape, 20, 10))
+      _ = kd.random.randint_shaped(shape, 20, 10)
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.

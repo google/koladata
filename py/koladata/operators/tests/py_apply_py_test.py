@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import object_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import data_slice
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class PyApplyPyTest(parameterized.TestCase):
@@ -38,7 +39,7 @@ class PyApplyPyTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds([4, 5, 6])
     testing.assert_equal(
-        expr_eval.eval(kde.py.apply_py(lambda x, y: x + y, x, y)),
+        kd.py.apply_py(lambda x, y: x + y, x, y),
         ds([5, 7, 9]),
     )
 
@@ -46,7 +47,7 @@ class PyApplyPyTest(parameterized.TestCase):
     x = ds(1)
     y = ds([1, 2, None])
     testing.assert_equal(
-        expr_eval.eval(kde.py.apply_py(lambda x, y: x + y, x, y)),
+        kd.py.apply_py(lambda x, y: x + y, x, y),
         ds([2, 3, None]),
     )
 
@@ -54,7 +55,7 @@ class PyApplyPyTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds([4, 5, 6])
     testing.assert_equal(
-        expr_eval.eval(kde.py.apply_py(lambda x, y: x + y, y=y, x=x)),
+        kd.py.apply_py(lambda x, y: x + y, y=y, x=x),
         ds([5, 7, 9]),
     )
 
@@ -73,7 +74,7 @@ class PyApplyPyTest(parameterized.TestCase):
 
     with self.subTest('default_values'):
       bound_args = {}
-      expr_eval.eval(kde.py.apply_py(fn))
+      kd.py.apply_py(fn)
       self.assertEqual(
           bound_args,
           {
@@ -87,7 +88,7 @@ class PyApplyPyTest(parameterized.TestCase):
 
     with self.subTest('generic'):
       bound_args = {}
-      expr_eval.eval(kde.py.apply_py(fn, 10, 11, 12, 13, x=14, pos_only=15))
+      kd.py.apply_py(fn, 10, 11, 12, 13, x=14, pos_only=15)
       self.assertEqual(
           bound_args,
           {
@@ -101,7 +102,7 @@ class PyApplyPyTest(parameterized.TestCase):
 
   def test_result_boxing(self):
     testing.assert_equal(
-        expr_eval.eval(kde.py.apply_py(lambda: 1)),
+        kd.py.apply_py(lambda: 1),
         ds(1),
     )
 
@@ -112,7 +113,7 @@ class PyApplyPyTest(parameterized.TestCase):
             re.escape('expected a python callable, got fn=PyObject{{}}')
         ),
     ):
-      expr_eval.eval(kde.py.apply_py(arolla.abc.PyObject({})))
+      kd.py.apply_py(arolla.abc.PyObject({}))
 
   def test_error_unexpected_return_type(self):
     with self.assertRaisesWithPredicateMatch(
@@ -125,7 +126,7 @@ class PyApplyPyTest(parameterized.TestCase):
             )
         ),
     ):
-      expr_eval.eval(kde.py.apply_py(lambda: arolla.tuple(1)))
+      kd.py.apply_py(lambda: arolla.tuple(1))
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -134,24 +135,15 @@ class PyApplyPyTest(parameterized.TestCase):
             )
         ),
     ):
-      expr_eval.eval(
-          kde.py.apply_py(
-              lambda: arolla.tuple(1), return_type_as=data_bag.DataBag
-          )
-      )
+
+      kd.py.apply_py(lambda: arolla.tuple(1), return_type_as=data_bag.DataBag)
 
   def test_explicit_return_type(self):
     testing.assert_equal(
-        expr_eval.eval(
-            kde.py.apply_py(
-                lambda: arolla.tuple(1), return_type_as=arolla.tuple(2)
-            )
-        ),
+        kd.py.apply_py(lambda: arolla.tuple(1), return_type_as=arolla.tuple(2)),
         arolla.tuple(1),
     )
-    res = expr_eval.eval(
-        kde.py.apply_py(lambda: object_factories.mutable_bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
-    )
+    res = kd.py.apply_py(lambda: object_factories.mutable_bag(), return_type_as=data_bag.DataBag)  # pylint: disable=unnecessary-lambda
     self.assertIsInstance(res, data_bag.DataBag)
 
   # Note: We cannot test the qtype signatures of this operator
@@ -175,7 +167,6 @@ class PyApplyPyTest(parameterized.TestCase):
     def foo(x):
       return x + I.x
 
-    expr = kde.py.apply_py(foo, ds(1))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -183,7 +174,7 @@ class PyApplyPyTest(parameterized.TestCase):
             f' an Expr: {ds(1) + I.x}'
         ),
     ):
-      expr_eval.eval(expr)
+      kd.py.apply_py(foo, ds(1))
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_note_regex(
@@ -192,7 +183,7 @@ class PyApplyPyTest(parameterized.TestCase):
             )
         ),
     ):
-      expr_eval.eval(expr)
+      kd.py.apply_py(foo, ds(1))
 
 
 if __name__ == '__main__':

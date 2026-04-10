@@ -17,12 +17,12 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import proto_conversions
 from koladata.functions.tests import test_cc_proto_py_ext as _
 from koladata.functions.tests import test_pb2
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -34,6 +34,7 @@ from koladata.types import qtypes
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -46,8 +47,8 @@ QTYPES = frozenset([
 class ProtoSchemaFromProtoPathTest(parameterized.TestCase):
 
   def test_simple(self):
-    result = expr_eval.eval(
-        kde.proto.schema_from_proto_path('koladata.functions.testing.MessageA')
+    result = kd.proto.schema_from_proto_path(
+        'koladata.functions.testing.MessageA'
     )
     testing.assert_equal(
         result.no_bag(),
@@ -56,13 +57,11 @@ class ProtoSchemaFromProtoPathTest(parameterized.TestCase):
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_extensions(self):
-    result = expr_eval.eval(
-        kde.proto.schema_from_proto_path(
-            'koladata.functions.testing.MessageA',
-            extensions=ds([
-                '(koladata.functions.testing.MessageAExtension.message_a_extension)'
-            ]),
-        )
+    result = kd.proto.schema_from_proto_path(
+        'koladata.functions.testing.MessageA',
+        extensions=ds([
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        ]),
     )
     testing.assert_equal(
         result.no_bag(),
@@ -86,7 +85,7 @@ class ProtoSchemaFromProtoPathTest(parameterized.TestCase):
             ' found in C++ generated descriptor pool'
         ),
     ):
-      expr_eval.eval(kde.proto.schema_from_proto_path('not.a.Message'))
+      kd.proto.schema_from_proto_path('not.a.Message')
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

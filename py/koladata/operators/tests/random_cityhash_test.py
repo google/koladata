@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -32,6 +31,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -73,8 +73,8 @@ class RandomCityhashTest(parameterized.TestCase):
       (ds([]),),
   )
   def test_eval_all_missing_or_empty(self, x):
-    hash_1 = expr_eval.eval(kde.random.cityhash(x, 123))
-    hash_2 = expr_eval.eval(kde.random.cityhash(x, 123))
+    hash_1 = kd.random.cityhash(x, 123)
+    hash_2 = kd.random.cityhash(x, 123)
     testing.assert_equal(hash_1, hash_2)
     self.assertEqual(hash_1.get_size(), x.get_size())
     self.assertEqual(hash_1.get_present_count(), 0)
@@ -89,7 +89,7 @@ class RandomCityhashTest(parameterized.TestCase):
             'STRING'
         ),
     ):
-      _ = expr_eval.eval(kde.random.cityhash(x, 'a'))
+      _ = kd.random.cityhash(x, 'a')
 
     with self.assertRaisesRegex(
         ValueError,
@@ -98,7 +98,7 @@ class RandomCityhashTest(parameterized.TestCase):
             'rank 1 > 0'
         ),
     ):
-      _ = expr_eval.eval(kde.random.cityhash(x, ds([123, 456])))
+      _ = kd.random.cityhash(x, ds([123, 456]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

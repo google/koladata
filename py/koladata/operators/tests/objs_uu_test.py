@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -29,6 +29,7 @@ M = arolla.M
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class ObjsUuTest(parameterized.TestCase):
@@ -72,8 +73,8 @@ class ObjsUuTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.objs.uu(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.objs.uu(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.objs.uu(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.objs.uu(seed=rhs_seed, **rhs_kwargs)
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
@@ -110,31 +111,31 @@ class ObjsUuTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.objs.uu(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.objs.uu(seed=rhs_seed, **rhs_kwargs))
+    lhs = kd.objs.uu(seed=lhs_seed, **lhs_kwargs)
+    rhs = kd.objs.uu(seed=rhs_seed, **rhs_kwargs)
     self.assertNotEqual(
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.objs.uu(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.objs.uu('', a=ds(1), b=ds(2)))
+    lhs = kd.objs.uu(a=ds(1), b=ds(2))
+    rhs = kd.objs.uu('', a=ds(1), b=ds(2))
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.objs.uu())
-    rhs = expr_eval.eval(kde.objs.uu(''))
+    lhs = kd.objs.uu()
+    rhs = kd.objs.uu('')
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.objs.uu(ds('1'), ds('a')))
+      _ = kd.objs.uu(ds('1'), ds('a'))
 
   def test_bag_adoption(self):
-    a = expr_eval.eval(kde.objs.uu(a=1))
-    b = expr_eval.eval(kde.objs.uu(a=a))
+    a = kd.objs.uu(a=1)
+    b = kd.objs.uu(a=a)
     testing.assert_equal(b.a.a, ds(1).with_bag(b.get_bag()))
 
   @parameterized.parameters(
@@ -168,7 +169,7 @@ class ObjsUuTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.objs.uu(seed=seed, **kwargs))
+      _ = kd.objs.uu(seed=seed, **kwargs)
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
