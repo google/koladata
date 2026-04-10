@@ -649,6 +649,61 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
+### `kd.functor.sub_by_name(functor: Any, replacements: dict[str, Any] | list[tuple[str, Any]], *, ignore_signature_checks: bool = False) -> Any` {#kd.functor.sub_by_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Replaces variables on the functor graph, matching by their names.
+
+Traverses the entire graph of a non-recursive functor, including subfunctors,
+replacing variables on each functor with the provided replacements. Matching
+is done by name, and can match both variables like kd.V.x and subfunctors.
+
+Only variables are replaced. No inputs or arbitrary operations within the
+functor are performed. All values passed as replacement must be eager values.
+
+When replacing functors, we require that both the original and the replacement
+have a compatible signature, so that the program structure remains valid.
+
+Also, there must not be two different variables with the same name in the
+functor subtree. In this case, we raise a ValueError, because both would be
+pointing to the same new value, likely causing hard to debug issues.
+
+Examples:
+
+1. Replacing vars.
+f = kd.fn(lambda y: kd.with_name(1, &#39;x&#39;) + y)
+f_new = kd.functor.sub_by_name(f, {&#39;x&#39;: 5})
+f_new(1)  # Returns 6
+
+2. Replacing subfunctors.
+@kd.trace_as_fn
+def double(x):
+  return x * 2
+
+@kd.trace_as_fn()
+def halve(x):
+  return x / 2
+
+f = kd.fn(lambda x: double(x) + 1)
+f_new = kd.functor.sub_by_name(f, {&#39;double&#39;: kd.fn(halve)})
+f(10)      # Returns 21
+f_new(10)  # Returns 6.0 (with schema kd.FLOAT32)
+
+3. Variable name collision
+g = kd.fn(lambda y: kd.with_name(1, &#39;x&#39;) + y)
+h = kd.fn(lambda y: kd.with_name(1000, &#39;x&#39;) * y)
+f = kd.fn(lambda y: g(y) + h(y))
+kd.functor.sub_by_name(f, {&#39;x&#39;: 5})  # ValueError: two different `x` found.
+
+Args:
+  functor: The root functor to modify.
+  replacements: A dictionary or list of pairs mapping names to their new
+    values/functors.
+  ignore_signature_checks: If True, bypasses signature validation for
+    subfunctor replacements.
+
+Returns:
+  The new functor with recursively updated dependencies.</code></pre>
+
 ### `kd.functor.switch(key, cases, *args, return_type_as=None, **kwargs)` {#kd.functor.switch}
 Aliases:
 

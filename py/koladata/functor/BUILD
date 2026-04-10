@@ -90,9 +90,25 @@ py_library(
     srcs = ["functions.py"],
     deps = [
         ":functor_factories",
+        ":sub_by_name",
         ":tracing_decorator",
         "//py:python_path",
         "//py/koladata/functor/visitor",
+        "//py/koladata/types:signature_utils",
+    ],
+)
+
+py_library(
+    name = "sub_by_name",
+    srcs = ["sub_by_name.py"],
+    deps = [
+        ":functor_factories",
+        "//py:python_path",
+        "//py/koladata/functions:attrs",
+        "//py/koladata/functor/visitor",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/types:list_item",
+        "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
     ],
 )
@@ -258,6 +274,26 @@ py_test(
         "//py/koladata/extension_types",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
+    name = "sub_by_name_test",
+    srcs = ["sub_by_name_test.py"],
+    deps = [
+        ":boxing",
+        ":expr_container",
+        ":functor_factories",
+        ":sub_by_name",
+        ":tracing_decorator",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
