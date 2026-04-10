@@ -1033,7 +1033,9 @@ absl::Status FromProtoMessage(
   if (schema.has_value() && schema->IsStructSchema()) {
     // For explicit entity schemas, use the schema attr names as the list of
     // fields and extensions to convert.
-    ASSIGN_OR_RETURN(vars->schema_attr_names, schema->GetAttrNames());
+    ASSIGN_OR_RETURN(
+        vars->schema_attr_names,
+        schema->GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
     const int64_t max_num_fields =
         vars->schema_attr_names.size() +
         ((extension_map != nullptr) ? extension_map->extension_fields.size()

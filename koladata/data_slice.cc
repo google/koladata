@@ -290,7 +290,8 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
     internal::ObjectId schema_alloc, const internal::DataSliceImpl& schemas,
     const internal::DataBagImpl& db_impl,
-    internal::DataBagImpl::FallbackSpan fallbacks, bool union_object_attrs) {
+    internal::DataBagImpl::FallbackSpan fallbacks,
+    DataSlice::OnAttrNamesMismatch on_mismatch) {
   if (internal::AllocationId(schema_alloc).IsSmall()) {
     return GetAttrsFromSchemaItem(internal::DataItem(schema_alloc), db_impl,
                                   fallbacks);
@@ -298,16 +299,25 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
   auto attr_names = db_impl.GetSchemaAttrsForBigAllocationAsVector(
       internal::AllocationId(schema_alloc), fallbacks);
   auto result = DataSlice::AttrNamesSet();
+  bool has_non_universal_attr = false;
   for (const auto& attr_name : attr_names) {
     const auto& attr_name_view = attr_name.value<arolla::Text>();
     ASSIGN_OR_RETURN(auto attr, db_impl.GetSchemaAttrAllowMissing(
                                     schemas, attr_name_view, fallbacks));
-    bool need_insert = !attr.is_empty_and_unknown();
-    need_insert &=
-        union_object_attrs || (attr.present_count() == schemas.present_count());
-    if (need_insert) {
+    if (attr.is_empty_and_unknown()) {
+      continue;
+    }
+    bool is_universal = attr.present_count() == schemas.present_count();
+    if (is_universal || on_mismatch == DataSlice::OnAttrNamesMismatch::kUnion) {
       result.insert(std::string(attr_name_view));
     }
+    has_non_universal_attr |= !is_universal;
+  }
+  if (on_mismatch == DataSlice::OnAttrNamesMismatch::kError &&
+      has_non_universal_attr) {
+    return arolla::WithPayload(
+        absl::FailedPreconditionError("objects have different attributes"),
+        DataSlice::AttrNamesMismatchError{});
   }
   // kSchemaNameAttr can only be present in a small allocation.
   result.erase(schema::kSchemaMetadataAttr);
@@ -320,7 +330,8 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     const internal::DataSliceImpl& slice, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
-    internal::DataBagImpl::FallbackSpan fallbacks, bool union_object_attrs) {
+    internal::DataBagImpl::FallbackSpan fallbacks,
+    DataSlice::OnAttrNamesMismatch on_mismatch) {
   std::optional<DataSlice::AttrNamesSet> result;
   std::optional<internal::DataSliceImpl> schemas;
   if (ds_schema == schema::kSchema) {
@@ -372,7 +383,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
   }
   if (is_single_allocation) {
     return GetAttrsFromDataSliceInSingleAllocation(
-        *first_schema_alloc, *schemas, db_impl, fallbacks, union_object_attrs);
+        *first_schema_alloc, *schemas, db_impl, fallbacks, on_mismatch);
   }
   auto group_by = internal::ObjectsGroupBy();
   const auto schema_allocs = std::move(schema_allocs_bldr).Build();
@@ -383,30 +394,41 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
       auto schemas_grouped,
       group_by.ByEdge(edge, schemas->values<internal::ObjectId>()));
   auto status = absl::OkStatus();
-  group_schema_allocs.ForEachPresent(
-      [&](size_t idx, internal::ObjectId schema_alloc) {
-        if (!status.ok()) {
+  group_schema_allocs.ForEachPresent([&](size_t idx,
+                                         internal::ObjectId schema_alloc) {
+    if (!status.ok()) {
+      return;
+    }
+    auto attrs_or = GetAttrsFromDataSliceInSingleAllocation(
+        schema_alloc,
+        internal::DataSliceImpl::Create(std::move(schemas_grouped[idx])),
+        db_impl, fallbacks, on_mismatch);
+    if (!attrs_or.ok()) {
+      status = attrs_or.status();
+      return;
+    }
+    if (!result) {
+      result = *std::move(attrs_or);
+      return;
+    }
+    const auto& attrs = *attrs_or;
+    switch (on_mismatch) {
+      case DataSlice::OnAttrNamesMismatch::kUnion:
+        result->insert(attrs.begin(), attrs.end());
+        break;
+      case DataSlice::OnAttrNamesMismatch::kIntersection:
+        absl::erase_if(*result, [&](auto a) { return !attrs.contains(a); });
+        break;
+      case DataSlice::OnAttrNamesMismatch::kError:
+        if (attrs != *result) {
+          status = arolla::WithPayload(absl::FailedPreconditionError(
+                                           "objects have different attributes"),
+                                       DataSlice::AttrNamesMismatchError{});
           return;
         }
-        auto attrs_or = GetAttrsFromDataSliceInSingleAllocation(
-            schema_alloc,
-            internal::DataSliceImpl::Create(std::move(schemas_grouped[idx])),
-            db_impl, fallbacks, union_object_attrs);
-        if (!attrs_or.ok()) {
-          status = attrs_or.status();
-          return;
-        }
-        if (!result) {
-          result = *std::move(attrs_or);
-          return;
-        }
-        const auto& attrs = *attrs_or;
-        if (union_object_attrs) {
-          result->insert(attrs.begin(), attrs.end());
-        } else {
-          absl::erase_if(*result, [&](auto a) { return !attrs.contains(a); });
-        }
-      });
+        break;
+    }
+  });
   RETURN_IF_ERROR(std::move(status));
   return result.value_or(DataSlice::AttrNamesSet());
 }
@@ -1366,7 +1388,7 @@ bool DataSlice::IsEquivalentTo(const DataSlice& other) const {
 }
 
 absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
-    bool union_object_attrs) const {
+    OnAttrNamesMismatch on_mismatch) const {
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot get available attributes without a DataBag");
@@ -1384,7 +1406,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
       },
       [&](const internal::DataSliceImpl& slice) {
         return GetAttrsFromDataSlice(slice, GetSchemaImpl(), db_impl, fallbacks,
-                                     union_object_attrs);
+                                     on_mismatch);
       }));
   if (!result.ok()) {
     return KodaErrorCausedByMissingObjectSchemaError(result.status(), *this);

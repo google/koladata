@@ -493,7 +493,7 @@ absl::Status FillProtoMessage(const DataSlice& slice,
   }
 
   ASSIGN_OR_RETURN(const auto& attr_names,
-                   slice.GetAttrNames(/*union_object_attrs=*/true));
+                   slice.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion));
   for (const auto& attr_name : attr_names) {
     const FieldDescriptor* field = nullptr;
     if (attr_name.starts_with('(') && attr_name.ends_with(')')) {
@@ -694,7 +694,8 @@ absl::Status PopulateDescriptor(
     std::vector<std::string>* warnings) {
   RETURN_IF_ERROR(schema.VerifyIsEntitySchema());
   ASSIGN_OR_RETURN(
-      const auto attr_names, schema.GetAttrNames(),
+      const auto attr_names,
+      schema.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
       _ << "failed to get attribute names for: " << DataSliceRepr(schema));
   for (const std::string& attr_name : attr_names) {
     if (!IsValidProtoFieldName(attr_name)) {

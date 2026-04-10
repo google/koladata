@@ -37,6 +37,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
@@ -924,38 +925,32 @@ PyObject* absl_nullable PyDataSlice_dir_impl(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  DataSlice::AttrNamesSet attr_names;
+  DataSlice::OnAttrNamesMismatch on_mismatch;
   PyObject* py_intersection = args.kw_only_args["intersection"];
   if (py_intersection == nullptr || py_intersection == Py_None) {
-    // TODO: b/394258517 - Avoid calling GetAttrNames twice by adding a mode
-    // that detects conflicts in a single pass.
-    ASSIGN_OR_RETURN(auto intersection_attrs,
-                     UnsafeDataSliceRef(self).GetAttrNames(
-                         /*union_object_attrs=*/false),
-                     arolla::python::SetPyErrFromStatus(_));
-    ASSIGN_OR_RETURN(auto union_attrs,
-                     UnsafeDataSliceRef(self).GetAttrNames(
-                         /*union_object_attrs=*/true),
-                     arolla::python::SetPyErrFromStatus(_));
-    if (intersection_attrs != union_attrs) {
-      PyErr_SetString(PyExc_ValueError,
-                      "dir() cannot determine attribute names because objects "
-                      "have different attributes. Please specify intersection= "
-                      "explicitly.");
-      return nullptr;
-    }
-    attr_names = std::move(intersection_attrs);
+    on_mismatch = DataSlice::OnAttrNamesMismatch::kError;
   } else if (PyBool_Check(py_intersection)) {
-    ASSIGN_OR_RETURN(attr_names,
-                     UnsafeDataSliceRef(self).GetAttrNames(
-                         /*union_object_attrs=*/PyObject_Not(py_intersection)),
-                     arolla::python::SetPyErrFromStatus(_));
+    on_mismatch = PyObject_IsTrue(py_intersection)
+                      ? DataSlice::OnAttrNamesMismatch::kIntersection
+                      : DataSlice::OnAttrNamesMismatch::kUnion;
   } else {
     PyErr_Format(PyExc_TypeError,
                  "dir() expected bool for `intersection`, got: %s",
                  Py_TYPE(py_intersection)->tp_name);
     return nullptr;
   }
+  auto result = UnsafeDataSliceRef(self).GetAttrNames(on_mismatch);
+  if (!result.ok()) {
+    if (arolla::GetPayload<DataSlice::AttrNamesMismatchError>(
+            result.status()) != nullptr) {
+      result = absl::InvalidArgumentError(
+          "dir() cannot determine attribute names because objects "
+          "have different attributes. Please specify intersection= "
+          "explicitly.");
+    }
+    return arolla::python::SetPyErrFromStatus(result.status());
+  }
+  DataSlice::AttrNamesSet attr_names = *std::move(result);
   auto attr_name_list =
       arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/attr_names.size()));
   int i = 0;

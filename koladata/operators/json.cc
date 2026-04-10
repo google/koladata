@@ -275,7 +275,9 @@ absl::StatusOr<internal::DataItem> JsonObjectToEntity(
         entity_schema,
         DataSlice::Create(schema_impl, internal::DataItem(schema::kSchema),
                           bag));
-    ASSIGN_OR_RETURN(entity_schema_attr_names, entity_schema->GetAttrNames());
+    ASSIGN_OR_RETURN(entity_schema_attr_names,
+                     entity_schema->GetAttrNames(
+                         DataSlice::OnAttrNamesMismatch::kIntersection));
   }
 
   bool should_add_keys_attr =
@@ -1145,7 +1147,9 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     ASSIGN_OR_RETURN(attr_names, GetOrderedOrLexicographicAttrNames(
                                      item, /*assert_order_specified=*/false));
   } else {
-    ASSIGN_OR_RETURN(auto attr_names_struct, item.GetAttrNames());
+    ASSIGN_OR_RETURN(
+        auto attr_names_struct,
+        item.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
     attr_names.insert(attr_names.end(), attr_names_struct.begin(),
                       attr_names_struct.end());
   }

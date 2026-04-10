@@ -92,8 +92,10 @@ class NewOperator final : public arolla::QExprOperator {
                   "string schema is not supported for kd.entities.strict_new");
             }
             RETURN_IF_ERROR(schema->VerifyIsEntitySchema());
-            ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names_set,
-                             schema->GetAttrNames());
+            ASSIGN_OR_RETURN(
+                DataSlice::AttrNamesSet attr_names_set,
+                schema->GetAttrNames(
+                    DataSlice::OnAttrNamesMismatch::kIntersection));
             for (const auto& attr_name : attr_names) {
               if (!attr_names_set.contains(attr_name)) {
                 return absl::InvalidArgumentError(

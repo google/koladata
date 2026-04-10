@@ -1201,11 +1201,13 @@ TEST(DataSliceTest, GetAttrNames_Entity) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
   // Test the DataItem codepath.
   ASSERT_OK_AND_ASSIGN(ds, ds.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_EQ(ds.GetShape().rank(), 0);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Object) {
@@ -1216,11 +1218,13 @@ TEST(DataSliceTest, GetAttrNames_Object) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       ObjectCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
   // Test the DataItem codepath.
   ASSERT_OK_AND_ASSIGN(ds, ds.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_EQ(ds.GetShape().rank(), 0);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_MissingValue_BigAlloc) {
@@ -1231,7 +1235,8 @@ TEST(DataSliceTest, GetAttrNames_Object_MissingValue_BigAlloc) {
   auto b = test::DataSlice<float>({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
   ASSERT_OK_AND_ASSIGN(auto object,
                        ObjectCreator::FromAttrs(db, {"a", "b"}, {missing, b}));
-  EXPECT_THAT(object.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
+  EXPECT_THAT(object.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(ElementsAre("a", "b")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
@@ -1252,9 +1257,13 @@ TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
                                        object_2.item().value<ObjectId>(),
                                        object_3.item().value<ObjectId>()})
                 .WithBag(db);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre("a", "b")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("objects have different attributes")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
@@ -1275,9 +1284,13 @@ TEST(DataSliceTest, GetAttrNames_Object_EmptyIntersection) {
                                        object_2.item().value<ObjectId>(),
                                        object_3.item().value<ObjectId>()})
                 .WithBag(db);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d", "x", "y")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("objects have different attributes")));
 }
 
 TEST(DataSliceTest, GetAttrNames_NoFollow) {
@@ -1289,14 +1302,12 @@ TEST(DataSliceTest, GetAttrNames_NoFollow) {
       auto ds,
       EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   ASSERT_OK_AND_ASSIGN(ds, NoFollow(ds));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre()));
   // Test the DataItem codepath.
   ASSERT_OK_AND_ASSIGN(ds, ds.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_EQ(ds.GetShape().rank(), 0);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre()));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre()));
 }
 
@@ -1329,9 +1340,13 @@ TEST(DataSliceTest, GetAttrNames_IntersectionInOneAllocation) {
   ASSERT_OK_AND_ASSIGN(
       auto ds, DataSlice::Create(items, DataSlice::JaggedShape::FlatFromSize(3),
                                  DataItem(schema::kObject), db));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("objects have different attributes")));
 }
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
@@ -1355,9 +1370,13 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
                                       schema, schemas_a[3], schemas_a[4]}),
                                  DataSlice::JaggedShape::FlatFromSize(9),
                                  DataItem(schema::kSchema), db));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("objects have different attributes")));
 }
 
 TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
@@ -1368,7 +1387,7 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
       auto ds, DataSlice::Create(DataSliceImpl::Create({schema, item}),
                                  DataSlice::JaggedShape::FlatFromSize(2),
                                  DataItem(schema::kSchema), db));
-  EXPECT_THAT(ds.GetAttrNames(),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("schema expected, got Entity")));
 }
@@ -1401,19 +1420,25 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
                                       schema, schemas_a[3], schemas_a[4]}),
                                  DataSlice::JaggedShape::FlatFromSize(9),
                                  DataItem(schema::kSchema), db));
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+              IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("objects have different attributes")));
 }
 
 TEST(DataSliceTest, GetAttrNames_Primitives) {
   auto ds = test::DataSlice<int>({1});
-  EXPECT_THAT(ds.GetAttrNames(), StatusIs(absl::StatusCode::kInvalidArgument,
-                                          HasSubstr("without a DataBag")));
-  EXPECT_THAT(ds.WithBag(DataBag::EmptyMutable()).GetAttrNames(),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("without a DataBag")));
+  EXPECT_THAT(ds.WithBag(DataBag::EmptyMutable())
+                  .GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre()));
   EXPECT_THAT(ds.WithBag(DataBag::EmptyMutable())
-                  .GetAttrNames(/*union_object_attrs=*/true),
+                  .GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion),
               IsOkAndHolds(ElementsAre()));
 }
 
@@ -1428,8 +1453,7 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
       test::MixedDataSlice<int, ObjectId>(
           {42, std::nullopt}, {std::nullopt, object.item().value<ObjectId>()})
           .WithBag(db);
-  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
-  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
@@ -1443,9 +1467,7 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
   ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
   ASSERT_OK(CreateMetadata(db, object_schema, {}, {}));
 
-  EXPECT_THAT(object.GetAttrNames(),
-              IsOkAndHolds(ElementsAre("a", "b", "c")));
-  EXPECT_THAT(object.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(object.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
@@ -1459,8 +1481,7 @@ TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata_BigAlloc) {
                        ObjectCreator::FromAttrs(db, {"a", "b"}, {missing, d}));
   ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
   ASSERT_OK(CreateMetadata(db, object_schema, {}, {}));
-  EXPECT_THAT(object.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
-  EXPECT_THAT(object.GetAttrNames(/*union_object_attrs=*/true),
+  EXPECT_THAT(object.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre("a", "b")));
 }
 
@@ -1623,9 +1644,10 @@ TEST(DataSliceTest, GetAttrNames_SchemaItem) {
       auto ds,
       EntityCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
   auto schema_ds = ds.GetSchema();
-  EXPECT_THAT(schema_ds.GetAttrNames(),
+  EXPECT_THAT(schema_ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
-  EXPECT_THAT(test::Schema(schema::kInt32, db).GetAttrNames(),
+  EXPECT_THAT(test::Schema(schema::kInt32, db)
+                  .GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(ElementsAre()));
 }
 
@@ -1649,10 +1671,12 @@ TEST(DataSliceTest, GetAttrNames_SchemaSlice) {
                 .WithBag(db);
   ASSERT_OK_AND_ASSIGN(auto schema_ds, ds.GetAttr(schema::kSchemaAttr));
   ASSERT_EQ(schema_ds.GetSchemaImpl(), schema::kSchema);
-  EXPECT_THAT(schema_ds.GetAttrNames(), IsOkAndHolds(ElementsAre("b")));
+  EXPECT_THAT(
+      schema_ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(ElementsAre("b")));
   EXPECT_THAT(
       test::DataSlice<schema::DType>({schema::kInt32, schema::kString}, db)
-          .GetAttrNames(),
+          .GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
       IsOkAndHolds(ElementsAre()));
 }
 
@@ -1669,8 +1693,9 @@ TEST(DataSliceTest, GetAttrNames_SchemaSliceMixed) {
                        .WithBag(db);
   ASSERT_OK_AND_ASSIGN(schema_ds,
                        schema_ds.WithSchema(test::Schema(schema::kSchema)));
-  EXPECT_THAT(schema_ds.GetAttrNames(),
-              IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(
+      schema_ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
 TEST(DataSliceTest, GetNoFollowedSchema) {

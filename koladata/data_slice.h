@@ -307,12 +307,24 @@ class DataSlice {
   bool IsEquivalentTo(const DataSlice& other) const;
 
   // Returns all attribute names that are defined on this DataSlice. In case of
-  // OBJECT schema, attribute names are fetched from `__schema__` attribute, and
-  // the intersection of all object attributes is returned by default or the
-  // union of these attributes if `union_object_attrs` is true. For primitive
-  // schemas, an empty set of attributes is returned.
+  // OBJECT schema, attribute names are fetched from `__schema__` attribute. For
+  // primitive schemas, an empty set of attributes is returned.
+  //
+  // The behavior for OBJECT/SCHEMA schemas with multiple items depends on
+  // `on_mismatch`:
+  //   kIntersection - returns only attributes present on all objects.
+  //   kUnion - returns attributes present on any object.
+  //   kError - returns attributes if all objects have the same set, otherwise
+  //            returns an error with AttrNamesMismatchError payload.
+  enum class OnAttrNamesMismatch {
+    kIntersection,
+    kUnion,
+    kError,
+  };
+  // Status payload for errors returned by GetAttrNames with kError.
+  struct AttrNamesMismatchError {};
   absl::StatusOr<AttrNamesSet> GetAttrNames(
-      bool union_object_attrs = false) const;
+      OnAttrNamesMismatch on_mismatch) const;
 
   // Returns a DataSlice with sorted attribute names for each item in `x` as a
   // new dimension. In case of OBJECT schema, attribute names are fetched from

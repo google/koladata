@@ -114,7 +114,9 @@ absl::StatusOr<DataSlice> GetOrderedAttrNames(const DataSlice& ds) {
 absl::StatusOr<std::vector<std::string>> GetOrderedOrLexicographicAttrNames(
     const DataSlice& ds, bool assert_order_specified) {
   auto attr_names_or = GetOrderedAttrNames(ds);
-  ASSIGN_OR_RETURN(auto attr_names_set, ds.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      auto attr_names_set,
+      ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
   if (!attr_names_or.ok()) {
     if (assert_order_specified) {
       return attr_names_or.status();

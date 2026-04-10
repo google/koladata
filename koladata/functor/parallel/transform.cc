@@ -95,7 +95,9 @@ absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
             const arolla::expr::ExprNodePtr&) const>
         find_replacement_fn) {
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
-  ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      auto attr_names,
+      functor.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
 
   auto transform = [&find_replacement_fn](arolla::expr::ExprNodePtr node)
       -> absl::StatusOr<arolla::expr::ExprNodePtr> {
@@ -183,7 +185,9 @@ absl::StatusOr<DataSlice> AddVariables(
             const arolla::expr::ExprNodePtr&) const>
         find_replacement_fn) {
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
-  ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      auto attr_names,
+      functor.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
 
   absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract;
   auto find_matches_and_inputs =
@@ -781,7 +785,9 @@ absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
                    functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN((auto [signature, defaults]),
                    ComputeUpdatedSignature(orig_signature));
-  ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      auto attr_names,
+      functor.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
   if (attr_names.size() < 2) {
     return absl::InternalError(
         "functor must have at least 2 attributes, returns and __signature__");

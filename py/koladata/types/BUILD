@@ -85,6 +85,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:errors",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/operators:lib",

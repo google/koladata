@@ -424,7 +424,9 @@ absl::StatusOr<DataSlice> AutoVariables(
   if (!is_functor) return absl::InvalidArgumentError("functor expected");
 
   ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
-  ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      auto attr_names,
+      functor.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
 
   absl::flat_hash_map<std::string, DataSlice> vars;
   std::vector<std::string> expr_names;

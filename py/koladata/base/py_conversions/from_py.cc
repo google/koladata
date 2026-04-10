@@ -824,7 +824,9 @@ class FromPyConverter {
 
     DataSlice::AttrNamesSet schema_attr_names;
     if (is_struct_schema) {
-      ASSIGN_OR_RETURN(schema_attr_names, schema->GetAttrNames());
+      ASSIGN_OR_RETURN(
+          schema_attr_names,
+          schema->GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
     }
 
     std::vector<std::vector<std::pair<PyObject*, PyObject*>>> py_keys_values;
@@ -894,7 +896,9 @@ class FromPyConverter {
                                std::optional<DataSlice>& result) {
     DCHECK(schema.IsEntitySchema());
 
-    ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, schema.GetAttrNames());
+    ASSIGN_OR_RETURN(
+        DataSlice::AttrNamesSet attr_names,
+        schema.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
 
     std::vector<std::string> attr_names_vec(attr_names.begin(),
                                             attr_names.end());

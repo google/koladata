@@ -601,7 +601,9 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     return std::vector<std::string>();
   }
   ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db));
-  ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, ds.GetAttrNames());
+  ASSIGN_OR_RETURN(
+      DataSlice::AttrNamesSet attr_names,
+      ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
   size_t item_count = 0;
@@ -966,7 +968,7 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
 // Returns the string representation of the attribute names of the DataSlice.
 // Returns empty string if failed to get the attribute names.
 std::string AttrNamesOrEmpty(const DataSlice& ds) {
-  if (auto attr_names = ds.GetAttrNames(/*union_object_attrs=*/true);
+  if (auto attr_names = ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion);
       attr_names.ok()) {
     return absl::StrCat("[", absl::StrJoin(*attr_names, ", "), "]");
   }

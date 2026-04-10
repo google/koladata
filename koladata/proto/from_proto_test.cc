@@ -125,21 +125,22 @@ TEST(FromProtoTest, EmptyMessage_Proto3_NoProvidedSchema) {
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
 
-  EXPECT_THAT(result.GetAttrNames(),
-              IsOkAndHolds(UnorderedElementsAreArray({
-                  // Scalar primitive fields don't have presence, so they are
-                  // always converted even if "unset".
-                  "int32_field",
-                  "int64_field",
-                  "uint32_field",
-                  "uint64_field",
-                  "double_field",
-                  "float_field",
-                  "bool_field",
-                  "enum_field",
-                  "string_field",
-                  "bytes_field",
-              })));
+  EXPECT_THAT(
+      result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(UnorderedElementsAreArray({
+          // Scalar primitive fields don't have presence, so they are
+          // always converted even if "unset".
+          "int32_field",
+          "int64_field",
+          "uint32_field",
+          "uint64_field",
+          "double_field",
+          "float_field",
+          "bool_field",
+          "enum_field",
+          "string_field",
+          "bytes_field",
+      })));
 
   // Scalar values should have default values but have the correct schema.
   EXPECT_THAT(result.GetAttr("int32_field"),
@@ -150,7 +151,8 @@ TEST(FromProtoTest, EmptyMessage_Proto3_NoProvidedSchema) {
 
   // Verify schema.
   EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
-  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+  EXPECT_THAT(result.GetSchema().GetAttrNames(
+                  DataSlice::OnAttrNamesMismatch::kIntersection),
               IsOkAndHolds(UnorderedElementsAreArray({
                   "int32_field",
                   "int64_field",
@@ -173,9 +175,12 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema) {
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
 
-  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_THAT(
+      result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(UnorderedElementsAre()));
   EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
-  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+  EXPECT_THAT(result.GetSchema().GetAttrNames(
+                  DataSlice::OnAttrNamesMismatch::kIntersection),
               IsOkAndHolds(UnorderedElementsAre()));
 }
 
@@ -187,9 +192,12 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema_NoBagOverload) {
   EXPECT_EQ(result.size(), 1);
   EXPECT_FALSE(result.GetBag()->IsMutable());
 
-  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_THAT(
+      result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(UnorderedElementsAre()));
   EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
-  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+  EXPECT_THAT(result.GetSchema().GetAttrNames(
+                  DataSlice::OnAttrNamesMismatch::kIntersection),
               IsOkAndHolds(UnorderedElementsAre()));
 }
 
@@ -201,9 +209,12 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema_NoBagItemOverload) {
   EXPECT_EQ(result.size(), 1);
   EXPECT_FALSE(result.GetBag()->IsMutable());
 
-  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_THAT(
+      result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(UnorderedElementsAre()));
   EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
-  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+  EXPECT_THAT(result.GetSchema().GetAttrNames(
+                  DataSlice::OnAttrNamesMismatch::kIntersection),
               IsOkAndHolds(UnorderedElementsAre()));
 }
 
@@ -216,11 +227,14 @@ TEST(FromProtoTest, EmptyMessage_ObjectSchema) {
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
 
-  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_THAT(
+      result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection),
+      IsOkAndHolds(UnorderedElementsAre()));
 
   // Verify schema.
   EXPECT_EQ(result.GetSchemaImpl(), schema::kObject);
-  EXPECT_THAT(result.GetObjSchema()->GetAttrNames(),
+  EXPECT_THAT(result.GetObjSchema()->GetAttrNames(
+                  DataSlice::OnAttrNamesMismatch::kIntersection),
               IsOkAndHolds(UnorderedElementsAre()));
 }
 
@@ -280,33 +294,34 @@ TEST(FromProtoTest, EmptyMessage_ExplicitSchema) {
   EXPECT_EQ(result.GetShape().rank(), 1);
   EXPECT_EQ(result.size(), 1);
 
-  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAreArray({
-                                         "int32_field",
-                                         "int64_field",
-                                         "uint32_field",
-                                         "uint64_field",
-                                         "double_field",
-                                         "float_field",
-                                         "bool_field",
-                                         "enum_field",
-                                         "string_field",
-                                         "bytes_field",
-                                         "message_field",
-                                         "repeated_int32_field",
-                                         "repeated_int64_field",
-                                         "repeated_uint32_field",
-                                         "repeated_uint64_field",
-                                         "repeated_double_field",
-                                         "repeated_float_field",
-                                         "repeated_bool_field",
-                                         "repeated_enum_field",
-                                         "repeated_string_field",
-                                         "repeated_bytes_field",
-                                         "repeated_message_field",
-                                         "map_int32_int32_field",
-                                         "map_string_string_field",
-                                         "map_int32_message_field",
-                                     })));
+  EXPECT_THAT(result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+              IsOkAndHolds(UnorderedElementsAreArray({
+                  "int32_field",
+                  "int64_field",
+                  "uint32_field",
+                  "uint64_field",
+                  "double_field",
+                  "float_field",
+                  "bool_field",
+                  "enum_field",
+                  "string_field",
+                  "bytes_field",
+                  "message_field",
+                  "repeated_int32_field",
+                  "repeated_int64_field",
+                  "repeated_uint32_field",
+                  "repeated_uint64_field",
+                  "repeated_double_field",
+                  "repeated_float_field",
+                  "repeated_bool_field",
+                  "repeated_enum_field",
+                  "repeated_string_field",
+                  "repeated_bytes_field",
+                  "repeated_message_field",
+                  "map_int32_int32_field",
+                  "map_string_string_field",
+                  "map_int32_message_field",
+              })));
 
   // Scalar values should be missing but have the correct schema.
   EXPECT_THAT(result.GetAttr("int32_field"),
@@ -1072,7 +1087,7 @@ TEST(FromProtoTest, Extension) {
                      "(koladata.testing.m2_bool_extension_field)"),
                 }));
 
-  EXPECT_THAT(result.GetAttrNames(),
+  EXPECT_THAT(result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(UnorderedElementsAreArray({
                   "(koladata.testing.m2_bool_extension_field)",
                   "(koladata.testing.m2_message2_extension_field)",
@@ -1083,13 +1098,14 @@ TEST(FromProtoTest, Extension) {
   ASSERT_OK_AND_ASSIGN(
       auto message_ext_field,
       result.GetAttr("(koladata.testing.m2_message2_extension_field)"));
-  EXPECT_THAT(message_ext_field.GetAttrNames(),
-              IsOkAndHolds(UnorderedElementsAreArray({
-                  "(koladata.testing.m2_bool_extension_field)",
-                  // Surprising behavior caused by the uu_schema being shared
-                  // per-message-descriptor.
-                  "(koladata.testing.m2_message2_extension_field)",
-              })));
+  EXPECT_THAT(
+      message_ext_field.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+      IsOkAndHolds(UnorderedElementsAreArray({
+          "(koladata.testing.m2_bool_extension_field)",
+          // Surprising behavior caused by the uu_schema being shared
+          // per-message-descriptor.
+          "(koladata.testing.m2_message2_extension_field)",
+      })));
   EXPECT_THAT(
       message_ext_field.GetAttr("(koladata.testing.m2_bool_extension_field)"),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({true}, db))));
@@ -1123,7 +1139,7 @@ TEST(FromProtoTest, ExtensionViaSchema) {
   ASSERT_OK_AND_ASSIGN(auto result,
                        FromProto(db, {&message}, {}, std::nullopt, schema));
 
-  EXPECT_THAT(result.GetAttrNames(),
+  EXPECT_THAT(result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(UnorderedElementsAreArray({
                   "(koladata.testing.m2_bool_extension_field)",
                   "(koladata.testing.m2_message2_extension_field)",
@@ -1134,10 +1150,11 @@ TEST(FromProtoTest, ExtensionViaSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto message_ext_field,
       result.GetAttr("(koladata.testing.m2_message2_extension_field)"));
-  EXPECT_THAT(message_ext_field.GetAttrNames(),
-              IsOkAndHolds(UnorderedElementsAreArray({
-                  "(koladata.testing.m2_bool_extension_field)",
-              })));
+  EXPECT_THAT(
+      message_ext_field.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+      IsOkAndHolds(UnorderedElementsAreArray({
+          "(koladata.testing.m2_bool_extension_field)",
+      })));
   EXPECT_THAT(
       message_ext_field.GetAttr("(koladata.testing.m2_bool_extension_field)"),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({true}, db))));
@@ -1173,7 +1190,7 @@ TEST(FromProtoTest, ExtensionViaSchemaExtensionsAndExtensionsListUnion) {
                              },
                              std::nullopt, schema));
 
-  EXPECT_THAT(result.GetAttrNames(),
+  EXPECT_THAT(result.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               IsOkAndHolds(UnorderedElementsAreArray({
                   "(koladata.testing.m2_bool_extension_field)",
                   "(koladata.testing.m2_message2_extension_field)",
@@ -1184,10 +1201,11 @@ TEST(FromProtoTest, ExtensionViaSchemaExtensionsAndExtensionsListUnion) {
   ASSERT_OK_AND_ASSIGN(
       auto message_ext_field,
       result.GetAttr("(koladata.testing.m2_message2_extension_field)"));
-  EXPECT_THAT(message_ext_field.GetAttrNames(),
-              IsOkAndHolds(UnorderedElementsAreArray({
-                  "(koladata.testing.m2_bool_extension_field)",
-              })));
+  EXPECT_THAT(
+      message_ext_field.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
+      IsOkAndHolds(UnorderedElementsAreArray({
+          "(koladata.testing.m2_bool_extension_field)",
+      })));
   EXPECT_THAT(
       message_ext_field.GetAttr("(koladata.testing.m2_bool_extension_field)"),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<bool>({true}, db))));
@@ -1275,7 +1293,7 @@ TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
                                        testing::ExampleMessage::descriptor()));
 
   EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
-  EXPECT_THAT(*schema.GetAttrNames(),
+  EXPECT_THAT(*schema.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
               UnorderedElementsAre(
                   "int32_field", "int64_field", "uint32_field", "uint64_field",
                   "double_field", "float_field", "bool_field", "enum_field",
@@ -1380,7 +1398,7 @@ TEST(FromProtoTest, SchemaFromProtoWithExtensions) {
 
   EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
   EXPECT_THAT(
-      *schema.GetAttrNames(),
+      *schema.GetAttrNames(DataSlice::OnAttrNamesMismatch::kError),
       UnorderedElementsAre("(koladata.testing.m2_bool_extension_field)",
                            "(koladata.testing.m2_message2_extension_field)"));
 
