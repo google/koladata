@@ -1210,7 +1210,7 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
       } else {
         // Object values are specified by attr values.
         for (const auto& key : key_list_values) {
-          ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(key));
+          ASSIGN_OR_RETURN(auto attr_value, item.GetAttrOrMissing(key));
           if (!include_missing_values && !attr_value.item().has_value()) {
             continue;
           }
@@ -1230,7 +1230,7 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
         // don't include the `values_attr` data, to avoid confusion.
         continue;
       }
-      ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(attr_name));
+      ASSIGN_OR_RETURN(auto attr_value, item.GetAttrOrMissing(attr_name));
       if (!include_missing_values && !attr_value.item().has_value()) {
         continue;
       }
