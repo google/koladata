@@ -345,6 +345,7 @@ py_library(
         ":data_bag",
         ":data_item",
         ":data_slice",
+        ":list_item",
         ":py_boxing",
         "//py:python_path",
         "//py/koladata/base:py_functors_base_py_ext",

@@ -25,6 +25,9 @@ from koladata.base import py_functors_base_py_ext
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+# We need to import list_item so that we can use the Python iteration over
+# the DataItem with the list of parameters below.
+from koladata.types import list_item  # pylint: disable=unused-import
 from koladata.types import py_boxing
 
 

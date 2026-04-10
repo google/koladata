@@ -38,7 +38,7 @@ class CoreNoBagTest(parameterized.TestCase):
 
   @parameterized.parameters(
       bag().obj(),
-      bag().list([1, 2, 3]),
+      (bag().list([1, 2, 3]),),
       ds([bag().obj(a=1)]),
       ds([1, 2, 3]),
   )
