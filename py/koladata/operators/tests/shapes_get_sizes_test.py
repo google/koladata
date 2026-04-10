@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -31,6 +31,7 @@ from koladata.types import schema_constants
 INT64 = schema_constants.INT64
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty_mutable
 
@@ -84,14 +85,14 @@ class ShapesGetSizesTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, shape, expected_res):
-    res = expr_eval.eval(kde.shapes.get_sizes(I.shape), shape=shape)
+    res = kd.shapes.get_sizes(shape)
     testing.assert_equal(res, expected_res)
 
   def test_qtype_mismatch_error_message(self):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'expected a JaggedShape or a DataSlice, got x: INT64'
     ):
-      expr_eval.eval(kde.shapes.get_sizes(I.x), x=arolla.int64(0))
+      kd.shapes.get_sizes(arolla.int64(0))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

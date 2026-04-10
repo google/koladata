@@ -22,10 +22,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -37,6 +37,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 DB = data_bag.DataBag.empty_mutable()
@@ -103,7 +104,7 @@ class SchemaCommonSchemaTest(parameterized.TestCase):
         ValueError,
         'argument `x` must be a slice of SCHEMA, got a slice of INT32',
     ):
-      expr_eval.eval(kde.schema.common_schema(ds([1])))
+      kd.schema.common_schema(ds([1]))
 
   def test_no_common_schema_error(self):
     with self.assertRaisesRegex(
@@ -113,10 +114,9 @@ class SchemaCommonSchemaTest(parameterized.TestCase):
             ' first conflicting schema ITEMID'
         ),
     ):
-      expr_eval.eval(
-          kde.schema.common_schema(
-              ds([schema_constants.ITEMID, schema_constants.INT32])
-          )
+
+      kd.schema.common_schema(
+          ds([schema_constants.ITEMID, schema_constants.INT32])
       )
 
   def test_qtype_signatures(self):

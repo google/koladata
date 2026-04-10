@@ -17,9 +17,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -33,6 +33,7 @@ from koladata.types import schema_constants
 INT64 = schema_constants.INT64
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 
@@ -44,7 +45,7 @@ class ShapesRankTest(parameterized.TestCase):
       (jagged_shape.create_shape([2], [2, 1]), ds(2, INT64)),
   )
   def test_eval(self, shape, expected_res):
-    res = expr_eval.eval(kde.shapes.rank(I.shape), shape=shape)
+    res = kd.shapes.rank(shape)
     testing.assert_equal(res, expected_res)
 
   def test_qtype_signatures(self):

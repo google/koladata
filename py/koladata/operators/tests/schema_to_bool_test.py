@@ -22,9 +22,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -36,6 +36,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -56,7 +57,7 @@ class SchemaToBoolTest(parameterized.TestCase):
       (ds([True, None], schema_constants.OBJECT), ds([True, None])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.to_bool(x))
+    res = kd.schema.to_bool(x)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -78,7 +79,7 @@ class SchemaToBoolTest(parameterized.TestCase):
   )
   def test_not_castable_error(self, value, expected_error):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error)):
-      expr_eval.eval(kde.schema.to_bool(value))
+      kd.schema.to_bool(value)
 
   @parameterized.parameters(
       (
@@ -95,7 +96,7 @@ class SchemaToBoolTest(parameterized.TestCase):
   )
   def test_not_castable_internal_value(self, value, expected_error):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error)):
-      expr_eval.eval(kde.schema.to_bool(value))
+      kd.schema.to_bool(value)
 
   def test_boxing(self):
     testing.assert_equal(

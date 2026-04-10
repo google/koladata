@@ -18,10 +18,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -33,6 +33,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -149,7 +150,7 @@ class RandomShuffleTest(parameterized.TestCase):
 
   def test_x_as_data_item(self):
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.random.shuffle(ds(1), seed=123))
+      kd.random.shuffle(ds(1), seed=123)
 
   def test_wrong_seed_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -161,7 +162,7 @@ class RandomShuffleTest(parameterized.TestCase):
             'STRING'
         )
     ):
-      _ = expr_eval.eval(kde.random.shuffle(x, seed='a'))
+      _ = kd.random.shuffle(x, seed='a')
 
     with self.assertRaisesRegex(
         ValueError,
@@ -170,7 +171,7 @@ class RandomShuffleTest(parameterized.TestCase):
             'rank 1 > 0'
         )
     ):
-      _ = expr_eval.eval(kde.random.shuffle(x, seed=ds([123, 456])))
+      _ = kd.random.shuffle(x, seed=ds([123, 456]))
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.

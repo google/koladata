@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import attrs
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -31,6 +31,7 @@ I = input_container.InputContainer('I')
 M = arolla.M
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class KodaNamedSchemaTest(parameterized.TestCase):
@@ -46,15 +47,15 @@ class KodaNamedSchemaTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_name, rhs_name):
-    lhs = expr_eval.eval(kde.schema.named_schema(I.x), x=lhs_name)
-    rhs = expr_eval.eval(kde.schema.named_schema(I.x), x=rhs_name)
+    lhs = kd.schema.named_schema(lhs_name)
+    rhs = kd.schema.named_schema(rhs_name)
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
     self.assertFalse(lhs.is_mutable())
     self.assertCountEqual(attrs.dir(lhs), [])
 
   def test_not_equal(self):
-    lhs = expr_eval.eval(kde.schema.named_schema('name1'))
-    rhs = expr_eval.eval(kde.schema.named_schema('name2'))
+    lhs = kd.schema.named_schema('name1')
+    rhs = kd.schema.named_schema('name2')
     self.assertNotEqual(
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
@@ -74,23 +75,19 @@ class KodaNamedSchemaTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.schema.named_schema(name))
+      _ = kd.schema.named_schema(name)
 
   def test_attrs(self):
-    schema = expr_eval.eval(
-        kde.schema.named_schema('name', a=schema_constants.FLOAT32)
-    )
-    schema2 = expr_eval.eval(kde.schema.named_schema('name'))
+    schema = kd.schema.named_schema('name', a=schema_constants.FLOAT32)
+    schema2 = kd.schema.named_schema('name')
     testing.assert_equal(
         schema.a, schema_constants.FLOAT32.with_bag(schema.get_bag())
     )
     testing.assert_equal(schema.no_bag(), schema2.no_bag())
 
   def test_name_works_as_attribute_name(self):
-    schema = expr_eval.eval(
-        kde.schema.named_schema('Person', name=schema_constants.STRING)
-    )
-    schema2 = expr_eval.eval(kde.schema.named_schema('Person'))
+    schema = kd.schema.named_schema('Person', name=schema_constants.STRING)
+    schema2 = kd.schema.named_schema('Person')
     testing.assert_equal(
         schema.name, schema_constants.STRING.with_bag(schema.get_bag())
     )
@@ -100,8 +97,8 @@ class KodaNamedSchemaTest(parameterized.TestCase):
     )
 
   def test_nested_attrs(self):
-    schema = kde.schema.named_schema('name', a=schema_constants.FLOAT32)
-    outer_schema = kde.schema.named_schema('name2', x=schema).eval()
+    schema = kd.schema.named_schema('name', a=schema_constants.FLOAT32)
+    outer_schema = kd.schema.named_schema('name2', x=schema)
     testing.assert_equal(
         outer_schema.x.a,
         schema_constants.FLOAT32.with_bag(outer_schema.get_bag()),
@@ -113,13 +110,13 @@ class KodaNamedSchemaTest(parameterized.TestCase):
         'kd.schema.named_schema: only schemas can be assigned as attributes of'
         ' schemas',
     ):
-      kde.schema.named_schema('name', a=1.0).eval()
+      kd.schema.named_schema('name', a=1.0)
     with self.assertRaisesRegex(
         ValueError,
         'kd.schema.named_schema: only schemas can be assigned as attributes of'
         ' schemas',
     ):
-      kde.schema.named_schema('name', a=ds(1.0)).eval()
+      kd.schema.named_schema('name', a=ds(1.0))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -127,7 +124,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
             + 'foo.get_ndim(): 0 < values.get_ndim(): 1'
         ),
     ):
-      kde.schema.named_schema('name', a=ds([schema_constants.INT32])).eval()
+      kd.schema.named_schema('name', a=ds([schema_constants.INT32]))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))

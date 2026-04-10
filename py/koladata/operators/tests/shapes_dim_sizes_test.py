@@ -17,9 +17,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -32,6 +32,7 @@ from koladata.types import schema_constants
 INT64 = schema_constants.INT64
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 
@@ -50,31 +51,26 @@ class ShapesDimSizesTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, shape, dim, expected_res):
-    res = expr_eval.eval(
-        kde.shapes.dim_sizes(I.shape, I.dim), shape=shape, dim=dim
-    )
+    res = kd.shapes.dim_sizes(shape, dim)
     testing.assert_equal(res, expected_res)
 
   def test_dim_multidim_error(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(
-          kde.shapes.dim_sizes(jagged_shape.create_shape([2]), ds([1]))
-      )
+
+      kd.shapes.dim_sizes(jagged_shape.create_shape([2]), ds([1]))
 
   def test_dim_out_of_bounds_error(self):
     with self.assertRaisesRegex(
         ValueError, 'expected rank > 1, but got rank = 1'
     ):
-      expr_eval.eval(
-          kde.shapes.dim_sizes(jagged_shape.create_shape([2]), ds(1))
-      )
+
+      kd.shapes.dim_sizes(jagged_shape.create_shape([2]), ds(1))
 
   def test_dim_missing_error(self):
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      expr_eval.eval(
-          kde.shapes.dim_sizes(
-              jagged_shape.create_shape([2]), ds(None, schema_constants.INT64)
-          )
+
+      kd.shapes.dim_sizes(
+          jagged_shape.create_shape([2]), ds(None, schema_constants.INT64)
       )
 
   def test_qtype_signatures(self):

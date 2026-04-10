@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -33,6 +33,7 @@ M = arolla.M
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 
 
 class KodaUuSchemaTest(parameterized.TestCase):
@@ -58,8 +59,8 @@ class KodaUuSchemaTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.schema.uu_schema(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.schema.uu_schema(rhs_seed, **rhs_kwargs))
+    lhs = kd.schema.uu_schema(lhs_seed, **lhs_kwargs)
+    rhs = kd.schema.uu_schema(rhs_seed, **rhs_kwargs)
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
@@ -93,48 +94,40 @@ class KodaUuSchemaTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.schema.uu_schema(lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.schema.uu_schema(rhs_seed, **rhs_kwargs))
+    lhs = kd.schema.uu_schema(lhs_seed, **lhs_kwargs)
+    rhs = kd.schema.uu_schema(rhs_seed, **rhs_kwargs)
     self.assertNotEqual(
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(
-        kde.schema.uu_schema(
-            a=schema_constants.INT32, b=schema_constants.FLOAT32
-        )
+    lhs = kd.schema.uu_schema(
+        a=schema_constants.INT32, b=schema_constants.FLOAT32
     )
-    rhs = expr_eval.eval(
-        kde.schema.uu_schema(
-            '', a=schema_constants.INT32, b=schema_constants.FLOAT32
-        )
+    rhs = kd.schema.uu_schema(
+        '', a=schema_constants.INT32, b=schema_constants.FLOAT32
     )
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.schema.uu_schema())
-    rhs = expr_eval.eval(kde.schema.uu_schema(''))
+    lhs = kd.schema.uu_schema()
+    rhs = kd.schema.uu_schema('')
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_seed_works_as_kwarg(self):
-    lhs = expr_eval.eval(
-        kde.schema.uu_schema(
-            ds('seed'), a=schema_constants.INT32, b=schema_constants.FLOAT32
-        )
+    lhs = kd.schema.uu_schema(
+        ds('seed'), a=schema_constants.INT32, b=schema_constants.FLOAT32
     )
-    rhs = expr_eval.eval(
-        kde.schema.uu_schema(
-            a=schema_constants.INT32,
-            b=schema_constants.FLOAT32,
-            seed=ds('seed'),
-        )
+    rhs = kd.schema.uu_schema(
+        a=schema_constants.INT32,
+        b=schema_constants.FLOAT32,
+        seed=ds('seed'),
     )
     testing.assert_equal(lhs.no_bag(), rhs.no_bag())
 
   def test_bag_adoption(self):
-    a = expr_eval.eval(kde.schema.uu_schema(a=schema_constants.INT32))
-    b = expr_eval.eval(kde.schema.uu_schema(a=a))
+    a = kd.schema.uu_schema(a=schema_constants.INT32)
+    b = kd.schema.uu_schema(a=a)
     testing.assert_equal(
         b.a.a, ds(schema_constants.INT32).with_bag(b.get_bag())
     )
@@ -167,7 +160,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.schema.uu_schema(seed, **kwargs))
+      _ = kd.schema.uu_schema(seed, **kwargs)
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
@@ -177,9 +170,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
             ' **kwargs: {a: DATA_SLICE, b: UNSPECIFIED}'
         ),
     ):
-      _ = expr_eval.eval(
-          kde.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
-      )
+      _ = kd.schema.uu_schema(a=schema_constants.INT32, b=arolla.unspecified())
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.uu_schema(I.seed)))

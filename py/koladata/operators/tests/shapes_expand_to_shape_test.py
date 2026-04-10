@@ -19,10 +19,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -37,6 +37,7 @@ from koladata.types import qtypes
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 js = jagged_shape.create_shape
 DATA_SLICE = qtypes.DATA_SLICE
@@ -93,7 +94,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
       (ds([1, 2]), js([2], [2, 1]), ds([[1, 1], [2]])),
   )
   def test_eval_no_ndim_arg(self, x, shape, expected_output):
-    res = expr_eval.eval(kde.expand_to_shape(x, shape))
+    res = kd.expand_to_shape(x, shape)
     testing.assert_equal(res, expected_output)
 
   def test_same_bag(self):
@@ -109,13 +110,13 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
         ValueError,
         re.escape("ndim must be a positive integer and <= x.ndim, got -1"),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds(1), js([1]), -1))
+      kd.expand_to_shape(ds(1), js([1]), -1)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape("ndim must be a positive integer and <= x.ndim, got 1"),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds(1), js([1]), 1))
+      kd.expand_to_shape(ds(1), js([1]), 1)
 
   def test_incompatible_shape_error(self):
     with self.assertRaisesRegex(
@@ -125,7 +126,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
             " shape=JaggedShape(3)"
         ),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds([1, 2]), js([3])))
+      kd.expand_to_shape(ds([1, 2]), js([3]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -136,7 +137,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
             " 'shape' to expand: JaggedShape(3)"
         ),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds([[1, 2], [3]]), js([3]), 1))
+      kd.expand_to_shape(ds([[1, 2], [3]]), js([3]), 1)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -145,7 +146,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
             " shape=JaggedShape()"
         ),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds([1, 2]), js()))
+      kd.expand_to_shape(ds([1, 2]), js())
 
     with self.assertRaisesRegex(
         ValueError,
@@ -156,7 +157,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
             " JaggedShape()"
         ),
     ):
-      expr_eval.eval(kde.expand_to_shape(ds([[1, 2], [3]]), js(), 1))
+      kd.expand_to_shape(ds([[1, 2], [3]]), js(), 1)
 
   def test_boxing(self):
     testing.assert_equal(
