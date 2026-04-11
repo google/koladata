@@ -142,14 +142,6 @@ class ObjectFinder {
     return absl::OkStatus();
   }
 
-  struct PairOfItemsHash {
-    size_t operator()(const std::pair<DataItem, DataItem>& item) const {
-      DCHECK(!item.first.ContainsAnyPrimitives());
-      return absl::HashOf(DataItem::Hash()(item.first),
-                          DataItem::Hash()(item.second));
-    }
-  };
-
   absl::Status DepthFirstPrevisitItemsAndSchemas(ObjectPathCallback callback) {
     // We do a databag graph traversal, with unrolled recursion. For that we
     // keep track of the stack size when we started visiting the current item.
@@ -219,7 +211,7 @@ class ObjectFinder {
   std::vector<TraverseHelper::TransitionKey> access_stack_;
   std::stack<std::pair<ItemWithSchema, TraverseHelper::TransitionKey>>
       previsit_stack_;
-  absl::flat_hash_set<std::pair<DataItem, DataItem>, PairOfItemsHash>
+  absl::flat_hash_set<std::pair<DataItem, DataItem>, DataItem::HashOfPair>
       used_items_;
   std::string ignore_attr_name_prefix_;
 };

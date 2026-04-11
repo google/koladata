@@ -219,21 +219,14 @@ class Traverser {
     return absl::OkStatus();
   }
 
-  struct PairOfItemsHash {
-    size_t operator()(const std::pair<DataItem, DataItem>& item) const {
-      return absl::HashOf(DataItem::Hash()(item.first),
-                          DataItem::Hash()(item.second));
-    }
-  };
-
   absl::Status DepthFirstPrevisitItemsAndSchemas() {
     // We do a depth-first traversal, with unrolled recursion. For that we keep
     // track of the stack size when we started visiting the current item. If the
     // stack would reach the same size again it would mean that all the items
     // reachable from the current item have been visited.
     std::stack<std::pair<int64_t, ItemWithSchema>> objects_on_stack;
-    auto used_items =
-        absl::flat_hash_set<std::pair<DataItem, DataItem>, PairOfItemsHash>();
+    auto used_items = absl::flat_hash_set<std::pair<DataItem, DataItem>,
+                                          DataItem::HashOfPair>();
 
     while (!previsit_stack_.empty()) {
       RETURN_IF_ERROR(arolla::CheckCancellation());

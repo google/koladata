@@ -331,6 +331,13 @@ class DataItem {
     }
   };
 
+  struct HashOfPair {
+    size_t operator()(const std::pair<DataItem, DataItem>& item) const {
+      return absl::HashOf(DataItem::Hash()(item.first),
+                          DataItem::Hash()(item.second));
+    }
+  };
+
   using absl_container_hash = Hash;
 
   friend std::ostream& operator<<(std::ostream& os, const DataItem& data_item) {

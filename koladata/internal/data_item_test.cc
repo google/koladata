@@ -293,6 +293,20 @@ TEST(DataItemTest, Hash) {
             hasher(DataItem(schema::DType())));
 }
 
+TEST(DataItemTest, HashOfPair) {
+  auto hasher = DataItem::HashOfPair();
+  EXPECT_EQ(hasher({DataItem(), DataItem()}),
+            hasher({DataItem(), DataItem()}));
+  EXPECT_NE(hasher({DataItem(0), DataItem()}),
+            hasher({DataItem(), DataItem(0)}));
+  EXPECT_EQ(hasher({DataItem(0), DataItem(1.f)}),
+            hasher({DataItem(0), DataItem(1.f)}));
+  EXPECT_NE(hasher({DataItem(0), DataItem(1.f)}),
+            hasher({DataItem(1), DataItem(1.f)}));
+  EXPECT_NE(hasher({DataItem(0), DataItem(1.f)}),
+            hasher({DataItem(0), DataItem(1)}));
+}
+
 TEST(DataItemTest, AbslContainerHash) {
   auto absl_hasher = DataItem::absl_container_hash();
   auto hasher = DataItem::Hash();
