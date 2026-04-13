@@ -25,11 +25,11 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 
