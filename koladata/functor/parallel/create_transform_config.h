@@ -19,6 +19,7 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/parallel/transform_config.h"
+#include "koladata/functor/parallel/transform_config.pb.h"
 
 namespace koladata::functor::parallel {
 
