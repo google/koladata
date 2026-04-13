@@ -224,7 +224,7 @@ std::string DescribeSliceSchema(const DataSlice& slice) {
         },
         [&](const internal::DataSliceImpl& impl) {
           std::vector<absl::string_view> type_names;
-          // TODO: b/381785498 - We may add type_names.reserve() here.
+          // TODO: We may add type_names.reserve() here.
           impl.VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
             type_names.push_back(DTypeName<T>());
           });

@@ -424,7 +424,7 @@ def _basic_map_py(
   return result.reshape(shape[: shape_rank - ndim])
 
 
-# TODO: b/370978592 - Consider implementing this operator using kdf.map
+# TODO: Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
 @optools.add_to_registry(aliases=['kd.map_py'])
 @optools.as_py_function_operator(

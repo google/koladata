@@ -141,7 +141,7 @@ class SlicesSortTest(parameterized.TestCase):
   def test_data_item(self):
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: b/374841918 - For lambdas we only report underlying operator
+        # TODO: For lambdas we only report underlying operator
         # names.
         re.escape('kd.slices.ordinal_rank: expected rank(x) > 0'),
     ):

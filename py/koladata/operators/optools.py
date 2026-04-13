@@ -663,7 +663,7 @@ def as_py_function_operator(
 
     # Prepare an expression for `kwargs`.
     if keyword_params and var_keyword_params:
-      # TODO: b/384077837 - Consider detecting cases where a dynamic `**kwargs`
+      # TODO: Consider detecting cases where a dynamic `**kwargs`
       # shadows `keyword-only` arguments.
       kwargs_expr = arolla.M.namedtuple.union(
           arolla.M.namedtuple.make(

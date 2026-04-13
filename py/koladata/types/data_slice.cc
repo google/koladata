@@ -515,7 +515,7 @@ PyObject* absl_nullable PyDataSlice_set_attrs(PyObject* self,
       arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, overwrite_schema))
       .With([&](absl::Status status) {
-        // TODO: b/361573497 - Move both adoption and error handling to SetAttr.
+        // TODO: Move both adoption and error handling to SetAttr.
         return arolla::python::SetPyErrFromStatus(
             KodaErrorCausedByIncompatibleSchemaError(
                 std::move(status), self_ds.GetBag(), values, self_ds));

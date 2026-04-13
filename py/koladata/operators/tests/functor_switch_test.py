@@ -54,7 +54,7 @@ class FunctorSwitchTest(absltest.TestCase):
     testing.assert_equal(expr_eval.eval(expr, k=None, x=10, y=2), ds(57))
 
   def test_missing_case_fn(self):
-    # TODO: b/481263258 - Add a test for missing key (failing or not, depending
+    # TODO: Add a test for missing key (failing or not, depending
     # on the decision in the bug).
     expr = kde.switch(
         I.k,

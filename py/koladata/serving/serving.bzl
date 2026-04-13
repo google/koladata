@@ -210,7 +210,7 @@ def koladata_cc_embedded_slices(
         srcs = [name + ".cc"],
         hdrs = [name + ".h"],
         deps = deps + [
-            # TODO: b/409476740 - Should we depend on codecs here?
+            # TODO: Should we depend on codecs here?
             "@com_google_absl//absl/base:no_destructor",
             "@com_google_absl//absl/container:flat_hash_map",
             "@com_google_absl//absl/status:statusor",

@@ -289,7 +289,7 @@ class DeterminizerTest(parameterized.TestCase):
       )
 
     def test_functor(x, y):
-      # TODO: b/442760508 - Stop using koda_internal_parallel once possible.
+      # TODO: Stop using koda_internal_parallel once possible.
       return kd.streams.sync_wait(
           koda_internal_parallel.stream_from_future(
               test_parallel_functor(

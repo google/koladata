@@ -355,7 +355,7 @@ class InnerTransformManager {
   // functor_), returns its value. Otherwise returns std::nullopt.
   absl::StatusOr<std::optional<arolla::TypedValue>> TryComputeLiteral(
       const DataSlice& expr) const {
-    // TODO: b/477578091 - we are changing the functor in order to reuse
+    // TODO: we are changing the functor in order to reuse
     // CallFunctorWithCompilationCache. It will be more efficient if we just
     // evaluate all the variables needed for `expr` explicitly.
     ASSIGN_OR_RETURN(

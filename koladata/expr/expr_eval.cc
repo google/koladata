@@ -311,7 +311,7 @@ absl::StatusOr<CompiledExpr> CompileOp(
 // Strips the top level Arolla's NotePayload and VerboseRuntimeError layers from
 // the error and annotates the cause message with the operator name. The source
 // location payloads layers are preserved.
-// TODO: b/418206913 - Consider keeping NotePayloads.
+// TODO: Consider keeping NotePayloads.
 absl::Status SimplifyExprEvaluationError(const absl::Status& status) {
   const auto* cause = arolla::GetCause(status);
   if (cause == nullptr) {

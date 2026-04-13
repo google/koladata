@@ -6,7 +6,7 @@ common --enable_bzlmod
 
 # Enable bazel_local_registry.
 #
-# TODO: b/376301639 - Remove the local registry once Arolla is available through
+# TODO: Remove the local registry once Arolla is available through
 # the central registry.
 common --registry=file:%workspace%/bazel_local_registry
 common --registry=https://bcr.bazel.build

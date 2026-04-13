@@ -89,7 +89,7 @@ class Determinizer:
         self._assert_deterministic_schema(ds)
         return ds
 
-      # TODO: b/437034138 - Are there other cases not covered here?
+      # TODO: Are there other cases not covered here?
       assert kd.is_entity(ds), ds
 
       new_id = self._freeze_itemid(ds.get_itemid())

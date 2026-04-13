@@ -344,7 +344,7 @@ $""",
     self.assertRegex(
         db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => list<INT32>'
     )
-    # TODO: b/448296645 - list<list<INT32>> is not visible here because the
+    # TODO: list<list<INT32>> is not visible here because the
     # current implementation does not support crossing data bag boundaries.
     self.assertRegex(
         db_repr, r'#[0-9a-zA-Z]{22}\.get_item_schema\(\) => #[0-9a-zA-Z]{22}'

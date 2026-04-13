@@ -2,7 +2,7 @@
 
 load("@com_google_arolla//py/arolla/optools:optools.bzl", "arolla_cc_operator_package", "arolla_operator_package_snapshot")
 
-# TODO: b/464002636 - Update the documentation.
+# TODO: Update the documentation.
 def koladata_cc_operator_package(
         name,
         preimports = (),

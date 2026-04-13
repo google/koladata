@@ -401,7 +401,7 @@ OPERATOR("kd.schema._deep_cast_to", DeepCastTo, "kd.schema.deep_cast_to");
 OPERATOR("kd.schema._internal_maybe_named_schema",
               InternalMaybeNamedSchema,
               // Don't pass the display name, because it's confusing.
-              // TODO: b/374841918 - Use the outer lambda's name instead.
+              // TODO: Use the outer lambda's name instead.
               "");
 OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo,
               "kd.schema.unsafe_cast_to");
@@ -448,7 +448,7 @@ OPERATOR("kd.slices._collapse", Collapse, "kd.slices.collapse");
 OPERATOR_FAMILY(
     "kd.slices._concat_or_stack",
     arolla::MakeVariadicInputOperatorFamily(
-        // TODO: b/374841918 - The operator is used as a building
+        // TODO: The operator is used as a building
         // block for several lambdas, so we cannot choose one public
         // name for its errors. We are still using MakeKodaOperatorWrapper in
         // order to turn the errors into KodaError, but the operator name should

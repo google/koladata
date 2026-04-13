@@ -22,7 +22,7 @@ from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import schema as _schema
 from koladata.functions import tuples as _tuples
-# TODO: b/435124266 - Importing operators to keep the clients of this module
+# TODO: Importing operators to keep the clients of this module
 # that accidentally relied on it working. Remove it.
 from koladata.operators import kde_operators as _
 from koladata.types import data_item as _data_item
@@ -110,7 +110,7 @@ annotation = _py_types.SimpleNamespace(
     with_name=_general_eager_ops.with_name,
 )
 
-# TODO: b/435124266 - Add to_proto explicitly to kd.py.
+# TODO: Add to_proto explicitly to kd.py.
 to_proto = _proto_conversions.to_proto
 to_proto_any = _proto_conversions.to_proto_any
 
