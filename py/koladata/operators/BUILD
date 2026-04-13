@@ -152,6 +152,7 @@ py_library(
         ":proto",
         ":random",
         ":schema",
+        ":schema_filters",
         ":slices",
         ":streams",
         ":strings",
@@ -407,6 +408,17 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "schema_filters",
+    srcs = ["schema_filters.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -54,6 +54,7 @@
 #include "koladata/operators/print.h"
 #include "koladata/operators/proto.h"
 #include "koladata/operators/schema.h"
+#include "koladata/operators/schema_filters.h"
 #include "koladata/operators/shapes.h"
 #include "koladata/operators/slices.h"
 #include "koladata/operators/strings.h"
@@ -431,6 +432,8 @@ OPERATOR("kd.schema.nofollow_schema", CreateNoFollowSchema);
 OPERATOR_FAMILY("kd.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kd.schema.with_schema", WithSchema);
+//
+OPERATOR("kd.schema_filters.apply_filter", ApplyFilter);
 //
 OPERATOR("kd.shapes._expand_to_shape", ExpandToShape,
          "kd.shapes.expand_to_shape");

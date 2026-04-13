@@ -48,6 +48,7 @@ from koladata.operators import proto as _operators_proto
 from koladata.operators import py as _operators_py
 from koladata.operators import random as _operators_random
 from koladata.operators import schema as _operators_schema
+from koladata.operators import schema_filters as _operators_schema_filters
 from koladata.operators import slices as _operators_slices
 from koladata.operators import streams as _operators_streams
 from koladata.operators import strings as _operators_strings
@@ -483,6 +484,11 @@ class schema:
   uu_schema = _operators_schema.uu_schema
   with_schema = _operators_schema.with_schema
   with_schema_from_obj = _operators_schema.with_schema_from_obj
+
+
+@_dataclass
+class schema_filters:
+  apply_filter = _operators_schema_filters.apply_filter
 
 
 @_dataclass

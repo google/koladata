@@ -20,6 +20,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/apply_filter.h"
 
 namespace koladata {
 namespace {
@@ -45,6 +46,8 @@ TEST(SchemaConstants, AnyPrimitiveFilter) {
   EXPECT_TRUE(any_primitive.is_item());
   EXPECT_TRUE(any_primitive.item().holds_value<internal::ObjectId>());
   EXPECT_TRUE(any_primitive.item().value<internal::ObjectId>().IsUuid());
+  EXPECT_EQ(any_primitive.item(),
+            internal::schema_filters::AnyPrimitiveFilter());
 }
 
 TEST(SchemaConstants, AnySchemaFilter) {
@@ -53,6 +56,7 @@ TEST(SchemaConstants, AnySchemaFilter) {
   EXPECT_TRUE(any_schema.is_item());
   EXPECT_TRUE(any_schema.item().holds_value<internal::ObjectId>());
   EXPECT_TRUE(any_schema.item().value<internal::ObjectId>().IsUuid());
+  EXPECT_EQ(any_schema.item(), internal::schema_filters::AnySchemaFilter());
 }
 
 TEST(SchemaConstants, AnyPrimitiveAndAnySchemaAreDifferent) {

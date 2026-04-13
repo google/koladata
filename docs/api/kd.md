@@ -45,6 +45,7 @@ Subcategory | Description
 [py](kd/py.md) | Operators that call Python functions.
 [random](kd/random.md) | Random and sampling operators.
 [schema](kd/schema.md) | Schema-related operators.
+[schema_filters](kd/schema_filters.md) | Schema filter operators and constants.
 [s11n](kd/s11n.md) | Serialization and deserialization utilities.
 [shapes](kd/shapes.md) | Operators that work on shapes
 [slices](kd/slices.md) | Operators that perform DataSlice transformations.

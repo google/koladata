@@ -51,6 +51,7 @@ kde = arolla.OperatorsContainer(
         'kd.py',
         'kd.random',
         'kd.schema',
+        'kd.schema_filters',
         'kd.shapes',
         'kd.slices',
         'kd.streams',

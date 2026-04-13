@@ -576,6 +576,7 @@ cc_test(
         ":schema_constants",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal/op_utils:apply_filter",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_googletest//:gtest_main",
     ],

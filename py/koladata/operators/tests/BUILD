@@ -10324,6 +10324,25 @@ py_test(
 )
 
 py_test(
+    name = "schema_filters_apply_filter_test",
+    srcs = ["schema_filters_apply_filter_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "json_stream_salvage_test",
     srcs = ["json_stream_salvage_test.py"],
     deps = [

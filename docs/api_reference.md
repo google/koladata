@@ -37,6 +37,7 @@ Category  | Subcategory | Description
  | [py](api/kd/py.md) | Operators that call Python functions.
  | [random](api/kd/random.md) | Random and sampling operators.
  | [schema](api/kd/schema.md) | Schema-related operators.
+ | [schema_filters](api/kd/schema_filters.md) | Schema filter operators and constants.
  | [s11n](api/kd/s11n.md) | Serialization and deserialization utilities.
  | [shapes](api/kd/shapes.md) | Operators that work on shapes
  | [slices](api/kd/slices.md) | Operators that perform DataSlice transformations.
