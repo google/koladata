@@ -495,6 +495,13 @@ bool DataBagImpl::IsPristine() const {
          dicts_.empty();
 }
 
+bool DataBagImpl::IsEmpty() const {
+  // `parent_data_bag_->IsPristine()` is always `false` due to implementation of
+  // `PartiallyPersistentFork()`.
+  DCHECK(parent_data_bag_ == nullptr || !parent_data_bag_->IsPristine());
+  return IsPristine() && parent_data_bag_ == nullptr;
+}
+
 std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
     ObjectId object_id, absl::string_view attr) const {
   const DataBagImpl* cur_data_bag = this;

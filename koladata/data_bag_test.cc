@@ -44,6 +44,7 @@ using ::testing::MatchesRegex;
 TEST(DataBagTest, Empty) {
   auto db = DataBag::Empty();
   EXPECT_FALSE(db->IsMutable());
+  EXPECT_TRUE(db->IsEmpty());
 }
 
 TEST(DataBagTest, Fallbacks) {
@@ -68,6 +69,7 @@ TEST(DataBagTest, Fallbacks) {
 
   EXPECT_THAT(new_db->GetFallbacks(), ElementsAre(db, db_fb));
   EXPECT_FALSE(new_db->IsMutable());
+  EXPECT_TRUE(new_db->IsEmpty());
   EXPECT_THAT(
       new_db->GetMutableImpl(),
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
@@ -291,6 +293,7 @@ TEST(DataBagTest, Fork) {
   auto ds_a_db1 = test::DataItem(42, db1);
   ASSERT_OK_AND_ASSIGN(auto ds1,
                        EntityCreator::FromAttrs(db1, {"a"}, {ds_a_db1}));
+  EXPECT_FALSE(db1->IsEmpty());
 
   ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
   auto ds2 = ds1.WithBag(db2);
@@ -312,6 +315,7 @@ TEST(DataBagTest, Fork) {
 TEST(DataBagTest, Fork_Immutable) {
   auto db = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(auto immutable_db, db->Fork(/*immutable=*/true));
+  EXPECT_TRUE(db->IsEmpty());
   const internal::DataBagImpl* immutable_db_impl_ptr = &immutable_db->GetImpl();
 
   // Check that forking an immutable DataBag doesn't change its DataBagImpl.
@@ -356,6 +360,7 @@ TEST(DataBagTest, MergeFallbacks) {
   fallback_db->UnsafeMakeImmutable();
   ASSERT_OK_AND_ASSIGN(auto db,
                        DataBag::ImmutableEmptyWithFallbacks({fallback_db}));
+  EXPECT_FALSE(db->IsEmpty());
   auto ds2 = ds1.WithBag(db);
 
   ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());

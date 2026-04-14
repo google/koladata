@@ -79,6 +79,9 @@ class DataBag : public arolla::RefcountedBase {
 
   bool IsMutable() const { return is_mutable_; }
 
+  // Returns true if the DataBag and all its fallbacks are empty.
+  bool IsEmpty() const;
+
   const internal::DataBagImpl& GetImpl() const { return *impl_; }
   absl::StatusOr<internal::DataBagImpl&> GetMutableImpl() {
     if (!is_mutable_) {

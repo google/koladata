@@ -251,6 +251,18 @@ DataBag::~DataBag() {
   }
 }
 
+bool DataBag::IsEmpty() const {
+  if (!impl_->IsEmpty()) {
+    return false;
+  }
+  for (const auto& fb : fallbacks_) {
+    if (!fb->IsEmpty()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace koladata
 
 namespace arolla {

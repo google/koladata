@@ -74,6 +74,7 @@ using ::testing::UnorderedElementsAreArray;
 TEST(DataBagTest, Empty) {
   auto empty = DataBagImpl::CreateEmptyDatabag();
   EXPECT_TRUE(empty->IsPristine());
+  EXPECT_TRUE(empty->IsEmpty());
 
   DataBagImpl::ConstDenseSourceArray dense_sources;
   DataBagImpl::ConstSparseSourceArray sparse_sources;
@@ -99,6 +100,7 @@ TEST(DataBagTest, PariallyPersistentForkNoModifications) {
     EXPECT_EQ(ds_a_get.size(), 3);
     db = db->PartiallyPersistentFork();
     EXPECT_TRUE(db->IsPristine());
+    EXPECT_FALSE(db->IsEmpty());
   }
 }
 

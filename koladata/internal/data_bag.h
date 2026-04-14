@@ -169,6 +169,9 @@ class DataBagImpl : public arolla::RefcountedBase {
   // forked, or has been modified back to a just-created or just-forked state.
   bool IsPristine() const;
 
+  // Returns true if this DataBag is empty.
+  bool IsEmpty() const;
+
   // Returns DataSliceImpl with attribute for every object.
   // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttr(
