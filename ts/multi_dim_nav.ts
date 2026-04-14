@@ -25,6 +25,11 @@ type SizeSpec = number[][];
 interface Node {
   size: number;
   depth: number;
+  // Offset relative to its parent in terms of size units.
+  offset?: number;
+  // Index among its siblings that have size > 0. This is used for parity
+  // calculation in rendering to ensure consistent alternating colors.
+  displayIndex?: number;
   children?: Node[];
 }
 
@@ -38,27 +43,70 @@ interface Node {
  *    the first index in dimension i that we have not yet converted.
  * @param index The index in sizes[dim] to convert.
  */
-function sizesToNodes(
-  sizes: SizeSpec,
-  dim: number,
-  bases: number[],
-  index: number,
-): Node {
+function sizesToNodesInternal(
+    sizes: SizeSpec,
+    dim: number,
+    bases: number[],
+    index: number,
+    ): Node {
   const currentSize = sizes[dim]?.[index] || 0;
   if (dim + 1 >= sizes.length) {
     return {size: currentSize, depth: 0};
   } else {
-    const children = [];
+    const children = Array.from<Node>({length: currentSize});
+    let currentOffset = 0;
+    let currentDisplayIndex = 0;
+    let maxChildDepth = 0;
     for (let i = 0; i < currentSize; i++) {
-      children.push(sizesToNodes(sizes, dim + 1, bases, bases[dim] + i));
+      const child = sizesToNodesInternal(sizes, dim + 1, bases, bases[dim] + i);
+      child.offset = currentOffset;
+      if (child.size > 0) {
+        child.displayIndex = currentDisplayIndex++;
+      }
+      maxChildDepth = Math.max(maxChildDepth, child.depth);
+      currentOffset += child.size;
+      children[i] = child;
     }
     bases[dim] += currentSize;
+
+    const depth = children.length > 0 ? maxChildDepth + 1 : 0;
     return {
       size: children.map((x) => x.size).reduce((x, y) => x + y, 0),
       children,
-      depth: Math.max(...children.map(x => x.depth)) + 1,
+      depth,
     };
   }
+}
+
+/**
+ * Convenience wrapper for sizesToNodesInternal.
+ */
+function sizesToNodes(sizes: SizeSpec): Node {
+  if (sizes.length === 0) return {size: 0, depth: 0};
+  const bases = Array.from<number>({length: sizes.length}).fill(0);
+  return sizesToNodesInternal(sizes, 0, bases, 0);
+}
+
+/**
+ * Returns the index of the first element in the array that ends after (i.e.
+ * its offset plus its size is greater than) the target value.
+ *
+ * @param nodes The array of nodes to search.
+ * @param target The target value to search for relative to the beginning of the
+ *     nodes children.
+ */
+function findFirstNodeIndexEndingAfter(nodes: Node[], target: number): number {
+  let low = 0;
+  let high = nodes.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if ((nodes[mid].offset || 0) + nodes[mid].size <= target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
 }
 
 /**
@@ -93,22 +141,36 @@ function renderNode(
   const lightnessOffset = lightnessMargin / 2;
 
   const children = node?.children;
-  let left = bounds.left;
   const childCount = children?.length || node?.size || 0;
   const lightnessMid = Math.floor(0.5 * (lightnessLow + lightnessHigh));
   const nodeSize = node?.size;
   if (!nodeSize) return;
 
-  let parity = 0;
-  for (let i = 0; i < childCount; i++) {
+  let startIndex = 0;
+  // If the bounds start to the left of the canvas, we need to start rendering
+  // at a node that is further along in the array.
+  const startOffset = Math.max(0, -bounds.left * nodeSize / bounds.width);
+  if (children) {
+    startIndex = findFirstNodeIndexEndingAfter(children, startOffset);
+  } else {
+    startIndex = Math.floor(startOffset);
+  }
+
+  for (let i = startIndex; i < childCount; i++) {
     const childNode = children?.[i];
     // Avoid rendering on an explicitly zero-sized child. If the child has
     // nullish size, this is actually a leaf case where each child has size 1.
     if (childNode?.size === 0) continue;
     const childSize = childNode?.size ?? 1;
-    const childWidth = (bounds.width * childSize) / nodeSize;
+    const childOffset = childNode?.offset ?? i;
+    const childDisplayIndex = childNode?.displayIndex ?? i;
+    const childWidth = bounds.width * (childSize / nodeSize);
+    const left = bounds.left + (childOffset * bounds.width) / nodeSize;
 
-    const lightnessAlpha = (lightnessMid + parity + lightnessOffset) /
+    if (left >= ctx.canvas.width) break;
+
+    const childParity = childDisplayIndex % 2;
+    const lightnessAlpha = (lightnessMid + childParity + lightnessOffset) /
         (lightnessMax + lightnessMargin);
     const fillLightness = 0.8 * lightnessAlpha + 0.1;
     ctx.fillStyle = `hsl(210, 40%, ${100 * fillLightness}%)`;
@@ -121,24 +183,22 @@ function renderNode(
       rowHeight,
     );
 
-    const childLightnessLow = parity ? lightnessMid + 1 : lightnessLow;
-    const childLightnessHigh = parity ? lightnessHigh : lightnessMid;
+    const childLightnessLow = childParity ? lightnessMid + 1 : lightnessLow;
+    const childLightnessHigh = childParity ? lightnessHigh : lightnessMid;
     renderNode(
-      ctx,
-      childNode,
-      rowHeight,
-      childBounds,
-      childLightnessLow,
-      childLightnessHigh,
-      lightnessMax,
+        ctx,
+        childNode,
+        rowHeight,
+        childBounds,
+        childLightnessLow,
+        childLightnessHigh,
+        lightnessMax,
     );
-    left += childWidth;
-    parity = (parity + 1) % 2;
   }
 }
 
 /**
- * Determines the multi-index of the item that is currenttly under the cursor
+ * Determines the multi-index of the item that is currently under the cursor
  * position.
  *
  * @param node The node in which to identify the multi-index.
@@ -150,12 +210,12 @@ function localizeIndex(node: Node, index: number): number[] {
     return [index];
   }
 
-  for (let i = 0; i < children.length; i++) {
-    if (index < children[i].size) {
-      return [i, ...localizeIndex(children[i], index)];
-    } else {
-      index -= children[i].size;
-    }
+  const i = findFirstNodeIndexEndingAfter(children, index);
+  if (i < children.length) {
+    return [
+      i,
+      ...localizeIndex(children[i], index - (children[i].offset || 0)),
+    ];
   }
 
   return [];
@@ -188,26 +248,27 @@ function* childSizeSliceAtDepth(
 ): Generator<SizeSliceEntry> {
   const {children} = node;
   if (node.depth === depth) {
-    // Unify the two cases of having child nodes and being at a leaf node.
-    const deltas = children
-      ? children.map((x) => x.size)
-      : Array.from<number>({length: node.size}).fill(1);
-    const accumulated = [base[0]];
-    for (const increment of deltas) {
-      accumulated.push((accumulated.at(-1) || 0) + increment);
-    }
+    // Yield the intersections with child nodes. Note that we handle both
+    // the case where we have the children array and the leaf case where we
+    // don't. In the leaf case, there is an implied children array where each
+    // element has size 1.
+    const startIndex = children ?
+        findFirstNodeIndexEndingAfter(children, begin - base[0]) :
+        Math.floor(begin - base[0]);
 
-    // Yield the intersections with child nodes.
-    for (let i = 1; i < accumulated.length; i++) {
-      const childBegin = accumulated[i - 1];
-      const childEnd = accumulated[i];
+    const numChildren = children ? children.length : node.size;
+    for (let i = Math.max(0, startIndex); i < numChildren; i++) {
+      const childOffset = children ? children[i].offset || 0 : i;
+      const childSize = children ? children[i].size : 1;
+      const childBegin = base[0] + childOffset;
+      const childEnd = childBegin + childSize;
       if (childBegin >= end) break;
 
       if (childEnd > begin) {
         const sliceBegin = Math.max(childBegin, begin);
         const sliceEnd = Math.min(childEnd, end);
         yield {
-          index: i - 1,
+          index: i,
           size: sliceEnd - sliceBegin,
         };
       }
@@ -215,7 +276,11 @@ function* childSizeSliceAtDepth(
     base[0] += node.size;
   } else if (node.depth > depth) {
     if (!children) return;
-    for (let i = 0; i < children.length; i++) {
+    const startIndex = findFirstNodeIndexEndingAfter(children, begin - base[0]);
+    base[0] += children[startIndex]?.offset || 0;
+    if (base[0] >= end) return;
+
+    for (let i = startIndex; i < children.length; i++) {
       yield* childSizeSliceAtDepth(children[i], depth, base, begin, end);
     }
   }
@@ -510,12 +575,7 @@ export class MultiDimNav extends NanoElement {
     if (name === 'data-sizes') {
       const sizes = JSON.parse(newValue || '[]') as SizeSpec;
       this.numDimsFromSizes = sizes.length;
-      this.node = sizesToNodes(
-        sizes,
-        0,
-        Array.from<number>({length: sizes.length}).fill(0),
-        0,
-      );
+      this.node = sizesToNodes(sizes);
       super.attributeChangedCallback(name, oldValue, newValue);
     } else if (name === 'compact') {
       this.syncCompact();
