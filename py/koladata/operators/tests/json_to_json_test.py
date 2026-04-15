@@ -328,11 +328,31 @@ class JsonToJsonTest(parameterized.TestCase):
           )
       )
 
+  def test_eval_list_object_keys(self):
+    x = fns.new(
+        my_keys=fns.list(['b', 'a', 'c'], item_schema=schema_constants.OBJECT),
+        a=1,
+        b=2,
+        c=3,
+    )
+    testing.assert_equal(
+        kd.json.to_json(x, keys_attr='my_keys'),
+        ds('{"b": 2, "a": 1, "c": 3}'),
+    )
+
   def test_error_invalid_json_key_list(self):
     with self.assertRaisesRegex(
         ValueError, 'expected json key list to contain STRING, got INT32'
     ):
       _ = kd.json.to_json(kd.new(keys=kd.list([1])), keys_attr='keys')
+
+    with self.assertRaisesRegex(
+        ValueError, 'expected json key list to contain STRING, got OBJECT'
+    ):
+      _ = kd.json.to_json(
+          kd.new(my_keys=kd.list([1], item_schema=schema_constants.OBJECT)),
+          keys_attr='my_keys',
+      )
 
     with self.assertRaisesRegex(
         ValueError, 'expected json key list not to have missing items'

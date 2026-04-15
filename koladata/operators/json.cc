@@ -1161,19 +1161,17 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     RETURN_IF_ERROR(key_list.GetSchema().VerifyIsListSchema());
     ASSIGN_OR_RETURN(auto key_list_items,
                      key_list.ExplodeList(0, std::nullopt));
-    if (key_list_items.GetSchemaImpl() != schema::kString) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("expected json key list to contain STRING, got %v",
-                          key_list_items.GetSchemaImpl()));
-    }
     if (!key_list_items.IsEmpty()) {
       if (key_list_items.size() != key_list_items.present_count()) {
         return absl::InvalidArgumentError(
             "expected json key list not to have missing items");
       }
+      if (key_list_items.dtype() != arolla::GetQType<arolla::Text>()) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("expected json key list to contain STRING, got %v",
+                            key_list_items.GetSchemaImpl()));
+      }
 
-      // Primitive STRING DataSlice must contain only strings.
-      DCHECK_EQ(key_list_items.dtype(), arolla::GetQType<arolla::Text>());
       const auto& key_list_values =
           key_list_items.slice().values<arolla::Text>().values;
 
