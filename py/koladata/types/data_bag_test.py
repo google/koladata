@@ -96,6 +96,12 @@ class DataBagTest(parameterized.TestCase):
     with self.assertRaisesRegex(TypeError, 'expected DataSlice, got list'):
       _ = db[[1, 2, 3]]  # pytype: disable=unsupported-operands
 
+  def test_is_empty(self):
+    db = bag()
+    self.assertTrue(db.is_empty())
+    _ = db.new(x=ds(1))
+    self.assertFalse(db.is_empty())
+
   @parameterized.named_parameters(
       (
           'empty',

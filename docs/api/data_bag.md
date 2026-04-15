@@ -220,6 +220,10 @@ Args:
 Returns:
   DataSlice of nested Lists</code></pre>
 
+### `DataBag.is_empty()` {#DataBag.is_empty}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if the DataBag is empty.</code></pre>
+
 ### `DataBag.is_mutable()` {#DataBag.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataBag is mutable.</code></pre>

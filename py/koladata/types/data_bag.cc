@@ -1575,6 +1575,13 @@ PyObject* absl_nullable PyDataBag_get_approx_byte_size(PyObject* self,
   return PyLong_FromLongLong(size);
 }
 
+PyObject* absl_nullable PyDataBag_is_empty(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  return PyBool_FromLong(db->IsEmpty() ? 1 : 0);
+}
+
 PyMethodDef kPyDataBag_methods[] = {
     {"is_mutable", (PyCFunction)PyDataBag_is_mutable, METH_NOARGS,
      "is_mutable()\n"
@@ -1927,6 +1934,10 @@ Returns:
      "get_approx_byte_size()\n"
      "--\n\n"
      "Returns approximate size of the DataBag in bytes."},
+     {"is_empty", PyDataBag_is_empty, METH_NOARGS,
+     "is_empty()\n"
+     "--\n\n"
+     "Returns True if the DataBag is empty."},
     {nullptr} /* sentinel */
 };
 
