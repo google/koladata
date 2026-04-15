@@ -4461,5 +4461,24 @@ class DataSliceListSlicingTest(parameterized.TestCase):
   def test_colab_has_safe_repr(self):
     self.assertFalse(hasattr(data_slice.DataSlice, '_COLAB_HAS_SAFE_REPR'))
 
+  def test_dict_get_expr_item(self):
+    db = bag()
+    d = db.dict({1: 2}).freeze_bag()
+
+    testing.assert_equal(
+        d[I.x].eval(x=1),
+        ds(2).with_bag(d.get_bag())
+    )
+
+  def test_list_get_expr_item(self):
+    db = bag()
+    l = db.list([1, 2]).freeze_bag()
+
+    testing.assert_equal(
+        l[I.x].eval(x=1),
+        ds(2).with_bag(l.get_bag())
+    )
+
+
 if __name__ == '__main__':
   absltest.main()

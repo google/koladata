@@ -19,6 +19,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing
+from koladata.expr import view
 from koladata.extension_types import extension_types
 from koladata.functions import parallel
 from koladata.functor import functor_factories
@@ -218,6 +219,28 @@ class TracingTest(absltest.TestCase):
         .to_py(),
         'Hello WORLD',
     )
+
+  def test_literal_dict_get_item_tracing(self):
+    d = kd.dict({1: 2})
+    def f(x):
+      return d[x]
+
+    testing.assert_traced_exprs_equal(
+        tracing.trace(f),
+        d[I.x],
+    )
+    self.assertTrue(view.has_koda_view(tracing.trace(f)))
+
+  def test_literal_list_get_item_tracing(self):
+    l = kd.list()
+    def f(x):
+      return l[x]
+
+    testing.assert_traced_exprs_equal(
+        tracing.trace(f),
+        l[I.x],
+    )
+    self.assertTrue(view.has_koda_view(tracing.trace(f)))
 
   def test_ignored_input(self):
     def fn(x, *, y):

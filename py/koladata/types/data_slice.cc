@@ -33,6 +33,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/expr/expr.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -48,6 +49,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/error_repr_utils.h"
+#include "koladata/expr/expr_operators.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -59,6 +61,7 @@
 #include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/message.h"
+#include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -607,6 +610,21 @@ PyObject* absl_nullable PyDataSlice_subscript(PyObject* self, PyObject* key) {
         return WrapPyDataSlice(std::move(res));
       }
     }
+  }
+  // __getitem__(Expr, Any) is handled by KodaView, but __getitem__(DataSlice,
+  // Expr) we have to handle here.
+  if (arolla::python::IsPyExprInstance(key)) {
+    auto key_expr = arolla::python::UnwrapPyExpr(key);
+    ASSIGN_OR_RETURN(auto ds_literal,
+                     koladata::expr::MakeLiteral(
+                         arolla::TypedValue::FromValue(self_ds)),
+                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(
+        auto result_expr,
+        arolla::expr::BindOp("kd.core.get_item",
+                             {std::move(ds_literal), std::move(key_expr)}, {}),
+        arolla::python::SetPyErrFromStatus(_));
+    return arolla::python::WrapAsPyExpr(std::move(result_expr));
   }
   ASSIGN_OR_RETURN(auto key_ds, ConvertKeyToDataSlice(key),
                    arolla::python::SetPyErrFromStatus(_));

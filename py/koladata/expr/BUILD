@@ -163,6 +163,7 @@ py_test(
     srcs = ["tracing_test.py"],
     deps = [
         ":tracing",
+        ":view",
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/extension_types",
