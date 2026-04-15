@@ -52,7 +52,6 @@ types can be mixed in the same DataSlice and provide more flexibility.
 >>> # It fails because of incompatible schemas
 >>> kd.slice([1, kd.new(a=1), kd.list([1, 2]), kd.dict({1: 2})])
 Traceback (most recent call last):
-  ...
 ValueError: cannot find a common schema
   ...
 
@@ -84,7 +83,6 @@ DataItem(Obj(a=1, b=2), schema: OBJECT,...)
 >>> # List objects
 >>> kd.obj([1, 2, 3])
 Traceback (most recent call last):
-   ...
 ValueError: object with unsupported type: list
 
 >>> kd.obj(kd.list([1, 2, 3])) # do this instead
@@ -93,7 +91,6 @@ DataItem(List[1, 2, 3], schema: OBJECT,...)
 >>> # Dict objects
 >>> kd.obj({1: 2})
 Traceback (most recent call last):
-  ...
 ValueError: object with unsupported type: dict
 >>> kd.obj(kd.dict({1: 2})) # do this instead
 DataItem(Dict{1=2}, schema: OBJECT,...)
@@ -102,9 +99,14 @@ DataItem(Dict{1=2}, schema: OBJECT,...)
 NOTE: schemas themselves cannot be objects.
 
 ```py {.pycon-doctest}
->>> # They fail
->>> # kd.obj(kd.INT32)
->>> # kd.obj(kd.list_schema(kd.INT32))
+>>> kd.obj(kd.INT32)
+Traceback (most recent call last):
+ValueError: schema embedding is only supported for a DataSlice with primitive, entity, list or dict schemas, got SCHEMA
+
+>>> kd.obj(kd.list_schema(kd.INT32))
+Traceback (most recent call last):
+ValueError: schema embedding is only supported for a DataSlice with primitive, entity, list or dict schemas, got SCHEMA
+
 ```
 
 ## Non-objects vs Objects
@@ -251,9 +253,14 @@ lists. We also need to pass `schema=None` to enable automatic schema detection.
 ```py {.pycon-doctest}
 >>> py_list = [[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]
 
->>> ds1 = kd.from_py(py_list, from_dim=0, schema=None)
->>> # -> DataItem(List[List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
->>> # same as kd.list(py_list)
+>>> ds1 = kd.from_py(py_list, from_dim=0, schema=None); ds1
+DataItem(List[List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]], schema: LIST[LIST[LIST[INT32]]], bag_id:...)
+
+# Same as
+>>> ds1_2 = kd.list(py_list)
+>>> kd.testing.assert_equivalent(ds1, ds1_2)
+
+
 >>> ds1.get_ndim()
 DataItem(0, schema: INT64)
 >>> ds1.get_size()
@@ -261,8 +268,8 @@ DataItem(1, schema: INT64)
 >>> ds1.get_schema()
 DataItem(LIST[LIST[LIST[INT32]]], schema: SCHEMA,...)
 
->>> ds2 = kd.from_py(py_list, from_dim=1, schema=None)
->>> # -> DataSlice([List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
+>>> ds2 = kd.from_py(py_list, from_dim=1, schema=None); ds2
+DataSlice([List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]], schema: LIST[LIST[INT32]], present: 2/2, bag_id:...)
 >>> ds2.get_ndim()
 DataItem(1, schema: INT64)
 >>> ds2.get_size()
@@ -270,8 +277,8 @@ DataItem(2, schema: INT64)
 >>> ds2.get_schema()
 DataItem(LIST[LIST[INT32]], schema: SCHEMA,...)
 
->>> ds3 = kd.from_py(py_list, from_dim=2, schema=None)
->>> # -> DataSlice([[List[1, 2], List[3, 4, 5]], [List[7], List[], List[8, 9]]])
+>>> ds3 = kd.from_py(py_list, from_dim=2, schema=None); ds3
+DataSlice([[List[1, 2], List[3, 4, 5]], [List[7], List[], List[8, 9]]], schema: LIST[INT32], present: 5/5, bag_id:...)
 >>> ds3.get_ndim()
 DataItem(2, schema: INT64)
 >>> ds3.get_size()
@@ -279,9 +286,13 @@ DataItem(5, schema: INT64)
 >>> ds3.get_schema()
 DataItem(LIST[INT32], schema: SCHEMA,...)
 
->>> ds4 = kd.from_py(py_list, from_dim=3, schema=None)
->>> # -> DataSlice([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
->>> # same as kd.slice(py_list)
+>>> ds4 = kd.from_py(py_list, from_dim=3, schema=None); ds4
+DataSlice([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]], schema: INT32, present: 8/8)
+
+#same as
+>>> ds4_1 = kd.slice(py_list)
+>>> kd.testing.assert_equivalent(ds4, ds4_1)
+
 >>> ds4.get_ndim()
 DataItem(3, schema: INT64)
 >>> ds4.get_size()
@@ -410,11 +421,19 @@ Here are some examples:
     lists.
 
 ```py {.pycon-doctest}
->>> # The following all fail
->>> # kd.list([1, [2, 3]])
->>> # kd.slice([1, [2, 3]])
->>> # kd.list([[1, 2], [[3], [4]]])
->>> # kd.slice([[1, 2], [[3], [4]]])
+# The following all fail
+>>> kd.list([1, [2, 3]])
+Traceback (most recent call last):
+ValueError: input has to be a valid nested list. non-lists and lists cannot be mixed in a level
+>>> kd.slice([1, [2, 3]])
+Traceback (most recent call last):
+ValueError: input has to be a valid nested list. non-lists and lists cannot be mixed in a level
+>>> kd.list([[1, 2], [[3], [4]]])
+Traceback (most recent call last):
+ValueError: input has to be a valid nested list. non-lists and lists cannot be mixed in a level
+>>> kd.slice([[1, 2], [[3], [4]]])
+Traceback (most recent call last):
+ValueError: input has to be a valid nested list. non-lists and lists cannot be mixed in a level
 ```
 
 However, it is possible to represent such non-homogeneous structures in Koda
@@ -431,7 +450,6 @@ DataItem(List[1, List[2, 3]], schema: OBJECT,...)
 
 >>> kd.slice([1, kd.obj([2, 3])])
 Traceback (most recent call last):
-   ...
 ValueError: object with unsupported type: list
 
 >>> kd.from_py([1, [2, 3]], from_dim=1)
@@ -502,9 +520,13 @@ DataSlice([[1, 2], [3, 4, 5]], schema: INT32,...)
 >>> ds.S[:]  # same as above, select everything
 DataSlice([[1, 2], [3, 4, 5]], schema: INT32,...)
 
->>> # Fails because ds does not have lists
->>> # ds[:]
->>> # ds[1]
+# Fails because ds does not have lists
+>>> ds[:]
+Traceback (most recent call last):
+ValueError: Expected either a list or a dict slice, got INT32...
+>>> ds[1]
+Traceback (most recent call last):
+ValueError: Expected either a list or a dict slice, got INT32...
 ```
 
 IMPORTANT: List slicing selects elements within lists of a DataSlice whereas
@@ -961,11 +983,16 @@ will happen irrespective of the equality or inequality of the ItemIds of `x` and
 >>> list_id = kd.allocation.new_listid()
 >>> l1 = kd.list([1, 2], itemid=list_id)
 >>> l2 = kd.list(['3', '4'], itemid=list_id)
->>> # Fails because LIST[INT32] is not compatible with LIST[STRING]
->>> # l1 == l2
 
->>> # Fails because LIST[INT32] is not compatible with OBJECT
->>> # l1 == kd.obj(l1)
+# Fails because LIST[INT32] is not compatible with LIST[STRING]
+>>> l1 == l2
+Traceback (most recent call last):
+ValueError: kd.comparison.equal: arguments do not have a common schema...
+
+# Fails because LIST[INT32] is not compatible with OBJECT
+>>> l1 == kd.obj(l1)
+Traceback (most recent call last):
+ValueError: kd.comparison.equal: arguments do not have a common schema...
 
 >>> # Both have OBJECT schemas
 >>> assert kd.obj(l1) == kd.obj(l2)
@@ -1084,7 +1111,6 @@ error message use kd.testing.assert_equivalent.
 ```py {.pycon-doctest}
 >>> kd.testing.assert_equivalent(o1, o2)
 Traceback (most recent call last):
-  ...
 AssertionError: Expected: is equal to DataItem(Obj(x=1), schema: OBJECT)
 Actual: DataItem(Obj(x=1), schema: OBJECT), with difference:
 modified schema:
@@ -1142,8 +1168,11 @@ by using `kd.all` or `kd.any`.
 
 ```py {.pycon-doctest}
 >>> ds = kd.slice([kd.present, kd.missing])
->>> # The next line fails
->>> # bool(ds)
+
+# The next line fails
+>>> bool(ds)
+Traceback (most recent call last):
+TypeError: __bool__ disabled for koladata.types.data_slice.DataSlice...
 
 >>> bool(kd.any(ds))
 True
@@ -1283,9 +1312,11 @@ but it makes accesses much slower. Koda chose not to do so.
 
 ```py {.pycon-doctest}
 >>> l1 = kd.list([1, 2, 3])
->>> l2 = l1.with_list_append_update(4)  # List[1, 2, 3, 4]
+>>> l2 = l1.with_list_append_update(4); l2
+DataItem(List[1, 2, 3, 4], schema: LIST[INT32], bag_id:...)
 >>> assert l1.get_itemid() == l2.get_itemid()
->>> l3 = l1.with_list_append_update(kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+>>> l3 = l1.with_list_append_update(kd.slice([4, 5])); l3
+DataItem(List[1, 2, 3, 4, 5], schema: LIST[INT32], bag_id:...)
 >>> assert l2.get_itemid() == l3.get_itemid()
 ```
 
@@ -1294,14 +1325,17 @@ If a new distinct ItemId is preferred, we can use `kd.concat_lists(*lists)` or
 
 ```py {.pycon-doctest}
 >>> l1 = kd.list([1, 2, 3])
->>> l2 = kd.appended_list(l1, 4)  # List[1, 2, 3, 4]
+>>> l2 = kd.appended_list(l1, 4); l2
+DataItem(List[1, 2, 3, 4], schema: LIST[INT32], bag_id:...)
 >>> assert l1.get_itemid() != l2.get_itemid()
->>> l3 = kd.appended_list(l1, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+>>> l3 = kd.appended_list(l1, kd.slice([4, 5])); l3
+DataItem(List[1, 2, 3, 4, 5], schema: LIST[INT32], bag_id:...)
 >>> assert l1.get_itemid() != l3.get_itemid()
 
 >>> l4 = kd.list([4, 5])
 >>> l5 = kd.list([6, 7])
->>> l6 = kd.concat_lists(l1, l4, l5)  # List[1, 2, 3, 4, 5, 6, 7]
+>>> l6 = kd.concat_lists(l1, l4, l5); l6
+DataItem(List[1, 2, 3, 4, 5, 6, 7], schema: LIST[INT32], bag_id:...)
 >>> assert l1.get_itemid() != l6.get_itemid()
 ```
 
@@ -1359,13 +1393,15 @@ of entities with distinct ItemIds.
 >>> def run_eval(q, v):
 ...   return q.with_attrs(res=v)
 
->>> # kd.new(run1=run_eval(query, 1), run2=run_eval(query, 2))
->>> # raises KodaError: cannot create Item(s)
->>> # The cause is: cannot merge DataBags due to an exception encountered when merging entities.
->>> # The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8CyR
->>> # The cause is the values of attribute 'res' are different: 1 vs 2
+>>> kd.new(run1=run_eval(query, 1), run2=run_eval(query, 2))
+Traceback (most recent call last):
+ValueError: [FAILED_PRECONDITION] cannot create Item(s)
 
->>> # The fix is to use clone()
+# The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+# The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8CyR
+# The cause is the values of attribute 'res' are different: 1 vs 2
+
+# The fix is to use clone()
 >>> kd.obj(run1=run_eval(query.clone(), 1), run2=run_eval(query.clone(), 2))
 DataItem(Obj(run1=Obj(res=1, text='q'), run2=Obj(res=2, text='q')), schema: OBJECT,...)
 ```
@@ -1380,13 +1416,15 @@ clones of entities with distinct ItemIds recursively.
 >>> def run_eval(qs, v):
 ...   return qs.query[:].with_attrs(res=v)
 
->>> # kd.obj(run1=run_eval(query_set.clone(), 1), run2=run_eval(query_set.clone(), 2))
->>> # raises KodaError: cannot create Item(s)
->>> # The cause is: cannot merge DataBags due to an exception encountered when merging entities.
->>> # The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8Cyd
->>> # The cause is the values of attribute 'res' are different: 1 vs 2
+>>> kd.obj(run1=run_eval(query_set.clone(), 1), run2=run_eval(query_set.clone(), 2))
+Traceback (most recent call last):
+ValueError: [FAILED_PRECONDITION] cannot create Item(s)
 
->>> # The fix is to use deep_clone()
+# The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+# The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8Cyd
+# The cause is the values of attribute 'res' are different: 1 vs 2
+
+# The fix is to use deep_clone()
 >>> kd.obj(run1=run_eval(query_set.deep_clone(), 1),
 ...        run2=run_eval(query_set.deep_clone(), 2))
 DataSlice([
@@ -1412,8 +1450,8 @@ DataSlice([
   [Entity:..., Entity:...],
 ], schema: ITEMID,...)
 
->>> # Only modify the first element
->>> # Note the items with the same ItemIds are modfied too
+# Only modify the first element
+# Note the items with the same ItemIds are modfied too
 >>> ds3.updated(kd.attrs(ds3.S[..., 0], a=3))
 DataSlice([[Entity(a=3), Entity(a=3)], [Entity(a=3), Entity(a=3)]], schema: ENTITY(a=INT32),...)
 ```
@@ -1492,8 +1530,9 @@ example:
 ...   a = bag.new(x=1)  # mutable API
 ...   return bag.new(y=a)
 
->>> # The following line fails
->>> # kd.fn(f2)
+>>> kd.fn(f2)
+Traceback (most recent call last):
+ValueError: expected DATA_SLICE, got schema: DATA_BAG...
 ```
 
 ## Tracing with captured variables
@@ -1512,7 +1551,6 @@ following example showcases a variant of a family of problems related to this:
 >>> functor = kd.fn(fn)  # Traces fine.
 >>> functor(kd.slice([1, 2, 3]), 1)
 Traceback (most recent call last):
-  ...
 ValueError: object with unsupported type, arolla.abc.expr.Expr, for value:
   ...
 ```
@@ -1587,7 +1625,9 @@ example, the following will fail.
 DataSlice([1, 2, 3], schema: INT32,...)
 
 >>> # Fails. `x[:]` is not possible for an entity.
->>> # explode_or_default(kd.new(x=1), 2)
+>>> explode_or_default(kd.new(x=1), 2)
+Traceback (most recent call last):
+ValueError: koda_internal.view.get_item: kd.core.get_list_item_by_range: the attribute '__items__' is missing on the schema...
 ```
 
 ### `kd.if_`
@@ -1612,12 +1652,14 @@ DataSlice([1, 2, 3], schema: INT32,...)
 ... )
 DataSlice([4, 5, 6], schema: INT32,...)
 
->>> # Fails - the conditional is required to be a scalar.
->>> # kd.if_(
->>> #   kd.slice([kd.present, kd.missing, kd.present]),
->>> #   lambda: kd.slice([1, 2, 3]),
->>> #   lambda: kd.slice([4, 5, 6]),
->>> # )
+# Fails - the conditional is required to be a scalar.
+>>> kd.if_(
+...   kd.slice([kd.present, kd.missing, kd.present]),
+...   lambda: kd.slice([1, 2, 3]),
+...   lambda: kd.slice([4, 5, 6]),
+...   )
+Traceback (most recent call last):
+ValueError: [FAILED_PRECONDITION] the condition in kd.if_ must be a MASK scalar...
 ```
 
 Due to the short-circuiting nature of this operator, we can rewrite the
