@@ -1353,6 +1353,25 @@ DataItem(List[Dict{...'b'=List[4, 5, 6]...}, Dict{...'b'=4...}], schema: OBJECT,
 
 >>> kd.to_py(kd.list([1, 2, 3]))
 [1, 2, 3]
+
+# Using `output_class`:
+
+>>> import types as _py_types
+
+>>> koda_obj = kd.obj(x=1, y=2)
+>>> koda_obj.to_py(output_class=_py_types.SimpleNamespace)
+namespace(...x=1...)
+
+>>> import dataclasses
+>>> @dataclasses.dataclass
+... class Objxy:
+...  x: int
+...  y: int
+>>> koda_obj.to_py(output_class=Objxy)
+Objxy(x=1, y=2)
+
+>>> kd.to_py(kd.list([1, 2, 3]), output_class=tuple[int,...])
+(1, 2, 3)
 ```
 
 **From/to Pandas DataFrames**
