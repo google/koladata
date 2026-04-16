@@ -1,30 +1,33 @@
 <!-- Note: This file is auto-generated, do not edit manually. -->
 
-# kd_ext.kv.View API
+# kd_ext.kv.types.View API
 
-`View` class
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A view on a particular path inside an object.
+
+See the docstring for view() method for more details.
+</code></pre>
 
 
 
 
 
-### `View.__init__(self, obj: Any, depth: int, internal_call: object, /)` {#View.__init__}
+### `View.__init__(self, obj: Any, depth: int, internal_call: object, /)` {#kd_ext.kv.types.View.__init__}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Internal constructor. Please use kv.view() instead.</code></pre>
 
-### `View.append(self, value: ViewOrAutoBoxType)` {#View.append}
+### `View.append(self, value: ViewOrAutoBoxType)` {#kd_ext.kv.types.View.append}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Appends an item or items to all containers in the view.</code></pre>
 
-### `View.collapse(self, ndim: int = 1) -> View` {#View.collapse}
+### `View.collapse(self, ndim: int = 1) -> View` {#kd_ext.kv.types.View.collapse}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Collapses equal items along the specified number dimensions of the view.</code></pre>
 
-### `View.deep_clone(self) -> View` {#View.deep_clone}
+### `View.deep_clone(self) -> View` {#kd_ext.kv.types.View.deep_clone}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a deep copy of the view.</code></pre>
 
-### `View.deep_map(self, f: Callable[[Any], Any], *, include_missing: bool = False, namespace: str = '') -> View` {#View.deep_map}
+### `View.deep_map(self, f: Callable[[Any], Any], *, include_missing: bool = False, namespace: str = '') -> View` {#kd_ext.kv.types.View.deep_map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to every nested primitive value in the view.
 
@@ -51,19 +54,19 @@ Args:
 Returns:
   A new view with the function applied to every nested primitive value.</code></pre>
 
-### `View.expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View` {#View.expand_to}
+### `View.expand_to(self, other: ViewOrAutoBoxType, ndim: int = 0) -> View` {#kd_ext.kv.types.View.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Expands the view to the shape of other view.</code></pre>
 
-### `View.explode(self, ndim: int = 1) -> View` {#View.explode}
+### `View.explode(self, ndim: int = 1) -> View` {#kd_ext.kv.types.View.explode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Unnests iterable elements, increasing rank by `ndim`.</code></pre>
 
-### `View.flatten(self, from_dim: int = 0, to_dim: int | None = None) -> View` {#View.flatten}
+### `View.flatten(self, from_dim: int = 0, to_dim: int | None = None) -> View` {#kd_ext.kv.types.View.flatten}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Flattens the specified dimensions of the view.</code></pre>
 
-### `View.get(self) -> Any` {#View.get}
+### `View.get(self) -> Any` {#kd_ext.kv.types.View.get}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an object represented by the view.
 
@@ -75,31 +78,31 @@ Example:
   view([[1,2],[3]])[:][:].get()
   # ((1,2),(3,)).</code></pre>
 
-### `View.get_attr(self, attr_name: str, default: Any = NO_DEFAULT) -> View` {#View.get_attr}
+### `View.get_attr(self, attr_name: str, default: Any = NO_DEFAULT) -> View` {#kd_ext.kv.types.View.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new view with the given attribute of each item.</code></pre>
 
-### `View.get_depth(self) -> int` {#View.get_depth}
+### `View.get_depth(self) -> int` {#kd_ext.kv.types.View.get_depth}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the depth of the view.</code></pre>
 
-### `View.get_item(self, key_or_index: ViewOrAutoBoxType | slice) -> View` {#View.get_item}
+### `View.get_item(self, key_or_index: ViewOrAutoBoxType | slice) -> View` {#kd_ext.kv.types.View.get_item}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an item or items from the given view containing containers.</code></pre>
 
-### `View.group_by(self, *args: ViewOrAutoBoxType, sort: bool = False) -> View` {#View.group_by}
+### `View.group_by(self, *args: ViewOrAutoBoxType, sort: bool = False) -> View` {#kd_ext.kv.types.View.group_by}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Groups items by the values of the given args.</code></pre>
 
-### `View.implode(self, ndim: int = 1) -> View` {#View.implode}
+### `View.implode(self, ndim: int = 1) -> View` {#kd_ext.kv.types.View.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Reduces view dimension by grouping items into tuples.</code></pre>
 
-### `View.inverse_select(self, fltr: ViewOrAutoBoxType) -> View` {#View.inverse_select}
+### `View.inverse_select(self, fltr: ViewOrAutoBoxType) -> View` {#kd_ext.kv.types.View.inverse_select}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Restores the original shape that was reduced by select.</code></pre>
 
-### `View.map(self, f: Callable[[Any], Any], *, ndim: int = 0, include_missing: bool | None = None) -> View` {#View.map}
+### `View.map(self, f: Callable[[Any], Any], *, ndim: int = 0, include_missing: bool | None = None) -> View` {#kd_ext.kv.types.View.map}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Applies a function to every item in the view.
 
@@ -131,19 +134,19 @@ Args:
 Returns:
   A new view with the function applied to every item.</code></pre>
 
-### `View.select(self, fltr: ViewOrAutoBoxType, expand_filter: bool = True) -> View` {#View.select}
+### `View.select(self, fltr: ViewOrAutoBoxType, expand_filter: bool = True) -> View` {#kd_ext.kv.types.View.select}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Keeps only items in the view where the filter is present.</code></pre>
 
-### `View.set_attrs(self, /, **attrs: ViewOrAutoBoxType) -> None` {#View.set_attrs}
+### `View.set_attrs(self, /, **attrs: ViewOrAutoBoxType) -> None` {#kd_ext.kv.types.View.set_attrs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets the given attributes of each item.</code></pre>
 
-### `View.set_item(self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType)` {#View.set_item}
+### `View.set_item(self, key_or_index: ViewOrAutoBoxType, value: ViewOrAutoBoxType)` {#kd_ext.kv.types.View.set_item}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an item or items for all containers in the view.</code></pre>
 
-### `View.take(self, index: ViewOrAutoBoxType) -> View` {#View.take}
+### `View.take(self, index: ViewOrAutoBoxType) -> View` {#kd_ext.kv.types.View.take}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a view with the given index in the last dimension.</code></pre>
 

@@ -5,27 +5,24 @@
 Koda visualization functionality.
 
 
+Subcategory | Description
+----------- | ------------
+[AccessType](vis/access_type.md) | Types of accesses that can appear in an access path.
+[DataSliceVisOptions](vis/data_slice_vis_options.md) | Options for visualizing a DataSlice.
+[DescendMode](vis/descend_mode.md) | Create a collection of name/value pairs.
+
 
 
 
 ### `kd_ext.vis.AccessType(*values)` {#kd_ext.vis.AccessType}
-Aliases:
-
-- [kd_g3_ext.vis.AccessType](../kd_g3_ext/vis.md#kd_g3_ext.vis.AccessType)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Types of accesses that can appear in an access path.</code></pre>
 
 ### `kd_ext.vis.DataSliceVisOptions(num_items: int = 48, unbounded_type_max_len: int = 256, detail_width: int | str | None = None, detail_height: int | str | None = 300, attr_limit: int | None = 20, item_limit: int | None = 20, repr_depth: int = 2, max_folds: int = 2)` {#kd_ext.vis.DataSliceVisOptions}
-Aliases:
-
-- [kd_g3_ext.vis.DataSliceVisOptions](../kd_g3_ext/vis.md#kd_g3_ext.vis.DataSliceVisOptions)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Options for visualizing a DataSlice.</code></pre>
 
 ### `kd_ext.vis.DescendMode(*values)` {#kd_ext.vis.DescendMode}
-Aliases:
-
-- [kd_g3_ext.vis.DescendMode](../kd_g3_ext/vis.md#kd_g3_ext.vis.DescendMode)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Create a collection of name/value pairs.
 
@@ -65,9 +62,6 @@ Methods can be added to enumerations, and members can have their own
 attributes -- see the documentation for details.</code></pre>
 
 ### `kd_ext.vis.register_formatters() -> bool` {#kd_ext.vis.register_formatters}
-Aliases:
-
-- [kd_g3_ext.vis.register_formatters](../kd_g3_ext/vis.md#kd_g3_ext.vis.register_formatters)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Register DataSlice visualization in IPython.
 
@@ -83,9 +77,6 @@ Returns:
   True if the formatters were unregistered, False if they were not registered.</code></pre>
 
 ### `kd_ext.vis.visualize_slice(ds: DataSlice, options: DataSliceVisOptions | None = None) -> _DataSliceViewState` {#kd_ext.vis.visualize_slice}
-Aliases:
-
-- [kd_g3_ext.vis.visualize_slice](../kd_g3_ext/vis.md#kd_g3_ext.vis.visualize_slice)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Visualizes a DataSlice as a html widget.</code></pre>
 

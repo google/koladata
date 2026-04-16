@@ -10,12 +10,13 @@ the following module is needed:
 Subcategory | Description
 ----------- | ------------
 [contrib](kd_ext/contrib.md) | External contributions not necessarily endorsed by Koda.
+[kv](kd_ext/kv.md) | Experimental Koda View API.
 [nested_data](kd_ext/nested_data.md) | Utilities for manipulating nested data.
 [npkd](kd_ext/npkd.md) | Tools for Numpy &lt;-&gt; Koda interoperability.
 [pdkd](kd_ext/pdkd.md) | Tools for Pandas &lt;-&gt; Koda interoperability.
-[storage](kd_ext/storage.md) | Tools for persisted incremental data.
+[pseudo_random](kd_ext/pseudo_random.md) | Pseudo-random utilities.
+[storage](kd_ext/storage.md) | Koda data storage utilities.
 [vis](kd_ext/vis.md) | Koda visualization functionality.
-[kv](kd_ext/kv.md) | Experimental Koda View API.
 
 
 

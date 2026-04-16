@@ -761,22 +761,8 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem indicating whether DataItem x is present in y.</code></pre>
 
 ### `kd.slices.item(x, /, schema=None)` {#kd.slices.item}
-Aliases:
 
-- [kd.item](../kd.md#kd.item)
-
-- [DataItem.from_vals](../data_item.md#DataItem.from_vals)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem created from `x`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`x`. Python value must be convertible to Koda scalar and the result cannot
-be multidimensional DataSlice.
-
-Args:
-  x: a Python value or a DataItem.
-  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
-    it to the given schema.</code></pre>
+Alias for [kd.types.DataItem.from_vals](types/data_item.md#kd.types.DataItem.from_vals)
 
 ### `kd.slices.mask(x: Any) -> DataSlice` {#kd.slices.mask}
 Aliases:
@@ -1006,22 +992,8 @@ Returns:
   The size of `x`.</code></pre>
 
 ### `kd.slices.slice(x, /, schema=None)` {#kd.slices.slice}
-Aliases:
 
-- [kd.slice](../kd.md#kd.slice)
-
-- [DataSlice.from_vals](../data_slice.md#DataSlice.from_vals)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice created from `x`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`x`.
-
-Args:
-  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
-    a multidimensional DataSlice is created.
-  schema: schema DataItem to set. If `x` is already a DataSlice, this will
-    cast it to the given schema.</code></pre>
+Alias for [kd.types.DataSlice.from_vals](types/data_slice.md#kd.types.DataSlice.from_vals)
 
 ### `kd.slices.sort(x, sort_by=unspecified, descending=False)` {#kd.slices.sort}
 Aliases:

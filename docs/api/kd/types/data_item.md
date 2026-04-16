@@ -1,15 +1,18 @@
 <!-- Note: This file is auto-generated, do not edit manually. -->
 
-# DataItem API
+# kd.types.DataItem API
 
-`DataItem` is a `DataSlice` subclass that represents a single item (i.e.
-primitive value, ItemId).
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Base class of all Arolla values in Python.
+
+QValue is immutable. It provides only basic functionality.
+Subclasses of this class might have further specialization.
+</code></pre>
 
 
 
 
 
-### `DataItem.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#DataItem.bind}
+### `DataItem.bind(self, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#kd.types.DataItem.bind}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor that partially binds a function to `args` and `kwargs`.
 
@@ -52,7 +55,21 @@ Args:
 Returns:
   A new Koda functor with some parameters bound.</code></pre>
 
-### `DataItem.from_vals(x, /, schema=None)` {#DataItem.from_vals}
+### `DataItem.from_vals(x, /, schema=None)` {#kd.types.DataItem.from_vals}
+Aliases:
 
-Alias for [kd.slices.item](kd/slices.md#kd.slices.item)
+- [kd.slices.item](../slices.md#kd.slices.item)
+
+- [kd.item](../../kd.md#kd.item)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`. Python value must be convertible to Koda scalar and the result cannot
+be multidimensional DataSlice.
+
+Args:
+  x: a Python value or a DataItem.
+  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
+    it to the given schema.</code></pre>
 

@@ -2,7 +2,7 @@
 
 # kd.streams API
 
-Operators that work with streams of items. These APIs are in active development and might change often (b/424742492).
+Operators that work with streams of items.
 
 
 

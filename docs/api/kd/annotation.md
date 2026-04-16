@@ -26,25 +26,6 @@ Args:
  line_text: text of the line where the expr node was created</code></pre>
 
 ### `kd.annotation.with_name(obj: Any, name: str | Text) -> Any` {#kd.annotation.with_name}
-Aliases:
 
-- [kd.with_name](../kd.md#kd.with_name)
-
-- [DataSlice.with_name](../data_slice.md#DataSlice.with_name)
-
-- [DataBag.with_name](../data_bag.md#DataBag.with_name)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Checks that the `name` is a string and returns `obj` unchanged.
-
-This method is useful in tracing workflows: when tracing, we will assign
-the given name to the subexpression computing `obj`. In eager mode, this
-method is effectively a no-op.
-
-Args:
-  obj: Any object.
-  name: The name to be used for this sub-expression when tracing this code.
-    Must be a string.
-
-Returns:
-  obj unchanged.</code></pre>
+Alias for [kd.types.DataBag.with_name](types/data_bag.md#kd.types.DataBag.with_name)
 

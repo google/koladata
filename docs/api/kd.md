@@ -20,8 +20,8 @@ Subcategory | Description
 [allocation](kd/allocation.md) | Operators that allocate new ItemIds.
 [annotation](kd/annotation.md) | Annotation operators.
 [assertion](kd/assertion.md) | Operators that assert properties of DataSlices.
-[bitwise](kd/bitwise.md) | Bitwise operators
 [bags](kd/bags.md) | Operators that work on DataBags.
+[bitwise](kd/bitwise.md) | Bitwise operators
 [comparison](kd/comparison.md) | Operators that compare DataSlices.
 [core](kd/core.md) | Core operators that are not part of other categories.
 [curves](kd/curves.md) | Operators working with curves.
@@ -32,7 +32,7 @@ Subcategory | Description
 [file_io](kd/file_io.md) | File I/O utilities.
 [functor](kd/functor.md) | Operators to create and call functors.
 [ids](kd/ids.md) | Operators that work with ItemIds.
-[iterables](kd/iterables.md) | Operators that work with iterables. These APIs are in active development and might change often.
+[iterables](kd/iterables.md) | Operators that work with iterables.
 [json](kd/json.md) | JSON serialization operators.
 [json_stream](kd/json_stream.md) | JSON text stream transformation operators.
 [lists](kd/lists.md) | Operators working with lists.
@@ -40,21 +40,79 @@ Subcategory | Description
 [math](kd/math.md) | Arithmetic operators.
 [objs](kd/objs.md) | Operators that work solely with objects.
 [optools](kd/optools.md) | Operator definition and registration tooling.
-[proto](kd/proto.md) | Protocol buffer serialization operators.
 [parallel](kd/parallel.md) | Operators for parallel computation.
+[proto](kd/proto.md) | Protocol buffer serialization operators.
 [py](kd/py.md) | Operators that call Python functions.
+[qtypes](kd/qtypes.md) | Constants for Koda QTypes.
 [random](kd/random.md) | Random and sampling operators.
+[s11n](kd/s11n.md) | Serialization and deserialization utilities.
 [schema](kd/schema.md) | Schema-related operators.
 [schema_filters](kd/schema_filters.md) | Schema filter operators and constants.
-[s11n](kd/s11n.md) | Serialization and deserialization utilities.
 [shapes](kd/shapes.md) | Operators that work on shapes
 [slices](kd/slices.md) | Operators that perform DataSlice transformations.
+[streams](kd/streams.md) | Operators that work with streams of items.
 [strings](kd/strings.md) | Operators that work with strings data.
-[streams](kd/streams.md) | Operators that work with streams of items. These APIs are in active development and might change often (b/424742492).
+[testing](kd/testing.md) | A front-end module for kd.testing.*.
 [tuples](kd/tuples.md) | Operators to create tuples.
+[types](kd/types.md) | Types used as type annotations in users&#39;s code.
 
 
 
+
+### `kd.BOOLEAN` {#kd.BOOLEAN}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing booleans.</code></pre>
+
+### `kd.BYTES` {#kd.BYTES}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing byte strings.</code></pre>
+
+### `kd.EXPR` {#kd.EXPR}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing expressions.</code></pre>
+
+### `kd.FLOAT32` {#kd.FLOAT32}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing 32-bit floats.</code></pre>
+
+### `kd.FLOAT64` {#kd.FLOAT64}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing 64-bit floats.</code></pre>
+
+### `kd.INT32` {#kd.INT32}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing 32-bit integers.</code></pre>
+
+### `kd.INT64` {#kd.INT64}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing 64-bit integers.</code></pre>
+
+### `kd.ITEMID` {#kd.ITEMID}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing ItemIds.</code></pre>
+
+### `kd.MASK` {#kd.MASK}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing masks.</code></pre>
+
+### `kd.NONE` {#kd.NONE}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing the None schema.</code></pre>
+
+### `kd.OBJECT` {#kd.OBJECT}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing generic objects.</code></pre>
+
+### `kd.SCHEMA` {#kd.SCHEMA}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing schemas.</code></pre>
+
+### `kd.STRING` {#kd.STRING}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing Unicode strings.</code></pre>
+
+### `kd.SWITCH_DEFAULT` {#kd.SWITCH_DEFAULT}
+*No description*
 
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 
@@ -138,7 +196,7 @@ Alias for [kd.core.attrs](kd/core.md#kd.core.attrs)
 
 ### `kd.bag()` {#kd.bag}
 
-Alias for [kd.bags.new](kd/bags.md#kd.bags.new)
+Alias for [kd.types.DataBag.empty](kd/types/data_bag.md#kd.types.DataBag.empty)
 
 ### `kd.bind(fn_def: DataItem, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#kd.bind}
 
@@ -609,7 +667,7 @@ Alias for [kd.core.freeze](kd/core.md#kd.core.freeze)
 
 Alias for [kd.core.freeze_bag](kd/core.md#kd.core.freeze_bag)
 
-### `kd.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, present: 0/0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.from_json}
+### `kd.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=[], keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.from_json}
 
 Alias for [kd.json.from_json](kd/json.md#kd.json.from_json)
 
@@ -982,7 +1040,7 @@ Alias for [kd.slices.isin](kd/slices.md#kd.slices.isin)
 
 ### `kd.item(x, /, schema=None)` {#kd.item}
 
-Alias for [kd.slices.item](kd/slices.md#kd.slices.item)
+Alias for [kd.types.DataItem.from_vals](kd/types/data_item.md#kd.types.DataItem.from_vals)
 
 ### `kd.less(x, y)` {#kd.less}
 
@@ -1109,12 +1167,13 @@ Alias for [kd.math.min](kd/math.md#kd.math.min)
 
 Alias for [kd.math.minimum](kd/math.md#kd.math.minimum)
 
+### `kd.missing` {#kd.missing}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A mask value representing absence.</code></pre>
+
 ### `kd.mutable_bag()` {#kd.mutable_bag}
-Aliases:
 
-- [DataBag.empty_mutable](data_bag.md#DataBag.empty_mutable)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty mutable DataBag. Only works in eager mode.</code></pre>
+Alias for [kd.types.DataBag.empty_mutable](kd/types/data_bag.md#kd.types.DataBag.empty_mutable)
 
 ### `kd.named_container()` {#kd.named_container}
 
@@ -1258,6 +1317,10 @@ Alias for [kd.objs.shaped_as](kd/objs.md#kd.objs.shaped_as)
 
 Alias for [kd.slices.ordinal_rank](kd/slices.md#kd.slices.ordinal_rank)
 
+### `kd.present` {#kd.present}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A mask value representing presence.</code></pre>
+
 ### `kd.present_like(x)` {#kd.present_like}
 
 Alias for [kd.masking.present_like](kd/masking.md#kd.masking.present_like)
@@ -1384,7 +1447,7 @@ Args:
 Returns:
   A SchemaItem containing the converted schema.</code></pre>
 
-### `kd.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.schema_from_proto_path}
+### `kd.schema_from_proto_path(proto_path, /, *, extensions=Entity:#5ikYYvXepp19g47QDLnJR2)` {#kd.schema_from_proto_path}
 
 Alias for [kd.proto.schema_from_proto_path](kd/proto.md#kd.proto.schema_from_proto_path)
 
@@ -1488,7 +1551,7 @@ Alias for [kd.slices.size](kd/slices.md#kd.slices.size)
 
 ### `kd.slice(x, /, schema=None)` {#kd.slice}
 
-Alias for [kd.slices.slice](kd/slices.md#kd.slices.slice)
+Alias for [kd.types.DataSlice.from_vals](kd/types/data_slice.md#kd.types.DataSlice.from_vals)
 
 ### `kd.sort(x, sort_by=unspecified, descending=False)` {#kd.sort}
 
@@ -1534,7 +1597,7 @@ Alias for [kd.entities.strict_new](kd/entities.md#kd.entities.strict_new)
 
 Alias for [kd.core.strict_with_attrs](kd/core.md#kd.core.strict_with_attrs)
 
-### `kd.stub(x, attrs=DataSlice([], schema: NONE, present: 0/0))` {#kd.stub}
+### `kd.stub(x, attrs=[])` {#kd.stub}
 
 Alias for [kd.core.stub](kd/core.md#kd.core.stub)
 
@@ -1780,7 +1843,7 @@ Alias for [kd.core.with_metadata](kd/core.md#kd.core.with_metadata)
 
 ### `kd.with_name(obj: Any, name: str | Text) -> Any` {#kd.with_name}
 
-Alias for [kd.annotation.with_name](kd/annotation.md#kd.annotation.with_name)
+Alias for [kd.types.DataBag.with_name](kd/types/data_bag.md#kd.types.DataBag.with_name)
 
 ### `kd.with_print(x, *args, sep=' ', end='\n')` {#kd.with_print}
 

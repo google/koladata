@@ -594,7 +594,7 @@ Args:
   x: Entity for which the attributes update is being created.
   **attrs: attrs to set in the update.</code></pre>
 
-### `kd.core.stub(x, attrs=DataSlice([], schema: NONE, present: 0/0))` {#kd.core.stub}
+### `kd.core.stub(x, attrs=[])` {#kd.core.stub}
 Aliases:
 
 - [kd.stub](../kd.md#kd.stub)

@@ -2,7 +2,7 @@
 
 # kd.iterables API
 
-Operators that work with iterables. These APIs are in active development and might change often.
+Operators that work with iterables.
 
 
 

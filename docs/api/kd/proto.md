@@ -154,7 +154,7 @@ Args:
 Returns:
   A STRING DataSlice</code></pre>
 
-### `kd.proto.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.proto.schema_from_proto_path}
+### `kd.proto.schema_from_proto_path(proto_path, /, *, extensions=Entity:#5ikYYvXepp19g47QDLnJR2)` {#kd.proto.schema_from_proto_path}
 Aliases:
 
 - [kd.schema_from_proto_path](../kd.md#kd.schema_from_proto_path)

@@ -5,6 +5,11 @@
 Operator definition and registration tooling.
 
 
+Subcategory | Description
+----------- | ------------
+[constraints](optools/constraints.md) | Operator argument type constraints.
+[eager](optools/eager.md) | Eager operator utilities.
+
 
 
 

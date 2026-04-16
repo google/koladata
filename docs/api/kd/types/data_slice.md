@@ -1,21 +1,25 @@
 <!-- Note: This file is auto-generated, do not edit manually. -->
 
-# DataSlice API
+# kd.types.DataSlice API
 
-`DataSlice` represents a jagged array of items (i.e. primitive values, ItemIds).
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Base class of all Arolla values in Python.
+
+QValue is immutable. It provides only basic functionality.
+Subclasses of this class might have further specialization.
+</code></pre>
 
 
 
 
 
-### `DataSlice.L` {#DataSlice.L}
+### `DataSlice.L` {#kd.types.DataSlice.L}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">ListSlicing helper for DataSlice.
 
 x.L on DataSlice returns a ListSlicingHelper, which treats the first dimension
 of DataSlice x as a a list.</code></pre>
 
-### `DataSlice.S` {#DataSlice.S}
+### `DataSlice.S` {#kd.types.DataSlice.S}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Slicing helper for DataSlice.
 
@@ -31,15 +35,15 @@ is equivalent to ds.S[*slices]. For example,
 
 Please see kd.subslice for more detailed explanations and examples.</code></pre>
 
-### `DataSlice.append(value, /)` {#DataSlice.append}
+### `DataSlice.append(value, /)` {#kd.types.DataSlice.append}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Append a value to each list in this DataSlice</code></pre>
 
-### `DataSlice.clear()` {#DataSlice.clear}
+### `DataSlice.clear()` {#kd.types.DataSlice.clear}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Clears all dicts or lists in this DataSlice</code></pre>
 
-### `DataSlice.clone(self, *, itemid: Any = unspecified, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.clone}
+### `DataSlice.clone(self, *, itemid: Any = unspecified, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#kd.types.DataSlice.clone}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice with clones of provided entities in a new DataBag.
 
@@ -64,7 +68,7 @@ Returns:
   A copy of the entities where entities themselves are cloned (new ItemIds)
   and all of the rest extracted.</code></pre>
 
-### `DataSlice.clone_as_full(self, *, itemid: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.clone_as_full}
+### `DataSlice.clone_as_full(self, *, itemid: Any = unspecified, **overrides: Any) -> DataSlice` {#kd.types.DataSlice.clone_as_full}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Clones the DataSlice, filling missing items with new empty entities.
 
@@ -102,7 +106,7 @@ Returns:
   and all of the rest extracted. Missing items in `x` are replaced by new
   empty entities.</code></pre>
 
-### `DataSlice.deep_clone(self, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.deep_clone}
+### `DataSlice.deep_clone(self, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#kd.types.DataSlice.deep_clone}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a slice with a (deep) copy of the given slice.
 
@@ -127,7 +131,7 @@ Returns:
   All referenced entities will be copied with newly allocated ItemIds. Note
   that UUIDs will be copied as ItemIds.</code></pre>
 
-### `DataSlice.deep_uuid(self, schema: Any = unspecified, *, seed: str | DataSlice = '') -> DataSlice` {#DataSlice.deep_uuid}
+### `DataSlice.deep_uuid(self, schema: Any = unspecified, *, seed: str | DataSlice = '') -> DataSlice` {#kd.types.DataSlice.deep_uuid}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Recursively computes uuid for x.
 
@@ -140,11 +144,11 @@ Args:
 Returns:
   Result of recursive uuid application `x`.</code></pre>
 
-### `DataSlice.dict_size(self) -> DataSlice` {#DataSlice.dict_size}
+### `DataSlice.dict_size(self) -> DataSlice` {#kd.types.DataSlice.dict_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a Dict.</code></pre>
 
-### `DataSlice.display(self: DataSlice, options: Any | None = None) -> None` {#DataSlice.display}
+### `DataSlice.display(self: DataSlice, options: Any | None = None) -> None` {#kd.types.DataSlice.display}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Visualizes a DataSlice as an html widget.
 
@@ -152,7 +156,7 @@ Args:
   self: The DataSlice to visualize.
   options: This should be a `koladata.ext.vis.DataSliceVisOptions`.</code></pre>
 
-### `DataSlice.embed_schema()` {#DataSlice.embed_schema}
+### `DataSlice.embed_schema()` {#kd.types.DataSlice.embed_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with OBJECT schema.
 
@@ -160,7 +164,7 @@ Args:
 * For Entities schema is stored as &#39;__schema__&#39; attribute.
 * Embedding Entities requires a DataSlice to be associated with a DataBag.</code></pre>
 
-### `DataSlice.enriched(self, *bag: DataBag) -> DataSlice` {#DataSlice.enriched}
+### `DataSlice.enriched(self, *bag: DataBag) -> DataSlice` {#kd.types.DataSlice.enriched}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with a additional fallback DataBag(s).
 
@@ -182,7 +186,7 @@ Args:
 Returns:
   DataSlice with additional fallbacks.</code></pre>
 
-### `DataSlice.expand_to(self, target: Any, ndim: Any = unspecified) -> DataSlice` {#DataSlice.expand_to}
+### `DataSlice.expand_to(self, target: Any, ndim: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.expand_to}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Expands `x` based on the shape of `target`.
 
@@ -236,7 +240,7 @@ Args:
 Returns:
   Expanded DataSlice</code></pre>
 
-### `DataSlice.explode(self, ndim: int | DataSlice = 1) -> DataSlice` {#DataSlice.explode}
+### `DataSlice.explode(self, ndim: int | DataSlice = 1) -> DataSlice` {#kd.types.DataSlice.explode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Explodes a List DataSlice `x` a specified number of times.
 
@@ -260,7 +264,7 @@ Args:
 Returns:
   DataSlice</code></pre>
 
-### `DataSlice.extract(self, schema: Any = unspecified) -> DataSlice` {#DataSlice.extract}
+### `DataSlice.extract(self, schema: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.extract}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice with a new DataBag containing only reachable attrs.
 
@@ -271,7 +275,7 @@ Args:
 Returns:
   A DataSlice with a new immutable DataBag attached.</code></pre>
 
-### `DataSlice.extract_update(self, schema: Any = unspecified) -> DataBag` {#DataSlice.extract_update}
+### `DataSlice.extract_update(self, schema: Any = unspecified) -> DataBag` {#kd.types.DataSlice.extract_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataBag containing only reachable attrs from &#39;ds&#39;.
 
@@ -282,7 +286,7 @@ Args:
 Returns:
   A new immutable DataBag with only the reachable attrs from &#39;ds&#39;.</code></pre>
 
-### `DataSlice.flatten(self, from_dim: int | DataSlice = 0, to_dim: Any = unspecified) -> DataSlice` {#DataSlice.flatten}
+### `DataSlice.flatten(self, from_dim: int | DataSlice = 0, to_dim: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.flatten}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with dimensions `[from_dim:to_dim]` flattened.
 
@@ -321,7 +325,7 @@ Args:
   from_dim: start of dimensions to flatten. Defaults to `0` if unspecified.
   to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.</code></pre>
 
-### `DataSlice.flatten_end(self, n_times: int | DataSlice = 1) -> DataSlice` {#DataSlice.flatten_end}
+### `DataSlice.flatten_end(self, n_times: int | DataSlice = 1) -> DataSlice` {#kd.types.DataSlice.flatten_end}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with a shape flattened `n_times` from the end.
 
@@ -335,7 +339,7 @@ Args:
   n_times: number of dimensions to flatten from the end
     (0 &lt;= n_times &lt;= rank).</code></pre>
 
-### `DataSlice.follow(self) -> DataSlice` {#DataSlice.follow}
+### `DataSlice.follow(self) -> DataSlice` {#kd.types.DataSlice.follow}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the original DataSlice from a NoFollow DataSlice.
 
@@ -348,19 +352,33 @@ Inverse of `nofollow`.
 Args:
   x: DataSlice to unwrap, if nofollowed.</code></pre>
 
-### `DataSlice.fork_bag(self) -> DataSlice` {#DataSlice.fork_bag}
+### `DataSlice.fork_bag(self) -> DataSlice` {#kd.types.DataSlice.fork_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of the DataSlice with a forked mutable DataBag.</code></pre>
 
-### `DataSlice.freeze_bag()` {#DataSlice.freeze_bag}
+### `DataSlice.freeze_bag()` {#kd.types.DataSlice.freeze_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataSlice equivalent to `self`.</code></pre>
 
-### `DataSlice.from_vals(x, /, schema=None)` {#DataSlice.from_vals}
+### `DataSlice.from_vals(x, /, schema=None)` {#kd.types.DataSlice.from_vals}
+Aliases:
 
-Alias for [kd.slices.slice](kd/slices.md#kd.slices.slice)
+- [kd.slices.slice](../slices.md#kd.slices.slice)
 
-### `DataSlice.get_attr(attr_name, /, default=None)` {#DataSlice.get_attr}
+- [kd.slice](../../kd.md#kd.slice)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`.
+
+Args:
+  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
+    a multidimensional DataSlice is created.
+  schema: schema DataItem to set. If `x` is already a DataSlice, this will
+    cast it to the given schema.</code></pre>
+
+### `DataSlice.get_attr(attr_name, /, default=None)` {#kd.types.DataSlice.get_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Gets attribute `attr_name` where missing items are filled from `default`.
 
@@ -369,7 +387,7 @@ Args:
   default: optional default value to fill missing items.
            Note that this value can be fully omitted.</code></pre>
 
-### `DataSlice.get_attr_names(self)` {#DataSlice.get_attr_names}
+### `DataSlice.get_attr_names(self)` {#kd.types.DataSlice.get_attr_names}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with sorted attribute names for each item in `x`.
 
@@ -382,11 +400,11 @@ schema. In case of primitives, an empty slice is returned.
 Args:
   x: A DataSlice.</code></pre>
 
-### `DataSlice.get_bag()` {#DataSlice.get_bag}
+### `DataSlice.get_bag()` {#kd.types.DataSlice.get_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the attached DataBag.</code></pre>
 
-### `DataSlice.get_dtype(self) -> DataSlice` {#DataSlice.get_dtype}
+### `DataSlice.get_dtype(self) -> DataSlice` {#kd.types.DataSlice.get_dtype}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a primitive schema representing the underlying items&#39; dtype.
 
@@ -411,19 +429,19 @@ Args:
 Returns:
   a primitive schema DataSlice.</code></pre>
 
-### `DataSlice.get_itemid(self) -> DataSlice` {#DataSlice.get_itemid}
+### `DataSlice.get_itemid(self) -> DataSlice` {#kd.types.DataSlice.get_itemid}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to ITEMID using explicit (permissive) casting rules.</code></pre>
 
-### `DataSlice.get_keys()` {#DataSlice.get_keys}
+### `DataSlice.get_keys()` {#kd.types.DataSlice.get_keys}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns keys of all dicts in this DataSlice.</code></pre>
 
-### `DataSlice.get_ndim(self) -> DataSlice` {#DataSlice.get_ndim}
+### `DataSlice.get_ndim(self) -> DataSlice` {#kd.types.DataSlice.get_ndim}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of dimensions of DataSlice `x`.</code></pre>
 
-### `DataSlice.get_obj_schema(self) -> DataSlice` {#DataSlice.get_obj_schema}
+### `DataSlice.get_obj_schema(self) -> DataSlice` {#kd.types.DataSlice.get_obj_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of schemas for Objects and primitives in `x`.
 
@@ -442,7 +460,7 @@ Args:
 Returns:
   A DataSlice of schemas.</code></pre>
 
-### `DataSlice.get_present_count(self) -> DataSlice` {#DataSlice.get_present_count}
+### `DataSlice.get_present_count(self) -> DataSlice` {#kd.types.DataSlice.get_present_count}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the count of present items over all dimensions.
 
@@ -451,15 +469,15 @@ The result is a zero-dimensional DataItem.
 Args:
   x: A DataSlice of numbers.</code></pre>
 
-### `DataSlice.get_schema()` {#DataSlice.get_schema}
+### `DataSlice.get_schema()` {#kd.types.DataSlice.get_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a schema DataItem with type information about this DataSlice.</code></pre>
 
-### `DataSlice.get_shape()` {#DataSlice.get_shape}
+### `DataSlice.get_shape()` {#kd.types.DataSlice.get_shape}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the shape of the DataSlice.</code></pre>
 
-### `DataSlice.get_size(self) -> DataSlice` {#DataSlice.get_size}
+### `DataSlice.get_size(self) -> DataSlice` {#kd.types.DataSlice.get_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the number of items in `x`, including missing items.
 
@@ -469,11 +487,11 @@ Args:
 Returns:
   The size of `x`.</code></pre>
 
-### `DataSlice.get_sizes(self) -> DataSlice` {#DataSlice.get_sizes}
+### `DataSlice.get_sizes(self) -> DataSlice` {#kd.types.DataSlice.get_sizes}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of sizes of the DataSlice&#39;s shape.</code></pre>
 
-### `DataSlice.get_values(self, key_ds: Any = unspecified) -> DataSlice` {#DataSlice.get_values}
+### `DataSlice.get_values(self, key_ds: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.get_values}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns values corresponding to `key_ds` for dicts in `dict_ds`.
 
@@ -491,7 +509,7 @@ Args:
 Returns:
   A DataSlice of values.</code></pre>
 
-### `DataSlice.has_attr(self, attr_name: str) -> DataSlice` {#DataSlice.has_attr}
+### `DataSlice.has_attr(self, attr_name: str) -> DataSlice` {#kd.types.DataSlice.has_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Indicates whether the items in `x` DataSlice have the given attribute.
 
@@ -506,11 +524,11 @@ Returns:
   A MASK DataSlice with the same shape as `x` that contains present if the
   attribute exists for the corresponding item.</code></pre>
 
-### `DataSlice.has_bag()` {#DataSlice.has_bag}
+### `DataSlice.has_bag()` {#kd.types.DataSlice.has_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataSlice `ds` has a DataBag attached.</code></pre>
 
-### `DataSlice.implode(self, ndim: int | DataSlice = 1, itemid: Any = unspecified) -> DataSlice` {#DataSlice.implode}
+### `DataSlice.implode(self, ndim: int | DataSlice = 1, itemid: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Implodes a Dataslice `x` a specified number of times.
 
@@ -532,58 +550,58 @@ Args:
 Returns:
   DataSlice of nested Lists</code></pre>
 
-### `DataSlice.internal_as_arolla_value()` {#DataSlice.internal_as_arolla_value}
+### `DataSlice.internal_as_arolla_value()` {#kd.types.DataSlice.internal_as_arolla_value}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts primitive DataSlice / DataItem into an equivalent Arolla value.</code></pre>
 
-### `DataSlice.internal_as_dense_array()` {#DataSlice.internal_as_dense_array}
+### `DataSlice.internal_as_dense_array()` {#kd.types.DataSlice.internal_as_dense_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts primitive DataSlice to an Arolla DenseArray with appropriate qtype.</code></pre>
 
-### `DataSlice.internal_as_py()` {#DataSlice.internal_as_py}
+### `DataSlice.internal_as_py()` {#kd.types.DataSlice.internal_as_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Python object equivalent to this DataSlice.
 
 If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.</code></pre>
 
-### `DataSlice.internal_is_itemid_schema()` {#DataSlice.internal_is_itemid_schema}
+### `DataSlice.internal_is_itemid_schema()` {#kd.types.DataSlice.internal_is_itemid_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is ITEMID Schema.</code></pre>
 
-### `DataSlice.is_dict()` {#DataSlice.is_dict}
+### `DataSlice.is_dict()` {#kd.types.DataSlice.is_dict}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has Dict schema or contains only dicts.</code></pre>
 
-### `DataSlice.is_dict_schema()` {#DataSlice.is_dict_schema}
+### `DataSlice.is_dict_schema()` {#kd.types.DataSlice.is_dict_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a Dict Schema.</code></pre>
 
-### `DataSlice.is_empty()` {#DataSlice.is_empty}
+### `DataSlice.is_empty()` {#kd.types.DataSlice.is_empty}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is empty.</code></pre>
 
-### `DataSlice.is_entity()` {#DataSlice.is_entity}
+### `DataSlice.is_entity()` {#kd.types.DataSlice.is_entity}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has Entity schema or contains only entities.</code></pre>
 
-### `DataSlice.is_entity_schema()` {#DataSlice.is_entity_schema}
+### `DataSlice.is_entity_schema()` {#kd.types.DataSlice.is_entity_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice represents an Entity Schema.</code></pre>
 
-### `DataSlice.is_list()` {#DataSlice.is_list}
+### `DataSlice.is_list()` {#kd.types.DataSlice.is_list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice has List schema or contains only lists.</code></pre>
 
-### `DataSlice.is_list_schema()` {#DataSlice.is_list_schema}
+### `DataSlice.is_list_schema()` {#kd.types.DataSlice.is_list_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a List Schema.</code></pre>
 
-### `DataSlice.is_mutable()` {#DataSlice.is_mutable}
+### `DataSlice.is_mutable()` {#kd.types.DataSlice.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff the attached DataBag is mutable.</code></pre>
 
-### `DataSlice.is_primitive(self) -> DataSlice` {#DataSlice.is_primitive}
+### `DataSlice.is_primitive(self) -> DataSlice` {#kd.types.DataSlice.is_primitive}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns whether x is a primitive DataSlice.
 
@@ -606,35 +624,35 @@ Args:
 Returns:
   A MASK DataItem.</code></pre>
 
-### `DataSlice.is_primitive_schema()` {#DataSlice.is_primitive_schema}
+### `DataSlice.is_primitive_schema()` {#kd.types.DataSlice.is_primitive_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a primitive (scalar) Schema.</code></pre>
 
-### `DataSlice.is_struct_schema()` {#DataSlice.is_struct_schema}
+### `DataSlice.is_struct_schema()` {#kd.types.DataSlice.is_struct_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice represents a Struct Schema.</code></pre>
 
-### `DataSlice.list_size(self) -> DataSlice` {#DataSlice.list_size}
+### `DataSlice.list_size(self) -> DataSlice` {#kd.types.DataSlice.list_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns size of a List.</code></pre>
 
-### `DataSlice.maybe(self, attr_name: str) -> DataSlice` {#DataSlice.maybe}
+### `DataSlice.maybe(self, attr_name: str) -> DataSlice` {#kd.types.DataSlice.maybe}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A shortcut for kd.get_attr(x, attr_name, default=None).</code></pre>
 
-### `DataSlice.new(self, **attrs)` {#DataSlice.new}
+### `DataSlice.new(self, **attrs)` {#kd.types.DataSlice.new}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new Entity with this Schema.</code></pre>
 
-### `DataSlice.no_bag()` {#DataSlice.no_bag}
+### `DataSlice.no_bag()` {#kd.types.DataSlice.no_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice without DataBag.</code></pre>
 
-### `DataSlice.pop(index, /)` {#DataSlice.pop}
+### `DataSlice.pop(index, /)` {#kd.types.DataSlice.pop}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Pop a value from each list in this DataSlice</code></pre>
 
-### `DataSlice.ref(self) -> DataSlice` {#DataSlice.ref}
+### `DataSlice.ref(self) -> DataSlice` {#kd.types.DataSlice.ref}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `ds` with the DataBag removed.
 
@@ -648,7 +666,7 @@ is removed.
 Args:
   ds: DataSlice of ItemIds.</code></pre>
 
-### `DataSlice.repeat(self, sizes: Any) -> DataSlice` {#DataSlice.repeat}
+### `DataSlice.repeat(self, sizes: Any) -> DataSlice` {#kd.types.DataSlice.repeat}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with values repeated according to `sizes`.
 
@@ -672,7 +690,7 @@ Args:
   x: A DataSlice of data.
   sizes: A DataSlice of sizes that each value in `x` should be repeated for.</code></pre>
 
-### `DataSlice.reshape(self, shape: JaggedShape) -> DataSlice` {#DataSlice.reshape}
+### `DataSlice.reshape(self, shape: JaggedShape) -> DataSlice` {#kd.types.DataSlice.reshape}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with the provided shape.
 
@@ -706,11 +724,11 @@ Args:
   shape: a JaggedShape or a tuple of dimensions that forms a shape through
     `kd.shapes.new`, with additional support for a `-1` placeholder dimension.</code></pre>
 
-### `DataSlice.reshape_as(self, shape_from: DataSlice) -> DataSlice` {#DataSlice.reshape_as}
+### `DataSlice.reshape_as(self, shape_from: DataSlice) -> DataSlice` {#kd.types.DataSlice.reshape_as}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice x reshaped to the shape of DataSlice shape_from.</code></pre>
 
-### `DataSlice.select(self, fltr: Any, expand_filter: bool | DataSlice = True) -> DataSlice` {#DataSlice.select}
+### `DataSlice.select(self, fltr: Any, expand_filter: bool | DataSlice = True) -> DataSlice` {#kd.types.DataSlice.select}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataSlice by filtering out missing items in fltr.
 
@@ -745,7 +763,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_items(self, fltr: Any) -> DataSlice` {#DataSlice.select_items}
+### `DataSlice.select_items(self, fltr: Any) -> DataSlice` {#kd.types.DataSlice.select_items}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Selects List items by filtering out missing items in fltr.
 
@@ -761,7 +779,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_keys(self, fltr: Any) -> DataSlice` {#DataSlice.select_keys}
+### `DataSlice.select_keys(self, fltr: Any) -> DataSlice` {#kd.types.DataSlice.select_keys}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Selects Dict keys by filtering out missing items in `fltr`.
 
@@ -777,7 +795,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_present(self) -> DataSlice` {#DataSlice.select_present}
+### `DataSlice.select_present(self) -> DataSlice` {#kd.types.DataSlice.select_present}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a new DataSlice by removing missing items.
 
@@ -793,7 +811,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.select_values(self, fltr: Any) -> DataSlice` {#DataSlice.select_values}
+### `DataSlice.select_values(self, fltr: Any) -> DataSlice` {#kd.types.DataSlice.select_values}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Selects Dict values by filtering out missing items in `fltr`.
 
@@ -809,7 +827,7 @@ Args:
 Returns:
   Filtered DataSlice.</code></pre>
 
-### `DataSlice.set_attr(attr_name, value, /, overwrite_schema=False)` {#DataSlice.set_attr}
+### `DataSlice.set_attr(attr_name, value, /, overwrite_schema=False)` {#kd.types.DataSlice.set_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets an attribute `attr_name` to `value`.
 
@@ -824,7 +842,7 @@ Args:
   value: new value for attribute `attr_name`.
   overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
-### `DataSlice.set_attrs(*, overwrite_schema=False, **attrs)` {#DataSlice.set_attrs}
+### `DataSlice.set_attrs(*, overwrite_schema=False, **attrs)` {#kd.types.DataSlice.set_attrs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Sets multiple attributes on an object / entity.
 
@@ -834,7 +852,7 @@ Args:
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.</code></pre>
 
-### `DataSlice.set_schema(schema, /)` {#DataSlice.set_schema}
+### `DataSlice.set_schema(schema, /)` {#kd.types.DataSlice.set_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with the provided `schema`.
 
@@ -846,7 +864,7 @@ Args:
 Returns:
   DataSlice with the provided `schema`.</code></pre>
 
-### `DataSlice.shallow_clone(self, *, itemid: Any = unspecified, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#DataSlice.shallow_clone}
+### `DataSlice.shallow_clone(self, *, itemid: Any = unspecified, schema: Any = unspecified, **overrides: Any) -> DataSlice` {#kd.types.DataSlice.shallow_clone}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice with shallow clones of immediate attributes.
 
@@ -871,7 +889,7 @@ Returns:
   A copy of the entities with new ItemIds where all top-level attributes are
   copied by reference.</code></pre>
 
-### `DataSlice.strict_with_attrs(self, **attrs) -> DataSlice` {#DataSlice.strict_with_attrs}
+### `DataSlice.strict_with_attrs(self, **attrs) -> DataSlice` {#kd.types.DataSlice.strict_with_attrs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated attrs in `x`.
 
@@ -881,7 +899,7 @@ Args:
   x: Entity for which the attributes update is being created.
   **attrs: attrs to set in the update.</code></pre>
 
-### `DataSlice.stub(self, attrs: DataSlice = DataSlice([], schema: NONE, present: 0/0)) -> DataSlice` {#DataSlice.stub}
+### `DataSlice.stub(self, attrs: DataSlice = []) -> DataSlice` {#kd.types.DataSlice.stub}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Copies a DataSlice&#39;s schema stub to a new DataBag.
 
@@ -909,7 +927,7 @@ Args:
 Returns:
   DataSlice with the same schema stub in the new DataBag.</code></pre>
 
-### `DataSlice.take(self, indices: Any) -> DataSlice` {#DataSlice.take}
+### `DataSlice.take(self, indices: Any) -> DataSlice` {#kd.types.DataSlice.take}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataSlice with items at provided indices.
 
@@ -943,7 +961,7 @@ Args:
 Returns:
   A new DataSlice with items selected by indices.</code></pre>
 
-### `DataSlice.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: Any | None = None) -> Any` {#DataSlice.to_py}
+### `DataSlice.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: Any | None = None) -> Any` {#kd.types.DataSlice.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 
@@ -959,7 +977,7 @@ Args:
     objects.
   output_class: If not None, will be used recursively as the output type.</code></pre>
 
-### `DataSlice.to_pytree(ds: DataSlice, max_depth: int = 2, include_missing_attrs: bool = True) -> Any` {#DataSlice.to_pytree}
+### `DataSlice.to_pytree(ds: DataSlice, max_depth: int = 2, include_missing_attrs: bool = True) -> Any` {#kd.types.DataSlice.to_pytree}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 
@@ -975,7 +993,7 @@ Args:
   include_missing_attrs: whether to include attributes with None value in
     objects.</code></pre>
 
-### `DataSlice.updated(self, *bag: DataBag) -> DataSlice` {#DataSlice.updated}
+### `DataSlice.updated(self, *bag: DataBag) -> DataSlice` {#kd.types.DataSlice.updated}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of a DataSlice with DataBag(s) of updates applied.
 
@@ -997,7 +1015,7 @@ Args:
 Returns:
   DataSlice with additional fallbacks.</code></pre>
 
-### `DataSlice.with_attr(self, attr_name: str | DataSlice, value: Any, overwrite_schema: bool | DataSlice = False) -> DataSlice` {#DataSlice.with_attr}
+### `DataSlice.with_attr(self, attr_name: str | DataSlice, value: Any, overwrite_schema: bool | DataSlice = False) -> DataSlice` {#kd.types.DataSlice.with_attr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing a single updated attribute.
 
@@ -1014,7 +1032,7 @@ Args:
   value: new value for attribute `attr_name`.
   overwrite_schema: if True, schema for attribute is always updated.</code></pre>
 
-### `DataSlice.with_attrs(self, *, overwrite_schema: bool | DataSlice = False, **attrs) -> DataSlice` {#DataSlice.with_attrs}
+### `DataSlice.with_attrs(self, *, overwrite_schema: bool | DataSlice = False, **attrs) -> DataSlice` {#kd.types.DataSlice.with_attrs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated attrs in `x`.
 
@@ -1043,11 +1061,11 @@ Args:
   overwrite_schema: if True, schema for attributes is always updated.
   **attrs: attrs to set in the update.</code></pre>
 
-### `DataSlice.with_bag(bag, /)` {#DataSlice.with_bag}
+### `DataSlice.with_bag(bag, /)` {#kd.types.DataSlice.with_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with DataBag `db`.</code></pre>
 
-### `DataSlice.with_dict_update(self, keys: Any, values: Any = unspecified) -> DataSlice` {#DataSlice.with_dict_update}
+### `DataSlice.with_dict_update(self, keys: Any, values: Any = unspecified) -> DataSlice` {#kd.types.DataSlice.with_dict_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated dicts.
 
@@ -1065,7 +1083,7 @@ Args:
   keys: A DataSlice of keys, or a DataSlice of dicts of updates.
   values: A DataSlice of values, or unspecified if `keys` contains dicts.</code></pre>
 
-### `DataSlice.with_list_append_update(self, append: Any) -> DataSlice` {#DataSlice.with_list_append_update}
+### `DataSlice.with_list_append_update(self, append: Any) -> DataSlice` {#kd.types.DataSlice.with_list_append_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated appended lists.
 
@@ -1084,7 +1102,7 @@ Args:
 Returns:
   A DataSlice of lists in a new immutable DataBag.</code></pre>
 
-### `DataSlice.with_merged_bag(self) -> DataSlice` {#DataSlice.with_merged_bag}
+### `DataSlice.with_merged_bag(self) -> DataSlice` {#kd.types.DataSlice.with_merged_bag}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with the DataBag of `ds` merged with its fallbacks.
 
@@ -1101,11 +1119,11 @@ Args:
 Returns:
   A new DataSlice with an immutable DataBags.</code></pre>
 
-### `DataSlice.with_name(obj: Any, name: str | Text) -> Any` {#DataSlice.with_name}
+### `DataSlice.with_name(obj: Any, name: str | Text) -> Any` {#kd.types.DataSlice.with_name}
 
-Alias for [kd.annotation.with_name](kd/annotation.md#kd.annotation.with_name)
+Alias for [kd.types.DataBag.with_name](data_bag.md#kd.types.DataBag.with_name)
 
-### `DataSlice.with_schema(schema, /)` {#DataSlice.with_schema}
+### `DataSlice.with_schema(schema, /)` {#kd.types.DataSlice.with_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a copy of DataSlice with the provided `schema`.
 
@@ -1118,7 +1136,7 @@ Args:
 Returns:
   DataSlice with the provided `schema`.</code></pre>
 
-### `DataSlice.with_schema_from_obj(self) -> DataSlice` {#DataSlice.with_schema_from_obj}
+### `DataSlice.with_schema_from_obj(self) -> DataSlice` {#kd.types.DataSlice.with_schema_from_obj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `x` with its embedded common schema set as the schema.
 

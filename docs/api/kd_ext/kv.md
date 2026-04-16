@@ -7,7 +7,7 @@ Experimental Koda View API.
 
 Subcategory | Description
 ----------- | ------------
-[View](kv/view.md) | `View` class
+[types](kv/types.md) | Types for the Koda View API.
 
 
 

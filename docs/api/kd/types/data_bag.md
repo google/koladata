@@ -1,14 +1,18 @@
 <!-- Note: This file is auto-generated, do not edit manually. -->
 
-# DataBag API
+# kd.types.DataBag API
 
-`DataBag` is a set of triples (Entity.Attribute => Value).
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Base class of all Arolla values in Python.
+
+QValue is immutable. It provides only basic functionality.
+Subclasses of this class might have further specialization.
+</code></pre>
 
 
 
 
 
-### `DataBag.adopt(slice, /)` {#DataBag.adopt}
+### `DataBag.adopt(slice, /)` {#kd.types.DataBag.adopt}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Adopts all data reachable from the given slice into this DataBag.
 
@@ -18,7 +22,7 @@ Args:
 Returns:
   The DataSlice with this DataBag (including adopted data) attached.</code></pre>
 
-### `DataBag.adopt_stub(slice, /)` {#DataBag.adopt_stub}
+### `DataBag.adopt_stub(slice, /)` {#kd.types.DataBag.adopt_stub}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Copies the given DataSlice&#39;s schema stub into this DataBag.
 
@@ -32,7 +36,7 @@ Args:
 Returns:
   The &#34;stub&#34; with this DataBag attached.</code></pre>
 
-### `DataBag.concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice` {#DataBag.concat_lists}
+### `DataBag.concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice` {#kd.types.DataBag.concat_lists}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
@@ -53,15 +57,15 @@ Args:
 Returns:
   DataSlice of concatenated Lists</code></pre>
 
-### `DataBag.contents_repr(self: DataBag, /, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#DataBag.contents_repr}
+### `DataBag.contents_repr(self: DataBag, /, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#kd.types.DataBag.contents_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of the DataBag contents.</code></pre>
 
-### `DataBag.data_triples_repr(self: DataBag, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#DataBag.data_triples_repr}
+### `DataBag.data_triples_repr(self: DataBag, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#kd.types.DataBag.data_triples_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of the DataBag contents, omitting schema triples.</code></pre>
 
-### `DataBag.dict(self: DataBag, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.dict}
+### `DataBag.dict(self: DataBag, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.dict}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Koda dict.
 
@@ -103,7 +107,7 @@ Args:
 Returns:
   A DataSlice with the dict.</code></pre>
 
-### `DataBag.dict_like(self: DataBag, shape_and_mask_from: _DataSlice, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.dict_like}
+### `DataBag.dict_like(self: DataBag, shape_and_mask_from: _DataSlice, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.dict_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
@@ -131,11 +135,11 @@ Args:
 Returns:
   A DataSlice with the dicts.</code></pre>
 
-### `DataBag.dict_schema(key_schema, value_schema)` {#DataBag.dict_schema}
+### `DataBag.dict_schema(key_schema, value_schema)` {#kd.types.DataBag.dict_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a dict schema from the schemas of the keys and values</code></pre>
 
-### `DataBag.dict_shaped(self: DataBag, shape: _jagged_shape.JaggedShape, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.dict_shaped}
+### `DataBag.dict_shaped(self: DataBag, shape: _jagged_shape.JaggedShape, /, items_or_keys: dict[Any, Any] | _DataSlice | None = None, values: _DataSlice | None = None, *, key_schema: _DataSlice | None = None, value_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.dict_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda dicts with the given shape.
 
@@ -161,15 +165,23 @@ Args:
 Returns:
   A DataSlice with the dicts.</code></pre>
 
-### `DataBag.empty()` {#DataBag.empty}
+### `DataBag.empty()` {#kd.types.DataBag.empty}
+Aliases:
 
-Alias for [kd.bags.new](kd/bags.md#kd.bags.new)
+- [kd.bags.new](../bags.md#kd.bags.new)
 
-### `DataBag.empty_mutable()` {#DataBag.empty_mutable}
+- [kd.bag](../../kd.md#kd.bag)
 
-Alias for [kd.mutable_bag](kd.md#kd.mutable_bag)
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
 
-### `DataBag.fork(mutable=True)` {#DataBag.fork}
+### `DataBag.empty_mutable()` {#kd.types.DataBag.empty_mutable}
+Aliases:
+
+- [kd.mutable_bag](../../kd.md#kd.mutable_bag)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty mutable DataBag. Only works in eager mode.</code></pre>
+
+### `DataBag.fork(mutable=True)` {#kd.types.DataBag.fork}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a newly created DataBag with the same content as self.
 
@@ -181,19 +193,19 @@ Args:
 Returns:
   data_bag.DataBag</code></pre>
 
-### `DataBag.freeze(self: DataBag) -> DataBag` {#DataBag.freeze}
+### `DataBag.freeze(self: DataBag) -> DataBag` {#kd.types.DataBag.freeze}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataBag equivalent to `self`.</code></pre>
 
-### `DataBag.get_approx_byte_size()` {#DataBag.get_approx_byte_size}
+### `DataBag.get_approx_byte_size()` {#kd.types.DataBag.get_approx_byte_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in bytes.</code></pre>
 
-### `DataBag.get_approx_size()` {#DataBag.get_approx_size}
+### `DataBag.get_approx_size()` {#kd.types.DataBag.get_approx_size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns approximate size of the DataBag in triples.</code></pre>
 
-### `DataBag.implode(self: DataBag, x: _DataSlice, /, ndim: int | _DataSlice = 1, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.implode}
+### `DataBag.implode(self: DataBag, x: _DataSlice, /, ndim: int | _DataSlice = 1, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.implode}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Implodes a Dataslice `x` a specified number of times.
 
@@ -220,15 +232,15 @@ Args:
 Returns:
   DataSlice of nested Lists</code></pre>
 
-### `DataBag.is_empty()` {#DataBag.is_empty}
+### `DataBag.is_empty()` {#kd.types.DataBag.is_empty}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns True if the DataBag is empty.</code></pre>
 
-### `DataBag.is_mutable()` {#DataBag.is_mutable}
+### `DataBag.is_mutable()` {#kd.types.DataBag.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataBag is mutable.</code></pre>
 
-### `DataBag.list(self: DataBag, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.list}
+### `DataBag.list(self: DataBag, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates list(s) by collapsing `items`.
 
@@ -253,7 +265,7 @@ Args:
 Returns:
   A DataSlice with the list/lists.</code></pre>
 
-### `DataBag.list_like(self: DataBag, shape_and_mask_from: _DataSlice, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.list_like}
+### `DataBag.list_like(self: DataBag, shape_and_mask_from: _DataSlice, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.list_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
@@ -271,11 +283,11 @@ Args:
 Returns:
   A DataSlice with the lists.</code></pre>
 
-### `DataBag.list_schema(item_schema)` {#DataBag.list_schema}
+### `DataBag.list_schema(item_schema)` {#kd.types.DataBag.list_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a list schema from the schema of the items</code></pre>
 
-### `DataBag.list_shaped(self: DataBag, shape: _jagged_shape.JaggedShape, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#DataBag.list_shaped}
+### `DataBag.list_shaped(self: DataBag, shape: _jagged_shape.JaggedShape, /, items: list[Any] | _DataSlice | None = None, *, item_schema: _DataSlice | None = None, schema: _DataSlice | None = None, itemid: _DataSlice | None = None) -> _DataSlice` {#kd.types.DataBag.list_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Koda lists with the given shape.
 
@@ -292,11 +304,11 @@ Args:
 Returns:
   A DataSlice with the lists.</code></pre>
 
-### `DataBag.merge_fallbacks()` {#DataBag.merge_fallbacks}
+### `DataBag.merge_fallbacks()` {#kd.types.DataBag.merge_fallbacks}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with all the fallbacks merged.</code></pre>
 
-### `DataBag.merge_inplace(self: DataBag, other_bags: DataBag | Iterable[DataBag], /, *, overwrite: bool = True, allow_data_conflicts: bool = True, allow_schema_conflicts: bool = False) -> DataBag` {#DataBag.merge_inplace}
+### `DataBag.merge_inplace(self: DataBag, other_bags: DataBag | Iterable[DataBag], /, *, overwrite: bool = True, allow_data_conflicts: bool = True, allow_schema_conflicts: bool = False) -> DataBag` {#kd.types.DataBag.merge_inplace}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Copies all data from `other_bags` to this DataBag.
 
@@ -324,11 +336,11 @@ Args:
 Returns:
   self, so that multiple DataBag modifications can be chained.</code></pre>
 
-### `DataBag.named_schema(name, /, **attrs)` {#DataBag.named_schema}
+### `DataBag.named_schema(name, /, **attrs)` {#kd.types.DataBag.named_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a named schema with ItemId derived only from its name.</code></pre>
 
-### `DataBag.new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new}
+### `DataBag.new(*, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Entities with given attrs.
 
@@ -345,7 +357,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new_like}
+### `DataBag.new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
@@ -362,11 +374,11 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.new_schema(**attrs)` {#DataBag.new_schema}
+### `DataBag.new_schema(**attrs)` {#kd.types.DataBag.new_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new schema object with given types of attrs.</code></pre>
 
-### `DataBag.new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new_shaped}
+### `DataBag.new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.types.DataBag.new_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Entities with the given shape.
 
@@ -382,7 +394,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.obj(arg, *, itemid=None, **attrs)` {#DataBag.obj}
+### `DataBag.obj(arg, *, itemid=None, **attrs)` {#kd.types.DataBag.obj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new Objects with an implicit stored schema.
 
@@ -398,7 +410,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs and kd.OBJECT schema.</code></pre>
 
-### `DataBag.obj_like(shape_and_mask_from, *, itemid=None, **attrs)` {#DataBag.obj_like}
+### `DataBag.obj_like(shape_and_mask_from, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_like}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Objects with shape and sparsity from shape_and_mask_from.
 
@@ -414,7 +426,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.obj_shaped(shape, *, itemid=None, **attrs)` {#DataBag.obj_shaped}
+### `DataBag.obj_shaped(shape, *, itemid=None, **attrs)` {#kd.types.DataBag.obj_shaped}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates Objects with the given shape.
 
@@ -428,7 +440,7 @@ Args:
 Returns:
   data_slice.DataSlice with the given attrs.</code></pre>
 
-### `DataBag.overwriting_merge_update(other_db)` {#DataBag.overwriting_merge_update}
+### `DataBag.overwriting_merge_update(other_db)` {#kd.types.DataBag.overwriting_merge_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataBag with the update from other_db.
 
@@ -446,11 +458,11 @@ Args:
 Returns:
   DataBag with the update from other_db.</code></pre>
 
-### `DataBag.schema_triples_repr(self: DataBag, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#DataBag.schema_triples_repr}
+### `DataBag.schema_triples_repr(self: DataBag, *, triple_limit: int = 1000) -> ContentsReprWrapper` {#kd.types.DataBag.schema_triples_repr}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a representation of schema triples in the DataBag.</code></pre>
 
-### `DataBag.uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)` {#DataBag.uu}
+### `DataBag.uu(seed='', *, schema=None, overwrite_schema=False, **kwargs)` {#kd.types.DataBag.uu}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -481,11 +493,11 @@ Returns:
   data_slice.DataSlice
     </code></pre>
 
-### `DataBag.uu_schema(seed='', **attrs)` {#DataBag.uu_schema}
+### `DataBag.uu_schema(seed='', **attrs)` {#kd.types.DataBag.uu_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates new uuschema from given types of attrs.</code></pre>
 
-### `DataBag.uuobj(seed='', **kwargs)` {#DataBag.uuobj}
+### `DataBag.uuobj(seed='', **kwargs)` {#kd.types.DataBag.uuobj}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates object(s) whose ids are uuid(s) with the provided attributes.
 
@@ -510,7 +522,26 @@ Returns:
   data_slice.DataSlice
     </code></pre>
 
-### `DataBag.with_name(obj: Any, name: str | Text) -> Any` {#DataBag.with_name}
+### `DataBag.with_name(obj: Any, name: str | Text) -> Any` {#kd.types.DataBag.with_name}
+Aliases:
 
-Alias for [kd.annotation.with_name](kd/annotation.md#kd.annotation.with_name)
+- [kd.types.DataSlice.with_name](data_slice.md#kd.types.DataSlice.with_name)
+
+- [kd.annotation.with_name](../annotation.md#kd.annotation.with_name)
+
+- [kd.with_name](../../kd.md#kd.with_name)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Checks that the `name` is a string and returns `obj` unchanged.
+
+This method is useful in tracing workflows: when tracing, we will assign
+the given name to the subexpression computing `obj`. In eager mode, this
+method is effectively a no-op.
+
+Args:
+  obj: Any object.
+  name: The name to be used for this sub-expression when tracing this code.
+    Must be a string.
+
+Returns:
+  obj unchanged.</code></pre>
 

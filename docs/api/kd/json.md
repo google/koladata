@@ -27,7 +27,7 @@ Returns:
   A slice of strings with one dimension more than `x`. Each value is a JSON
   corresponding to the given JSONPath.</code></pre>
 
-### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, present: 0/0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
+### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=[], keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
 Aliases:
 
 - [kd.from_json](../kd.md#kd.from_json)
