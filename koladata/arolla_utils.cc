@@ -38,6 +38,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
@@ -45,7 +46,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 

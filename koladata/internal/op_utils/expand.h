@@ -26,13 +26,13 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

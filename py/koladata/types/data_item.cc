@@ -26,6 +26,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
@@ -38,7 +39,6 @@
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/data_slice.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 

@@ -20,11 +20,11 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/expr_operators.h"
 #include "koladata/functor/parallel/get_default_executor.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 

@@ -48,6 +48,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
@@ -61,7 +62,6 @@
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {

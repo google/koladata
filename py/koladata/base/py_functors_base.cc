@@ -24,6 +24,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/functor.h"
@@ -32,7 +33,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 

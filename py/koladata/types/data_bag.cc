@@ -37,6 +37,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_bag_comparison.h"
@@ -60,7 +61,6 @@
 #include "py/koladata/base/py_utils.h"
 #include "py/koladata/base/pybind11_protobuf_wrapper.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

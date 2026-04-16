@@ -27,8 +27,8 @@
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/riegeli.h"
 #include "arolla/util/text.h"
-#include "koladata/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::serving {
 

@@ -27,6 +27,7 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
@@ -34,7 +35,6 @@
 #include "koladata/functor/parallel/transform.h"
 #include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/parallel/transform_config_registry.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

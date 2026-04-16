@@ -47,6 +47,7 @@
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/attr_error_utils.h"
 #include "koladata/casting.h"
@@ -73,7 +74,6 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

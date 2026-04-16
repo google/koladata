@@ -24,8 +24,8 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/fingerprint.h"
-#include "koladata/iterables/iterable_qtype.h"
 #include "arolla/util/status_macros_backport.h"
+#include "koladata/iterables/iterable_qtype.h"
 
 namespace koladata::iterables {
 

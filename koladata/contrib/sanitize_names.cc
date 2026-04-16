@@ -34,6 +34,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -42,7 +43,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
-#include "arolla/util/status_macros_backport.h"  // NOLINT
 
 namespace koladata::contrib {
 namespace {
@@ -98,9 +98,8 @@ std::vector<int64_t> SortedIndices(const arolla::DenseArray<arolla::Text>& s) {
   std::vector<int64_t> indices(s.size());
   std::iota(indices.begin(), indices.end(), int64_t{0});
 
-  std::sort(indices.begin(), indices.end(), [&](int64_t i, int64_t j) {
-    return s[i].value < s[j].value;
-  });
+  std::sort(indices.begin(), indices.end(),
+            [&](int64_t i, int64_t j) { return s[i].value < s[j].value; });
   return indices;
 }
 
@@ -211,7 +210,7 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
  private:
   absl::Status SetSchemaAttr(const DataItem& item, const DataItem& schema) {
     return new_databag_->SetAttr(item, schema::kSchemaAttr, schema);
-    }
+  }
 
   void SetAllValidNamesAsUsed(
       const DataItem& schema,
@@ -219,13 +218,12 @@ class SanitizeNamesVisitor final : public AbstractVisitor {
       const arolla::DenseArray<DataItem>& attr_schema) {
     auto& used = per_schema_used_names_[schema];
     auto& mapped = per_schema_mapped_names_[schema];
-    attr_names.ForEachPresent(
-        [&](int64_t offset, std::string_view attr_name) {
-          if (IsValid(attr_name)) {
-            used.emplace(attr_name);
-            mapped[attr_name] = attr_name;
-          }
-        });
+    attr_names.ForEachPresent([&](int64_t offset, std::string_view attr_name) {
+      if (IsValid(attr_name)) {
+        used.emplace(attr_name);
+        mapped[attr_name] = attr_name;
+      }
+    });
   }
 
   // Sanitize a name within the context of a particular schema.

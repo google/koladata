@@ -44,6 +44,7 @@
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -55,7 +56,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

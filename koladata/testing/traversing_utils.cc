@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -39,7 +40,6 @@
 #include "koladata/internal/op_utils/deep_diff.h"
 #include "koladata/internal/op_utils/deep_equivalent.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::testing {
 

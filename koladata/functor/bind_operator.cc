@@ -39,6 +39,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
@@ -47,7 +48,6 @@
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

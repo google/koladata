@@ -36,9 +36,9 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag_repr.h"
 #include "koladata/internal/data_bag.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 

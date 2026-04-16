@@ -30,12 +30,12 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

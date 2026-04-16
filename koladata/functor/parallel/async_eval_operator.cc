@@ -35,13 +35,13 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/async_eval.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

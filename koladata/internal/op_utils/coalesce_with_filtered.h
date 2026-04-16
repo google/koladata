@@ -17,10 +17,10 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

@@ -15,6 +15,7 @@
 #include "py/koladata/testing/traversing_test_utils.h"
 
 #include <Python.h>
+
 #include <string>
 
 #include "absl/base/no_destructor.h"
@@ -23,13 +24,13 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/testing/traversing_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 

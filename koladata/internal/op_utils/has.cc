@@ -23,8 +23,8 @@
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/unit.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
+#include "koladata/internal/data_slice.h"
 
 arolla::DenseArray<arolla::Unit> koladata::internal::PresenceDenseArray(
     const DataSliceImpl& ds) {

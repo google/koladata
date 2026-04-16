@@ -34,6 +34,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -43,7 +44,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/json_stream.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

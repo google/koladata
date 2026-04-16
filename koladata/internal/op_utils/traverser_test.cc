@@ -35,6 +35,7 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -44,7 +45,6 @@
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 namespace {

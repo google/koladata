@@ -54,6 +54,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -74,7 +75,6 @@
 #include "koladata/operators/slices.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

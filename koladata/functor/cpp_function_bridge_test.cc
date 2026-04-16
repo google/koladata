@@ -32,6 +32,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/serialization/encode.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
@@ -47,7 +48,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 namespace {

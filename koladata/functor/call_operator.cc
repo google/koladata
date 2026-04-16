@@ -36,6 +36,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
@@ -43,7 +44,6 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 namespace {

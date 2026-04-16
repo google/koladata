@@ -56,6 +56,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -68,7 +69,6 @@
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {

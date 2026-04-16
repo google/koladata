@@ -57,6 +57,7 @@
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -83,7 +84,6 @@
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/subslice_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {

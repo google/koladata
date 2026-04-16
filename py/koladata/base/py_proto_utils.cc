@@ -24,6 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -34,7 +35,6 @@
 #include "google/protobuf/message.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/pybind11_protobuf_wrapper.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 absl::StatusOr<DataSlice> FromProtoObjects(

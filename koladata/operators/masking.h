@@ -21,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "arolla/qexpr/eval_context.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -34,7 +35,6 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

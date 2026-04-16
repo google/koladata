@@ -26,12 +26,12 @@
 #include "absl/strings/string_view.h"
 #include "arolla/expr/eval/invoke.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

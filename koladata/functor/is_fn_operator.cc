@@ -21,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
@@ -31,7 +32,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

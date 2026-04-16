@@ -21,10 +21,10 @@
 #include "arolla/expr/lambda_expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/expr/expr_operators.h"
 #include "koladata/internal/ellipsis.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {
 

@@ -36,10 +36,10 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

@@ -26,9 +26,9 @@
 #include "absl/types/span.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/errors.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::shape {
 

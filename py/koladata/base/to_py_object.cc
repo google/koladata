@@ -30,6 +30,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -40,7 +41,6 @@
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

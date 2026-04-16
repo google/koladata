@@ -22,12 +22,12 @@
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
+#include "arolla/util/status_macros_backport.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/fstring/fstring_processor.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 

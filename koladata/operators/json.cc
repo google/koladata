@@ -48,6 +48,7 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "nlohmann/json.hpp"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
@@ -68,7 +69,6 @@
 #include "koladata/operators/json_stream_parser.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {

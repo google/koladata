@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -37,7 +38,6 @@
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/status_macros_backport.h"  // NOLINT
 
 namespace koladata::internal {
 

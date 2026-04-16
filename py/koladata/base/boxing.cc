@@ -50,6 +50,7 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -70,7 +71,6 @@
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

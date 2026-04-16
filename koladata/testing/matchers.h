@@ -25,12 +25,12 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "arolla/jagged_shape/testing/matchers.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/testing/traversing_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::testing {
 namespace matchers_impl {

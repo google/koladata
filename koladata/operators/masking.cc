@@ -25,6 +25,7 @@
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/status.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -37,7 +38,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

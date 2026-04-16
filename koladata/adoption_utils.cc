@@ -27,6 +27,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/traceme.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/error_repr_utils.h"
@@ -36,7 +37,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 

@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "koladata/operators/json_stream_parser.h"
+
 #include <cstddef>
 #include <string>
 

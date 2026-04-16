@@ -28,9 +28,9 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_qtype.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 

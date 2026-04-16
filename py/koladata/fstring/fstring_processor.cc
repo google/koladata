@@ -34,11 +34,11 @@
 #include "arolla/serialization/encode.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python::fstring {
 

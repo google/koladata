@@ -35,6 +35,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/string.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/constants.h"
@@ -52,7 +53,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 

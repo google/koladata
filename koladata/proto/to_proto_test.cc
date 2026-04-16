@@ -34,6 +34,7 @@
 #include "arolla/util/testing/equals_proto.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -51,7 +52,6 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "google/protobuf/util/message_differencer.h"
-#include "arolla/util/status_macros_backport.h"
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;

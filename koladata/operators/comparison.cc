@@ -25,6 +25,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
@@ -35,7 +36,6 @@
 #include "koladata/operators/binary_op.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

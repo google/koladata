@@ -28,6 +28,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
@@ -35,7 +36,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/slices.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

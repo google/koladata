@@ -18,9 +18,9 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/proto/testing/test_proto2.pb.h"
 #include "koladata/proto/testing/test_proto3.pb.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

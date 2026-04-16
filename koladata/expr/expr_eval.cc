@@ -53,11 +53,11 @@
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/traceme.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/error.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {
 namespace {

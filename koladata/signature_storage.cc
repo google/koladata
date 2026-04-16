@@ -28,12 +28,12 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/signature.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

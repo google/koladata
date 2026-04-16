@@ -41,6 +41,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -60,7 +61,6 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/message.h"
-#include "arolla/util/status_macros_backport.h"
 
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::DescriptorPool;

@@ -28,9 +28,9 @@
 #include "arolla/dense_array/ops/dense_group_ops.h"
 #include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/qexpr/operators/aggregation/group_op_accumulators.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

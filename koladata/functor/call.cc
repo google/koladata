@@ -33,6 +33,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/traceme.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
@@ -44,7 +45,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

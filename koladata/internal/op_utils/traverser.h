@@ -33,6 +33,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -40,7 +41,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

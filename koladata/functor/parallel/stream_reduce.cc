@@ -26,10 +26,10 @@
 #include "absl/strings/str_format.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/functor/parallel/basic_routine.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

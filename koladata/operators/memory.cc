@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "koladata/operators/memory.h"
+
 #include <cstdint>
 
 #include "absl/base/no_destructor.h"
@@ -20,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -27,7 +29,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/memory_stats.h"
 #include "koladata/object_factories.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

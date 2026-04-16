@@ -19,6 +19,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -27,7 +28,6 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
 #include "koladata/uuid_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

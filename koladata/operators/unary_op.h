@@ -18,6 +18,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -29,12 +30,12 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

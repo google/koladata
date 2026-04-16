@@ -58,6 +58,7 @@
 #include "arolla/util/traceme.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_list.h"
 #include "koladata/internal/data_slice.h"
@@ -72,7 +73,6 @@
 #include "koladata/internal/sparse_source.h"
 #include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

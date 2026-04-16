@@ -28,8 +28,8 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
-#include "koladata/expr/expr_operators.h"
 #include "arolla/util/status_macros_backport.h"
+#include "koladata/expr/expr_operators.h"
 
 namespace koladata::expr {
 

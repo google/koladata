@@ -23,12 +23,12 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

@@ -34,6 +34,7 @@
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -46,7 +47,6 @@
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::contrib {
 

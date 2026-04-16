@@ -51,6 +51,7 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -70,7 +71,6 @@
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::s11n {
 namespace {

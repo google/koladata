@@ -27,6 +27,7 @@
 #include "absl/types/span.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
@@ -35,7 +36,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/object_factories.h"
 #include "koladata/signature_storage.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

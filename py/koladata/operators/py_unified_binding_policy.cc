@@ -44,6 +44,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
@@ -51,7 +52,6 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_signature.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

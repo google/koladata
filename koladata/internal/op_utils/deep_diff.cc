@@ -23,6 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -30,7 +31,6 @@
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

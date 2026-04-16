@@ -32,13 +32,13 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/op_utils/print.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {

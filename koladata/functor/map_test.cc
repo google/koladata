@@ -34,6 +34,7 @@
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
@@ -45,7 +46,6 @@
 #include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

@@ -32,11 +32,11 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/stable_fingerprint.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

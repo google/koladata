@@ -32,6 +32,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/functor.h"
@@ -43,7 +44,6 @@
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/signature.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

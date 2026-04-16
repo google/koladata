@@ -44,6 +44,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/refcount_ptr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_list.h"
 #include "koladata/internal/data_slice.h"
@@ -52,7 +53,6 @@
 #include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/sparse_source.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

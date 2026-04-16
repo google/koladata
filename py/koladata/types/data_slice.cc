@@ -41,6 +41,7 @@
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -69,11 +70,10 @@
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/py_conversions/to_py.h"
 #include "py/koladata/base/py_utils.h"
+#include "py/koladata/base/pybind11_protobuf_wrapper.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/fstring/fstring_processor.h"
-#include "py/koladata/base/pybind11_protobuf_wrapper.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

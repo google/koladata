@@ -27,13 +27,13 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/basic_routine.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/operators/json_stream_parser.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 

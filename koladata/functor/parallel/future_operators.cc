@@ -33,6 +33,7 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/sequence/mutable_sequence.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
@@ -41,7 +42,6 @@
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

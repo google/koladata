@@ -28,12 +28,12 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/parallel/transform.h"
+#include "koladata/functor/parallel/transform_config.h"
 #include "koladata/internal/op_utils/qexpr.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {

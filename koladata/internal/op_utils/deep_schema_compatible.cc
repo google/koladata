@@ -22,6 +22,7 @@
 #include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -32,7 +33,6 @@
 #include "koladata/internal/op_utils/object_finder.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

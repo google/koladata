@@ -31,6 +31,7 @@
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
@@ -38,7 +39,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_attrs.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 

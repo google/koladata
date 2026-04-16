@@ -25,8 +25,8 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/init_arolla.h"
-#include "koladata/expr/expr_operators.h"
 #include "arolla/util/status_macros_backport.h"
+#include "koladata/expr/expr_operators.h"
 
 namespace koladata::expr {
 namespace {

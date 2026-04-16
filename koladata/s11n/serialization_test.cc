@@ -40,6 +40,7 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -52,7 +53,6 @@
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

@@ -38,6 +38,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
@@ -51,7 +52,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/signature.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

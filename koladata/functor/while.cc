@@ -33,12 +33,12 @@
 #include "arolla/sequence/mutable_sequence.h"
 #include "arolla/sequence/sequence_qtype.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/functor/call.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 

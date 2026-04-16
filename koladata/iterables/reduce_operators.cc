@@ -30,13 +30,13 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/sequence/sequence.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/slices.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::iterables {
 namespace {

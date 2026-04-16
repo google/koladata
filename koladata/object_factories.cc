@@ -37,6 +37,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/alloc_utils.h"
 #include "koladata/casting.h"
@@ -56,7 +57,6 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 

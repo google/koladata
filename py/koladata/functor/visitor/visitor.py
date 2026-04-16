@@ -30,7 +30,7 @@ def _nested_expr_for_hash(expr, functor):
 
 
 def _get_variables(
-    expr: arolla.Expr, functor: data_item.DataItem,
+    expr: arolla.Expr, functor: data_item.DataItem
 ) -> Generator[tuple[str, data_item.DataItem], None, None]:
   """Iterates over variables in Expr stored in `functor`."""
   # NOTE: Using post-order explicitly, because introspection.get_input_names
@@ -162,8 +162,6 @@ class _FunctorTraverser:
     return expr_vars
 
 
-# NOTE: Not to be exposed as a public API for any of the Koda libraries (kd_g3,
-# kd_g3_ext, etc.).
 def visit_variables(
     functor: data_item.DataItem,
     callback_fn: Callable[
@@ -207,8 +205,6 @@ def visit_variables(
   return _FunctorTraverser(callback_fn).traverse(functor)
 
 
-# NOTE: Not to be exposed as a public API for any of the Koda libraries (kd_g3,
-# kd_g3_ext, etc.).
 def visit_subfunctors(
     functor: data_item.DataItem,
     callback_fn: Callable[[data_item.DataItem], None],
@@ -223,6 +219,7 @@ def visit_subfunctors(
     callback_fn: callable that accepts a single Koda Functor provided by the
       caller.
   """
+
   def sub_functor_fn(
       var: data_item.DataItem, sub_vars: dict[str, data_item.DataItem]
   ):

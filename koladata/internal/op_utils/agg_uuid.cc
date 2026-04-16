@@ -27,12 +27,12 @@
 #include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/qexpr/aggregation_ops_interface.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 namespace {

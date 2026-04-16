@@ -38,6 +38,7 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -46,7 +47,6 @@
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/subslice_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

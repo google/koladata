@@ -22,9 +22,9 @@
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

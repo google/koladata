@@ -48,12 +48,12 @@
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/memory_stats.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/types_buffer.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

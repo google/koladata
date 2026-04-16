@@ -25,11 +25,11 @@
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/parallel/transform_config.h"
 #include "koladata/functor/parallel/transform_config.pb.h"
 #include "koladata/proto/to_proto.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 

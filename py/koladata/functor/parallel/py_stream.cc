@@ -34,6 +34,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/permanent_event.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -42,7 +43,6 @@
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

@@ -42,6 +42,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor_storage.h"
@@ -53,7 +54,6 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

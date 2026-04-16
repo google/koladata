@@ -42,6 +42,7 @@
 #include "arolla/util/permanent_event.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -60,7 +61,6 @@
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 

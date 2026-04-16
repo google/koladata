@@ -27,6 +27,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_bag_repr.h"
@@ -41,7 +42,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {

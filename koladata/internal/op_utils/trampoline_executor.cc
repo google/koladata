@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "koladata/internal/op_utils/trampoline_executor.h"
+
 #include <utility>
 
 #include "absl/status/status.h"

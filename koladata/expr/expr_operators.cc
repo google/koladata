@@ -43,11 +43,11 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/check_frozen.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/non_deterministic_token.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {
 namespace {

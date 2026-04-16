@@ -38,6 +38,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -55,7 +56,6 @@
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/py_proto_utils.h"
 #include "py/koladata/base/pybind11_protobuf_wrapper.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {

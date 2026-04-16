@@ -29,6 +29,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/factory_ops.h"
+#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -37,7 +38,6 @@
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/op_utils/at.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::subslice {
 
