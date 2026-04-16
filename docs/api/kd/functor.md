@@ -649,6 +649,86 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
+### `kd.functor.sub(functor: Any, replacements: dict[Any, Any], *, ignore_signature_checks: bool = False) -> Any` {#kd.functor.sub}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Replaces variables on the functor graph by their value or itemids.
+
+This function traverses the entire tree of functor and its subfunctors and
+replaces every occurrence of the keys in `replacements` with the corresponding
+value, returning a new, modified functor. All appearances of a given value as
+a variable in all sub-functors will be replaced.
+
+Example 1:
+f = kd.fn(lambda: kd.with_name(1, &#39;x&#39;) + kd.with_name(2, &#39;y&#39;))
+f1 = kd.functor.sub(f, {1: 100})
+f()      # Returns 3
+f1()     # Returns 102
+
+Example 2:
+@kd.trace_as_fn()
+def mean(values):
+  return kd.math.agg_mean(values)
+
+@kd.trace_as_fn()
+def harmonic_mean(values):
+  return kd.math.agg_mean(values)
+
+@kd.fn
+def my_program():
+  ...
+
+# Replaces all uses of arithmetic mean with harmonic mean in my_program and
+# its subfunctors.
+new_program = kd.functor.sub(my_program, {mean: harmonic_mean})
+
+If the value being replaced is not sufficiently unique (e.g. the number 1 in
+example 1) this may end up doing unintended replacements that are hard to
+debug. Consider this other example:
+
+@kd.trace_as_fn()
+def g(x):
+  return x + kd.with_name(1, &#39;p&#39;)  # p has value 1
+
+@kd.fn
+def f(x):
+  return g(x) * kd.with_name(1, &#39;q&#39;)  # q also has value 1
+
+f(1)  # returns (1 + 1) * 1 = 2
+f = substitute.sub(f, {f.g.p: 10})
+f(1)  # returns (1 + 10) * 10 = 110, not 11.
+
+Both f.q and f.g.p are named variables and have the same value, so both are
+replaced. Therefore, for safety, if you know exactly the variable you want to
+replace, it is safer to use with_attrs on the functor that needs the change.
+
+For example:
+f.with_attrs(foo=bar)  # simple and preferred: updates the outermost functor.
+f.updated(kd.attrs(f.child, qux=baz))  # updates a child functor, also good.
+
+However, if the change you need is in a deeply nested functor, or it is a
+variable that shows up in many places, this gets harder to write correctly. In
+this case, kd.functor.sub can help, provided that the original value is
+sufficiently unique.
+
+Beware when replacing DataSlices. Functors are represented as scalar objects,
+so all slices are imploded into lists during tracing, and exploded when read.
+Therefore, we disallow replacement values that are not scalar DataItems. If
+you need to replace a named DataSlice, pass a list as a replacement.
+
+Args:
+  functor: the functor to be traversed.
+  replacements: a mapping from original values to their replacements.
+  ignore_signature_checks: If True, bypasses signature validation for
+    subfunctor replacements.
+
+Returns:
+  A copy of the input functor with variables replaced.
+
+Raises:
+  ValueError if a functor is being replaced with a functor that doesn&#39;t have a
+  compatible signature and ignore_signature_checks is True (the default). See
+  `kd.functor.assert_signatures_compatible` for details.</code></pre>
+
 ### `kd.functor.sub_by_name(functor: Any, replacements: dict[str, Any] | list[tuple[str, Any]], *, ignore_signature_checks: bool = False) -> Any` {#kd.functor.sub_by_name}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Replaces variables on the functor graph, matching by their names.

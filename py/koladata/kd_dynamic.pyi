@@ -19,7 +19,7 @@ from koladata.extension_types import util as _extension_types_util
 from koladata.functions import proto_conversions as _functions_proto_conversions
 from koladata.functions import schema as _functions_schema
 from koladata.functor import functor_factories as _functor_functor_factories
-from koladata.functor import sub_by_name as _functor_sub_by_name
+from koladata.functor import substitute as _functor_substitute
 from koladata.functor import tracing_decorator as _functor_tracing_decorator
 from koladata.functor.visitor import visitor as _visitor_visitor
 from koladata.operators import allocation as _operators_allocation
@@ -243,7 +243,8 @@ class functor:
   py_fn = _functor_functor_factories.py_fn
   reduce = _operators_functor.reduce
   register_py_fn = _functor_functor_factories.register_py_fn
-  sub_by_name = _functor_sub_by_name.sub_by_name
+  sub = _functor_substitute.sub
+  sub_by_name = _functor_substitute.sub_by_name
   switch = _operators_functor.switch
   trace_as_fn = _functor_tracing_decorator.TraceAsFnDecorator
   trace_py_fn = _functor_functor_factories.trace_py_fn

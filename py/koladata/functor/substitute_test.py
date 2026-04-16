@@ -21,7 +21,7 @@ from koladata.expr import introspection
 from koladata.functor import boxing  # pylint: disable=unused-import
 from koladata.functor import expr_container
 from koladata.functor import functor_factories
-from koladata.functor import sub_by_name
+from koladata.functor import substitute
 from koladata.functor import tracing_decorator
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -29,6 +29,205 @@ from koladata.types import schema_constants
 
 V = input_container.InputContainer('V')
 I = input_container.InputContainer('I')
+
+
+class SubByItemidTest(absltest.TestCase):
+
+  def test_sub_by_itemid_functor(self):
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g1(z):
+      return z * 3
+
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g2(z):
+      return z * 5
+
+    f = functor_factories.trace_py_fn(lambda x: g1(x) + 1)
+
+    f_new = substitute.sub(f, dict({g1: g2}))
+    self.assertEqual(f(1), 4)
+    self.assertEqual(f_new(1), 6)
+
+  def test_sub_by_itemid_deep_functor(self):
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def h1(z):
+      return z * 2
+
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def h2(z):
+      return z * 3
+
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g1(z):
+      return h1(z) * 5
+
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g2(z):
+      return h1(z) * 7
+
+    f = functor_factories.trace_py_fn(lambda x: g1(x) + g2(x))
+    self.assertEqual(f(1), 24)  # 1 * 2 * 5 + 1 * 2 * 7 = 10 + 14 = 24
+
+    f_new = substitute.sub(f, dict({h1: h2}))
+    self.assertEqual(f_new(1), 36)  # 1 * 3 * 5 + 1 * 3 * 7 = 15 + 21 = 36
+
+  def test_sub_by_itemid_deep_functor_traversing_functor_attrs(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def h1(z):
+      return z * 2
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def h2(z):
+      return z * 3
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def g1(z):
+      return h1(z) * 5
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def g2(z):
+      return h1(z) * 7
+
+    f = functor_factories.trace_py_fn(lambda x: g1(x) + g2(x))
+    self.assertEqual(f(1), 24)  # 1 * 2 * 5 + 1 * 2 * 7 = 10 + 14 = 24
+
+    # If we traverse the functor tree to reach an attribute and replace that
+    # attribute, it will also replace that item in other functors where it is
+    # present.
+    # In this case, we point to f.g1.h1, which happens to be the same functor in
+    # f.g2.h1, so that instance is also replaced on the traversal of `f`.
+    h2_fn = functor_factories.trace_py_fn(h2)
+    f_new = substitute.sub(f, dict({f.g1.h1: h2_fn}))
+    self.assertEqual(f_new(1), 36)  # 1 * 3 * 5 + 1 * 3 * 7 = 15 + 21 = 36
+
+  def test_sub_by_itemid_functor_checks_signatures(self):
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g1(z):
+      return z * 3
+
+    @functor_factories.trace_py_fn
+    @tracing_decorator.TraceAsFnDecorator()
+    def g2(z, y):
+      return z * y
+
+    f = functor_factories.trace_py_fn(lambda x: g1(x) + 1)
+
+    with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
+      substitute.sub(f, dict({g1: g2}))
+
+    # Allowed sub if we ignore signature checks, but we get an invalid functor
+    # that raises an error when executed.
+    f_new = substitute.sub(f, dict({g1: g2}), ignore_signature_checks=True)
+    with self.assertRaises(ValueError):
+      f_new(1)
+
+  def test_comment1(self):
+    f = functor_factories.trace_py_fn(
+        lambda: user_facing_kd.with_name(1, 'x')
+        + user_facing_kd.with_name(2, 'y')
+    )
+    f1 = substitute.sub(f, {1: 100})
+    f2 = substitute.sub(f, {2: 200})
+    self.assertEqual(f(), 3)
+    self.assertEqual(f1(), 102)
+    self.assertEqual(f2(), 201)
+
+  def test_comment2(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def g(x):
+      return x + user_facing_kd.with_name(1, 'p')
+
+    @functor_factories.trace_py_fn
+    def f(x):
+      return g(x) * user_facing_kd.with_name(1, 'q')
+
+    f_new = substitute.sub(f, {f.g.p: 10})
+    self.assertEqual(f(1), 2)
+    self.assertEqual(f_new(1), 110)
+
+  def test_sub_by_value_on_primitives(self):
+    f = functor_factories.trace_py_fn(
+        lambda y: user_facing_kd.with_name(1, 'x') + y
+    )
+    f_new = substitute.sub(f, dict({1: 5}))
+    self.assertEqual(f(1), 2)
+    self.assertEqual(f_new(1), 6)
+
+  def test_sub_by_value_on_primitives_different_schema(self):
+    f = functor_factories.trace_py_fn(
+        # x is a FLOAT32, it should not match the INT32 1 in the replacement.
+        lambda y: user_facing_kd.with_name(1.0, 'x') + y
+    )
+    f_new = substitute.sub(f, dict({1: 5}))
+    self.assertEqual(f(1), 2)
+    self.assertEqual(f_new(1), 2)
+
+  def test_sub_by_value_on_raw_primitives_as_keys(self):
+    f = functor_factories.trace_py_fn(
+        lambda y: user_facing_kd.with_name(1, 'x') + y
+    )
+    # will replace every instance of kd.int32(1) with kd.int32(5).
+    f_new = substitute.sub(f, dict({1: 5}))
+    self.assertEqual(f(1), 2)
+    self.assertEqual(f_new(1), 6)
+
+  def test_sub_by_value_variables_with_repeated_primitive_vals(self):
+    f = functor_factories.trace_py_fn(
+        lambda y: (user_facing_kd.with_name(1, 'x') + y)
+        * user_facing_kd.with_name(1, 'z')
+    )
+    f_new = substitute.sub(f, dict({1: 5}))
+    self.assertEqual(f(1), 2)
+    self.assertEqual(f_new(1), 30)  # NOTE: not 6!
+
+  def test_slices_as_replaced_values_with_slice(self):
+    @functor_factories.trace_py_fn
+    def f():
+      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')
+      sep = user_facing_kd.str('_')
+      return user_facing_kd.strings.agg_join(v, sep)
+
+    with self.assertRaisesRegex(
+        ValueError, 'replacement values must be scalars'
+    ):
+      # Slices are imploded into lists during tracing, so if we replaced it here
+      # with another slice, we would get a dimension mismatch when trying to do
+      # node.with_attrs(**subvars) since the shape of the functor will no longer
+      # be a scalar.
+      substitute.sub(f, dict({f.v: user_facing_kd.slice(['qux'])}))
+
+  def test_slices_as_replaced_values_with_scalar(self):
+    @functor_factories.trace_py_fn
+    def f():
+      v = user_facing_kd.slice(['foo', 'bar', 'baz']).with_name('v')
+      sep = user_facing_kd.str('_')
+      return user_facing_kd.strings.agg_join(v, sep)
+
+    f_new = substitute.sub(f, dict({f.v: user_facing_kd.str('qux')}))
+    self.assertEqual(f(), 'foo_bar_baz')
+    with self.assertRaises(ValueError):
+      # We replaced a slice (that is actually a list, after tracing) with other
+      # scalar, so substitution worked. But when we execute the new functor we
+      # get an error due to trying to run strings.agg_join on a scalar value.
+      f_new()
+
+  def test_functor_has_other_attrs_that_are_slices(self):
+    @functor_factories.trace_py_fn
+    def f():
+      v = user_facing_kd.slice(['foo', 'bar', 'baz'])
+      sep = user_facing_kd.with_name('_', 'sep')
+      return user_facing_kd.strings.agg_join(v, sep)
+
+    f_new = substitute.sub(f, dict({'_': '#'}))
+    self.assertEqual(f(), 'foo_bar_baz')
+    self.assertEqual(f_new(), 'foo#bar#baz')
 
 
 class CompatibleSignaturesTest(absltest.TestCase):
@@ -42,7 +241,7 @@ class CompatibleSignaturesTest(absltest.TestCase):
 
     traced_f1 = functor_factories.trace_py_fn(f1)
     traced_f2 = functor_factories.trace_py_fn(f2)
-    sub_by_name.assert_signatures_compatible(traced_f1, traced_f2)
+    substitute.assert_signatures_compatible(traced_f1, traced_f2)
 
   def test_kw_or_positional_to_positional_or_kw_only(self):
     @functor_factories.trace_py_fn
@@ -59,15 +258,15 @@ class CompatibleSignaturesTest(absltest.TestCase):
 
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f1, f2)
+      substitute.assert_signatures_compatible(f1, f2)
 
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f1, f3)
+      substitute.assert_signatures_compatible(f1, f3)
 
     # If we move to a less restrictive signature, it is ok.
-    sub_by_name.assert_signatures_compatible(f2, f1)
-    sub_by_name.assert_signatures_compatible(f3, f1)
+    substitute.assert_signatures_compatible(f2, f1)
+    substitute.assert_signatures_compatible(f3, f1)
 
   def test_mixed_arg_types(self):
     @functor_factories.trace_py_fn
@@ -79,11 +278,11 @@ class CompatibleSignaturesTest(absltest.TestCase):
       return (x + y) * z
 
     # Makes all arguments kw-or-positional, which is less restrictive, so valid.
-    sub_by_name.assert_signatures_compatible(f1, f2)
+    substitute.assert_signatures_compatible(f1, f2)
 
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f2, f1)
+      substitute.assert_signatures_compatible(f2, f1)
 
   def test_adding_args(self):
     @functor_factories.trace_py_fn
@@ -102,12 +301,12 @@ class CompatibleSignaturesTest(absltest.TestCase):
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
       # Adding an argument creates an invalid call.
-      sub_by_name.assert_signatures_compatible(f1, f2)
+      substitute.assert_signatures_compatible(f1, f2)
 
     # Adding an argument with a default value, or adding a default to an
     # existing arg is valid.
-    sub_by_name.assert_signatures_compatible(f2, f3)
-    sub_by_name.assert_signatures_compatible(f1, f3)
+    substitute.assert_signatures_compatible(f2, f3)
+    substitute.assert_signatures_compatible(f1, f3)
 
   def test_removing_args(self):
     @functor_factories.trace_py_fn
@@ -124,13 +323,13 @@ class CompatibleSignaturesTest(absltest.TestCase):
 
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f1, f2)
+      substitute.assert_signatures_compatible(f1, f2)
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f2, f3)
+      substitute.assert_signatures_compatible(f2, f3)
     # pylint: disable-next=g-error-prone-assert-raises
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.assert_signatures_compatible(f1, f3)
+      substitute.assert_signatures_compatible(f1, f3)
 
 
 class SubByNameTest(absltest.TestCase):
@@ -139,7 +338,7 @@ class SubByNameTest(absltest.TestCase):
     f = functor_factories.trace_py_fn(
         lambda y: user_facing_kd.with_name(1, 'x') + y
     )
-    f_new = sub_by_name.sub_by_name(f, {'x': 5})
+    f_new = substitute.sub_by_name(f, {'x': 5})
 
     self.assertEqual(f(1), 2)
     self.assertEqual(f_new(1), 6)
@@ -148,16 +347,16 @@ class SubByNameTest(absltest.TestCase):
     f = functor_factories.trace_py_fn(
         lambda y: user_facing_kd.with_name(None, 'x') + y
     )
-    f_new = sub_by_name.sub_by_name(f, {'x': 5})
+    f_new = substitute.sub_by_name(f, {'x': 5})
     self.assertEqual(f_new(1), 6)
 
   def test_repeated_subs(self):
     f = functor_factories.trace_py_fn(
         lambda y: user_facing_kd.with_name(1, 'x') + y
     )
-    f1 = sub_by_name.sub_by_name(f, {'x': 5})
-    f2 = sub_by_name.sub_by_name(f1, {'x': 10})
-    f3 = sub_by_name.sub_by_name(f2, {'x': 100})
+    f1 = substitute.sub_by_name(f, {'x': 5})
+    f2 = substitute.sub_by_name(f1, {'x': 10})
+    f3 = substitute.sub_by_name(f2, {'x': 100})
 
     self.assertEqual(f(1), 2)
     self.assertEqual(f1(1), 6)
@@ -170,7 +369,7 @@ class SubByNameTest(absltest.TestCase):
     )
     with self.assertRaises(TypeError):
       # All values passed as replacement must be eager values.
-      _ = sub_by_name.sub_by_name(f, {'x': V.z})
+      _ = substitute.sub_by_name(f, {'x': V.z})
 
   def test_vars_outside_returns(self):
     @functor_factories.fn
@@ -181,7 +380,7 @@ class SubByNameTest(absltest.TestCase):
       return x + myvars.y
 
     logging.error(f)
-    f_new = sub_by_name.sub_by_name(f, {'z': 100})
+    f_new = substitute.sub_by_name(f, {'z': 100})
     logging.error(f_new)
     self.assertEqual(f_new(x=1), 101)
 
@@ -191,8 +390,8 @@ class SubByNameTest(absltest.TestCase):
       return x + user_facing_kd.with_name(42, 'var_1')
 
     f1 = functor_factories.trace_py_fn(f)
-    f2 = sub_by_name.sub_by_name(f1, dict(var_1=3.14))
-    f3 = sub_by_name.sub_by_name(f2, dict(var_1=2.718))
+    f2 = substitute.sub_by_name(f1, dict(var_1=3.14))
+    f3 = substitute.sub_by_name(f2, dict(var_1=2.718))
     testing.assert_equivalent(f1.f.returns, f2.f.returns)
     testing.assert_equivalent(f2.f.returns, f3.f.returns)
     testing.assert_traced_exprs_equal(
@@ -222,7 +421,7 @@ class SubByNameTest(absltest.TestCase):
       foo = user_facing_kd.with_name(baz, 'foo')
       return foo + 1
 
-    f_new = sub_by_name.sub_by_name(f, dict(bar=100))
+    f_new = substitute.sub_by_name(f, dict(bar=100))
     self.assertEqual(f(), 2)
     self.assertEqual(f_new(), 101)
     testing.assert_equivalent(f_new.bar, user_facing_kd.int32(100))
@@ -241,9 +440,9 @@ class SubByNameTest(absltest.TestCase):
     def f(x):
       return x + user_facing_kd.with_name(None, 'var_1')
 
-    f1 = sub_by_name.sub_by_name(f, dict(var_1=42))
-    f2 = sub_by_name.sub_by_name(f1, dict(var_1=3.14))
-    f3 = sub_by_name.sub_by_name(f2, dict(var_1=2.718))
+    f1 = substitute.sub_by_name(f, dict(var_1=42))
+    f2 = substitute.sub_by_name(f1, dict(var_1=3.14))
+    f3 = substitute.sub_by_name(f2, dict(var_1=2.718))
     testing.assert_traced_exprs_equal(
         introspection.unpack_expr(f1.returns), I.x + V.var_1
     )
@@ -267,7 +466,7 @@ class SubByNameTest(absltest.TestCase):
         return x + y
 
       print(f)
-      f_new = sub_by_name.sub_by_name(f, {'x': 5})
+      f_new = substitute.sub_by_name(f, {'x': 5})
       self.assertEqual(f_new(1), 6)
 
     with self.subTest('comment #2'):
@@ -282,7 +481,7 @@ class SubByNameTest(absltest.TestCase):
         return x / 2
 
       f = functor_factories.trace_py_fn(lambda x: double(x) + 1)
-      f_new = sub_by_name.sub_by_name(
+      f_new = substitute.sub_by_name(
           f, {'double': functor_factories.trace_py_fn(halve)}
       )
       self.assertEqual(f(10), 21)
@@ -296,13 +495,13 @@ class SubByNameTest(absltest.TestCase):
       return x + user_facing_kd.with_name(10000, 'y')
 
     f_fn = functor_factories.trace_py_fn(f)
-    f_sub = sub_by_name.sub_by_name(f_fn, {'y': 1})
+    f_sub = substitute.sub_by_name(f_fn, {'y': 1})
     self.assertEqual(f_sub(x=1), 2)
 
     h1 = functor_factories.trace_py_fn(lambda z: f_sub(x=z) * 2)
     self.assertEqual(h1(1), 4)
 
-    h2 = sub_by_name.sub_by_name(h1, {'y': 5})
+    h2 = substitute.sub_by_name(h1, {'y': 5})
     self.assertEqual(h2(z=1), 12)
 
   def test_sub_var_by_name_with_named_container(self):
@@ -315,7 +514,7 @@ class SubByNameTest(absltest.TestCase):
     self.assertEqual(f(x=1), 2)
 
     h1 = functor_factories.trace_py_fn(lambda z: f(x=z) * 2)
-    h2 = sub_by_name.sub_by_name(h1, {'y': 5})
+    h2 = substitute.sub_by_name(h1, {'y': 5})
     self.assertEqual(h1(1), 4)
     self.assertEqual(h2(z=1), 12)
 
@@ -329,7 +528,7 @@ class SubByNameTest(absltest.TestCase):
       return y * 2
 
     f_named = functor_factories.trace_py_fn(lambda x: g(x) + 2)
-    f_new = sub_by_name.sub_by_name(
+    f_new = substitute.sub_by_name(
         f_named, {'g': functor_factories.trace_py_fn(h)}
     )
 
@@ -348,7 +547,7 @@ class SubByNameTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'replacement for subfunctor must be a functor'
     ):
-      sub_by_name.sub_by_name(f_named, {'g': 1})
+      substitute.sub_by_name(f_named, {'g': 1})
 
   def test_sub_by_name_accepts_signature_different_names(self):
     @tracing_decorator.TraceAsFnDecorator()
@@ -361,7 +560,7 @@ class SubByNameTest(absltest.TestCase):
 
     # pylint: disable-next=unnecessary-lambda
     f = functor_factories.trace_py_fn(lambda x: g(x))
-    f_new = sub_by_name.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
+    f_new = substitute.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
     self.assertEqual(f_new(x=3), 6)
 
   def test_sub_by_name_positional_only_with_kw_or_positional_arg(self):
@@ -377,7 +576,7 @@ class SubByNameTest(absltest.TestCase):
       # Ok if we move from a more restrictive to a less restrictive signature.
       # pylint: disable-next=unnecessary-lambda
       f1 = functor_factories.trace_py_fn(lambda x: positional_only(x))
-      _ = sub_by_name.sub_by_name(
+      _ = substitute.sub_by_name(
           f1,
           {'positional_only': functor_factories.trace_py_fn(kw_or_positional)},
       )
@@ -389,7 +588,7 @@ class SubByNameTest(absltest.TestCase):
           ValueError, 'Incompatible functor signatures'
       ):
         # pylint: disable-next=unnecessary-lambda
-        sub_by_name.sub_by_name(
+        substitute.sub_by_name(
             f1_pos,
             {
                 'kw_or_positional': functor_factories.trace_py_fn(
@@ -404,7 +603,7 @@ class SubByNameTest(absltest.TestCase):
       with self.assertRaisesRegex(
           ValueError, 'Incompatible functor signatures'
       ):
-        sub_by_name.sub_by_name(
+        substitute.sub_by_name(
             f1_kw,
             {
                 'kw_or_positional': functor_factories.trace_py_fn(
@@ -427,7 +626,7 @@ class SubByNameTest(absltest.TestCase):
       return g(y=x)
 
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
+      substitute.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
 
   def test_sub_by_name_signature_kind_mismatch(self):
     @tracing_decorator.TraceAsFnDecorator()
@@ -443,7 +642,7 @@ class SubByNameTest(absltest.TestCase):
       return g(y=x)
 
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
-      sub_by_name.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
+      substitute.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
 
   def test_sub_by_name_signature_default_mismatch(self):
 
@@ -477,20 +676,20 @@ class SubByNameTest(absltest.TestCase):
     with self.subTest('ok, no default to arg with default'):
       # Valid substitution, from a signature without defaults to another
       # signature with defaults, so less restrictive.
-      new = sub_by_name.sub_by_name(
+      new = substitute.sub_by_name(
           calls_g1, {'g1': functor_factories.trace_py_fn(h1)}
       )
       self.assertEqual(new(x=2), 14)
 
     with self.subTest('ok, both have no defaults'):
       # pylint: disable-next=unnecessary-lambda
-      f_new = sub_by_name.sub_by_name(
+      f_new = substitute.sub_by_name(
           calls_g1, {'g1': functor_factories.trace_py_fn(g2)}
       )
       self.assertEqual(f_new(x=2), 10)
 
     with self.subTest('ok, both have defaults'):
-      f_new = sub_by_name.sub_by_name(
+      f_new = substitute.sub_by_name(
           calls_h1, {'h1': functor_factories.trace_py_fn(h2)}
       )
       self.assertEqual(f_new(x=2), 22)
@@ -499,7 +698,7 @@ class SubByNameTest(absltest.TestCase):
       with self.assertRaisesRegex(
           ValueError, 'Incompatible functor signatures'
       ):
-        sub_by_name.sub_by_name(
+        substitute.sub_by_name(
             calls_h1, {'h1': functor_factories.trace_py_fn(g1)}
         )
 
@@ -536,17 +735,17 @@ class SubByNameTest(absltest.TestCase):
 
     with self.subTest('functor with kwargs'):
       f = functor_factories.trace_py_fn(lambda x: g1(y=x))
-      f_new = sub_by_name.sub_by_name(f, {'g1': g2})
+      f_new = substitute.sub_by_name(f, {'g1': g2})
       self.assertEqual(f_new(x=3), 6)
 
     with self.subTest('functor with args'):
       f = functor_factories.trace_py_fn(lambda x: g3(y=x))
-      f_new = sub_by_name.sub_by_name(f, {'g3': g4})
+      f_new = substitute.sub_by_name(f, {'g3': g4})
       self.assertEqual(f_new(x=3), 6)
 
     with self.subTest('functor with args and kwargs'):
       f = functor_factories.trace_py_fn(lambda x: g5(x, 10, 20, z=1))
-      f_new = sub_by_name.sub_by_name(f, {'g5': g6})
+      f_new = substitute.sub_by_name(f, {'g5': g6})
       self.assertEqual(f_new(x=3), 6)
 
   def test_sub_by_name_signature_ignore_checks(self):
@@ -565,10 +764,10 @@ class SubByNameTest(absltest.TestCase):
 
     with self.assertRaisesRegex(ValueError, 'Incompatible functor signatures'):
       # By default, doesn't allow signature mismatches
-      sub_by_name.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
+      substitute.sub_by_name(f, {'g': functor_factories.trace_py_fn(h)})
 
     # Turning off the checks it should work.
-    f_new = sub_by_name.sub_by_name(
+    f_new = substitute.sub_by_name(
         f,
         {'g': functor_factories.trace_py_fn(h)},
         ignore_signature_checks=True,
@@ -599,17 +798,19 @@ class SubByNameTest(absltest.TestCase):
       return replacement(x)
 
     with self.subTest('ok, same functor on both branches'):
+
       @functor_factories.trace_py_fn
       def f1(x):
         return branch_a(x) + branch_b(x)
 
-      f_new = sub_by_name.sub_by_name(
+      f_new = substitute.sub_by_name(
           f1,
           {'original': functor_factories.trace_py_fn(replacement)},
       )
       self.assertEqual(f_new(1), (1 * 3) + (1 * 3))
 
     with self.subTest('raise error, different functor with same name'):
+
       @functor_factories.trace_py_fn
       def f2(x):
         return branch_a(x) + branch_c(x)
@@ -618,7 +819,7 @@ class SubByNameTest(absltest.TestCase):
           ValueError,
           'different variables share the same name: original',
       ):
-        sub_by_name.sub_by_name(
+        substitute.sub_by_name(
             f2,
             {'original': functor_factories.trace_py_fn(replacement)},
         )
@@ -640,14 +841,16 @@ class SubByNameTest(absltest.TestCase):
       return x ** user_facing_kd.with_name(another_power, 'power')
 
     with self.subTest('ok, same variable on both branches'):
+
       @functor_factories.trace_py_fn
       def f1(x):
         return branch_a(x) + branch_b(x)
 
-      f_new = sub_by_name.sub_by_name(f1, {'power': another_power})
-      self.assertEqual(f_new(2), (2 ** 7) + (2 ** 7))
+      f_new = substitute.sub_by_name(f1, {'power': another_power})
+      self.assertEqual(f_new(2), (2**7) + (2**7))
 
     with self.subTest('raise error, different variable on branches'):
+
       @functor_factories.trace_py_fn
       def f2(x):
         return branch_a(x) + branch_c(x)
@@ -656,7 +859,7 @@ class SubByNameTest(absltest.TestCase):
           ValueError,
           'different variables share the same name: power',
       ):
-        sub_by_name.sub_by_name(f2, {'power': another_power})
+        substitute.sub_by_name(f2, {'power': another_power})
 
 
 if __name__ == '__main__':

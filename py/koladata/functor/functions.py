@@ -21,7 +21,7 @@ in kd_test.py.
 import types as _py_types
 
 from koladata.functor import functor_factories as _functor_factories
-from koladata.functor import sub_by_name as _sub_by_name
+from koladata.functor import substitute as _substitute
 from koladata.functor import tracing_decorator as _tracing_decorator
 from koladata.functor.visitor import visitor as _visitor
 from koladata.types import signature_utils as _signature_utils
@@ -42,7 +42,8 @@ functor = _py_types.SimpleNamespace(
     allow_arbitrary_unused_inputs=_functor_factories.allow_arbitrary_unused_inputs,
     trace_as_fn=_tracing_decorator.TraceAsFnDecorator,
     signature_utils=_signature_utils,
-    sub_by_name=_sub_by_name.sub_by_name,
+    sub=_substitute.sub,
+    sub_by_name=_substitute.sub_by_name,
     visit_variables=_visitor.visit_variables,
     visit_subfunctors=_visitor.visit_subfunctors,
     FunctorFactory=_tracing_decorator.FunctorFactory,

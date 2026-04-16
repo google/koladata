@@ -90,7 +90,7 @@ py_library(
     srcs = ["functions.py"],
     deps = [
         ":functor_factories",
-        ":sub_by_name",
+        ":substitute",
         ":tracing_decorator",
         "//py:python_path",
         "//py/koladata/functor/visitor",
@@ -99,15 +99,15 @@ py_library(
 )
 
 py_library(
-    name = "sub_by_name",
-    srcs = ["sub_by_name.py"],
+    name = "substitute",
+    srcs = ["substitute.py"],
     deps = [
         ":functor_factories",
         "//py:python_path",
         "//py/koladata/functions:attrs",
         "//py/koladata/functor/visitor",
         "//py/koladata/operators:eager_op_utils",
-        "//py/koladata/types:list_item",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
     ],
@@ -279,13 +279,13 @@ py_test(
 )
 
 py_test(
-    name = "sub_by_name_test",
-    srcs = ["sub_by_name_test.py"],
+    name = "substitute_test",
+    srcs = ["substitute_test.py"],
     deps = [
         ":boxing",
         ":expr_container",
         ":functor_factories",
-        ":sub_by_name",
+        ":substitute",
         ":tracing_decorator",
         "//py:python_path",
         "//py/koladata:kd",
