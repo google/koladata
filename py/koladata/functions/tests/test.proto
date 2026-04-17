@@ -101,6 +101,45 @@ message MessageC {
   }
 }
 
+message Query {
+  string query_text = 1;
+  float final_ir = 2;
+  repeated Doc docs = 3;
+  repeated int32 tags = 4;
+  map<string, float> term_weight = 5;
+  MessageSet ms_extensions = 6;
+
+  extensions 1000 to max;
+}
+
+message QueryExtension {
+  extend Query {
+    QueryExtension query_extension = 1000;
+  }
+
+  extend MessageSet {
+    QueryExtension ms_extension = 1001;
+  }
+
+  int32 extra = 1;
+}
+
+message Doc {
+  string url = 1;
+  string title = 2;
+  float score = 3;
+  int32 word_count = 4;
+  bool spam = 5;
+
+  enum Type {
+    UNDEFINED = 0;
+    WEB = 1;
+    IMAGE = 2;
+  }
+
+  Type type = 6;
+}
+
 // 100 fields, for benchmarking
 message MessageD {
   int32 field1 = 1;
