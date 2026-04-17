@@ -1137,7 +1137,7 @@ absl::StatusOr<DataSlice> GenerateImplicitSchema(DataBagPtr db) {
   auto item = internal::DataItem(internal::CreateUuidWithMainObject<
                                  internal::ObjectId::kUuidImplicitSchemaFlag>(
       internal::AllocateSingleObject(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   ASSIGN_OR_RETURN(
       auto slice,
       DataSlice::Create(item, internal::DataItem(schema::kSchema), db));

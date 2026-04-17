@@ -75,7 +75,7 @@ AllocationId GenerateImplicitSchemas(size_t size) {
   return AllocationId(
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
           Allocate(size).ObjectByOffset(0),
-          arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+          arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
 }
 
 TEST(DataBagTest, EmptySchema) {

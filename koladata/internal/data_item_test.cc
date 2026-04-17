@@ -194,8 +194,7 @@ TEST(DataItemTest, DebugString) {
             "'a\\'b\"c with \" quotes'");
   EXPECT_EQ(DataItem(arolla::Text("\01\02\b")).DebugString(),
             "'\\x01\\x02\\x08'");
-  EXPECT_EQ(DataItem(arolla::Text("\n\t?\\")).DebugString(),
-            "'\\n\\t?\\\\'");
+  EXPECT_EQ(DataItem(arolla::Text("\n\t?\\")).DebugString(), "'\\n\\t?\\\\'");
   EXPECT_EQ(DataItem(arolla::Bytes("abc")).DebugString(), "b'abc'");
   EXPECT_EQ(DataItem(arolla::Bytes("\010\011\012\013\014\015")).DebugString(),
             "b'\\x08\\t\\n\\x0b\\x0c\\r'");
@@ -256,8 +255,7 @@ TEST(DataItemTest, AbslStringify) {
             "'a\\'b\"c with \" quotes'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("\01\02\b"))),
             "'\\x01\\x02\\x08'");
-  EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("\n\t?\\"))),
-            "'\\n\\t?\\\\'");
+  EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("\n\t?\\"))), "'\\n\\t?\\\\'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Bytes("abc"))), "b'abc'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Bytes("\010\011\012\013\014\015"))),
             "b'\\x08\\t\\n\\x0b\\x0c\\r'");
@@ -295,8 +293,7 @@ TEST(DataItemTest, Hash) {
 
 TEST(DataItemTest, HashOfPair) {
   auto hasher = DataItem::HashOfPair();
-  EXPECT_EQ(hasher({DataItem(), DataItem()}),
-            hasher({DataItem(), DataItem()}));
+  EXPECT_EQ(hasher({DataItem(), DataItem()}), hasher({DataItem(), DataItem()}));
   EXPECT_NE(hasher({DataItem(0), DataItem()}),
             hasher({DataItem(), DataItem(0)}));
   EXPECT_EQ(hasher({DataItem(0), DataItem(1.f)}),
@@ -457,11 +454,10 @@ TEST(DataItemTest, IsStructSchema) {
   EXPECT_TRUE(DataItem(AllocateExplicitSchema()).is_struct_schema());
   // Implicit entity schema.
   EXPECT_TRUE(
-      DataItem(
-          internal::CreateUuidWithMainObject<
-              internal::ObjectId::kUuidImplicitSchemaFlag>(
-              internal::AllocateSingleObject(),
-              arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()))
+      DataItem(internal::CreateUuidWithMainObject<
+                   internal::ObjectId::kUuidImplicitSchemaFlag>(
+                   internal::AllocateSingleObject(),
+                   arolla::FingerprintOfString(schema::kImplicitSchemaSeed)))
           .is_struct_schema());
 }
 
@@ -474,11 +470,10 @@ TEST(DataItemTest, IsImplicitSchema) {
   EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_implicit_schema());
   // Implicit entity schema.
   EXPECT_TRUE(
-      DataItem(
-          internal::CreateUuidWithMainObject<
-              internal::ObjectId::kUuidImplicitSchemaFlag>(
-              internal::AllocateSingleObject(),
-              arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()))
+      DataItem(internal::CreateUuidWithMainObject<
+                   internal::ObjectId::kUuidImplicitSchemaFlag>(
+                   internal::AllocateSingleObject(),
+                   arolla::FingerprintOfString(schema::kImplicitSchemaSeed)))
           .is_implicit_schema());
 }
 
@@ -640,8 +635,9 @@ TEST(DataItemTest, ArollaFingerprint) {
 TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(0)), "0");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a"))), "'a'");
-  EXPECT_EQ(DataItemRepr(
-      DataItem(arolla::Text("a\n'\"")), {.strip_quotes = true}), "a\n'\"");
+  EXPECT_EQ(
+      DataItemRepr(DataItem(arolla::Text("a\n'\"")), {.strip_quotes = true}),
+      "a\n'\"");
   EXPECT_THAT(DataItemRepr(DataItem(AllocateSingleObject())),
               MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex"));
   EXPECT_THAT(DataItemRepr(DataItem(CreateUuidObject(

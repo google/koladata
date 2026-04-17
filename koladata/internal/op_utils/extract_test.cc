@@ -14,7 +14,6 @@
 //
 #include "koladata/internal/op_utils/extract.h"
 
-#include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
@@ -27,8 +26,8 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
@@ -546,11 +545,11 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   auto u1 = DataItem(internal::CreateUuidWithMainObject<
                      internal::ObjectId::kUuidImplicitSchemaFlag>(
       a1.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   auto u2 = DataItem(internal::CreateUuidWithMainObject<
                      internal::ObjectId::kUuidImplicitSchemaFlag>(
       a2.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   TriplesT data_triples = {
       {a0, {{schema::kSchemaAttr, schema0}, {"x", DataItem(1)}}},
       {a1,
@@ -633,23 +632,23 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitSchemas) {
   auto schema0 = DataItem(internal::CreateUuidWithMainObject<
                           internal::ObjectId::kUuidImplicitSchemaFlag>(
       a0.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   auto schema1 = DataItem(internal::CreateUuidWithMainObject<
                           internal::ObjectId::kUuidImplicitSchemaFlag>(
       a1.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   auto schema2 = DataItem(internal::CreateUuidWithMainObject<
                           internal::ObjectId::kUuidImplicitSchemaFlag>(
       a2.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   auto schema3 = DataItem(internal::CreateUuidWithMainObject<
                           internal::ObjectId::kUuidImplicitSchemaFlag>(
       a3.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   auto schema4 = DataItem(internal::CreateUuidWithMainObject<
                           internal::ObjectId::kUuidImplicitSchemaFlag>(
       a4.value<ObjectId>(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed)));
   TriplesT data_triples = {
       {a0, {{schema::kSchemaAttr, schema0}, {"x", DataItem(1)}}},
       {a1,
@@ -3102,14 +3101,12 @@ TEST_P(ExtractTest, SchemaWithRemovedAttribute) {
   SetDataTriples(*db, GenDataTriplesForTest());
 
   {
-    ASSERT_OK_AND_ASSIGN(
-        std::optional<DataItem> x_before,
-        db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
+    ASSERT_OK_AND_ASSIGN(std::optional<DataItem> x_before,
+                         db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
     EXPECT_EQ(x_before, DataItem(schema::kInt32));
     ASSERT_OK(db->DelSchemaAttr(schema, "x"));
-    ASSERT_OK_AND_ASSIGN(
-        std::optional<DataItem> x_after,
-        db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
+    ASSERT_OK_AND_ASSIGN(std::optional<DataItem> x_after,
+                         db->GetSchemaAttrAllowMissingWithRemoved(schema, "x"));
     EXPECT_EQ(x_after, DataItem());
   }
 

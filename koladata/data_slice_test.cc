@@ -90,7 +90,7 @@ ObjectId GenerateImplicitSchema() {
   return internal::CreateUuidWithMainObject<
       internal::ObjectId::kUuidImplicitSchemaFlag>(
       internal::AllocateSingleObject(),
-      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish());
+      arolla::FingerprintOfString(schema::kImplicitSchemaSeed));
 }
 
 TEST(DataSliceTest, Create_DataSliceImpl) {
