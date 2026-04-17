@@ -131,6 +131,7 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
         "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",

@@ -92,6 +92,10 @@ def extension_type_fn(x: TestExtension):
   return x.fn(2)
 
 
+class _Unboxable:
+  pass
+
+
 class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_expr_fn_simple(self):
@@ -364,6 +368,32 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(fn().no_bag(), ds(1))
     testing.assert_equal(fn.foo.no_bag(), my_item.no_bag())
 
+  @parameterized.parameters(
+      (lambda x, y: x + y,),
+      (lambda x, y=2: x + y,),
+      (lambda x, unused_y=_Unboxable(): x,),
+      (lambda x, /, y: x + y,),
+      (lambda x, *, y: x + y,),
+      (lambda x, *unused_args: x,),
+      (lambda x, **unused_kwargs: x,),
+      (lambda a, /, b, *, c, **kwargs: a + b + c,),
+  )
+  def test_py_fn_signature_wrapping(self, f):
+    fn_def = functor_factories.py_fn(f)
+    sig = functor_factories.get_inspect_signature(fn_def)
+    orig_sig = inspect.signature(f)
+
+    self.assertEqual(
+        list(sig.parameters.keys()), list(orig_sig.parameters.keys())
+    )
+    for name, param in sig.parameters.items():
+      orig_param = orig_sig.parameters[name]
+      self.assertEqual(param.kind, orig_param.kind)
+      self.assertEqual(
+          param.default is inspect.Parameter.empty,
+          orig_param.default is inspect.Parameter.empty,
+      )
+
   def test_py_fn_simple(self):
     def f(x, y):
       return x + y
@@ -457,6 +487,22 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ds('Returns my model.\n\nArgs:\n  x: Input.'),
     )
 
+    # Functions with default argument values are undergoing a slightly
+    # different treatment, so testing it separately.
+    def g(x, y=1):
+      """Returns sum.
+
+      Args:
+        x: Input 1.
+        y: Input 2.
+      """
+      return x + y
+
+    testing.assert_equal(
+        functor_factories.py_fn(g).get_attr('__doc__').no_bag(),
+        ds('Returns sum.\n\nArgs:\n  x: Input 1.\n  y: Input 2.'),
+    )
+
   def test_py_fn_qualname(self):
     def my_py_fn(x):
       return x
@@ -490,17 +536,17 @@ class FunctorFactoriesTest(parameterized.TestCase):
         kd.call(functor_factories.py_fn(positional_only), 1), ds(1)
     )
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
+        ValueError,
         arolla.testing.any_cause_message_regex(
-            'positional-only arguments passed as keyword'
+            'unknown keyword arguments.*args'
         ),
     ):
       _ = kd.call(functor_factories.py_fn(positional_only), args=1)
 
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
+        ValueError,
         arolla.testing.any_cause_message_regex(
-            "missing 1 required positional argument: 'y'"
+            'no value provided for positional or keyword parameter .y.'
         ),
     ):
       _ = kd.call(
@@ -521,10 +567,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
         ds(3),
     )
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
-        arolla.testing.any_cause_message_regex(
-            "unexpected keyword argument 'y'"
-        ),
+        ValueError,
+        arolla.testing.any_cause_message_regex('unknown keyword arguments.*y'),
     ):
       _ = (
           kd.call(
@@ -573,10 +617,15 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(kd.call(f, y=2, z=3), ds(6))
 
   def test_py_fn_list_as_param_default(self):
+    # Python list is not boxable by default, yet can be used as a default value.
     def list_default(x=[1, 2]):  # pylint: disable=dangerous-default-value
       return len(x)
 
     testing.assert_equal(kd.call(functor_factories.py_fn(list_default)), ds(2))
+    testing.assert_equal(
+        kd.call(functor_factories.py_fn(list_default), x=kd.list([1, 2, 3])),
+        ds(3),
+    )
 
   def test_py_fn_explicit_return_type(self):
     testing.assert_equal(
@@ -714,9 +763,9 @@ class FunctorFactoriesTest(parameterized.TestCase):
         functor_factories.py_fn(lambda x, y: x + y), x=1, y=I.z
     )
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
+        ValueError,
         arolla.testing.any_cause_message_regex(
-            "unexpected keyword argument 'z'"
+            re.escape('unknown keyword arguments: [z]')
         ),
     ):
       # This forwards argument 'z' to the underlying Python function as well,
@@ -738,10 +787,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
     fn = functor_factories.py_fn(lambda x, /: x)
     f = functor_factories.bind(fn, x=1)
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
-        arolla.testing.any_cause_message_regex(
-            'positional-only arguments passed as keyword arguments'
-        ),
+        ValueError,
+        arolla.testing.any_cause_message_regex('unknown keyword arguments.*x'),
     ):
       _ = f()
 
@@ -749,10 +796,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
     f = functor_factories.bind(fn, x=1)
     testing.assert_equal(f().no_bag(), ds(1))
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
-        arolla.testing.any_cause_message_regex(
-            'got multiple values for argument'
-        ),
+        ValueError,
+        arolla.testing.any_cause_message_regex('parameter .x. specified twice'),
     ):
       _ = f(1)
 
@@ -915,6 +960,31 @@ class FunctorFactoriesTest(parameterized.TestCase):
     ):
       functor_factories.fn(57)
 
+  @parameterized.parameters(
+      (lambda x, y: x + y,),
+      (lambda x, y=2: x + y,),
+      (lambda x, unused_y=_Unboxable(): x,),
+      (lambda x, /, y: x + y,),
+      (lambda x, *, y: x + y,),
+      (lambda x, *unused_args: x,),
+      (lambda x, **unused_kwargs: x,),
+  )
+  def test_map_py_fn_signature_wrapping(self, f):
+    fn_def = functor_factories.map_py_fn(f)
+    sig = functor_factories.get_inspect_signature(fn_def)
+    orig_sig = inspect.signature(f)
+
+    self.assertEqual(
+        list(sig.parameters.keys()), list(orig_sig.parameters.keys())
+    )
+    for name, param in sig.parameters.items():
+      orig_param = orig_sig.parameters[name]
+      self.assertEqual(param.kind, orig_param.kind)
+      self.assertEqual(
+          param.default is inspect.Parameter.empty,
+          orig_param.default is inspect.Parameter.empty,
+      )
+
   def test_map_py_fn_by_reference(self):
     def f(x, y):
       return x + y if x < 2 else x
@@ -1070,7 +1140,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
   def test_map_py_fn_expr_for_function(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected a function, got I.f'
+        TypeError, "expected a function, got <class 'arolla.abc.expr.Expr'>"
     ):
       functor_factories.map_py_fn(I.f, x=I.y)
 
@@ -1164,36 +1234,79 @@ class FunctorFactoriesTest(parameterized.TestCase):
     sig = functor_factories.get_inspect_signature(fn_def)
     self.assertEqual(sig, inspect.signature(py_fn))
 
+  def test_encapsulate_defaults(self):
+    def f(x, y=1):
+      return x + y
+
+    wrapped_f = functor_factories.encapsulate_defaults(f)
+    new_sig = inspect.signature(wrapped_f)
+
+    self.assertRegex(str(new_sig), r'\(x, y=.*has_default_value=1.*\)')
+    self.assertIsNot(
+        new_sig.parameters['y'].default,
+        inspect.Parameter.empty,
+    )
+
+    # Test that defaults are applied
+    self.assertEqual(wrapped_f(5), 6)
+    self.assertEqual(wrapped_f(5, 2), 7)
+
+    # Test with no defaults
+    def g(x, y):
+      return x + y
+
+    wrapped_g = functor_factories.encapsulate_defaults(g)
+    self.assertIs(g, wrapped_g)
+
+  def test_build_forwarding_args_kwargs_exprs(self):
+    def f1(x, y):
+      return x + y
+
+    sig1 = inspect.signature(f1)
+    args1, kwargs1 = functor_factories.build_forwarding_args_kwargs_exprs(sig1)
+
+    testing.assert_equal(args1, arolla.M.core.make_tuple(I.x, I.y))
+    testing.assert_equal(kwargs1, arolla.M.namedtuple.make())
+
+    def f2(x, *args, y, **kwargs):
+      return x, args, y, kwargs
+
+    sig2 = inspect.signature(f2)
+    args2, kwargs2 = functor_factories.build_forwarding_args_kwargs_exprs(sig2)
+
+    testing.assert_equal(
+        args2,
+        arolla.M.core.concat_tuples(arolla.M.core.make_tuple(I.x), I.args),
+    )
+    testing.assert_equal(
+        kwargs2,
+        arolla.M.namedtuple.union(arolla.M.namedtuple.make(y=I.y), I.kwargs),
+    )
+
   def test_allow_arbitrary_unused_inputs(self):
     fn = functor_factories.fn(lambda x, y: x + y)
     self.assertEqual(fn(x=1, y=2), 3)
-    with self.assertRaisesRegex(ValueError, 'unknown keyword arguments.*z'):
+    with self.assertRaisesRegex(
+        ValueError, re.escape('unknown keyword arguments: [z]')
+    ):
       _ = fn(x=1, y=2, z=3)
     fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
     self.assertEqual(fn2(x=1, y=2), 3)
     self.assertEqual(fn2(x=1, y=2, z=3), 3)
 
-  def test_allow_arbitrary_unused_inputs_no_effect_on_py_fn(self):
-    # py_fn creates a wrapper function with a variadic keyword argument,
-    # so allow_arbitrary_unused_inputs has no effect anymore.
+  def test_allow_arbitrary_unused_inputs_on_py_fn(self):
     fn = functor_factories.py_fn(lambda x, y: x + y)
     self.assertEqual(fn(x=1, y=2), 3)
     with self.assertRaisesWithPredicateMatch(
-        TypeError,
+        ValueError,
         arolla.testing.any_cause_message_regex(
-            "got an unexpected keyword argument 'z'"
+            re.escape('unknown keyword arguments: [z]')
         ),
     ):
       _ = fn(x=1, y=2, z=3)
     fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
     self.assertEqual(fn2(x=1, y=2), 3)
-    with self.assertRaisesWithPredicateMatch(
-        TypeError,
-        arolla.testing.any_cause_message_regex(
-            "got an unexpected keyword argument 'z'"
-        ),
-    ):
-      _ = fn2(x=1, y=2, z=3)
+    self.assertEqual(fn2(x=1, y=2, z=3), 3)
 
   def test_evaluation_errors(self):
     # See also test_evaluation_errors in tracing_decorator_test.py.
@@ -1293,6 +1406,32 @@ class FunctorFactoriesTest(parameterized.TestCase):
       op = fn.returns.to_py().unquote().op
       self.assertIsInstance(op, arolla.types.RegisteredOperator)
       self.assertEqual(op.display_name, '__main__.test_add_fn')
+
+  @parameterized.parameters(
+      (lambda x, y: x + y),
+      (lambda x, y=2: x + y),
+      (lambda x, unused_y=_Unboxable(): x,),
+      (lambda x, /, y: x + y),
+      (lambda x, *, y: x + y),
+      (lambda x, *unused_args: x),
+      (lambda x, **unused_kwargs: x),
+  )
+  def test_register_py_fn_signature_wrapping(self, f):
+    f.__qualname__ = 'some.qualname'
+    fn_def = functor_factories.register_py_fn(f, unsafe_override=True)
+    sig = functor_factories.get_inspect_signature(fn_def)
+    orig_sig = inspect.signature(f)
+
+    self.assertEqual(
+        list(sig.parameters.keys()), list(orig_sig.parameters.keys())
+    )
+    for name, param in sig.parameters.items():
+      orig_param = orig_sig.parameters[name]
+      self.assertEqual(param.kind, orig_param.kind)
+      self.assertEqual(
+          param.default is inspect.Parameter.empty,
+          orig_param.default is inspect.Parameter.empty,
+      )
 
   def test_register_py_fn_defaults(self):
     fn = functor_factories.register_py_fn(test_simple_add_fn, y=2)

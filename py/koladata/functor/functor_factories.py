@@ -33,6 +33,7 @@ from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import py_boxing
+from koladata.types import schema_constants
 from koladata.types import signature_utils
 from koladata.util import kd_functools
 
@@ -42,6 +43,8 @@ _kd = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 kde = kde_operators.kde
+
+_DEFAULT_MARKER = _kd.uuobj('__DEFAULT_MARKER__', has_default_value=1)
 
 
 # We can move this wrapping inside the CPython layer if needed for performance.
@@ -156,6 +159,109 @@ def trace_py_fn(
   return bind(traced_f, **defaults) if defaults else traced_f
 
 
+def encapsulate_defaults(f: Callable[..., Any]) -> Callable[..., Any]:
+  """Replaces all the function default arg values with a boxable sentinel.
+
+  The behavior of the resulting function will be exactly the same as of the
+  original one (including default values handling). However, the new default
+  values are boxable in Koda.
+
+  Args:
+    f: The function.
+
+  Returns:
+    The wrapped function.
+  """
+  sig = inspect.signature(f)
+  defaults = {}
+  params = []
+  for name, param in sig.parameters.items():
+    if param.default is not inspect.Parameter.empty:
+      defaults[name] = param.default
+      params.append(param.replace(default=_DEFAULT_MARKER))
+    else:
+      params.append(param)
+
+  if not defaults:
+    return f
+
+  wrapped_sig = inspect.Signature(params)
+
+  @functools.wraps(f)
+  def wrapped(*args, **kwargs):
+    bound = wrapped_sig.bind(*args, **kwargs)
+    for name, value in bound.arguments.items():
+      if (
+          isinstance(value, data_item.DataItem)
+          and value.with_schema(schema_constants.OBJECT) == _DEFAULT_MARKER
+          and name in defaults
+      ):
+        bound.arguments[name] = defaults[name]
+    return f(*bound.args, **bound.kwargs)
+
+  wrapped.__signature__ = wrapped_sig
+  return wrapped
+
+
+def build_forwarding_args_kwargs_exprs(
+    sig: inspect.Signature,
+) -> tuple[arolla.Expr, arolla.Expr]:
+  """Builds exprs for constructing args tuple and kwargs namedtuple."""
+  positional_inputs = []
+  keyword_inputs = {}
+  var_positional_name = None
+  var_keyword_name = None
+
+  for param in sig.parameters.values():
+    if param.kind in (
+        inspect.Parameter.POSITIONAL_ONLY,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+    ):
+      positional_inputs.append(I[param.name])
+    elif param.kind == inspect.Parameter.VAR_POSITIONAL:
+      var_positional_name = param.name
+    elif param.kind == inspect.Parameter.KEYWORD_ONLY:
+      keyword_inputs[param.name] = I[param.name]
+    elif param.kind == inspect.Parameter.VAR_KEYWORD:
+      var_keyword_name = param.name
+
+  args_expr = arolla.M.core.make_tuple(*positional_inputs)
+  if var_positional_name is not None:
+    args_expr = arolla.M.core.concat_tuples(args_expr, I[var_positional_name])
+
+  if keyword_inputs:
+    kwargs_expr = arolla.M.namedtuple.make(**keyword_inputs)
+  else:
+    kwargs_expr = arolla.M.namedtuple.make()
+  if var_keyword_name is not None:
+    kwargs_expr = arolla.M.namedtuple.union(kwargs_expr, I[var_keyword_name])
+
+  return args_expr, kwargs_expr
+
+
+def _box_py_fn(
+    f: Callable[..., Any] | arolla.types.PyObject,
+) -> arolla.types.PyObject:
+  """Boxes a Python function into a PyObject.
+
+  It is guaranteed that the default values in the signature become boxable as
+  well. If the input `f` is a PyObject, its codec is reused. Otherwise, the
+  default codec is used.
+
+  Args:
+    f: The function to box.
+
+  Returns:
+    A tuple of the boxed function and its signature.
+  """
+  boxed = py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(f)
+  if not isinstance(boxed, arolla.types.PyObject):
+    raise TypeError(f'expected a function, got {type(f)}')
+  return arolla.types.PyObject(
+      encapsulate_defaults(boxed.py_value()), codec=boxed.codec()
+  )
+
+
 def py_fn(
     f: Callable[..., Any],
     *,
@@ -172,7 +278,7 @@ def py_fn(
   Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
   functor will have exactly the same signature as the original function. In
   particular, if the original function does not accept variadic keyword
-  arguments and and unknown argument is passed when calling the functor, an
+  arguments and an unknown argument is passed when calling the functor, an
   exception will occur.
 
   Args:
@@ -194,17 +300,21 @@ def py_fn(
   Returns:
     A DataItem representing the functor.
   """
+  boxed_f = _box_py_fn(f)
+  sig = inspect.signature(boxed_f.py_value())
+  args_expr, kwargs_expr = build_forwarding_args_kwargs_exprs(sig)
+
   py_functor = expr_fn(
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
           'kd.py.apply_py',
-          py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(f),
-          args=I.args,
+          boxed_f,
+          args=args_expr,
           return_type_as=py_boxing.as_qvalue(return_type_as),
-          kwargs=I.kwargs,
+          kwargs=kwargs_expr,
       ),
-      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+      signature=signature_utils.from_py_signature(sig),
   )
   if f.__doc__ is not None:
     py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
@@ -244,7 +354,7 @@ def register_py_fn(
   Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
   functor will have exactly the same signature as the original function. In
   particular, if the original function does not accept variadic keyword
-  arguments and and unknown argument is passed when calling the functor, an
+  arguments and an unknown argument is passed when calling the functor, an
   exception will occur.
 
   Args:
@@ -276,16 +386,22 @@ def register_py_fn(
         'qualname and module must be set on the function when registering it'
         ' as operator'
     )
+  # Preprocess & validate `f` in a similar way we do in `py_fn`. Although we
+  # don't need the boxed function, so we just use its py_value().
+  boxed = _box_py_fn(f)
   f_op = optools.as_py_function_operator(
       module + '.' + qualname,
       qtype_inference_expr=py_boxing.as_qvalue(return_type_as).qtype,
   )(
-      lambda *args, **kwargs: f(*args, **kwargs)  # pylint: disable=unnecessary-lambda
+      lambda *args, **kwargs: boxed.py_value()(*args, **kwargs)  # pylint: disable=unnecessary-lambda
   )
   f_op = optools.add_to_registry(unsafe_override=unsafe_override)(f_op)
+
+  sig = inspect.signature(boxed.py_value())
+  args_expr, kwargs_expr = build_forwarding_args_kwargs_exprs(sig)
   py_functor = expr_fn(
-      arolla.abc.bind_op(f_op, I.args, I.kwargs),
-      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+      arolla.abc.bind_op(f_op, args_expr, kwargs_expr),
+      signature=signature_utils.from_py_signature(sig),
   )
   if f.__doc__ is not None:
     py_functor = py_functor.with_attr('__doc__', inspect.cleandoc(f.__doc__))
@@ -499,22 +615,22 @@ def map_py_fn(
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
   """
-  boxed_f = py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(f)
-  if isinstance(boxed_f, arolla.Expr):
-    raise TypeError(f'expected a function, got {f!r}')
+  boxed_f = _box_py_fn(f)
+  sig = inspect.signature(boxed_f.py_value())
+  args_expr, kwargs_expr = build_forwarding_args_kwargs_exprs(sig)
   result = expr_fn(
       arolla.abc.bind_op(
           'kd.py.map_py',
           boxed_f,
-          args=I.args,
+          args=args_expr,
           schema=py_boxing.as_qvalue(schema),
           max_threads=py_boxing.as_qvalue(max_threads),
           ndim=py_boxing.as_qvalue(ndim),
           include_missing=py_boxing.as_qvalue(include_missing),
           item_completed_callback=py_boxing.as_qvalue(None),
-          kwargs=I.kwargs,
+          kwargs=kwargs_expr,
       ),
-      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+      signature=signature_utils.from_py_signature(sig),
   )
   return bind(result, **defaults) if defaults else result
 

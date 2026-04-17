@@ -559,7 +559,7 @@ serializable.
 Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
 functor will have exactly the same signature as the original function. In
 particular, if the original function does not accept variadic keyword
-arguments and and unknown argument is passed when calling the functor, an
+arguments and an unknown argument is passed when calling the functor, an
 exception will occur.
 
 Args:
@@ -624,7 +624,7 @@ import time.
 Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
 functor will have exactly the same signature as the original function. In
 particular, if the original function does not accept variadic keyword
-arguments and and unknown argument is passed when calling the functor, an
+arguments and an unknown argument is passed when calling the functor, an
 exception will occur.
 
 Args:

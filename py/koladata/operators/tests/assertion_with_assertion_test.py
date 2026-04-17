@@ -122,7 +122,7 @@ class AssertionWithAssertionTest(parameterized.TestCase):
         ds(1), mask_constants.missing, fn, ds(2)
     )
     with self.assertRaisesRegex(
-        TypeError, 'takes 0 positional arguments but 1 was given'
+        ValueError, 'too many positional arguments passed'
     ):
       expr_eval.eval(expr)
 
