@@ -238,7 +238,7 @@ Alias for [kd.functor.call](kd/functor.md#kd.functor.call)
 
 Alias for [kd.schema.cast_to](kd/schema.md#kd.schema.cast_to)
 
-### `kd.check_inputs(**kw_constraints: SchemaItem | _DuckType | _StaticWhenTraced)` {#kd.check_inputs}
+### `kd.check_inputs(**kw_constraints: TypeConstraint)` {#kd.check_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator factory for adding runtime input type checking to Koda functions.
 
@@ -295,7 +295,7 @@ Returns:
   A decorator that can be used to type annotate a function that accepts
   DataSlices/DataItem inputs.</code></pre>
 
-### `kd.check_output(constraint: SchemaItem | _DuckType | _StaticWhenTraced)` {#kd.check_output}
+### `kd.check_output(constraint: TypeConstraint)` {#kd.check_output}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator factory for adding runtime output type checking to Koda functions.
 
@@ -457,7 +457,7 @@ Returns:
 
 Alias for [kd.masking.disjoint_coalesce](kd/masking.md#kd.masking.disjoint_coalesce)
 
-### `kd.duck_dict(key_constraint: SchemaItem | _DuckType | _StaticWhenTraced, value_constraint: SchemaItem | _DuckType | _StaticWhenTraced)` {#kd.duck_dict}
+### `kd.duck_dict(key_constraint: TypeConstraint, value_constraint: TypeConstraint)` {#kd.duck_dict}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a duck dict constraint to be used in kd.check_inputs/output.
 
@@ -472,15 +472,15 @@ Example:
     pass
 
 Args:
-  key_constraint:  DuckType or SchemaItem representing the constraint to be
+  key_constraint:  TypeConstraint representing the constraint to be
     checked on the keys of the dict.
-  value_constraint:  DuckType or SchemaItem representing the constraint to be
+  value_constraint:  TypeConstraint representing the constraint to be
     checked on the values of the dict.
 
 Returns:
   A duck type constraint to be used in kd.check_inputs or kd.check_output.</code></pre>
 
-### `kd.duck_list(item_constraint: SchemaItem | _DuckType | _StaticWhenTraced)` {#kd.duck_list}
+### `kd.duck_list(item_constraint: TypeConstraint)` {#kd.duck_list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a duck list constraint to be used in kd.check_inputs/output.
 
@@ -496,13 +496,13 @@ Example:
     pass
 
 Args:
-  item_constraint:  DuckType or SchemaItem representing the constraint to be
+  item_constraint:  TypeConstraint representing the constraint to be
     checked on the items of the list.
 
 Returns:
   A duck type constraint to be used in kd.check_inputs or kd.check_output.</code></pre>
 
-### `kd.duck_type(**kwargs: SchemaItem | _DuckType | _StaticWhenTraced)` {#kd.duck_type}
+### `kd.duck_type(**kwargs: TypeConstraint)` {#kd.duck_type}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a duck type constraint to be used in kd.check_inputs/output.
 
@@ -521,8 +521,8 @@ Example:
   additional unspecified attributes.
 
 Args:
-  **kwargs: mapping of attribute names to constraints. The constraints must be
-    either DuckTypes or SchemaItems. To assert only the presence of an
+  **kwargs: mapping of attribute names to constraints. They can be any other
+    kind of TypeConstraint. To assert only the presence of an
     attribute, without specifying additional constraints on that attribute,
     pass an empty duck type for that attribute.
 
@@ -1561,7 +1561,7 @@ Alias for [kd.slices.sort](kd/slices.md#kd.slices.sort)
 
 Alias for [kd.slices.stack](kd/slices.md#kd.slices.stack)
 
-### `kd.static_when_tracing(base_type: SchemaItem | None = None) -> _StaticWhenTraced` {#kd.static_when_tracing}
+### `kd.static_when_tracing(base_type: TypeConstraint | None = None) -> _StaticWhenTraced` {#kd.static_when_tracing}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A constraint that the argument is static when tracing.
 

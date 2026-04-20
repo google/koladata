@@ -13,15 +13,18 @@
 # limitations under the License.
 
 """Runtime type checking for Koda functions."""
+from __future__ import annotations
 
 from collections.abc import Mapping
 import contextlib
+import dataclasses
 import functools
 import inspect
-from typing import Optional, Self
+from typing import Any, TypeAlias
 
 from arolla import arolla
 from koladata.expr import tracing_mode
+from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
@@ -29,6 +32,7 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import schema_item
+from koladata.types import signature_utils
 
 eager = eager_op_utils.operators_container('kd')
 lazy = kde_operators.kde
@@ -42,12 +46,6 @@ OBJECT_TIP = (
     ' create entities by using kd.new/kd.uu instead of kd.obj/kd.uuobj.')
 
 _DISABLE_TRACED_TYPE_CHECKING_COUNTER = 0
-
-
-class _StaticWhenTraced(object):
-
-  def __init__(self, base_type: schema_item.SchemaItem | None = None):
-    self.base_type = base_type
 
 
 def _is_traced_type_checking_disabled():
@@ -64,6 +62,15 @@ def disable_traced_type_checking():
   finally:
     _DISABLE_TRACED_TYPE_CHECKING_COUNTER -= 1
 
+TypeConstraint: TypeAlias = (
+    'schema_item.SchemaItem | _DuckType | _StaticWhenTraced | _FunctorType'
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class _StaticWhenTraced(object):
+  base_type: TypeConstraint | None = None
+
 
 class _DuckType(object):
   """Duck type object.
@@ -75,13 +82,13 @@ class _DuckType(object):
   leaves are concrete schemas.
   """
 
-  def __init__(self, **kwargs: schema_item.SchemaItem | Self):
+  def __init__(self, **kwargs: TypeConstraint):
     self.__dict__['_fields'] = kwargs
 
   def __iter__(self):
     return iter(self._fields)
 
-  def __getattr__(self, key: str) -> schema_item.SchemaItem | Self:
+  def __getattr__(self, key: str) -> TypeConstraint:
     try:
       return self._fields[key]
     except KeyError as e:
@@ -90,18 +97,20 @@ class _DuckType(object):
   def __getitem__(self, key: str):
     return self._fields[key]
 
-  def __setattr__(self, key: str, value: schema_item.SchemaItem | Self):
+  def __setattr__(self, key: str, value: TypeConstraint):
     raise NotImplementedError(
         'DuckType does not support setattr. All attributes must be specified at'
         ' construction.'
     )
 
 
-TypeConstraint = schema_item.SchemaItem | _DuckType | _StaticWhenTraced
+@dataclasses.dataclass(frozen=True)
+class _FunctorType(object):
+  signature: inspect.Signature | None = None
 
 
 def static_when_tracing(
-    base_type: schema_item.SchemaItem | None = None,
+    base_type: TypeConstraint | None = None,
 ) -> _StaticWhenTraced:
   """A constraint that the argument is static when tracing.
 
@@ -142,8 +151,8 @@ def duck_type(**kwargs: TypeConstraint):
     additional unspecified attributes.
 
   Args:
-    **kwargs: mapping of attribute names to constraints. The constraints must be
-      either DuckTypes or SchemaItems. To assert only the presence of an
+    **kwargs: mapping of attribute names to constraints. They can be any other
+      kind of TypeConstraint. To assert only the presence of an
       attribute, without specifying additional constraints on that attribute,
       pass an empty duck type for that attribute.
 
@@ -168,7 +177,7 @@ def duck_list(item_constraint: TypeConstraint):
       pass
 
   Args:
-    item_constraint:  DuckType or SchemaItem representing the constraint to be
+    item_constraint:  TypeConstraint representing the constraint to be
       checked on the items of the list.
 
   Returns:
@@ -191,9 +200,9 @@ def duck_dict(key_constraint: TypeConstraint, value_constraint: TypeConstraint):
       pass
 
   Args:
-    key_constraint:  DuckType or SchemaItem representing the constraint to be
+    key_constraint:  TypeConstraint representing the constraint to be
       checked on the keys of the dict.
-    value_constraint:  DuckType or SchemaItem representing the constraint to be
+    value_constraint:  TypeConstraint representing the constraint to be
       checked on the values of the dict.
 
   Returns:
@@ -203,6 +212,18 @@ def duck_dict(key_constraint: TypeConstraint, value_constraint: TypeConstraint):
       __keys__=key_constraint,
       __values__=value_constraint,
   )
+
+
+def functor(signature: inspect.Signature | None = None) -> _FunctorType:
+  """Returns constraint that an argument is a functor.
+
+  Optionally checking signature.
+
+  Args:
+    signature: An optional `inspect.Signature` to check against the functor's
+      signature. If None, only checks that the argument is a functor.
+  """
+  return _FunctorType(signature)
 
 
 def _attr_name_repr(attr_name: str) -> str:
@@ -217,161 +238,95 @@ def _attr_name_repr(attr_name: str) -> str:
     return attr_name
 
 
-def _attribute_missing_error_message(
-    arg_key: Optional[str],
-    path: str,
-    attr_name: str,
-    actual_schema: schema_item.SchemaItem,
-) -> str:
-  """Produces an error message for missing attributes in eager mode.
-
-  Args:
-    arg_key: The name of the argument if the error is for kd.check_inputs, or
-      None if the error is for kd.check_output.
-    path: The path to the missing attribute. Prefixed by `.` if non-empty.
-    attr_name: The name of the attribute that is missing.
-    actual_schema: The schema of the argument or output.
-
-  Returns:
-    An error message.
-  """
-  if arg_key is not None:
-    # kd.check_inputs
-    message = (
-        f'kd.check_inputs: expected parameter {arg_key}{path} to have'
-        f' attribute `{attr_name}`; no attribute `{attr_name}` on'
-        f' {arg_key}{path}={eager.schema.get_repr(actual_schema)}'
-    )
-  else:
-    # kd.check_output
-    message = (
-        f'kd.check_output: expected output{path} to have attribute'
-        f' `{attr_name}`; no attribute `{attr_name}` on'
-        f' output{path}={eager.schema.get_repr(actual_schema)}'
-    )
-  if actual_schema == schema_constants.OBJECT:
-    message += f'\n\n{OBJECT_TIP}'
-  return message
-
-
-def _type_mismatch_error_message(
-    arg_key: Optional[str],
-    path: str,
-    expected_schema: schema_item.SchemaItem,
-    actual_schema: schema_item.SchemaItem,
-) -> str:
-  """Produces an error message for type mismatches in eager mode.
-
-  Args:
-    arg_key: The name of the argument if the error is for kd.check_inputs, or
-      None if the error is for kd.check_output.
-    path: The path to the argument or output. Prefixed by `.` if non-empty.
-    expected_schema: The expected schema.
-    actual_schema: The actual schema of the argument or output.
-
-  Returns:
-    An error message.
-  """
-  if arg_key is not None:
-    # kd.check_inputs
-    message = (
-        f'kd.check_inputs: type mismatch for parameter {arg_key}{path};'
-        f' expected type {eager.schema.get_repr(expected_schema)}, got'
-        f' {eager.schema.get_repr(actual_schema)}'
-    )
-  else:
-    # kd.check_output
-    message = (
-        f'kd.check_output: type mismatch for output{path}; expected type'
-        f' {eager.schema.get_repr(expected_schema)}, got'
-        f' {eager.schema.get_repr(actual_schema)}'
-    )
-  if actual_schema == schema_constants.OBJECT:
-    message += f'\n\n{OBJECT_TIP}'
-  return message
-
-
 def _verify_constraint_eager(
     constraint: TypeConstraint,
-    actual_schema: schema_item.SchemaItem | data_slice.DataSlice,
-    arg_key: Optional[str],
+    actual_value: data_slice.DataSlice,
+    arg_key: str | None,
     path: str = '',
 ):
   """Processes a type constraint verification in eager mode.
 
   Args:
     constraint: The constraint to be verified.
-    actual_schema: The schema of the argument or output to check against the
-      constraint.
+    actual_value: The argument or output to check against the constraint.
     arg_key: The name of the argument if the error is for kd.check_inputs, or
       None if the error is for kd.check_output.
     path: The path from the input/output parameter to the current constraint.
 
   Raises:
-    TypeError: If the constraint is not satisfied by the actual schema.
+    TypeError: If the constraint is not satisfied by the actual value.
   """
+  error_message_prefix = (
+      'kd.check_inputs:' if arg_key is not None else 'kd.check_output:'
+  )
+  attr_path = (
+      f'parameter {arg_key}{path}' if arg_key is not None else f'output{path}'
+  )
   if isinstance(constraint, _DuckType):
+    actual_schema = actual_value.get_schema()
     for attr_name in constraint:
       if eager.is_primitive(actual_schema) or not eager.has_attr(
           actual_schema, attr_name
       ):
         raise TypeError(
-            _attribute_missing_error_message(
-                arg_key, path, attr_name, actual_schema
+            f'{error_message_prefix} expected {attr_path} '
+            f'to have attribute `{attr_name}`; no attribute `{attr_name}` on '
+            f'{attr_path}={eager.schema.get_repr(actual_schema)}'
+            + (
+                f'\n\n{OBJECT_TIP}'
+                if actual_schema == schema_constants.OBJECT
+                else ''
             )
         )
       _verify_constraint_eager(
           constraint[attr_name],
-          eager.get_attr(actual_schema, attr_name),
+          eager.get_attr(actual_value, attr_name),
           arg_key,
           path + '.' + _attr_name_repr(attr_name),
       )
+  elif isinstance(constraint, _StaticWhenTraced):
+    if constraint.base_type is None:
+      return
+    _verify_constraint_eager(
+        constraint.base_type, actual_value, arg_key, path
+    )
+  elif isinstance(constraint, _FunctorType):
+    if not eager.functor.is_fn(actual_value):
+      raise TypeError(
+          f'{error_message_prefix} expected {attr_path} '
+          'to be a functor, got '
+          f'{eager.slices.get_repr(actual_value)}'
+      )
+    if constraint.signature is not None:
+      assert isinstance(
+          actual_value, data_item.DataItem
+      )  # narrow for pytype
+      actual_signature = functor_factories.get_inspect_signature(actual_value)
+      if actual_signature != constraint.signature:
+        raise TypeError(
+            f'{error_message_prefix} expected {attr_path} '
+            f'to be a functor with signature {constraint.signature}, '
+            f'got a functor with signature {actual_signature}'
+        )
   else:
+    actual_schema = actual_value.get_schema()
     if actual_schema != constraint:
       raise TypeError(
-          _type_mismatch_error_message(arg_key, path, constraint, actual_schema)
+          f'{error_message_prefix} type mismatch for {attr_path}; expected type'
+          f' {eager.schema.get_repr(constraint)}, got'
+          f' {eager.schema.get_repr(actual_schema)}'
+          + (
+              f'\n\n{OBJECT_TIP}'
+              if actual_schema == schema_constants.OBJECT
+              else ''
+          )
       )
-
-
-def _lazy_type_mismatch_error_message(
-    arg_key: str,
-    path: str,
-    expected_schema: schema_item.SchemaItem,
-    actual_schema: arolla.Expr,
-) -> arolla.Expr:
-  """Produces an error message for type mismatches in tracing mode.
-
-  Args:
-    arg_key: The name of the argument if the error is for kd.check_inputs, or
-      None if the error is for kd.check_output.
-    path: The path to the argument or output. Prefixed by `.` if non-empty.
-    expected_schema: The expected schema. Known at tracing time.
-    actual_schema: The schema of the argument or output. Unknown at tracing
-      time.
-
-  Returns:
-    An arolla Expr that evaluates to the error message.
-  """
-  if arg_key is not None:
-    # kd.check_inputs
-    return lazy.strings.join(
-        f'kd.check_inputs: type mismatch for parameter {arg_key}{path};'
-        f' expected type {eager.schema.get_repr(expected_schema)}, got ',
-        lazy.schema.get_repr(actual_schema),
-    )
-  else:
-    # kd.check_output
-    return lazy.strings.join(
-        f'kd.check_output: type mismatch for output{path}; expected type'
-        f' {eager.schema.get_repr(expected_schema)}, got ',
-        lazy.schema.get_repr(actual_schema),
-    )
 
 
 def _with_lazy_attrribute_verification(
     result: arolla.Expr,
     actual_schema: arolla.Expr,
-    arg_key: Optional[str],
+    arg_key: str | None,
     attr_name: str,
     path: str,
 ) -> arolla.Expr:
@@ -390,24 +345,22 @@ def _with_lazy_attrribute_verification(
   Returns:
     The result node with the verification assertions added.
   """
+  error_message_prefix = (
+      'kd.check_inputs:'
+      if arg_key is not None
+      else 'kd.check_output:'
+  )
+  attr_path = (
+      f'parameter {arg_key}{path}' if arg_key is not None else f'output{path}'
+  )
 
   def attribute_missing_error_fn(actual_schema):
-    if arg_key is not None:
-      # kd.check_inputs
-      return lazy.strings.join(
-          f'kd.check_inputs: expected parameter {arg_key}{path} to have'
-          f' attribute `{attr_name}`; no attribute `{attr_name}` on'
-          f' {arg_key}{path}=',
-          lazy.schema.get_repr(actual_schema),
-      )
-    else:
-      # kd.check_output
-      return lazy.strings.join(
-          f'kd.check_output: expected output{path} to have attribute'
-          f' `{attr_name}`; no attribute `{attr_name}` on'
-          f' output{path}=',
-          lazy.schema.get_repr(actual_schema),
-      )
+    return lazy.strings.join(
+        f'{error_message_prefix} expected {attr_path} to have'
+        f' attribute `{attr_name}`; no attribute `{attr_name}` on'
+        f' {attr_path}=',
+        lazy.schema.get_repr(actual_schema),
+    )
 
   # First assert that the value is not a primitive, and only then call
   # has_attr, otherwise has_attr will fail.
@@ -427,8 +380,8 @@ def _with_lazy_attrribute_verification(
 def _with_lazy_constraint_verification(
     result: arolla.Expr | data_slice.DataSlice,
     constraint: TypeConstraint,
-    actual_schema: arolla.Expr | data_slice.DataSlice,
-    arg_key: Optional[str],
+    actual_value: arolla.Expr,
+    arg_key: str | None,
     path: str = '',
 ) -> arolla.Expr | data_slice.DataSlice:
   """Processes a type constraint verification in tracing mode.
@@ -436,8 +389,8 @@ def _with_lazy_constraint_verification(
   Args:
     result: Node to append the verification assertions to.
     constraint: The constraint to be verified. Known at tracing time.
-    actual_schema: The schema of the argument or output to check against the
-      constraint. Unknown at tracing time.
+    actual_value: The argument or output to check against the constraint.
+      Unknown at tracing time.
     arg_key: The name of the argument if the error is for kd.check_inputs, or
       None if the error is for kd.check_output. Known at tracing time.
     path: The path from the input/output parameter to the current constraint.
@@ -446,7 +399,16 @@ def _with_lazy_constraint_verification(
   Returns:
     The result node with the verification assertions added.
   """
+  error_message_prefix = (
+      'kd.check_inputs:'
+      if arg_key is not None
+      else 'kd.check_output:'
+  )
+  attr_path = (
+      f'parameter {arg_key}{path}' if arg_key is not None else f'output{path}'
+  )
   if isinstance(constraint, _DuckType):
+    actual_schema = lazy.schema.get_schema(actual_value)
     for attr_name in constraint:
       result = _with_lazy_attrribute_verification(
           result, actual_schema, arg_key, attr_name, path
@@ -454,21 +416,52 @@ def _with_lazy_constraint_verification(
       result = _with_lazy_constraint_verification(
           result,
           constraint[attr_name],
-          actual_schema.get_attr(attr_name),
+          actual_value.get_attr(attr_name),
           arg_key,
           path + '.' + _attr_name_repr(attr_name),
       )
+  elif isinstance(constraint, _StaticWhenTraced):
+    raise TypeError((
+        f'{error_message_prefix} {attr_path} must be resolved'
+        ' statically during tracing and cannot depend on the inputs'
+    ))
+  elif isinstance(constraint, _FunctorType):
+    result = lazy.assertion.with_assertion(
+        result,
+        lazy.functor.is_fn(actual_value),
+        lambda actual_value: lazy.strings.join(
+            f'{error_message_prefix} expected {attr_path} to be a'
+            ' functor, got ',
+            lazy.slices.get_repr(actual_value)
+        ),
+        actual_value,
+    )
+    if constraint.signature is not None:
+      result = lazy.assertion.with_assertion(
+          result,
+          lazy.deep_uuid(actual_value.get_attr('__signature__'))
+          == lazy.deep_uuid(
+              signature_utils.from_py_signature(constraint.signature)
+          ),
+          lambda actual_value: lazy.strings.join(
+              f'{error_message_prefix} expected {attr_path} to be a functor'
+              f' with signature {constraint.signature}, got a functor with'
+              ' signature ',
+              lazy.slices.get_repr(actual_value.get_attr('__signature__')),
+          ),
+          actual_value,
+      )
   else:
+    actual_schema = lazy.schema.get_schema(actual_value)
     result = lazy.assertion.with_assertion(
         result,
         actual_schema == constraint,
-        lambda actual_schema: _lazy_type_mismatch_error_message(
-            arg_key,
-            path,
-            constraint
-            if isinstance(constraint, schema_item.SchemaItem)
-            else constraint.base_type,
-            actual_schema,
+        lambda actual_schema: lazy.strings.join(
+            f'{error_message_prefix} type mismatch for {attr_path};'
+            ' expected type ',
+            lazy.schema.get_repr(constraint),
+            ', got ',
+            lazy.schema.get_repr(actual_schema),
         ),
         actual_schema,
     )
@@ -476,20 +469,18 @@ def _with_lazy_constraint_verification(
 
 
 def _verify_input_eager(
-    key: str, arg: data_slice.DataSlice, constraint: schema_item.SchemaItem
+    key: str, arg: Any, constraint: TypeConstraint
 ):
   """Verifies the type of input in eager mode."""
-  if isinstance(constraint, _StaticWhenTraced):
-    constraint = constraint.base_type
-
-  if constraint is None:
+  # Short-circuit boxing for _StaticWhenTraced(None).
+  if isinstance(constraint, _StaticWhenTraced) and constraint.base_type is None:
     return
 
   if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
     # Boxing is needed to support Python arguments.
     arg = py_boxing.as_qvalue(arg)
 
-  _verify_constraint_eager(constraint, arg.get_schema(), key)
+  _verify_constraint_eager(constraint, arg, key)
 
 
 def _verify_inputs_eager(
@@ -515,7 +506,7 @@ def _verify_output_eager(
     )
   if isinstance(constraint, _StaticWhenTraced):
     raise TypeError('_ConstantWhenTraced is not supported for kd.check_output')
-  _verify_constraint_eager(constraint, output.get_schema(), None)
+  _verify_constraint_eager(constraint, output, None)
 
 
 def _with_input_expr_assertions(
@@ -528,15 +519,7 @@ def _with_input_expr_assertions(
   for key, constraint in kw_constraints.items():
     # KeyError is not possible as parameter presence was checked during
     # decoration.
-    # Boxing is needed to support Python arguments.
     arg = bound_args.arguments[key]
-    if isinstance(constraint, _StaticWhenTraced):
-      if isinstance(arg, arolla.Expr):
-        raise TypeError(
-            f'argument "{key}" must be resolved statically during tracing and'
-            ' not depend on the inputs'
-        )
-      constraint = constraint.base_type
     if not isinstance(arg, arolla.Expr):
       # We attempt eager verification of a static input.
       _verify_input_eager(key, arg, constraint)
@@ -544,20 +527,24 @@ def _with_input_expr_assertions(
       # Changes to bound_args will reflect in bound_args.args and
       # bound_args.kwargs.
       bound_args.arguments[key] = _with_lazy_constraint_verification(
-          arg, constraint, lazy.schema.get_schema(arg), key
+          arg, constraint, arg, key
       )
   return bound_args
 
 
 def _with_output_expr_assertion(
-    output: data_slice.DataSlice,
+    output: data_slice.DataSlice | arolla.Expr,
     constraint: schema_item.SchemaItem,
 ):
   """Adds an assertion for output type in tracing mode."""
   if _is_traced_type_checking_disabled():
     return output
+  if not isinstance(output, arolla.Expr):
+    # We attempt eager verification of a static output.
+    _verify_output_eager(output, constraint)
+    return output
   return _with_lazy_constraint_verification(
-      output, constraint, lazy.schema.get_schema(output), None
+      output, constraint, output, None
   )
 
 
@@ -618,11 +605,14 @@ def check_inputs(**kw_constraints: TypeConstraint):
     DataSlices/DataItem inputs.
   """
   for key, value in kw_constraints.items():
-    if not isinstance(value, TypeConstraint):
+    if not isinstance(
+        value,
+        (schema_item.SchemaItem, _DuckType, _StaticWhenTraced, _FunctorType),
+    ):
       raise TypeError(
           'kd.check_inputs: invalid constraint: expected constraint for'
-          f' parameter {key} to be a schema DataItem, a DuckType or'
-          f' ConstantWhenTraced, got {value}'
+          f' parameter {key} to be a schema DataItem, a DuckType, a'
+          f' FunctorType, or a StaticWhenTraced, got {value}'
       )
 
   def decorate_f(f):
@@ -707,10 +697,14 @@ def check_output(constraint: TypeConstraint):
     A decorator that can be used to annotate a function returning a
     DataSlice/DataItem.
   """
-  if not isinstance(constraint, TypeConstraint):
+  if not isinstance(
+      constraint,
+      (schema_item.SchemaItem, _DuckType, _StaticWhenTraced, _FunctorType),
+  ):
     raise TypeError(
-        'kd.check_output: invalid constraint: expected constraint for output to'
-        f' be a schema DataItem or a DuckType, got {constraint}'
+        'kd.check_output: invalid constraint: expected constraint for output'
+        ' to be a schema DataItem, a DuckType, a FunctorType, or'
+        f' a StaticWhenTraced, got {constraint}'
     )
 
   def decorate_f(f):

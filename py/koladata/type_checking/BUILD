@@ -26,6 +26,7 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
@@ -33,6 +34,7 @@ py_library(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:schema_item",
+        "//py/koladata/types:signature_utils",
         "@com_google_arolla//py/arolla",
     ],
 )

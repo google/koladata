@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -230,6 +231,18 @@ ERROR_CASES = (
             r' {parameter}\.get_values\(\)=ENTITY\(b=INT32\)'
         ),
     ),
+    (
+        '_functor',
+        type_checking.functor(),
+        ds(1),
+        r'{decorator}: expected {parameter} to be a functor, got 1',
+    ),
+    (
+        '_functor_data_slice',
+        type_checking.functor(),
+        ds([1, 2, 3]),
+        r'{decorator}: expected {parameter} to be a functor, got \[1, 2, 3\]',
+    ),
 )
 
 EAGER_ERROR_CASES = (
@@ -268,6 +281,15 @@ EAGER_ERROR_CASES = (
             r' You can'
             ' create entities by using kd.new/kd.uu instead of'
             ' kd.obj/kd.uuobj.'
+        ),
+    ),
+    (
+        '_functor_with_signature',
+        type_checking.functor(signature=inspect.signature(lambda x: x)),
+        kdf.fn(lambda x, y: x),
+        (
+            r'{decorator}: expected {parameter} to be a functor with signature'
+            r' \(x\), got a functor with signature \(x, y\)'
         ),
     ),
 )
@@ -356,6 +378,11 @@ OK_CASES = (
             b=kd.INT32,
         ),
         kd.new(a=1, b=2, c=3),
+    ),
+    (
+        '_functor',
+        type_checking.functor(),
+        kdf.fn(lambda x: x),
     ),
 )
 
@@ -545,8 +572,8 @@ class TypeCheckingTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_inputs: invalid constraint: expected constraint for parameter'
-        ' x to be a schema DataItem, a DuckType or ConstantWhenTraced,'
-        ' got 0',
+        ' x to be a schema DataItem, a DuckType, a FunctorType, or a'
+        ' StaticWhenTraced, got 0',
     ):
 
       @type_checking.check_inputs(x=kd.int32(0))
@@ -557,7 +584,8 @@ class TypeCheckingTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_output: invalid constraint: expected constraint for output to'
-        ' be a schema DataItem or a DuckType, got 0',
+        ' be a schema DataItem, a DuckType, a FunctorType, or a'
+        ' StaticWhenTraced, got 0',
     ):
 
       @type_checking.check_output(kd.int32(0))
@@ -766,8 +794,8 @@ class TypeCheckingTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         TypeError,
-        'argument "pick_a" must be resolved statically during tracing and not'
-        ' depend on the inputs',
+        'kd.check_inputs: parameter pick_a must be resolved statically during'
+        ' tracing and cannot depend on the inputs',
     ):
       _ = kdf.fn(f)
 
@@ -784,8 +812,8 @@ class TypeCheckingTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         TypeError,
-        'argument "value" must be resolved statically during tracing and not'
-        ' depend on the inputs',
+        'kd.check_inputs: parameter value must be resolved statically during'
+        ' tracing and cannot depend on the inputs',
     ):
       _ = kdf.fn(f)
 
@@ -806,6 +834,56 @@ class TypeCheckingTest(parameterized.TestCase):
     fn = kd.fn(f)
     with self.assertRaises(ValueError):
       _ = fn(ds([1.0]))  # Raises again. Type checking was re-enabled.
+
+  def test_functor_with_signature_when_tracing(self):
+    sig = inspect.signature(lambda x: x)
+
+    @type_checking.check_inputs(f=type_checking.functor(signature=sig))
+    def call_f(f, x):
+      return kd.call(f, x)
+
+    # When tracing, if checking the signature of f but f is unknown at tracing
+    # time, we add a lazy check at evaluation
+    fn = kdf.fn(call_f)
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.assertion.with_assertion: kd.check_inputs:'
+        r' expected parameter f to be a functor with signature \(x\), got a'
+        r' functor with signature Obj\(parameters=List\[\]\)',
+    ):
+      _ = fn(lambda: 2, 3)
+
+    # If f is statically known however, we check at tracing time.
+    with self.assertRaisesRegex(
+        TypeError,
+        r'kd.check_inputs: expected parameter f to be a functor with signature'
+        r' \(x\), got a functor with signature \(\)',
+    ):
+      _ = kdf.fn(lambda x: call_f(lambda: 2, x))
+
+    # If you match the expected signature, it is ok.
+    testing.assert_equal(fn(lambda x: x, 3), ds(3))
+
+  def test_functor_in_static_when_tracing(self):
+    @type_checking.check_inputs(
+        f=type_checking.static_when_tracing(
+            type_checking.functor(
+                signature=inspect.signature(lambda x: x)
+            )
+        )
+    )
+    def call_f(f, x):
+      return kd.call(f, x)
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_inputs: parameter f must be resolved statically during'
+        ' tracing and cannot depend on the inputs',
+    ):
+      _ = kdf.fn(call_f)
+
+    fn = kdf.fn(lambda x: call_f(lambda x: x, x))
+    testing.assert_equal(fn(3), ds(3))
 
 
 if __name__ == '__main__':
