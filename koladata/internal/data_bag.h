@@ -761,6 +761,10 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   bool IsUnmodifiedForkOf(const DataBagImpl* other) const;
 
+  // Returns this if it's not pristine, otherwise returns the first non-pristine
+  // bag in the parent chain.
+  const DataBagImpl* GetNonPristineBag() const;
+
   // Returns true if this DataBagImpl has no additional data compared
   // to `other`. It is a fast check and a false positive is possible.
   bool IsSubsetOf(const DataBagImpl& other) const;

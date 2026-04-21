@@ -502,6 +502,14 @@ bool DataBagImpl::IsEmpty() const {
   return IsPristine() && parent_data_bag_ == nullptr;
 }
 
+const DataBagImpl* DataBagImpl::GetNonPristineBag() const {
+  if (IsPristine()) {
+    DCHECK(parent_data_bag_ == nullptr || !parent_data_bag_->IsPristine());
+    return parent_data_bag_.get();
+  }
+  return this;
+}
+
 std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
     ObjectId object_id, absl::string_view attr) const {
   const DataBagImpl* cur_data_bag = this;
@@ -3088,7 +3096,9 @@ absl::Status DataBagImpl::IterateOverSmallAllocWithNewData(
     absl::FunctionRef<absl::Status(absl::string_view, ConstSparseSourceArray,
                                    ConstSparseSourceArray)>
         callback) const {
-  for (const DataBagImpl* other_db = &other; other_db != nullptr;
+  const DataBagImpl* this_non_pristine = GetNonPristineBag();
+  for (const DataBagImpl* other_db = &other;
+       other_db != nullptr && other_db != this_non_pristine;
        other_db = other_db->parent_data_bag_.get()) {
     for (const auto& [attr_name, other_source_top] :
          other_db->small_alloc_sources_) {
@@ -3202,7 +3212,9 @@ absl::Status DataBagImpl::MergeBigAllocImpl(
     absl::FunctionRef<SourceCollection&(AllocationId, absl::string_view)>
         get_this_collection) const {
   absl::flat_hash_set<SourceKey> used_keys;
-  for (const DataBagImpl* other_db = &other; other_db != nullptr;
+  const DataBagImpl* this_non_pristine = GetNonPristineBag();
+  for (const DataBagImpl* other_db = &other;
+       other_db != nullptr && other_db != this_non_pristine;
        other_db = other_db->parent_data_bag_.get()) {
     for (const auto& [source_key, other_source_collection] :
          other_db->sources_) {

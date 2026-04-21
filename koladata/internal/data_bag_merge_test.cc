@@ -1559,7 +1559,7 @@ TEST(DataBagTest, DataBagSmallRemoveOverwriteTest) {
   EXPECT_THAT(db->GetAttr(b, "a"), IsOkAndHolds(DataItem()));
 }
 
-TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
+TYPED_TEST(DataBagMergeTest, MergeSiblingForks) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto a = DataItem(this->AllocSingle());
   auto b = DataItem(this->AllocSingle());
@@ -1573,7 +1573,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
 
   // Merging unmodified sibling fork should be a no-op.
   {
-    ASSERT_OK(fork1->MergeInplace(*fork2));
+    ASSERT_OK(this->MergeInplaceWithOptions(*fork1, *fork2));
     EXPECT_THAT(fork1->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(fork1->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
   }
@@ -1581,7 +1581,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
   // Modify fork2 and merge into fork1 — should pick up the new data.
   {
     ASSERT_OK(fork2->SetAttr(a, "z", DataItem(99)));
-    ASSERT_OK(fork1->MergeInplace(*fork2));
+    ASSERT_OK(this->MergeInplaceWithOptions(*fork1, *fork2));
     EXPECT_THAT(fork1->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(fork1->GetAttr(a, "z"), IsOkAndHolds(DataItem(99)));
     EXPECT_THAT(fork1->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
@@ -1590,7 +1590,7 @@ TYPED_TEST(DataBagAllocatorTest, MergeSiblingForks) {
   // Merge modified fork1 into a fresh fork3 (unmodified sibling of fork2).
   {
     auto fork3 = db->PartiallyPersistentFork();
-    ASSERT_OK(fork3->MergeInplace(*fork1));
+    ASSERT_OK(this->MergeInplaceWithOptions(*fork3, *fork1));
     EXPECT_THAT(fork3->GetAttr(a, "x"), IsOkAndHolds(DataItem(57)));
     EXPECT_THAT(fork3->GetAttr(a, "z"), IsOkAndHolds(DataItem(99)));
     EXPECT_THAT(fork3->GetAttr(b, "y"), IsOkAndHolds(DataItem(75.0)));
