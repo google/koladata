@@ -918,6 +918,26 @@ BENCHMARK(BM_MergeCornerCase<MergeOptions::kRaiseOnConflict>)->Arg(1000);
 BENCHMARK(BM_MergeCornerCase<MergeOptions::kOverwrite>)->Arg(1000);
 BENCHMARK(BM_MergeCornerCase<MergeOptions::kKeepOriginal>)->Arg(1000);
 
+void BM_OverwritingMergeUpdateChain(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    benchmark::DoNotOptimize(db);
+    for (int i = 0; i < 1000; ++i) {
+      auto old_db = db->PartiallyPersistentFork();
+      db = db->PartiallyPersistentFork();
+      CHECK_OK(db->SetAttr(objs, absl::StrCat("x", i), objs));
+      auto update = old_db->CreateOverwritingMergeUpdate(*db);
+      benchmark::DoNotOptimize(update);
+    }
+    benchmark::DoNotOptimize(db);
+  }
+}
+
+BENCHMARK(BM_OverwritingMergeUpdateChain)->Arg(1)->Arg(20);
+
 template <typename OverwriteOrSet>
 void BM_SetSchemaFields(benchmark::State& state) {
   int64_t alloc_size = state.range(0);
