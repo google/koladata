@@ -90,6 +90,7 @@ class JsonStreamParser {
 
   explicit JsonStreamParser(SeparatorPolicy p = SeparatorPolicy::KEEP);
 
+  // Note: SeparatorPolicy::REMOVE also removes trailing commas.
   void SetSeparatorPolicy(SeparatorPolicy p) { separator_policy_ = p; }
 
   // Compatibility settings for parsing invalid json.
@@ -188,7 +189,8 @@ class JsonStreamParser {
   absl::Status ProcessValueEnd(char c);
 
   absl::Status HandleValueEnd();
-  char PreprocessSpace(char c);
+  char PreprocessSeparator(char c);
+  void InsertCommaIfMissing();
 
   std::string data_;
   size_t data_available_pos_ = 0;

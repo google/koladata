@@ -86,7 +86,7 @@ absl::Status JsonStreamParser::HandleValueEnd() {
   return absl::OkStatus();
 }
 
-char JsonStreamParser::PreprocessSpace(char c) {
+char JsonStreamParser::PreprocessSeparator(char c) {
   if (state_ == NAME || state_ == VALUE_STRING) {
     if (c == '\n' && allow_linebreak_in_strings_) {
       data_.append("\\n");
@@ -97,14 +97,50 @@ char JsonStreamParser::PreprocessSpace(char c) {
     } else {
       data_.push_back(c);
     }
-  }
-  if (separator_policy_ == SeparatorPolicy::KEEP) {
+  } else if (separator_policy_ == SeparatorPolicy::KEEP) {
     data_.push_back(c);
   }
   return c;
 }
 
+// It is called when we start parsing a new value in a list or a new dict key,
+// which may need to be separated from the previous value with a comma.
+// If comma is needed, but is missing in `data_` (always the case with
+// SeparatorPolicy::REMOVE), then this function injects it.
+void JsonStreamParser::InsertCommaIfMissing() {
+  if (separator_policy_ == SeparatorPolicy::REMOVE) {
+    // SeparatorPolicy::REMOVE removes commas, so we insert one when needed.
+    char prev_char = data_.size() > 1 ? data_[data_.size() - 2] : 0;
+    if (prev_char != ',' && prev_char != '{' && prev_char != '[') {
+      char last_char = data_.back();
+      data_.back() = ',';
+      data_available_pos_ = data_.size();
+      data_.push_back(last_char);
+    }
+  }
+}
+
 absl::Status JsonStreamParser::ProcessExpectValue(char c) {
+  if (absl::ascii_isspace(c)) {
+    return absl::OkStatus();
+  }
+  if (c == ',') {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("unexpected ',' at pos %d", data_available_pos_));
+  }
+  if (c == '}') {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected value begin, got '}' at pos %d", data_available_pos_));
+  }
+  if (c == ']') {
+    data_available_pos_ = data_.size();
+    RETURN_IF_ERROR(HandleValueEnd());
+    state_ = VALUE_END;
+    return absl::OkStatus();
+  }
+  if (stack_.back().is_list) {
+    InsertCommaIfMissing();
+  }
   if (c == '{') {
     if (vbegin_fn_) {
       vbegin_fn_(path_, ValueType::DICT);
@@ -118,14 +154,7 @@ absl::Status JsonStreamParser::ProcessExpectValue(char c) {
     path_.append(kListPath);
     stack_.push_back({path_.size(), data_available_pos_, /*is_list=*/true});
     state_ = EXPECT_VALUE;
-  } else if (c == ']') {
-    data_available_pos_ = data_.size();
-    RETURN_IF_ERROR(HandleValueEnd());
-    state_ = VALUE_END;
-  } else if (c == '}') {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected value begin, got '}' at pos %d", data_available_pos_));
-  } else if (!absl::ascii_isspace(c)) {
+  } else {
     stack_.push_back({path_.size(), data_available_pos_, /*is_list=*/false});
     if (c != '"' && c != '\'') {
       state_ = VALUE_TOKEN;
@@ -157,12 +186,17 @@ absl::Status JsonStreamParser::ProcessExpectName(char c) {
   if (absl::ascii_isspace(c)) {
     return absl::OkStatus();
   }
+  if (c == ',') {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("unexpected ',' at pos %d", data_available_pos_));
+  }
   if (c == '}' || c == ']') {
     data_available_pos_ = data_.size();
     RETURN_IF_ERROR(HandleValueEnd());
     state_ = VALUE_END;
     return absl::OkStatus();
   }
+  InsertCommaIfMissing();
   path_.push_back('.');
   if (c == '"' || c == '\'') {
     state_ = NAME;
@@ -317,8 +351,8 @@ absl::Status JsonStreamParser::AddChunk(absl::string_view chunk) {
       // after VALUE_END we immediately switch to EXPECT_VALUE.
       state_ = EXPECT_VALUE;
     }
-    if (absl::ascii_isspace(c)) {
-      c = PreprocessSpace(c);
+    if (absl::ascii_isspace(c) || c == ',') {
+      c = PreprocessSeparator(c);
     } else {
       data_.push_back(c);
     }

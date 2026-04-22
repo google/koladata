@@ -180,6 +180,22 @@ TEST(JsonStreamParserTest, SeparatorPolicyRemoveInStrings) {
                                   Pair("$", R"({"a":"foo bar"})")));
 }
 
+TEST(JsonStreamParserTest, SeparatorPolicyRemoveTrailingCommas) {
+  JsonStreamParser parser(JsonStreamParser::SeparatorPolicy::REMOVE);
+  std::vector<std::pair<std::string, std::string>> values;
+  parser.SetValueEndCallback(
+      [&](absl::string_view path, absl::string_view json) {
+        values.push_back({std::string(path), std::string(json)});
+      });
+
+  EXPECT_THAT(parser.AddChunk(R"({"a": [1 , ], "b": 2,})"), IsOk());
+  EXPECT_THAT(parser.Finalize(), IsOk());
+
+  EXPECT_THAT(values,
+              ElementsAre(Pair("$.a[*]", "1"), Pair("$.a", "[1]"),
+                          Pair("$.b", "2"), Pair("$", R"({"a":[1],"b":2})")));
+}
+
 TEST(JsonStreamParserTest, OutputStreaming) {
   JsonStreamParser parser(JsonStreamParser::SeparatorPolicy::REMOVE);
   std::string filter = "$.query.docs[*]";
@@ -294,6 +310,16 @@ TEST(JsonStreamParserTest, InvalidJson) {
   EXPECT_THAT(parser.AddChunk("{\"a\": \"foo\nbar\"}"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "linebreak inside of string literal at pos 10"));
+
+  parser = JsonStreamParser();
+  EXPECT_THAT(
+      parser.AddChunk("{,,}"),
+      StatusIs(absl::StatusCode::kInvalidArgument, "unexpected ',' at pos 1"));
+
+  parser = JsonStreamParser(JsonStreamParser::SeparatorPolicy::REMOVE);
+  EXPECT_THAT(parser.AddChunk("[1 2]"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "expected ',', ']', or '}' at pos 2, got '2'"));
 }
 
 TEST(JsonStreamParserTest, AllowSingleQuotes) {
