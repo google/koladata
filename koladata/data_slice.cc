@@ -256,10 +256,20 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
     return absl::InternalError("attributes must be non-empty");
   }
   DataSlice::AttrNamesSet result;
+  absl::Status status = absl::OkStatus();
   attrs.values<arolla::Text>().ForEachPresent(
       [&](int64_t id, absl::string_view attr) {
-        result.insert(std::string(attr));
+        absl::StatusOr<internal::DataItem> attr_schema_or =
+            db_impl.GetSchemaAttrAllowMissing(schema_item, attr, fallbacks);
+        if (!attr_schema_or.ok()) {
+          status = attr_schema_or.status();
+          return;
+        }
+        if (attr_schema_or->has_value()) {
+          result.insert(std::string(attr));
+        }
       });
+  RETURN_IF_ERROR(std::move(status));
   result.erase(schema::kSchemaNameAttr);
   result.erase(schema::kSchemaMetadataAttr);
   result.erase(schema::kListItemsSchemaAttr);

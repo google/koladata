@@ -1556,6 +1556,13 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     ):
       del obj.a
 
+  def test_repr_with_removed(self):
+    o = bag().obj(x=1, y=2)
+    o.z = 3
+    self.assertEqual(str(o), 'Obj(x=1, y=2, z=3)')
+    del o.z
+    self.assertEqual(str(o), 'Obj(x=1, y=2)')
+
   def test_set_get_attr_object_wrong_schema_attr(self):
     obj = bag().obj(a=1)
     obj.set_attr('__schema__', schema_constants.INT32)

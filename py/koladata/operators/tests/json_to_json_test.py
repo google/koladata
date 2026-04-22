@@ -397,7 +397,7 @@ class JsonToJsonTest(parameterized.TestCase):
     x = fns.new(a=1, b=2).fork_bag()
     del x.get_schema().b
     result = kd.json.to_json(x)
-    testing.assert_equal(result, ds('{"a": 1, "b": null}'))
+    testing.assert_equal(result, ds('{"a": 1}'))
     testing.assert_equal(
         kd.json.to_json(x, include_missing_values=False), ds('{"a": 1}')
     )
@@ -405,7 +405,7 @@ class JsonToJsonTest(parameterized.TestCase):
   def test_eval_deleted_object_attr(self):
     x = fns.obj(a=1, b=2).fork_bag()
     del x.b
-    testing.assert_equal(kd.json.to_json(x), ds('{"a": 1, "b": null}'))
+    testing.assert_equal(kd.json.to_json(x), ds('{"a": 1}'))
     testing.assert_equal(
         kd.json.to_json(x, include_missing_values=False), ds('{"a": 1}')
     )
@@ -414,7 +414,7 @@ class JsonToJsonTest(parameterized.TestCase):
     x = fns.obj(a=1, b=2).fork_bag()
     del x.get_obj_schema().b
     result = kd.json.to_json(x)
-    testing.assert_equal(result, ds('{"a": 1, "b": null}'))
+    testing.assert_equal(result, ds('{"a": 1}'))
     testing.assert_equal(
         kd.json.to_json(x, include_missing_values=False), ds('{"a": 1}')
     )
