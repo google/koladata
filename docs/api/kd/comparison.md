@@ -28,10 +28,13 @@ Aliases:
 
 - [kd.full_equal](../kd.md#kd.full_equal)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff all present items in `x` and `y` are equal.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `kd.present` iff all items in `x` and `y` are equal.
 
-The result is a zero-dimensional DataItem. Note that it is different from
-`kd.all(x == y)`.
+The result is a scalar mask. In case of incompatible schemas / dimensions,
+the result is `kd.missing`.
+
+Note that the behavior is different from `kd.all(x == y)`, which will return
+`kd.missing` if `x` or `y` contain any missing values.
 
 For example,
   kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, 3])) -&gt; kd.present

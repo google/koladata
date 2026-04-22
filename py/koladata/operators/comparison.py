@@ -52,7 +52,7 @@ def equal(x, y):  # pylint: disable=unused-argument
 @_optools.add_to_registry(
     aliases=['kd.full_equal'], via_cc_operator_package=True
 )
-@_optools.as_lambda_operator(
+@_optools.as_backend_operator(
     'kd.comparison.full_equal',
     qtype_constraints=[
         _qtype_utils.expect_data_slice(_P.x),
@@ -60,10 +60,13 @@ def equal(x, y):  # pylint: disable=unused-argument
     ],
 )
 def full_equal(x, y):  # pylint: disable=unused-argument
-  """Returns present iff all present items in `x` and `y` are equal.
+  """Returns `kd.present` iff all items in `x` and `y` are equal.
 
-  The result is a zero-dimensional DataItem. Note that it is different from
-  `kd.all(x == y)`.
+  The result is a scalar mask. In case of incompatible schemas / dimensions,
+  the result is `kd.missing`.
+
+  Note that the behavior is different from `kd.all(x == y)`, which will return
+  `kd.missing` if `x` or `y` contain any missing values.
 
   For example,
     kd.full_equal(kd.slice([1, 2, 3]), kd.slice([1, 2, 3])) -> kd.present
@@ -74,7 +77,7 @@ def full_equal(x, y):  # pylint: disable=unused-argument
     x: DataSlice.
     y: DataSlice.
   """
-  return _masking.all_((x == y) | (_masking.has_not(x) & _masking.has_not(y)))
+  raise NotImplementedError('implemented in the backend')
 
 
 @_optools.add_to_registry(

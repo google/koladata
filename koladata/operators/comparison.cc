@@ -21,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/core/logic_operators.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
@@ -33,9 +34,12 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/operators/binary_op.h"
+#include "koladata/operators/masking.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
+#include "koladata/shape_utils.h"
 
 namespace koladata::ops {
 
@@ -101,6 +105,27 @@ absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
   return DataSliceOp<internal::EqualOp>()(
       x, y, internal::DataItem(schema::kMask), nullptr);
+}
+
+absl::StatusOr<DataSlice> FullEqual(const DataSlice& x, const DataSlice& y) {
+  // Early return `missing` for incompatible input schemas or shapes.
+  if (!schema::CommonSchema(x.GetSchemaImpl(), y.GetSchemaImpl()).ok() ||
+      !shape::GetCommonShape({x, y}).ok()) {
+    return DataSlice::Create(internal::DataItem(),
+                             internal::DataItem(schema::kMask));
+  }
+
+  ASSIGN_OR_RETURN(auto eq, Equal(x, y));
+
+  arolla::EvaluationContext ctx;
+  ASSIGN_OR_RETURN(auto has_x, Has(x));
+  ASSIGN_OR_RETURN(auto not_x, HasNot(&ctx, has_x));
+  ASSIGN_OR_RETURN(auto has_y, Has(y));
+  ASSIGN_OR_RETURN(auto not_y, HasNot(&ctx, has_y));
+  ASSIGN_OR_RETURN(auto both_missing, ApplyMask(not_x, not_y));
+  ASSIGN_OR_RETURN(auto eq_or_both_missing, Coalesce(eq, both_missing));
+
+  return AggAll(eq_or_both_missing.Flatten());
 }
 
 }  // namespace koladata::ops

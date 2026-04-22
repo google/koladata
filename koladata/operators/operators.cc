@@ -91,6 +91,7 @@ OPERATOR("kd.bitwise.count", BitwiseCount);
 OPERATOR("kd.bitwise.invert", BitwiseInvert);
 //
 OPERATOR("kd.comparison.equal", Equal);
+OPERATOR("kd.comparison.full_equal", FullEqual);
 OPERATOR("kd.comparison.greater", Greater);
 OPERATOR("kd.comparison.greater_equal", GreaterEqual);
 OPERATOR("kd.comparison.less", Less);
