@@ -31,6 +31,7 @@
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
@@ -707,6 +708,7 @@ PyObject* PyDataSlice_str_with_options(PyObject* self,
   } else {
     self_ds.VisitImpl(
         [&](const auto& impl) { return absl::StrAppend(&result, impl); });
+    absl::StrAppend(&result, "[", item_str.status().ToString(), "]");
   }
 
   return PyUnicode_FromStringAndSize(result.c_str(), result.size());

@@ -78,6 +78,10 @@ struct FormatOptions {
   int max_width = 90;
 };
 
+std::string ValueOrError(absl::StatusOr<std::string> v) {
+  return v.ok() ? *std::move(v) : v.status().ToString();
+}
+
 // Escape the standard reserved HTML characters. Unfortunately it doesn't seem
 // like there is a standard version of this in absl.
 std::string EscapeHtml(std::string value) {
@@ -307,11 +311,8 @@ std::string DataSliceItemRepr(
     ReprOption next_option = option;
     // Show quotes on Text for non item slice.
     next_option.strip_quotes = false;
-    if (auto content = DataItemToStr(item, schema, bag, next_option, wrapping,
-                                     visited_object_ids);
-        content.ok()) {
-      return *std::move(content);
-    }
+    return ValueOrError(DataItemToStr(item, schema, bag, next_option, wrapping,
+                                      visited_object_ids));
   }
   if (item.holds_value<ObjectId>()) {
     const ObjectId& obj = item.value<ObjectId>();
@@ -910,8 +911,11 @@ absl::StatusOr<std::string> DataItemToStr(
       ASSIGN_OR_RETURN(
           auto data_slice,
           DataSlice::Create(data_item, schema, db));
-      ASSIGN_OR_RETURN(bool is_functor, functor::IsFunctor(data_slice));
-      if (is_functor) {
+      absl::StatusOr<bool> is_functor = functor::IsFunctor(data_slice);
+      // Note: `is_functor` can fail if schema in db is invalid. Here we ignore
+      // the error because `AttrsToStrParts` (see below) will catch it as well,
+      // but with a more understandable error message.
+      if (is_functor.ok() && *is_functor) {
         return FunctorItemToStr(data_slice, next_option, wrapping,
                                 visited_object_ids);
       }
@@ -966,13 +970,13 @@ absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
 }
 
 // Returns the string representation of the attribute names of the DataSlice.
-// Returns empty string if failed to get the attribute names.
-std::string AttrNamesOrEmpty(const DataSlice& ds) {
-  if (auto attr_names = ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion);
-      attr_names.ok()) {
-    return absl::StrCat("[", absl::StrJoin(*attr_names, ", "), "]");
+// Returns an error message if failed to get the attribute names.
+std::string AttrNamesOrError(const DataSlice& ds) {
+  auto attr_names = ds.GetAttrNames(DataSlice::OnAttrNamesMismatch::kUnion);
+  if (!attr_names.ok()) {
+    return absl::StrCat("[", attr_names.status().ToString(), "]");
   }
-  return "";
+  return absl::StrCat("[", absl::StrJoin(*attr_names, ", "), "]");
 }
 
 std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
@@ -990,12 +994,9 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   // If the data slice is too large, we will not print the
   // whole data slice.
   if (only_print_attr_names) {
-    absl::StrAppend(&result, "attrs: ", AttrNamesOrEmpty(ds));
-  } else if (auto content = DataSliceToStr(ds, option); content.ok()) {
-    absl::StrAppend(&result, *content);
+    absl::StrAppend(&result, "attrs: ", AttrNamesOrError(ds));
   } else {
-    ds.VisitImpl(
-        [&](const auto& impl) { return absl::StrAppend(&result, impl); });
+    absl::StrAppend(&result, ValueOrError(DataSliceToStr(ds, option)));
   }
   if (option.show_schema) {
     ReprOption schema_option = option;
@@ -1003,12 +1004,8 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
       schema_option.depth = 1;
     }
     absl::StrAppend(&result, ", schema: ");
-    if (auto schema = DataSliceToStr(ds.GetSchema(), schema_option);
-        schema.ok()) {
-      absl::StrAppend(&result, *schema);
-    } else {
-      absl::StrAppend(&result, ds.GetSchemaImpl());
-    }
+    auto schema = ValueOrError(DataSliceToStr(ds.GetSchema(), schema_option));
+    absl::StrAppend(&result, schema);
   }
   if (option.show_present_count && !ds.is_item()) {
     absl::StrAppend(&result, ", present: ", ds.present_count(), "/", ds.size());
@@ -1030,14 +1027,7 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
 }
 
 std::string SchemaToStr(const DataSlice& schema_slice) {
-  DCHECK(schema_slice.is_item());
-  absl::StatusOr<std::string> schema_str = DataSliceToStr(schema_slice);
-  // NOTE: schema_str might be always ok(). I don't know a breaking
-  // scenario, so adding the "if" just in case.
-  if (!schema_str.ok()) {
-    schema_str = absl::StrCat(schema_slice.item());
-  }
-  return *std::move(schema_str);
+  return ValueOrError(DataSliceToStr(schema_slice));
 }
 
 }  // namespace koladata
