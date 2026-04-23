@@ -264,6 +264,19 @@ duck_list = _same_when_tracing(_type_checking.duck_list)
 duck_dict = _same_when_tracing(_type_checking.duck_dict)
 static_when_tracing = _same_when_tracing(_type_checking.static_when_tracing)
 
+# Type checking utilities.
+type_checking = _same_when_tracing(
+    _py_types.SimpleNamespace(
+        check_inputs=_type_checking.check_inputs,
+        check_output=_type_checking.check_output,
+        duck_type=_type_checking.duck_type,
+        duck_list=_type_checking.duck_list,
+        duck_dict=_type_checking.duck_dict,
+        static_when_tracing=_type_checking.static_when_tracing,
+        functor=_type_checking.functor,
+    )
+)
+
 expr = _eager_only(_py_types.SimpleNamespace())
 expr.literal = _literal_operator.literal
 expr.get_name = _introspection.get_name

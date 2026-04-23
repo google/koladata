@@ -46,6 +46,7 @@ Category  | Subcategory | Description
  | [strings](api/kd/strings.md) | Operators that work with strings data.
  | [testing](api/kd/testing.md) | A front-end module for kd.testing.*.
  | [tuples](api/kd/tuples.md) | Operators to create tuples.
+ | [type_checking](api/kd/type_checking.md) | Utilities to annotatate functions with type checking.
  | [types](api/kd/types.md) | Types used as type annotations in users&#39;s code.
 [kd_ext](api/kd_ext.md) | | `kd_ext` operators
  | [contrib](api/kd_ext/contrib.md) | External contributions not necessarily endorsed by Koda.

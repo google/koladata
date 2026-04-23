@@ -396,6 +396,30 @@ class KdTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       _ = fn(kd.dict({'a': '1', 'b': '2'}))
 
+  def test_type_checking_functor(self):
+    @kd.check_inputs(x=kd.type_checking.functor())
+    def f(x):
+      return x
+
+    _ = f(lambda x: x + 1)  # Assert does not raise.
+
+    with self.assertRaises(TypeError):
+      _ = f(kd.slice([1, 2]))
+
+  def test_type_checking_functor_is_traceable(self):
+    def f(x):
+      @kd.check_inputs(x=kd.type_checking.functor())
+      def g(x):
+        return x
+
+      return g(x)
+
+    fn = kd.fn(f)
+    _ = fn(lambda x: x + 1)  # Assert does not raise.
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.slice([1, 2]))
+
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x
     kd.testing.assert_equal(kd.expr.sub_inputs(expr, x=I.w), I.w + I.y + V.x)
