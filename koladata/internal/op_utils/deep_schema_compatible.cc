@@ -178,7 +178,6 @@ absl::StatusOr<std::pair<bool, DataItem>> DeepSchemaCompatibleOp::operator()(
 absl::StatusOr<std::vector<DeepDiff::DiffItem>>
 DeepSchemaCompatibleOp::GetDiffPaths(const DataItem& item,
                                      size_t max_count) const {
-  auto traverse_helper = TraverseHelper(*new_databag_, {});
   std::vector<DeepDiff::DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
