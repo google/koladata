@@ -36,7 +36,7 @@ TEST(StreamQTypeTest, Basics) {
   EXPECT_EQ(qtype->name(), "STREAM[QTYPE]");
   EXPECT_EQ(qtype->type_info(), typeid(StreamPtr));
   EXPECT_EQ(qtype->type_layout().AllocSize(), sizeof(StreamPtr));
-  EXPECT_EQ(qtype->type_layout().AllocAlignment().value, alignof(StreamPtr));
+  EXPECT_EQ(qtype->type_layout().AllocAlignment(), alignof(StreamPtr));
   EXPECT_TRUE(qtype->type_fields().empty());
   EXPECT_EQ(qtype->value_qtype(), arolla::GetQTypeQType());
   EXPECT_EQ(qtype->qtype_specialization_key(),

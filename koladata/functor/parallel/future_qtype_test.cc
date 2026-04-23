@@ -42,7 +42,7 @@ TEST(FutureQTypeTest, Basics) {
   EXPECT_EQ(qtype->name(), "FUTURE[QTYPE]");
   EXPECT_EQ(qtype->type_info(), typeid(FuturePtr));
   EXPECT_EQ(qtype->type_layout().AllocSize(), sizeof(FuturePtr));
-  EXPECT_EQ(qtype->type_layout().AllocAlignment().value, alignof(FuturePtr));
+  EXPECT_EQ(qtype->type_layout().AllocAlignment(), alignof(FuturePtr));
   EXPECT_TRUE(qtype->type_fields().empty());
   EXPECT_EQ(qtype->value_qtype(), arolla::GetQTypeQType());
   EXPECT_EQ(qtype->qtype_specialization_key(), "");
