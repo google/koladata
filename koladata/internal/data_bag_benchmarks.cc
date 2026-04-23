@@ -918,36 +918,104 @@ BENCHMARK(BM_MergeCornerCase<MergeOptions::kRaiseOnConflict>)->Arg(1000);
 BENCHMARK(BM_MergeCornerCase<MergeOptions::kOverwrite>)->Arg(1000);
 BENCHMARK(BM_MergeCornerCase<MergeOptions::kKeepOriginal>)->Arg(1000);
 
-void BM_OverwritingMergeUpdateChain(benchmark::State& state) {
-  int64_t alloc_size = state.range(0);
+void BM_OverwritingMergeUpdateChain_SmallAllocs(benchmark::State& state) {
+  int64_t alloc_size = 1;
   auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
 
   for (auto _ : state) {
     auto db = DataBagImpl::CreateEmptyDatabag();
-    benchmark::DoNotOptimize(db);
     for (int i = 0; i < 1000; ++i) {
       auto old_db = db->PartiallyPersistentFork();
       db = db->PartiallyPersistentFork();
       std::string attr = absl::StrCat("x", i);
       CHECK_OK(db->SetAttr(objs, attr, objs));
+      auto update = old_db->CreateOverwritingMergeUpdate(*db);
+      benchmark::DoNotOptimize(update);
+    }
+  }
+}
+BENCHMARK(BM_OverwritingMergeUpdateChain_SmallAllocs);
 
-      auto new_dicts = DataSliceImpl::ObjectsFromAllocation(
-          AllocateDicts(alloc_size), alloc_size);
+void BM_OverwritingMergeUpdateChain_BigAllocs(benchmark::State& state) {
+  int64_t alloc_size = 20;
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 1000; ++i) {
+      auto old_db = db->PartiallyPersistentFork();
+      db = db->PartiallyPersistentFork();
+      std::string attr = absl::StrCat("x", i);
+      CHECK_OK(db->SetAttr(objs, attr, objs));
+      auto update = old_db->CreateOverwritingMergeUpdate(*db);
+      benchmark::DoNotOptimize(update);
+    }
+  }
+}
+BENCHMARK(BM_OverwritingMergeUpdateChain_BigAllocs);
+
+void BM_OverwritingMergeUpdateChain_Lists(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 1000; ++i) {
+      auto old_db = db->PartiallyPersistentFork();
+      db = db->PartiallyPersistentFork();
       auto new_lists = DataSliceImpl::ObjectsFromAllocation(
           AllocateLists(alloc_size), alloc_size);
-
-      CHECK_OK(db->SetInDict(
-          new_dicts,
-          DataSliceImpl::Create(alloc_size, DataItem(std::move(attr))), objs));
       CHECK_OK(db->AppendToList(new_lists, objs));
       auto update = old_db->CreateOverwritingMergeUpdate(*db);
       benchmark::DoNotOptimize(update);
     }
-    benchmark::DoNotOptimize(db);
   }
 }
+BENCHMARK(BM_OverwritingMergeUpdateChain_Lists)->Arg(1)->Arg(20);
 
-BENCHMARK(BM_OverwritingMergeUpdateChain)->Arg(1)->Arg(20);
+void BM_OverwritingMergeUpdateChain_NewDicts(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 1000; ++i) {
+      auto old_db = db->PartiallyPersistentFork();
+      db = db->PartiallyPersistentFork();
+      auto new_dicts = DataSliceImpl::ObjectsFromAllocation(
+          AllocateDicts(alloc_size), alloc_size);
+      std::string attr = absl::StrCat("x", i);
+      auto dict_keys =
+          DataSliceImpl::Create(alloc_size, DataItem(std::move(attr)));
+      CHECK_OK(db->SetInDict(new_dicts, dict_keys, objs));
+      auto update = old_db->CreateOverwritingMergeUpdate(*db);
+      benchmark::DoNotOptimize(update);
+    }
+  }
+}
+BENCHMARK(BM_OverwritingMergeUpdateChain_NewDicts)->Arg(1)->Arg(20);
+
+void BM_OverwritingMergeUpdateChain_DictsUpdatingKeys(benchmark::State& state) {
+  int64_t alloc_size = state.range(0);
+  auto objs = DataSliceImpl::AllocateEmptyObjects(alloc_size);
+  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(alloc_size),
+                                                    alloc_size);
+
+  for (auto _ : state) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    for (int i = 0; i < 100; ++i) {
+      auto old_db = db->PartiallyPersistentFork();
+      db = db->PartiallyPersistentFork();
+      std::string attr = absl::StrCat("x", i);
+      auto dict_keys =
+          DataSliceImpl::Create(alloc_size, DataItem(std::move(attr)));
+      CHECK_OK(db->SetInDict(dicts, dict_keys, objs));
+      auto update = old_db->CreateOverwritingMergeUpdate(*db);
+      benchmark::DoNotOptimize(update);
+    }
+  }
+}
+BENCHMARK(BM_OverwritingMergeUpdateChain_DictsUpdatingKeys)->Arg(1)->Arg(20);
 
 template <typename OverwriteOrSet>
 void BM_SetSchemaFields(benchmark::State& state) {
