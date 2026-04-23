@@ -870,7 +870,9 @@ class DataBagImpl : public arolla::RefcountedBase {
           callback) const;
   absl::Status IterateOverDictsWithNewData(
       const DataBagImpl& other,
-      absl::FunctionRef<absl::Status(AllocationId, const DictVector&)>
+      absl::FunctionRef<absl::Status(AllocationId,
+                                     const DictVector*,
+                                     const DictVector&)>
           callback) const;
 
   // *** Inplace merging helpers.

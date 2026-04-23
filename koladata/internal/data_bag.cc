@@ -3451,8 +3451,9 @@ absl::Status DataBagImpl::AddListsOverwritingUpdate(const DataBagImpl& other,
 
 absl::Status DataBagImpl::IterateOverDictsWithNewData(
     const DataBagImpl& other,
-    absl::FunctionRef<absl::Status(AllocationId, const DictVector&)> callback)
-    const {
+    absl::FunctionRef<absl::Status(AllocationId, const DictVector*,
+                                   const DictVector&)>
+        callback) const {
   absl::flat_hash_set<AllocationId> used_keys;
   const DataBagImpl* this_non_pristine = GetNonPristineBag();
   for (const DataBagImpl* other_db = &other;
@@ -3467,7 +3468,10 @@ absl::Status DataBagImpl::IterateOverDictsWithNewData(
           const_this_dicts->get() == other_dicts.get()) {
         continue;
       }
-      RETURN_IF_ERROR(callback(alloc_id, *other_dicts));
+      RETURN_IF_ERROR(callback(
+          alloc_id,
+          const_this_dicts == nullptr ? nullptr : const_this_dicts->get(),
+          *other_dicts));
     }
   }
   return absl::OkStatus();
@@ -3478,6 +3482,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
   return IterateOverDictsWithNewData(
       other,
       [this, options](AllocationId alloc_id,
+                      const DictVector* const_this_dicts,
                       const DictVector& other_dicts) -> absl::Status {
         const auto& conflict_policy = alloc_id.IsExplicitSchemasAlloc()
                                           ? options.schema_conflict_policy
@@ -3486,7 +3491,10 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
         for (size_t i = 0; i < other_dicts.size(); ++i) {
           const auto& other_dict = other_dicts[i];
           auto& this_dict = this_dicts[i];
-          for (const DataItem& key : other_dict.GetKeys()) {
+          auto* original_this_dict =
+              const_this_dicts == nullptr ? nullptr : &(*const_this_dicts)[i];
+          for (const DataItem& key :
+               other_dict.GetModifiedKeys(original_this_dict)) {
             if (conflict_policy == MergeOptions::kOverwrite) {
               this_dict.Set(key, *other_dict.Get(key));
               continue;
@@ -3519,13 +3527,17 @@ absl::Status DataBagImpl::AddDictsOverwritingUpdate(const DataBagImpl& other,
   return IterateOverDictsWithNewData(
       other,
       [&update](AllocationId alloc_id,
+                const DictVector* const_this_dicts,
                 const DictVector& other_dicts) -> absl::Status {
         std::shared_ptr<DictVector>& this_dicts = update.dicts_[alloc_id];
         this_dicts = std::make_shared<DictVector>(other_dicts.size());
         for (size_t i = 0; i < other_dicts.size(); ++i) {
           const auto& other_dict = other_dicts[i];
           auto& this_dict = (*this_dicts)[i];
-          for (const DataItem& key : other_dict.GetKeys()) {
+          auto* original_this_dict =
+              const_this_dicts == nullptr ? nullptr : &(*const_this_dicts)[i];
+          for (const DataItem& key :
+               other_dict.GetModifiedKeys(original_this_dict)) {
             this_dict.Set(key, *other_dict.Get(key));
           }
         }

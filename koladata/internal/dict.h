@@ -136,6 +136,12 @@ class Dict {
   std::vector<DataItem> GetSortedKeys(
       absl::Span<const Dict* const> fallbacks = {}) const;
 
+  // Returns the keys in this dict that are different from the parent dict.
+  // Note: keys may be considered different even if values are identical.
+  // If parent is nullptr or not present in the list of parents, behavior is
+  // identical to GetKeys().
+  std::vector<DataItem> GetModifiedKeys(const Dict* parent) const;
+
   // While the order of values is arbitrary, it is the same as GetKeys().
   // All values from fallback dictionaries are merged into the result.
   std::vector<DataItem> GetValues(
@@ -161,6 +167,7 @@ class Dict {
 
  private:
   friend class DictVector;
+  class KeyValueCollector;
   using InternalMap =
       absl::flat_hash_map<DataItem, DataItem, DataItem::Hash, DataItem::Eq>;
 
@@ -171,17 +178,6 @@ class Dict {
     }
     return dict;
   }
-
-  // Add extra keys from parents and fallbacks.
-  // Keys from the main dict are not added.
-  // void CollectKeysFromParentAndFallbacks(
-  //     absl::Span<const Dict* const> fallbacks,
-  //     std::vector<DataItem>& keys) const;
-  // Add keys or values from this dict, its parents and fallbacks.
-  template <bool kReturnValues>
-  void CollectKeysOrValuesFromParentAndFallbacks(
-      absl::Span<const Dict* const> fallbacks,
-      std::vector<DataItem>& keys_or_values) const;
 
   // If parent is nullptr we do not store missing values.
   InternalMap data_;
@@ -223,9 +219,7 @@ class DictVector {
     parent_ = std::move(parent_dict);
   }
 
-  size_t size() const {
-    return data_.size();
-  }
+  size_t size() const { return data_.size(); }
 
   Dict& operator[](int64_t index) { return data_[index]; }
   const Dict& operator[](int64_t index) const { return data_[index]; }

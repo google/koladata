@@ -396,5 +396,68 @@ TEST(DictTest, GetSortedKeyValues) {
   EXPECT_THAT(dict.GetSortedByKeyValues(), ElementsAre(5, 3, 4));
 }
 
+TEST(DictTest, GetKeysWithUpdatesFromParent) {
+  {
+    SCOPED_TRACE("parent is the same dict");
+    Dict dict;
+    dict.Set(DataItem(1), DataItem(10));
+    EXPECT_THAT(dict.GetModifiedKeys(&dict),
+                UnorderedElementsAre());
+  }
+
+  {
+    SCOPED_TRACE("parent is direct parent");
+    std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+    auto& parent_dict = (*dicts)[0];
+    parent_dict.Set(DataItem(1), DataItem(10));
+    parent_dict.Set(DataItem(2), DataItem(20));
+
+    DictVector derived_dicts(dicts);
+    auto& derived_dict = derived_dicts[0];
+    derived_dict.Set(DataItem(2), DataItem(22));  // update
+    derived_dict.Set(DataItem(3), DataItem(30));  // new
+
+    EXPECT_THAT(derived_dict.GetModifiedKeys(&parent_dict),
+                UnorderedElementsAre(DataItem(2), DataItem(3)));
+  }
+
+  {
+    SCOPED_TRACE("parent is completely irrelevant");
+    std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+    auto& parent_dict = (*dicts)[0];
+    parent_dict.Set(DataItem(1), DataItem(10));
+
+    DictVector derived_dicts(dicts);
+    auto& derived_dict = derived_dicts[0];
+    derived_dict.Set(DataItem(2), DataItem(20));
+
+    Dict irrelevant_dict;
+    irrelevant_dict.Set(DataItem(3), DataItem(30));
+
+    EXPECT_THAT(derived_dict.GetModifiedKeys(&irrelevant_dict),
+                UnorderedElementsAre(DataItem(1), DataItem(2)));
+    EXPECT_THAT(derived_dict.GetModifiedKeys(nullptr),
+                UnorderedElementsAre(DataItem(1), DataItem(2)));
+  }
+
+  {
+    SCOPED_TRACE("parent is indirect ancestor of the dict");
+    std::shared_ptr<DictVector> dicts = std::make_shared<DictVector>(1);
+    auto& grand_parent = (*dicts)[0];
+    grand_parent.Set(DataItem(1), DataItem(10));
+
+    std::shared_ptr<DictVector> dicts2 = std::make_shared<DictVector>(dicts);
+    auto& parent_dict = (*dicts2)[0];
+    parent_dict.Set(DataItem(2), DataItem(20));
+
+    DictVector derived_dicts(dicts2);
+    auto& derived_dict = derived_dicts[0];
+    derived_dict.Set(DataItem(3), DataItem(30));
+
+    EXPECT_THAT(derived_dict.GetModifiedKeys(&grand_parent),
+                UnorderedElementsAre(DataItem(2), DataItem(3)));
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal

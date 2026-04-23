@@ -29,39 +29,56 @@
 
 namespace koladata::internal {
 
-template <bool kReturnValues>
-ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysOrValuesFromParentAndFallbacks(
-    absl::Span<const Dict* const> fallbacks,
-    std::vector<DataItem>& keys_or_values) const {
-  const auto* orig_data = &data_;
-  InternalMap empty_data;
-  absl::flat_hash_set<DataItem, DataItem::Hash, DataItem::Eq> used_keys;
-  for (const Dict* dict = parent_; true; dict = dict->parent_) {
-    if (dict == nullptr) {
-      if (fallbacks.empty()) {
-        break;
-      }
-      // transfer keys from original data to used_keys,
-      // so that fallback not adding it.
-      for (const auto& [key, value] : *orig_data) {
-        used_keys.insert(key);
-      }
-      orig_data = &empty_data;
-      // moving to the new dict chain
-      dict = fallbacks.front();
-      fallbacks.remove_prefix(1);
-    }
-    for (const auto& [key, value] : dict->data_) {
-      if (orig_data->find(key) == orig_data->end() &&
-          used_keys.find(key) == used_keys.end()) {
-        keys_or_values.push_back(kReturnValues ? value : key);
-        if (dict->parent_ != nullptr || !fallbacks.empty()) {
+class Dict::KeyValueCollector {
+  struct DefaultGetParent {
+    const Dict* operator()(const Dict& dict) const { return dict.parent_; }
+  };
+
+ public:
+  // Add extra keys from parents and fallbacks.
+  // Keys from the main dict are not added.
+  // void CollectKeysFromParentAndFallbacks(
+  //     absl::Span<const Dict* const> fallbacks,
+  //     std::vector<DataItem>& keys) const;
+  // Add keys or values from this dict, its parents and fallbacks.
+  // GetParent is a handle to shortcut the traversal of parent pointers for
+  // GetKeysWithUpdatesFromParent.
+  template <bool kReturnValues, typename GetParent = DefaultGetParent>
+  ABSL_ATTRIBUTE_NOINLINE static void CollectKeysOrValuesFromParentAndFallbacks(
+      const Dict& this_dict, absl::Span<const Dict* const> fallbacks,
+      std::vector<DataItem>& keys_or_values,
+      GetParent get_parent = GetParent()) {
+    const auto* orig_data = &this_dict.data_;
+    InternalMap empty_data;
+    absl::flat_hash_set<DataItem, DataItem::Hash, DataItem::Eq> used_keys;
+    for (const Dict* dict = get_parent(this_dict); true;
+         dict = get_parent(*dict)) {
+      if (dict == nullptr) {
+        if (fallbacks.empty()) {
+          break;
+        }
+        // transfer keys from original data to used_keys,
+        // so that fallback not adding it.
+        for (const auto& [key, value] : *orig_data) {
           used_keys.insert(key);
+        }
+        orig_data = &empty_data;
+        // moving to the new dict chain
+        dict = fallbacks.front();
+        fallbacks.remove_prefix(1);
+      }
+      for (const auto& [key, value] : dict->data_) {
+        if (orig_data->find(key) == orig_data->end() &&
+            used_keys.find(key) == used_keys.end()) {
+          keys_or_values.push_back(kReturnValues ? value : key);
+          if (get_parent(*dict) != nullptr || !fallbacks.empty()) {
+            used_keys.insert(key);
+          }
         }
       }
     }
   }
-}
+};
 
 std::vector<DataItem> Dict::GetKeys(
     absl::Span<const Dict* const> fallbacks) const {
@@ -78,8 +95,8 @@ std::vector<DataItem> Dict::GetKeys(
     keys.push_back(key);
   }
   if (dict->parent_ != nullptr || !fallbacks.empty()) {
-    dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/false>(
-        fallbacks, keys);
+    KeyValueCollector::CollectKeysOrValuesFromParentAndFallbacks<
+        /*kReturnValues=*/false>(*dict, fallbacks, keys);
   }
   return keys;
 };
@@ -90,6 +107,32 @@ std::vector<DataItem> Dict::GetSortedKeys(
   std::sort(keys.begin(), keys.end(), DataItem::Less{});
   return keys;
 }
+
+std::vector<DataItem> Dict::GetModifiedKeys(
+  const Dict* parent) const {
+  auto* this_dict = FindFirstNonEmpty();
+  if (this_dict == nullptr) {
+    return {};
+  }
+  parent = parent == nullptr ? nullptr : parent->FindFirstNonEmpty();
+  if (this_dict == parent) {
+    return {};
+  }
+  std::vector<DataItem> keys;
+  keys.reserve(this_dict->data_.size());
+  for (const auto& [key, value] : this_dict->data_) {
+    keys.push_back(key);
+  }
+  if (this_dict->parent_ != parent) {
+    KeyValueCollector::CollectKeysOrValuesFromParentAndFallbacks<
+        /*kReturnValues=*/false>(
+        *this_dict, /*fallbacks=*/{}, keys, [parent](const Dict& dict) {
+          // We do not go further once we reach parent_dict.
+          return dict.parent_ == parent ? nullptr : dict.parent_;
+        });
+  }
+  return keys;
+};
 
 std::vector<DataItem> Dict::GetValues(
     absl::Span<const Dict* const> fallbacks) const {
@@ -106,8 +149,8 @@ std::vector<DataItem> Dict::GetValues(
     values.push_back(value);
   }
   if (dict->parent_ != nullptr || !fallbacks.empty()) {
-    dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/true>(
-        fallbacks, values);
+    KeyValueCollector::CollectKeysOrValuesFromParentAndFallbacks<
+        /*kReturnValues=*/true>(*dict, fallbacks, values);
   }
   return values;
 };
