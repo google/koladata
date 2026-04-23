@@ -928,7 +928,18 @@ void BM_OverwritingMergeUpdateChain(benchmark::State& state) {
     for (int i = 0; i < 1000; ++i) {
       auto old_db = db->PartiallyPersistentFork();
       db = db->PartiallyPersistentFork();
-      CHECK_OK(db->SetAttr(objs, absl::StrCat("x", i), objs));
+      std::string attr = absl::StrCat("x", i);
+      CHECK_OK(db->SetAttr(objs, attr, objs));
+
+      auto new_dicts = DataSliceImpl::ObjectsFromAllocation(
+          AllocateDicts(alloc_size), alloc_size);
+      auto new_lists = DataSliceImpl::ObjectsFromAllocation(
+          AllocateLists(alloc_size), alloc_size);
+
+      CHECK_OK(db->SetInDict(
+          new_dicts,
+          DataSliceImpl::Create(alloc_size, DataItem(std::move(attr))), objs));
+      CHECK_OK(db->AppendToList(new_lists, objs));
       auto update = old_db->CreateOverwritingMergeUpdate(*db);
       benchmark::DoNotOptimize(update);
     }
