@@ -3366,7 +3366,9 @@ absl::Status DataBagImpl::IterateOverListsWithNewData(
     absl::FunctionRef<absl::Status(AllocationId, const DataListVector&)>
         callback) const {
   absl::flat_hash_set<AllocationId> used_keys;
-  for (const DataBagImpl* other_db = &other; other_db != nullptr;
+  const DataBagImpl* this_non_pristine = GetNonPristineBag();
+  for (const DataBagImpl* other_db = &other;
+       other_db != nullptr && other_db != this_non_pristine;
        other_db = other_db->parent_data_bag_.get()) {
     for (const auto& [alloc_id, other_lists] : other_db->lists_) {
       if (!used_keys.insert(alloc_id).second) {
@@ -3452,7 +3454,9 @@ absl::Status DataBagImpl::IterateOverDictsWithNewData(
     absl::FunctionRef<absl::Status(AllocationId, const DictVector&)> callback)
     const {
   absl::flat_hash_set<AllocationId> used_keys;
-  for (const DataBagImpl* other_db = &other; other_db != nullptr;
+  const DataBagImpl* this_non_pristine = GetNonPristineBag();
+  for (const DataBagImpl* other_db = &other;
+       other_db != nullptr && other_db != this_non_pristine;
        other_db = other_db->parent_data_bag_.get()) {
     for (const auto& [alloc_id, other_dicts] : other_db->dicts_) {
       if (!used_keys.insert(alloc_id).second) {
