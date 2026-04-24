@@ -1376,10 +1376,14 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
       x.GetShape(), internal::DataItem(schema::kString));
 }
 
-absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter) {
+absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter,
+                                     DataSlice ignore_errors) {
   RETURN_IF_ERROR(ExpectString("x", x));
   RETURN_IF_ERROR(ExpectPresentScalar("filter", filter, schema::kString));
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("ignore_errors", ignore_errors, schema::kBool));
   absl::string_view filter_str = filter.item().value<arolla::Text>().view();
+  bool ignore_err = ignore_errors.item().value<bool>();
 
   std::vector<int64_t> split_points;
   split_points.reserve(x.size() + 1);
@@ -1406,7 +1410,10 @@ absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter) {
 
   if (x.is_item()) {
     if (x.item().holds_value<arolla::Text>()) {
-      RETURN_IF_ERROR(process_json(x.item().value<arolla::Text>()));
+      absl::Status st = process_json(x.item().value<arolla::Text>());
+      if (!ignore_err) {
+        RETURN_IF_ERROR(std::move(st));
+      }
     }
     split_points.push_back(results.size());
   } else if (x.slice().is_empty_and_unknown()) {
@@ -1417,13 +1424,15 @@ absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter) {
     absl::Status st = absl::OkStatus();
     x.slice().values<arolla::Text>().ForEach(
         [&](int64_t i, bool present, absl::string_view v) {
-          if (!st.ok()) {
+          if (!ignore_err && !st.ok()) {
             return;
           }
           st = process_json(v);
           split_points.push_back(results.size());
         });
-    RETURN_IF_ERROR(std::move(st));
+    if (!ignore_err) {
+      RETURN_IF_ERROR(std::move(st));
+    }
   }
 
   arolla::DenseArrayBuilder<arolla::Text> results_builder(results.size());

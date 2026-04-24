@@ -494,18 +494,22 @@ TEST(JsonInternalTest, AttrsOrder) {
 
 
 TEST(JsonInternalTest, FilterJson) {
+  auto false_item = test::DataItem(false);
+  auto true_item = test::DataItem(true);
   {
     // Scalar input
-    ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                         FilterJson(test::DataItem("{\"a\": 1, \"b\": 2}"),
-                                    test::DataItem("$.a")));
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataItem("{\"a\": 1, \"b\": 2}"),
+                   test::DataItem("$.a"), /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("['1']"));
   }
   {
     // Multiple matches
-    ASSERT_OK_AND_ASSIGN(DataSlice ds,
-                         FilterJson(test::DataItem("{\"a\": [1, 2], \"b\": 3}"),
-                                    test::DataItem("$.a[*]")));
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice ds,
+        FilterJson(test::DataItem("{\"a\": [1, 2], \"b\": 3}"),
+                   test::DataItem("$.a[*]"), /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("['1', '2']"));
   }
   {
@@ -513,7 +517,7 @@ TEST(JsonInternalTest, FilterJson) {
     ASSERT_OK_AND_ASSIGN(
         DataSlice ds,
         FilterJson(test::DataSlice<arolla::Text>({"{\"a\": 1}", "{\"a\": 2}"}),
-                   test::DataItem("$.a")));
+                   test::DataItem("$.a"), /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[['1'], ['2']]"));
   }
   {
@@ -523,7 +527,7 @@ TEST(JsonInternalTest, FilterJson) {
         DataSlice ds,
         FilterJson(test::DataSlice<arolla::Text>(
                        {"{\"a\": 1}", "{\"a\": 2}", "{\"a\": 3}"}, shape),
-                   test::DataItem("$.a")));
+                   test::DataItem("$.a"), /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[[['1']], [['2'], ['3']]]"));
   }
   {
@@ -531,26 +535,36 @@ TEST(JsonInternalTest, FilterJson) {
     ASSERT_OK_AND_ASSIGN(
         DataSlice ds,
         FilterJson(test::DataSlice<arolla::Text>({"{\"a\": 1}", std::nullopt}),
-                   test::DataItem("$.a")));
+                   test::DataItem("$.a"), /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[['1'], []]"));
   }
   {
     // No matches
     ASSERT_OK_AND_ASSIGN(
         DataSlice ds,
-        FilterJson(test::DataItem("{\"a\": 1}"), test::DataItem("$.b")));
+        FilterJson(test::DataItem("{\"a\": 1}"), test::DataItem("$.b"),
+                   /*ignore_errors=*/false_item));
     EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[]"));
   }
   {
     // Error: non-string input
-    EXPECT_THAT(FilterJson(test::DataItem(1), test::DataItem("$.a")),
+    EXPECT_THAT(FilterJson(test::DataItem(1), test::DataItem("$.a"),
+                           /*ignore_errors=*/false_item),
                 StatusIs(absl::StatusCode::kInvalidArgument));
   }
   {
     // Error: non-scalar filter
     EXPECT_THAT(FilterJson(test::DataItem("{\"a\": 1}"),
-                           test::DataSlice<arolla::Text>({"$.a"})),
+                           test::DataSlice<arolla::Text>({"$.a"}),
+                           /*ignore_errors=*/false_item),
                 StatusIs(absl::StatusCode::kInvalidArgument));
+  }
+  {
+    // Ignore errors
+    ASSERT_OK_AND_ASSIGN(DataSlice ds, FilterJson(test::DataItem("{\"a\":"),
+                                                  test::DataItem("$.a"),
+                                                  /*ignore_errors=*/true_item));
+    EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("[]"));
   }
 }
 

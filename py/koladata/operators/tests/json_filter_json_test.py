@@ -64,6 +64,27 @@ class JsonFilterJsonTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'must be an item holding STRING'):
       expr_eval.eval(kde.json.filter_json(ds('{"a": 1}'), ds(['$.a'])))
 
+  def test_ignore_errors(self):
+    result = expr_eval.eval(
+        kde.json.filter_json(
+            ds('{"a": [, "b": 2}'), ds('$.a'), ignore_errors=True
+        )
+    )
+    self.assertEqual(result.to_py(), [])
+
+    result = expr_eval.eval(
+        kde.json.filter_json(
+            ds('{"a": [1,2,,3,4,5]}'), ds('$.a[*]'), ignore_errors=True
+        )
+    )
+    self.assertEqual(result.to_py(), ['1', '2'])
+
+    x = ds([['{"a": 1}'], ['{"a": "}', '{"a": 3}']])
+    result = expr_eval.eval(
+        kde.json.filter_json(x, ds('$.a'), ignore_errors=True)
+    )
+    self.assertEqual(result.to_py(), [[['1']], [[], ['3']]])
+
 
 if __name__ == '__main__':
   absltest.main()

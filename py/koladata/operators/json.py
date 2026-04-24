@@ -31,9 +31,10 @@ P = arolla.P
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.field_to_extract),
+        qtype_utils.expect_data_slice(P.ignore_errors),
     ],
 )
-def filter_json(x, field_to_extract):  # pylint: disable=unused-argument
+def filter_json(x, field_to_extract, *, ignore_errors=False):  # pylint: disable=unused-argument
   """Extracts requested field from given JSONs.
 
   It automatically fixes some errors in the input JSON: replaces single quotes
@@ -46,6 +47,8 @@ def filter_json(x, field_to_extract):  # pylint: disable=unused-argument
     field_to_extract: JSONPath string (e.g. "$.docs[*].name"), specifies a field
       to extract from the input JSONs. Only a subset of JSONPath features is
       supported. List indices can be specified only as `[*]`.
+    ignore_errors: Boolean. If True, then errors are ignored -- in case of
+      an error the rest of the invalid JSON is considered to have no matches.
 
   Returns:
     A slice of strings with one dimension more than `x`. Each value is a JSON

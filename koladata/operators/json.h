@@ -30,7 +30,8 @@
 namespace koladata::ops {
 
 // kde.json.filter_json
-absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter);
+absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter,
+                                     DataSlice ignore_errors);
 
 // kde.json.from_json
 absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,

@@ -8,7 +8,7 @@ JSON serialization operators.
 
 
 
-### `kd.json.filter_json(x, field_to_extract)` {#kd.json.filter_json}
+### `kd.json.filter_json(x, field_to_extract, *, ignore_errors=False)` {#kd.json.filter_json}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Extracts requested field from given JSONs.
 
@@ -22,6 +22,8 @@ Args:
   field_to_extract: JSONPath string (e.g. &#34;$.docs[*].name&#34;), specifies a field
     to extract from the input JSONs. Only a subset of JSONPath features is
     supported. List indices can be specified only as `[*]`.
+  ignore_errors: Boolean. If True, then errors are ignored -- in case of
+    an error the rest of the invalid JSON is considered to have no matches.
 
 Returns:
   A slice of strings with one dimension more than `x`. Each value is a JSON
