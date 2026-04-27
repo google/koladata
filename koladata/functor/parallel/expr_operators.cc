@@ -49,9 +49,9 @@ AsyncEvalOp::AsyncEvalOp()
           "This operator is intended for internal use only, since it works"
           " with an operator concept which is not exposed in the public API."
           " We can add a user-facing async_call later if needed.",
-          arolla::FingerprintHasher(
-              "::koladata::functor::parallel::AsyncEvalOp")
-              .Finish()) {}
+          arolla::FingerprintOfString(
+              "::koladata::functor::parallel::AsyncEvalOp"),
+          arolla::expr::ExprOperatorTags::kBackend) {}
 
 absl::StatusOr<arolla::expr::ExprAttributes> AsyncEvalOp::InferAttributes(
     absl::Span<const arolla::expr::ExprAttributes> inputs) const {

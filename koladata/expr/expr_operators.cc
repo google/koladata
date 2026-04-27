@@ -73,8 +73,7 @@ absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
 // an Arolla type T. Supports compile-time evaluation if the provided input is
 // a literal.
 class ToArollaValueOperator final
-    : public arolla::expr::BackendExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
+    : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
   ToArollaValueOperator(absl::string_view name, absl::string_view doc,
                         arolla::QTypePtr output_qtype)
@@ -86,7 +85,8 @@ class ToArollaValueOperator final
             doc,
             arolla::FingerprintHasher("::koladata::expr::ToArollaValueOperator")
                 .Combine(name, doc, output_qtype)
-                .Finish()),
+                .Finish(),
+            arolla::expr::ExprOperatorTags::kBackend),
         output_qtype_(output_qtype) {}
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
@@ -127,8 +127,8 @@ InputOperator::InputOperator()
           "Args:\n"
           "  container_name: name of the container the input belongs to.\n"
           "  input_key: name of the input representing a DATA_SLICE value.",
-          arolla::FingerprintHasher("::koladata::expr::InputOperator")
-              .Finish()) {}
+          arolla::FingerprintOfString("::koladata::expr::InputOperator"),
+          arolla::expr::ExprOperatorTags::kBuiltin) {}
 
 absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
     absl::Span<const arolla::expr::ExprAttributes> inputs) const {
@@ -201,8 +201,8 @@ NonDeterministicOperator::NonDeterministicOperator()
           "koda_internal.non_deterministic",
           arolla::expr::ExprOperatorSignature{{"arg"}, {"random"}},
           "Returns a non_deterministic value.",
-          arolla::FingerprintHasher("::koladata::ops::NonDeterministicOp")
-              .Finish()) {}
+          arolla::FingerprintOfString("::koladata::ops::NonDeterministicOp"),
+          arolla::expr::ExprOperatorTags::kBackend) {}
 
 absl::StatusOr<arolla::expr::ExprAttributes>
 NonDeterministicOperator::InferAttributes(

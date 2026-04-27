@@ -20,6 +20,7 @@
 #include "absl/types/span.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
@@ -34,8 +35,9 @@ GetIterableQTypeOp::GetIterableQTypeOp()
           "koda_internal.iterables.get_iterable_qtype",
           arolla::expr::ExprOperatorSignature{{"x"}},
           "Gets the iterable qtype for the given value qtype.",
-          arolla::FingerprintHasher("::koladata::iterables::GetIterableQTypeOp")
-              .Finish()) {}
+          arolla::FingerprintOfString(
+              "::koladata::iterables::GetIterableQTypeOp"),
+          arolla::expr::ExprOperatorTags::kBackend) {}
 
 absl::StatusOr<arolla::expr::ExprAttributes>
 GetIterableQTypeOp::InferAttributes(

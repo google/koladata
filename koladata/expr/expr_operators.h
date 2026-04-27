@@ -36,8 +36,7 @@ namespace koladata::expr {
 // representing inputs (fixed output qtype) and belonging to the specified
 // container.
 class InputOperator final
-    : public arolla::expr::BuiltinExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
+    : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
   InputOperator();
 
@@ -89,8 +88,7 @@ bool IsLiteral(const arolla::expr::ExprNodePtr& node);
 // in the same form has different Fingerprint and does not get literally folded
 // during compilation.
 class NonDeterministicOperator final
-    : public arolla::expr::BackendExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
+    : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
   NonDeterministicOperator();
 

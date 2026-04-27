@@ -19,14 +19,12 @@
 #include "absl/types/span.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
-#include "arolla/expr/expr_operator.h"
 
 namespace koladata::iterables {
 
 // koda_internal.iterables.get_iterable_qtype
 class GetIterableQTypeOp final
-    : public arolla::expr::BackendExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
+    : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
   GetIterableQTypeOp();
 

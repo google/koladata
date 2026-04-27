@@ -19,15 +19,13 @@
 #include "absl/types/span.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
-#include "arolla/expr/expr_operator.h"
 
 namespace koladata::functor::parallel {
 
 // koda_internal.parallel.async_eval
 // The Expr operator is defined in C++ because of the custom InferAttributes
 // logic.
-class AsyncEvalOp final : public arolla::expr::BackendExprOperatorTag,
-                          public arolla::expr::ExprOperatorWithFixedSignature {
+class AsyncEvalOp final : public arolla::expr::ExprOperatorWithFixedSignature {
  public:
   AsyncEvalOp();
 
