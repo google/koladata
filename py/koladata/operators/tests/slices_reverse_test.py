@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,6 +28,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -74,28 +75,28 @@ class SlicesUniqueTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    result = expr_eval.eval(kde.reverse(x))
+    result = kd.reverse(x)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
       ds([None] * 3), ds([]), ds([[None] * 3, [None] * 5])
   )
   def test_eval_with_empty_or_unknown(self, x):
-    testing.assert_equal(expr_eval.eval(kde.reverse(x)), x)
+    testing.assert_equal(kd.reverse(x), x)
 
   @parameterized.parameters(
       1,
       ds(1),
   )
   def test_eval_scalar_input(self, inp):
-    testing.assert_equal(expr_eval.eval(kde.reverse(inp)), ds(1))
+    testing.assert_equal(kd.reverse(inp), ds(1))
 
   def test_eval_wrong_type(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected DATA_SLICE',
     ):
-      expr_eval.eval(kde.reverse(arolla.dense_array(['a', 'b'])))
+      kd.reverse(arolla.dense_array(['a', 'b']))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

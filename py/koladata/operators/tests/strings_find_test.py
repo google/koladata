@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -94,7 +95,7 @@ class StringsFindTest(parameterized.TestCase):
       (ds([None, None]), ds('abc'), ds([None, None], schema_constants.INT64)),
   )
   def test_two_args(self, s, substr, expected):
-    result = expr_eval.eval(kde.strings.find(s, substr))
+    result = kd.strings.find(s, substr)
     testing.assert_equal(result, expected)
 
   def test_eval_two_args_wrong_types(self):
@@ -105,7 +106,7 @@ class StringsFindTest(parameterized.TestCase):
             ' STRING or BYTES, got a slice of INT32'
         ),
     ):
-      expr_eval.eval(kde.strings.find(None, 123))
+      kd.strings.find(None, 123)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -114,7 +115,7 @@ class StringsFindTest(parameterized.TestCase):
             ' but `x` contains STRING and `substr` contains BYTES'
         ),
     ):
-      expr_eval.eval(kde.strings.find('a', b'a'))
+      kd.strings.find('a', b'a')
 
   @parameterized.parameters(
       (ds('fooaaoo'), ds('oo'), ds(0), ds(1, schema_constants.INT64)),
@@ -196,7 +197,7 @@ class StringsFindTest(parameterized.TestCase):
       ),
   )
   def test_three_args(self, s, substr, start, expected):
-    result = expr_eval.eval(kde.strings.find(s, substr, start))
+    result = kd.strings.find(s, substr, start)
     testing.assert_equal(result, expected)
 
   def test_three_args_wrong_types(self):
@@ -207,7 +208,7 @@ class StringsFindTest(parameterized.TestCase):
             ' values, got a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.strings.find(None, None, 'foo'))
+      kd.strings.find(None, None, 'foo')
 
   @parameterized.parameters(
       (ds('fooaaoo'), ds('oo'), ds(0), ds(3), ds(1, schema_constants.INT64)),
@@ -274,7 +275,7 @@ class StringsFindTest(parameterized.TestCase):
       ),
   )
   def test_four_args(self, s, substr, start, end, expected):
-    result = expr_eval.eval(kde.strings.find(s, substr, start, end))
+    result = kd.strings.find(s, substr, start, end)
     testing.assert_equal(result, expected)
 
   def test_incompatible_types_error(self):
@@ -285,7 +286,7 @@ class StringsFindTest(parameterized.TestCase):
             ' but `x` contains STRING and `substr` contains BYTES'
         ),
     ):
-      expr_eval.eval(kde.strings.find(ds('foo'), ds(b'f')))
+      kd.strings.find(ds('foo'), ds(b'f'))
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
@@ -295,9 +296,8 @@ class StringsFindTest(parameterized.TestCase):
             ' STRING or BYTES, got a slice of INT32'
         ),
     ):
-      expr_eval.eval(
-          kde.strings.find(ds([None], schema_constants.STRING), ds(123))
-      )
+
+      kd.strings.find(ds([None], schema_constants.STRING), ds(123))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
@@ -305,7 +305,7 @@ class StringsFindTest(parameterized.TestCase):
         'kd.strings.find: argument `substr` must be a slice of either STRING or'
         ' BYTES, got a slice of OBJECT containing INT32 and STRING values',
     ):
-      expr_eval.eval(kde.strings.find(ds('foo'), ds([1, 'fo'])))
+      kd.strings.find(ds('foo'), ds([1, 'fo']))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

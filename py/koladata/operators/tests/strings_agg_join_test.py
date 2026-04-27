@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -87,7 +88,7 @@ class StringsAggJoinTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_arg(self, x, expected):
-    actual_value = expr_eval.eval(kde.strings.agg_join(x))
+    actual_value = kd.strings.agg_join(x)
     testing.assert_equal(actual_value, expected)
 
   @parameterized.parameters(
@@ -156,7 +157,7 @@ class StringsAggJoinTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_args(self, x, sep, expected):
-    actual_value = expr_eval.eval(kde.strings.agg_join(x, sep=sep))
+    actual_value = kd.strings.agg_join(x, sep=sep)
     testing.assert_equal(actual_value, expected)
 
   @parameterized.parameters(
@@ -198,7 +199,7 @@ class StringsAggJoinTest(parameterized.TestCase):
       ),
   )
   def test_eval_three_args(self, x, sep, ndim, expected):
-    actual_value = expr_eval.eval(kde.strings.agg_join(x, sep=sep, ndim=ndim))
+    actual_value = kd.strings.agg_join(x, sep=sep, ndim=ndim)
     testing.assert_equal(actual_value, expected)
 
   def test_qtype_signatures(self):
@@ -224,14 +225,14 @@ class StringsAggJoinTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.strings.agg_join(ds('foo')))
+      kd.strings.agg_join(ds('foo'))
 
   def test_data_slice_sep_error(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape('strings.agg_join: expected rank(sep) == 0'),
     ):
-      expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(['', ''])))
+      kd.strings.agg_join(ds(['foo', 'bar']), sep=ds(['', '']))
 
   def test_type_errors(self):
     with self.assertRaisesRegex(
@@ -241,7 +242,7 @@ class StringsAggJoinTest(parameterized.TestCase):
             ' or BYTES, got a slice of INT32'
         ),
     ):
-      expr_eval.eval(kde.strings.agg_join(ds([1, 2]), sep=ds(b', ')))
+      kd.strings.agg_join(ds([1, 2]), sep=ds(b', '))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -249,7 +250,7 @@ class StringsAggJoinTest(parameterized.TestCase):
             ' STRING or BYTES, got a slice of INT32'
         ),
     ):
-      expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(1)))
+      kd.strings.agg_join(ds(['foo', 'bar']), sep=ds(1))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -257,13 +258,13 @@ class StringsAggJoinTest(parameterized.TestCase):
             ' allowed, but `x` contains STRING and `sep` contains BYTES'
         ),
     ):
-      expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(b', ')))
+      kd.strings.agg_join(ds(['foo', 'bar']), sep=ds(b', '))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     x = data_slice.DataSlice.from_vals(['a', 'b', 'c'])
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde.strings.agg_join(x, ndim=ndim))
+      kd.strings.agg_join(x, ndim=ndim)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.strings.agg_join(I.x)))

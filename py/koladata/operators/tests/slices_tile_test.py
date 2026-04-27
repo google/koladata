@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,6 +28,7 @@ from koladata.types import qtypes
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 js = jagged_shape.create_shape
 
 DATA_SLICE = qtypes.DATA_SLICE
@@ -45,7 +46,7 @@ class SlicesTileTest(parameterized.TestCase):
       (ds([1, 2]), js([2], [2, 1]), ds([[[1, 2], [1, 2]], [[1, 2]]])),
   )
   def test_eval(self, x, shape, expected):
-    res = expr_eval.eval(kde.tile(x, shape))
+    res = kd.tile(x, shape)
     testing.assert_equal(res, expected)
 
   def test_qtype_signatures(self):

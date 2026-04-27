@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -52,7 +53,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
       (ds([b'foo', b'bar'], schema_constants.OBJECT), ds(['Zm9v', 'YmFy'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.strings.encode_base64(x))
+    res = kd.strings.encode_base64(x)
     testing.assert_equal(res, expected)
 
   def test_schema_error(self):
@@ -61,7 +62,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
         'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
         ' slice of STRING',
     ):
-      _ = kde.strings.encode_base64(ds('a')).eval()
+      _ = kd.strings.encode_base64(ds('a'))
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
@@ -69,7 +70,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
         'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
         ' slice of OBJECT containing STRING values',
     ):
-      _ = kde.strings.encode_base64(ds('a', schema_constants.OBJECT)).eval()
+      _ = kd.strings.encode_base64(ds('a', schema_constants.OBJECT))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

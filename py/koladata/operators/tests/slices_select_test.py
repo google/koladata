@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
@@ -35,6 +34,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
@@ -65,7 +65,7 @@ class SlicesSelectTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, values, filter_arr, kwargs, expected):
-    result = expr_eval.eval(kde.slices.select(values, filter_arr, **kwargs))
+    result = kd.slices.select(values, filter_arr, **kwargs)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -73,7 +73,7 @@ class SlicesSelectTest(parameterized.TestCase):
       (functor_factories.expr_fn(I.self >= 2),),
   )
   def test_eval_with_expr_input(self, fltr):
-    result = expr_eval.eval(kde.slices.select(I.x, fltr), x=ds([1, 2, 3]))
+    result = kd.slices.select(ds([1, 2, 3]), fltr)
     testing.assert_equal(result, ds([2, 3]))
 
   def test_eval_filter_fn_exception(self):
@@ -85,10 +85,8 @@ class SlicesSelectTest(parameterized.TestCase):
         ValueError,
         arolla.testing.any_cause_message_regex('test error'),
     ):
-      expr_eval.eval(
-          kde.slices.select(I.x, functor_factories.py_fn(filter_fn)),
-          x=ds([1, 2, 3]),
-      )
+
+      kd.slices.select(ds([1, 2, 3]), functor_factories.py_fn(filter_fn))
 
     with self.assertRaisesRegex(ValueError, 'test error'):
       _ = kde.slices.select(I.x, filter_fn)
@@ -116,7 +114,7 @@ class SlicesSelectTest(parameterized.TestCase):
             ' be OBJECT or MASK'
         ),
     ):
-      expr_eval.eval(kde.slices.select(val, val))
+      kd.slices.select(val, val)
 
   @parameterized.parameters(
       (
@@ -166,7 +164,7 @@ class SlicesSelectTest(parameterized.TestCase):
         ValueError,
         re.escape(expected),
     ):
-      expr_eval.eval(kde.slices.select(values, fltr))
+      kd.slices.select(values, fltr)
 
   def test_select_on_data_item_error(self):
     with self.assertRaisesRegex(
@@ -177,7 +175,7 @@ class SlicesSelectTest(parameterized.TestCase):
             ' to convert it to a 1-dimensional DataSlice'
         ),
     ):
-      expr_eval.eval(kde.slices.select(ds(1), ds(arolla.present())))
+      kd.slices.select(ds(1), ds(arolla.present()))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -186,11 +184,8 @@ class SlicesSelectTest(parameterized.TestCase):
             ' expand_filter=False because its size is always 1.'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.select(
-              ds([1, 2]), ds(arolla.present()), expand_filter=False
-          )
-      )
+
+      kd.slices.select(ds([1, 2]), ds(arolla.present()), expand_filter=False)
 
   def test_select_expr_filter(self):
     kd_select = eager_op_utils.EagerOperator(kde.slices.select)
@@ -207,7 +202,7 @@ class SlicesSelectTest(parameterized.TestCase):
   def test_select_expand_to_shape(self):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     y = ds([arolla.present(), arolla.present(), None])
-    result = expr_eval.eval(kde.slices.select(x, y))
+    result = kd.slices.select(x, y)
     testing.assert_equal(result, ds([[1, 2, None, 4], [None, None], []]))
 
   def test_select_expand_to_shape_fails(self):
@@ -222,7 +217,7 @@ class SlicesSelectTest(parameterized.TestCase):
         ValueError,
         re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
     ):
-      _ = expr_eval.eval(kde.slices.select(x, y))
+      _ = kd.slices.select(x, y)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

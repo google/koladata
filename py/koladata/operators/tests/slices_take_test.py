@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import slices_take_testdata
@@ -30,6 +30,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -41,7 +42,7 @@ class SlicesTakeTest(parameterized.TestCase):
 
   @parameterized.parameters(*slices_take_testdata.TEST_CASES)
   def test_eval(self, x, indices, expected):
-    result = expr_eval.eval(kde.take(x, indices))
+    result = kd.take(x, indices)
     testing.assert_equal(result, expected)
 
   def test_data_item_input_error(self):
@@ -49,7 +50,7 @@ class SlicesTakeTest(parameterized.TestCase):
         ValueError,
         re.escape('kd.slices.take: DataItem is not supported.'),
     ):
-      expr_eval.eval(kde.take(ds(1), ds(0)))
+      kd.take(ds(1), ds(0))
 
   def test_incompatible_shape_error(self):
     with self.assertRaisesRegex(
@@ -60,7 +61,7 @@ class SlicesTakeTest(parameterized.TestCase):
             ' shape(x)[:-1] to be compatible with shape(indices)'
         ),
     ):
-      expr_eval.eval(kde.take(ds([[1], [2, 3]]), ds([1, 2, 3])))
+      kd.take(ds([[1], [2, 3]]), ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -70,7 +71,7 @@ class SlicesTakeTest(parameterized.TestCase):
             ' shape(x)[:-1] to be compatible with shape(indices)'
         ),
     ):
-      expr_eval.eval(kde.take(ds([[[1]], [[2], [3]]]), ds([1, 2, 3])))
+      kd.take(ds([[[1]], [[2], [3]]]), ds([1, 2, 3]))
 
   def test_wrong_dtype_error(self):
     with self.assertRaisesWithPredicateMatch(
@@ -82,7 +83,7 @@ class SlicesTakeTest(parameterized.TestCase):
             )
         ),
     ) as cm:
-      expr_eval.eval(kde.take(ds([[1], [2, 3]]), ds(['1', '2'])))
+      kd.take(ds([[1], [2, 3]]), ds(['1', '2']))
     self.assertRegex(
         str(cm.exception),
         'kd.slices.take: the provided indices must contain only integers',

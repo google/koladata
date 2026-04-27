@@ -20,9 +20,9 @@ Extensive testing is done in C++.
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -34,6 +34,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -53,7 +54,7 @@ class StringsEncodeTest(parameterized.TestCase):
       (ds([b'foo', 'bar'], schema_constants.OBJECT), ds([b'foo', b'bar'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.strings.encode(x))
+    res = kd.strings.encode(x)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -65,14 +66,14 @@ class StringsEncodeTest(parameterized.TestCase):
         f'casting a DataSlice with schema {value.get_schema()} to BYTES is not'
         ' supported',
     ):
-      expr_eval.eval(kde.strings.encode(value))
+      kd.strings.encode(value)
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'casting data of type INT32 to BYTES is not supported'
     ):
-      expr_eval.eval(kde.strings.encode(x))
+      kd.strings.encode(x)
 
   def test_boxing(self):
     testing.assert_equal(

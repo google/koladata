@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -29,6 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 INT64 = schema_constants.INT64
@@ -98,7 +99,7 @@ class SlicesSortTest(parameterized.TestCase):
       (ds([None, None], schema=INT64), False, ds([None, None], schema=INT64)),
   )
   def test_eval_without_sort_by(self, x, descending, expected):
-    result = expr_eval.eval(kde.slices.sort(x, descending=descending))
+    result = kd.slices.sort(x, descending=descending)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -116,7 +117,7 @@ class SlicesSortTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_sort_by(self, x, sort_by, expected):
-    result = expr_eval.eval(kde.slices.sort(x, sort_by))
+    result = kd.slices.sort(x, sort_by)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -129,14 +130,14 @@ class SlicesSortTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_descending_unspecified(self, x, expected):
-    result = expr_eval.eval(kde.slices.sort(x))
+    result = kd.slices.sort(x)
     testing.assert_equal(result, expected)
 
   def test_sort_by_more_sparse(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('more sparse')
     ):
-      expr_eval.eval(kde.slices.sort(ds([0, 3, 6]), ds([2, 1, None])))
+      kd.slices.sort(ds([0, 3, 6]), ds([2, 1, None]))
 
   def test_data_item(self):
     with self.assertRaisesRegex(
@@ -145,7 +146,7 @@ class SlicesSortTest(parameterized.TestCase):
         # names.
         re.escape('kd.slices.ordinal_rank: expected rank(x) > 0'),
     ):
-      expr_eval.eval(kde.slices.sort(ds(0)))
+      kd.slices.sort(ds(0))
 
   def test_different_shape(self):
     with self.assertRaisesRegex(
@@ -155,7 +156,7 @@ class SlicesSortTest(parameterized.TestCase):
             ' shape'
         ),
     ):
-      expr_eval.eval(kde.slices.sort(ds([0, 3, 6]), ds([0, 3, 6, 1])))
+      kd.slices.sort(ds([0, 3, 6]), ds([0, 3, 6, 1]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -164,7 +165,7 @@ class SlicesSortTest(parameterized.TestCase):
             ' shape'
         ),
     ):
-      expr_eval.eval(kde.slices.sort(ds([0, 3, 6]), ds([[1], [2, 3], [4]])))
+      kd.slices.sort(ds([0, 3, 6]), ds([[1], [2, 3], [4]]))
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.

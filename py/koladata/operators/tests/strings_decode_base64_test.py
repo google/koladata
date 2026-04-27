@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -28,6 +28,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -66,7 +67,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
       (ds('YWFhYQ='), ds(None, schema_constants.BYTES)),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.strings.decode_base64(x, on_invalid=None))
+    res = kd.strings.decode_base64(x, on_invalid=None)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -79,27 +80,27 @@ class StringsDecodeBase64Test(parameterized.TestCase):
         ValueError,
         'kd.strings.decode_base64: invalid base64 string:',
     ):
-      _ = expr_eval.eval(kde.strings.decode_base64(x))
+      _ = kd.strings.decode_base64(x)
 
   def test_on_invalid_none(self):
     x = ds([['Zm9v', '???'], ['???', 'YmFy', '???']])
-    result = expr_eval.eval(kde.strings.decode_base64(x, on_invalid=None))
+    result = kd.strings.decode_base64(x, on_invalid=None)
     testing.assert_equal(result, ds([[b'foo', None], [None, b'bar', None]]))
 
   def test_on_invalid_value(self):
     x = ds([['Zm9v', '???'], ['???', 'YmFy', '???']])
-    result = expr_eval.eval(kde.strings.decode_base64(x, on_invalid=-1))
+    result = kd.strings.decode_base64(x, on_invalid=-1)
     testing.assert_equal(result, ds([[b'foo', -1], [-1, b'bar', -1]]))
 
   def test_on_invalid_nontrivial_broadcast(self):
     x = ds([['Zm9v', '???'], ['???', 'YmFy', '???']])
-    result = expr_eval.eval(kde.strings.decode_base64(x, on_invalid=ds([1, 2])))
+    result = kd.strings.decode_base64(x, on_invalid=ds([1, 2]))
     testing.assert_equal(result, ds([[b'foo', 1], [2, b'bar', 2]]))
 
   def test_on_invalid_error(self):
     x = ds([['Zm9v', '???'], ['???', 'YmFy', '???']])
     with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
-      _ = expr_eval.eval(kde.strings.decode_base64(x, on_invalid=ds([1, 2, 3])))
+      _ = kd.strings.decode_base64(x, on_invalid=ds([1, 2, 3]))
 
   def test_schema_error(self):
     with self.assertRaisesWithLiteralMatch(
@@ -107,7 +108,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
         'kd.strings.decode_base64: argument `x` must be a slice of either'
         ' STRING or BYTES, got a slice of INT32',
     ):
-      _ = kde.strings.decode_base64(ds(1)).eval()
+      _ = kd.strings.decode_base64(ds(1))
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
@@ -115,7 +116,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
         'kd.strings.decode_base64: argument `x` must be a slice of either'
         ' STRING or BYTES, got a slice of OBJECT containing INT32 values',
     ):
-      _ = kde.strings.decode_base64(ds(1, schema_constants.OBJECT)).eval()
+      _ = kd.strings.decode_base64(ds(1, schema_constants.OBJECT))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

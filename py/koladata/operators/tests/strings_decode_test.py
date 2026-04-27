@@ -20,9 +20,9 @@ Extensive testing is done in C++.
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -34,6 +34,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -53,13 +54,13 @@ class StringsDecodeTest(parameterized.TestCase):
       (ds([b'foo', 'bar'], schema_constants.OBJECT), ds(['foo', 'bar'])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.strings.decode(x))
+    res = kd.strings.decode(x)
     testing.assert_equal(res, expected)
 
   def test_invalid_utf8_error(self):
     x = ds(b'\xff')
     with self.assertRaisesRegex(ValueError, 'invalid UTF-8'):
-      expr_eval.eval(kde.strings.decode(x))
+      kd.strings.decode(x)
 
   @parameterized.parameters(
       ds(None, schema_constants.INT32), ds(1), ds(arolla.present())
@@ -70,7 +71,7 @@ class StringsDecodeTest(parameterized.TestCase):
         f'casting a DataSlice with schema {value.get_schema()} to STRING is not'
         ' supported',
     ):
-      expr_eval.eval(kde.strings.decode(value))
+      kd.strings.decode(value)
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
@@ -78,7 +79,7 @@ class StringsDecodeTest(parameterized.TestCase):
         ValueError,
         'casting data of type INT32 to STRING is not supported',
     ):
-      expr_eval.eval(kde.strings.decode(x))
+      kd.strings.decode(x)
 
   def test_non_scalar_errors(self):
     x = ds(b'foo')
@@ -87,7 +88,7 @@ class StringsDecodeTest(parameterized.TestCase):
         'kd.strings.decode: argument `errors` must be an item holding STRING,'
         ' got a slice of rank 1 > 0',
     ):
-      expr_eval.eval(kde.strings.decode(x, ds(['strict', 'ignore'])))
+      kd.strings.decode(x, ds(['strict', 'ignore']))
 
   def test_boxing(self):
     testing.assert_equal(
@@ -102,14 +103,14 @@ class StringsDecodeTest(parameterized.TestCase):
   def test_ignore_errors(self):
     x = ds(b'foo\xffbar')
     testing.assert_equal(
-        expr_eval.eval(kde.strings.decode(x, 'ignore')),
+        kd.strings.decode(x, 'ignore'),
         ds('foobar'),
     )
 
   def test_replace_errors(self):
     x = ds(b'foo\xffbar')
     testing.assert_equal(
-        expr_eval.eval(kde.strings.decode(x, 'replace')),
+        kd.strings.decode(x, 'replace'),
         ds('foo\uFFFDbar'),
     )
 

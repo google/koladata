@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -29,6 +29,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -84,7 +85,7 @@ class StringsFormatTest(parameterized.TestCase):
       ([ds([None, None]), ds('abc')], ds([None, None])),
   )
   def test_eval(self, args, expected):
-    result = expr_eval.eval(kde.strings.printf(*args))
+    result = kd.strings.printf(*args)
     testing.assert_equal(result, expected)
 
   def test_incompatible_types_error(self):
@@ -93,7 +94,7 @@ class StringsFormatTest(parameterized.TestCase):
         # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,BYTES)'),
     ):
-      expr_eval.eval(kde.strings.printf(ds('%s'), ds(b'foo')))
+      kd.strings.printf(ds('%s'), ds(b'foo'))
 
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
@@ -101,7 +102,7 @@ class StringsFormatTest(parameterized.TestCase):
         # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
-      expr_eval.eval(kde.strings.printf(ds('%s')))
+      kd.strings.printf(ds('%s'))
 
   def test_incompatible_format_error(self):
     with self.assertRaisesRegex(
@@ -109,7 +110,7 @@ class StringsFormatTest(parameterized.TestCase):
         # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
-      expr_eval.eval(kde.strings.printf(ds('%s'), ds(1)))
+      kd.strings.printf(ds('%s'), ds(1))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
@@ -117,7 +118,7 @@ class StringsFormatTest(parameterized.TestCase):
         'kd.strings.printf: cannot format argument 1 of type OBJECT containing'
         ' INT32 and STRING values',
     ):
-      expr_eval.eval(kde.strings.printf(ds('%v'), ds([1, 'foo'])))
+      kd.strings.printf(ds('%v'), ds([1, 'foo']))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

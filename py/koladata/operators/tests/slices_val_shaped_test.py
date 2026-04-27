@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -32,6 +32,7 @@ from koladata.types import qtypes
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
@@ -71,10 +72,8 @@ class SlicesValShapedTest(parameterized.TestCase):
   def test_incompatible_shape(self):
 
     with self.assertRaisesRegex(ValueError, re.escape('cannot be expanded')):
-      _ = expr_eval.eval(
-          kde.slices.val_shaped(
-              jagged_shape.create_shape([2], [2, 1]), ds([1, 2, 3])
-          )
+      _ = kd.slices.val_shaped(
+          jagged_shape.create_shape([2], [2, 1]), ds([1, 2, 3])
       )
 
   def test_qtype_signatures(self):
