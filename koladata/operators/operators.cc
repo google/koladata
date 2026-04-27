@@ -18,6 +18,7 @@
 
 #include "absl/strings/string_view.h"
 #include "arolla/qexpr/operator_factory.h"
+#include "arolla/qexpr/optools.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
@@ -66,7 +67,8 @@ namespace {
 #define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 #define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
 
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY,OPERATOR_WITH_SIGNATURE NOLINT
+// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY,OPERATOR_WITH_SIGNATURE,AROLLA_REGISTER_QEXPR_OPERATOR NOLINT
+
 OPERATOR("kd.allocation.new_dictid_like", NewDictIdLike);
 OPERATOR("kd.allocation.new_dictid_shaped", NewDictIdShaped);
 OPERATOR("kd.allocation.new_itemid_like", NewItemIdLike);
@@ -399,11 +401,13 @@ OPERATOR("kd.proto.to_proto_json", ToProtoJson);
 OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
          "kd.schema.agg_common_schema");
 OPERATOR("kd.schema._deep_cast_to", DeepCastTo, "kd.schema.deep_cast_to");
-OPERATOR("kd.schema._internal_maybe_named_schema",
-              InternalMaybeNamedSchema,
-              // Don't pass the display name, because it's confusing.
-              // TODO: Use the outer lambda's name instead.
-              "");
+// Don't pass the display name, because it's confusing.
+// TODO: Use the outer lambda's name instead.
+AROLLA_REGISTER_QEXPR_OPERATOR(
+    "kd.schema._internal_maybe_named_schema",
+    ::koladata::MakeKodaOperatorWrapper<KodaOperatorWrapperFlags::kAll -
+                                        KodaOperatorWrapperFlags::kWrapError>(
+        "kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema));
 OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo,
               "kd.schema.unsafe_cast_to");
 OPERATOR("kd.schema.cast_to", CastTo);
@@ -449,12 +453,9 @@ OPERATOR("kd.slices._collapse", Collapse, "kd.slices.collapse");
 OPERATOR_FAMILY(
     "kd.slices._concat_or_stack",
     arolla::MakeVariadicInputOperatorFamily(
-        // TODO: The operator is used as a building
-        // block for several lambdas, so we cannot choose one public
-        // name for its errors. We are still using MakeKodaOperatorWrapper in
-        // order to turn the errors into KodaError, but the operator name should
-        // be attached using a different mechanism.
-        MakeKodaOperatorWrapper("", ConcatOrStack)));
+        MakeKodaOperatorWrapper<KodaOperatorWrapperFlags::kAll -
+                                KodaOperatorWrapperFlags::kWrapError>(
+            "kd.slices._concat_or_stack", ConcatOrStack)));
 OPERATOR("kd.slices._dense_rank", DenseRank, "kd.slices.dense_rank");
 OPERATOR_FAMILY("kd.slices._group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(
