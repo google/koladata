@@ -3845,52 +3845,60 @@ I.y + I.y
 
 ### Defining Custom Operators
 
-```py
+```py {.pycon-doctest}
 # Create a lambda operator 'score'
 # under the existing namespace 'kd.core'
-@kd.optools.add_to_registry()
-@kd.optools.as_lambda_operator('kd.core.score')
-def score(a, b, w):
-  return kd.lazy.agg_sum(w * (a + b))
+>>> @kd.optools.add_to_registry()
+... @kd.optools.as_lambda_operator('kd.core.score')
+... def score(a, b, w):
+...   return kd.agg_sum(w * (a + b))
 
-kd.eval(kd.lazy.core.score(I.a, I.b, I.w),
-        a=a, b=b, w=w)
+>>> a = kd.slice([1, 20, 3000])
+>>> b = kd.slice([2, 20, 4000])
+>>> w = kd.slice([1, 1, 0.1])
+>>> kd.eval(score(I.a, I.b, I.w),
+...         a=a, b=b, w=w)
+DataItem(743.0, schema: FLOAT32)
 
 # It can be used as eager op too
-kd.core.score(a, b, w)
+>>> kd.core.score(a, b, w)
+DataItem(743.0, schema: FLOAT32)
 
 # We can also add the operator to a
 # different namespace 'E'
-@kd.optools.add_to_registry()
-@kd.optools.as_lambda_operator('E.my_func')
-def my_func(a):
-  return kd.lazy.math.add(a, a)
+>>> @kd.optools.add_to_registry()
+... @kd.optools.as_lambda_operator('E.my_func')
+... def my_func(a):
+...   return kd.math.add(a, a)
+
 
 # Create the operator container 'E'
-E = arolla.OperatorsContainer(unsafe_extra_namespaces=['E']).E
-kd.eval(E.my_func(I.a), a=1)
+>>> from arolla import arolla
+>>> E = arolla.OperatorsContainer(unsafe_extra_namespaces=['E']).E
+>>> kd.eval(E.my_func(I.a), a=1)
+DataItem(2, schema: INT32)
 
-expect_data_slice =
-    kd.optools.constraints.expect_data_slice
+>>> expect_data_slice = kd.optools.constraints.expect_data_slice
 
 # Create an operator based on Py function
-@kd.optools.add_to_registry()
-@kd.optools.as_py_function_operator(
-    'kd.core.fn',
-    qtype_constraints=[
-        expect_data_slice(arolla.P.a),
-        expect_data_slice(arolla.P.pos)
-    ],
-    qtype_inference_expr=kd.qtypes.DATA_SLICE,
-)
-def fn(a, pos):
-  return kd.slice(a.S[pos].to_py() + 1)
+>>> @kd.optools.add_to_registry()
+... @kd.optools.as_py_function_operator(
+...     'kd.core.fn',
+...     qtype_constraints=[
+...         expect_data_slice(arolla.P.a),
+...         expect_data_slice(arolla.P.pos)
+...     ],
+...     qtype_inference_expr=kd.qtypes.DATA_SLICE,
+... )
+... def fn(a, pos):
+...   return kd.slice(a.S[pos].to_py() + 1)
 
-kd.eval(kd.lazy.core.fn(kd.slice([1, 2, 3]), 1))
+>>> kd.eval(kd.lazy.core.fn(kd.slice([1, 2, 3]), 1))
+DataItem(3, schema: INT32)
 
 # Register operator alias so that
-# kd.math.add is same as E.add
-kd.optools.add_alias('kd.math.add', 'E.Add')
+# kd.math.add is same as E.Add
+>>> kd.optools.add_alias('kd.math.add', 'E.Add')
 ```
 
 </section>
@@ -3934,49 +3942,50 @@ statement.
 -   Return statement is represented as `fn_obj` in `kd.fn` and can refer to
     local variables
 
-```py
+```py {.pycon-doctest}
 # Create a Functor from Expr
-fn1 = kd.functor.expr_fn(I.a + I.b)
+>>> fn1 = kd.functor.expr_fn(I.a + I.b)
 
 # Check if it is a Functor
-assert kd.is_fn(fn1)
+>>> assert kd.is_fn(fn1)
 
 # Create a Functor with local variables
-fn2 = kd.functor.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
+>>> fn2 = kd.functor.expr_fn(V.a + I.b, c=I.d, a=V.c + I.d)
 
 # Create a Functor from format string
-fn3 = kd.functor.fstr_fn(
-  f'a:{I.a:s} + b:{I.b:s} = {(I.a + I.b):s}')
+>>> fn3 = kd.functor.fstr_fn(
+...   f'a:{I.a:s} + b:{I.b:s} = {(I.a + I.b):s}')
 
 # Create a Functor with local variables
-fn4 = kd.functor.fstr_fn(
-  f'{I.s.name:s} ({V.names:s})\n',
-  names=kd.lazy.strings.agg_join(I.s.cities[:].name, ', '))
-fn5 = kd.functor.fstr_fn(f'A: {V.fn(s=I.s1):s}'
-                         f'B: {V.fn(s=I.s2):s}',
-                         fn=fn4)
+>>> fn4 = kd.functor.fstr_fn(
+...   f'{I.s.name:s} ({V.names:s})\n',
+...   names=kd.lazy.strings.agg_join(I.s.cities[:].name, ', '))
+>>> fn5 = kd.functor.fstr_fn(f'A: {V.fn(s=I.s1):s}'
+...                          f'B: {V.fn(s=I.s2):s}',
+...                          fn=fn4)
 
-def foo(a, b):
-  return a.get_size() + b.get_size()
+>>> def foo(a, b):
+...   return a.get_size() + b.get_size()
 
 # Create a Functor from Py function
-fn6 = kd.trace_py_fn(foo)  # with tracing
-fn7 = kd.py_fn(foo)  # no tracing
+>>> fn6 = kd.trace_py_fn(foo)  # with tracing
+>>> fn7 = kd.py_fn(foo)  # no tracing
+
 # Equivalent to the above
-fn7 = kd.trace_py_fn(foo, tracing=False)
+>>> fn7 = kd.trace_py_fn(foo, tracing=False)
 
 # With default value for 'y'
-fn8 = kd.py_fn(lambda x, y: x + y, y=1)
+>>> fn8 = kd.py_fn(lambda x, y: x + y, y=1)
 
 # Use the universal adapter kd.fn
-fn9 = kd.fn(I.a + I.b)
-fn10 = kd.fn(lambda x, y: x + y)
-fn11 = kd.fn(fn9)  # no-op
+>>> fn9 = kd.fn(I.a + I.b)
+>>> fn10 = kd.fn(lambda x, y: x + y)
+>>> fn11 = kd.fn(fn9)  # no-op
 
 # Create a functor calling another functor
-fn12 = kd.fn(kd.lazy.call(fn1, a=I.c, b=I.d))
-fn13 = kd.functor.fstr_fn(
-  f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
+>>> fn12 = kd.fn(kd.lazy.call(fn1, a=I.c, b=I.d))
+>>> fn13 = kd.functor.fstr_fn(
+...   f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
 ```
 
 </section>
@@ -3985,28 +3994,33 @@ fn13 = kd.functor.fstr_fn(
 
 ### Calling Koda Functor
 
-```py
-f = kd.fn(V.a + I.b, c=I.d, a=V.c + I.d)
+```py {.pycon-doctest}
+>>> f = kd.fn(V.a + I.b, c=I.d, a=V.c + I.d)
 
 # Pass inputs as **kwargs
 # Preferred when input names are static
-f(b=2, d=3)
-kd.call(f, b=2, d=3) # Same as above
+>>> f(b=2, d=3)
+DataItem(8, schema: INT32)
+>>> kd.call(f, b=2, d=3) # Same as above
+DataItem(8, schema: INT32)
 
-# Call a functor from another functor
-f = kd.fn(I.x + I.y)
-g = kd.fn(V.nf(x=I.x, y=2), nf=f)
-g(x=1)  # 3
+>>> # Call a functor from another functor
+>>> f = kd.fn(I.x + I.y)
+>>> g = kd.fn(V.nf(x=I.x, y=2), nf=f)
+>>> g(x=1)
+DataItem(3, schema: INT32)
 
 # Alternative
-g = kd.fn(kd.lazy.call(V.nf, x=I.x, y=2), nf=f)
-g(x=1)  # 3
+>>> g = kd.fn(kd.lazy.call(V.nf, x=I.x, y=2), nf=f)
+>>> g(x=1)
+DataItem(3, schema: INT32)
 
 # Functors can also be called using `fstr_fn`
-f = kd.fn(I.x + I.y)
-g = kd.functor.fstr_fn(f'result: {I.f(x=I.x, y=V.y):s}',
-                y=1)
-g(f=f, x=1)
+>>> f = kd.fn(I.x + I.y)
+>>> g = kd.functor.fstr_fn(f'result: {I.f(x=I.x, y=V.y):s}',
+...                 y=1)
+>>> g(f=f, x=1)
+DataItem('result: 2', schema: STRING)
 ```
 
 </section>
@@ -4015,32 +4029,41 @@ g(f=f, x=1)
 
 ### Partially Binding Koda Functor Parameters
 
-```py
-fn1 = kd.fn(I.a + I.b)
+```py {.pycon-doctest}
+>>> fn1 = kd.fn(I.a + I.b)
 
 # Bind inputs with default values
-fn2 = fn1.bind(a=1)
+>>> fn2 = fn1.bind(a=1)
 
-fn2(a=3, b=2)  # 5
-fn2(b=2)  # 3
+>>> fn2(a=3, b=2)
+DataItem(5, schema: INT32)
+>>> fn2(b=2)
+DataItem(3, schema: INT32)
 
 # We can also bind positionally.
-fn_add = kd.fn(lambda x, y: x + y)
-fn_add_5 = fn_add.bind(5)  # 5 is bound to x
-fn_add_5(6)  # 11
-fn_add_5(y=6) # 11
+>>> fn_add = kd.fn(lambda x, y: x + y)
+>>> fn_add_5 = fn_add.bind(5)  # 5 is bound to x
+>>> fn_add_5(6)
+DataItem(11, schema: INT32)
+>>> fn_add_5(y=6)
+DataItem(11, schema: INT32)
 
 # Exprs can also be bound to arguments.
-fn3 = fn1.bind(a=I.b + 1)
-fn3(b=2)  # 5
+>>> fn3 = fn1.bind(a=I.b + 1)
+>>> fn3(b=2)
+DataItem(5, schema: INT32)
 
 # Binding DataItem params also works.
-fn4 = fn1.bind(a=kd.item(1))
+>>> fn4 = fn1.bind(a=kd.item(1))
 
 # Raise because binding a DataSlice is not supported
-fn5 = fn1.bind(a=kd.slice([1, 2]))
+>>> fn5 = fn1.bind(a=kd.slice([1, 2]))
+Traceback (most recent call last):
+...
+ValueError: variable [a] must be a data item, but has shape: JaggedShape(2)
+
 # We have to use kd.list instead
-fn5 = fn1.bind(a=kd.list([1, 2]))
+>>> fn5 = fn1.bind(a=kd.list([1, 2]))
 ```
 
 </section>
@@ -4051,18 +4074,18 @@ fn5 = fn1.bind(a=kd.list([1, 2]))
 
 Also see `kd.map_py()` above.
 
-```py
+```py {.pycon-doctest}
 # Pointwise
-kd.functor.map_py_fn(lambda x, y: x + y)
+>>> _ = kd.functor.map_py_fn(lambda x, y: x + y)
 
 # Aggregation
-kd.functor.map_py_fn(lambda x: len(x), ndim=1)
+>>> _ = kd.functor.map_py_fn(lambda x: len(x), ndim=1)
 
 # Aggregaional but no dimension change
-kd.functor.map_py_fn(lambda x: sorted(x), ndim=1)
+>>> _ = kd.functor.map_py_fn(lambda x: sorted(x), ndim=1)
 
 # Expansion
-kd.functor.map_py_fn(lambda x: [x] * 10)
+>>> _ = kd.functor.map_py_fn(lambda x: [x] * 10)
 ```
 
 </section>
@@ -4086,23 +4109,35 @@ Note the differences between Iterables and DataSlices are:
 Iterables can be created directly from individual items directly or by yielded
 from `kd.for_` and `kd.while_` (see the sections below).
 
-```py
+```py {.pycon-doctest}
 # create from individual items
 # 1/2/3/4 are wrapped into DataItems
-kd.iterables.make(1, 2, 3, 4)
+>>> kd.iterables.make(1, 2, 3, 4)
+ITERABLE[DATA_SLICE]{sequence(DataItem(1, schema: INT32), DataItem(2, schema: INT32), DataItem(3, schema: INT32), DataItem(4, schema: INT32), value_qtype=DATA_SLICE)}
 
 # Iterable of DataBags
-o = kd.obj()
-kd.iterables.make(kd.attrs(o, a=1),
-                  kd.attrs(o, b=2))
+>>> o = kd.obj()
+>>> kd.iterables.make(kd.attrs(o, a=1),
+...                   kd.attrs(o, b=2))
+ITERABLE[DATA_BAG]{sequence(DataBag ...:
+  ..., DataBag ...:
+  ..., value_qtype=DATA_BAG)}
 
 # unordered may improve performance of
 # parallel computation because items are
 # added whenever they are ready
-kd.iterables.make_unordered(
-    expensive_computation_1(),
-    expensive_computation_2(),
-    expensive_computation_3())
+>>> def expensive_computation(x):
+...   for i in range(1000):
+...     x += i
+...   return x
+>>>
+
+>>> kd.iterables.make_unordered(
+...     expensive_computation(1),
+...     expensive_computation(2),
+...     expensive_computation(3))
+ITERABLE[DATA_SLICE]{sequence(...DataItem(499501, schema: INT32)..., value_qtype=DATA_SLICE)}
+
 ```
 
 </section>
@@ -4111,21 +4146,20 @@ kd.iterables.make_unordered(
 
 ### Combine multiple Iterables
 
-```py
-i1 = kd.iterables.make(1, 2, 3, 4)
-i2 = kd.iterables.make(5, 6, 7, 8)
+```py {.pycon-doctest}
+>>> i1 = kd.iterables.make(1, 2, 3, 4)
+>>> i2 = kd.iterables.make(5, 6, 7, 8)
 
 # Chain Iterables with the provided order
-kd.iterables.chain(i1, i2)
-# Iterable[1, 2, 3, 4, 5, 6, 7, 8]
+>>> kd.iterables.chain(i1, i2)
+ITERABLE[DATA_SLICE]{sequence(DataItem(1, schema: INT32), DataItem(2, schema: INT32), DataItem(3, schema: INT32), DataItem(4, schema: INT32), DataItem(5, schema: INT32), DataItem(6, schema: INT32), DataItem(7, schema: INT32), DataItem(8, schema: INT32), value_qtype=DATA_SLICE)}
 
 # Interleave Iterables
 # the order within each iterable is preserved
 # the order of interleaving of different
 # iterables can be arbitrary
-kd.iterables.interleave(i1, i2)
-# (one possible order)
-# Iterable[1, 5, 6, 2, 3, 7, 8, 4]
+>>> kd.iterables.interleave(i1, i2)
+ITERABLE[DATA_SLICE]{sequence(..., value_qtype=DATA_SLICE)}
 ```
 
 </section>
@@ -4134,23 +4168,22 @@ kd.iterables.interleave(i1, i2)
 
 ### Transform Iterables
 
-```py
+```py {.pycon-doctest}
 # Apply fn over Iterable items
 # fn must return Iterables which are chained
-kd.functor.flat_map_chain(
-    kd.iterables.make(1, 10),
-    lambda x: kd.iterables.make(x, x * 2, x * 3),
-)
-# Iterable[1, 2, 3, 10, 20, 30]
+>>> kd.functor.flat_map_chain(
+...     kd.iterables.make(1, 10),
+...     lambda x: kd.iterables.make(x, x * 2, x * 3),
+... )
+ITERABLE[DATA_SLICE]{sequence(DataItem(1, schema: INT32), DataItem(2, schema: INT32), DataItem(3, schema: INT32), DataItem(10, schema: INT32), DataItem(20, schema: INT32), DataItem(30, schema: INT32), value_qtype=DATA_SLICE)}
 
 # Apply fn over Iterable items
 # fn must return Iterables which are interleaved
-kd.functor.flat_map_interleaved(
-    kd.iterables.make(1, 10),
-    lambda x: kd.iterables.make(x, x * 2, x * 3),
-)
-# (one possible order)
-# Iterable[10, 1, 2, 20, 3, 30]
+>>> kd.functor.flat_map_interleaved(
+...     kd.iterables.make(1, 10),
+...     lambda x: kd.iterables.make(x, x * 2, x * 3),
+... )
+ITERABLE[DATA_SLICE]{sequence(..., value_qtype=DATA_SLICE)}
 ```
 
 </section>
@@ -4159,35 +4192,34 @@ kd.functor.flat_map_interleaved(
 
 ### Reduce one Iterable into one DataSlice/DataBag
 
-```py
+```py {.pycon-doctest}
 # Concatenate DataSlices in an Iterable
 # using kd.concat(*dss, ndim)
 # For now, only DataSlices with ndim>0 are supported
-i = kd.iterables.make(kd.slice([1, 2, 3]),
-                      kd.slice([4, 5]))
+>>> i = kd.iterables.make(kd.slice([1, 2, 3]),
+...                       kd.slice([4, 5]))
 
-kd.iterables.reduce_concat(i,
-    initial_value=kd.slice([]))
-# DataSlice([1, 2, 3, 4, 5])
+>>> kd.iterables.reduce_concat(i, initial_value=kd.slice([]))
+DataSlice([1, 2, 3, 4, 5], schema: INT32, present: 5/5)
 
 # Merge DataBags in an Iterable
 # using kd.updated_bag(**bags)
-o = kd.obj(a=1)
-i = kd.iterables.make(kd.attrs(o, b=2),
-                      kd.attrs(o, a=20, c=3))
-merged_bag = kd.iterables.reduce_updated_bag(i,
-    initial_value=kd.attrs(o, a=10))
-o.updated(merged_bag)
-# Obj(a=20, b=2, c=3)
+>>> o = kd.obj(a=1)
+>>> i = kd.iterables.make(kd.attrs(o, b=2),
+...                       kd.attrs(o, a=20, c=3))
+>>> merged_bag = kd.iterables.reduce_updated_bag(i,
+...     initial_value=kd.attrs(o, a=10))
+>>> o.updated(merged_bag)
+DataItem(Obj(a=20, b=2, c=3), schema: OBJECT, bag_id:...)
 
 # Reduce by applying a functor cumulatively to
 # the items of an iterable similar to functools.reduce
-i = kd.iterables.make(kd.int32(2), kd.int32(3),
-                      kd.int32(5), kd.int32(7))
+>>> i = kd.iterables.make(kd.int32(2), kd.int32(3),
+...                       kd.int32(5), kd.int32(7))
 
-kd.functor.reduce(lambda a, b: a * b,
-                  i, initial_value=1)
-# DataItem(210)
+>>> kd.functor.reduce(lambda a, b: a * b,
+...                   i, initial_value=1)
+DataItem(210, schema: INT32)
 ```
 
 </section>
@@ -4207,33 +4239,31 @@ kd.functor.reduce(lambda a, b: a * b,
 -   `kd.if_` takes Koda functors as yes/no branches while `kd.cond` takes
     DataSlices.
 
-```py
-def p(a):
-  print(a)
-  return a
+```py {.pycon-doctest}
+>>> def p(a):
+...   print(a)
+...   return a
 
-f1 = kd.py_fn(p)
+>>> f1 = kd.py_fn(p)
 
 # kd.cond executes both branches
-kd.cond(kd.missing, f1(1), f1(2))
-# prints out
-# 1
-# 2
-# returns 2
+>>> kd.cond(kd.missing, f1(1), f1(2))
+1
+2
+DataItem(2, schema: INT32)
 
-def q(a):
-  a += 1
-  print(a)
-  return a
+>>> def q(a):
+...   a += 1
+...   print(a)
+...   return a
 
-f2 = kd.py_fn(q)
+>>> f2 = kd.py_fn(q)
 
 # kd.if_ executes only one branch
 # Note it takes functors rather DataSlices as inputs
-kd.if_(kd.missing, f1, f2, 1)
-# prints out
-# 2
-# returns 2
+>>> kd.if_(kd.missing, f1, f2, 1)
+2
+DataItem(2, schema: INT32)
 ```
 
 </section>
@@ -4242,53 +4272,53 @@ kd.if_(kd.missing, f1, f2, 1)
 
 Multiple conditions
 
-```py
+```py {.pycon-doctest}
 # Pure Python version
-def foo(ds, cond1, cond2, cond3):
-  if cond1:
-    return ds + 1
-  elif cond2:
-    return ds - 1
-  elif cond3:
-    return ds / 2
-  else:
-    return ds * 2
+>>> def foo(ds, cond1, cond2, cond3):
+...   if cond1:
+...     return ds + 1
+...   elif cond2:
+...     return ds - 1
+...   elif cond3:
+...     return ds / 2
+...   else:
+...     return ds * 2
 
 # kd.if_ version with lambdas
-def foo(ds, cond1, cond2, cond3):
-  return kd.if_(
-      cond1,
-      lambda x: x + 1,
-      lambda x: kd.if_(
-          cond2,
-          lambda x: x - 1,
-          lambda x: kd.if_(
-              cond3,
-              lambda x: x / 2,
-              lambda x: x * 2,
-              x),
-          x),
-      ds)
+>>> def foo(ds, cond1, cond2, cond3):
+...   return kd.if_(
+...       cond1,
+...       lambda x: x + 1,
+...       lambda x: kd.if_(
+...           cond2,
+...           lambda x: x - 1,
+...           lambda x: kd.if_(
+...               cond3,
+...               lambda x: x / 2,
+...               lambda x: x * 2,
+...               x),
+...           x),
+...       ds)
 
 # kd.if_ version using functions
 # Note the order of branches defined is reversed
-def foo(ds, cond1, cond2, cond3):
-  def branch3(x):
-    return kd.if_(cond3,
-                  lambda y: y / 2,
-                  lambda y: y * 2,
-                  x)
+>>> def foo(ds, cond1, cond2, cond3):
+...   def branch3(x):
+...     return kd.if_(cond3,
+...                   lambda y: y / 2,
+...                   lambda y: y * 2,
+...                   x)
 
-  def branch2(x):
-    return kd.if_(cond2,
-                  lambda y: y - 1,
-                  branch3,
-                  x)
+...   def branch2(x):
+...     return kd.if_(cond2,
+...                   lambda y: y - 1,
+...                   branch3,
+...                   x)
 
-  def branch1(x):
-    return x + 1
+...   def branch1(x):
+...     return x + 1
 
-  return kd.if_(cond1, branch1, branch2, ds)
+...   return kd.if_(cond1, branch1, branch2, ds)
 ```
 
 </section>
@@ -4301,27 +4331,29 @@ For more detailed usages, please refer to docstrings. Note that `kd.for_` takes
 an Iterable rather than a DataSlice as input. It iterates elements (i.e.
 DataSlice, DataBag) in the Iterable rather than items in the DataSlice.
 
-```py
-inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
+```py {.pycon-doctest}
+>>> inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
 
 # Python version
-def foo(iterable):
-  returns = 0
-  for i in iterable:
-    returns = i + returns
-  return returns
+>>> def foo(iterable):
+...   returns = 0
+...   for i in iterable:
+...     returns = i + returns
+...   return returns
 
-foo(inputs)
+>>> foo(inputs)
+DataSlice([4, 6], schema: INT32, present: 2/2)
 
 # Koda version
-def foo(iterable):
-  return kd.for_(
-      iterable,
-      lambda i, returns:
-          kd.namedtuple(returns=(i + returns)),
-      returns=0)
+>>> def foo(iterable):
+...   return kd.for_(
+...       iterable,
+...       lambda i, returns:
+...           kd.namedtuple(returns=(i + returns)),
+...       returns=0)
 
-foo(kd.iterables.make(*inputs))
+>>> foo(kd.iterables.make(*inputs))
+DataSlice([4, 6], schema: INT32, present: 2/2)
 ```
 
 </section>
@@ -4331,34 +4363,36 @@ iterable.
 
 <section>
 
-```py
-inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
+```py {.pycon-doctest}
+>>> inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
 
 # Python version
-def bar(iterable):
-  a = 0
-  b = 1
-  for i in iterable:
-    a = i + a
-    b = i * b
-  return a + b
+>>> def bar(iterable):
+...   a = 0
+...   b = 1
+...   for i in iterable:
+...     a = i + a
+...     b = i * b
+...   return a + b
 
-bar(inputs)
+>>> bar(inputs)
+DataSlice([7, 14], schema: INT32, present: 2/2)
 
 # Koda version
 # Note body_fn and finalize_fn return namedtuple
-def bar(iterable):
-  return kd.for_(
-      iterable,
-      lambda i, a, b, returns:
-          kd.namedtuple(a=(i + a), b=(i * b)),
-      finalize_fn=lambda a, b, returns:
-          kd.namedtuple(returns=(a + b)),
-      a=0,
-      b=1,
-      returns=0)
+>>> def bar(iterable):
+...   return kd.for_(
+...       iterable,
+...       lambda i, a, b, returns:
+...           kd.namedtuple(a=(i + a), b=(i * b)),
+...       finalize_fn=lambda a, b, returns:
+...           kd.namedtuple(returns=(a + b)),
+...       a=0,
+...       b=1,
+...       returns=0)
 
-bar(kd.iterables.make(*inputs))
+>>> bar(kd.iterables.make(*inputs))
+DataSlice([7, 14], schema: INT32, present: 2/2)
 ```
 
 </section>
@@ -4368,31 +4402,33 @@ bar(kd.iterables.make(*inputs))
 `condition_fn` can be used to stop the loop early. It must return a MASK
 DataItem.
 
-```py
-inputs = [kd.item(1), kd.item(2),
-          kd.item(3), kd.item(4)]
+```py {.pycon-doctest}
+>>> inputs = [kd.item(1), kd.item(2),
+...           kd.item(3), kd.item(4)]
 
 # Python version
-def baz(iterable):
-  returns = 0
-  for i in iterable:
-    if returns > 5:
-      break
-    returns = i + returns
-  return returns
+>>> def baz(iterable):
+...   returns = 0
+...   for i in iterable:
+...     if returns > 5:
+...       break
+...     returns = i + returns
+...   return returns
 
-baz(inputs)
+>>> baz(inputs)
+DataItem(6, schema: INT32)
 
 # Koda version
-def baz(iterable):
-  return kd.for_(
-      iterable,
-      lambda i, returns:
-          kd.namedtuple(returns=(i + returns)),
-      condition_fn=lambda returns: returns < 5,
-      returns=0)
+>>> def baz(iterable):
+...   return kd.for_(
+...       iterable,
+...       lambda i, returns:
+...           kd.namedtuple(returns=(i + returns)),
+...       condition_fn=lambda returns: returns < 5,
+...       returns=0)
 
-baz(kd.iterables.make(*inputs))
+>>> baz(kd.iterables.make(*inputs))
+DataItem(6, schema: INT32)
 ```
 
 </section>
@@ -4405,35 +4441,37 @@ can be done by returning `yields` or `yields_interleaved` in the namedtuple of
 the `body_fn`. When `yields_interleaved` is specified, the behavior is the same
 as `yields`, but the values are interleaved instead of chained.
 
-```py
-inputs = [kd.item(1), kd.item(2),
-          kd.item(3), kd.item(4)]
+```py {.pycon-doctest}
+>>> inputs = [kd.item(1), kd.item(2),
+...           kd.item(3), kd.item(4)]
 
 # Python version
-def baz(iterable):
-  res = kd.item(0)
-  for i in iterable:
-    if res > 5:
-      break
-    yield res
-    yield res + 1
-    res = i + res
+>>> def baz(iterable):
+...   res = kd.item(0)
+...   for i in iterable:
+...     if res > 5:
+...       break
+...     yield res
+...     yield res + 1
+...     res = i + res
 
-baz(inputs)
+>>> baz(inputs)
+<generator object baz at ...>
 
 # Koda version
-def baz(iterable):
-  return kd.for_(
-      iterable,
-      lambda i, res:
-          kd.namedtuple(
-              res=(i + res),
-              yields=kd.iterables.make(res, res + 1)),
-      condition_fn=lambda res: res < 5,
-      res=0,
-      yields=kd.iterables.make())
+>>> def baz(iterable):
+...   return kd.for_(
+...       iterable,
+...       lambda i, res:
+...           kd.namedtuple(
+...               res=(i + res),
+...               yields=kd.iterables.make(res, res + 1)),
+...       condition_fn=lambda res: res < 5,
+...       res=0,
+...       yields=kd.iterables.make())
 
-baz(kd.iterables.make(*inputs))
+>>> baz(kd.iterables.make(*inputs))
+ITERABLE[DATA_SLICE]{sequence(DataItem(0, schema: INT32), DataItem(1, schema: INT32), DataItem(1, schema: INT32), DataItem(2, schema: INT32), DataItem(3, schema: INT32), DataItem(4, schema: INT32), value_qtype=DATA_SLICE)}
 ```
 
 </section>
@@ -4444,31 +4482,33 @@ baz(kd.iterables.make(*inputs))
 
 For more detailed usages, please refer to docstrings.
 
-```py
-ds = kd.slice([5, 4, 6])
+```py {.pycon-doctest}
+>>> ds = kd.slice([5, 4, 6])
 
 # Python version
-def factorial(n):
-  returns = 1
-  while kd.any(n > 1):
-    returns = returns * n
-    n = kd.cond(n > 1, n - 1, n)
-  return returns
+>>> def factorial(n):
+...   returns = 1
+...   while kd.any(n > 1):
+...     returns = returns * n
+...     n = kd.cond(n > 1, n - 1, n)
+...   return returns
 
-factorial(ds)
+>>> factorial(ds)
+DataSlice([120, 24, 720], schema: INT32, present: 3/3)
 
 # Koda version
-def factorial(n):
-  return kd.while_(
-      lambda n, returns: kd.any(n > 1),
-      lambda n, returns: kd.namedtuple(
-          returns=returns * n,
-          n=kd.cond(n > 1, n - 1, n),
-      ),
-      n=n,
-      returns=1)
+>>> def factorial(n):
+...   return kd.while_(
+...       lambda n, returns: kd.any(n > 1),
+...       lambda n, returns: kd.namedtuple(
+...           returns=returns * n,
+...           n=kd.cond(n > 1, n - 1, n),
+...       ),
+...       n=n,
+...       returns=1)
 
-factorial(ds)
+>>> factorial(ds)
+DataSlice([120, 24, 720], schema: INT32, present: 3/3)
 ```
 
 </section>
@@ -4482,32 +4522,34 @@ namedtuple of the `body_fn`. When `yields_interleaved` is specified, the
 behavior is the same as `yields`, but the values are interleaved instead of
 chained.
 
-```py
-ds = kd.slice([5, 4, 6])
+```py {.pycon-doctest}
+>>> ds = kd.slice([5, 4, 6])
 
-def foo(n):
-  returns = 1
-  while kd.any(n > 1):
-    yield kd.select(n, n > 1)
-    n = kd.cond(n > 1, n - 1, n)
-  return returns
+>>> def foo(n):
+...   returns = 1
+...   while kd.any(n > 1):
+...     yield kd.select(n, n > 1)
+...     n = kd.cond(n > 1, n - 1, n)
+...   return returns
 
-foo(ds)
+>>> foo(ds)
+<generator object foo at ...>
 
 # Koda version
-def foo(n):
-  return kd.while_(
-      lambda n: kd.any(n > 1),
-      lambda n: kd.namedtuple(
-          n=kd.cond(n > 1, n - 1, n),
-          yields=kd.iterables.make(
-              kd.select(n, n > 1)
-          )
-      ),
-      n=n,
-      yields=kd.iterables.make())
+>>> def foo(n):
+...   return kd.while_(
+...       lambda n: kd.any(n > 1),
+...       lambda n: kd.namedtuple(
+...           n=kd.cond(n > 1, n - 1, n),
+...           yields=kd.iterables.make(
+...               kd.select(n, n > 1)
+...           )
+...       ),
+...       n=n,
+...       yields=kd.iterables.make())
 
-foo(ds)
+>>> foo(ds)
+ITERABLE[DATA_SLICE]{sequence(DataSlice([5, 4, 6], schema: INT32, present: 3/3), DataSlice([4, 3, 5], schema: INT32, present: 3/3), DataSlice([3, 2, 4], schema: INT32, present: 3/3), DataSlice([2, 3], schema: INT32, present: 2/2), DataSlice([2], schema: INT32, present: 1/1), value_qtype=DATA_SLICE)}
 ```
 
 </section>
@@ -4520,53 +4562,57 @@ foo(ds)
 
 Normally, Koda functor evaluation is single-threaded:
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def f1(x):
-  print('Start f1')
-  time.sleep(0.1)
-  print('Finish f1')
-  return x + 1
+```py {.pycon-doctest}
+>>> import time
 
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def f2(x):
-  print('Start f2')
-  time.sleep(0.2)
-  print('Finish f2')
-  return x + 2
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def f1(x):
+...   time.sleep(0.1)
+...   print('Start f1')
+...   time.sleep(0.5)
+...   print('Finish f1')
+...   return x + 1
 
-def f(x):
-  return f1(x) + f2(x)
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def f2(x):
+...   time.sleep(0.2)
+...   print('Start f2')
+...   time.sleep(0.5)
+...   print('Finish f2')
+...   return x + 2
 
-kd.fn(f)(5)
-# prints:
-# Start f1
-# Finish f1
-# Start f2
-# Finish f2
+>>> def f(x):
+...   return f1(x) + f2(x)
+
+>>> kd.fn(f)(5)
+Start f1
+Finish f1
+Start f2
+Finish f2
+DataItem(13, schema: INT32)
 ```
 
 However, `kd.parallel.call_multithreaded` allows to evaluate independent parts
 of the computation `in parallel`:
 
-```py
-kd.parallel.call_multithreaded(f, 5)
-# The above is the same as
-# kd.parallel.call_multithreaded(kd.fn(f), 5)
-# Start f1
-# Start f2
-# Finish f1
-# Finish f2
+```py {.pycon-doctest}
+>>> kd.parallel.call_multithreaded(f, 5)
+Start f1
+Start f2
+Finish f1
+Finish f2
+DataItem(13, schema: INT32)
 ```
 
 We can control the maximum number of threads:
 
-```py
-kd.parallel.call_multithreaded(f, 5, max_threads=1)
-# Start f1
-# Finish f1
-# Start f2
-# Finish f2
+```py {.pycon-doctest}
+>>> kd.parallel.call_multithreaded(f, 5, max_threads=1)
+Start f1
+Finish f1
+Start f2
+Finish f2
+DataItem(13, schema: INT32)
 ```
 
 </section>
@@ -4581,18 +4627,20 @@ variables will be those nodes that are annotated with `kd.with_name`. This
 allows to balance the level of parallelism against to the overhead of starting a
 new parallel task for each simple operation.
 
-```py
+```py {.pycon-doctest}
 # No parallel execution, everything is serial.
-kd.parallel.call_multithreaded(
-  lambda x, y: x ** 2 + y ** 2,
-  x=1, y=2)
+>>> kd.parallel.call_multithreaded(
+...   lambda x, y: x ** 2 + y ** 2,
+...   x=1, y=2)
+DataItem(5.0, schema: FLOAT32)
 
 # x ** 2 and y ** 2 are computed in parallel.
-kd.parallel.call_multithreaded(
-  lambda x, y:
-      kd.with_name(x ** 2, 'a')
-      + kd.with_name(y ** 2, 'b'),
-  x=1, y=2)
+>>> kd.parallel.call_multithreaded(
+...   lambda x, y:
+...       kd.with_name(x ** 2, 'a')
+...       + kd.with_name(y ** 2, 'b'),
+...   x=1, y=2)
+DataItem(5.0, schema: FLOAT32)
 ```
 
 If a functor calls another functor, then inside the parallel evaluation we
@@ -4604,10 +4652,10 @@ evaluate all inputs to such call in parallel, then evaluate the sub-functor (in
 parallel to any other variables that might be evaluated), and then evaluate the
 part of the computation that uses the result of the sub-functor.
 
-```py
-@kd.trace_as_fn()
-def f(x, y):
-  return x + y
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn()
+... def f(x, y):
+...   return x + y
 
 # In the call below, first we evaluate x**2, y**2,
 # x**3, y**3 in parallel. As soon as either both
@@ -4615,10 +4663,11 @@ def f(x, y):
 # finish, we start evaluating the corresponding
 # f() sub-functor call, and when both of those are
 # ready we add them up to produce final result.
-kd.parallel.call_multithreaded(
-  lambda x, y:
-      f(x ** 2, y ** 2) + f(x ** 3, y ** 3),
-  x=1, y=2)
+>>> kd.parallel.call_multithreaded(
+...   lambda x, y:
+...       f(x ** 2, y ** 2) + f(x ** 3, y ** 3),
+...   x=1, y=2)
+DataItem(14.0, schema: FLOAT32)
 ```
 
 Note that without the `@kd.trace_as_fn()` annotation on `f(x, y)` everything
@@ -4631,22 +4680,24 @@ variables inside the sub-functor will be evaluated in parallel, and that
 sub-functor calls themselves can be parallelized when one does not depend on the
 result of the other.
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def process(x):
-  print('Start', x)
-  time.sleep(0.1)
-  print('Finish', x)
-  return x + 1
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def process(x):
+...   time.sleep(0.1 * x.to_py())
+...   print('Start', x)
+...   time.sleep(0.5)
+...   print('Finish', x)
+...   return x + 1
 
-kd.parallel.call_multithreaded(
-    lambda x: kd.map(process, x), kd.range(3))
-# Start 0
-# Start 1
-# Start 2
-# Finish 0
-# Finish 1
-# Finish 2
+>>> kd.parallel.call_multithreaded(
+...     lambda x: kd.map(process, x), kd.range(3))
+Start 0
+Start 1
+Start 2
+Finish 0
+Finish 1
+Finish 2
+DataSlice([1, 2, 3], schema: INT64, present: 3/3)
 ```
 
 </section>
@@ -4661,72 +4712,76 @@ the corresponding tasks will all be evaluated in parallel in
 depends only on some of the inputs, it may start evaluating even before all
 inputs to the sub-functor call are ready.
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def step(x, msg, pause):
-  print('Start', msg)
-  time.sleep(pause.to_py())
-  print('Finish', msg)
-  return x + 1
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def step(x, msg, pause):
+...   time.sleep(pause.to_py() * 0.1)
+...   print('Start', msg)
+...   time.sleep(pause.to_py() * 0.5)
+...   print('Finish', msg)
+...   return x + 1
 
-@kd.trace_as_fn()
-def f(x, y):
-  return (
-      step(x, 'inner1', 0.1)
-      + step(y, 'inner2', 0.1))
+>>> @kd.trace_as_fn()
+... def f(x, y):
+...   return (
+...       step(x, 'inner1', 0.1)
+...       + step(y, 'inner2', 0.1))
 
-@kd.trace_as_fn()
-def g():
-  return f(
-      step(1, 'outer1', 0.1),
-      step(1, 'outer2', 0.3))
+>>> @kd.trace_as_fn()
+... def g():
+...   return f(
+...       step(1, 'outer1', 0.1),
+...       step(1, 'outer2', 0.3))
 
-kd.parallel.call_multithreaded(g)
-# Start outer1
-# Start outer2
-# Finish outer1
-# Start inner1
-# Finish inner1
-# Finish outer2
-# Start inner2
-# Finish inner2
+>>> kd.parallel.call_multithreaded(g)
+Start outer1
+Start outer2
+Finish outer1
+Start inner1
+Finish inner1
+Finish outer2
+Start inner2
+Finish inner2
+DataItem(6, schema: INT32)
 ```
 
 Similarly, if a sub-functor returns a tuple/namedtuple, the parts of the outside
 computation that use only one field of that tuple/namedtuple can start
 evaluation even before the entire tuple is completed:
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def step(x, msg, pause):
-  print('Start', msg)
-  time.sleep(pause.to_py())
-  print('Finish', msg)
-  return x + 1
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def step(x, msg, pause):
+...   time.sleep(pause.to_py())
+...   print('Start', msg)
+...   time.sleep(pause.to_py()*5)
+...   print('Finish', msg)
+...   return x + 1
 
-@kd.trace_as_fn(return_type_as=(
-    kd.types.DataSlice, kd.types.DataSlice))
-def f(x):
-  return (
-      step(x, 'inner1', 0.1),
-      step(x, 'inner2', 0.3))
+>>> @kd.trace_as_fn(return_type_as=(
+...     kd.types.DataSlice, kd.types.DataSlice))
+... def f(x):
+...   return (
+...       step(x, 'inner1', 0.1),
+...       step(x, 'inner2', 0.3))
 
-@kd.trace_as_fn()
-def g():
-  inner = f(1)
-  return (
-      step(inner[0], 'outer1', 0.1)
-      + step(inner[1], 'outer2', 0.1))
+>>> @kd.trace_as_fn()
+... def g():
+...   inner = f(1)
+...   return (
+...       step(inner[0], 'outer1', 0.1)
+...       + step(inner[1], 'outer2', 0.1))
 
-kd.parallel.call_multithreaded(g)
-# Start inner1
-# Start inner2
-# Finish inner1
-# Start outer1
-# Finish outer1
-# Finish inner2
-# Start outer2
-# Finish outer2
+>>> kd.parallel.call_multithreaded(g)
+Start inner1
+Start inner2
+Finish inner1
+Start outer1
+Finish outer1
+Finish inner2
+Start outer2
+Finish outer2
+DataItem(6, schema: INT32)
 ```
 
 </section>
@@ -4769,78 +4824,78 @@ using `kd.parallel.call_multithreaded`. In other words the subsequent processing
 of an iterable item may start even before the next item(s) have been computed
 for the same iterable, for example:
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def step(x):
-  print('Start', x)
-  time.sleep(0.1 * x.to_py())
-  print('Finish', x)
-  return x + 10
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def step(x):
+...   time.sleep(0.1 * x.to_py())
+...   print('Start', x)
+...   time.sleep(0.5 * x.to_py())
+...   print('Finish', x)
+...   return x + 10
 
+>>> def f():
+...   base = kd.iterables.make(1, 2, 3)
+...   first = kd.for_(
+...       base,
+...       lambda x: kd.namedtuple(
+...           yields=kd.iterables.make(step(x))),
+...       yields=kd.iterables.make())
+...   second = kd.for_(
+...       first,
+...       lambda x: kd.namedtuple(
+...           yields=kd.iterables.make(step(x))),
+...       yields=kd.iterables.make())
+...   return kd.functor.reduce(
+...       lambda x, y: x + y, second, initial_value=0)
 
-def f():
-  base = kd.iterables.make(1, 2, 3)
-  first = kd.for_(
-      base,
-      lambda x: kd.namedtuple(
-          yields=kd.iterables.make(step(x))),
-      yields=kd.iterables.make())
-  second = kd.for_(
-      first,
-      lambda x: kd.namedtuple(
-          yields=kd.iterables.make(step(x))),
-      yields=kd.iterables.make())
-  return kd.functor.reduce(
-      lambda x, y: x + y, second, initial_value=0)
-
-kd.parallel.call_multithreaded(f)
-# Start 1
-# Start 3
-# Start 2
-# Finish 1
-# Start 11
-# Finish 2
-# Start 12
-# Finish 3
-# Start 13
-# Finish 11
-# Finish 12
-# Finish 13
+>>> kd.parallel.call_multithreaded(f)
+Start 1
+Start 2
+Start 3
+Finish 1
+Finish 2
+Start 11
+Finish 3
+Start 12
+Start 13
+Finish 11
+Finish 12
+Finish 13
+DataItem(66, schema: INT32)
 ```
 
 If your entire computation returns an iterable, then you need to use
 `kd.parallel.yield_multithreaded` instead which allows you to get the results as
 a Python iterator:
 
-```py
-@kd.trace_as_fn(functor_factory=kd.py_fn)
-def step(x):
-  print('Start', x)
-  time.sleep(0.1 * x.to_py())
-  print('Finish', x)
-  return x + 10
+```py {.pycon-doctest}
+>>> @kd.trace_as_fn(functor_factory=kd.py_fn)
+... def step(x):
+...   time.sleep(0.1 * x.to_py())
+...   print('Start', x)
+...   time.sleep(0.5 * x.to_py())
+...   print('Finish', x)
+...   return x + 10
 
+>>> def f():
+...   base = kd.iterables.make(1, 2, 3)
+...   return kd.for_(
+...       base,
+...       lambda x: kd.namedtuple(
+...           yields=kd.iterables.make(step(x))),
+...       yields=kd.iterables.make())
 
-def f():
-  base = kd.iterables.make(1, 2, 3)
-  return kd.for_(
-      base,
-      lambda x: kd.namedtuple(
-          yields=kd.iterables.make(step(x))),
-      yields=kd.iterables.make())
-
-for item in kd.parallel.yield_multithreaded(f):
-  print('Got', item)
-
-# Start 1
-# Start 2
-# Start 3
-# Finish 1
-# Got 11
-# Finish 2
-# Got 12
-# Finish 3
-# Got 13
+>>> for item in kd.parallel.yield_multithreaded(f):
+...   print('Got', item)
+Start 1
+Start 2
+Start 3
+Finish 1
+Got 11
+Finish 2
+Got 12
+Finish 3
+Got 13
 ```
 
 </section>
@@ -4858,52 +4913,61 @@ productionalization.
 
 ### Creating Mutable Entities/Objects/Lists/Dicts from a DataBag
 
-```py
-db = kd.mutable_bag()
+```py {.pycon-doctest}
+>>> db = kd.mutable_bag()
 
-# Create a mutable entity and
-# modify its attributes
-e = db.new(x=1, y=2)
-e.x = 3
-e.z = 'a'
+# Create a mutable entity and modify its attributes
+>>> e = db.new(x=1, y=2)
+>>> e.x = 3
+>>> e.z = 'a'
+
 # immutable version e.with_attrs(y=None)
-e.y = None  # Entity(x=3, y=None, z='a')
-# same as 'e.y = None' if 'y' already exists,
-# no-op otherwise
-del e.y  # Entity(x=3, y=None, z='a')
+>>> e.y = None; e
+DataItem(Entity(x=3, z='a'), schema: ENTITY(x=INT32, y=INT32, z=STRING), bag_id:...)
 
-# Create a mutable object and
-# modify its attributes
-o = db.obj(x=1, y=2)
-o.x = 'a'
-o.z = 3
+# same as 'e.z = None' if 'z' already exists, no-op otherwise
+>>> del e.z; e
+DataItem(Entity(x=3), schema: ENTITY(x=INT32, y=INT32, z=STRING), bag_id:...)
+
+# Create a mutable object and modify its attributes
+>>> o = db.obj(x=1, y=2)
+>>> o.x = 'a'
+>>> o.z = 3
+
 # immutable version o.with_attrs(y=None).
-o.y = None  # Obj(x=3, y=None, z='a')
+>>> o.y = None; o
+DataItem(Obj(x='a', y=None, z=3), schema: OBJECT, bag_id:...)
+
 # remove both the attribute and its schema
-del o.y  # Obj(x=3, z='a')
+>>> del o.z; o
+DataItem(Obj(x='a', y=None), schema: OBJECT, bag_id:...)
 
 # Create a mutable list and
 # modify its items
-l = db.list([1, 2, 3])
-l[1] = 20
-l.append(4)
-l.append(kd.slice([5, 6]))
-l[2] = None  # List[1, 20, None, 4, 5, 6]
-del l[:4]  # List[5, 6]
+>>> l = db.list([1, 2, 3])
+>>> l[1] = 20
+>>> l.append(4)
+>>> l.append(kd.slice([5, 6]))
+>>> l[2] = None; l
+DataItem(List[1, 20, None, 4, 5, 6], schema: LIST[INT32], bag_id:...)
 
-# Create a mutable dict and
-# modify its entries
-d = db.dict({'a': 1, 'b': 2})
-d['a'] = 20
-d['c'] = 30
-d['a'] = None  # Dict{'c'=30, 'b'=2}
-del d['a']  # same as above
+>>> del l[:4]; l
+DataItem(List[5, 6], schema: LIST[INT32], bag_id:...)
+
+# Create a mutable dict and modify its entries
+>>> d = db.dict({'a': 1, 'b': 2})
+>>> d['a'] = 20
+>>> d['c'] = 30
+>>> d['a'] = None
+>>> del d['b'];  # same as above
+>>> d[kd.slice(['a', 'b', 'c'])]
+DataSlice([None, None, 30], schema: INT32, present: 1/3, bag_id:...)
+
 
 # Other APIs works similarly
-db.new_like(...)
-db.new_shaped(...)
-db.new_shaped_as(...)
-db.implode(ds)
+>>> _ = db.new_like(e)
+>>> _ = db.new_shaped(e.get_shape())
+>>> _ = db.implode(kd.slice([1, 2, 3]))
 ```
 
 </section>
@@ -4916,28 +4980,32 @@ An immutable DataBag can be forked to create a mutable DataBag at a cost of
 `O(1)`. Similarly, a mutable DataBag can be frozen to create an immutable
 DataBag at a cost of `O(1)`.
 
-```py
-e = kd.new(x=1, y=2)
-e1 = e.fork_bag()
-e1.x = 3
-e2 = e1.fork_bag()
-e2.x = 4
-e.x # 1
-e1.x # 3
-e2.x # 4
+```py {.pycon-doctest}
+>>> e = kd.new(x=1, y=2)
+>>> e1 = e.fork_bag()
+>>> e1.x = 3
+>>> e2 = e1.fork_bag()
+>>> e2.x = 4
+>>> e.x
+DataItem(1, schema: INT32, bag_id: ...)
+>>> e1.x
+DataItem(3, schema: INT32, bag_id: ...)
+>>> e2.x
+DataItem(4, schema: INT32, bag_id: ...)
 
-o = db.new(x=1, y=2)
-o1 = o.fork_bag()
-o1.x = 'a'
-o2 = o1.freeze_bag() # o2 is immutable
+>>> o = db.new(x=1, y=2)
+>>> o1 = o.fork_bag()
 
-l = db.list([1, 2, 3])
-l1 = l.fork_bag()
-l1.append(4)
+>>> o2 = o1.freeze_bag()
+>>> assert not o2.get_bag().is_mutable()
 
-d = db.dict({'a': 1, 'b': 2})
-d1 = d.fork_bag()
-d['a'] = 20
+>>> l = db.list([1, 2, 3])
+>>> l1 = l.fork_bag()
+>>> l1.append(4)
+
+>>> d = db.dict({'a': 1, 'b': 2})
+>>> d1 = d.fork_bag()
+>>> d['a'] = 20
 ```
 
 </section>
@@ -4946,32 +5014,39 @@ d['a'] = 20
 
 ### Moving Data from a DataSlice/DataBag to Another DataBag
 
-```py
-db1 = kd.mutable_bag()
-db2 = kd.mutable_bag()
+```py {.pycon-doctest}
+>>> db1 = kd.mutable_bag()
+>>> db2 = kd.mutable_bag()
 
-o1 = db1.new(x=1)
+>>> o1 = db1.new(x=1)
 
-o23 = db2.new(x=kd.slice([2, 3]))
-o4 = db2.new(x=4)
+>>> o23 = db2.new(x=kd.slice([2, 3]))
+>>> o4 = db2.new(x=4)
 
 # Move entire db2 to db1
-db1.merge_inplace(db2)
+>>> db1.merge_inplace(db2)
+DataBag ...:
+...
 
 # Move o1 into db1
-o1_in_db1 = db1.adopt(o1)
+>>> o1_in_db1 = db1.adopt(o1)
+
 # Equivalent to the below
-db1.merge_inplace(o1.extract())
-o1_in_db1 = o1.with_bag(db1)
+>>> db1.merge_inplace(o1.get_bag())
+DataBag ...:
+...
+
+>>> o1_in_db1 = o1.with_bag(db1)
 
 # Adopt avoids multiple extractions
 # The code below has two extractions
-o5 = db1.obj(y=o1)
-o6 = db1.obj(y=o1)
+>>> o5 = db1.obj(y=o1)
+>>> o6 = db1.obj(y=o1)
+
 # The code below has one extraction
-o1_in_db1 = db1.adopt(o1)
-o5 = db1.obj(y=o1_in_db1)
-o6 = db1.obj(y=o1_in_db1)
+>>> o1_in_db1 = db1.adopt(o1)
+>>> o5 = db1.obj(y=o1_in_db1)
+>>> o6 = db1.obj(y=o1_in_db1)
 ```
 
 </section>
@@ -4982,41 +5057,63 @@ o6 = db1.obj(y=o1_in_db1)
 
 ### kd.testing.assert_equal
 
-```py
+```py {.pycon-doctest}
 # Primitive DataSlices
-ds1 = kd.slice([1, 2, 3])
-ds2 = kd.slice([1, 2, 3])
-kd.testing.assert_equal(ds1, ds2)
+>>> ds1 = kd.slice([1, 2, 3])
+>>> ds2 = kd.slice([1, 2, 3])
+>>> kd.testing.assert_equal(ds1, ds2)
 
 # Mixed primitive DataSlices
-ds3 = kd.slice([1, 2., '3'])
-ds4 = kd.slice([1, 2., '3'])
-kd.testing.assert_equal(ds3, ds4)
+>>> ds3 = kd.slice([1, 2., '3'])
+>>> ds4 = kd.slice([1, 2., '3'])
+>>> kd.testing.assert_equal(ds3, ds4)
 
 # It compares schemas too for DataSlices
-ds5 = kd.slice([1, 2, 3])
-ds6 = kd.slice([1, 2, 3], kd.INT64)
-kd.testing.assert_equal(ds5, ds6) # Fail
-kd.testing.assert_equal(ds5, kd.int32(ds6))
+>>> ds5 = kd.slice([1, 2, 3])
+>>> ds6 = kd.slice([1, 2, 3], kd.INT64)
+>>> kd.testing.assert_equal(ds5, ds6)
+Traceback (most recent call last):
+...
+AssertionError: DataSlices are not equal by fingerprint:
+...
+
+>>> kd.testing.assert_equal(ds5, kd.int32(ds6))
 
 # It compares DataBags too for DataSlices
-ds7 = kd.uuobj(x=1)
-ds8 = kd.uuobj(x=1)
-kd.testing.assert_equal(ds7, ds8) # Fail
-kd.testing.assert_equal(ds7.no_bag(), ds8.no_bag())
+>>> ds7 = kd.uuobj(x=1)
+>>> ds8 = kd.uuobj(x=1)
+>>> kd.testing.assert_equal(ds7, ds8)
+Traceback (most recent call last):
+...
+AssertionError: DataSlices are not equal by fingerprint:
+...
+
+>>> kd.testing.assert_equal(ds7.no_bag(), ds8.no_bag())
 
 # It works for JaggedShapes
-kd.testing.assert_equal(ds1.get_shape(),
-                        ds2.get_shape())
-kd.testing.assert_equal(ds1.get_shape(),
-                        ds8.get_shape()) # Fail
+>>> kd.testing.assert_equal(ds1.get_shape(),
+...                         ds2.get_shape())
+>>> kd.testing.assert_equal(ds1.get_shape(),
+...                         ds8.get_shape())
+Traceback (most recent call last):
+...
+AssertionError: QValues not equal by fingerprint:
+...
+  actual:
+    JaggedShape(3)
+  expected:
+    JaggedShape()
 
-# It works for DataBags and it checks DataBags
-# are the same instance
-db1 = kd.bag()
-db2 = kd.bag()
-kd.testing.assert_equal(db1, db2) # Fail
-kd.testing.assert_equal(db1, db1)
+# It works for DataBags and it checks DataBags are the same instance
+>>> db1 = kd.bag()
+>>> db2 = kd.bag()
+>>> kd.testing.assert_equal(db1, db2)
+Traceback (most recent call last):
+...
+AssertionError: QValues not equal by fingerprint:
+...
+
+>>> kd.testing.assert_equal(db1, db1)
 ```
 
 </section>
@@ -5025,24 +5122,24 @@ kd.testing.assert_equal(db1, db1)
 
 ### kd.testing.assert_equivalent
 
-```py
+```py {.pycon-doctest}
 # Different from assert_equal, it recursively checks that DataSlices content is
 # equivalent instead of the same instance
-ds1 = kd.uuobj(x=1)
-ds2 = kd.uuobj(x=1)
-kd.testing.assert_equivalent(ds1, ds2)
+>>> ds1 = kd.uuobj(x=1)
+>>> ds2 = kd.uuobj(x=1)
+>>> kd.testing.assert_equivalent(ds1, ds2)
 
-ds3 = kd.uuobj(x=kd.slice([1, 2]))
-# Fail as ds3.get_bag() has more contents than ds1.get_bag()
-kd.testing.assert_equivalent(ds1, ds3.S[0])
+>>> ds3 = kd.uuobj(x=kd.slice([1, 2]))
+
+>>> kd.testing.assert_equivalent(ds1, ds3.S[0])
 
 # It works for DataBags too, it checks that DataBags have the same content and
 # their fallbacks have the same content respectively.
-kd.testing.assert_equivalent(ds1.get_bag(),
-                             ds2.get_bag())
+>>> kd.testing.assert_equivalent(ds1.get_bag(),
+...                              ds2.get_bag())
 
 # DataBag comparison is tricky so it is not
-# recommended to compare their contents directly
+# recommended to compare their contents directly.
 ```
 
 </section>
@@ -5053,22 +5150,31 @@ kd.testing.assert_equivalent(ds1.get_bag(),
 
 It works similar to `numpy.testing.assert_allclose`.
 
-```py
-ds1 = kd.slice([2.71, 2.71])
-ds2 = kd.slice([2.7100, 2.710])
+```py {.pycon-doctest}
+>>> ds1 = kd.slice([2.71, 2.71])
+>>> ds2 = kd.slice([2.7100, 2.710])
 
-kd.testing.assert_allclose(ds1, ds2)
+>>> kd.testing.assert_allclose(ds1, ds2)
 
-ds3 = kd.float32(3.145678)
-ds4 = kd.float32(3.144)
+>>> ds3 = kd.float32(3.145678)
+>>> ds4 = kd.float32(3.144)
 
-kd.testing.assert_allclose(ds3, ds4) # Fail
-kd.testing.assert_allclose(ds3, ds4, atol=0.01)
-kd.testing.assert_allclose(ds3, ds4, rtol=0.01)
+>>> kd.testing.assert_allclose(ds3, ds4)
+Traceback (most recent call last):
+...
+AssertionError: the values are not close up to the given tolerance:
+...
 
-# Note it compares schemas too
-ds5 = kd.float64(3.145678)
-kd.testing.assert_allclose(ds3, ds5) # Fail
+>>> kd.testing.assert_allclose(ds3, ds4, atol=0.01)
+>>> kd.testing.assert_allclose(ds3, ds4, rtol=0.01)
+
+>>> # Note it compares schemas too
+>>> ds5 = kd.float64(3.145678)
+>>> kd.testing.assert_allclose(ds3, ds5)
+Traceback (most recent call last):
+...
+AssertionError: DataItem(3.145678, schema: FLOAT32) and DataItem(3.145678, schema: FLOAT64) have different schemas
+...
 ```
 
 </section>
@@ -5077,20 +5183,23 @@ kd.testing.assert_allclose(ds3, ds5) # Fail
 
 ### kd.testing.assert_unordered_equal
 
-```py
-ds1 = kd.slice([1, 2., '3'])
-ds2 = kd.slice(['3', 2., 1])
+```py {.pycon-doctest}
+>>> ds1 = kd.slice([1, 2., '3'])
+>>> ds2 = kd.slice(['3', 2., 1])
 
-kd.testing.assert_unordered_equal(ds1, ds2)
+>>> kd.testing.assert_unordered_equal(ds1, ds2)
 
-# Ignore the order of items in the last dimension
-ds3 = kd.slice([[1, 2], [None, 3]])
-ds4 = kd.slice([[2, 1], [3, None]])
-kd.testing.assert_unordered_equal(ds3, ds4)
+>>> # Ignore the order of items in the last dimension
+>>> ds3 = kd.slice([[1, 2], [None, 3]])
+>>> ds4 = kd.slice([[2, 1], [3, None]])
+>>> kd.testing.assert_unordered_equal(ds3, ds4)
 
-ds5 = kd.slice([[1, 3], [None, 2]])
-ds6 = kd.slice([[2, 1], [3, None]])
-kd.testing.assert_unordered_equal(ds5, ds6) # Fail
+>>> ds5 = kd.slice([[1, 3], [None, 2]])
+>>> ds6 = kd.slice([[2, 1], [3, None]])
+>>> kd.testing.assert_unordered_equal(ds5, ds6)
+Traceback (most recent call last):
+...
+AssertionError: Unordered DataSlice DataSlice([[1, 3], [None, 2]], schema: INT32, present: 3/4, shape: JaggedShape(2, 2)) != DataSlice([[2, 1], [3, None]], schema: INT32, present: 3/4, shape: JaggedShape(2, 2))
 ```
 
 </section>
@@ -5104,25 +5213,34 @@ the same shape and schema, and that the corresponding values are equivalent.
 Notably, it does not require the lists themselves to have the same ItemIds - it
 is an assertion about their contents and not about their identities.
 
-```py
-l1 = kd.list([1, 2, 3])
-l2 = kd.list([1, 2, 3])
-kd.testing.assert_equivalent(l1, l2)
+```py {.pycon-doctest}
+>>> l1 = kd.list([1, 2, 3])
+>>> l2 = kd.list([1, 2, 3])
+>>> kd.testing.assert_equivalent(l1, l2)
 
-l3 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
-l4 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
-kd.testing.assert_equivalent(l3, l4)
+>>> l3 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
+>>> l4 = kd.list([kd.uuobj(x=1), kd.uuobj(x=2)])
+>>> kd.testing.assert_equivalent(l3, l4)
 
-l5 = kd.list([kd.obj(x=1), kd.obj(x=2)])
-l6 = kd.list([kd.obj(x=1), kd.obj(x=3)])
-kd.testing.assert_equivalent(l5, l6) # Fail
+>>> l5 = kd.list([kd.obj(x=1), kd.obj(x=2)])
+>>> l6 = kd.list([kd.obj(x=1), kd.obj(x=3)])
+>>> kd.testing.assert_equivalent(l5, l6)
+Traceback (most recent call last):
+...
+AssertionError: Expected: is equal to DataItem(List[...], schema: LIST[OBJECT])
+Actual: DataItem(List[...], schema: LIST[OBJECT]), with difference:
+modified:
+expected[1].x:
+DataItem(3, schema: INT32)
+-> actual[1].x:
+DataItem(2, schema: INT32)
 
 # Nested lists
-l7 = kd.list([[1, 2, 3],
-              [kd.uuobj(x=1), kd.uuobj(x=2)]])
-l8 = kd.list([[1, 2, 3],
-              [kd.uuobj(x=1), kd.uuobj(x=2)]])
-kd.testing.assert_equivalent(l7, l8)
+>>> l7 = kd.list([[1, 2, 3],
+...               [kd.uuobj(x=1), kd.uuobj(x=2)]])
+>>> l8 = kd.list([[1, 2, 3],
+...               [kd.uuobj(x=1), kd.uuobj(x=2)]])
+>>> kd.testing.assert_equivalent(l7, l8)
 ```
 
 </section>
@@ -5136,24 +5254,33 @@ shape and schema. In addition, it verifies that the keys fetched from their
 corresponding DataBag(s) are the same (regardless of their order in the last
 dimension) and that the returned Dict values for those keys are equivalent.
 
-```py
-d1 = kd.dict({'a': 1, 'b': 2})
-d2 = kd.dict({'a': 1, 'b': 2})
-kd.testing.assert_equivalent(d1, d2)
+```py {.pycon-doctest}
+>>> d1 = kd.dict({'a': 1, 'b': 2})
+>>> d2 = kd.dict({'a': 1, 'b': 2})
+>>> kd.testing.assert_equivalent(d1, d2)
 
-d3 = kd.dict({'a': kd.uuobj(x=1)})
-d4 = kd.dict({'a': kd.uuobj(x=1)})
-kd.testing.assert_equivalent(d3, d4)
+>>> d3 = kd.dict({'a': kd.uuobj(x=1)})
+>>> d4 = kd.dict({'a': kd.uuobj(x=1)})
+>>> kd.testing.assert_equivalent(d3, d4)
 
-d5 = kd.dict({'a': kd.obj(x=1)})
-d6 = kd.dict({'a': kd.obj(x=2)})
-kd.testing.assert_equivalent(d5, d6) # Fail
+>>> d5 = kd.dict({'a': kd.obj(x=1)})
+>>> d6 = kd.dict({'a': kd.obj(x=2)})
+>>> kd.testing.assert_equivalent(d5, d6)
+Traceback (most recent call last):
+...
+AssertionError: Expected: is equal to DataItem(Dict{'a'=...}, schema: DICT{STRING, OBJECT})
+Actual: DataItem(Dict{'a'=...}, schema: DICT{STRING, OBJECT}), with difference:
+modified:
+expected['a'].x:
+DataItem(2, schema: INT32)
+-> actual['a'].x:
+DataItem(1, schema: INT32)
 
 # Only check keys/values
-kd.testing.assert_dicts_keys_equal(
-  d1, kd.slice(['b', 'a']))  # Order does not matter
-kd.testing.assert_dicts_values_equal(
-  d1, kd.slice([2, 1]))  # The values and their counts matter. Order does not
+>>> kd.testing.assert_dicts_keys_equal(
+...   d1, kd.slice(['b', 'a']))  # Order does not matter
+>>> kd.testing.assert_dicts_values_equal(
+...   d1, kd.slice([2, 1]))  # The values and their counts matter. Order does not
 ```
 
 </section>
@@ -5170,20 +5297,23 @@ print out a nice error message to explain which sub-parts are different. To get
 a better error message, the current recommendation is to convert to pytrees and
 use Python comparison assertions.
 
-```py
-i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
-                     d=kd.list([2, 3]),
-                     e=kd.dict({'f': 4})))
-i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
-                     d=kd.list([2, 3]),
-                     e=kd.dict({'f': 4})))
+```py {.pycon-doctest}
+>>> i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+...                      d=kd.list([2, 3]),
+...                      e=kd.dict({'f': 4})))
+>>> i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+...                      d=kd.list([2, 3]),
+...                      e=kd.dict({'f': 4})))
 
-assert i1 != i2
-assert kd.deep_uuid(i1) == kd.deep_uuid(i2)
+>>> assert i1 != i2
 
 # To get better error message, do this in unit tests
-self.assertEqual(i1.to_pytree(max_depth=-1),
-                 i2.to_pytree(max_depth=-1))
+>>> class MockSelf:
+...   def assertEqual(self, a, b):
+...     assert a == b
+>>> self = MockSelf()
+>>> self.assertEqual(i1.to_pytree(max_depth=-1),
+...                  i2.to_pytree(max_depth=-1))
 ```
 
 </section>
