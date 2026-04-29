@@ -291,6 +291,7 @@ class _DataSliceTableData:
   data: str
   header_classes: str
   footer: str
+  stats: str
 
 
 def _is_clickable(ds: kd.types.DataSlice) -> bool:
@@ -319,6 +320,49 @@ def _focus_data_cell(
   )
   # This is run in a setTimeout to allow the table to render.
   context.setTimeout(table_elem.focusDataCell.bind(table_elem, row, col), 0)
+
+
+def _make_stats_html(ds: kd.types.DataSlice) -> str:
+  """Returns the HTML for the stats."""
+  if ds.get_size() <= 1:
+    return ''
+  # Returns the underlying primitive DType if one exists, or None.
+  s = ds.get_dtype()
+  if not s.is_primitive_schema():
+    return ''
+  stats = ''
+
+  is_int = s == kd.INT32 or s == kd.INT64
+
+  if s == kd.FLOAT32 or s == kd.FLOAT64 or is_int:
+    stats += kd.strings.format(
+        'average: {avg}</br>', avg=kd.math.mean(ds)
+    )
+    if ds.get_shape().rank() > 0:
+      stats += kd.strings.format(
+          'stddev: {stddev}</br>', stddev=kd.math.agg_std(ds)
+      )
+    stats += kd.strings.format(
+        'min: {min_val}</br>max: {max_val}</br>',
+        min_val=kd.math.min(ds),
+        max_val=kd.math.max(ds),
+    )
+  stats += f'unique count: {kd.count(kd.unique(ds))}</br>'
+  if is_int or s == kd.STRING:
+    grouped_items = kd.group_by(ds)
+    unique_keys = kd.collapse(grouped_items)
+    item_count = kd.agg_count(grouped_items)
+    count_and_values = list(zip(item_count.to_py(), unique_keys.to_py()))
+    # Sort by counts only, not by values.
+    count_and_values.sort(key=lambda x: x[0], reverse=True)
+    for i in range(min(len(count_and_values), 5)):
+      count, value = count_and_values[i]
+      value_str = str(value)
+      if len(value_str) > 50:
+        value_str = value_str[:50] + '...'
+      stats += f'top {i}:\tcount: {count},\tvalue: {value_str}</br>'
+  return f"""<details><summary>Statistics</summary>\
+      <div id="stats-data">{stats}</div></details>"""
 
 
 def _create_data_slice_table_data(
@@ -434,6 +478,7 @@ def _create_data_slice_table_data(
       joined_data,
       ' '.join(f'{x}:clickable' for x in clickable_headers),
       footer,
+      stats=_make_stats_html(ds),
   )
 
 
@@ -455,6 +500,7 @@ class _DataSliceViewState:
     self.ds = ds
     self.instance_id = instance_id
     elem = _js_eval_global().document.querySelector(f'#{instance_id}')
+    self.stats_elem = elem.querySelector('#stats')
     self.footer_elem = elem.querySelector('#footer')
     self.table_elem = elem.querySelector('kd-multi-dim-table')
     self.breadcrumb_elem = elem.querySelector('.breadcrumb')
@@ -471,6 +517,11 @@ class _DataSliceViewState:
     # a load if they want to scroll back a little bit.
     self.items_begin = max(items_center - self.options.num_items // 2, 0)
     self.render_table(view_begin)
+    self.render_stats()
+
+  def render_stats(self):
+    """Updates the stats for the current DataSlice."""
+    self.stats_elem.innerHTML = _make_stats_html(self.ds)
 
   def render_table(self, view_begin: int | None = None):
     """Updates data in the kd-multi-dim-table based on current state."""
@@ -523,6 +574,7 @@ class _DataSliceViewState:
     if self.ds.get_ndim() != next_ds.get_ndim():
       self.items_begin = 0
     self.ds = next_ds
+    self.stats = _make_stats_html(self.ds)
 
   def _start_loading(self):
     self.table_elem.classList.add('loading')
@@ -534,6 +586,7 @@ class _DataSliceViewState:
     self._start_loading()
     self.render_breadcrumb()
     self.render_table()
+    self.render_stats()
     self._end_loading()
 
   def descend_into_attr(self, header: str):
@@ -782,6 +835,16 @@ def visualize_slice(
       font-weight: bold;
     }
 
+    #stats summary {
+      font-weight: bold;
+    }
+
+    #stats #stats-data {
+      border: 1px solid var(--emphasized-border-color, gray);
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
     .crumb[data-ds-index]:not(:last-child) {
       cursor: pointer;
       text-decoration: underline;
@@ -939,11 +1002,13 @@ def visualize_slice(
   is_data_item = isinstance(ds, kd.types.DataItem)
   data_item_attr = 'data-item' if is_data_item else ''
   no_bag_attr = 'no-bag' if not ds.has_bag() else ''
+  stats_div = f'<div id="stats">{data.stats}</div>'
   _colab_publish().html(f"""
     <kd-event-reinterpret
         id="{instance_id}"
         style="{style_string}"
         events="click,show-access-path,expand-detail" prefix="ds-vis">
+      {stats_div}
       <div class="breadcrumb"></div>
       <kd-multi-dim-table
           data-headers="{data.headers}"
