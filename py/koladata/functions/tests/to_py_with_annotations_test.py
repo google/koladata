@@ -150,7 +150,8 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'recursive structures with output_class are not supported',
+        'object depth exceeds the output_class depth, which is recursive '
+        'dataclass or SimpleNamespace.',
     ):
       _ = py_conversions.to_py(
           obj, max_depth=-1, output_class=_py_types.SimpleNamespace
@@ -158,7 +159,8 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'recursive structures with output_class are not supported',
+        'object depth exceeds the output_class depth, which is recursive '
+        'dataclass or SimpleNamespace.',
     ):
       _ = py_conversions.to_py(
           obj.b, max_depth=-1, output_class=_py_types.SimpleNamespace
@@ -170,7 +172,8 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'recursive structures with output_class are not supported',
+        'object depth exceeds the output_class depth, which is recursive'
+        ' dataclass or SimpleNamespace.',
     ):
       _ = py_conversions.to_py(x, max_depth=-1, output_class=Recursive)
 
@@ -178,8 +181,8 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
     x = fns.new(a=fns.new(b=fns.new(c=1)))
     with self.assertRaisesRegex(
         ValueError,
-        'object depth exceeds the maximum depth, which is not supported '
-        'together with output_class',
+        'object depth exceeds the output_class depth, which is recursive '
+        'dataclass or SimpleNamespace.',
     ):
       _ = py_conversions.to_py(
           x, max_depth=2, output_class=_py_types.SimpleNamespace

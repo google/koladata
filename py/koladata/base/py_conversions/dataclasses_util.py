@@ -179,8 +179,8 @@ def get_class_field_type(
     )
 
   raise ValueError(
-      'only dataclasses or SimpleNamespace are supported; got instead:'
-      f' {py_obj}'
+      f'could not get type for attribute {attr_name}; only dataclasses or'
+      f' SimpleNamespace are supported; got instead: {py_obj}'
   )
 
 

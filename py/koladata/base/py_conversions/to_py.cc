@@ -130,7 +130,10 @@ class ToPyVisitor : internal::AbstractVisitor {
 
   // If output_class_ is provided, we need to compute the class for the `item`
   // and store it in the `class_cache_by_object_id` and `classes_by_path_`.
-  absl::Status ComputeAndStoreClassForItem(
+  // Returns true if it should be visited, false otherwise (which is
+  // the case when there is no corresponding field in the output class, i.e. the
+  // field does not exist and should not be created).
+  absl::StatusOr<bool> ComputeAndStoreClassForItem(
       const DataItem& from_item, absl::string_view from_item_attr_name,
       const DataItem& item) {
     const ObjectId& object_id = item.value<ObjectId>();
@@ -138,7 +141,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (from_item_attr_name == kSliceItemPath) {
       // Root case; take the output object as is.
       class_cache_by_object_id_[object_id] = output_class_;
-      return absl::OkStatus();
+      return true;
     }
 
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
@@ -147,7 +150,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     PyObjectPtr& class_cached_by_path = classes_by_path_[std::move(path_key)];
     if (class_cached_by_path != nullptr) {
       class_cache_by_object_id_[object_id] = class_cached_by_path;
-      return absl::OkStatus();
+      return !Py_IsNone(class_cached_by_path.get());
     }
 
     // In this case we are going to get class field type for an object, so
@@ -163,7 +166,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     auto& class_cached_by_object_id = class_cache_by_object_id_[object_id];
     if (class_cached_by_object_id == nullptr) {
       class_cached_by_object_id = class_cached_by_path;
-      return absl::OkStatus();
+      return !Py_IsNone(class_cached_by_path.get());
     }
 
     // Koda object is the same, but Python class is different.
@@ -173,7 +176,7 @@ class ToPyVisitor : internal::AbstractVisitor {
           PyObjectTypeName(class_cached_by_object_id.get()),
           PyObjectTypeName(class_cached_by_path.get())));
     }
-    return absl::OkStatus();
+    return !Py_IsNone(class_cached_by_path.get());
   }
 
   // Pre-visiting Entities in order to decide whether we need to create a
@@ -211,9 +214,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       if (!from_item_attr_name.has_value()) {
         return true;
       }
-      RETURN_IF_ERROR(
-          ComputeAndStoreClassForItem(from_item, *from_item_attr_name, item));
-      return true;
+      return ComputeAndStoreClassForItem(from_item, *from_item_attr_name, item);
     }
 
     if (schema.holds_value<ObjectId>()) {
@@ -608,8 +609,8 @@ class ToPyVisitor : internal::AbstractVisitor {
     }
 
     return absl::InvalidArgumentError(
-        "object was not pre-visited; recursive structures with "
-        "output_class are not supported");
+        "object depth exceeds the output_class depth, which is recursive "
+        "dataclass or SimpleNamespace.");
   }
 
   // Returns a converted Python class for the given `item`.
@@ -771,12 +772,6 @@ PyObject* absl_nullable ToPyImplInternal(
   // We use extracted DataBag for traversal.
   internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
                                                visitor);
-
-  if (output_class != Py_None && !leaf_ids.empty()) {
-    return arolla::python::SetPyErrFromStatus(absl::InvalidArgumentError(
-        "object depth exceeds the maximum depth, which is not supported "
-        "together with output_class"));
-  }
 
   RETURN_IF_ERROR(ds.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     if constexpr (std::is_same_v<T, DataItem>) {

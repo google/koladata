@@ -192,6 +192,29 @@ class ToPyTest(parameterized.TestCase):
     converted = py_conversions.to_py(root, output_class=Obj2)
     self.assertEqual(root_obj, converted)
 
+  def test_output_class_missing_entities_ignored(self):
+    @dataclasses.dataclass
+    class Obj2:
+      o1: Obj1
+      o2: Obj1
+      i: int
+
+    root = fns.new(
+        o1=fns.obj(a=1, b='x'),
+        o2=fns.obj(a=2, b='y'),
+        extra_entity=fns.new(text='abc'),
+        extra_object=fns.obj(text='abc'),
+        extra_list=fns.list([1, 2, 3]),
+        extra_dict=fns.dict({'a': 1, 'b': 2}),
+        i=fns.int64(3),
+    )
+
+    o1 = Obj1(a=1, b='x')
+    o2 = Obj1(a=2, b='y')
+    root_obj = Obj2(o1=o1, o2=o2, i=3)
+    converted = py_conversions.to_py(root, output_class=Obj2)
+    self.assertEqual(converted, root_obj)
+
   def test_output_class_empty_entity(self):
     @dataclasses.dataclass
     class SomeClass:
