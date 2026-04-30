@@ -20,6 +20,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -46,8 +47,10 @@
 #include "koladata/internal/op_utils/agg_common_schema.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/metadata_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
+#include "koladata/proto/proto_schema_utils.h"
 #include "koladata/schema_utils.h"
 
 namespace koladata::ops {
@@ -317,6 +320,25 @@ absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema) {
     if (!has_name.IsEmpty()) {
       ASSIGN_OR_RETURN(auto name, schema.GetAttr(schema::kSchemaNameAttr));
       return name.WithBag(nullptr);
+    }
+    // Special handling for from_proto schemas.
+    auto metadata_or_status = GetMetadataForSchemaSlice(schema);
+    if (metadata_or_status.ok()) {
+      ASSIGN_OR_RETURN(auto has_proto_name,
+                       metadata_or_status->HasAttr(
+                           schema::kProtoSchemaMetadataFullNameAttr));
+      if (!has_proto_name.IsEmpty()) {
+        ASSIGN_OR_RETURN(auto proto_name,
+                         metadata_or_status->GetAttr(
+                             schema::kProtoSchemaMetadataFullNameAttr));
+        return DataSlice::Create(
+            internal::DataItem(arolla::Text(absl::StrCat(
+                "FromProto[",
+                static_cast<absl::string_view>(
+                    proto_name.item().value<arolla::Text>()),
+                "]"))),
+            internal::DataItem(schema::kString));
+      }
     }
   }
   ASSIGN_OR_RETURN(auto repr, DataSliceToStr(schema));

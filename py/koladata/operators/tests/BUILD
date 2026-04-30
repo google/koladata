@@ -5669,6 +5669,8 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
+        "//py/koladata/functions:proto_conversions",
+        "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",

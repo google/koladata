@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import inspect
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
+from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -69,6 +71,16 @@ ERROR_CASES = (
         (
             '{decorator}: type mismatch for {parameter}; expected'
             r' type Person, got ENTITY\(age=INT32, name=STRING\) with id .*'
+        ),
+    ),
+    (
+        '_from_proto_schema',
+        kd.schema_from_proto(test_pb2.MessageA),
+        kd.new(some_string='hello', some_float=123.4),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type FromProto\[koladata.functions.testing.MessageA\], got'
+            r' ENTITY\(.*\) with id .*'
         ),
     ),
     (

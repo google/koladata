@@ -46,6 +46,7 @@ py_test(
         ":type_checking",
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/testing",

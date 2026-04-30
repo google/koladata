@@ -17,6 +17,8 @@ from absl.testing import parameterized
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.functions import proto_conversions
+from koladata.functions.tests import test_pb2
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -50,6 +52,11 @@ class SchemaGetNameTest(parameterized.TestCase):
               query_text=schema_constants.STRING,
           ),
           ds('Query'),
+      ),
+      (
+          'proto_schema',
+          proto_conversions.schema_from_proto(test_pb2.MessageA),
+          ds('FromProto[koladata.functions.testing.MessageA]'),
       ),
   )
   def test_eval(self, x, expected):
