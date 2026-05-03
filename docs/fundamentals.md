@@ -2,7 +2,7 @@
 
 # Koda Fundamentals
 
-This guide goes through fundemantals in Koda. It is highly recommended to read
+This guide goes through fundamentals in Koda. It is highly recommended to read
 through the guide in order for new users to use Koda effectively.
 
 Also see [Koda Cheatsheet](cheatsheet.md) for quick references and
