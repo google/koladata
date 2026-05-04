@@ -25,6 +25,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
+#include "arolla/serialization/utils.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
@@ -128,6 +129,32 @@ void BM_DataBagSerialization5Attr(benchmark::State& state) {
   }
 }
 
+void BM_DataBagDecodeAndMerge(benchmark::State& state) {
+  arolla::InitArolla();
+  int64_t size = state.range(0);
+  absl::BitGen gen;
+  auto db = DataBag::EmptyMutable();
+  auto attr_ds =
+      DataSlice::CreateWithFlatShape(RandomDataSlice<int64_t>(size),
+                                     internal::DataItem(schema::kInt64))
+          .value();
+  auto ds =
+      EntityCreator::FromAttrs(db, {"a", "b", "c", "d", "e"},
+                               {attr_ds, attr_ds, attr_ds, attr_ds, attr_ds})
+          .value();
+  auto proto =
+      arolla::serialization::Encode({TypedValue::FromValue(db)}, {}).value();
+
+  while (state.KeepRunningBatch(size)) {
+    benchmark::DoNotOptimize(proto);
+    auto v = arolla::serialization::DecodeValue(proto).value();
+    auto res_db = v.As<DataBagPtr>().value();
+    auto new_db = DataBag::EmptyMutable();
+    CHECK_OK(new_db->MergeInplace(res_db, true, true, true));
+    benchmark::DoNotOptimize(new_db);
+  }
+}
+
 template <typename T>
 void BM_DataSliceSerialization(benchmark::State& state) {
   arolla::InitArolla();
@@ -171,6 +198,7 @@ BENCHMARK(BM_DataSliceDeserialization<arolla::Text>)->Range(1, kMaxSize);
 BENCHMARK(BM_DataSliceDeserialization<internal::ObjectId>)->Range(1, kMaxSize);
 
 BENCHMARK(BM_DataBagSerialization5Attr)->Range(1, kMaxSize);
+BENCHMARK(BM_DataBagDecodeAndMerge)->Range(1, kMaxSize);
 
 }  // namespace
 }  // namespace koladata
