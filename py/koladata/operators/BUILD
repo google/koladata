@@ -442,12 +442,14 @@ py_library(
     name = "comparison",
     srcs = ["comparison.py"],
     deps = [
+        ":assertion",
         ":masking",
         ":op_repr",
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
         "//py:python_path",
+        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )

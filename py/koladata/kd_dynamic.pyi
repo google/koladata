@@ -109,6 +109,7 @@ class comparison:
   full_equal = _operators_comparison.full_equal
   greater = _operators_comparison.greater
   greater_equal = _operators_comparison.greater_equal
+  has_true = _operators_comparison.has_true
   less = _operators_comparison.less
   less_equal = _operators_comparison.less_equal
   not_equal = _operators_comparison.not_equal
@@ -753,6 +754,7 @@ has_fn = _operators_functor.has_fn
 has_list = _operators_lists.has_list
 has_not = _operators_masking.has_not
 has_primitive = _operators_core.has_primitive
+has_true = _operators_comparison.has_true
 hash_itemid = _operators_ids.hash_itemid
 if_ = _operators_functor.if_
 implode = _operators_lists.implode

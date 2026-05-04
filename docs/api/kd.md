@@ -793,6 +793,10 @@ Alias for [kd.masking.has_not](kd/masking.md#kd.masking.has_not)
 
 Alias for [kd.core.has_primitive](kd/core.md#kd.core.has_primitive)
 
+### `kd.has_true(x)` {#kd.has_true}
+
+Alias for [kd.comparison.has_true](kd/comparison.md#kd.comparison.has_true)
+
 ### `kd.hash_itemid(x)` {#kd.hash_itemid}
 
 Alias for [kd.ids.hash_itemid](kd/ids.md#kd.ids.hash_itemid)

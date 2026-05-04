@@ -75,6 +75,18 @@ Args:
   x: DataSlice.
   y: DataSlice.</code></pre>
 
+### `kd.comparison.has_true(x)` {#kd.comparison.has_true}
+Aliases:
+
+- [kd.has_true](../kd.md#kd.has_true)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present for each item in `x` that is True.
+
+Equivalent to `x == kd.bool(True)`.
+
+Args:
+  x: A BOOLEAN DataSlice to check.</code></pre>
+
 ### `kd.comparison.less(x, y)` {#kd.comparison.less}
 Aliases:
 

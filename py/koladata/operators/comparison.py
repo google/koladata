@@ -15,10 +15,12 @@
 """Comparison DataSlice operators."""
 
 from arolla import arolla as _arolla
+from koladata.operators import assertion as _assertion
 from koladata.operators import masking as _masking
 from koladata.operators import op_repr as _op_repr
 from koladata.operators import optools as _optools
 from koladata.operators import qtype_utils as _qtype_utils
+from koladata.types import schema_constants as _schema_constants
 
 _P = _arolla.P
 
@@ -208,3 +210,25 @@ def less_equal(x, y):  # pylint: disable=unused-argument
     y: DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@_optools.add_to_registry(
+    aliases=['kd.has_true'],
+    via_cc_operator_package=True,
+)
+@_optools.as_lambda_operator(
+    'kd.comparison.has_true',
+    qtype_constraints=[
+        _qtype_utils.expect_data_slice(_P.x),
+    ],
+)
+def has_true(x):
+  """Returns present for each item in `x` that is True.
+
+  Equivalent to `x == kd.bool(True)`.
+
+  Args:
+    x: A BOOLEAN DataSlice to check.
+  """
+  x = _assertion.assert_primitive('x', x, _schema_constants.BOOLEAN)
+  return equal(x, True)
