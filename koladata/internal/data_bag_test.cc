@@ -170,6 +170,86 @@ TEST(DataBagTest, SetGet) {
               ElementsAreArray(ds_a.values<ObjectId>()));
 }
 
+TEST(DataBagTest, SetFullAlloc) {
+  constexpr int size = 32;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AllocationId alloc = Allocate(size);
+
+  {  // No previous sources
+    SliceBuilder bldr(size);
+    for (int i = 0; i < size; ++i) {
+      if (i % 3 == 0) {
+        bldr.InsertIfNotSet(i, i);
+      } else if (i % 3 == 1) {
+        bldr.InsertIfNotSet(i, std::nullopt);
+      } else {
+        // Unset
+      }
+    }
+    auto slice = std::move(bldr).Build();
+    ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  }
+
+  {  // All unset
+    auto slice = DataSliceImpl::CreateEmptyAndUnknownType(size);
+    ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  }
+
+  {  // Partial override
+    SliceBuilder bldr(size);
+    bldr.InsertIfNotSet(0, 57);
+    bldr.InsertIfNotSet(3, std::nullopt);
+    auto slice = std::move(bldr).Build();
+    ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  }
+
+  db = db->PartiallyPersistentFork();
+
+  {  // Partial override after fork
+    SliceBuilder bldr(size);
+    bldr.InsertIfNotSet(1, 43);
+    auto slice = std::move(bldr).Build();
+    ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  }
+
+  auto objs = DataSliceImpl::ObjectsFromAllocation(alloc, size);
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl res, db->GetAttrWithRemoved(objs, "a"));
+  EXPECT_EQ(res[0], 57);
+  EXPECT_EQ(res[1], 43);
+  EXPECT_EQ(res[2], DataItem());
+  EXPECT_EQ(res[3], DataItem());
+  for (int i = 4; i < size; ++i) {
+    if (i % 3 == 0) {
+      EXPECT_EQ(res[i], i);
+    } else {
+      EXPECT_EQ(res[i], std::nullopt);
+    }
+  }
+
+  {  // Override all
+    auto slice =
+        DataSliceImpl::Create(arolla::CreateConstDenseArray<int>(size, 1));
+    ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  }
+
+  ASSERT_OK_AND_ASSIGN(res, db->GetAttrWithRemoved(objs, "a"));
+  for (int i = 0; i < size; ++i) {
+    EXPECT_EQ(res[i], 1);
+  }
+}
+
+TEST(DataBagTest, SetFullSmallAlloc) {
+  constexpr int size = 1;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AllocationId alloc = Allocate(size);
+  auto slice =
+      DataSliceImpl::Create(arolla::CreateConstDenseArray<int>(size, 1));
+  ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", slice));
+  ASSERT_OK_AND_ASSIGN(DataItem res,
+                       db->GetAttr(DataItem(alloc.ObjectByOffset(0)), "a"));
+  EXPECT_EQ(res, 1);
+}
+
 TEST(DataBagTest, GetAttrWithRemovedSlice) {
   for (int64_t size : {1, 3, 7, 13, 1023}) {
     SCOPED_TRACE(absl::StrCat("size: ", size));

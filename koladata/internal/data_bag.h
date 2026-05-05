@@ -285,6 +285,13 @@ class DataBagImpl : public arolla::RefcountedBase {
   absl::Status SetAttr(const DataItem& object, absl::string_view attr,
                        DataItem value);
 
+  // Assigned new values for the entire allocation.
+  // It supports UNSET/REMOVED: if a value is UNSET in `values`, then
+  // the data bag will preserve the existing value if any. If the new value is
+  // REMOVED, it will be removed from the bag.
+  absl::Status SetAttrFullAlloc(AllocationId alloc_id, absl::string_view attr,
+                                const DataSliceImpl& values);
+
   // Updates DataBagImpl by setting attribute to present for specified objects.
   // Returns a slice of unique ObjectIds that had an attribute missing before.
   absl::StatusOr<DataSliceImpl>

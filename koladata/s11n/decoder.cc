@@ -599,6 +599,11 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
             "`first_object_id`: values size is %d, alloc capacity is %d",
             values.size(), alloc.Capacity()));
       }
+      if (!alloc.IsSchemasAlloc() ||
+          attr_proto.name() == schema::kSchemaNameAttr) {
+        RETURN_IF_ERROR(db.SetAttrFullAlloc(alloc, attr_proto.name(), values));
+        continue;
+      }
       internal::DataSliceImpl objects;
       if (values.types_buffer().id_to_typeidx.empty()) {
         objects = internal::DataSliceImpl::ObjectsFromAllocation(alloc,
@@ -620,12 +625,7 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
             internal::ObjectIdArray{std::move(objects_builder).Build(),
                                     std::move(bitmap)});
       }
-      if (alloc.IsSchemasAlloc() &&
-          attr_proto.name() != schema::kSchemaNameAttr) {
-        RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));
-      } else {
-        RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
-      }
+      RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));
     }
   }
   return absl::OkStatus();

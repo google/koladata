@@ -1073,6 +1073,56 @@ DataBagImpl::SourceCollection& DataBagImpl::GetOrCreateSourceCollection(
   return it->second;
 }
 
+absl::Status DataBagImpl::SetAttrFullAlloc(AllocationId alloc_id,
+                                           absl::string_view attr,
+                                           const DataSliceImpl& values) {
+  if (values.is_empty_and_unknown()) {
+    // All new values are unset -> no op
+    return absl::OkStatus();
+  }
+  SourceKeyView kv{alloc_id, attr};
+
+  bool use_new_dense_source;
+  if (alloc_id.IsSmall()) {
+    use_new_dense_source = false;
+  } else if (values.types_buffer().id_to_typeidx.empty()) {
+    // No unset values, so existing data sources can be ignored.
+    use_new_dense_source = true;
+  } else {
+    use_new_dense_source = true;
+    for (const DataBagImpl* db = this; db; db = db->parent_data_bag_.get()) {
+      if (db->sources_.contains(kv)) {
+        use_new_dense_source = false;
+        break;
+      }
+    }
+  }
+
+  if (use_new_dense_source) {
+    ASSIGN_OR_RETURN(auto source,
+                     DenseSource::CreateReadonly(alloc_id, values));
+    sources_[kv] = SourceCollection{.const_dense_source = std::move(source),
+                                    .lookup_parent = false};
+    return absl::OkStatus();
+  }
+
+  // Fallback to slow merge with previous data sources.
+  auto bitmap = values.types_buffer().ToSetBitmap();
+  arolla::Buffer<internal::ObjectId>::Builder objects_builder(values.size());
+  size_t id = 0;
+  arolla::bitmap::Iterate(bitmap, 0, values.size(), [&](bool present) {
+    if (present) {
+      objects_builder.Set(id, alloc_id.ObjectByOffset(id));
+    }
+    ++id;
+  });
+  DataSliceImpl objects = internal::DataSliceImpl::CreateWithAllocIds(
+      internal::AllocationIdSet(alloc_id),
+      internal::ObjectIdArray{std::move(objects_builder).Build(),
+                              std::move(bitmap)});
+  return SetAttr(objects, attr, values);
+}
+
 absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
                                   absl::string_view attr,
                                   const DataSliceImpl& values) {
