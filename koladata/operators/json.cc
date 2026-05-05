@@ -51,6 +51,7 @@
 #include "arolla/util/status_macros_backport.h"
 #include "nlohmann/json.hpp"
 #include "koladata/adoption_utils.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -61,6 +62,7 @@
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/json_stream.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
@@ -1447,6 +1449,72 @@ absl::StatusOr<DataSlice> FilterJson(DataSlice x, DataSlice filter,
   ASSIGN_OR_RETURN(auto res_shape, x.GetShape().AddDims({std::move(edge)}));
   return DataSlice::CreatePrimitive(std::move(results_builder).Build(),
                                     std::move(res_shape));
+}
+
+absl::StatusOr<DataSlice> JsonSalvage(DataSlice x, DataSlice allow_nan,
+                                      DataSlice ensure_ascii,
+                                      DataSlice max_depth) {
+  RETURN_IF_ERROR(ExpectString("x", x));
+  RETURN_IF_ERROR(ExpectPresentScalar("allow_nan", allow_nan, schema::kBool));
+  RETURN_IF_ERROR(
+      ExpectPresentScalar("ensure_ascii", ensure_ascii, schema::kBool));
+  RETURN_IF_ERROR(ExpectInteger("max_depth", max_depth));
+
+  ASSIGN_OR_RETURN(const int64_t max_depth_value,
+                   ToArollaScalar<int64_t>(max_depth));
+
+  internal::JsonSalvageOptions options{
+      .allow_nan = allow_nan.item().value<bool>(),
+      .ensure_ascii = ensure_ascii.item().value<bool>(),
+      .max_depth = max_depth_value,
+  };
+
+  auto process_json =
+      [&](absl::string_view json_str) -> absl::StatusOr<arolla::Text> {
+    internal::JsonSalvageStreamProcessor processor(options);
+    auto result = processor.Process(json_str, true);
+    std::string output;
+    for (const auto& chunk : result.chunks) {
+      output += chunk;
+    }
+    return arolla::Text(std::move(output));
+  };
+
+  // This could be replaced with UnaryEvalOp if there were a way to pass
+  // `options` to the constructed Fn instance.
+  if (x.is_item()) {
+    if (x.item().has_value()) {
+      ASSIGN_OR_RETURN(auto salvaged,
+                       process_json(x.item().value<arolla::Text>().view()));
+      return DataSlice::Create(internal::DataItem(std::move(salvaged)),
+                               internal::DataItem(schema::kString));
+    } else {
+      return DataSlice::Create(internal::DataItem(),
+                               internal::DataItem(schema::kString));
+    }
+  } else if (x.slice().is_empty_and_unknown()) {
+    return x;
+  } else {
+    arolla::DenseArrayBuilder<arolla::Text> results_builder(x.size());
+    absl::Status status = absl::OkStatus();
+    x.slice().values<arolla::Text>().ForEach(
+        [&](int64_t i, bool present, absl::string_view v) {
+          if (!status.ok()) {
+            return;
+          }
+          if (present) {
+            auto salvaged_or = process_json(v);
+            if (!salvaged_or.ok()) {
+              status = salvaged_or.status();
+              return;
+            }
+            results_builder.Set(i, std::move(*salvaged_or));
+          }
+        });
+    RETURN_IF_ERROR(std::move(status));
+    return DataSlice::CreatePrimitive(std::move(results_builder).Build(),
+                                      x.GetShape());
+  }
 }
 
 }  // namespace koladata::ops

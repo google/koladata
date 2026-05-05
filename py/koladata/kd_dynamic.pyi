@@ -284,6 +284,7 @@ class iterables:
 class json:
   filter_json = _operators_json.filter_json
   from_json = _operators_json.from_json
+  salvage = _operators_json.salvage
   to_json = _operators_json.to_json
 
 

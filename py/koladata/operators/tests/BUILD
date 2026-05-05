@@ -10385,6 +10385,23 @@ py_test(
 )
 
 py_test(
+    name = "json_salvage_test",
+    srcs = ["json_salvage_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "json_stream_get_object_key_value_test",
     srcs = ["json_stream_get_object_key_value_test.py"],
     deps = [

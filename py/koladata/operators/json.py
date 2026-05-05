@@ -344,3 +344,77 @@ def to_json(
       `True`.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.json.salvage',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.allow_nan),
+        qtype_utils.expect_data_slice(P.ensure_ascii),
+        qtype_utils.expect_data_slice(P.max_depth),
+    ],
+)
+def salvage(
+    x,  # pylint: disable=unused-argument
+    /,
+    *,
+    allow_nan=False,  # pylint: disable=unused-argument
+    ensure_ascii=False,  # pylint: disable=unused-argument
+    max_depth=100,  # pylint: disable=unused-argument
+):
+  r"""Normalizes a DataSlice of strings containing JSON-like syntax to JSON.
+
+  This operator tries its best to interpret the input as JSON.
+
+  Basic guarantees:
+  - Each present output string is the concatenation of zero or more
+    '\n'-newline-separated valid JSON values.
+  - If the input is the concatenation of zero or more ASCII-whitespace-separated
+    valid JSON values with container nesting depth at most `max_depth`, the
+    output is JSON-value-equivalent to the input.
+    - Strings are equivalent by sequence of represented unicode code points,
+      and numbers are equivalent by numeric value with unlimited precision.
+
+  Supports the following additional syntax, to tolerate "variant" JSON:
+  - All of JSON5 according to https://spec.json5.org/
+    - Non-decimal integer literal magnitudes (ignoring sign) are 64 bit.
+    - Decimal number literals use unlimited precision.
+  - Additional syntax from Python (not covered by JSON5):
+    - Line comments starting with a single hash character `#`.
+    - False, True, and None (as true, false, and null).
+    - Tuple literals (interpreted as arrays).
+    - Single-triple-quoted and double-triple-quoted strings.
+    - \a string escape interpreted as U+0007.
+    - \o \oo \ooo octal string escapes.
+    - \UXXXXXXXX 32-bit hexadecimal string escapes.
+    - u"" and b"" string prefixes (accepted and ignored).
+    - Underscores in numeric literals (like 123_456).
+    - Octal (0o) and binary (0b) integer literals.
+      - Magnitudes (ignoring sign) are 64 bit.
+    - l and L integer suffixes (accepted and ignored).
+  - Additional syntax from JavaScript (not covered by Python/JSON5):
+    - \u{...} variable-length hexadecimal string escapes.
+    - n integer suffix (accepted and ignored).
+
+  All other input is handled in an implementation-defined way and is subject
+  to change in future versions.
+
+  Args:
+    x: A DataSlice of STRING containing JSON-like strings to parse.
+    allow_nan: A BOOLEAN DataItem. If true, like in python `json.dumps`, the
+      non-standard JSON number literals `NaN` and `Infinity` and `-Infinity` are
+      allowed in the output.
+    ensure_ascii: A BOOLEAN DataItem. If `True`, the output will contain only
+      ASCII-range characters. If `False` (the default), non-ASCII code points in
+      output JSON strings will use UTF-8 instead of JSON escape sequences.
+    max_depth: A present INT32 or INT64 DataItem. If the input contains nested
+      containers deeper than `max_depth`, the output is no longer guaranteed to
+      match the input value, even if the input is valid JSON. This is mainly a
+      safeguard to prevent unbounded memory usage on large inputs.
+
+  Returns:
+    A DataSlice of STRING with the same shape and sparsity as `x`.
+  """
+  raise NotImplementedError('implemented in the backend')

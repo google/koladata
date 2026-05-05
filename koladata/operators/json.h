@@ -46,6 +46,11 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
                                  DataSlice values_attr,
                                  DataSlice include_missing_values);
 
+// kde.json.salvage
+absl::StatusOr<DataSlice> JsonSalvage(DataSlice x, DataSlice allow_nan,
+                                      DataSlice ensure_ascii,
+                                      DataSlice max_depth);
+
 namespace json_internal {
 
 // The following functions convert C++ representations of JSON primitive values

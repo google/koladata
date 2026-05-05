@@ -179,6 +179,7 @@ OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
 OPERATOR("kd.json.filter_json", FilterJson);
 OPERATOR("kd.json.from_json", FromJson);
+OPERATOR("kd.json.salvage", JsonSalvage);
 OPERATOR("kd.json.to_json", ToJson);
 //
 OPERATOR_WITH_SIGNATURE(

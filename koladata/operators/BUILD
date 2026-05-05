@@ -280,6 +280,7 @@ cc_library(
     deps = [
         ":json_stream_parser",
         ":lib",
+        "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:metadata_utils",
@@ -293,6 +294,7 @@ cc_library(
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",
         "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:json_stream",
         "@com_github_nlohmann_json//:json",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log",
