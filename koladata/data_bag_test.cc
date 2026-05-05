@@ -363,7 +363,12 @@ TEST(DataBagTest, MergeFallbacks) {
   EXPECT_FALSE(db->IsEmpty());
   auto ds2 = ds1.WithBag(db);
 
+  const internal::DataBagImpl* db_impl = &db->GetImpl();
+
   ASSERT_OK_AND_ASSIGN(auto db_merged, db->MergeFallbacks());
+
+  // Check that `db` is not forked.
+  EXPECT_EQ(&db->GetImpl(), db_impl);
 
   // Check that the merged DataBag has the same data as the original one,
   // but no fallbacks.

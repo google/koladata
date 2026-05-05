@@ -131,9 +131,11 @@ absl::StatusOr<internal::DataBagImplPtr> MergeFallbacksToForkedImpl(
 }  // namespace
 
 absl::StatusOr<DataBagPtr> DataBag::MergeFallbacks() {
+  if (fallbacks_.empty()) {
+    return FallbackFreeFork();
+  }
+  DCHECK(!is_mutable_);  // a bag with fallbacks can't be mutable
   ASSIGN_OR_RETURN(auto impl_fork, MergeFallbacksToForkedImpl(*this));
-  // Make sure that modifications to the new DataBag don't affect the original.
-  this->impl_ = this->impl_->PartiallyPersistentFork();
   return FromImpl(std::move(impl_fork));
 }
 
