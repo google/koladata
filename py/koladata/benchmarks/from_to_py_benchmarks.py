@@ -205,6 +205,26 @@ def to_py_100_of_100_deep_with_output_class(state):
     _ = kd.to_py(x, output_class=obj, max_depth=-1)
 
 
+@google_benchmark.register
+def to_py_leaves_are_ignored(state):
+  @dataclasses.dataclass
+  class SmallObj:
+    x: int
+
+  root = kd.new(
+      y=kd.new(
+          x=kd.slice(list(range(1000))),
+          # This will be cut entirely.
+          w1=kd.slice(['a' * 10_000] * 1000),
+          w2=kd.slice(['a' * 10_000] * 1000),
+          w3=kd.slice(['a' * 10_000] * 1000),
+          w4=kd.slice(['a' * 10_000] * 1000),
+      )
+  )
+  while state:
+    _ = kd.to_py(root.y, output_class=SmallObj)
+
+
 _SCHEMA_ARG = {
     0: kd.OBJECT,
     1: kd.INT32,
