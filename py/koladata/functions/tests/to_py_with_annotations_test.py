@@ -177,16 +177,17 @@ class ToPyWithAnnotationsTest(absltest.TestCase):
     ):
       _ = py_conversions.to_py(x, max_depth=-1, output_class=Recursive)
 
-  def test_too_deep_obj_with_output_class_fails(self):
+  def test_max_depth_ignored_with_output_class(self):
     x = fns.new(a=fns.new(b=fns.new(c=1)))
-    with self.assertRaisesRegex(
-        ValueError,
-        'object depth exceeds the output_class depth, which is recursive '
-        'dataclass or SimpleNamespace.',
-    ):
-      _ = py_conversions.to_py(
-          x, max_depth=2, output_class=_py_types.SimpleNamespace
-      )
+    res = py_conversions.to_py(
+        x, max_depth=2, output_class=_py_types.SimpleNamespace
+    )
+    self.assertEqual(
+        res,
+        _py_types.SimpleNamespace(
+            a=_py_types.SimpleNamespace(b=_py_types.SimpleNamespace(c=1))
+        ),
+    )
 
 
 if __name__ == '__main__':

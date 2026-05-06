@@ -1538,7 +1538,8 @@ Args:
   ds: A DataSlice
   max_depth: Maximum depth for recursive conversion. Each attribute, list item
     and dict keys / values access represent 1 depth increment. Use -1 for
-    unlimited depth.
+    unlimited depth. If output_class is set, this is ignored and the depth is
+    determined by the output_class.
   obj_as_dict: Whether to convert objects to python dicts. By default objects
     are converted to automatically constructed &#39;Obj&#39; dataclass instances.
   include_missing_attrs: whether to include attributes with None value in

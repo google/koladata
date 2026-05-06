@@ -798,6 +798,18 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
   // to be kept as DataItems and not converted to Python objects.
   // To do that, we extract a DataSlice, and keep track of the leaf DataItems.
   absl::flat_hash_set<ObjectId> objects_not_to_convert;
+
+  // If max_depth is -1, we don't need to extract anything, just convert the
+  // whole DataSlice.
+  // If output_class is not none, max_depth is ignored and we are converting
+  // everything until the output_class depth.
+  // If the bag is null, we don't need to extract anything, since there are
+  // no objects to convert, and the extraction operation below will fail.
+  // Otherwise we use extract only to limit the depth.
+  if (ds.GetBag() == nullptr || output_class != Py_None || max_depth == -1) {
+    return ToPyImplInternal(ds, ds.GetBag(), obj_as_dict, include_missing_attrs,
+                            objects_not_to_convert, output_class);
+  }
   internal::LeafCallback leaf_callback = [&](const DataSliceImpl& slice,
                                              const DataItem& schema) {
     for (const DataItem& item : slice) {
@@ -807,20 +819,15 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
     }
     return absl::OkStatus();
   };
-
-  if (ds.GetBag() != nullptr) {
-    ASSIGN_OR_RETURN(
-        const DataSlice extracted_ds,
-        koladata::extract_utils_internal::ExtractWithSchema(
-            ds, ds.GetSchema(), max_depth,
-            /*casting_callback=*/std::nullopt, std::move(leaf_callback)),
-        arolla::python::SetPyErrFromStatus(_));
-    return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
-                            include_missing_attrs, objects_not_to_convert,
-                            output_class);
-  }
-  return ToPyImplInternal(ds, nullptr, obj_as_dict, include_missing_attrs,
-                          objects_not_to_convert, output_class);
+  ASSIGN_OR_RETURN(
+      const DataSlice extracted_ds,
+      koladata::extract_utils_internal::ExtractWithSchema(
+          ds, ds.GetSchema(), max_depth,
+          /*casting_callback=*/std::nullopt, std::move(leaf_callback)),
+      arolla::python::SetPyErrFromStatus(_));
+  return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
+                          include_missing_attrs, objects_not_to_convert,
+                          output_class);
 }
 
 }  // namespace

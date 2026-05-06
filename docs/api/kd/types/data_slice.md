@@ -970,7 +970,9 @@ Attributes, lists, and dicts are recursively converted to Python objects.
 Args:
   ds: A DataSlice
   max_depth: Maximum depth for recursive printing. Each attribute, list, and
-    dict increments the depth by 1. Use -1 for unlimited depth.
+    dict increments the depth by 1. Use -1 for unlimited depth. If
+    output_class is set, this is ignored and the depth is determined by the
+    output_class.
   obj_as_dict: Whether to convert objects to python dicts. By default objects
     are converted to automatically constructed &#39;Obj&#39; dataclass instances.
   include_missing_attrs: whether to include attributes with None value in
