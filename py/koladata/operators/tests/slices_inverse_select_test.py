@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import slices_inverse_select_testdata
@@ -32,6 +32,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -45,7 +46,7 @@ class SlicesInverseSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(*slices_inverse_select_testdata.TEST_CASES)
   def test_eval(self, values, fltr, expected):
-    result = expr_eval.eval(kde.slices.inverse_select(values, fltr))
+    result = kd.slices.inverse_select(values, fltr)
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
@@ -63,18 +64,15 @@ class SlicesInverseSelectTest(parameterized.TestCase):
         'kd.slices.inverse_select: the schema of the fltr DataSlice should only'
         ' be Object or Mask',
     ):
-      expr_eval.eval(kde.slices.inverse_select(ds([1]), ds([1, 2])))
+      kd.slices.inverse_select(ds([1]), ds([1, 2]))
 
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.inverse_select: fltr argument must have all items of MASK'
         ' dtype',
     ):
-      expr_eval.eval(
-          kde.slices.inverse_select(
-              ds([1]), ds([1, 2], schema_constants.OBJECT)
-          )
-      )
+
+      kd.slices.inverse_select(ds([1]), ds([1, 2], schema_constants.OBJECT))
 
   def test_invalid_shape_error(self):
     with self.assertRaisesRegex(
@@ -84,9 +82,8 @@ class SlicesInverseSelectTest(parameterized.TestCase):
             ' must be the same. Got rank(ds): 1, rank(fltr): 2'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.inverse_select(ds([1, 2]), ds([[arolla.present(), None]]))
-      )
+
+      kd.slices.inverse_select(ds([1, 2]), ds([[arolla.present(), None]]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -96,11 +93,8 @@ class SlicesInverseSelectTest(parameterized.TestCase):
             ' JaggedShape(1)'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.inverse_select(
-              ds([1, 2]), ds([arolla.present(), None, None])
-          )
-      )
+
+      kd.slices.inverse_select(ds([1, 2]), ds([arolla.present(), None, None]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -110,7 +104,7 @@ class SlicesInverseSelectTest(parameterized.TestCase):
             ' convert it to a 1-dimensional DataSlice'
         ),
     ):
-      expr_eval.eval(kde.slices.inverse_select(ds(1), ds(arolla.present())))
+      kd.slices.inverse_select(ds(1), ds(arolla.present()))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.inverse_select(I.x, I.y)))

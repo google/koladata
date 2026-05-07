@@ -15,8 +15,8 @@
 import re
 
 from absl.testing import absltest
-from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -25,6 +25,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
@@ -41,14 +42,14 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
             ' DataSlice([1, 2.0], schema: OBJECT, shape: JaggedShape(2))'
         ),
     ):
-      expr_eval.eval(kde.agg_max(x))
+      kd.agg_max(x)
 
   def test_expect_rank_error(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape('kd.math.agg_max: expected rank(x) > 0'),
     ):
-      expr_eval.eval(kde.agg_max(ds(1)))
+      kd.agg_max(ds(1))
 
   def test_arolla_operrors(self):
     x = data_slice.DataSlice.from_vals(['1', '2', '3'])
@@ -59,7 +60,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
             ' got a slice of STRING'
         ),
     ):
-      expr_eval.eval(kde.agg_max(x))
+      kd.agg_max(x)
 
   def test_unbiased_non_scalar_error(self):
     with self.assertRaisesRegex(
@@ -69,7 +70,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
             ' BOOLEAN, got a slice of rank 1 > 0'
         ),
     ):
-      expr_eval.eval(kde.math.agg_var(ds([1]), unbiased=ds([True])))
+      kd.math.agg_var(ds([1]), unbiased=ds([True]))
 
 
 if __name__ == '__main__':

@@ -17,9 +17,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -32,6 +32,7 @@ from koladata.types import schema_constants
 INT64 = schema_constants.INT64
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 
@@ -43,7 +44,7 @@ class ShapesSizeTest(parameterized.TestCase):
       (jagged_shape.create_shape([2], [2, 1]), ds(3, INT64)),
   )
   def test_eval(self, shape, expected_res):
-    res = expr_eval.eval(kde.shapes.size(I.shape), shape=shape)
+    res = kd.shapes.size(shape)
     testing.assert_equal(res, expected_res)
 
   def test_qtype_signatures(self):

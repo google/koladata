@@ -23,9 +23,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -36,6 +36,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 INT64 = schema_constants.INT64
@@ -92,7 +93,7 @@ class SlicesIndexTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, dim, expected_value):
-    actual_value = expr_eval.eval(kde.slices.index(x, dim))
+    actual_value = kd.slices.index(x, dim)
     testing.assert_equal(actual_value, expected_value)
 
   @parameterized.parameters(
@@ -109,11 +110,9 @@ class SlicesIndexTest(parameterized.TestCase):
       ),
   )
   def test_eval_unspecified_dim(self, x, expected_value):
-    value_with_unspecified_dim = expr_eval.eval(kde.slices.index(x))
+    value_with_unspecified_dim = kd.slices.index(x)
     ndim = x.get_ndim()
-    value_with_dim_equal_ndim_minus_1 = expr_eval.eval(
-        kde.slices.index(x, ndim - ds(1))
-    )
+    value_with_dim_equal_ndim_minus_1 = kd.slices.index(x, ndim - ds(1))
     testing.assert_equal(
         value_with_unspecified_dim, value_with_dim_equal_ndim_minus_1
     )
@@ -125,7 +124,7 @@ class SlicesIndexTest(parameterized.TestCase):
         ValueError,
         re.escape('kd.slices.index: argument `x` must have non-zero rank'),
     ):
-      expr_eval.eval(kde.slices.index(x))
+      kd.slices.index(x)
 
   @parameterized.parameters(2, -2)
   def test_out_of_bounds_ndim_error(self, ndim):
@@ -136,7 +135,7 @@ class SlicesIndexTest(parameterized.TestCase):
             'kd.slices.index: expected -get_ndim(x) <= dim < get_ndim(x)'
         ),
     ):
-      expr_eval.eval(kde.slices.index(x, ndim))
+      kd.slices.index(x, ndim)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

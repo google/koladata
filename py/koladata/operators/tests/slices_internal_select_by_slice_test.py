@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
@@ -30,6 +30,7 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
@@ -115,9 +116,7 @@ class SlicesInternalSelectTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, values, filter_arr, expected):
-    result = expr_eval.eval(
-        kde.slices.internal_select_by_slice(values, filter_arr)
-    )
+    result = kd.slices.internal_select_by_slice(values, filter_arr)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -208,8 +207,8 @@ class SlicesInternalSelectTest(parameterized.TestCase):
       expand_filter,
       expected,
   ):
-    result = expr_eval.eval(
-        kde.slices.internal_select_by_slice(values, filter_arr, expand_filter)
+    result = kd.slices.internal_select_by_slice(
+        values, filter_arr, expand_filter
     )
     testing.assert_equal(result, expected)
 
@@ -222,7 +221,7 @@ class SlicesInternalSelectTest(parameterized.TestCase):
             ' should only be OBJECT or MASK'
         ),
     ):
-      expr_eval.eval(kde.slices.internal_select_by_slice(val, val))
+      kd.slices.internal_select_by_slice(val, val)
 
   def test_select_on_data_item_error(self):
     with self.assertRaisesRegex(
@@ -233,9 +232,7 @@ class SlicesInternalSelectTest(parameterized.TestCase):
             ' convert it to a 1-dimensional DataSlice'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.internal_select_by_slice(ds(1), ds(arolla.present()))
-      )
+      kd.slices.internal_select_by_slice(ds(1), ds(arolla.present()))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -244,16 +241,14 @@ class SlicesInternalSelectTest(parameterized.TestCase):
             ' expand_filter=False because its size is always 1.'
         ),
     ):
-      expr_eval.eval(
-          kde.slices.internal_select_by_slice(
-              ds([1, 2]), ds(arolla.present()), expand_filter=False
-          )
+      kd.slices.internal_select_by_slice(
+          ds([1, 2]), ds(arolla.present()), expand_filter=False
       )
 
   def test_select_expand_to_shape(self):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     y = ds([arolla.present(), arolla.present(), None])
-    result = expr_eval.eval(kde.slices.internal_select_by_slice(x, y))
+    result = kd.slices.internal_select_by_slice(x, y)
     testing.assert_equal(result, ds([[1, 2, None, 4], [None, None], []]))
 
   def test_select_expand_to_shape_fails(self):
@@ -268,7 +263,7 @@ class SlicesInternalSelectTest(parameterized.TestCase):
         ValueError,
         re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
     ):
-      _ = expr_eval.eval(kde.slices.internal_select_by_slice(x, y))
+      _ = kd.slices.internal_select_by_slice(x, y)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -17,10 +17,10 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.testdata import slices_expand_to_testdata
@@ -33,6 +33,7 @@ from koladata.types import qtypes
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -67,13 +68,13 @@ class SlicesExpandToTest(parameterized.TestCase):
         ValueError,
         re.escape("ndim must be a positive integer and <= x.ndim, got -1"),
     ):
-      expr_eval.eval(kde.expand_to(ds(1), ds(0), -1))
+      kd.expand_to(ds(1), ds(0), -1)
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape("ndim must be a positive integer and <= x.ndim, got 1"),
     ):
-      expr_eval.eval(kde.expand_to(ds(1), ds(0), 1))
+      kd.expand_to(ds(1), ds(0), 1)
 
   def test_incompatible_shape_error(self):
     with self.assertRaisesRegex(
@@ -83,7 +84,7 @@ class SlicesExpandToTest(parameterized.TestCase):
             " shape=JaggedShape(3)"
         ),
     ):
-      expr_eval.eval(kde.expand_to(ds([1, 2]), ds([1, 2, 3])))
+      kd.expand_to(ds([1, 2]), ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -94,7 +95,7 @@ class SlicesExpandToTest(parameterized.TestCase):
             " 'shape' to expand: JaggedShape(3)"
         ),
     ):
-      expr_eval.eval(kde.expand_to(ds([[1, 2], [3]]), ds([1, 2, 3]), 1))
+      kd.expand_to(ds([[1, 2], [3]]), ds([1, 2, 3]), 1)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

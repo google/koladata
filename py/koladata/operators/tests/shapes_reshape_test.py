@@ -17,9 +17,9 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +31,7 @@ from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
@@ -85,11 +86,9 @@ class ShapesReshapeTest(parameterized.TestCase):
       (ds([1, 2, 3, 4]), arolla.tuple(ds(-1), ds(2)), ds([[1, 2], [3, 4]])),
   )
   def test_eval(self, x, shape, expected_output):
-    x_shaped = expr_eval.eval(
-        kde.shapes.reshape(I.x, I.shape), x=x, shape=shape
-    )
+    x_shaped = kd.shapes.reshape(x, shape)
     testing.assert_equal(x_shaped, expected_output)
-    res = expr_eval.eval(kde.shapes.reshape_as(I.x, I.y), x=x, y=x_shaped)
+    res = kd.shapes.reshape_as(x, x_shaped)
     testing.assert_equal(res, expected_output)
 
   def test_unresolvable_placeholder_dim_exception(self):
@@ -98,16 +97,15 @@ class ShapesReshapeTest(parameterized.TestCase):
         'kd.shapes.reshape: parent_size=2 does not divide child_size=3, so the'
         ' placeholder dimension at index 1 cannot be resolved',
     ):
-      expr_eval.eval(
-          kde.shapes.reshape(ds([1, 2, 3]), arolla.tuple(ds([2]), ds(-1)))
-      )
+
+      kd.shapes.reshape(ds([1, 2, 3]), arolla.tuple(ds([2]), ds(-1)))
 
   def test_multiple_placeholder_dims_exception(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.shapes.reshape: only one dimension can be a placeholder',
     ):
-      expr_eval.eval(kde.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1))))
+      kd.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1)))
 
   def test_incompatible_dimension_specification_exception(self):
     with self.assertRaisesRegex(
@@ -115,7 +113,7 @@ class ShapesReshapeTest(parameterized.TestCase):
         'kd.shapes.reshape: invalid dimension specification - the resulting'
         ' shape size=3 != the expected size=2',
     ):
-      expr_eval.eval(kde.shapes.reshape(ds([1, 2]), arolla.tuple(ds(3))))
+      kd.shapes.reshape(ds([1, 2]), arolla.tuple(ds(3)))
 
   def test_incompatible_shape_exception(self):
     with self.assertRaisesRegex(
@@ -123,9 +121,8 @@ class ShapesReshapeTest(parameterized.TestCase):
         'kd.shapes.reshape: shape size must be compatible with number of items:'
         ' shape_size=2 != items_size=3',
     ):
-      expr_eval.eval(
-          kde.shapes.reshape(ds([1, 2, 3]), jagged_shape.create_shape([2]))
-      )
+
+      kd.shapes.reshape(ds([1, 2, 3]), jagged_shape.create_shape([2]))
 
   def test_boxing(self):
     testing.assert_equal(
