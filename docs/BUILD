@@ -48,6 +48,7 @@ py_test(
         ":10_min_intro.md",
         ":cheatsheet.md",
         ":common_pitfalls.md",
+        ":index.md",
         ":overview.md",
         ":quick_recipes.md",
     ],

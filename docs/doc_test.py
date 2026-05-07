@@ -33,6 +33,7 @@ def load_tests(loader, tests, ignore):
           'common_pitfalls.md',
           'overview.md',
           'cheatsheet.md',
+          'index.md',
           optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE,
           parser=CustomParser(),
       )

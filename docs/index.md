@@ -46,3 +46,113 @@ production (i.e. C++ environments).
     evaluation logic into **computational graphs**
     (ASTs) that can be introspected, optimized then evaluated in distributed
     environment or served in production.
+
+## Code Examples
+
+Here are code examples demonstrating some of Koda capabilities.
+
+### 1. Handling Irregular Data Shapes
+
+Koda supports irregular multi-dimensional arrays (jagged arrays) without
+padding.
+
+```py {.pycon-doctest}
+>>> from koladata import kd
+>>> scores = kd.slice([[85, 90], [70], [95, 100, 88]])
+>>> kd.agg_max(scores)
+DataSlice([90, 70, 100], schema: INT32, ...)
+```
+
+### 2. Vectorized Operations on Complex, Nested Data
+
+Koda provides C++ grade performance for vectorized operations on nested data
+structures and jagged arrays.
+
+```py {.pycon-doctest}
+>>> users = kd.slice([
+...     kd.obj(name='Alice', age=20, interests=kd.list(['tennis', 'alcohol', 'chess'])),
+...     kd.obj(name='Bob', age=30, interests=kd.list(['music', 'chess'])),
+...     kd.obj(name='Charlie', age=25, interests=kd.list(['tennis', 'alcohol'])),
+... ])
+
+# Simple filtering: find users older than 21. The lambda is traced and
+# executed as a vectorized Koda functor (not pointwise Python code).
+>>> users.select(lambda x: x.age > 21).name
+DataSlice(['Bob', 'Charlie'], schema: STRING, ...)
+```
+
+You can perform more advanced operations on jagged arrays, such as conditional
+filtering across dimensions and grouping:
+
+```py {.pycon-doctest}
+# Remove 'alcohol' interest for users under 21.
+>>> interests = users.interests[:]
+>>> interests
+DataSlice([['tennis', 'alcohol', 'chess'], ['music', 'chess'], ['tennis', 'alcohol']], schema: STRING, ...)
+>>> is_underage_alcohol = (interests == 'alcohol') & (users.age < 21)
+>>> filtered_interests = interests.select(~is_underage_alcohol)
+>>> filtered_interests
+DataSlice([['tennis', 'chess'], ['music', 'chess'], ['tennis', 'alcohol']], schema: STRING, ...)
+
+# Group users by their filtered interests.
+>>> pairs = kd.new(user=users, interest=filtered_interests).flatten()
+>>> grouped = kd.group_by(pairs, pairs.interest)
+>>> interest_details = kd.new(interest=kd.collapse(grouped.interest),
+...                           names=grouped.user.name.implode())
+>>> interest_details
+DataSlice([
+    Entity(interest='tennis', names=List['Alice', 'Charlie']),
+    Entity(interest='chess', names=List['Alice', 'Bob']),
+    Entity(interest='music', names=List['Bob']),
+    Entity(interest='alcohol', names=List['Charlie']),
+], schema: ENTITY(interest=STRING, names=LIST[STRING]), ...)
+```
+
+### 3. Memory-Efficient Data Versioning
+
+Koda structures are immutable, allowing modified versions with O(1) cost by
+sharing underlying data.
+
+```py {.pycon-doctest}
+>>> users = kd.new(
+...     name=kd.slice(['Alice', 'Bob', 'Charlie']),
+...     age=kd.slice([30, 25, 35]),
+... )
+
+# Create a new version with updated ages for all users.
+>>> aged_users = users.with_attrs(age=users.age + 1)
+>>> users.age
+DataSlice([30, 25, 35], schema: INT32, ...)
+>>> aged_users.age
+DataSlice([31, 26, 36], schema: INT32, ...)
+
+# Alternative: `updates` can hold one or multiple updates across different
+# levels and be passed around before applying with <<.
+>>> updates = kd.attrs(users, age=users.age + 1)
+>>> aged_users = users << updates
+>>> aged_users.age
+DataSlice([31, 26, 36], schema: INT32, ...)
+```
+
+### 4. Functors
+
+Koda allows tracing Python functions to create reusable computational graphs
+(Functors). Functors are normal DataSlices and can be stored in object
+attributes, serialized, and served in production.
+
+```py {.pycon-doctest}
+# Define a Python function for Z-score normalization.
+>>> def z_score(x):
+...   return (x - kd.math.agg_mean(x)) / kd.math.agg_std(x)
+
+# Trace it into a Koda functor.
+>>> normalize_fn = kd.fn(z_score)
+
+# Store the functor in a Koda object attribute.
+>>> model = kd.obj(preprocess=normalize_fn)
+
+# Evaluate the functor stored in the object.
+>>> scores = kd.slice([10.0, 20.0, 30.0])
+>>> model.preprocess(scores)
+DataSlice([-1.0, 0.0, 1.0], schema: FLOAT32, ...)
+```
