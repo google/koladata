@@ -15,6 +15,10 @@ Operators to create and call functors.
 Implements:
   (py_types.FunctionType, return_type_as: arolla.QValue) -&gt; DataItem</code></pre>
 
+### `kd.functor.SWITCH_DEFAULT` {#kd.functor.SWITCH_DEFAULT}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the default case in a kd.switch() construct.</code></pre>
+
 ### `kd.functor.allow_arbitrary_unused_inputs(fn_def: DataItem) -> DataItem` {#kd.functor.allow_arbitrary_unused_inputs}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a functor that allows unused inputs but otherwise behaves the same.

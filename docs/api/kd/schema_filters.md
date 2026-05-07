@@ -8,6 +8,14 @@ Schema filter operators and constants.
 
 
 
+### `kd.schema_filters.ANY_PRIMITIVE` {#kd.schema_filters.ANY_PRIMITIVE}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A filter that matches any primitive schema.</code></pre>
+
+### `kd.schema_filters.ANY_SCHEMA` {#kd.schema_filters.ANY_SCHEMA}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A filter that matches any schema.</code></pre>
+
 ### `kd.schema_filters.apply_filter(x, schema_filter)` {#kd.schema_filters.apply_filter}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag, where only parts of data are kept.

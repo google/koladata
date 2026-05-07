@@ -113,7 +113,8 @@ Subcategory | Description
 <pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem representing Unicode strings.</code></pre>
 
 ### `kd.SWITCH_DEFAULT` {#kd.SWITCH_DEFAULT}
-*No description*
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Marks the default case in a kd.switch() construct.</code></pre>
 
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 
