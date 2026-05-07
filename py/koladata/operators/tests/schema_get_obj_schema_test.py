@@ -101,6 +101,8 @@ class SchemaGetObjSchemaTest(parameterized.TestCase):
               schema_constants.SCHEMA,
           ]),
       ),
+      # Empty DataSlice
+      (ds([]), ds([], schema_constants.SCHEMA)),
   )
   def test_eval(self, x, expected):
     res = kd.schema.get_obj_schema(x)

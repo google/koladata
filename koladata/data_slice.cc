@@ -1202,7 +1202,7 @@ DataSlice DataSlice::GetSchema() const {
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetObjSchema() const {
-  if (GetSchemaImpl() != schema::kObject) {
+  if (GetSchemaImpl() != schema::kObject && GetSchemaImpl() != schema::kNone) {
     return absl::InvalidArgumentError(
         "DataSlice must have OBJECT schema for get_obj_schema");
   }

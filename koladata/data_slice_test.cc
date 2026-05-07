@@ -1151,6 +1151,21 @@ TEST(DataSliceTest, GetObjSchema) {
             absl::StatusCode::kInvalidArgument,
             HasSubstr("DataSlice with Objects must have a DataBag attached")));
   }
+
+  {
+    // NONE schema slice
+    auto ds = test::EmptyDataSlice(3, schema::kNone);
+    auto schema_ds = test::EmptyDataSlice(3, schema::kSchema);
+    EXPECT_THAT(ds.GetObjSchema(), IsOkAndHolds(IsEquivalentTo(schema_ds)));
+  }
+
+  {
+    // Scalar NONE item
+    auto item = test::DataItem(internal::MissingValue(), schema::kNone);
+    EXPECT_THAT(item.GetObjSchema(),
+                IsOkAndHolds(IsEquivalentTo(test::DataItem(
+                    internal::MissingValue(), schema::kSchema))));
+  }
 }
 
 TEST(DataSliceTest, SetGetMetadata) {
