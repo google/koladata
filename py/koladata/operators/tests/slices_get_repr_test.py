@@ -181,13 +181,11 @@ class SlicesGetReprTest(parameterized.TestCase):
     res = eval_op(
         'kd.slices.get_repr',
         db.new(a=1),
-        show_schema=True,
         show_item_id=True,
     )
     self.assertRegex(
         res.internal_as_py(),
-        r'DataItem\(Entity\(a=1\), schema: ENTITY\(a=INT32\), item_id:'
-        r' Entity:\$.{22}\)',
+        r'DataItem\(Entity\(a=1\), item_id: Entity:\$.{22}\)',
     )
 
   def test_show_itemid_schema(self):
@@ -218,13 +216,12 @@ class SlicesGetReprTest(parameterized.TestCase):
     res = eval_op(
         'kd.slices.get_repr',
         fn,
-        show_schema=True,
         show_item_id=True,
     )
     self.assertRegex(
         res.internal_as_py(),
         r'DataItem\(Functor\[self=Entity\(self_not_specified=present\), .*\]'
-        r'\(returns=I.x \+ I.y\), schema: OBJECT, item_id: Entity:\$.{22}\)',
+        r'\(returns=I.x \+ I.y\), item_id: Entity:\$.{22}\)',
     )
 
   def test_print_only_attr_names(self):

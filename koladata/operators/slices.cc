@@ -1107,7 +1107,7 @@ absl::StatusOr<DataSlice> GetRepr(const DataSlice& x, const DataSlice& depth,
   ASSIGN_OR_RETURN(bool show_schema_bool,
                    GetBoolArgument(show_schema, "show_schema"));
   ASSIGN_OR_RETURN(bool show_item_id_bool,
-                   GetBoolArgument(show_schema, "show_item_id"));
+                   GetBoolArgument(show_item_id, "show_item_id"));
   ASSIGN_OR_RETURN(bool show_present_count_bool,
                    GetBoolArgument(show_present_count, "show_present_count"));
   auto repr = DataSliceRepr(
