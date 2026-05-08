@@ -679,7 +679,7 @@ struct DataBagDecoder {
     DataBagPtr db;
     if (db_proto.fallback_count() > 0) {
       if (db_proto.attrs_size() > 0 || db_proto.lists_size() > 0 ||
-          db_proto.lists_size()) {
+          db_proto.dicts_size() > 0) {
         return absl::InvalidArgumentError(
             "only empty DataBag can have fallbacks");
       }

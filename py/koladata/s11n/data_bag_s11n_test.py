@@ -317,6 +317,56 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
           output_value_indices: 4
           """)
     with self.assertRaisesRegex(
+        ValueError, re.escape('only empty DataBag can have fallbacks')
+    ):
+      self.parse_container_text_proto(header_and_deps + """
+          decoding_steps {
+            value {
+              input_value_indices: 0
+              input_value_indices: 1
+              codec_index: 0
+              [koladata.s11n.KodaV1Proto.extension] {
+                data_bag_value {
+                  fallback_count: 1
+                  lists {
+                    list_id {
+                      hi: 10
+                      lo: 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+          output_value_indices: 4
+          """)
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape('only empty DataBag can have fallbacks')
+    ):
+      self.parse_container_text_proto(header_and_deps + """
+          decoding_steps {
+            value {
+              input_value_indices: 0
+              input_value_indices: 1
+              codec_index: 0
+              [koladata.s11n.KodaV1Proto.extension] {
+                data_bag_value {
+                  fallback_count: 1
+                  dicts {
+                    dict_id {
+                      hi: 10
+                      lo: 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+          output_value_indices: 4
+          """)
+
+    with self.assertRaisesRegex(
         ValueError,
         re.escape(
             "AttrChunkProto values don't fit into AllocationId of"
