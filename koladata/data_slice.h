@@ -43,6 +43,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 
@@ -93,6 +94,11 @@ class DataSlice {
   // DataSlice::WithSchema, instead.
   static absl::StatusOr<DataSlice> Create(
       internal::DataSliceImpl impl, JaggedShape shape,
+      internal::DataItem schema, DataBagPtr db = nullptr,
+      Wholeness wholeness = Wholeness::kNotWhole);
+
+  static absl::StatusOr<DataSlice> CreateFullAlloc(
+      internal::AllocationId alloc, JaggedShape shape,
       internal::DataItem schema, DataBagPtr db = nullptr,
       Wholeness wholeness = Wholeness::kNotWhole);
 
@@ -283,6 +289,10 @@ class DataSlice {
   // Returns true if all data in this DataSlice's DataBag is reachable from this
   // DataSlice. If this returns false, whether all data is reachable is unknown.
   bool IsWhole() const { return internal_->is_whole; }
+
+  std::optional<internal::AllocationId> GetFullAllocOrNone() const {
+    return internal_->full_alloc;
+  }
 
   // Returns a new DataSlice with a new reference to DataBag `db`.
   DataSlice WithBag(DataBagPtr db,
@@ -641,6 +651,10 @@ class DataSlice {
     // If true, this DataSlice is "whole" (all data in its DataBag is reachable
     // from it). Can be true only if `db` is immutable.
     bool is_whole = false;
+
+    // If present, then `impl` is equal to
+    // `DataSliceImpl::ObjectsFromAllocation(*full_alloc, size())`
+    std::optional<internal::AllocationId> full_alloc;
 
     Internal() : shape(JaggedShape::Empty()), schema(schema::kNone) {}
 

@@ -336,10 +336,8 @@ absl::StatusOr<DataSlice> CreateShaped(const DataBagPtr& db,
         std::move(shape), schema, db);
   } else {
     size_t size = shape.size();
-    return DataSlice::Create(
-        internal::DataSliceImpl::ObjectsFromAllocation(
-            allocate_many_fn(size), size),
-        std::move(shape), schema, db);
+    return DataSlice::CreateFullAlloc(allocate_many_fn(size), std::move(shape),
+                                      schema, db);
   }
 }
 

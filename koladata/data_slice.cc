@@ -1120,6 +1120,24 @@ absl::StatusOr<DataSlice> DataSlice::Create(internal::DataSliceImpl impl,
                    std::move(db), wholeness == Wholeness::kWhole);
 }
 
+absl::StatusOr<DataSlice> DataSlice::CreateFullAlloc(
+      internal::AllocationId alloc, JaggedShape shape,
+      internal::DataItem schema, DataBagPtr db,
+      Wholeness wholeness) {
+  if (alloc.Capacity() < shape.size()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("shape size must be compatible with alloc size: "
+                        "shape_size=%d > alloc_size=%d",
+                        shape.size(), alloc.Capacity()));
+  }
+  int64_t size = shape.size();
+  DataSlice res(internal::DataSliceImpl::ObjectsFromAllocation(alloc, size),
+                std::move(shape), std::move(schema), std::move(db),
+                wholeness == Wholeness::kWhole);
+  res.internal_->full_alloc = alloc;
+  return res;
+}
+
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             internal::DataItem schema,
                                             DataBagPtr db,
@@ -1654,6 +1672,11 @@ absl::Status SetAttrImpl(const DataSlice& obj, absl::string_view attr_name,
   } else {
     RETURN_IF_ERROR(data_handler.ProcessSchema(obj, db_mutable_impl,
                                                /*fallbacks=*/{}));
+  }
+  if (auto full_alloc = obj.GetFullAllocOrNone();
+      full_alloc.has_value() && !obj.is_item() && !full_alloc->IsSmall()) {
+    return db_mutable_impl.SetAttrFullAlloc(*full_alloc, attr_name,
+                                            data_handler.GetValues().slice());
   }
   return obj.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.SetAttr(impl, attr_name,
