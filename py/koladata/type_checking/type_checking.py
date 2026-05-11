@@ -51,6 +51,30 @@ _DISABLE_TRACED_TYPE_CHECKING_COUNTER = 0
 def _is_traced_type_checking_disabled():
   return _DISABLE_TRACED_TYPE_CHECKING_COUNTER > 0
 
+_PARAMETER_SCHEMA_FOR_TYPE_MIXING = eager.schema.new_schema(
+    default_value=schema_constants.OBJECT
+)
+
+
+def _signature_uuid(
+    sig: data_item.DataItem | arolla.Expr,
+) -> arolla.Expr:
+  """Computes the UUID of a signature."""
+  return lazy.ids.agg_uuid(
+      lazy.ids.uuid(
+          'Parameter',
+          default_value=sig.parameters[:]
+          # Mixing the default values in a single data slice is not possible
+          # because they are entities with different schemas, so we convert
+          # them to objects first, and add the schemas separately to the uuid
+          # computation.
+          .with_schema(_PARAMETER_SCHEMA_FOR_TYPE_MIXING).default_value,
+          default_value_schema=sig.parameters[:].get_obj_schema().default_value,
+          kind=sig.parameters[:].kind,
+          name=sig.parameters[:].name,
+      )
+  )
+
 
 @contextlib.contextmanager
 def disable_traced_type_checking():
@@ -439,9 +463,11 @@ def _with_lazy_constraint_verification(
     if constraint.signature is not None:
       result = lazy.assertion.with_assertion(
           result,
-          lazy.deep_uuid(actual_value.get_attr('__signature__'))
-          == lazy.deep_uuid(
-              signature_utils.from_py_signature(constraint.signature)
+          (
+              _signature_uuid(actual_value.get_attr('__signature__'))
+              == _signature_uuid(
+                  signature_utils.from_py_signature(constraint.signature)
+              ).eval()  # eval it at tracing time since we know it is a literal.
           ),
           lambda actual_value: lazy.strings.join(
               f'{error_message_prefix} expected {attr_path} to be a functor'

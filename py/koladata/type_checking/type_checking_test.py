@@ -865,6 +865,17 @@ class TypeCheckingTest(parameterized.TestCase):
     ):
       _ = fn(lambda: 2, 3)
 
+    with self.assertRaisesRegex(
+        ValueError,
+        r'(?s)kd.check_inputs:'
+        r' expected parameter f to be a functor with signature \(x\), got a'
+        r' functor with signature Obj\(.*?'
+        r'parameters=List\[Obj\(default_value=3, '
+        r'kind=Entity\(kind=\'positional_or_keyword\'\), name=\'x\'\)\]'
+        r'.*?\)',
+    ):
+      _ = fn(lambda x=3: x, 3)
+
     # If f is statically known however, we check at tracing time.
     with self.assertRaisesRegex(
         TypeError,
@@ -876,7 +887,7 @@ class TypeCheckingTest(parameterized.TestCase):
     # If you match the expected signature, it is ok.
     testing.assert_equal(fn(lambda x: x, 3), ds(3))
 
-  def test_functor_in_static_when_tracing(self):
+  def test_functor_with_signature_static_when_tracing(self):
     @type_checking.check_inputs(
         f=type_checking.static_when_tracing(
             type_checking.functor(
