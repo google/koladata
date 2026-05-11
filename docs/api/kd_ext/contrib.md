@@ -2,7 +2,7 @@
 
 # kd_ext.contrib API
 
-External contributions not necessarily endorsed by Koda.
+Contrib operators.
 
 
 

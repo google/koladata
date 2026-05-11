@@ -2,7 +2,7 @@
 
 # kd.qtypes API
 
-Constants for Koda QTypes.
+Koda QTypes.
 
 
 

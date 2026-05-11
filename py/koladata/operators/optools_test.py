@@ -948,6 +948,45 @@ class OptoolsTest(parameterized.TestCase):
       )(fn)
       # ok if no errors
 
+  def test_set_namespace_docstring(self):
+    optools.set_namespace_docstring(
+        'test.set_namespace_docstring.ns', 'My namespace docstring.'
+    )
+    container = arolla.OperatorsContainer(
+        unsafe_extra_namespaces=['test.set_namespace_docstring.ns']
+    )
+    self.assertEqual(
+        container.test.set_namespace_docstring.ns.__doc__,
+        'My namespace docstring.',
+    )
+
+  def test_set_namespace_docstring_none(self):
+    with self.assertRaisesRegex(ValueError, 'docstring must be non-empty'):
+      optools.set_namespace_docstring(
+          'test.set_namespace_docstring_none.ns', None  # pytype: disable=wrong-arg-types
+      )
+
+  def test_set_namespace_docstring_empty(self):
+    with self.assertRaisesRegex(ValueError, 'docstring must be non-empty'):
+      optools.set_namespace_docstring(
+          'test.set_namespace_docstring_empty.ns', ''
+      )
+
+  def test_set_namespace_docstring_override(self):
+    optools.set_namespace_docstring(
+        'test.set_namespace_docstring_override.ns', 'First docstring.'
+    )
+    optools.set_namespace_docstring(
+        'test.set_namespace_docstring_override.ns', 'Second docstring.'
+    )
+    container = arolla.OperatorsContainer(
+        unsafe_extra_namespaces=['test.set_namespace_docstring_override.ns']
+    )
+    self.assertEqual(
+        container.test.set_namespace_docstring_override.ns.__doc__,
+        'Second docstring.',
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

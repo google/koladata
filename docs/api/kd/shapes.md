@@ -2,7 +2,7 @@
 
 # kd.shapes API
 
-Operators that work on shapes
+Operators that work on shapes.
 
 
 

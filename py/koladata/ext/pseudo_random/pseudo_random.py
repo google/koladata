@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Interface to the koladata internal pseudo-random functions."""
+"""Pseudo-random utilities."""
 
 import os
 from koladata.ext.pseudo_random import clib

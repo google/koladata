@@ -2,7 +2,7 @@
 
 # kd.bitwise API
 
-Bitwise operators
+Bitwise operators.
 
 
 

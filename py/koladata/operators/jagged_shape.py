@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Jagged shape operators."""
+"""Operators that work on shapes."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -50,6 +50,9 @@ def _expect_data_slice_or_edge_args(param):
           f' {constraints.variadic_name_type_msg(param)}'
       ),
   )
+
+
+optools.set_namespace_docstring('kd.shapes', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

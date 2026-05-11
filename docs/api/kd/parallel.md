@@ -2,7 +2,7 @@
 
 # kd.parallel API
 
-Operators for parallel computation.
+Tools to evaluate functors in parallel.
 
 
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""py.* operators."""
+"""Operators that call Python functions."""
 
 import concurrent.futures
 import functools
@@ -222,6 +222,9 @@ def _unwrap_optional_boolean(
 #
 # kd.py.apply_py* operators
 #
+
+
+optools.set_namespace_docstring('kd.py', __doc__)
 
 
 @optools.add_to_registry(aliases=['kd.apply_py'])

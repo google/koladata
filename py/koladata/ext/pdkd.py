@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Bridge between Pandas and DataSlice."""
+"""Tools for Pandas <-> Koda interoperability."""
 
 from collections.abc import Mapping, Sequence
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Runtime type checking for Koda functions."""
+"""Utilities to annotatate functions with type checking."""
 from __future__ import annotations
 
 from collections.abc import Mapping

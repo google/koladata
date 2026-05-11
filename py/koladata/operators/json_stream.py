@@ -75,6 +75,9 @@ M = arolla.M
 P = arolla.P
 
 
+optools.set_namespace_docstring('kd.json_stream', __doc__)
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_lambda_operator('kd.json_stream.filter_json')
 def filter_json(input_chunks, field_to_extract):

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The public API for Koda View.
+"""Experimental Koda View API.
 
-This API is highly experimental and is subject to change without notice.
+This public API is highly experimental and is subject to change without notice.
 """
 
 import types as _py_types
@@ -54,6 +54,7 @@ present = _mask_constants.present
 missing = _mask_constants.missing
 
 types = _py_types.SimpleNamespace(
+    __doc__='Types for the Koda View API.',
     View=_view.View,
     AutoBoxType=_view.AutoBoxType,
     ViewOrAutoBoxType=_view.ViewOrAutoBoxType,

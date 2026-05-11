@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators that work on lists."""
+"""Operators working with lists."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -37,6 +37,9 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.lists', __doc__)
 
 
 @optools.as_backend_operator('kd.lists._like', deterministic=False)

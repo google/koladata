@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""UUID operators."""
+"""Operators that work with ItemIds."""
 
 from arolla import arolla
 from koladata.operators import arolla_bridge
@@ -28,6 +28,9 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 _AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
+
+
+optools.set_namespace_docstring('kd.ids', __doc__)
 
 
 @optools.add_to_registry(aliases=['kd.uuid'], via_cc_operator_package=True)

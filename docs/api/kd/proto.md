@@ -2,7 +2,7 @@
 
 # kd.proto API
 
-Protocol buffer serialization operators.
+Protocol buffer serialization and parsing operators.
 
 
 

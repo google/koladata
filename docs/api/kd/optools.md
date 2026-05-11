@@ -206,6 +206,21 @@ pattern is therefore:
 Args:
   *namespaces: Namespaces to make available in the returned container.</code></pre>
 
+### `kd.optools.set_namespace_docstring(namespace: str, docstring: str) -> None` {#kd.optools.set_namespace_docstring}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Registers a docstring for an operator namespace.
+
+Delegates to ``arolla.optools.register_namespace_docstring`` with
+``if_present=&#39;unsafe_override&#39;``.
+
+Args:
+  namespace: The operator namespace, e.g. ``&#39;kd.json_stream&#39;``.
+  docstring: The docstring text (typically the module&#39;s ``__doc__``).
+    Must be non-empty.
+
+Raises:
+  ValueError: If ``docstring`` is empty.</code></pre>
+
 ### `kd.optools.unified_non_deterministic_arg() -> Expr` {#kd.optools.unified_non_deterministic_arg}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., arg)`.</code></pre>

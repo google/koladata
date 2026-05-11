@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Arithmetic Koda operators."""
+"""Arithmetic operators."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -24,6 +24,9 @@ from koladata.types import data_slice
 
 M = arolla.M | jagged_shape.M
 P = arolla.P
+
+
+optools.set_namespace_docstring('kd.math', __doc__)
 
 
 @optools.add_to_registry(repr_fn=op_repr.add_repr, via_cc_operator_package=True)

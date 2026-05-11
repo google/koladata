@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Functor operators."""
+"""Operators to create and call functors."""
 
 import textwrap
 
@@ -48,6 +48,9 @@ P = arolla.P
 M = arolla.M
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
+
+
+optools.set_namespace_docstring('kd.functor', __doc__)
 
 
 @optools.add_to_registry(

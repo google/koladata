@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Serialization functions for Kola Data."""
+"""Serialization and deserialization utilities."""
 
 from typing import Any
 

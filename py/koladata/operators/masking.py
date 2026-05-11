@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Logical DataSlice operators."""
+"""Masking operators."""
 
 from arolla import arolla
 from koladata.operators import assertion
@@ -25,6 +25,9 @@ from koladata.types import schema_constants
 
 M = arolla.M
 P = arolla.P
+
+
+optools.set_namespace_docstring('kd.masking', __doc__)
 
 
 @optools.add_to_registry(aliases=['kd.has'], via_cc_operator_package=True)

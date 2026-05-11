@@ -84,14 +84,14 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
 types = _same_when_tracing(_kd_types)
 
 ### Koda QTypes.
-qtypes = _same_when_tracing(_py_types.SimpleNamespace())
+qtypes = _same_when_tracing(_py_types.SimpleNamespace(__doc__=_qtypes.__doc__))
 qtypes.DATA_SLICE = _qtypes.DATA_SLICE
 qtypes.NON_DETERMINISTIC_TOKEN = _qtypes.NON_DETERMINISTIC_TOKEN
 qtypes.DATA_BAG = _qtypes.DATA_BAG
 qtypes.EXECUTOR = _qtypes.EXECUTOR
 
 ### Tools for defining operators.
-optools = _eager_only(_py_types.SimpleNamespace())
+optools = _eager_only(_py_types.SimpleNamespace(__doc__=_optools.__doc__))
 optools.add_alias = _optools.add_alias
 optools.add_to_registry = _optools.add_to_registry
 optools.as_backend_operator = _optools.as_backend_operator
@@ -106,6 +106,7 @@ optools.as_qvalue = _py_boxing.as_qvalue
 optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
 optools.fix_non_deterministic_tokens = _optools.fix_non_deterministic_tokens
 optools.make_operators_container = _optools.make_operators_container
+optools.set_namespace_docstring = _optools.set_namespace_docstring
 optools.unified_non_deterministic_arg = _optools.unified_non_deterministic_arg
 optools.unified_non_deterministic_kwarg = (
     _optools.unified_non_deterministic_kwarg
@@ -113,7 +114,9 @@ optools.unified_non_deterministic_kwarg = (
 optools.WITH_PY_FUNCTION_TO_PY_OBJECT = _py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
 
 ### Operator constraints.
-optools.constraints = _py_types.SimpleNamespace()
+optools.constraints = _py_types.SimpleNamespace(
+    __doc__='Operator argument type constraints.'
+)
 optools.constraints.expect_data_slice = _qtype_utils.expect_data_slice
 optools.constraints.expect_data_slice_args = _qtype_utils.expect_data_slice_args
 optools.constraints.expect_data_slice_kwargs = (
@@ -129,7 +132,7 @@ optools.constraints.expect_jagged_shape_or_unspecified = (
 )
 
 ### Tools for eager operators.
-optools.eager = _py_types.SimpleNamespace()
+optools.eager = _py_types.SimpleNamespace(__doc__='Eager operator utilities.')
 optools.eager.EagerOperator = _eager_op_utils.EagerOperator
 
 
@@ -172,6 +175,7 @@ update_schema = _eager_only(_attrs.update_schema_fn)
 
 parallel = _eager_only(
     _py_types.SimpleNamespace(
+        __doc__=_parallel.__doc__,
         call_multithreaded=_parallel.call_multithreaded,
         yield_multithreaded=_parallel.yield_multithreaded,
         transform=_parallel.transform,
@@ -181,6 +185,7 @@ parallel = _eager_only(
 
 file_io = _eager_only(
     _py_types.SimpleNamespace(
+        __doc__=_file_io.__doc__,
         get_default_file_system_interaction=_file_io.get_default_file_system_interaction,
         FileSystemInterface=_file_io.fs_interface.FileSystemInterface,
         FileSystemInteraction=_file_io.fs_implementation.FileSystemInteraction,
@@ -189,6 +194,7 @@ file_io = _eager_only(
 
 s11n = _eager_only(
     _py_types.SimpleNamespace(
+        __doc__=_s11n.__doc__,
         dump=_s11n.dump,
         load=_s11n.load,
         dumps=_s11n.dumps,
@@ -267,6 +273,7 @@ static_when_tracing = _same_when_tracing(_type_checking.static_when_tracing)
 # Type checking utilities.
 type_checking = _same_when_tracing(
     _py_types.SimpleNamespace(
+        __doc__=_type_checking.__doc__,
         check_inputs=_type_checking.check_inputs,
         check_output=_type_checking.check_output,
         duck_type=_type_checking.duck_type,
@@ -277,7 +284,7 @@ type_checking = _same_when_tracing(
     )
 )
 
-expr = _eager_only(_py_types.SimpleNamespace())
+expr = _eager_only(_py_types.SimpleNamespace(__doc__='Expr utilities.'))
 expr.literal = _literal_operator.literal
 expr.get_name = _introspection.get_name
 expr.unwrap_named = _introspection.unwrap_named

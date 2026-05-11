@@ -735,3 +735,23 @@ def make_operators_container(*namespaces: str) -> arolla.OperatorsContainer:
     *namespaces: Namespaces to make available in the returned container.
   """
   return arolla.OperatorsContainer(unsafe_extra_namespaces=namespaces)
+
+
+def set_namespace_docstring(namespace: str, docstring: str) -> None:
+  """Registers a docstring for an operator namespace.
+
+  Delegates to ``arolla.optools.register_namespace_docstring`` with
+  ``if_present='unsafe_override'``.
+
+  Args:
+    namespace: The operator namespace, e.g. ``'kd.json_stream'``.
+    docstring: The docstring text (typically the module's ``__doc__``).
+      Must be non-empty.
+
+  Raises:
+    ValueError: If ``docstring`` is empty.
+  """
+  arolla.optools.register_namespace_docstring(
+      namespace, docstring, if_present='unsafe_override'
+  )
+

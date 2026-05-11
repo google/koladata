@@ -31,6 +31,9 @@ constraints = arolla.optools.constraints
 _NULL_OBJ = objects.Object(_is_null_marker=arolla.present())
 
 
+optools.set_namespace_docstring('kd.extension_types', __doc__)
+
+
 @optools.as_lambda_operator(
     'kd.extension_types._wrap',
     qtype_constraints=[

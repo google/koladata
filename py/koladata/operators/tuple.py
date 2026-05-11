@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tuple operators."""
+"""Operators to create tuples."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -32,6 +32,9 @@ constraints = arolla.optools.constraints
 
 # Note that we use the lambda operator instead of an alias so that the operator
 # implemented Koladata-specific boxing rules.
+optools.set_namespace_docstring('kd.tuples', __doc__)
+
+
 @optools.add_to_registry(aliases=['kd.tuple'], via_cc_operator_package=True)
 @arolla.optools.as_lambda_operator(
     'kd.tuples.tuple', aux_policy=aux_policies.CLASSIC_AUX_POLICY

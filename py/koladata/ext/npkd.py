@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tools to move from DataSlice to the numpy world and back."""
+"""Tools for Numpy <-> Koda interoperability."""
 
 from arolla import arolla
 from arolla.experimental import numpy_conversion

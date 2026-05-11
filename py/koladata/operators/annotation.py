@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Annotation Koda operators."""
+"""Annotation operators."""
 
 from arolla import arolla
 from koladata.expr import view
 from koladata.operators import optools
 
 # NOTE: Implemented in C++.
+
+
+optools.set_namespace_docstring('kd.annotation', __doc__)
+
+
 source_location = arolla.abc.lookup_operator('kd.annotation.source_location')
 with_name = arolla.abc.lookup_operator('kd.annotation.with_name')
 

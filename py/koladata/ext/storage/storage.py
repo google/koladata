@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tools for persisted incremental data."""
+"""Koda data storage utilities."""
 
 from koladata.ext.storage import composite_initial_data_manager as _composite_initial_data_manager
 from koladata.ext.storage import data_slice_manager as _dsm

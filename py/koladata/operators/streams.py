@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators for streams."""
+"""Operators that work with streams of items."""
 
 from arolla import arolla
 from koladata.operators import koda_internal_parallel
@@ -24,6 +24,9 @@ M = arolla.M
 P = arolla.P
 
 current_executor = arolla.abc.lookup_operator('kd.streams.current_executor')
+
+
+optools.set_namespace_docstring('kd.streams', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

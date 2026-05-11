@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Random operators."""
+"""Random and sampling operators."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -36,6 +36,9 @@ from koladata.types import schema_constants
 M = arolla.M | jagged_shape.M
 P = arolla.P
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.random', __doc__)
 
 
 @optools.as_lambda_operator(

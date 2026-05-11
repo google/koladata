@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""DataSlice operators working with DataBags."""
+"""Operators that work on DataBags."""
 
 from arolla import arolla as _arolla
 from arolla.jagged_shape import jagged_shape as _jagged_shape
@@ -27,6 +27,9 @@ _M = _arolla.M | _jagged_shape.M
 _P = _arolla.P
 _MASK = _schema_constants.MASK
 _constraints = _arolla.optools.constraints
+
+
+_optools.set_namespace_docstring('kd.bags', __doc__)
 
 
 @_optools.add_to_registry(aliases=['kd.bag'], via_cc_operator_package=True)

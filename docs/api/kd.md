@@ -21,34 +21,34 @@ Subcategory | Description
 [annotation](kd/annotation.md) | Annotation operators.
 [assertion](kd/assertion.md) | Operators that assert properties of DataSlices.
 [bags](kd/bags.md) | Operators that work on DataBags.
-[bitwise](kd/bitwise.md) | Bitwise operators
+[bitwise](kd/bitwise.md) | Bitwise operators.
 [comparison](kd/comparison.md) | Operators that compare DataSlices.
 [core](kd/core.md) | Core operators that are not part of other categories.
 [curves](kd/curves.md) | Operators working with curves.
 [dicts](kd/dicts.md) | Operators working with dictionaries.
 [entities](kd/entities.md) | Operators that work solely with entities.
 [expr](kd/expr.md) | Expr utilities.
-[extension_types](kd/extension_types.md) | Extension type functionality.
-[file_io](kd/file_io.md) | File I/O utilities.
+[extension_types](kd/extension_types.md) | Extension type operators.
+[file_io](kd/file_io.md) | Utilities for interacting with the file system.
 [functor](kd/functor.md) | Operators to create and call functors.
 [ids](kd/ids.md) | Operators that work with ItemIds.
 [iterables](kd/iterables.md) | Operators that work with iterables.
-[json](kd/json.md) | JSON serialization operators.
-[json_stream](kd/json_stream.md) | JSON text stream transformation operators.
+[json](kd/json.md) | JSON serialization and parsing operators.
+[json_stream](kd/json_stream.md) | JSON stream processing operators.
 [lists](kd/lists.md) | Operators working with lists.
 [masking](kd/masking.md) | Masking operators.
 [math](kd/math.md) | Arithmetic operators.
 [objs](kd/objs.md) | Operators that work solely with objects.
 [optools](kd/optools.md) | Operator definition and registration tooling.
-[parallel](kd/parallel.md) | Operators for parallel computation.
-[proto](kd/proto.md) | Protocol buffer serialization operators.
+[parallel](kd/parallel.md) | Tools to evaluate functors in parallel.
+[proto](kd/proto.md) | Protocol buffer serialization and parsing operators.
 [py](kd/py.md) | Operators that call Python functions.
-[qtypes](kd/qtypes.md) | Constants for Koda QTypes.
+[qtypes](kd/qtypes.md) | Koda QTypes.
 [random](kd/random.md) | Random and sampling operators.
 [s11n](kd/s11n.md) | Serialization and deserialization utilities.
 [schema](kd/schema.md) | Schema-related operators.
 [schema_filters](kd/schema_filters.md) | Schema filter operators and constants.
-[shapes](kd/shapes.md) | Operators that work on shapes
+[shapes](kd/shapes.md) | Operators that work on shapes.
 [slices](kd/slices.md) | Operators that perform DataSlice transformations.
 [streams](kd/streams.md) | Operators that work with streams of items.
 [strings](kd/strings.md) | Operators that work with strings data.

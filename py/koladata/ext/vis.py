@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Koda visualization library."""
+"""Koda visualization functionality."""
 
 import dataclasses
 import enum

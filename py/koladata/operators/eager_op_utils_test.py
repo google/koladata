@@ -75,12 +75,21 @@ class EagerOpUtilsTest(parameterized.TestCase):
             dir(eager_op_utils.operators_container('test'))
         )
     )
-    self.assertCountEqual(
-        dir(eager_op_utils.operators_container('test.namespace_1')),
-        ['op_1', 'op_2'],
+    self.assertTrue(
+        set(['op_1', 'op_2']).issubset(
+            dir(eager_op_utils.operators_container('test.namespace_1'))
+        )
     )
     self.assertCountEqual(
         dir(eager_op_utils.operators_container('test.namespace_2')), ['op']
+    )
+    # Containers with registered docstrings include '__doc__' in dir().
+    optools.set_namespace_docstring(
+        'test.namespace_1', 'Namespace 1 docstring.'
+    )
+    self.assertCountEqual(
+        dir(eager_op_utils.operators_container('test.namespace_1')),
+        ['__doc__', 'op_1', 'op_2'],
     )
 
   @parameterized.parameters(
@@ -293,8 +302,10 @@ class EagerOpUtilsTest(parameterized.TestCase):
             _ignored_attribute=lambda x, y: x - y,
         ),
     )
-    self.assertCountEqual(
-        dir(kd_with_overrides), ['op_1', 'op_2', 'op_new_override']
+    self.assertTrue(
+        set(['op_1', 'op_2', 'op_new_override']).issubset(
+            dir(kd_with_overrides)
+        )
     )
     testing.assert_equal(
         kd_with_overrides.op_1(self.x, self.y), self.x + self.y
@@ -350,6 +361,42 @@ class EagerOpUtilsTest(parameterized.TestCase):
           types.SimpleNamespace(),  # pytype: disable=wrong-arg-types
           types.SimpleNamespace(),
       )
+
+  def test_container_doc_from_arolla(self):
+    optools.set_namespace_docstring(
+        'test.namespace_1', 'Namespace 1 docstring.'
+    )
+    kd = eager_op_utils.operators_container('test.namespace_1')
+    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
+
+  def test_container_doc_none_when_unregistered(self):
+    # test.namespace_2 has no registered __doc__ operator.
+    kd = eager_op_utils.operators_container('test.namespace_2')
+    self.assertIsNone(kd.__doc__)
+
+  def test_container_doc_survives_cache_reset(self):
+    optools.set_namespace_docstring(
+        'test.namespace_1', 'Namespace 1 docstring.'
+    )
+    kd = eager_op_utils.operators_container('test.namespace_1')
+    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
+    eager_op_utils.reset_operators_container()
+    kd = eager_op_utils.operators_container('test.namespace_1')
+    self.assertEqual(kd.__doc__, 'Namespace 1 docstring.')
+
+  def test_overrides_doc_not_used(self):
+    optools.set_namespace_docstring(
+        'test.namespace_2', 'Namespace 2 fancy docstring.'
+    )
+    kd = eager_op_utils.operators_container('test.namespace_2')
+    self.assertEqual(kd.__doc__, 'Namespace 2 fancy docstring.')
+    kd_with_overrides = eager_op_utils.add_overrides(
+        kd,
+        types.SimpleNamespace(__doc__='Overrides docstring.'),
+    )
+    # The override's __doc__ is NOT used; the arolla container is the sole
+    # source of truth for the container's docstring.
+    self.assertEqual(kd_with_overrides.__doc__, 'Namespace 2 fancy docstring.')
 
 
 if __name__ == '__main__':

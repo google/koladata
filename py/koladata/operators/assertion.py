@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Assertion Koda operators."""
+"""Operators that assert properties of DataSlices."""
 
 from arolla import arolla as _arolla
 from koladata.operators import arolla_bridge as _arolla_bridge
@@ -24,6 +24,9 @@ from koladata.types import qtypes as _qtypes
 _P = _arolla.P
 _M = _arolla.M
 _constraints = _arolla.optools.constraints
+
+
+_optools.set_namespace_docstring('kd.assertion', __doc__)
 
 
 @_optools.add_to_registry(via_cc_operator_package=True)

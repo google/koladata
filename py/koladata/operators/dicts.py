@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators that work on dicts."""
+"""Operators working with dictionaries."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -36,6 +36,9 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.dicts', __doc__)
 
 
 @optools.as_backend_operator('kd.dicts._shaped', deterministic=False)

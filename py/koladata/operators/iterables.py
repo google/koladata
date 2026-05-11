@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators working with iterables.
+"""Operators that work with iterables.
 
 An iterable is a derived type from an arolla Sequence, which is intended to be
 used to represent streams that need streaming processing in multithreaded
@@ -28,6 +28,9 @@ from koladata.types import qtypes
 
 P = arolla.P
 M = arolla.M
+
+
+optools.set_namespace_docstring('kd.iterables', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

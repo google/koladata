@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""JSON DataSlice operators."""
+"""JSON serialization and parsing operators."""
 
 from arolla import arolla
 from koladata.operators import optools
@@ -23,6 +23,9 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 P = arolla.P
+
+
+optools.set_namespace_docstring('kd.json', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

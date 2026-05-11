@@ -2,7 +2,7 @@
 
 # kd.json_stream API
 
-JSON text stream transformation operators.
+JSON stream processing operators.
 
 
 

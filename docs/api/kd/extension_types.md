@@ -2,7 +2,7 @@
 
 # kd.extension_types API
 
-Extension type functionality.
+Extension type operators.
 
 
 

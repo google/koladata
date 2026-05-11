@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators working with objects."""
+"""Operators that work solely with objects."""
 
 from arolla import arolla
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -22,6 +22,9 @@ from koladata.operators import qtype_utils
 M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.objs', __doc__)
 
 
 @optools.add_to_registry(aliases=['kd.obj'], via_cc_operator_package=True)

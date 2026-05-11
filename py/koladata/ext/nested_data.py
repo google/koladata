@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities to manipulate nested data."""
+"""Utilities for manipulating nested data."""
 
 import types as py_types
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Comparison DataSlice operators."""
+"""Operators that compare DataSlices."""
 
 from arolla import arolla as _arolla
 from koladata.operators import assertion as _assertion
@@ -23,6 +23,9 @@ from koladata.operators import qtype_utils as _qtype_utils
 from koladata.types import schema_constants as _schema_constants
 
 _P = _arolla.P
+
+
+_optools.set_namespace_docstring('kd.comparison', __doc__)
 
 
 @_optools.add_to_registry(

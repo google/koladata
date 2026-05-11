@@ -65,6 +65,7 @@ class _OperatorsContainer:
   ):
     self._arolla_container = rl_container
     self._overrides = overrides
+    self.__doc__ = rl_container.__doc__
 
   def __dir__(self):
     res = dir(self._arolla_container)
@@ -89,7 +90,7 @@ class _OperatorsContainer:
         eager_op = EagerOperator(self._arolla_container[op_name])
       self.__dict__[op_name] = eager_op
     assert callable(eager_op)
-    return eager_op
+    return eager_op  # pytype: disable=bad-return-type
 
   # NOTE: Adding an operator / container to __dict__, causes __getattr__ to not
   # be invoked the next time by Python runtime.

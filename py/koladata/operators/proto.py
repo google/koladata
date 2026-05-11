@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Protocol buffer DataSlice operators."""
+"""Protocol buffer serialization and parsing operators."""
 
 from arolla import arolla
 from koladata.operators import optools
@@ -21,6 +21,9 @@ from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 
 P = arolla.P
+
+
+optools.set_namespace_docstring('kd.proto', __doc__)
 
 
 @optools.as_backend_operator(

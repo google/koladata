@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Core DataSlice operators."""
+"""Core operators that are not part of other categories."""
 
 from typing import Any
 
@@ -46,6 +46,9 @@ constraints = arolla.optools.constraints
 def _int64(x: Any) -> data_slice.DataSlice:
   """Returns an eager kd.int64(x)."""
   return data_slice.DataSlice.from_vals(x, schema_constants.INT64)
+
+
+optools.set_namespace_docstring('kd.core', __doc__)
 
 
 @optools.as_backend_operator('kd.core._get_attr')

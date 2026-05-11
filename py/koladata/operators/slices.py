@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators that work on DataSlices."""
+"""Operators that perform DataSlice transformations."""
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
@@ -51,6 +51,9 @@ def _is_unspecified(x):
 val_shaped = masking._val_shaped  # pylint: disable=protected-access
 val_shaped_as = masking._val_shaped_as  # pylint: disable=protected-access
 val_like = masking._val_like  # pylint: disable=protected-access
+
+
+optools.set_namespace_docstring('kd.slices', __doc__)
 
 
 @optools.add_to_registry(

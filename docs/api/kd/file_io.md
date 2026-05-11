@@ -2,7 +2,7 @@
 
 # kd.file_io API
 
-File I/O utilities.
+Utilities for interacting with the file system.
 
 
 Subcategory | Description

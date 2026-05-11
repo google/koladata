@@ -17,13 +17,14 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata import kd
-from koladata.operators import qtype_utils
-from koladata.operators import schema as schema_ops
 
 M = arolla.M | jagged_shape.M
 
 P = arolla.P
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
+
+
+kd.optools.set_namespace_docstring('kd_ext.contrib', __doc__)
 
 
 @kd.optools.as_backend_operator('kd_ext.contrib._flatten_cyclic_references')

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Schema operators."""
+"""Schema-related operators."""
 
 from arolla import arolla
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -28,6 +28,9 @@ constraints = arolla.optools.constraints
 
 # Implemented in masking.py to avoid a dependency cycle.
 with_schema = masking._with_schema  # pylint: disable=protected-access
+
+
+optools.set_namespace_docstring('kd.schema', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

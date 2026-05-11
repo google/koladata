@@ -2,7 +2,7 @@
 
 # kd.json API
 
-JSON serialization operators.
+JSON serialization and parsing operators.
 
 
 

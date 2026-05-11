@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Bitwise Koda operators."""
+"""Bitwise operators."""
 
 from arolla import arolla as _arolla
 from koladata.operators import optools as _optools
 from koladata.operators import qtype_utils as _qtype_utils
 
 _P = _arolla.P
+
+
+_optools.set_namespace_docstring('kd.bitwise', __doc__)
 
 
 @_optools.add_to_registry(

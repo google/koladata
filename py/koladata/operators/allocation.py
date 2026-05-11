@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Koda operators that allocate new ItemIds."""
+"""Operators that allocate new ItemIds."""
 
 from arolla import arolla as _arolla
 from koladata.operators import jagged_shape as _jagged_shape
@@ -21,6 +21,9 @@ from koladata.operators import qtype_utils as _qtype_utils
 
 
 _P = _arolla.P
+
+
+_optools.set_namespace_docstring('kd.allocation', __doc__)
 
 
 @_optools.add_to_registry(

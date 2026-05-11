@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operators working with entities."""
+"""Operators that work solely with entities."""
 
 from arolla import arolla
 from koladata.operators import jagged_shape as jagged_shape_ops
@@ -23,6 +23,9 @@ from koladata.operators import schema as schema_ops
 M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.entities', __doc__)
 
 
 @optools.as_backend_operator('kd.entities._new', deterministic=False)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Schema filter operators."""
+"""Schema filter operators and constants."""
 
 from arolla import arolla
 from koladata.operators import optools
@@ -21,6 +21,9 @@ from koladata.operators import qtype_utils
 M = arolla.M
 P = arolla.P
 constraints = arolla.optools.constraints
+
+
+optools.set_namespace_docstring('kd.schema_filters', __doc__)
 
 
 @optools.add_to_registry(via_cc_operator_package=True)

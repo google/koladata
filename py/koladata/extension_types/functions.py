@@ -26,6 +26,7 @@ from koladata.types import extension_type_registry as _extension_type_registry
 
 # Sub-namespace definitions.
 extension_types = _py_types.SimpleNamespace(
+    __doc__='Extension type functionality.',
     extension_type=_extension_types.extension_type,
     get_extension_qtype=_extension_type_registry.get_extension_qtype,
     get_extension_cls=_extension_type_registry.get_extension_cls,

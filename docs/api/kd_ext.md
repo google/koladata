@@ -9,7 +9,7 @@ the following module is needed:
 
 Subcategory | Description
 ----------- | ------------
-[contrib](kd_ext/contrib.md) | External contributions not necessarily endorsed by Koda.
+[contrib](kd_ext/contrib.md) | Contrib operators.
 [kv](kd_ext/kv.md) | Experimental Koda View API.
 [nested_data](kd_ext/nested_data.md) | Utilities for manipulating nested data.
 [npkd](kd_ext/npkd.md) | Tools for Numpy &lt;-&gt; Koda interoperability.
