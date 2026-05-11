@@ -2,7 +2,8 @@
 
 # kd_ext.contrib API
 
-Contrib operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Contrib operators.
+</code></pre>
 
 
 

@@ -2,7 +2,8 @@
 
 # kd.shapes API
 
-Operators that work on shapes.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work on shapes.
+</code></pre>
 
 
 

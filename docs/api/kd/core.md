@@ -2,7 +2,8 @@
 
 # kd.core API
 
-Core operators that are not part of other categories.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Core operators that are not part of other categories.
+</code></pre>
 
 
 

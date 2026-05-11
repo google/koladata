@@ -2,7 +2,8 @@
 
 # kd.slices API
 
-Operators that perform DataSlice transformations.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that perform DataSlice transformations.
+</code></pre>
 
 
 

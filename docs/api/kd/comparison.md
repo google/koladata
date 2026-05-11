@@ -2,7 +2,8 @@
 
 # kd.comparison API
 
-Operators that compare DataSlices.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that compare DataSlices.
+</code></pre>
 
 
 

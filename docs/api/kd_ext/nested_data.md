@@ -2,7 +2,8 @@
 
 # kd_ext.nested_data API
 
-Utilities for manipulating nested data.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Utilities for manipulating nested data.
+</code></pre>
 
 
 

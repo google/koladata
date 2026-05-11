@@ -2,7 +2,8 @@
 
 # kd_ext.vis API
 
-Koda visualization functionality.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda visualization functionality.
+</code></pre>
 
 
 Subcategory | Description

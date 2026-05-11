@@ -2,7 +2,12 @@
 
 # kd.iterables API
 
-Operators that work with iterables.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work with iterables.
+
+An iterable is a derived type from an arolla Sequence, which is intended to be
+used to represent streams that need streaming processing in multithreaded
+evaluation.
+</code></pre>
 
 
 

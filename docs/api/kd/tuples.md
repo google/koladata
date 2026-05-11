@@ -2,7 +2,8 @@
 
 # kd.tuples API
 
-Operators to create tuples.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators to create tuples.
+</code></pre>
 
 
 

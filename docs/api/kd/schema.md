@@ -2,7 +2,8 @@
 
 # kd.schema API
 
-Schema-related operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Schema-related operators.
+</code></pre>
 
 
 

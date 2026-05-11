@@ -2,7 +2,8 @@
 
 # kd_ext.pdkd API
 
-Tools for Pandas <-> Koda interoperability.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Tools for Pandas <-> Koda interoperability.
+</code></pre>
 
 
 

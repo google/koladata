@@ -2,7 +2,8 @@
 
 # kd.annotation API
 
-Annotation operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Annotation operators.
+</code></pre>
 
 
 

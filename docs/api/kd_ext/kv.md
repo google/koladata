@@ -2,7 +2,10 @@
 
 # kd_ext.kv API
 
-Experimental Koda View API.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Experimental Koda View API.
+
+This public API is highly experimental and is subject to change without notice.
+</code></pre>
 
 
 Subcategory | Description

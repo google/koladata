@@ -2,7 +2,8 @@
 
 # kd.extension_types API
 
-Extension type operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Extension type operators.
+</code></pre>
 
 
 

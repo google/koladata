@@ -2,7 +2,8 @@
 
 # kd_ext.pseudo_random API
 
-Pseudo-random utilities.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Pseudo-random utilities.
+</code></pre>
 
 
 

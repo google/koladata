@@ -2,7 +2,8 @@
 
 # kd.entities API
 
-Operators that work solely with entities.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work solely with entities.
+</code></pre>
 
 
 

@@ -2,7 +2,56 @@
 
 # kd.json_stream API
 
-JSON stream processing operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">JSON stream processing operators.
+
+Some background that applies to all operators:
+
+The operators in this module use "chunked string streams" as inputs and outputs.
+A chunked string stream is a Koda ITERABLE or STREAM of STRING DataItems. The
+logical value of a chunked string stream is the in-order concatenation of
+the values (the "chunks") in the stream. Missing values in a chunked string
+stream are tolerated but treated as empty strings.
+
+The behavior of each operator in this module is specified only on the logical
+values of the input and output chunked string streams: two input streams with
+the same logical value but with different chunking will cause an operator to
+produce the same output value (possibly with different chunking). Any input
+chunking is allowed, and output chunking is implementation-defined and subject
+to change in future versions.
+
+All operators in this module are designed to "minimally delay" their output
+chunked string streams, so that they are useful for real-time processing.
+However, there are no hard guarantees about this unless otherwise specified.
+
+Within the logical chunked string streams, these operators (with a couple of
+exceptions) expect and output streams of whitespace-separated JSON values. The
+chunk boundaries of a chunked string stream and the contained JSON value stream
+are fully independent.
+
+Except for kd.json_stream.salvage, these operators MUST be given chunked string
+streams containing whitespace-separated valid JSON as input, otherwise their
+behavior is unspecified. Consider using kd.json_stream.salvage to preprocess any
+input data that isn't known to be valid for other operators.
+
+Example:
+
+  # A chunked string stream.
+  kd.iterables.make('{"x"', ':"y"}\n', '"z"\n')
+
+  # Its logical value.
+  '{"x":"y"}\n"z"\n'
+
+  # The stream of JSON values it contains, formatted more nicely for
+  # documentation purposes.
+  `{"x": "y"} "z"`
+
+  # A plausible (but not guaranteed) output chunked string stream from
+  # kd.json_stream.get_object_key_value(our_example_stream, key="x")
+  kd.iterables.make('"y"\n', 'null\n')
+
+  # The guaranteed logical value of the output chunked string stream above.
+  '"y"\nnull\n'
+</code></pre>
 
 
 

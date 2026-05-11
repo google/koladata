@@ -2,7 +2,8 @@
 
 # kd.bitwise API
 
-Bitwise operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Bitwise operators.
+</code></pre>
 
 
 

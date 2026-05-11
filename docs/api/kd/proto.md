@@ -2,7 +2,8 @@
 
 # kd.proto API
 
-Protocol buffer serialization and parsing operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Protocol buffer serialization and parsing operators.
+</code></pre>
 
 
 

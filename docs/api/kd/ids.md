@@ -2,7 +2,8 @@
 
 # kd.ids API
 
-Operators that work with ItemIds.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work with ItemIds.
+</code></pre>
 
 
 

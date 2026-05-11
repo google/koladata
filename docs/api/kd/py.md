@@ -2,7 +2,8 @@
 
 # kd.py API
 
-Operators that call Python functions.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that call Python functions.
+</code></pre>
 
 
 

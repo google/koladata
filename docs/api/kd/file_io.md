@@ -2,7 +2,8 @@
 
 # kd.file_io API
 
-Utilities for interacting with the file system.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Utilities for interacting with the file system.
+</code></pre>
 
 
 Subcategory | Description

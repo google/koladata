@@ -2,7 +2,8 @@
 
 # kd.allocation API
 
-Operators that allocate new ItemIds.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that allocate new ItemIds.
+</code></pre>
 
 
 

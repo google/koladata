@@ -2,7 +2,8 @@
 
 # kd.optools.constraints API
 
-Operator argument type constraints.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operator argument type constraints.
+</code></pre>
 
 
 

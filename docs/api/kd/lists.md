@@ -2,7 +2,8 @@
 
 # kd.lists API
 
-Operators working with lists.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators working with lists.
+</code></pre>
 
 
 

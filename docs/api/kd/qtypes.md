@@ -2,7 +2,8 @@
 
 # kd.qtypes API
 
-Koda QTypes.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda QTypes.
+</code></pre>
 
 
 

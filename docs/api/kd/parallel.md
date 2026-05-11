@@ -2,7 +2,8 @@
 
 # kd.parallel API
 
-Tools to evaluate functors in parallel.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Tools to evaluate functors in parallel.
+</code></pre>
 
 
 

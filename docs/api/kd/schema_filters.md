@@ -2,7 +2,8 @@
 
 # kd.schema_filters API
 
-Schema filter operators and constants.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Schema filter operators and constants.
+</code></pre>
 
 
 

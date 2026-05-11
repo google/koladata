@@ -2,7 +2,8 @@
 
 # kd.streams API
 
-Operators that work with streams of items.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work with streams of items.
+</code></pre>
 
 
 

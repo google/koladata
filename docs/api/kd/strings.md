@@ -2,7 +2,8 @@
 
 # kd.strings API
 
-Operators that work with strings data.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work with strings data.
+</code></pre>
 
 
 

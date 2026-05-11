@@ -2,7 +2,8 @@
 
 # kd.random API
 
-Random and sampling operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Random and sampling operators.
+</code></pre>
 
 
 

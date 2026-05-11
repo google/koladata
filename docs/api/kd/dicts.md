@@ -2,7 +2,8 @@
 
 # kd.dicts API
 
-Operators working with dictionaries.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators working with dictionaries.
+</code></pre>
 
 
 

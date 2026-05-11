@@ -2,7 +2,8 @@
 
 # kd.functor API
 
-Operators to create and call functors.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators to create and call functors.
+</code></pre>
 
 
 

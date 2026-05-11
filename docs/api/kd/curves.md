@@ -2,7 +2,8 @@
 
 # kd.curves API
 
-Operators working with curves.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators working with curves.
+</code></pre>
 
 
 

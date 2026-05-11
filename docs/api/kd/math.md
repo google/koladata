@@ -2,7 +2,8 @@
 
 # kd.math API
 
-Arithmetic operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Arithmetic operators.
+</code></pre>
 
 
 

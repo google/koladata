@@ -2,7 +2,8 @@
 
 # kd_ext.kv.types API
 
-Types for the Koda View API.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Types for the Koda View API.
+</code></pre>
 
 
 Subcategory | Description

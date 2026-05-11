@@ -2,7 +2,8 @@
 
 # kd.objs API
 
-Operators that work solely with objects.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that work solely with objects.
+</code></pre>
 
 
 

@@ -2,7 +2,8 @@
 
 # kd.assertion API
 
-Operators that assert properties of DataSlices.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operators that assert properties of DataSlices.
+</code></pre>
 
 
 

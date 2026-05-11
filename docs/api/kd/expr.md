@@ -2,7 +2,8 @@
 
 # kd.expr API
 
-Expr utilities.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Expr utilities.
+</code></pre>
 
 
 

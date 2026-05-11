@@ -2,7 +2,8 @@
 
 # kd.type_checking API
 
-Utilities to annotatate functions with type checking.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Utilities to annotatate functions with type checking.
+</code></pre>
 
 
 

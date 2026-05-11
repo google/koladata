@@ -2,7 +2,8 @@
 
 # kd.optools API
 
-Operator definition and registration tooling.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Operator definition and registration tooling.
+</code></pre>
 
 
 Subcategory | Description

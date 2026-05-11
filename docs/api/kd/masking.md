@@ -2,7 +2,8 @@
 
 # kd.masking API
 
-Masking operators.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Masking operators.
+</code></pre>
 
 
 

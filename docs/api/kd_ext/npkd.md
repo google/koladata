@@ -2,7 +2,8 @@
 
 # kd_ext.npkd API
 
-Tools for Numpy <-> Koda interoperability.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Tools for Numpy <-> Koda interoperability.
+</code></pre>
 
 
 

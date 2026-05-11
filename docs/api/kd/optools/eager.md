@@ -2,7 +2,8 @@
 
 # kd.optools.eager API
 
-Eager operator utilities.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Eager operator utilities.
+</code></pre>
 
 
 

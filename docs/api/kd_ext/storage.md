@@ -2,7 +2,8 @@
 
 # kd_ext.storage API
 
-Koda data storage utilities.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda data storage utilities.
+</code></pre>
 
 
 Subcategory | Description
