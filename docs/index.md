@@ -56,7 +56,7 @@ Here are code examples demonstrating some of Koda capabilities.
 Koda supports irregular multi-dimensional arrays (jagged arrays) without
 padding.
 
-```py {.pycon-doctest}
+```py
 >>> from koladata import kd
 >>> scores = kd.slice([[85, 90], [70], [95, 100, 88]])
 >>> kd.agg_max(scores)
@@ -68,7 +68,7 @@ DataSlice([90, 70, 100], schema: INT32, ...)
 Koda provides C++ grade performance for vectorized operations on nested data
 structures and jagged arrays.
 
-```py {.pycon-doctest}
+```py
 >>> users = kd.slice([
 ...     kd.obj(name='Alice', age=20, interests=kd.list(['tennis', 'alcohol', 'chess'])),
 ...     kd.obj(name='Bob', age=30, interests=kd.list(['music', 'chess'])),
@@ -84,7 +84,7 @@ DataSlice(['Bob', 'Charlie'], schema: STRING, ...)
 You can perform more advanced operations on jagged arrays, such as conditional
 filtering across dimensions and grouping:
 
-```py {.pycon-doctest}
+```py
 # Remove 'alcohol' interest for users under 21.
 >>> interests = users.interests[:]
 >>> interests
@@ -113,7 +113,7 @@ DataSlice([
 Koda structures are immutable, allowing modified versions with O(1) cost by
 sharing underlying data.
 
-```py {.pycon-doctest}
+```py
 >>> users = kd.new(
 ...     name=kd.slice(['Alice', 'Bob', 'Charlie']),
 ...     age=kd.slice([30, 25, 35]),
@@ -140,7 +140,7 @@ Koda allows tracing Python functions to create reusable computational graphs
 (Functors). Functors are normal DataSlices and can be stored in object
 attributes, serialized, and served in production.
 
-```py {.pycon-doctest}
+```py
 # Define a Python function for Z-score normalization.
 >>> def z_score(x):
 ...   return (x - kd.math.agg_mean(x)) / kd.math.agg_std(x)
