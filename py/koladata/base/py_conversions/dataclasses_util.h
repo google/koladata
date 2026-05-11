@@ -42,6 +42,8 @@ class DataClassesUtil {
     std::vector<PyObject*> values;
   };
 
+  enum OptionalFieldType { kNotPresent = 0, kOptional = 1, kNonOptional = 2 };
+
   DataClassesUtil() = default;
 
   absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClassInstance(
@@ -77,13 +79,11 @@ class DataClassesUtil {
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::string_view attr_name, bool for_primitive = false);
 
-  // Returns true if the given attribute exists in the dataclass and it is
-  // optional, i.e. `SomeType | None` or `Optional[SomeType]`.
-  // If the attribute is not present, returns False
-  // If the attribute is present but cannot be assigned None, returns False.
-  absl::StatusOr<bool> HasOptionalField(arolla::python::PyObjectPtr
-                                        absl_nonnull py_class,
-                                        absl::string_view attr_name);
+  // Returns the type of the given attribute in the dataclass from the optional
+  // point of view.
+  absl::StatusOr<OptionalFieldType> GetOptionalFieldType(
+      arolla::python::PyObjectPtr absl_nonnull py_class,
+      absl::string_view attr_name);
 
   // Creates a class instance with the given attributes and values.
   // The `attr_names` and `attr_values` should have the same size.
@@ -113,7 +113,7 @@ class DataClassesUtil {
   arolla::python::PyObjectPtr fn_make_dataclass_;
   arolla::python::PyObjectPtr fn_fields_;
   arolla::python::PyObjectPtr fn_get_class_field_type_;
-  arolla::python::PyObjectPtr fn_has_optional_field_;
+  arolla::python::PyObjectPtr fn_get_optional_field_type_;
 
   arolla::python::PyObjectPtr simple_namespace_class_;
   bool fns_initialized_ = false;

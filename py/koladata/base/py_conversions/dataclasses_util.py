@@ -184,35 +184,35 @@ def get_class_field_type(
   )
 
 
-def has_optional_field(
+def get_optional_field_type(
     py_class: _Type,
     attr_name: str,
     type_hints_cache: dict[_Type, dict[str, _Type]],
-) -> bool:
-  """Returns whether the given attribute is present and is optional.
+) -> bool | None:
+  """Returns the type of the given attribute in the dataclass.
 
-  If the attribute is not present, returns False.
-  If the attribute is present but is not optional, raises ValueError.
+  If the class is not a dataclass, returns True (as any attribute of the
+  SimpleNamespace is optional).
+  If the attribute is not present, returns None.
+  If the attribute is present but is not optional, returns
+  False.
+  If the attribute is present and is optional, returns
+  True.
 
   Args:
     py_class: The class to inspect.
     attr_name: The name of the attribute to inspect.
     type_hints_cache: A cache of type hints for dataclasses.
 
-  Raises:
-    ValueError: If the attribute is present but is not optional.
-
   Returns:
-    True if the given attribute exists and is optional, False otherwise.
+    The OptionalFieldType of the given attribute in the dataclass.
   """
   if not dataclasses.is_dataclass(py_class):
-    return False
+    return True
   field = _get_field_type_annotation(py_class, attr_name, type_hints_cache)
   if field is None:
-    return False
-  if _get_underlying_optional_type(field) is None:
-    raise ValueError(f'field cannot have missing values: {attr_name}')
-  return True
+    return None
+  return _get_underlying_optional_type(field) is not None
 
 
 _simple_namespace_class = types.SimpleNamespace

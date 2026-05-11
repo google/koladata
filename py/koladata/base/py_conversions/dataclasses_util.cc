@@ -44,7 +44,7 @@ constexpr const char* kDataClassesUtilModuleName =
 constexpr const char* kMakeDataClassFnName = "make_dataclass";
 constexpr const char* kFieldsNamesAndValuesFnName = "fields_names_and_values";
 constexpr const char* kGetClassFieldTypeFnName = "get_class_field_type";
-constexpr const char* kHasOptionalFieldFnName = "has_optional_field";
+constexpr const char* kGetOptionalFieldTypeFnName = "get_optional_field_type";
 
 constexpr const char* kSimpleNamespaceClassName = "_simple_namespace_class";
 
@@ -321,8 +321,9 @@ DataClassesUtil::GetAttrNamesAndValues(PyObject* py_obj) {
   return AttrResult{std::move(attr_names), std::move(values)};
 }
 
-absl::StatusOr<bool> DataClassesUtil::HasOptionalField(
-    PyObjectPtr absl_nonnull py_class, absl::string_view attr_name) {
+absl::StatusOr<DataClassesUtil::OptionalFieldType>
+DataClassesUtil::GetOptionalFieldType(PyObjectPtr absl_nonnull py_class,
+                                      absl::string_view attr_name) {
   if (attr_name.empty()) {
     return absl::InvalidArgumentError("attr_name is empty");
   }
@@ -341,13 +342,19 @@ absl::StatusOr<bool> DataClassesUtil::HasOptionalField(
   PyTuple_SET_ITEM(args.get(), 2, Py_NewRef(type_hints_cache_.get()));
 
   PyObjectPtr py_attr = PyObjectPtr::Own(PyObject_Call(
-      fn_has_optional_field_.get(), /*args=*/args.get(), nullptr));
+      fn_get_optional_field_type_.get(), /*args=*/args.get(), nullptr));
   if (py_attr == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
         absl::StrFormat("could not check dataclass field %s", attr_name));
   }
-  return Py_IsTrue(py_attr.get());
+  if (Py_IsNone(py_attr.get())) {
+    return OptionalFieldType::kNotPresent;
+  }
+  if (Py_IsTrue(py_attr.get())) {
+    return OptionalFieldType::kOptional;
+  }
+  return OptionalFieldType::kNonOptional;
 }
 
 absl::Status DataClassesUtil::InitFns() {
@@ -359,8 +366,8 @@ absl::Status DataClassesUtil::InitFns() {
   ASSIGN_OR_RETURN(fn_fields_, InitFnFromModule(kFieldsNamesAndValuesFnName));
   ASSIGN_OR_RETURN(fn_get_class_field_type_,
                    InitFnFromModule(kGetClassFieldTypeFnName));
-  ASSIGN_OR_RETURN(fn_has_optional_field_,
-                   InitFnFromModule(kHasOptionalFieldFnName));
+  ASSIGN_OR_RETURN(fn_get_optional_field_type_,
+                   InitFnFromModule(kGetOptionalFieldTypeFnName));
   type_hints_cache_ = PyObjectPtr::Own(PyDict_New());
   if (type_hints_cache_ == nullptr) {
     return arolla::python::StatusCausedByPyErr(

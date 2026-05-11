@@ -549,14 +549,23 @@ class ToPyVisitor : internal::AbstractVisitor {
       if (!attr_value.present || !attr_value.value.has_value()) {
         // If attribute exists but is not optional, an error will be returned.
         ASSIGN_OR_RETURN(
-            bool attr_for_none_exists,
-            dataclasses_util_.HasOptionalField(
+            DataClassesUtil::OptionalFieldType optional_field_type,
+            dataclasses_util_.GetOptionalFieldType(
                 PyObjectPtr::NewRef(result_class), attr_name.value));
 
-        if (attr_for_none_exists) {
-          // These is an optional attribute, so we set it to None.
-          attr_names_vec.emplace_back(attr_name.value);
-          attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
+        switch (optional_field_type) {
+          // No need to set the attribute if it is not present.
+          case DataClassesUtil::OptionalFieldType::kNotPresent:
+            break;
+          // Set the attribute to None if it is optional.
+          case DataClassesUtil::OptionalFieldType::kOptional:
+            attr_names_vec.emplace_back(attr_name.value);
+            attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
+            break;
+          // Raise an error if the attribute is present but not optional.
+          case DataClassesUtil::OptionalFieldType::kNonOptional:
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "field cannot have missing values: %s", attr_name.value));
         }
         continue;
       }

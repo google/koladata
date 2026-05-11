@@ -49,12 +49,28 @@ PYBIND11_MODULE(testing_clib, m) {
                      attr_name, for_primitive));
              return py::reinterpret_steal<py::object>(py_obj.release());
            })
-      .def("has_optional_field",
+      .def_property_readonly(
+          "k_not_present",
+          [](DataClassesUtil& self) -> int {
+            return DataClassesUtil::OptionalFieldType::kNotPresent;
+          })
+      .def_property_readonly(
+          "k_optional",
+          [](DataClassesUtil& self) -> int {
+            return DataClassesUtil::OptionalFieldType::kOptional;
+          })
+      .def_property_readonly(
+          "k_non_optional",
+          [](DataClassesUtil& self) -> int {
+            return DataClassesUtil::OptionalFieldType::kNonOptional;
+          })
+      .def("get_optional_field_type",
            [](DataClassesUtil& self, py::handle py_class,
-              absl::string_view attr_name) -> bool {
-             return arolla::python::pybind11_unstatus_or(self.HasOptionalField(
-                 arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                 attr_name));
+              absl::string_view attr_name) -> int {  // OptionalFieldType
+             return arolla::python::pybind11_unstatus_or(
+                 self.GetOptionalFieldType(
+                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
+                     attr_name));
            })
       .def("get_attr_values",
            [](DataClassesUtil& self, py::handle dataclass_obj,

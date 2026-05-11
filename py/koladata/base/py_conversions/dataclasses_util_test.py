@@ -215,7 +215,7 @@ class DataclassesUtilTest(absltest.TestCase):
     ):
       _ = util.get_class_field_type(dict[int, int], '__items__', False)
 
-  def test_has_optional_field(self):
+  def test_get_optional_field_type(self):
     util = testing_clib.DataClassesUtil()
 
     @dataclasses.dataclass
@@ -230,49 +230,46 @@ class DataclassesUtilTest(absltest.TestCase):
       bad_2: None | int
       g: int = 1
 
-    self.assertTrue(util.has_optional_field(Obj2, 'a'))
-    self.assertFalse(util.has_optional_field(Obj2, 'b'))
-    self.assertTrue(util.has_optional_field(Obj2, 'c'))
-    with self.assertRaisesRegex(
-        ValueError,
-        'field cannot have missing values: d',
-    ):
-      _ = util.has_optional_field(Obj2, 'd')
-    with self.assertRaisesRegex(
-        ValueError,
-        'field cannot have missing values: e',
-    ):
-      _ = util.has_optional_field(Obj2, 'e')
-    with self.assertRaisesRegex(
-        ValueError,
-        'field cannot have missing values: f',
-    ):
-      _ = util.has_optional_field(Obj2, 'f')
-    with self.assertRaisesRegex(
-        ValueError,
-        'field cannot have missing values: g',
-    ):
-      _ = util.has_optional_field(Obj2, 'g')
-    self.assertFalse(util.has_optional_field(int, 'non_existent_field'))
+    self.assertEqual(util.get_optional_field_type(Obj2, 'a'), util.k_optional)
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'b'), util.k_not_present
+    )
+    self.assertEqual(util.get_optional_field_type(Obj2, 'c'), util.k_optional)
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'd'), util.k_non_optional
+    )
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'e'), util.k_non_optional
+    )
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'f'), util.k_non_optional
+    )
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'g'), util.k_non_optional
+    )
+    self.assertEqual(
+        util.get_optional_field_type(Obj2, 'non_existent_field'),
+        util.k_not_present,
+    )
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int |'
         ' typing.Any',
     ):
-      _ = util.has_optional_field(Obj2, 'bad_0')
+      _ = util.get_optional_field_type(Obj2, 'bad_0')
 
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int | float'
         ' | None',
     ):
-      _ = util.has_optional_field(Obj2, 'bad_1')
+      _ = util.get_optional_field_type(Obj2, 'bad_1')
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int | float'
         ' | None',
     ):
-      _ = util.has_optional_field(Obj2, 'bad_2')
+      _ = util.get_optional_field_type(Obj2, 'bad_2')
 
   def test_create_class_instance_kwargs(self):
     util = testing_clib.DataClassesUtil()
