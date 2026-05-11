@@ -21,7 +21,7 @@ Imagine a school with two classes, each having a different number of students.
 The scorebook, containing the scores of individual students, can be represented
 using a nested Python list of integers:
 
-```pycon
+```py
 >>> from koladata import kd
 >>> scores_of_students_in_a_school = [
 ...   [10, 20, 30],       # class A: three students.
@@ -31,7 +31,7 @@ using a nested Python list of integers:
 
 We can use this scorebook directly in Koda:
 
-```pycon
+```py
 >>> scores_slice = kd.slice(
 ...   scores_of_students_in_a_school)
 >>> scores_slice
@@ -69,7 +69,7 @@ be the same for all elements) and is the same as the number of arguments in the
 Most of Koda's operations are pointwise *vectorized*, meaning that they operate
 on each element in isolation and preserve the shape:
 
-```pycon
+```py
 >>> scores_slice + 10
 DataSlice([[20, 30, 40], [50, 60, None, 79]], schema: INT32,...)
 ```
@@ -77,7 +77,7 @@ DataSlice([[20, 30, 40], [50, 60, None, 79]], schema: INT32,...)
 Other operations make use of the hierarchical information stored in the jagged
 shape. For example, we can compute summary statistics for the scores:
 
-```pycon
+```py
 # Compute the average score of every class.
 >>> class_avg = kd.math.agg_mean(scores_slice)
 >>> class_avg
@@ -97,7 +97,7 @@ DataItem(36.5, schema: FLOAT32)
 
 We can naturally extend the representation to cover a collection of schools:
 
-```pycon
+```py
 >>> scores_from_school_1 = [[1, 2, 3], [4, 5, None, 6]]
 >>> scores_from_school_2 = [[80, 90], [100], [110, 120]]
 >>> kd.slice(scores_from_school_1).get_shape()
@@ -117,7 +117,7 @@ represent classes and students, respectively), and hence the exact same code
 used to compute summary statistics for a single school can be reused for the
 collection of schools:
 
-```pycon
+```py
 # Compute the average score from each class for each of the schools.
 >>> class_avg = kd.math.agg_mean(
 ...     many_schools_slice
@@ -139,7 +139,7 @@ some minimum value. To account for various differences between classes, the
 threshold differs per class. In Koda, this is natural to express due to its
 broadcasting logic:
 
-```pycon
+```py
 >>> scores_slice.get_shape()
 JaggedShape(2, [3, 4])
 
@@ -189,14 +189,14 @@ can define tailored *schemas* for objects representing
 Continuing the previous example, a scorebook for a school's students typically
 contains more data than just the bare scores. A student has a name and a score:
 
-```pycon
+```py
 >>> Student = kd.named_schema('Student', student_name=kd.STRING, score=kd.INT32)
 ```
 
 Next we define the schema for a class and a school. A class has a `class_name`,
 and a list of `Students`, represented through a Koda `List`.
 
-```pycon
+```py
 >>> Class = kd.named_schema(
 ...     'Class', class_name=kd.STRING, students=kd.list_schema(Student)
 ... )
@@ -208,7 +208,7 @@ and a list of `Students`, represented through a Koda `List`.
 We can represent the scorebook of a school as follows (the syntax here is
 intentionally verbose for educational purposes and can be done more concisely):
 
-```pycon
+```py
 # The 7 students:
 >>> s1 = Student.new(student_name="Alice", score=10)
 >>> s2 = Student.new(student_name="Bob", score=20)
@@ -238,7 +238,7 @@ The name of `school_s1` is accessed as `school_s1.school_name`, which returns a
 access an attribute of multiple items in a single call, where the output has the
 same shape as the input:
 
-```pycon
+```py
 >>> school_s1.school_name
 DataItem('S1', schema: STRING, bag_id:...)
 
@@ -255,7 +255,7 @@ from the `List`. Attributes can then be accessed as usual with the dot operator,
 for instance `school_s1.classes[:].class_name`, which returns a `DataSlice` of
 attributes with the same shape:
 
-```pycon
+```py
 >>> school_s1.classes.get_schema()  # list with classes:
 DataItem(LIST[Class(class_name=STRING,
                     students=LIST[Student(score=INT32, student_name=STRING)])],
@@ -307,7 +307,7 @@ school_name). Additionally, it allows a single school, which is a scalar
 `DataItem`, to have multiple classes thus modelling a one-to-many relationship.
 The consequences of this are more easily shown through an example:
 
-```pycon
+```py
 # `students` is a 1-dimensional DataSlice:
 #   [List[s1, s2, s3], List[s4, s5, s6, s7]].
 >>> students = school_s1.classes[:].students
@@ -338,7 +338,7 @@ all information. As such, a `List` is a "packed" version of a `DataSlice`, and a
 `DataSlice` is an "unpacked" version of a `List`. The following example
 illustrates this relationship:
 
-```pycon
+```py
 # List[class_a, class_b], shape: (), i.e. a scalar
 >>> school_s1.classes.get_shape()
 JaggedShape()
@@ -378,7 +378,7 @@ class to award them with a prize.
 
 In Koda, we can represent this through:
 
-```pycon
+```py
 >>> def get_student_with_highest_score(schools):
 ...   students = schools.classes[:].students[:]
 ...   # `.S[...]` is syntactic sugar for indexing into a DataSlice.
@@ -388,7 +388,7 @@ In Koda, we can represent this through:
 Because Koda is vectorized, this can be evaluated with one school, a flat
 `DataSlice` of schools, or even with a multidimensional `DataSlice` of schools:
 
-```pycon
+```py
 >>> get_student_with_highest_score(school_s1)
 DataSlice(['Carol', 'Grace'],...)
 
@@ -400,7 +400,7 @@ DataSlice([['Carol', 'Grace'], ['Carol', 'Grace']]...)
 This function can be converted into a Functor through *tracing*, and saved to
 disk. This Functor can then be loaded again and evaluated with data:
 
-```pycon
+```py
 >>> functor = kd.fn(get_student_with_highest_score)
 >>> functor(school_s1)  # Can be evaluated directly
 DataSlice(['Carol', 'Grace'],...)

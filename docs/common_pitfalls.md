@@ -47,7 +47,7 @@ primitives or special entities/lists/dicts storing their own schema as an
 attribute (i.e. the internal `__schema__` attribute). Objects with different
 types can be mixed in the same DataSlice and provide more flexibility.
 
-```pycon
+```py
 >>> from koladata import kd
 >>> # It fails because of incompatible schemas
 >>> kd.slice([1, kd.new(a=1), kd.list([1, 2]), kd.dict({1: 2})])
@@ -65,7 +65,7 @@ primitive, a Koda primitive, an entity/list/dict or variadic keyword arguments
 of attributes. When `input` is a entity/list/dict, it embeds the schema into the
 `__schema__` attribute.
 
-```pycon
+```py
 >>> # Primitive objects
 >>> kd.obj(1)
 DataItem(1, schema: OBJECT,...)
@@ -98,7 +98,7 @@ DataItem(Dict{1=2}, schema: OBJECT,...)
 
 NOTE: schemas themselves cannot be objects.
 
-```pycon
+```py
 >>> kd.obj(kd.INT32)
 Traceback (most recent call last):
 ValueError: schema embedding is only supported for a DataSlice with primitive, entity, list or dict schemas, got SCHEMA
@@ -161,7 +161,7 @@ Koda list is also a DataItem containing a single list.
 
 Let's look at a simple example where `py_list` is a one-dimensional Python list.
 
-```pycon
+```py
 >>> l1 = kd.list([1, 2, 3])  # DataItem(List[1, 2, 3])
 >>> assert kd.is_slice(l1)
 >>> assert kd.is_item(l1)
@@ -184,7 +184,7 @@ for corresponding Python lists recursively and the final result is a DataItem
 containing a Koda list. On the other hand, `kd.slice(py_list)` converts the
 nested Python list structure into a jagged shape for the resulting DataSlice.
 
-```pycon
+```py
 >>> l2 = kd.list([[1, 2], [3, 4, 5]])  # DataItem(List[List[1, 2], List[3, 4, 5]])
 >>> l2.get_ndim()
 DataItem(0, schema: INT64)
@@ -218,7 +218,7 @@ Koda lists are treated as individual items similar to primitive items and only
 the Python list dimensions are converted to Koda lists or DataSlice jagged
 shape.
 
-```pycon
+```py
 >>> l3 = kd.list([kd.list([1, 2]), kd.list([3, 4, 5])])  # DataItem(List[List[1, 2], List[3, 4, 5]])
 >>> l3.get_ndim()
 DataItem(0, schema: INT64)
@@ -250,7 +250,7 @@ allows us to do that. The first `from_dim` dimensions of `py_list` get converted
 to DataSlice jagged shape while remaining dimensions get converted to Koda
 lists. We also need to pass `schema=None` to enable automatic schema detection.
 
-```pycon
+```py
 >>> py_list = [[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]
 
 >>> ds1 = kd.from_py(py_list, from_dim=0, schema=None); ds1
@@ -324,7 +324,7 @@ to perform operations on a nested Python list, we use nested for-loops. At each
 iteration of the nested loop, it is clear whether the current object is a list
 in the intermedia dimensions or a value in the last dimension.
 
-```pycon
+```py
 >>> py_list = [[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]
 >>> # Top level: pylist
 >>> # Lists in the first dimension: pylist[0], pylist[1]
@@ -420,7 +420,7 @@ Here are some examples:
     `2`, `3`, `4`) are integer primitives and all elements at other levels are
     lists.
 
-```pycon
+```py
 # The following all fail
 >>> kd.list([1, [2, 3]])
 Traceback (most recent call last):
@@ -442,7 +442,7 @@ because primitives and Koda lists can be Koda objects. To use `kd.slice` or
 using `kd.obj(py_list)` so that all elements at the leaf level are only contains
 primitives or Koda list objects.
 
-```pycon
+```py
 >>> kd.list([1, kd.obj(kd.list([2, 3]))])
 DataItem(List[1, List[2, 3]], schema: LIST[OBJECT],...)
 >>> kd.from_py([1, [2, 3]])  # Note that without schema=None, the default is OBJECT.
@@ -464,7 +464,7 @@ applying to each list item of a DataSlice. Second, the resulting DataSlice has
 one more dimension. That is why we call `list_ds[:]` list explosion to emphasize
 the creation of an extra dimension.
 
-```pycon
+```py
 >>> # A DataSlice of two lists: List[1, 2], List[3, 4, 5]
 >>> l = kd.slice([kd.list([1, 2]), kd.list([3, 4, 5])])
 >>> l.get_ndim()
@@ -495,7 +495,7 @@ List explosion adds an extra dimension because it selects multiple elements per
 list. List indexing (i.e. `list_ds[idx]`) returns a DataSlice of the same shape
 because it selects one element per list.
 
-```pycon
+```py
 >>> l[0]
 DataSlice([1, 3], schema: INT32,...)
 >>> l[2]
@@ -505,7 +505,7 @@ DataSlice([None, 5], schema: INT32,...)
 DataSlice sub-slicing (i.e. `ds.S[*args]`) selects items in the DataSlice and
 supports slicing multiple dimensions at the same time.
 
-```pycon
+```py
 >>> ds = kd.slice([[1, 2], [3, 4, 5]])
 
 >>> # Only subslice the last dimension
@@ -532,7 +532,7 @@ ValueError: Expected either a list or a dict slice, got INT32...
 IMPORTANT: List slicing selects elements within lists of a DataSlice whereas
 DataSlice sub-slicing selects items in the DataSlice.
 
-```pycon
+```py
 >>> # A DataSlice of two list items
 >>> l = kd.slice([kd.list([1, 2]), kd.list([3, 4, 5])])
 
@@ -553,7 +553,7 @@ DataSlice dimension. That is, `ds.L[idx1].L[idx2]` is equivalent to `ds.S[idx1,
 idx2]` assuming `ds` has two dimensions. It is also possible to use `ds.L` in a
 Python for-loop to iterate over items in the first dimension.
 
-```pycon
+```py
 >>> ds = kd.slice([[1, 2], [3, 4, 5]])
 
 >>> ds.L[0]
@@ -613,7 +613,7 @@ DataSlice is not a list DataSlice anymore. When setting `ndim=-1` for
 `ds.implode(ndim=-1)`, it implodes all the dimensions of `ds` into a single list
 DataItem.
 
-```pycon
+```py
 >>> l = kd.list([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
 
 >>> l.explode(ndim=1)
@@ -695,7 +695,7 @@ List and dict schemas are always uu schemas. Entity schemas created using
 `kd.named_schema` or `kd.uu_schema` are Uu schemas while these created using
 `kd.schema.new_schema` are not.
 
-```pycon
+```py
 >>> ls1 = kd.list_schema(kd.INT32)
 >>> ls2 = kd.list_schema(kd.INT32)
 >>> assert ls1 == ls2
@@ -718,7 +718,7 @@ List and dict schemas are always uu schemas. Entity schemas created using
 The UUID of a named schema only depends on its schema name and not on its schema
 attributes.
 
-```pycon
+```py
 >>> ns1 = kd.named_schema('Schema', a=kd.INT32)
 >>> ns2 = kd.named_schema('Schema', a=kd.STRING)
 >>> assert ns1 == ns2
@@ -729,7 +729,7 @@ attributes.
 NOTE: Creating multiple named schemas with the same name is dangerous as one can
 override the other when underlying bags are merged.
 
-```pycon
+```py
 >>> ns1 = kd.named_schema('Schema', a=kd.INT32)
 >>> ns2 = kd.named_schema('Schema', a=kd.STRING, b=kd.BOOLEAN)
 >>> assert ns1 == ns2
@@ -742,7 +742,7 @@ DataItem(Schema(a=INT32, b=BOOLEAN), schema: SCHEMA,...)
 To create entities in a vectorized way, we use `kd.new(**kwargs_in_ds)`.
 `**kwargs_in_ds` are first aligned to have the same shape.
 
-```pycon
+```py
 >>> # Note 'x' is first wrapped into kd.str('x') then broadcasted to kd.str(['x', 'x', 'x'])
 >>> kd.new(a=kd.slice([1, 2, 3]), b='x', c=kd.new(d=kd.slice([4, 5, 6])))
 DataSlice([
@@ -754,7 +754,7 @@ DataSlice([
 
 Creating entity objects is similar. We use `kd.obj(**kwargs_in_ds)`.
 
-```pycon
+```py
 >>> kd.obj(a=kd.slice([1, 2, 3]), b='x', c=kd.obj(d=kd.slice([4, 5, 6])))
 DataSlice([Obj(a=1, b='x', c=Obj(d=4)), Obj(a=2, b='x', c=Obj(d=5)), Obj(a=3, b='x', c=Obj(d=6))], schema: OBJECT,...)
 ```
@@ -766,7 +766,7 @@ DataSlice([Obj(a=1, b='x', c=Obj(d=4)), Obj(a=2, b='x', c=Obj(d=5)), Obj(a=3, b=
 `kd.obj(entities)` then embeds the schema into each entity.
 `kd.obj(**kwargs_in_ds)` creates objects with different schemas.
 
-```pycon
+```py
 >>> kwargs_in_ds = dict(a=kd.slice([1, 2, 3]), b='x')
 >>> entities = kd.new(**kwargs_in_ds)
 >>> objs_1 = kd.obj(entities)
@@ -795,7 +795,7 @@ To create lists in a vectorized way, we use `kd.implode(ds)` rather than
 `kd.list(ds)` because it is unclear how many dimensions of `ds` should be
 imploded into lists when using `kd.list(ds)` and `ds.get_ndim() > 1`.
 
-```pycon
+```py
 >>> # DataSlice with three dimensions
 >>> ds = kd.slice([[[1, 2], [3]], [[4], [5, 6]], [[7], [None]], [[], [8]]])
 
@@ -841,7 +841,7 @@ TIP: `ds.implode(ndim)` is a shortcut for `kd.implode(ds, ndim)`.
 
 To create dicts in a vectorized way, we use `kd.dict(key_ds, value_ds)`.
 
-```pycon
+```py
 >>> kd.dict(kd.item(1), kd.item(2))
 DataItem(Dict{1=2}, schema: DICT{INT32, INT32},...)
 >>> kd.dict(kd.slice([1]), kd.slice([2]))
@@ -860,7 +860,7 @@ is, `ds` either has a corresponding primitive/entity/list/dict schema or its
 schema is `OBJECT` schema and all its present items are
 primitives/entities/lists/dicts.
 
-```pycon
+```py
 >>> kd.is_primitive(kd.slice([1, 2]))
 DataItem(present, schema: MASK)
 >>> kd.is_primitive(kd.slice([1, 2], kd.OBJECT))
@@ -890,7 +890,7 @@ NOTE: `kd.is_primitive(ds)`, `kd.is_entity(ds)`, `kd.is_list(ds)` and
 `kd.is_dict(ds)` always return `present` for an empty DataSlice with `OBJECT`
 schema.
 
-```pycon
+```py
 >>> empty_ds1 = kd.slice(None, kd.OBJECT)
 >>> empty_ds2 = kd.slice([], kd.OBJECT)
 >>> empty_ds3 = kd.slice([None, None], kd.OBJECT)
@@ -912,7 +912,7 @@ NOTE: They are pointwise operations while `kd.is_primitive(ds)`,
 `kd.is_entity(ds)`, `kd.is_list(ds)` and `kd.is_dict(ds)` always return a MASK
 DataItem.
 
-```pycon
+```py
 >>> ds = kd.slice([1, '2', None, kd.obj(a=1), kd.obj(kd.list([1, 2])), kd.obj(kd.dict({1: 2}))])
 
 >>> kd.has_primitive(ds)
@@ -929,7 +929,7 @@ NOTE: `kd.is_xxx(ds)` is not always equivalent to `kd.all(kd.has_xxx(ds))`. For
 an empty DataSlice with `OBJECT` schema, `kd.is_xxx(ds)` returns `present` but
 `kd.all(kd.has_xxx(ds))` returns `missing`.
 
-```pycon
+```py
 >>> ds = kd.slice([None, None], kd.OBJECT)
 
 >>> kd.is_entity(ds)
@@ -942,7 +942,7 @@ As object items can only be primitives, entities, lists and dicts, `kd.has(ds)`
 is always the same as `kd.has_primitive(ds) | kd.has_entity(ds) |
 kd.has_list(ds) | kd.has_dict(ds)`.
 
-```pycon
+```py
 >>> ds = kd.slice([1, '2', None, kd.obj(), kd.obj(kd.list()), kd.obj(kd.dict())])
 
 >>> # Always returns present
@@ -956,7 +956,7 @@ The pointwise equality operator `x == y` only compares **ItemIds** for
 structured data (i.e. entities/lists/dicts) and ignores their contents and
 underlying bags.
 
-```pycon
+```py
 >>> e1 = kd.new(x=1)
 >>> e2 = e1.with_attrs(x=2)
 >>> assert e1 == e2
@@ -979,7 +979,7 @@ they have incompatible schemas, the comparisons will raise an exception. That
 will happen irrespective of the equality or inequality of the ItemIds of `x` and
 `y`.
 
-```pycon
+```py
 >>> list_id = kd.allocation.new_listid()
 >>> l1 = kd.list([1, 2], itemid=list_id)
 >>> l2 = kd.list(['3', '4'], itemid=list_id)
@@ -1007,7 +1007,7 @@ same **sparsity** and all present items are equal.
 NOTE: `kd.full_equal(x, y)` is neither equivalent to `kd.all(x == y)` nor
 equivalent to `~kd.all(x != y)`.
 
-```pycon
+```py
 >>> x = kd.slice([1, None, 3])
 >>> y = kd.slice([1, None, 3])
 
@@ -1036,7 +1036,7 @@ As we explained [above](#pointwise-equality), the pointwise equality operator
 their contents. To compare by value, we can use `kd.deep_uuid` to generate uuids
 based on the values of the contents and then compare the generated uuids.
 
-```pycon
+```py
 >>> import dataclasses
 
 >>> @dataclasses.dataclass
@@ -1055,7 +1055,7 @@ based on the values of the contents and then compare the generated uuids.
 >>> assert kd.deep_uuid(e1) == kd.deep_uuid(e2)
 ```
 
-```pycon
+```py
 >>> py_l1 = [1, 2, 3]
 >>> py_l2 = [1, 2, 3]
 >>> assert py_l1 == py_l2
@@ -1066,7 +1066,7 @@ based on the values of the contents and then compare the generated uuids.
 >>> assert kd.deep_uuid(l1) == kd.deep_uuid(l2)
 ```
 
-```pycon
+```py
 >>> py_d1 = {'a': 1, 'b': 2}
 >>> py_d2 = {'a': 1, 'b': 2}
 >>> assert py_d1 == py_d2
@@ -1079,7 +1079,7 @@ based on the values of the contents and then compare the generated uuids.
 
 NOTE: `kd.deep_uuid` works for nested structured data.
 
-```pycon
+```py
 >>> i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
 ...                     d=kd.list([2, 3]),
 ...                     e=kd.dict({'f': 4})))
@@ -1094,7 +1094,7 @@ NOTE: Even though certain values are considered as the same in Python,
 `kd.deep_uuid()` treats them as different values if they have different Koda
 dtypes.
 
-```pycon
+```py
 >>> o1 = kd.obj(x=1)
 >>> o2 = kd.obj(x=kd.int64(1))
 >>> assert kd.deep_uuid(o1) != kd.deep_uuid(o2)
@@ -1108,7 +1108,7 @@ However, `kd.deep_uuid` does not print out a nice error message to explain which
 sub-parts are different, which is useful in unit test debugging. To get a better
 error message use kd.testing.assert_equivalent.
 
-```pycon
+```py
 >>> kd.testing.assert_equivalent(o1, o2)
 Traceback (most recent call last):
 AssertionError: Expected: is equal to DataItem(Obj(x=1), schema: OBJECT)
@@ -1145,7 +1145,7 @@ To convert Koda mask DataItems to Python booleans, we can use the Python
 built-in `bool()`. This is especially useful when using Koda in a Python `if`
 statement.
 
-```pycon
+```py
 >>> bool(kd.present)
 True
 >>> bool(kd.missing)
@@ -1166,7 +1166,7 @@ However, `bool()` does not work for mask DataSlices with `ndim > 0`. The items
 of such a DataSlice should be aggregated into a mask DataItem first, for example
 by using `kd.all` or `kd.any`.
 
-```pycon
+```py
 >>> ds = kd.slice([kd.present, kd.missing])
 
 # The next line fails
@@ -1185,7 +1185,7 @@ present mask items are mapped to the `kd.present` object as there is no native
 mask concept in Python. Users can explicitly convert Koda masks to Koda boolean
 first by deciding if `missing` should be interpreted as `False` or `None`.
 
-```pycon
+```py
 >>> kd.to_py(kd.present)
 DataItem(present, schema: MASK)
 >>> kd.to_py(kd.missing) is None
@@ -1204,7 +1204,7 @@ True
 To convert Python booleans to Koda mask, users can first convert them to Koda
 boolean and decide how `False` and `missing` should be handled.
 
-```pycon
+```py
 >>> ds_bool = kd.slice([True, False, None])
 
 >>> # Treat False as present
@@ -1223,7 +1223,7 @@ corresponding pairs of items. The sparsity rule for pointwise operation states
 any pointwise operations involving a missing value return a missing value. For
 example,
 
-```pycon
+```py
 >>> x = kd.slice([1, None, 3])
 >>> y = kd.int32(1)
 
@@ -1234,7 +1234,7 @@ DataSlice([2, None, 4], schema: INT32,...)
 However, there is one exception: the `kd.has_not` operator (which is the same as
 `~`) returns `kd.present` for missing values.
 
-```pycon
+```py
 >>> kd.has_not(x)
 DataSlice([missing, present, missing], schema: MASK,...)
 >>> ~x
@@ -1243,7 +1243,7 @@ DataSlice([missing, present, missing], schema: MASK,...)
 
 Because of how sparsity is handled, `x != y` is not equivalent to `~(x == y)`.
 
-```pycon
+```py
 >>> x = kd.slice([1, None, 3])
 >>> y = kd.int32(1)
 
@@ -1267,7 +1267,7 @@ In some scenarios, we want to check whether a mask value is equal to e.g.
 behavior most closely resembles bitwise-equality. Here, `kd.mask_equal` comes in
 handy:
 
-```pycon
+```py
 >>> x = kd.slice([kd.present, kd.present, kd.missing, kd.missing])
 >>> y = kd.slice([kd.present, kd.missing, kd.present, kd.missing])
 
@@ -1310,7 +1310,7 @@ but it makes accesses much slower. Koda chose not to do so.
 
 </section>
 
-```pycon
+```py
 >>> l1 = kd.list([1, 2, 3])
 >>> l2 = l1.with_list_append_update(4); l2
 DataItem(List[1, 2, 3, 4], schema: LIST[INT32], bag_id:...)
@@ -1323,7 +1323,7 @@ DataItem(List[1, 2, 3, 4, 5], schema: LIST[INT32], bag_id:...)
 If a new distinct ItemId is preferred, we can use `kd.concat_lists(*lists)` or
 `kd.appended_list(list, values_to_append)` to create new lists.
 
-```pycon
+```py
 >>> l1 = kd.list([1, 2, 3])
 >>> l2 = kd.appended_list(l1, 4); l2
 DataItem(List[1, 2, 3, 4], schema: LIST[INT32], bag_id:...)
@@ -1349,7 +1349,7 @@ conflicts**.
 
 The following example uses entities but the same applies to lists and dicts.
 
-```pycon
+```py
 >>> a = kd.new(b=kd.new(c=1))
 >>> # Let's say we want to create a new b with c=2 and add it back to a
 >>> new_b = a.b.with_attrs(c=2)
@@ -1373,7 +1373,7 @@ a  # {'b': {'c': 2}, 'new_b': {'c': 2}}
 If this is undesirable, you use `kd.clone` to create new entities with distinct
 ItemIds.
 
-```pycon
+```py
 >>> a = kd.new(b=kd.new(c=1))
 >>> new_b = a.b.clone().with_attrs(c=2)
 >>> a = a.with_attrs(new_b=new_b)
@@ -1387,7 +1387,7 @@ different values are assigned to the same attribute of entities with the same
 ItemIds. To fix this, we can use `kd.clone` or `kd.deep_clone` to create clones
 of entities with distinct ItemIds.
 
-```pycon
+```py
 >>> query = kd.obj(text='q')
 
 >>> def run_eval(q, v):
@@ -1410,7 +1410,7 @@ Sometimes, the updates are applied to nested attributes. In such cases,
 `kd.clone` is not sufficient and we need to use `kd.deep_clone` which creates
 clones of entities with distinct ItemIds recursively.
 
-```pycon
+```py
 >>> query_set = kd.obj(query=kd.list([kd.obj(text='q1'), kd.obj(text='q2')]))
 
 >>> def run_eval(qs, v):
@@ -1440,7 +1440,7 @@ DataSlice, but their ItemIds are replicated. It is similar to `[a] * 10` in
 Python, which duplicates the reference to `a` 10 times in Python. After
 broadcasting, modifying one entity/list/dict will affect the others too.
 
-```pycon
+```py
 >>> ds1 = kd.new(a=kd.slice([1, 2]))
 >>> ds2 = kd.slice([[0, 0], [0, 0]])
 >>> ds3 = ds1.expand_to(ds2)  # [[Entity(a=1), Entity(a=1)], [Entity(a=2), Entity(a=2)]]
@@ -1459,7 +1459,7 @@ DataSlice([[Entity(a=3), Entity(a=3)], [Entity(a=3), Entity(a=3)]], schema: ENTI
 It can yield unanticipated results, especially when the broadcasting happens
 implicitly (e.g. as part of assignment). For example,
 
-```pycon
+```py
 >>> z = kd.new(x=1)
 >>> a = kd.new(x=kd.slice([1, 2, 3]))
 >>> a = a.with_attrs(z=z)  # the same ItemId is auto-expanded
@@ -1474,7 +1474,7 @@ DataSlice([10, 10, 10], schema: INT32,...)
 If this is undesirable, you can use `kd.clone` or `kd.new_like` to create new
 entities with distinct ItemIds.
 
-```pycon
+```py
 >>> z = kd.new(x=1)
 >>> a = kd.new(x=kd.slice([1, 2, 3]))
 >>> a = a.with_attrs(z=z.expand_to(a).clone())
@@ -1518,7 +1518,7 @@ example:
 
 </section>
 
-```pycon
+```py
 >>> def f1():
 ...   a = kd.new(x=1)
 ...   return kd.new(y=a)
@@ -1541,7 +1541,7 @@ When tracing a Python function into a Functor that uses `kd.map_py` (or similar
 operators), we need to be careful to not accidentally capture variables. The
 following example showcases a variant of a family of problems related to this:
 
-```pycon
+```py
 >>> def fn(ds, scalar_value):
 ...   def per_item_fn(x):
 ...     return x + scalar_value
@@ -1563,7 +1563,7 @@ the materialized input provided during evaluation. During evaluation,
 
 To fix this, the `scalar_value` should be passed as an input to `per_item_fn`:
 
-```pycon
+```py
 >>> def fn(ds, scalar_value):
 ...   def per_item_fn(x, scalar_value):
 ...     return x + scalar_value
@@ -1595,7 +1595,7 @@ especially with regards to short-circuiting.
 and a `no` case, and produces an interleaved result based on the `condition`.
 All inputs are allowed to be multidimensional. For example:
 
-```pycon
+```py
 >>> kd.cond(kd.present, kd.slice([1, 2, 3]), kd.slice([4, 5, 6]))
 DataSlice([1, 2, 3], schema: INT32,...)
 
@@ -1616,7 +1616,7 @@ where functors and expressions are evaluated in a bottom-up manner. It's
 therefore required that both branches can be evaluated successfully. For
 example, the following will fail.
 
-```pycon
+```py
 >>> @kd.fn
 ... def explode_or_default(x, y):
 ...   return kd.cond(kd.is_list(x), x[:], y)
@@ -1637,7 +1637,7 @@ functor, a `no_fn` functor, and arguments passed to each functor. This operator
 is a *short-circuiting* alternative to `kd.cond`, where `yes_fn` will only be
 evaluated if `condition` is truthy, and `no_fn` otherwise. For example:
 
-```pycon
+```py
 >>> kd.if_(
 ...   kd.present,
 ...   lambda: kd.slice([1, 2, 3]),
@@ -1665,7 +1665,7 @@ ValueError: [FAILED_PRECONDITION] the condition in kd.if_ must be a MASK scalar.
 Due to the short-circuiting nature of this operator, we can rewrite the
 `explode_or_default` functor as follows:
 
-```pycon
+```py
 >>> @kd.fn
 ... def explode_or_default(x, y):
 ...   return kd.if_(

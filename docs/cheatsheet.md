@@ -10,7 +10,7 @@ go/koda-cheatsheet
 <section>
 ### Import
 
-```pycon
+```py
 >>> from koladata import kd
 
 # Additional extension libraries if needed
@@ -24,7 +24,7 @@ go/koda-cheatsheet
 
 ### Primitives and DataItem
 
-```pycon
+```py
 # Primitive dtypes
 >>> kd.INT32
 DataItem(INT32, schema: SCHEMA)
@@ -93,7 +93,7 @@ DataItem(1, schema: OBJECT)
 
 ### DataSlice
 
-```pycon
+```py
 >>> ds = kd.slice([[1, 2], [3, None, 5]])
 >>> assert kd.is_slice(ds)
 
@@ -204,7 +204,7 @@ Entities can be thought of as instances of protos or C++ structs. That is, they
 don't directly store their own schema. Instead, their schema is stored at
 DataSlice level and all entities in a DataSlice share the same schema.
 
-```pycon
+```py
 # Entity creation with named schema
 >>> e = kd.new(x=1, y=2, schema='Point')
 >>> es = kd.new(x=kd.slice([1, 2, None]),
@@ -295,7 +295,7 @@ DataSlice([1, 2, 0],...)
 
 ### Lists
 
-```pycon
+```py
 # Create a list from a Python list
 >>> l1 = kd.list([1, 2, 3])
 >>> l2 = kd.list([[1, 2], [3], [4, 5]])
@@ -395,7 +395,7 @@ DataItem(List[1, 2, 3, 4], schema: LIST[INT32],...)
 
 ### Dicts
 
-```pycon
+```py
 # Create a dict from a Python dict
 >>> d1 = kd.dict({'a': 1, 'b': 2})
 >>> d2 = kd.dict(kd.slice(['a', 'b']),
@@ -478,7 +478,7 @@ Entities, Lists, Dicts and primitives can be objects. Entities, Lists and Dicts
 store their own schema as an internal `__schema__` attribute while primitives'
 schema is determined by the type of their value.
 
-```pycon
+```py
 # Entity objects
 >>> o = kd.obj(x=1, y=2)
 >>> os = kd.obj(x=kd.slice([1, 2, None]),
@@ -608,7 +608,7 @@ a DataSlice to create a sub-DataSlice.
 
 See [kd.subslice](api/kd/slices.md#kd.slices.subslice) APIs for more details.
 
-```pycon
+```py
 >>> ds = kd.slice([[1, 2, 3], [4, 5]])
 
 # Slice by indices
@@ -683,7 +683,7 @@ sometimes convenient to slice dimensions one by one similar to how to iterate
 through a nested Python list. DataSlice provides a way to slice the **first**
 dimension using `.L` notation. *L* stands for *Python list*.
 
-```pycon
+```py
 >>> ds = kd.slice([[1, 2, 3], [4, 5]])
 
 # Note that 'l' is a one-dim DataSlice
@@ -720,7 +720,7 @@ DataSlice([4, 5], schema: INT32,...)
 
 ### Editable Containers
 
-```pycon
+```py
 >>> x = kd.named_container()
 >>> x.a = 1
 >>> x.b = kd.list([1, 2, 3])
@@ -734,7 +734,7 @@ DataItem(Obj(a=1, b=List[1, 2, 3]), schema: OBJECT,...)
 
 ### DataSlice Shape (a.k.a. Partition Tree)
 
-```pycon
+```py
 >>> ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
 >>> shape = ds.get_shape()
 >>> shape
@@ -763,7 +763,7 @@ JaggedShape(2, [2, 1])
 
 ### Changing shape of a DataSlice
 
-```pycon
+```py
 >>> ds = kd.slice([[[1, 2], [3]], [[4, 5]]])
 
 # Flatten all dimensions
@@ -812,7 +812,7 @@ DataSlice([[1, 1], [], [3, 3]], schema: INT32, ...)
 
 ### Broadcasting and Aligning
 
-```pycon
+```py
 # Expands x based on the shape of target
 >>> kd.slice([100, 200]).expand_to(
 ...     kd.slice([[1,2],[3,4,5]]))
@@ -842,7 +842,7 @@ DataSlice([[[100, 200], [100, 200]], [[100, 200], [100, 200], [100, 200]]], sche
 
 ### ItemIds and UUIDs
 
-```pycon
+```py
 # A new ItemId is allocated when a new
 # object/entity/list/dict/schema is created
 >>> o1 = kd.obj(x=1, y=2)
@@ -969,7 +969,7 @@ DataSlice `x`.
 
 `kd.***_shaped(shape)` creates a DataSlice of *** with the **shape** `shape`.
 
-```pycon
+```py
 >>> x = kd.slice([[1, None], [3, 4]])
 >>> s = x.get_shape()
 
@@ -1132,7 +1132,7 @@ DataSlice([[Dict{}, Dict{}], [Dict{}, Dict{}]], schema: DICT{OBJECT, OBJECT}, pr
 
 ### Pointwise Comparison Operators
 
-```pycon
+```py
 >>> a = kd.slice([1, 2, 3])
 >>> b = kd.slice([3, 2, 1])
 
@@ -1171,7 +1171,7 @@ DataSlice([present, missing, present], schema: MASK,...)
 
 ### DataSlice Comparison Operator
 
-```pycon
+```py
 >>> a = kd.slice([1, None, 3])
 >>> b = kd.slice([1, None, 3])
 
@@ -1193,7 +1193,7 @@ DataSlice([present, missing, present], schema: MASK,...)
 
 ### Mask Operators
 
-```pycon
+```py
 # Masking
 >>> a = kd.slice([kd.present, kd.missing, kd.present])
 >>> b = kd.slice([kd.present, kd.missing, kd.missing])
@@ -1226,7 +1226,7 @@ DataSlice([missing, missing, present], schema: MASK, present: 1/3)
 
 ### Presence Checking Operators
 
-```pycon
+```py
 >>> a = kd.slice([1, None, 3])
 
 >>> kd.has(a)
@@ -1253,7 +1253,7 @@ DataSlice([missing, missing, missing, missing, present], schema: MASK,...)
 
 ### Masking and Coalesce Operators
 
-```pycon
+```py
 # Masking
 >>> a = kd.slice([1, None, 3])
 >>> b = kd.slice([4, 5, 6])
@@ -1294,7 +1294,7 @@ DataSlice([1, '5', 3], schema: OBJECT,...)
 
 ### Conditional Selection Operators
 
-```pycon
+```py
 >>> a = kd.slice([1, 2, 3])
 >>> kd.select(a, a > 1)
 DataSlice([2, 3], schema: INT32,...)
@@ -1338,7 +1338,7 @@ DataSlice([3, 2, 1], schema: INT32,...)
 
 ### Range Operator
 
-```pycon
+```py
 >>> kd.range(1, 5)
 DataSlice([1, 2, 3, 4], schema: INT64,...)
 >>> kd.range(1, kd.slice([3, 5]))
@@ -1353,7 +1353,7 @@ DataSlice([[0, 1, 2], [3, 4]], schema: INT64,...)
 
 ### Math Operators
 
-```pycon
+```py
 >>> x = kd.slice([1, 2, 3])
 >>> y = kd.slice([4, 5, 6])
 >>> kd.testing.assert_equivalent(x + y, kd.math.add(x, y))
@@ -1398,7 +1398,7 @@ DataSlice([[0, 1, 2], [3, 4]], schema: INT64,...)
 
 ### String Operators
 
-```pycon
+```py
 >>> x = kd.str('Hello World')
 >>> _ = kd.strings.length(x)
 >>> _ = kd.strings.upper(x)
@@ -1437,7 +1437,7 @@ DataItem(b'abc', schema: BYTES)
 
 ### String Format Operators
 
-```pycon
+```py
 >>> kd.strings.printf('Hello %s', 'World')
 DataItem('Hello World', schema: STRING)
 >>> kd.strings.printf('Hello %s',
@@ -1481,7 +1481,7 @@ DataItem('Hello 1', schema: STRING)
 
 ### Aggregational Operators
 
-```pycon
+```py
 # collapse over the last dimension and
 # returns the value if all item has the
 # same value or None otherwise
@@ -1551,7 +1551,7 @@ DataItem(present, schema: MASK)
 
 ### Type casting operators
 
-```pycon
+```py
 # Same operators as for creating a slice of specific type.
 >>> kd.int32(kd.slice([1., 2., 3.]))
 DataSlice([1, 2, 3], schema: INT32, present: 3/3)
@@ -1579,7 +1579,7 @@ DataSlice([1, 2, 3], schema: INT64, present: 3/3)
 
 ### Expand_to Operators
 
-```pycon
+```py
 >>> a = kd.slice([[1, 2], [3]])
 >>> b = kd.slice([[[1, 2], [3]], [[4, 5]]])
 
@@ -1620,7 +1620,7 @@ ValueError: kd.shapes.expand_to_shape: ndim must be a positive integer and <= x.
 
 ### Explosion and Implosion Operators
 
-```pycon
+```py
 # kd.explode explodes the Lists ndim times
 >>> a = kd.list([[[1, 2], [3]], [[4], [5]]])
 
@@ -1667,7 +1667,7 @@ DataItem(List[List[List[1, 2], List[3]], List[List[4], List[5]]], schema: LIST[L
 
 ### Joining DataSlice Operators
 
-```pycon
+```py
 # Stacks DataSlices and creates a new
 # dimension at `ndim`
 >>> a = kd.slice([[1, None], [4]])
@@ -1730,7 +1730,7 @@ ValueError: invalid ndim=4 for rank=3 concat...
 
 ### Group_by Operators
 
-```pycon
+```py
 >>> cities = kd.obj(
 ...   name=kd.slice(['sf', 'sj', 'la', 'nyc', 'albany']),
 ...   population=kd.slice([100, 200, 300, 400, 500]),
@@ -1779,7 +1779,7 @@ DataSlice([['sf'], ['sj'], ['nyc', 'albany']], schema: STRING, present: 4/4, ...
 
 ### Unique Operator
 
-```pycon
+```py
 >>> ds1 = kd.slice([[1, 1, 1.], [1, '1', None]])
 
 # Get unique items over the last dimension
@@ -1808,7 +1808,7 @@ DataSlice([[Obj(a=1), Obj(a=2)], [Obj(a=2)]], schema: OBJECT, present: 3/3, ...)
 
 ### Link Operators
 
-```pycon
+```py
 # One-to-many mapping
 >>> docs = kd.obj(
 ...   did=kd.slice([[1, 2], [1, 2, 3]]),
@@ -1864,7 +1864,7 @@ DataSlice([[[1], [2, 3]], [[6], [4, 5]]], schema: INT32, present: 6/6, ...)
 
 ### Random Number and Sampling Operators
 
-```pycon
+```py
 # Generate random integers
 >>> x = kd.slice([[1, 2], [], [3, None], [None]])
 >>> shape = x.get_shape()
@@ -1935,7 +1935,7 @@ DataSlice([[[1], [2, 3]], [[6], [4, 5]]], schema: INT32, present: 6/6, ...)
 
 ### Sort and Rank Operators
 
-```pycon
+```py
 >>> ds1 = kd.slice([[10, 5, 10, 5], [30, 10]])
 >>> ds2 = kd.slice([[1, 2, 3, 4], [2, 1]])
 
@@ -1979,7 +1979,7 @@ DataSlice([5, 30], schema: INT32, present: 2/2)
 
 ### Reverse Operator
 
-```pycon
+```py
 >>> ds = kd.slice([[10, 5, 10, 5], [30, 10]])
 
 # Reverse items in the last dimension
@@ -1997,7 +1997,7 @@ DataSlice([[10, 30, 5, 10], [5, 10]], schema: INT32, present: 6/6)
 
 ### map_py Operator
 
-```pycon
+```py
 >>> ds = kd.slice([1, 2, 3])
 
 # Pointwise
@@ -2060,7 +2060,7 @@ DataItem(6, schema: INT32)
 
 ### Python Function Operators
 
-```pycon
+```py
 >>> a = kd.slice([1, 2, 3])
 
 # Use python for a simple operation transformation.
@@ -2155,7 +2155,7 @@ schemas are created as a by-product of `kd.obj()`.
 `kd.named_schema/list_schema/dict_schema/uu_schema(...)` creates an explicit
 schema.
 
-```pycon
+```py
 # Create a named schema
 >>> Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 
@@ -2230,7 +2230,7 @@ Entity schemas can be used to create entities by using `schema.new(...)` or
 `kd.new(..., schema=schema)`. List and dict schemas do not support `schema.new`
 syntax.
 
-```pycon
+```py
 >>> Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 >>> Line = kd.named_schema('Line', start=Point, end=kd.OBJECT)
 
@@ -2263,7 +2263,7 @@ When no schema is provided to `kd.new`, an schema is automatically derived based
 on provided arguments or keyword arguments. When a string is provided as schema,
 an uu schema is created based on the name.
 
-```pycon
+```py
 # kd.new() creates entities with derived schema
 >>> i1 = kd.new(x=1, y=2.0, z='3')
 
@@ -2294,7 +2294,7 @@ an uu schema is created based on the name.
 
 `kd.obj(...)` creates an object with an implicit schema.
 
-```pycon
+```py
 # An implicit schema is created and
 # attached to the Koda object
 >>> o1 = kd.obj(x=1, y=2.0, z='3')
@@ -2348,7 +2348,7 @@ To ensure runtime correctness of inputs and outputs, Koda provides the
 functionality is preserved in traced functors, including those decorated with
 `kd.trace_as_fn()`.
 
-```pycon
+```py
 # Validates that both `hours` and `minutes` are INT32, and that the output is a
 # STRING.
 >>> @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
@@ -2367,7 +2367,7 @@ TypeError: ...
 For structured data, the inputs and outputs are required to have the
 expected schema.
 
-```pycon
+```py
 >>> Doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
 >>> Query = kd.schema.named_schema(
 ...     'Query',
@@ -2396,7 +2396,7 @@ In some cases, checking for the exact schema is undesirable as we may only care
 that some specific attributes are present. For this, we can use
 [`kd.duck_type`](api/kd.md#kd.duck_type) and friends.
 
-```pycon
+```py
 # Input: Asserts that `query` has a `docs` attribute that is a LIST of values
 # with an INT64 attribute `doc_id`.
 # Output: Asserts that the output has an INT64 `doc_id` attribute.
@@ -2427,7 +2427,7 @@ To add arbitrary runtime assertions, in case `kd.check_inputs` and
 used on any slice with more relaxed restrictions on the condition compared to
 the schema assertion tools.
 
-```pycon
+```py
 >>> def solve_quadratic_quation(a, b, c):
 ...   # Solving  ax^2 + bx + c = 0
 ...   d = b * b - 4 * a * c
@@ -2458,7 +2458,7 @@ the computation in case the condition is true, and only compute it if it's
 actually required. For this, `kd.with_assertion` supports passing a callback
 functor to compute the message.
 
-```pycon
+```py
 >>> def is_smaller_than(x, y):
 ...   return kd.assertion.with_assertion(
 ...       x,
@@ -2480,7 +2480,7 @@ ValueError: [FAILED_PRECONDITION] x=5 must be smaller than y=3...
 Note that the result of the computation *must* be used in order for it to be
 properly embedded in the traced Functor.
 
-```pycon
+```py
 >>> @kd.trace_as_fn()
 ... def is_smaller_than_bad(x, y):
 ...   kd.assertion.with_assertion(x, x < y, 'x must be less than y')
@@ -2516,7 +2516,7 @@ Python print-statements are useful for general debugging. Since these are not
 traceable, Koda provides the [`kd.with_print`](api_reference#kd.core.with_print)
 operator, with prints available in both Python and C++ (stdout).
 
-```pycon
+```py
 >>> def print_input(x):
 ...   return kd.with_print(x, 'the input is:', x)
 
@@ -2540,7 +2540,7 @@ behavior.
 
 ### From_py
 
-```pycon
+```py
 # Primitives
 >>> kd.from_py(1)
 DataItem(1, schema: OBJECT)
@@ -2647,7 +2647,7 @@ DataSlice([Dict{...'y'=2.0...}, Dict{...'y'=4.0...}], schema: DICT{STRING, FLOAT
 
 ### To_py
 
-```pycon
+```py
 # Primitive DataItem
 >>> kd.item(1.0).to_py()
 1.0
@@ -2784,7 +2784,7 @@ to `kd.to_py(obj_as_dict=True)`.
 
 ### From/To Numpy Array
 
-```pycon
+```py
 >>> import numpy as np
 >>> from koladata import kd_ext
 >>> npkd = kd_ext.npkd
@@ -2855,7 +2855,7 @@ array([DataItem(Obj(x=1), schema: OBJECT, bag_id: ...),
 
 ### From/To Panda DataFrame
 
-```pycon
+```py
 >>> import pandas as pd
 >>> from koladata import kd_ext
 
@@ -2936,7 +2936,7 @@ DataSlice([[Entity(x=1), Entity(x=2)],
 
 ### From/To Json
 
-```pycon
+```py
 # Parse any JSON primitive or container, or a
 # mixture. Uses OBJECT schema by default.
 >>> kd.from_json('null')
@@ -3001,7 +3001,7 @@ DataItem('?', schema: OBJECT, bag_id:...)
 >>> assert a.to_py() == b.to_py()
 ```
 
-```pycon
+```py
 # Format any JSON-compatible Koda value.
 >>> kd.to_json(None)
 DataItem(None, schema: STRING)
@@ -3079,7 +3079,7 @@ DataItem('{"y": 1, "x": 2, "y": 3}', schema: STRING)
 
 ### From/To Bytes (a.k.a. Serialization)
 
-```pycon
+```py
 # Serialize DataSlice into bytes
 >>> ds = kd.slice([1, 2, 3])
 >>> s = kd.dumps(ds)
@@ -3099,7 +3099,7 @@ DataItem('{"y": 1, "x": 2, "y": 3}', schema: STRING)
 
 ### DataBag
 
-```pycon
+```py
 # Empty immutable bag creation
 >>> db_immutable = kd.bag()
 >>> assert not db_immutable.is_mutable()
@@ -3158,7 +3158,7 @@ SchemaBag...
 
 ### Merging DataBags
 
-```pycon
+```py
 # Merge two bags by creating a new bag
 # with db1 and db2 as fallbacks
 # db2 overrides db1 in terms of conflicts
@@ -3208,7 +3208,7 @@ SchemaBag...
 
 ### Extract/Clone
 
-```pycon
+```py
 >>> s1 = kd.uu_schema(x=kd.INT32, y=kd.INT32)
 >>> s2 = kd.uu_schema(z=s1, w=s1)
 
@@ -3284,7 +3284,7 @@ newly created bag which can merged into the original data.
 A Entity/Object/List/Dict ref is a reference to the same Entity/Object/List/Dict
 without a bag attached.
 
-```pycon
+```py
 >>> obj = kd.obj(x=1, y=kd.obj(z=1))
 
 # Create a obj stub without attributes
@@ -3336,7 +3336,7 @@ serving.
 To trace a Python function, we can use `kd.trace_py_fn(f)`. Variadic arguments
 are not supported for tracing.
 
-```pycon
+```py
 >>> a1 = kd.slice([1, 2])
 >>> a2 = kd.slice([2, 3])
 >>> b = kd.item('b')
@@ -3451,7 +3451,7 @@ In most cases, users only need `kd` for eager and tracing mode and `kd.lazy` for
 if they want to use Expr directly. `kd.eager` is only useful for eager execution
 in the tracing mode.
 
-```pycon
+```py
 >>> def f1(a):
 ...   b = kd.item(1) + kd.item(2)
 ...   return kd.math.add(a, b)
@@ -3489,7 +3489,7 @@ DataItem(4, schema: INT32)
 If we want to trace the invoked function, need to add `@trace_as_fn` decorator
 to that function. Otherwise, it is inlined into the traced function.
 
-```pycon
+```py
 >>> def fn1(a, b):
 ...   x = a + 1
 ...   y = b + 2
@@ -3531,7 +3531,7 @@ DataItem(Functor fn4[c](
 If some operators should always be executed eagerly, use `kd.eager` instead of
 `kd`.
 
-```pycon
+```py
 >>> def f1(a):
 ...   b = kd.eager.item(1) + kd.eager.item(2)
 ...   return a + b
@@ -3552,7 +3552,7 @@ decorator to the Python function. It allows you to use any Python codes
 including `if`, `for` or sending RPC which do not work for tracing at the cost
 of losing all tracing benefits.
 
-```pycon
+```py
 >>> a1 = kd.slice([1, 2])
 >>> a2 = kd.slice([2, 3])
 >>> b = kd.item('b')
@@ -3594,7 +3594,7 @@ names, we can use `kd.with_name`. In the eager mode, `kd.with_name` is a no-op.
 In the lazy mode, it is just `kd.lazy.with_name` which adds a name annotation to
 the resulting Expr.
 
-```pycon
+```py
 >>> def fn1(a, b):
 ...   x = a + 1
 ...   y = b + 2
@@ -3662,7 +3662,7 @@ context.
 
 ### Useful Aliases
 
-```pycon
+```py
 >>> I = kd.I
 >>> V = kd.V
 >>> S = kd.S
@@ -3674,7 +3674,7 @@ context.
 
 ### Creating Koda Expr
 
-```pycon
+```py
 # Create an Expr to represent a + b
 >>> expr1 = I.a + I.b
 
@@ -3720,7 +3720,7 @@ DataItem(3, schema: INT32)
 
 ### Evaluating Koda Expr
 
-```pycon
+```py
 >>> expr = I.a + I.b
 >>> res1 = kd.eval(expr, a=kd.slice([1, 2, 3]), b=kd.item(2)); res1
 DataSlice([3, 4, 5], schema: INT32, present: 3/3)
@@ -3755,7 +3755,7 @@ DataItem(6, schema: INT32)
 
 ### Packing/Unpacking Koda Expr to/from DataItem
 
-```pycon
+```py
 >>> add_ab = I.a + I.b
 >>> weighted_ab = I.w * add_ab
 >>> score = kd.lazy.agg_sum(weighted_ab)
@@ -3787,7 +3787,7 @@ DataItem(6, schema: INT32)
 
 ### Substituting Sub-Exprs
 
-```pycon
+```py
 >>> expr1 = I.a + I.b
 >>> expr2 = I.b + I.c
 >>> expr3 = expr1 * expr2
@@ -3823,7 +3823,7 @@ I.y + I.y
 
 ### Substituting Input Nodes
 
-```pycon
+```py
 >>> expr = (I.a + I.b) * I.c
 
 # Substitute by other inputs
@@ -3845,7 +3845,7 @@ I.y + I.y
 
 ### Defining Custom Operators
 
-```pycon
+```py
 # Create a lambda operator 'score'
 # under the existing namespace 'kd.core'
 >>> @kd.optools.add_to_registry()
@@ -3942,7 +3942,7 @@ statement.
 -   Return statement is represented as `fn_obj` in `kd.fn` and can refer to
     local variables
 
-```pycon
+```py
 # Create a Functor from Expr
 >>> fn1 = kd.functor.expr_fn(I.a + I.b)
 
@@ -3994,7 +3994,7 @@ statement.
 
 ### Calling Koda Functor
 
-```pycon
+```py
 >>> f = kd.fn(V.a + I.b, c=I.d, a=V.c + I.d)
 
 # Pass inputs as **kwargs
@@ -4029,7 +4029,7 @@ DataItem('result: 2', schema: STRING)
 
 ### Partially Binding Koda Functor Parameters
 
-```pycon
+```py
 >>> fn1 = kd.fn(I.a + I.b)
 
 # Bind inputs with default values
@@ -4074,7 +4074,7 @@ ValueError: variable [a] must be a data item, but has shape: JaggedShape(2)
 
 Also see `kd.map_py()` above.
 
-```pycon
+```py
 # Pointwise
 >>> _ = kd.functor.map_py_fn(lambda x, y: x + y)
 
@@ -4109,7 +4109,7 @@ Note the differences between Iterables and DataSlices are:
 Iterables can be created directly from individual items directly or by yielded
 from `kd.for_` and `kd.while_` (see the sections below).
 
-```pycon
+```py
 # create from individual items
 # 1/2/3/4 are wrapped into DataItems
 >>> kd.iterables.make(1, 2, 3, 4)
@@ -4146,7 +4146,7 @@ ITERABLE[DATA_SLICE]{sequence(...DataItem(499501, schema: INT32)..., value_qtype
 
 ### Combine multiple Iterables
 
-```pycon
+```py
 >>> i1 = kd.iterables.make(1, 2, 3, 4)
 >>> i2 = kd.iterables.make(5, 6, 7, 8)
 
@@ -4168,7 +4168,7 @@ ITERABLE[DATA_SLICE]{sequence(..., value_qtype=DATA_SLICE)}
 
 ### Transform Iterables
 
-```pycon
+```py
 # Apply fn over Iterable items
 # fn must return Iterables which are chained
 >>> kd.functor.flat_map_chain(
@@ -4192,7 +4192,7 @@ ITERABLE[DATA_SLICE]{sequence(..., value_qtype=DATA_SLICE)}
 
 ### Reduce one Iterable into one DataSlice/DataBag
 
-```pycon
+```py
 # Concatenate DataSlices in an Iterable
 # using kd.concat(*dss, ndim)
 # For now, only DataSlices with ndim>0 are supported
@@ -4239,7 +4239,7 @@ DataItem(210, schema: INT32)
 -   `kd.if_` takes Koda functors as yes/no branches while `kd.cond` takes
     DataSlices.
 
-```pycon
+```py
 >>> def p(a):
 ...   print(a)
 ...   return a
@@ -4272,7 +4272,7 @@ DataItem(2, schema: INT32)
 
 Multiple conditions
 
-```pycon
+```py
 # Pure Python version
 >>> def foo(ds, cond1, cond2, cond3):
 ...   if cond1:
@@ -4331,7 +4331,7 @@ For more detailed usages, please refer to docstrings. Note that `kd.for_` takes
 an Iterable rather than a DataSlice as input. It iterates elements (i.e.
 DataSlice, DataBag) in the Iterable rather than items in the DataSlice.
 
-```pycon
+```py
 >>> inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
 
 # Python version
@@ -4363,7 +4363,7 @@ iterable.
 
 <section>
 
-```pycon
+```py
 >>> inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
 
 # Python version
@@ -4402,7 +4402,7 @@ DataSlice([7, 14], schema: INT32, present: 2/2)
 `condition_fn` can be used to stop the loop early. It must return a MASK
 DataItem.
 
-```pycon
+```py
 >>> inputs = [kd.item(1), kd.item(2),
 ...           kd.item(3), kd.item(4)]
 
@@ -4441,7 +4441,7 @@ can be done by returning `yields` or `yields_interleaved` in the namedtuple of
 the `body_fn`. When `yields_interleaved` is specified, the behavior is the same
 as `yields`, but the values are interleaved instead of chained.
 
-```pycon
+```py
 >>> inputs = [kd.item(1), kd.item(2),
 ...           kd.item(3), kd.item(4)]
 
@@ -4482,7 +4482,7 @@ ITERABLE[DATA_SLICE]{sequence(DataItem(0, schema: INT32), DataItem(1, schema: IN
 
 For more detailed usages, please refer to docstrings.
 
-```pycon
+```py
 >>> ds = kd.slice([5, 4, 6])
 
 # Python version
@@ -4522,7 +4522,7 @@ namedtuple of the `body_fn`. When `yields_interleaved` is specified, the
 behavior is the same as `yields`, but the values are interleaved instead of
 chained.
 
-```pycon
+```py
 >>> ds = kd.slice([5, 4, 6])
 
 >>> def foo(n):
@@ -4562,7 +4562,7 @@ ITERABLE[DATA_SLICE]{sequence(DataSlice([5, 4, 6], schema: INT32, present: 3/3),
 
 Normally, Koda functor evaluation is single-threaded:
 
-```pycon
+```py
 >>> import time
 
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
@@ -4595,7 +4595,7 @@ DataItem(13, schema: INT32)
 However, `kd.parallel.call_multithreaded` allows to evaluate independent parts
 of the computation `in parallel`:
 
-```pycon
+```py
 >>> kd.parallel.call_multithreaded(f, 5)
 Start f1
 Start f2
@@ -4606,7 +4606,7 @@ DataItem(13, schema: INT32)
 
 We can control the maximum number of threads:
 
-```pycon
+```py
 >>> kd.parallel.call_multithreaded(f, 5, max_threads=1)
 Start f1
 Finish f1
@@ -4627,7 +4627,7 @@ variables will be those nodes that are annotated with `kd.with_name`. This
 allows to balance the level of parallelism against to the overhead of starting a
 new parallel task for each simple operation.
 
-```pycon
+```py
 # No parallel execution, everything is serial.
 >>> kd.parallel.call_multithreaded(
 ...   lambda x, y: x ** 2 + y ** 2,
@@ -4652,7 +4652,7 @@ evaluate all inputs to such call in parallel, then evaluate the sub-functor (in
 parallel to any other variables that might be evaluated), and then evaluate the
 part of the computation that uses the result of the sub-functor.
 
-```pycon
+```py
 >>> @kd.trace_as_fn()
 ... def f(x, y):
 ...   return x + y
@@ -4680,7 +4680,7 @@ variables inside the sub-functor will be evaluated in parallel, and that
 sub-functor calls themselves can be parallelized when one does not depend on the
 result of the other.
 
-```pycon
+```py
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def process(x):
 ...   time.sleep(0.1 * x.to_py())
@@ -4712,7 +4712,7 @@ the corresponding tasks will all be evaluated in parallel in
 depends only on some of the inputs, it may start evaluating even before all
 inputs to the sub-functor call are ready.
 
-```pycon
+```py
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def step(x, msg, pause):
 ...   time.sleep(pause.to_py() * 0.1)
@@ -4749,7 +4749,7 @@ Similarly, if a sub-functor returns a tuple/namedtuple, the parts of the outside
 computation that use only one field of that tuple/namedtuple can start
 evaluation even before the entire tuple is completed:
 
-```pycon
+```py
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def step(x, msg, pause):
 ...   time.sleep(pause.to_py())
@@ -4824,7 +4824,7 @@ using `kd.parallel.call_multithreaded`. In other words the subsequent processing
 of an iterable item may start even before the next item(s) have been computed
 for the same iterable, for example:
 
-```pycon
+```py
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def step(x):
 ...   time.sleep(0.1 * x.to_py())
@@ -4868,7 +4868,7 @@ If your entire computation returns an iterable, then you need to use
 `kd.parallel.yield_multithreaded` instead which allows you to get the results as
 a Python iterator:
 
-```pycon
+```py
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def step(x):
 ...   time.sleep(0.1 * x.to_py())
@@ -4913,7 +4913,7 @@ productionalization.
 
 ### Creating Mutable Entities/Objects/Lists/Dicts from a DataBag
 
-```pycon
+```py
 >>> db = kd.mutable_bag()
 
 # Create a mutable entity and modify its attributes
@@ -4980,7 +4980,7 @@ An immutable DataBag can be forked to create a mutable DataBag at a cost of
 `O(1)`. Similarly, a mutable DataBag can be frozen to create an immutable
 DataBag at a cost of `O(1)`.
 
-```pycon
+```py
 >>> e = kd.new(x=1, y=2)
 >>> e1 = e.fork_bag()
 >>> e1.x = 3
@@ -5014,7 +5014,7 @@ DataItem(4, schema: INT32, bag_id: ...)
 
 ### Moving Data from a DataSlice/DataBag to Another DataBag
 
-```pycon
+```py
 >>> db1 = kd.mutable_bag()
 >>> db2 = kd.mutable_bag()
 
@@ -5057,7 +5057,7 @@ DataBag ...:
 
 ### kd.testing.assert_equal
 
-```pycon
+```py
 # Primitive DataSlices
 >>> ds1 = kd.slice([1, 2, 3])
 >>> ds2 = kd.slice([1, 2, 3])
@@ -5122,7 +5122,7 @@ AssertionError: QValues not equal by fingerprint:
 
 ### kd.testing.assert_equivalent
 
-```pycon
+```py
 # Different from assert_equal, it recursively checks that DataSlices content is
 # equivalent instead of the same instance
 >>> ds1 = kd.uuobj(x=1)
@@ -5150,7 +5150,7 @@ AssertionError: QValues not equal by fingerprint:
 
 It works similar to `numpy.testing.assert_allclose`.
 
-```pycon
+```py
 >>> ds1 = kd.slice([2.71, 2.71])
 >>> ds2 = kd.slice([2.7100, 2.710])
 
@@ -5183,7 +5183,7 @@ AssertionError: DataItem(3.145678, schema: FLOAT32) and DataItem(3.145678, schem
 
 ### kd.testing.assert_unordered_equal
 
-```pycon
+```py
 >>> ds1 = kd.slice([1, 2., '3'])
 >>> ds2 = kd.slice(['3', 2., 1])
 
@@ -5213,7 +5213,7 @@ the same shape and schema, and that the corresponding values are equivalent.
 Notably, it does not require the lists themselves to have the same ItemIds - it
 is an assertion about their contents and not about their identities.
 
-```pycon
+```py
 >>> l1 = kd.list([1, 2, 3])
 >>> l2 = kd.list([1, 2, 3])
 >>> kd.testing.assert_equivalent(l1, l2)
@@ -5254,7 +5254,7 @@ shape and schema. In addition, it verifies that the keys fetched from their
 corresponding DataBag(s) are the same (regardless of their order in the last
 dimension) and that the returned Dict values for those keys are equivalent.
 
-```pycon
+```py
 >>> d1 = kd.dict({'a': 1, 'b': 2})
 >>> d2 = kd.dict({'a': 1, 'b': 2})
 >>> kd.testing.assert_equivalent(d1, d2)
@@ -5297,7 +5297,7 @@ print out a nice error message to explain which sub-parts are different. To get
 a better error message, the current recommendation is to convert to pytrees and
 use Python comparison assertions.
 
-```pycon
+```py
 >>> i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
 ...                      d=kd.list([2, 3]),
 ...                      e=kd.dict({'f': 4})))
