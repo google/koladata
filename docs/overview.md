@@ -57,7 +57,7 @@ For example, the following DataSlice has 2 dimensions and 5 items. The first
 dimension has 2 items and the second dimension has 5 items partitioned as `[3,
 2]`.
 
-```py
+```pycon
 >>> from koladata import kd
 >>> ds = kd.slice([["one", "two", "three"], ["four", "five"]])
 >>> ds.get_ndim()
@@ -103,7 +103,7 @@ or strings), or more complex data structures (e.g. lists, dicts and entities).
 
 A zero-dimensional DataSlice is a scalar item. It is called a DataItem.
 
-```py
+```pycon
 >>> kd.item(1, schema=kd.FLOAT32)
 DataItem(1.0, schema: FLOAT32)
 >>> kd.item(1, schema=kd.FLOAT32).to_py()
@@ -127,7 +127,7 @@ The DataSlice `kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])` is different
 from the DataSlice `kd.slice([[1, 2, 3], [4, 5]])`, as the following example
 shows. However, they can be converted from/to each other as we will see later.
 
-```py
+```pycon
 >>> l1 = kd.list([1, 2, 3])
 >>> l2 = kd.list([4, 5])
 >>> list_ds = kd.slice([l1, l2])
@@ -146,7 +146,7 @@ DataSlices have different mechanisms around accessing and broadcasting compared
 to tensors and nested lists. That is, they specialize in **aggregation** from
 inner dimensions into outer ones.
 
-```py
+```pycon
 >>> ds = kd.slice([[1, 2, 3], [4, 5]])
 
 # Use .S for indexing
@@ -193,7 +193,7 @@ DataSlice([[1, 4, 7], [2, 5, 8], [3, 6, 9]], schema: INT32...)
 Koda supports INT32, INT64, FLOAT32, FLOAT64, STRING, BYTES, BOOLEAN, MASK as
 primitive types.
 
-```py
+```pycon
 >>> kd.int32(1)
 DataItem(1, schema: INT32)
 >>> kd.int64([2, 3])
@@ -222,7 +222,7 @@ primitives or other entities. **Entities** can have **schema** assigned, and
 multiple entities can share the same schema, which improves performance for
 vectorized operations.
 
-```py
+```pycon
 # kd.new creates new entities and assigns schemas to them
 >>> kd.new(x=1, y=2, schema='Point')
 DataItem(Entity(x=1, y=2), schema: Point(x=INT32, y=INT32),...)
@@ -247,7 +247,7 @@ DataItem(Entity(a=1, b=Entity(c=3)), schema: Outer(a=INT32, b=Inner(c=INT32)),..
 Entities are **immutable** by default, and it's possible to create multiple
 slightly different versions with O(1) cost.
 
-```py
+```pycon
 >>> x = x.with_attrs(d=4)  # add an attribute
 >>> x = x.updated(kd.attrs(x.b, c=5))  # update nested attribute 'c'
 
@@ -268,7 +268,7 @@ DataItem(present, schema: MASK)
 Both entities and schemas can be dynamically **allocated** or be
 **universally-unique** (i.e. have the same ItemIds across processes/machines).
 
-```py
+```pycon
 # Instead of specifying schemas, can auto-allocate them
 >>> x = kd.new(a=1, b=kd.new(c=3))
 
@@ -310,7 +310,7 @@ When working with DataSlices of structured data (entities, lists, and dicts),
 the operation is applied to **all the items** in the DataSlice
 **simultaneously**.
 
-```py
+```pycon
 # Root
 # ├── dim_1:0
 # │   ├── dim_2:0 -> kd.new(x=1, y=20, schema='Point')
@@ -356,7 +356,7 @@ As a result of **attribute access** of a **DataSlice of entities**, a new
 DataSlice is returned, which contains attributes of every corresponding entity
 in the original DataSlice.
 
-```py
+```pycon
 >>> a = kd.slice([kd.new(x=1, schema='Foo'),
 ...               kd.new(x=2, schema='Foo'),
 ...               kd.new(x=3, schema='Foo')])
@@ -383,7 +383,7 @@ When accessing a **single element** of a **DataSlice of lists** or a **key** of
 a **DataSlice of dicts**, a new DataSlice is returned with the corresponding
 values in the original lists and dicts.
 
-```py
+```pycon
 >>> a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
 
 # Access 1st item in each list
@@ -400,7 +400,7 @@ A common operation is **explosion** of DataSlices of lists, when we return a new
 DataSlice with an **extra dimension**, where the innermost dimension is composed
 of the values of the original lists.
 
-```py
+```pycon
 >>> a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
 
 # Access 1st item in each list
@@ -424,7 +424,7 @@ An opposite operation is **implosion**, when we return a DataSlice of lists with
 one fewer dimension, where each list contains the values of the innermost
 dimension of the original DataSlice.
 
-```py
+```pycon
 # Implode replaces the last dimension with lists
 >>> a = kd.slice([[1, 2, 3], [4, 5]])
 >>> kd.implode(a)
@@ -437,7 +437,7 @@ DataSlice([[1, 2, 3], [4, 5]], schema: INT32,...)
 Getting all keys or values of a DataSlice of dicts will return a DataSlice with
 one more dimension.
 
-```py
+```pycon
 >>> a = kd.slice([kd.dict({'a': 1, 'b': 2}), kd.dict({'b': 3, 'c': 4})])
 
 >>> a.get_keys()
@@ -460,7 +460,7 @@ DataItem(present, schema: MASK)
 
 Here is an example that puts everything together.
 
-```py
+```pycon
 >>> a = kd.from_py([{'x': 1}, {'x': 3}], dict_as_obj=True)
 >>> b = kd.from_py([{'y': 2}, {'y': 4}])
 
@@ -484,7 +484,7 @@ There are two main kinds of objects in Koda:
     their schemas. They are **similar to Python objects** that store their
     classes in the `__class__` attribute.
 
-```py
+```pycon
 >>> kd.obj(x=2, y=kd.obj(z=3))
 DataItem(Obj(x=2, y=Obj(z=3)), schema: OBJECT, bag_id:...)
 
@@ -521,7 +521,7 @@ DataSlice([IMPLICIT_ENTITY(x=INT32, y=INT32), IMPLICIT_ENTITY(x=STRING, y=STRING
 Similar to entities, objects can be modified with a cost of O(1), cloned or deep
 cloned.
 
-```py
+```pycon
 >>> x = kd.obj(x=2, y=kd.obj(z=3))
 >>> x = x.with_attrs(a=4)  # add attribute
 >>> x = x.updated(kd.attrs(x.y, z=5))  # update nested attribute
@@ -532,7 +532,7 @@ cloned.
 
 Entities and objects can be converted to each other.
 
-```py
+```pycon
 >>> x, y = kd.new(a=1), kd.new(b=2)
 >>> kd.slice([kd.obj(x), kd.obj(y)])  # convert both entities to objects
 DataSlice([Obj(a=1), Obj(b=2)], schema: OBJECT,...)
@@ -553,7 +553,7 @@ recommended for faster execution.
 
 Similar to entities, lists and dicts can be objects too.
 
-```py
+```pycon
 >>> l1 = kd.list([1, 2])
 >>> l2 = kd.list(['3', '4'])
 >>> l_objs = kd.slice([kd.obj(l1), kd.obj(l2)])
@@ -577,7 +577,7 @@ DataSlice([DICT{STRING, INT32}, DICT{INT32, BOOLEAN}], schema: SCHEMA,...)
 
 Primitives are also objects. Their schemas are inferred from their values.
 
-```py
+```pycon
 >>> kd.obj(1)
 DataItem(1, schema: OBJECT,...)
 >>> kd.obj(kd.int64(1))
@@ -600,7 +600,7 @@ Another way to define custom structured data types in Koda is by using
 you to create user-defined data structures which look like Python dataclasses
 but integrate deeply with Koda's advanced features.
 
-```py
+```pycon
 >>> @kd.extension_type()
 ... class Point:
 ...   x: kd.FLOAT32
@@ -618,7 +618,7 @@ DataItem(5.0, schema: FLOAT32)
 **Sparsity** is a first-class concept in Koda. Every item in a DataSlice can be
 present or missing and all operators support missing values.
 
-```py
+```pycon
 >>> a = kd.slice([[1, None], [4]])
 >>> b = kd.slice([[None, kd.obj(x=1)], [kd.obj(x=2)]])
 >>> a + b.x
@@ -632,7 +632,7 @@ DataSlice([missing, present], schema: MASK, present: 1/2)
 **Masks** are used to represent present/missing state. They are also used in
 comparison and logical operations.
 
-```py
+```pycon
 # Get the sparsity of a DataSlice
 >>> kd.has(kd.slice([[1, None], [4]]))
 DataSlice([[present, missing], [present]], schema: MASK, present: 2/3)
@@ -652,7 +652,7 @@ difference is that filtering does not change the shape of the DataSlice and
 filtered out items become missing, while selection changes the shape by only
 keeping selected items in the resulting DataSlice.
 
-```py
+```pycon
 >>> x = kd.slice([1, 2, 3, 4])
 >>> y = kd.slice([4, 5, 6, 7])
 
@@ -685,7 +685,7 @@ DataSlice([Obj(x=1), Obj(x=2, y=4), Obj(x=3, y=6)], schema: OBJECT, present: 3/3
 **DataSlices** with compatible shapes can **coalesced** (i.e., missing items are
 replaced by corresponding items of the other DataSlice).
 
-```py
+```pycon
 >>> kd.str(None)
 DataItem(None, schema: STRING)
 >>> kd.str(None) | 'hello'
@@ -713,7 +713,7 @@ NOTE: Mutable APIs is available only in advanced, high-performance workflows,
 but with trade-offs. They require a deeper understanding of Koda data model and
 it is easier to make mistakes which can be hard to debug.
 
-```py
+```pycon
 >>> a = kd.new(x=2, y=kd.new(z=3)); a
 DataItem(Entity(x=2, y=Entity(z=3)),...)
 
@@ -777,7 +777,7 @@ higher lookup performance is required.
 NOTE: Almost all data (e.g. entities, dicts, lists, objects, schemas) are stored
 as attributes in bags.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3))
 
 # Get the bag associated with a DataSlice
@@ -911,7 +911,7 @@ Instead of creating a modified object/dict/list directly, we typically create a
 the fallback mechanism described above. Updates overwrite existing attributes or
 add new ones.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3))
 
 # update existing attribute and add a new attribute
@@ -1008,7 +1008,7 @@ upd.contents_repr()
 
 Here is a more complex example that puts everything together.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1,2,3]))
 >>> upd = kd.attrs(a, x=4, u=5)  # create data update
 >>> a1 = a.updated(upd)
@@ -1024,7 +1024,7 @@ Here is a more complex example that puts everything together.
 Instead of being applied immediately, updates can be accumulated and applied
 later.
 
-```py
+```pycon
 # Updates can be composed using << and >>, which defines what overwrites what
 >>> upd = kd.attrs(a, x=3, y=4) << kd.attrs(a, x=5, u=6) # equivalent to kd.attrs(a, x=5, y=4, u=6)
 >>> upd = kd.attrs(a, x=3, y=4) >> kd.attrs(a, x=5, u=6)  # equivalent to kd.attrs(a, x=3, y=4, u=6)
@@ -1041,7 +1041,7 @@ DataItem(Obj(u=8, x=5, y=Obj(z=3)), schema: OBJECT,...)
 
 All APIs and concepts mentioned above support vectorization using DataSlice.
 
-```py
+```pycon
 >>> a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])); a
 DataSlice([Entity(x=1, y=4), Entity(x=2, y=5), Entity(x=3, y=6)], schema: ENTITY(x=INT32, y=INT32),...)
 >>> a.with_attrs(z=kd.slice([7, 8, 9]))
@@ -1064,7 +1064,7 @@ TIP: The key difference between update and enrichment is that update overrides
 existing attributes while enrichment does not. Enrichment augments the
 attributes using the fallback mechanism described above.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3))
 >>> a_attrs = kd.attrs(a, x=1, u=5)
 
@@ -1084,7 +1084,7 @@ allows extracting a bag containing only relevant attributes (those recursively
 accessible from `ds`). `ds.extract()` is equivalent to
 `ds.with_bag(ds.extract_update())`.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
 >>> a.get_bag().get_approx_size()
 20
@@ -1117,7 +1117,7 @@ DataItem(Obj(t=List[1, 2, 3], x=2, y=Obj(z=3), z=Dict{...'b'=2...}), schema: OBJ
 Cloning is another way to work in immutable way, but it allocates new ItemIds.
 Thus, it is more expensive and data cannot be joined later.
 
-```py
+```pycon
 >>> a = kd.obj(x=2, y=kd.obj(z=3))
 >>> assert(a.clone(x=3).get_itemid() != a.get_itemid())
 >>> assert(a.with_attrs(x=3).get_itemid() == a.get_itemid())
@@ -1155,7 +1155,7 @@ and `while`) is executed only during tracing - the resulting functors will
 depend on the Python control flow but will not include operators that mimic the
 Python control flow. To trace a Python function, we wrap it with `kd.fn(py_fn)`.
 
-```py
+```pycon
 # Convert python functions into functors
 >>> fn = kd.fn(lambda x, y: x+y, y=1)
 >>> fn(kd.slice([1, 2, 3]))
@@ -1176,7 +1176,7 @@ DataSlice([6, 7, 8], schema: INT32,...)
 **kd.py_fn** can be used in interactive workflows to wrap python functions
 without tracing, which can make debugging in certain situations easier.
 
-```py
+```pycon
 # kd.fn uses tracing, and kd.py_fn wraps a Python functions "as-is", which is
 # useful because not everything can be traced
 >>> fn = kd.py_fn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
@@ -1188,7 +1188,7 @@ You can annotate functions that call other functors with **@kd.trace_as_fn**.
 When such an annotated function is traced to produce a functor, then the inner
 functors can be accessed as attributes.
 
-```py
+```pycon
 # functor_factory=kd.py_fn because the Python `while` cannot be traced properly.
 >>> @kd.trace_as_fn(functor_factory=kd.py_fn)
 ... def my_op(x, y):
@@ -1219,7 +1219,7 @@ Koda provides a comprehensive list of convenience features including:
 
 **String manipulations**
 
-```py
+```pycon
 >>> x, y = kd.slice([1, 2, 3]), kd.slice(["a", "b", "c"])
 >>> kd.fstr(f"i{x:i}-{y:s}")
 DataSlice(['i1-a', 'i2-b', 'i3-c'], schema: STRING,...)
@@ -1244,7 +1244,7 @@ DataSlice([[2, 3], [3, 2]], schema: INT64...)
 
 **Math operators**
 
-```py
+```pycon
 # Math
 >>> x = kd.slice([[3., -1., 2.], [0.5, -0.7]])
 >>> y = kd.slice([[1., 2., 0.5], [0.9, 0.3]])
@@ -1263,7 +1263,7 @@ DataSlice([[3.0, 1.0, 1.414...], [0.535..., nan]], schema: FLOAT32,...)
 
 **Ranking**
 
-```py
+```pycon
 >>> x = kd.slice([[5., 4., 6., 4., 5.], [8., None, 2.]])
 >>> kd.ordinal_rank(x)
 DataSlice([[2, 0, 4, 1, 3], [1, None, 0]], schema: INT64,...)
@@ -1277,7 +1277,7 @@ DataSlice([[1, 0, 2, 0, 1], [1, None, 0]], schema: INT64,...)
 
 **Serialization**
 
-```py
+```pycon
 # DataSlice
 >>> serialized_bytes = kd.dumps(ds)
 >>> ds = kd.loads(serialized_bytes)
@@ -1289,7 +1289,7 @@ DataSlice([[1, 0, 2, 0, 1], [1, None, 0]], schema: INT64,...)
 
 **Multi-threading**
 
-```py
+```pycon
 >>> def call_slow_fn(prompt):
 ...   return prompt + prompt
 >>> kd.map_py(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
@@ -1312,7 +1312,7 @@ pieces of a bag.
 Please keep in mind that mutable workflows are not supported in tracing. They
 consequently have more limited options for productionization.
 
-```py
+```pycon
 # Modify the same dict many times
 >>> d = kd.dict()  # immutable
 >>> d = d.fork_bag()  # mutable
@@ -1335,7 +1335,7 @@ Koda can easily interoperate with normal Python, Pandas, Numpy and Proto.
 
 **From/to standard Python data structures**
 
-```py
+```pycon
 >>> kd.obj(x=1, y=2).x.to_py()
 1
 
@@ -1376,7 +1376,7 @@ Objxy(x=1, y=2)
 
 **From/to Pandas DataFrames**
 
-```py
+```pycon
 >>> import pandas as pd
 >>> from koladata.ext import pdkd
 
@@ -1392,7 +1392,7 @@ DataSlice([Entity(x=1, y=10), Entity(x=2, y=20), Entity(x=3, y=30)], schema: ENT
 
 **From/to Numpy Arrays**
 
-```py
+```pycon
 >>> import numpy as np
 >>> from koladata.ext import npkd
 
