@@ -189,7 +189,7 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Resulting DataSliceImpl contains types_buffer to distinguish
   // removed and unset values. If types_buffer is empty, then all values are
   // removed.
-  // Elements not present in `objects` are missing in the result.
+  // Elements not present in `objects` are removed in the result.
   // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttrWithRemoved(
       const DataSliceImpl& objects,
