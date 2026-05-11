@@ -2376,6 +2376,10 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
 }
 
 absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
+  if (GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot remove items of a list without a DataBag");
+  }
   const JaggedShape& shape = MaxRankShape(GetShape(), indices.GetShape());
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
@@ -2412,6 +2416,10 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
 
 absl::Status DataSlice::RemoveInList(int64_t start,
                                      std::optional<int64_t> stop) const {
+  if (GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot remove items of a list without a DataBag");
+  }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
   RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl))

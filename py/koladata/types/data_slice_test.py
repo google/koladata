@@ -2769,6 +2769,16 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
         ds([[1, 2], [4, 5], [7, 8]], schema_constants.OBJECT).with_bag(db),
     )
 
+    with self.assertRaisesRegex(
+        ValueError, 'cannot remove items of a list without a DataBag'
+    ):
+      del db.list([1, 2, 3]).no_bag()[0]
+
+    with self.assertRaisesRegex(
+        ValueError, 'cannot remove items of a list without a DataBag'
+    ):
+      del db.list([1, 2, 3]).no_bag()[0:1]
+
   def test_list_objects_del_items(self):
     db = bag()
     l1 = db.list([1, 2, 3]).embed_schema()
