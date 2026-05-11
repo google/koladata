@@ -30,14 +30,12 @@ namespace {
 TEST(ExprQuoteUtils, StableFingerprint) {
   ASSERT_OK_AND_ASSIGN(
       auto expr_1,
-      arolla::expr::CallOp("math.add",
-                           {arolla::expr::Leaf("x"),
-                            arolla::expr::Literal(0)}));
+      arolla::expr::CallOp(
+          "core.equal", {arolla::expr::Leaf("x"), arolla::expr::Literal(0)}));
   ASSERT_OK_AND_ASSIGN(
       auto expr_2,
-      arolla::expr::CallOp("math.add",
-                           {arolla::expr::Leaf("y"),
-                            arolla::expr::Literal(0)}));
+      arolla::expr::CallOp(
+          "core.equal", {arolla::expr::Leaf("y"), arolla::expr::Literal(0)}));
 
   EXPECT_EQ(StableFingerprint(arolla::expr::ExprQuote(expr_1)),
             StableFingerprint(arolla::expr::ExprQuote(expr_1)));
