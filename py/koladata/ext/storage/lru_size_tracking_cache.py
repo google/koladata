@@ -21,6 +21,7 @@ from typing import Generic, TypeVar
 
 K = TypeVar('K', bound=collections.abc.Hashable)
 V = TypeVar('V')
+D = TypeVar('D')
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -33,6 +34,9 @@ class CacheEntryMetadata:
 class _CacheValueAndMetadata(Generic[V]):
   value: V
   metadata: CacheEntryMetadata
+
+
+_NOT_FOUND = object()  # Sentinel for cache misses, to distinguish from None.
 
 
 class LruSizeTrackingCache(Generic[K, V]):
@@ -91,13 +95,13 @@ class LruSizeTrackingCache(Generic[K, V]):
     self._cache = {}
     self._total_bytes_of_entries_in_cache = 0
 
-  def get(self, key: K) -> V | None:
-    """Returns the value associated with the key, or None if the key is not in the cache."""
+  def get(self, key: K, default: D = None) -> V | D:
+    """Returns the value associated with the key, or `default` if the key is not in the cache."""
     with self._rlock:
       try:
         value_and_metadata = self._cache.pop(key)
       except KeyError:
-        return None
+        return default
       # Insert again to mark as most recently used in the order.
       self._cache[key] = value_and_metadata
       return value_and_metadata.value
@@ -155,8 +159,8 @@ class LruSizeTrackingCache(Generic[K, V]):
       the cache for `key`, or the new value.
     """
     with self._rlock:
-      existing_value = self.get(key)
-      if existing_value is not None:
+      existing_value = self.get(key, _NOT_FOUND)
+      if existing_value is not _NOT_FOUND:
         return existing_value
       if (
           metadata.num_bytes_estimate

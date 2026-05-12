@@ -38,6 +38,7 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
     self.assertEqual(cache.get('b'), 2)
     self.assertEqual(cache.get('c'), 3)
     self.assertIsNone(cache.get('d'))
+    self.assertEqual(cache.get('d', 1000), 1000)
     self.assertEqual(cache.get_total_bytes_of_entries_in_cache(), 6)
 
     # Add a new entry to reach the maximum size allowed.
@@ -144,6 +145,17 @@ class LruSizeTrackingCacheTest(absltest.TestCase):
         max_total_bytes_of_entries_in_cache=0,
     )
     self.assertEqual(cache.get_max_total_bytes_of_entries_in_cache(), 0)
+
+  def test_none_value_byte_tracking(self):
+    cache: lru_size_tracking_cache.LruSizeTrackingCache[str, None] = (
+        lru_size_tracking_cache.LruSizeTrackingCache(
+            max_total_bytes_of_entries_in_cache=100,
+        )
+    )
+    cache.set('key', None, bytes_estimate(10))
+    self.assertEqual(cache.get_total_bytes_of_entries_in_cache(), 10)
+    cache.set('key', None, bytes_estimate(10))
+    self.assertEqual(cache.get_total_bytes_of_entries_in_cache(), 10)
 
 
 if __name__ == '__main__':
