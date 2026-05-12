@@ -560,6 +560,9 @@ class AllocationIdSet {
     if (new_end - ids_.begin() > 1) {
       std::sort(ids_.begin(), new_end);
       ids_.erase(std::unique(ids_.begin(), new_end), ids_.end());
+      if (ids_.size() > kMaxSortedSize) {
+        unsorted_ids_.emplace(ids_.begin() + kMaxSortedSize, ids_.end());
+      }
     } else {
       ids_.erase(new_end, ids_.end());
     }

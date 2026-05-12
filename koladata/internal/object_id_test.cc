@@ -32,6 +32,7 @@
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/span.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
@@ -940,6 +941,16 @@ TEST(ObjectIdTest, AllocateUuids) {
       }
     }
   }
+}
+
+TEST(ObjectIdTest, CreateAllocationIdSetFromBigSpan) {
+  std::vector<AllocationId> pool;
+  for (int i = 0; i < 100; ++i) {
+    pool.push_back(Allocate(100));
+  }
+  std::sort(pool.begin(), pool.end());
+  AllocationIdSet set(absl::MakeSpan(pool).subspan(0, 90));
+  EXPECT_TRUE(set.Insert(pool[99]));
 }
 
 }  // namespace
