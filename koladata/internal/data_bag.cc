@@ -3349,12 +3349,15 @@ absl::Status DataBagImpl::MergeBigAllocImpl(
       if (!other_dense_sources.empty()) {
         // This sparse, other dense
         SourceCollection other_source_collection_copy = other_source_collection;
-        if (other_source_collection_copy.mutable_dense_source == nullptr) {
-          RETURN_IF_ERROR(other_db->CreateMutableDenseSource(
-              other_source_collection_copy, alloc, attr_name,
-              // QType is not needed if dense source is present
-              nullptr, other_dense_sources.front()->size()));
+        if (other_source_collection_copy.mutable_dense_source != nullptr) {
+          other_source_collection_copy.const_dense_source =
+              std::move(other_source_collection_copy.mutable_dense_source);
+          other_source_collection_copy.mutable_dense_source = nullptr;
         }
+        RETURN_IF_ERROR(other_db->CreateMutableDenseSource(
+            other_source_collection_copy, alloc, attr_name,
+            // QType is not needed if dense source is present
+            nullptr, other_dense_sources.front()->size()));
         RETURN_IF_ERROR(MergeToMutableDenseSourceOnlySparse(
             *other_source_collection_copy.mutable_dense_source,
             this_sparse_sources, ReverseMergeOptions(options), attr_name));

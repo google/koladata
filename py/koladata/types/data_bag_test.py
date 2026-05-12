@@ -2328,6 +2328,27 @@ class NullDataBagTest(absltest.TestCase):
   def test_str(self):
     self.assertEqual(str(data_bag.null_bag()), 'DataBag(null)')
 
+  def test_merge_inplace_dense_to_sparse(self):
+    # Recreate the shared pointer mutation bug exactly mirroring the C++ steps.
+    db_other = bag()
+    # Allocate 100 objects in db_other
+    objs = db_other.new(x=ds([None] * 100))
+
+    # Populate attribute 'a' in db_other for items 1 to 99.
+    # It creates a mutable DenseSource where index 0 is uninitialized.
+    objs.S[1:].a = ds(list(range(1, 100)))
+
+    db_this = bag()
+    # It creates a SparseSource with index 0 only.
+    objs.with_bag(db_this).S[0].set_attr('a', 999, overwrite_schema=True)
+
+    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
+
+    db_this.merge_inplace(db_other, overwrite=True)
+
+    # Assert that `db_other` wasn't changed during merge.
+    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
+
 
 if __name__ == '__main__':
   absltest.main()
