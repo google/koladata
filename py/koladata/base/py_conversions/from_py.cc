@@ -917,11 +917,6 @@ class FromPyConverter {
           bitmap_builder.emplace(py_objects.size());
         }
         bitmap_builder->AddMissed(i);
-        // TODO: find a smarter (and maybe faster) way to do
-        // this,
-        // p.ex. by using `nullptr` instead of `None` in
-        // `attr_python_values_vec` and skip recursive calls by handling them
-        // specially in `ConvertImpl`.
         for (int i = 0; i < attr_names.size(); ++i) {
           attr_python_values_vec[i].push_back(Py_None);
         }
