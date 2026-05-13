@@ -327,21 +327,15 @@ class MultitypeDenseSource : public DenseSource {
     values.VisitValues([&]<class T>(const DenseArray<T>& array) {
       MergeArrayImpl(status, array, option);
     });
-    const uint8_t* val_id_to_tidx =
-        values.types_buffer().size() == 0
-            ? nullptr
-            : values.types_buffer().id_to_typeidx.data();
-    for (int64_t offset = 0; offset < real_size; ++offset) {
-      if (val_id_to_tidx && val_id_to_tidx[offset] != TypesBuffer::kRemoved) {
-        continue;
-      }
+    auto handle_removed_value = [&](int64_t offset) {
       if (option.option == ConflictHandlingOption::Option::kOverwrite ||
           !TypesBuffer::is_present_type_idx(
               types_buffer_.id_to_typeidx[offset])) {
         // Note: replacing kUnset with kRemoved is allowed for any `option`.
         types_buffer_.id_to_typeidx[offset] = TypesBuffer::kRemoved;
       } else if (status.ok() &&
-                 option.option == ConflictHandlingOption::Option::kOverwrite) {
+                 option.option ==
+                     ConflictHandlingOption::Option::kRaiseOnConflict) {
         internal::ObjectId obj_id = obj_allocation_id_.ObjectByOffset(offset);
         UpdateMergeConflictStatusWithDataItem(
             status, DataItem(), Get(obj_id).value_or(DataItem()), [&]() {
@@ -349,6 +343,28 @@ class MultitypeDenseSource : public DenseSource {
                 option.on_conflict_callback(obj_id);
               }
             });
+      }
+    };
+    if (values.types_buffer().size() == 0) {
+      DenseArray<arolla::Unit> mask;
+      values.VisitValues([&]<class T>(const DenseArray<T>& array) {
+        mask = array.ToMask();
+      });
+      if (!mask.bitmap.empty()) {
+        mask.ForEach([&](int64_t offset, bool present, arolla::Unit) {
+          if (!present) {
+            handle_removed_value(offset);
+          }
+        });
+      }
+    } else {
+      const uint8_t* val_id_to_tidx =
+          values.types_buffer().id_to_typeidx.data();
+      for (int64_t offset = 0; offset < real_size; ++offset) {
+        if (val_id_to_tidx[offset] != TypesBuffer::kRemoved) {
+          continue;
+        }
+        handle_removed_value(offset);
       }
     }
     return status;

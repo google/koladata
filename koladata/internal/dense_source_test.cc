@@ -888,7 +888,7 @@ TEST(DenseSourceTest, MergeFullReadOnly) {
       DenseSource::ConflictHandlingOption::kRaiseOnConflict};
 
   for (auto option : options) {
-    SCOPED_TRACE(absl::StrCat("option: ", option));
+    SCOPED_TRACE(absl::StrCat("to typed source; option: ", option));
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
@@ -902,6 +902,65 @@ TEST(DenseSourceTest, MergeFullReadOnly) {
         dst->Merge(*src_inverse,
                    {DenseSource::ConflictHandlingOption::kOverwrite}));
     EXPECT_THAT(dst->Get(ids), ElementsAre(7, 6, 5, 4, 3, 2, 1));
+  }
+
+  for (auto option : options) {
+    SCOPED_TRACE(absl::StrCat("to multitype source; option: ", option));
+    ASSERT_OK_AND_ASSIGN(auto dst, DenseSource::CreateMutable(alloc, size));
+    ASSERT_OK(dst->Merge(*src, {option}));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
+    ASSERT_OK(dst->Merge(
+        *src_inverse,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
+    ASSERT_OK(
+        dst->Merge(*src_inverse,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(7, 6, 5, 4, 3, 2, 1));
+  }
+}
+
+TEST(DenseSourceTest, MergeConflictRemovedValue) {
+  AllocationId alloc = Allocate(3);
+  auto ids = DataSliceImpl::ObjectsFromAllocation(alloc, 3).values<ObjectId>();
+  {
+    SCOPED_TRACE("REMOVED vs PRESENT");
+    ASSERT_OK_AND_ASSIGN(auto dst, DenseSource::CreateMutable(alloc, 3));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(1), DataItem()));
+
+    ASSERT_OK_AND_ASSIGN(auto src, DenseSource::CreateMutable(
+                                       alloc, 3, arolla::GetQType<int>()));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(0), DataItem(1)));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(1), DataItem(2)));
+
+    EXPECT_THAT(
+        dst->Merge(*src,
+                   {DenseSource::ConflictHandlingOption::kRaiseOnConflict}),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 HasSubstr("merge conflict: 2 != None")));
+    EXPECT_OK(
+        dst->Merge(*src, {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, std::nullopt));
+  }
+  {
+    SCOPED_TRACE("PRESENT vs REMOVED");
+    ASSERT_OK_AND_ASSIGN(auto dst, DenseSource::CreateMutable(alloc, 3));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(1), DataItem(5.f)));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(2), DataItem(3.f)));
+
+    ASSERT_OK_AND_ASSIGN(auto src, DenseSource::CreateMutable(
+                                       alloc, 3, arolla::GetQType<int>()));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(0), DataItem(1)));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(1), DataItem()));
+
+    EXPECT_THAT(
+        dst->Merge(*src,
+                   {DenseSource::ConflictHandlingOption::kRaiseOnConflict}),
+        StatusIs(absl::StatusCode::kFailedPrecondition,
+                 HasSubstr("merge conflict: None != 5.0")));
+    EXPECT_OK(
+        dst->Merge(*src, {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(ids), ElementsAre(1, std::nullopt, 3.f));
   }
 }
 
