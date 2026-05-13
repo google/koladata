@@ -502,10 +502,10 @@ def _explode(
   return _eval_op('kd.explode', self, ndim)
 
 
-# TODO(b/483020237) make arguments keyword-only.
 @add_method(DataSlice, 'to_py')
 def to_py(
     ds: DataSlice,
+    *,
     max_depth: int = 2,
     obj_as_dict: bool = False,
     include_missing_attrs: bool = True,
@@ -528,7 +528,10 @@ def to_py(
     output_class: If not None, will be used recursively as the output type.
   """
   return ds._to_py_impl(  # pylint: disable=protected-access
-      max_depth, obj_as_dict, include_missing_attrs, output_class
+      max_depth=max_depth,
+      obj_as_dict=obj_as_dict,
+      include_missing_attrs=include_missing_attrs,
+      output_class=output_class,
   )
 
 
@@ -553,7 +556,10 @@ def to_pytree(
       objects.
   """
   return ds._to_py_impl(  # pylint: disable=protected-access
-      max_depth, True, include_missing_attrs, None
+      max_depth=max_depth,
+      obj_as_dict=True,
+      include_missing_attrs=include_missing_attrs,
+      output_class=None,
   )
 
 

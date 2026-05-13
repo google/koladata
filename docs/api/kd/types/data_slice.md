@@ -961,7 +961,7 @@ Args:
 Returns:
   A new DataSlice with items selected by indices.</code></pre>
 
-### `DataSlice.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: Any | None = None) -> Any` {#kd.types.DataSlice.to_py}
+### `DataSlice.to_py(ds: DataSlice, *, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: Any | None = None) -> Any` {#kd.types.DataSlice.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 

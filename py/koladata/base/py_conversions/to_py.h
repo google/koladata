@@ -28,7 +28,8 @@ namespace koladata::python {
 // making it a member of `DataSlice`.
 PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
                                           PyObject* const* py_args,
-                                          Py_ssize_t nargs);
+                                          Py_ssize_t nargs,
+                                          PyObject* py_kwnames);
 
 }  // namespace koladata::python
 

@@ -1529,7 +1529,7 @@ Alias for [kd.proto.to_proto_bytes](kd/proto.md#kd.proto.to_proto_bytes)
 
 Alias for [kd.proto.to_proto_json](kd/proto.md#kd.proto.to_proto_json)
 
-### `kd.to_py(ds: DataSlice, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: type[Any] | None = None) -> Any` {#kd.to_py}
+### `kd.to_py(ds: DataSlice, *, max_depth: int = 2, obj_as_dict: bool = False, include_missing_attrs: bool = True, output_class: type[Any] | None = None) -> Any` {#kd.to_py}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a readable python object from a DataSlice.
 

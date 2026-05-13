@@ -67,6 +67,7 @@ def to_pylist(x: data_slice.DataSlice) -> list[Any]:
 
 def to_py(
     ds: data_slice.DataSlice,
+    *,
     max_depth: int = 2,
     obj_as_dict: bool = False,
     include_missing_attrs: bool = True,
@@ -89,7 +90,10 @@ def to_py(
     output_class: If not None, will be used recursively as the output type.
   """
   return ds._to_py_impl(  # pylint: disable=protected-access
-      max_depth, obj_as_dict, include_missing_attrs, output_class
+      max_depth=max_depth,
+      obj_as_dict=obj_as_dict,
+      include_missing_attrs=include_missing_attrs,
+      output_class=output_class,
   )
 
 

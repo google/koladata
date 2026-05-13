@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -53,6 +54,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/schema_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/py_args.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
@@ -843,44 +845,72 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
 
 PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
                                           PyObject* const* py_args,
-                                          Py_ssize_t nargs) {
+                                          Py_ssize_t nargs,
+                                          PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
-  if (nargs != 4) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataSlice._to_py_impl accepts exactly 4 arguments, got %d",
-                 nargs);
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false,
+      {"max_depth", "obj_as_dict", "include_missing_attrs", "output_class"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
   const auto& ds = UnsafeDataSliceRef(self);
-  if (!PyLong_Check(py_args[0])) {
-    PyErr_Format(PyExc_TypeError, "expecting max_depth to be an int, got %s",
-                 Py_TYPE(py_args[0])->tp_name);
+
+  PyObject* py_max_depth = args.kw_only_args["max_depth"];
+  if (py_max_depth == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "_to_py_impl() missing required keyword argument: "
+                    "'max_depth'");
     return nullptr;
   }
-  const int64_t max_depth = PyLong_AsLong(py_args[0]);
+  if (!PyLong_Check(py_max_depth)) {
+    PyErr_Format(PyExc_TypeError, "expecting max_depth to be an int, got %s",
+                 Py_TYPE(py_max_depth)->tp_name);
+    return nullptr;
+  }
+  const int64_t max_depth = PyLong_AsLong(py_max_depth);
   if (PyErr_Occurred()) {
     return nullptr;
   }
 
-  if (!PyBool_Check(py_args[1])) {
-    PyErr_Format(PyExc_TypeError, "expecting obj_as_dict to be a bool, got %s",
-                 Py_TYPE(py_args[1])->tp_name);
+  PyObject* py_obj_as_dict = args.kw_only_args["obj_as_dict"];
+  if (py_obj_as_dict == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "_to_py_impl() missing required keyword argument: "
+                    "'obj_as_dict'");
     return nullptr;
   }
-  const bool obj_as_dict = py_args[1] == Py_True;
+  if (!PyBool_Check(py_obj_as_dict)) {
+    PyErr_Format(PyExc_TypeError,
+                 "expecting obj_as_dict to be a bool, got %s",
+                 Py_TYPE(py_obj_as_dict)->tp_name);
+    return nullptr;
+  }
+  const bool obj_as_dict = py_obj_as_dict == Py_True;
 
-  if (!PyBool_Check(py_args[2])) {
+  PyObject* py_include_missing_attrs =
+      args.kw_only_args["include_missing_attrs"];
+  if (py_include_missing_attrs == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "_to_py_impl() missing required keyword argument: "
+                    "'include_missing_attrs'");
+    return nullptr;
+  }
+  if (!PyBool_Check(py_include_missing_attrs)) {
     PyErr_Format(PyExc_TypeError,
                  "expecting include_missing_attrs to be a bool, got %s",
-                 Py_TYPE(py_args[2])->tp_name);
+                 Py_TYPE(py_include_missing_attrs)->tp_name);
     return nullptr;
   }
-  const bool include_missing_attrs = py_args[2] == Py_True;
-  PyObject* output_class = py_args[3];
+  const bool include_missing_attrs = py_include_missing_attrs == Py_True;
+
+  PyObject* output_class = args.kw_only_args["output_class"];
   if (output_class == nullptr) {
-    PyErr_Format(PyExc_TypeError,
-                 "expecting output_class to be a class, got nullptr");
+    PyErr_SetString(PyExc_TypeError,
+                    "_to_py_impl() missing required keyword argument: "
+                    "'output_class'");
     return nullptr;
   }
 
