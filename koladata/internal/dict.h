@@ -91,8 +91,8 @@ class Dict {
     return std::nullopt;
   }
 
-  // Returns the reference to existing non empty element.
-  // Otherwise assign new value and return it.
+  // Either returns the reference to an existing (maybe empty) element, or
+  // assigns the new value and returns it.
   // `T` is either DataItem, or one of the types that can be stored in DataItem.
   // Returns reference to empty DataItem in case key is missing or unsupported.
   template <typename T, typename ValueT>
@@ -111,9 +111,6 @@ class Dict {
       return it->second;
     }
     if (auto it = data_.find(key); it != data_.end()) {
-      if (!it->second.has_value()) {
-        it->second = std::forward<ValueT>(value);
-      }
       return it->second;
     }
 

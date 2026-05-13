@@ -1642,6 +1642,20 @@ Assigned schema for keys: INT32""",
     self.assertEqual(x1.a, ds(3))
     self.assertEqual(x1.b, ds(2))
 
+  def test_dict_merge_raise_on_conflict(self):
+    d = bag().dict({'a': 1, 'b': 2})
+
+    d1 = d.fork_bag()
+    del d1['a']
+
+    d2 = d.fork_bag()
+    d2['a'] = 10
+
+    with self.assertRaisesRegex(
+        ValueError, "the value of the key 'a' is incompatible: None vs 10"
+    ):
+      d1.get_bag().merge_inplace(d2.get_bag(), allow_data_conflicts=False)
+
   def test_overwriting_merge_update(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)

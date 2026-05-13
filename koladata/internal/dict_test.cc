@@ -164,6 +164,10 @@ TEST(DictTest, GetOrAssignWithEmptyNoParent) {
   EXPECT_EQ(dict.GetSizeNoFallbacks(), 1);
   EXPECT_THAT(dict.Get(1), Optional(RefWrap(DataItem())));
 
+  // `2` is not assigned because the dict already has an empty value for this
+  // key.
+  EXPECT_EQ(dict.GetOrAssign(DataItem(1), DataItem(2)), DataItem());
+
   dict.Set(DataItem(1), DataItem(5.f));
   EXPECT_EQ(dict.GetOrAssign(DataItem(1), DataItem()), DataItem(5.f));
   EXPECT_THAT(dict.GetKeys(), UnorderedElementsAre(DataItem(1)));
