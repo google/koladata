@@ -9,21 +9,6 @@
 
 
 
-### `kd_ext.pdkd.Mapping()` {#kd_ext.pdkd.Mapping}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">A Mapping is a generic container for associating key/value
-pairs.
-
-This class provides concrete generic implementations of all
-methods except for __getitem__, __iter__, and __len__.</code></pre>
-
-### `kd_ext.pdkd.Sequence()` {#kd_ext.pdkd.Sequence}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">All the operations on a read-only sequence.
-
-Concrete subclasses must override __new__ or __init__,
-__getitem__, and __len__.</code></pre>
-
 ### `kd_ext.pdkd.df(ds: DataSlice, cols: Sequence[str | Expr] | Mapping[str, str | Expr] | None = None, include_self: bool = False) -> DataFrame` {#kd_ext.pdkd.df}
 Aliases:
 
