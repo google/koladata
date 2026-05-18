@@ -2618,24 +2618,6 @@ py_test(
 )
 
 py_test(
-    name = "comparison_has_true_test",
-    srcs = ["comparison_has_true_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/operators:eager_op_utils",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:mask_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-    ],
-)
-
-py_test(
     name = "comparison_full_equal_test",
     srcs = ["comparison_full_equal_test.py"],
     deps = [
