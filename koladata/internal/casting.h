@@ -28,12 +28,14 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/operators/core/cast_operator.h"
 #include "arolla/qexpr/operators/strings/strings.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
@@ -103,18 +105,25 @@ struct ToDST {
     if (!item.has_value() || item.holds_value<DST>()) {
       return item;
     }
-    ASSIGN_OR_RETURN(
-        auto res,
-        item.VisitValue([&]<class T>(const T& value) -> absl::StatusOr<DST> {
+    return item.VisitValue(
+        [&]<class T>(const T& value) -> absl::StatusOr<internal::DataItem> {
           if constexpr (std::is_same_v<DST, T>) {
-            return DST(value);
+            return internal::DataItem(DST(value));
           } else if constexpr (arolla::meta::contains_v<SRCs, T>) {
-            return CastOp()(value, cast_args...);
+            auto res = CastOp()(value, std::forward<CastArgs>(cast_args)...);
+            if constexpr (arolla::IsStatusOrT<decltype(res)>::value) {
+              if (!res.ok()) {
+                return std::move(res).status();
+              } else {
+                return internal::DataItem(*std::move(res));
+              }
+            } else {
+              return internal::DataItem(std::move(res));
+            }
           } else {
             return MakeCastError<T>(item.dtype(), schema::GetDType<DST>());
           }
-        }));
-    return internal::DataItem(res);
+        });
   }
 
   absl::StatusOr<internal::DataSliceImpl> operator()(
@@ -127,31 +136,32 @@ struct ToDST {
       return slice;
     }
     arolla::DenseArrayBuilder<DST> bldr(slice.size());
-    RETURN_IF_ERROR(
-        slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
-          if constexpr (arolla::meta::contains_v<SRCs, T>) {
-            absl::Status status = absl::OkStatus();
-            auto cast_op = CastOp();
-            values.ForEachPresent([&](int64_t id, arolla::view_type_t<T> v) {
-              if constexpr (std::is_same_v<DST, T>) {
-                bldr.Set(id, v);
-              } else if constexpr (std::is_same_v<decltype(cast_op(v)), DST>) {
-                bldr.Set(id, cast_op(v, cast_args...));
-              } else {
-                auto res = cast_op(v, cast_args...);
-                if (!res.ok()) {
-                  status = res.status();
-                  return;
-                }
-                bldr.Set(id, *res);
-              }
-            });
-            return status;
+    RETURN_IF_ERROR(slice.VisitValues([&]<class T>(
+                                          const arolla::DenseArray<T>& values) {
+      if constexpr (arolla::meta::contains_v<SRCs, T>) {
+        absl::Status status = absl::OkStatus();
+        auto cast_op = CastOp();
+        values.ForEachPresent([&](int64_t id, arolla::view_type_t<T> v) {
+          if constexpr (std::is_same_v<DST, T>) {
+            bldr.Set(id, v);
           } else {
-            return MakeCastError<T>(arolla::GetQType<T>(),
-                                    schema::GetDType<DST>());
+            auto res = cast_op(v, cast_args...);
+            if constexpr (arolla::IsStatusOrT<decltype(res)>::value) {
+              if (!res.ok()) {
+                status = std::move(res).status();
+                return;
+              }
+              bldr.Set(id, *res);
+            } else {
+              bldr.Set(id, res);
+            }
           }
-        }));
+        });
+        return status;
+      } else {
+        return MakeCastError<T>(arolla::GetQType<T>(), schema::GetDType<DST>());
+      }
+    }));
     return internal::DataSliceImpl::Create(std::move(bldr).Build());
   }
 
@@ -185,6 +195,12 @@ struct ToNumericImpl {
       return ParseOp()(value);
     }
   }
+};
+
+struct ToMaskOp {
+  arolla::OptionalUnit operator()(bool v) const {
+    return arolla::OptionalUnit(v);
+  };
 };
 
 }  // namespace schema_internal
@@ -308,8 +324,11 @@ struct Encode : schema_internal::ToDST<arolla::EncodeOp, arolla::Bytes,
 //
 // The following cases are supported:
 // - MASK -> MASK.
+// - BOOL -> MASK. True -> present, False -> missing.
 // - Empty -> empty.
-struct ToMask : schema_internal::ToSelf<arolla::Unit> {};
+struct ToMask
+    : schema_internal::ToDST<schema_internal::ToMaskOp, arolla::Unit,
+                             arolla::meta::type_list<arolla::Unit, bool>> {};
 
 // Casts the given item/slice to bool.
 //

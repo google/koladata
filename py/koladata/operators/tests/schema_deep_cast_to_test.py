@@ -161,13 +161,13 @@ class SchemaDeepCastToTest(parameterized.TestCase):
   def test_entity_attributes_error_no_data(self):
     db = data_bag.DataBag.empty_mutable()
     schema1 = db.new_schema(
-        a=schema_constants.BOOLEAN, b=schema_constants.INT32
+        a=schema_constants.STRING, b=schema_constants.INT32
     )
     schema2 = db.new_schema(a=schema_constants.MASK, b=schema_constants.INT32)
     x = schema1.new(b=1)
     with self.assertRaisesRegex(
         ValueError,
-        r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(a=BOOLEAN,'
+        r'kd.schema.deep_cast_to: DataSlice with schema ENTITY\(a=STRING,'
         r' b=INT32\) with id Schema:\$[a-zA-Z0-9]*\n\ncannot be cast to entity'
         r' schema ENTITY\(a=MASK, b=INT32\) with id Schema:\$[a-zA-Z0-9]*',
     ):

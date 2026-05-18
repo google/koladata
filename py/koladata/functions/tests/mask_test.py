@@ -32,6 +32,10 @@ class MaskTest(parameterized.TestCase):
       [None],
       [mask_constants.present],
       [[mask_constants.missing, None, mask_constants.present]],
+      [True],
+      [False],
+      [[True, False, None]],
+      [[True, mask_constants.present, None]],
   )
   def test_mask(self, x):
     testing.assert_equal(fns.mask(x), ds(x, schema_constants.MASK))

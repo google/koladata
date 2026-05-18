@@ -1042,6 +1042,22 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                          schema::kObject),
            mask_slice},
+          // BOOLEAN -> MASK: True -> present, False -> missing.
+          {test::DataSlice<bool>({true, std::nullopt}, schema::kBool),
+           mask_slice},
+          {test::DataSlice<bool>({false, std::nullopt}, schema::kBool),
+           test::EmptyDataSlice(2, schema::kMask)},
+          {test::DataSlice<bool>({true, false, std::nullopt}, schema::kBool),
+           test::DataSlice<arolla::Unit>(
+               {arolla::kUnit, std::nullopt, std::nullopt}, schema::kMask)},
+          {test::DataSlice<bool>({true, false, std::nullopt}, schema::kObject),
+           test::DataSlice<arolla::Unit>(
+               {arolla::kUnit, std::nullopt, std::nullopt}, schema::kMask)},
+          {test::MixedDataSlice<bool, arolla::Unit>(
+               {true, std::nullopt, std::nullopt},
+               {std::nullopt, arolla::kUnit, std::nullopt}),
+           test::DataSlice<arolla::Unit>(
+               {arolla::kUnit, arolla::kUnit, std::nullopt}, schema::kMask)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kMask)},
@@ -1049,6 +1065,15 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataItem(arolla::kUnit, schema::kMask)},
           {test::DataItem(arolla::kUnit, schema::kObject),
            test::DataItem(arolla::kUnit, schema::kMask)},
+          // BOOLEAN -> MASK DataItem cases.
+          {test::DataItem(true, schema::kBool),
+           test::DataItem(arolla::kUnit, schema::kMask)},
+          {test::DataItem(false, schema::kBool),
+           test::DataItem(std::nullopt, schema::kMask)},
+          {test::DataItem(true, schema::kObject),
+           test::DataItem(arolla::kUnit, schema::kMask)},
+          {test::DataItem(false, schema::kObject),
+           test::DataItem(std::nullopt, schema::kMask)},
       };
       AssertLowerBoundDTypesAreTested(schema::kMask, test_cases);
       return test_cases;
@@ -1061,8 +1086,6 @@ TEST(CanCastTo, MaskNegative) {
       internal::DataItem(schema::kFloat32), internal::DataItem(schema::kMask)));
   EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
       internal::DataItem(schema::kString), internal::DataItem(schema::kMask)));
-  EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
-      internal::DataItem(schema::kBool), internal::DataItem(schema::kMask)));
   EXPECT_FALSE(casting_internal::IsProbablyCastableTo(
       internal::DataItem(schema::kBytes), internal::DataItem(schema::kMask)));
 }

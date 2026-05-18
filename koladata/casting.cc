@@ -105,7 +105,7 @@ constexpr DTypeMask kAllowedSchemasDecode = GetDTypeMask(
 constexpr DTypeMask kAllowedSchemasEncode = GetDTypeMask(
     schema::kNone, schema::kString, schema::kBytes, schema::kObject);
 constexpr DTypeMask kAllowedSchemasToMask =
-    GetDTypeMask(schema::kNone, schema::kMask, schema::kObject);
+    GetDTypeMask(schema::kNone, schema::kMask, schema::kBool, schema::kObject);
 constexpr DTypeMask kAllowedSchemasToBool = GetDTypeMask(
     schema::kNone, schema::kInt32, schema::kInt64, schema::kFloat32,
     schema::kFloat64, schema::kBool, schema::kObject);

@@ -97,8 +97,9 @@ absl::StatusOr<DataSlice> Encode(const DataSlice& slice);
 
 // Casts the given slice to MASK.
 //
-// The following schemas are supported: {NONE, MASK, OBJECT}. Slices with
-// non-primitive schemas are required to only contain Unit values.
+// The following schemas are supported: {NONE, MASK, BOOL, OBJECT}. Slices with
+// non-primitive schemas are required to only contain Unit or bool values.
+// Bool values are converted: True -> present, False -> missing.
 absl::StatusOr<DataSlice> ToMask(const DataSlice& slice);
 
 // Casts the given slice to BOOL.

@@ -966,6 +966,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr/operators/core:lib",
         "@com_google_arolla//arolla/qexpr/operators/strings:lib",
         "@com_google_arolla//arolla/qtype",

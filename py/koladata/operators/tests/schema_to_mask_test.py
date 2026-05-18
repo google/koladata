@@ -53,13 +53,24 @@ class SchemaToMaskTest(parameterized.TestCase):
           ds([arolla.present(), None], schema_constants.OBJECT),
           ds([arolla.present(), None]),
       ),
+      # BOOLEAN -> MASK: True -> present, False -> missing.
+      (ds(True), ds(arolla.present())),
+      (ds(False), ds(None, schema_constants.MASK)),
+      (ds(None, schema_constants.BOOLEAN), ds(None, schema_constants.MASK)),
+      (ds(True, schema_constants.OBJECT), ds(arolla.present())),
+      (ds(False, schema_constants.OBJECT), ds(None, schema_constants.MASK)),
+      (ds([True, False, None]), ds([arolla.present(), None, None])),
+      (
+          ds([True, arolla.present(), None]),
+          ds([arolla.present(), arolla.present(), None]),
+      ),
   )
   def test_eval(self, x, expected):
     res = kd.schema.to_mask(x)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      ds(None, schema_constants.STRING), ds("a"), ds(True)
+      ds(None, schema_constants.STRING), ds("a")
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(

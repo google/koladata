@@ -746,6 +746,10 @@ TEST(CastingTest, ToMask_DataItem) {
   EXPECT_THAT(to_mask(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_mask(DataItem(arolla::kUnit)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::kUnit))));
+  EXPECT_THAT(to_mask(DataItem(true)),
+              IsOkAndHolds(IsEquivalentTo(DataItem(arolla::kUnit))));
+  EXPECT_THAT(to_mask(DataItem(false)),
+              IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_mask(DataItem(1)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "casting data of type INT32 to MASK is not supported"));
@@ -760,6 +764,15 @@ TEST(CastingTest, ToMask_DataSlice) {
       to_mask(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       IsOkAndHolds(IsEquivalentTo(
           DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()}))));
+  EXPECT_THAT(to_mask(DataSliceImpl::Create(
+                  {DataItem(true), DataItem(false), DataItem()})),
+              IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+                  {DataItem(arolla::kUnit), DataItem(), DataItem()}))));
+  EXPECT_THAT(
+      to_mask(DataSliceImpl::Create(
+          {DataItem(true), DataItem(arolla::kUnit), DataItem()})),
+      IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
+          {DataItem(arolla::kUnit), DataItem(arolla::kUnit), DataItem()}))));
   EXPECT_THAT(to_mask(DataSliceImpl::Create({DataItem(1), DataItem()})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "casting data of type INT32 to MASK is not supported"));
