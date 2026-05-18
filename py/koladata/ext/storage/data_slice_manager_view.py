@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import types as py_types
 from typing import Any, Callable, Collection, Generator
 
 from koladata import kd
@@ -229,7 +230,7 @@ class DataSliceManagerView:
 
   def filter(
       self,
-      selection_mask: kd.types.DataSlice,
+      selection_mask: kd.types.DataSlice | py_types.FunctionType,
       *,
       description: str | None = None,
   ):
@@ -244,7 +245,9 @@ class DataSliceManagerView:
     Args:
       selection_mask: A MASK DataSlice with the same shape as the DataSlice at
         the view path, or a shape that can be expanded to the shape of the
-        DataSlice at the view path. It indicates which items to keep.
+        DataSlice at the view path. It indicates which items to keep. It is also
+        possible to pass a function that takes `self` as an argument (i.e. a
+        DataSliceManagerView) and returns such a MASK DataSlice.
       description: A description of the filtering operation. Optional. If
         provided, it will be stored in the history metadata of the underlying
         DataSliceManager.
@@ -257,6 +260,8 @@ class DataSliceManagerView:
       raise ValueError(
           'the root cannot be filtered. Please filter a non-root path'
       )
+    if isinstance(selection_mask, py_types.FunctionType):
+      selection_mask = selection_mask(self)
     current_child_path = self._path_from_root
     current_child_ds = self._data_slice_manager.get_data_slice_at(
         current_child_path

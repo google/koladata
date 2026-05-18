@@ -62,7 +62,7 @@ Returns:
   A view of the branched manager that uses the same path from the root as
   this view.</code></pre>
 
-### `DataSliceManagerView.filter(self, selection_mask: kd.types.DataSlice, *, description: str | None = None)` {#kd_ext.storage.DataSliceManagerView.filter}
+### `DataSliceManagerView.filter(self, selection_mask: kd.types.DataSlice | py_types.FunctionType, *, description: str | None = None)` {#kd_ext.storage.DataSliceManagerView.filter}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Filters the DataSlice at the view path.
 
@@ -75,7 +75,9 @@ attribute. The root itself is never removed.
 Args:
   selection_mask: A MASK DataSlice with the same shape as the DataSlice at
     the view path, or a shape that can be expanded to the shape of the
-    DataSlice at the view path. It indicates which items to keep.
+    DataSlice at the view path. It indicates which items to keep. It is also
+    possible to pass a function that takes `self` as an argument (i.e. a
+    DataSliceManagerView) and returns such a MASK DataSlice.
   description: A description of the filtering operation. Optional. If
     provided, it will be stored in the history metadata of the underlying
     DataSliceManager.</code></pre>

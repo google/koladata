@@ -1036,6 +1036,61 @@ class DataSliceManagerViewTest(absltest.TestCase):
             ],
         )
 
+    with self.subTest('filter_with_lambda'):
+      selection_lambda = lambda v: kd.strings.contains(
+          v.title.get_data_slice(), 'Barack'
+      )
+
+      branch_manager1 = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description='Branch 1 to filter with lambda',
+      )
+      root1 = DataSliceManagerView(branch_manager1)
+      doc1 = root1.query[:].doc[:]
+      doc1.filter(
+          selection_lambda,
+          description='Filtered docs1 with lambda',
+      )
+      kd.testing.assert_equivalent(
+          root1.get_data_slice(populate_including_descendants=[root1]),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=0,
+                      text='How tall is Obama',
+                      doc=kd.list([
+                          doc_schema.new(doc_id=0, title='Barack Obama'),
+                      ]),
+                  ),
+              ])
+          ),
+      )
+
+      branch_manager2 = trunk_manager.branch(
+          self.create_tempdir().full_path,
+          description='Branch 2 to filter with the same lambda',
+      )
+      root2 = DataSliceManagerView(branch_manager2)
+      doc2 = root2.query[:].doc[:]
+      doc2.filter(
+          selection_lambda,
+          description='Filtered docs2 with the same lambda',
+      )
+      kd.testing.assert_equivalent(
+          root2.get_data_slice(populate_including_descendants=[root2]),
+          trunk_initial_data_manager.get_schema().new(
+              query=kd.list([
+                  query_schema.new(
+                      query_id=0,
+                      text='How tall is Obama',
+                      doc=kd.list([
+                          doc_schema.new(doc_id=0, title='Barack Obama'),
+                      ]),
+                  ),
+              ])
+          ),
+      )
+
     with self.subTest('filter_docs_with_all_missing_mask'):
       branch_manager = trunk_manager.branch(
           self.create_tempdir().full_path, description='Branch to filter docs'
