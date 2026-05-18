@@ -30,7 +30,6 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
-
 # Unlike all other tests, this one does not depend on cc_operator_package,
 # so in order to use the operators below, we need to forcibly register them in
 # Arolla registry using building_cc_operator_package() context.
@@ -488,37 +487,31 @@ class OptoolsTest(parameterized.TestCase):
         )(overload_1)
 
     with optools.building_cc_operator_package():
-      registered_overload_1 = optools.add_to_registry_as_overload(
-          overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
-          via_cc_operator_package=True,
-      )(overload_1)
-
-    self.assertIsInstance(
-        registered_overload_1, arolla.types.RegisteredOperator
-    )
-    self.assertIsInstance(
-        arolla.abc.decay_registered_operator(registered_overload_1),
-        arolla.types.GenericOperatorOverload,
-    )
+      self.assertIsNone(
+          optools.add_to_registry_as_overload(
+              overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
+              via_cc_operator_package=True,
+          )(overload_1)
+      )
 
     # No registration error, the operator is just looked up.
-    second_registered_overload_1 = optools.add_to_registry_as_overload(
-        overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
-        via_cc_operator_package=True,
-    )(overload_1)
-    testing.assert_equal(registered_overload_1, second_registered_overload_1)
-
-    # And a manual lookup returns the same operator.
-    lookedup_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')
-    testing.assert_equal(registered_overload_1, lookedup_overload_1)
-
-    @optools.add_to_registry_as_overload(
-        overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
+    self.assertIsNone(
+        optools.add_to_registry_as_overload(
+            overload_condition_expr=arolla.P.y == arolla.UNSPECIFIED,
+            via_cc_operator_package=True,
+        )(overload_1)
     )
+
     @arolla.optools.as_lambda_operator('test.op_8.overload_2')
     def overload_2(x, y):  # pylint: disable=unused-variable
       del y
       return math.add(x, -1)
+
+    self.assertIsNone(
+        optools.add_to_registry_as_overload(
+            overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
+        )(overload_2)
+    )
 
     with self.assertRaisesRegex(
         ValueError, "operator 'test.op_8.overload_2' is already registered"

@@ -284,7 +284,7 @@ def add_to_registry_as_overload(
   ), 'unsafe_override and via_cc_operator_package cannot be both set to True.'
   if_present = 'unsafe_override' if unsafe_override else 'raise'
 
-  def impl(op: arolla.types.Operator) -> arolla.types.Operator:
+  def impl(op: arolla.types.Operator) -> None:
     # To enable registering an overload for an alias, we need to register it
     # under the canonical name of the overloadable operator.
     op_name = name or op.display_name
@@ -292,14 +292,14 @@ def add_to_registry_as_overload(
     canonical_name = arolla.abc.decay_registered_operator(name_ns).display_name
     overload_name = canonical_name + '.' + name_suffix
     if via_cc_operator_package and not _BUILDING_OPERATOR_PACKAGE:
-      return arolla.abc.lookup_operator(overload_name)
+      arolla.abc.lookup_operator(overload_name)
     elif not via_cc_operator_package and _BUILDING_OPERATOR_PACKAGE:
       raise ValueError(
           'operators included to cc_operator_package must be registered with'
           ' via_cc_operator_package=True'
       )
     else:
-      return arolla.optools.add_to_registry_as_overload(
+      arolla.optools.add_to_registry_as_overload(
           overload_name,
           if_present=if_present,
           overload_condition_expr=overload_condition_expr,
@@ -754,4 +754,3 @@ def set_namespace_docstring(namespace: str, docstring: str) -> None:
   arolla.optools.register_namespace_docstring(
       namespace, docstring, if_present='unsafe_override'
   )
-

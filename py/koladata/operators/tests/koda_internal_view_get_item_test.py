@@ -45,10 +45,19 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
 
   def test_non_overloaded_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('no matching overload [x: INT32, key: DATA_SLICE]'),
-    ):
+        ValueError, re.escape('no suitable overload operator')
+    ) as cm:
       kde_internal.view.get_item(arolla.int32(1), 1)
+    self.assertTrue(
+        arolla.testing.any_note_regex(
+            re.escape('Input qtypes: x: INT32, key: DATA_SLICE.')
+        )(cm.exception)
+    )
+    self.assertTrue(
+        arolla.testing.any_note_regex(
+            re.escape("In generic operator: 'koda_internal.view.get_item'.")
+        )(cm.exception)
+    )
 
   def test_repr(self):
     self.assertEqual(

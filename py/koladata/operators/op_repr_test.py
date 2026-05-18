@@ -349,8 +349,6 @@ class OpReprTest(parameterized.TestCase):
   @parameterized.parameters(
       (kde.get_attr(I.x, ds('a')), 'I.x.a'),
       (kde.get_attr(I.x, ds('_a_b_123')), 'I.x._a_b_123'),
-      (kde.get_attr(M.core.getattr(I.x, 'a'), 'b'), 'I.x.a.b'),
-      (M.core.getattr(kde.get_attr(I.x, 'a'), 'b'), 'I.x.a.b'),
       (kde.get_attr(I.x < I.y, 'a'), '(I.x < I.y).a'),
       # Fallbacks due to failures.
       #
