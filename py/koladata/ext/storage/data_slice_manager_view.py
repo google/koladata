@@ -359,6 +359,36 @@ class DataSliceManagerView:
         self._path_from_root,
     )
 
+  def select(
+      self,
+      selection_mask: kd.types.DataSlice | py_types.FunctionType,
+      *,
+      description: str | None = None,
+  ) -> DataSliceManagerView:
+    """Returns the view after applying the selection in a new branch.
+
+    It is like calling filter(), but without mutating the underlying
+    DataSliceManager. Instead, it creates a branch and performs the filtering
+    there.
+
+    Args:
+      selection_mask: See the corresponding argument in filter().
+      description: A description of the selection. Optional. If provided, it
+        will be stored in the history metadata of the branched DataSliceManager.
+
+    Returns:
+      A view of the branched and filtered manager that uses the same path from
+      the root as this view, i.e. `self.get_path_from_root()`.
+    """
+    if description is None:
+      branch_description = None
+    else:
+      branch_description = f'Branch for "{description}"'
+
+    branch_view = self.branch(description=branch_description)
+    branch_view.filter(selection_mask, description=description)
+    return branch_view
+
   # Accessing the state.
 
   def get_path_from_root(self) -> data_slice_path_lib.DataSlicePath:
@@ -715,5 +745,6 @@ class DataSliceManagerView:
       attributes.extend(['get_dict_keys', 'get_dict_values'])
     if path_length >= 1:
       attributes.append('filter')
+      attributes.append('select')
 
     return sorted(attributes)

@@ -611,6 +611,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_schema',
               'grep_descendants',
               'is_view_valid',
+              'select',
           ],
       )
       # A valid dict view:
@@ -633,6 +634,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_schema',
               'grep_descendants',
               'is_view_valid',
+              'select',
           ],
       )
       # A view without children but with a valid grandparent:
@@ -651,6 +653,7 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'get_root',
               'get_schema',
               'is_view_valid',
+              'select',
           ],
       )
       # An invalid view whose parent is still invalid but whose grandparent is
@@ -1475,6 +1478,60 @@ class DataSliceManagerViewTest(absltest.TestCase):
               'Filtered queries to keep only those with "Bush" in the title',
           ],
       )
+
+  def test_select(self):
+    manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
+    trunk_root = DataSliceManagerView(manager)
+
+    query_schema = kd.named_schema('query', query_id=kd.INT32, text=kd.STRING)
+    trunk_root.query = (
+        kd.list([
+            query_schema.new(query_id=0, text='How tall is Obama'),
+            query_schema.new(query_id=1, text='How high is the Eiffel tower'),
+        ]),
+        'Added queries',
+    )
+
+    selected_view = trunk_root.query[:].select(
+        kd.strings.contains(trunk_root.query[:].text.get_data_slice(), 'Obama'),
+        description='Filtered queries with Obama',
+    )
+
+    kd.testing.assert_equivalent(
+        selected_view.get_root().get_data_slice(
+            populate_including_descendants=[selected_view.get_root()]
+        ),
+        kd.new(
+            query=kd.list([
+                query_schema.new(query_id=0, text='How tall is Obama'),
+            ])
+        ),
+        schemas_equality=False,
+    )
+
+    # Original is untouched
+    kd.testing.assert_equivalent(
+        trunk_root.get_data_slice(populate_including_descendants=[trunk_root]),
+        kd.new(
+            query=kd.list([
+                query_schema.new(query_id=0, text='How tall is Obama'),
+                query_schema.new(
+                    query_id=1, text='How high is the Eiffel tower'
+                ),
+            ])
+        ),
+        schemas_equality=False,
+    )
+
+    # Check descriptions
+    branch_manager = selected_view.get_manager()
+    self.assertEqual(
+        [m.description for m in branch_manager._metadata.revision_history],
+        [
+            'Branch for "Filtered queries with Obama"',
+            'Filtered queries with Obama',
+        ],
+    )
 
   def test_branch(self):
     manager = dsm.DataSliceManager.create_new(self.create_tempdir().full_path)
