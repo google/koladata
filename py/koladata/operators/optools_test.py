@@ -649,12 +649,11 @@ class OptoolsTest(parameterized.TestCase):
     )
     self.assertFalse(view.has_koda_view(op(I.a, I.b, c=I.c)))
     self.assertTrue(view.has_base_koda_view(op(I.a, I.b, c=I.c)))
-    src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     arolla.testing.assert_expr_equal_by_fingerprint(
         arolla.abc.to_lower_node(op(1, 2, c=3)),
-        src_op(
+        arolla.M.annotation.source_location(
             py_boxing.as_expr(1)
-            + src_op(
+            + arolla.M.annotation.source_location(
                 py_boxing.as_expr(2) * py_boxing.as_expr(3),
                 'op',
                 'py/koladata/operators/optools_test.py',

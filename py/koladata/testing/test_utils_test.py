@@ -484,18 +484,18 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_traced_exprs_equal(self):
     test_utils.assert_traced_exprs_equal(
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
         )
         + 1,
         I.x // I.y + 1,
     )
     test_utils.assert_traced_exprs_equal(
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
         )
         + 1,
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             I.x // I.y, 'bar', 'file.py', 432, 0, '  x // y'
         )
         + 1,
@@ -504,11 +504,11 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_exprs_equal(
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
           )
           + 1,
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               I.y // I.x, 'bar', 'file.py', 432, 0, '  y // x'
           )
           + 1,
@@ -520,11 +520,11 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_exprs_equal(
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
           )
           + 1,
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
           )
           + 1,
@@ -543,18 +543,18 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_traced_non_deterministic_exprs_equal(self):
     test_utils.assert_traced_non_deterministic_exprs_equal(
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
         )
         + 1,
         kde.new(a=12) + 1,
     )
     test_utils.assert_traced_non_deterministic_exprs_equal(
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
         )
         + 1,
-        kde.annotation.source_location(
+        arolla.M.annotation.source_location(
             kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
         )
         + 1,
@@ -563,11 +563,11 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_non_deterministic_exprs_equal(
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
           )
           + 1,
-          kde.annotation.source_location(
+          arolla.M.annotation.source_location(
               kde.new(a=42), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
           )
           + 1,

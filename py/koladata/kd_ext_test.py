@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd
 from koladata import kd_ext
 from koladata.ext import npkd
@@ -83,7 +84,7 @@ class KdExtTest(absltest.TestCase):
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(traced_f.returns).op,
-        kd.lazy.annotation.source_location,
+        arolla.M.annotation.source_location,
     )
 
   def test_function(self):

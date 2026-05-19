@@ -40,7 +40,7 @@ class SourceLocationTest(absltest.TestCase):
     annotated_expr = baz()
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         annotated_expr.op,
-        arolla.abc.lookup_operator('kd.annotation.source_location'),
+        arolla.M.annotation.source_location,
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
         annotated_expr.node_deps[0],
@@ -74,7 +74,7 @@ class SourceLocationTest(absltest.TestCase):
       self.assertTrue(callable(plus_one_with_source_location))
       expr = plus_one_with_source_location(I.x)
       testing.assert_traced_exprs_equal(expr, plus_one(I.x))
-      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      testing.assert_equal(expr.op, arolla.M.annotation.source_location)
       self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
 
     container = source_location.attaching_source_location(
@@ -90,7 +90,7 @@ class SourceLocationTest(absltest.TestCase):
     with self.subTest('wraps_container'):
       expr = container.test.plus_one(I.x)
       testing.assert_traced_exprs_equal(expr, plus_one(I.x))
-      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      testing.assert_equal(expr.op, arolla.M.annotation.source_location)
       self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
 
     with self.subTest('wraps_nested_container'):
@@ -103,7 +103,7 @@ class SourceLocationTest(absltest.TestCase):
       )(plus_one)
       expr = container.test.subcontainer.plus_one(I.x)
       testing.assert_traced_exprs_equal(expr, nested_plus_one(I.x))
-      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      testing.assert_equal(expr.op, arolla.M.annotation.source_location)
       self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
 
 

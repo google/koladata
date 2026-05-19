@@ -49,7 +49,7 @@ def annotate_with_current_source_location(expr: arolla.Expr) -> arolla.Expr:
   # avoid a cyclic dependency between koladata/expr and koladata/operators
   # directories.
   return arolla.abc.bind_op(
-      'kd.annotation.source_location',
+      'annotation.source_location',
       expr,
       function_name=arolla.text(frame.f_code.co_name),
       file_name=arolla.text(file_name),

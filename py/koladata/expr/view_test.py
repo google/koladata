@@ -884,6 +884,13 @@ class KodaViewTest(parameterized.TestCase):
     )
 
   def test_annotation_source_location_view(self):
+    self.assertTrue(
+        view.has_koda_view(
+            arolla.M.annotation.source_location(
+                C.x, 'foo', 'test.py', 123, 456, '  x + 1'
+            )
+        )
+    )
     src_op = arolla.abc.lookup_operator('kd.annotation.source_location')
     self.assertTrue(
         view.has_koda_view(src_op(C.x, 'foo', 'test.py', 123, 456, '  x + 1'))
@@ -922,7 +929,7 @@ class KodaViewWithTracingTest(KodaViewTest):
   # is attached to the expr.
   def assert_exprs_equal(self, actual_expr, expected_expr):
     testing.assert_traced_exprs_equal(actual_expr, expected_expr)
-    testing.assert_equal(actual_expr.op, kde.annotation.source_location)
+    testing.assert_equal(actual_expr.op, arolla.M.annotation.source_location)
 
   # Not only asserts on expr equality, but also asserts that the source location
   # is attached to the expr.
@@ -930,7 +937,7 @@ class KodaViewWithTracingTest(KodaViewTest):
     testing.assert_traced_non_deterministic_exprs_equal(
         actual_expr, expected_expr
     )
-    testing.assert_equal(actual_expr.op, kde.annotation.source_location)
+    testing.assert_equal(actual_expr.op, arolla.M.annotation.source_location)
     self.assertIn('view_test.py', str(actual_expr.node_deps[2].qvalue))
 
 

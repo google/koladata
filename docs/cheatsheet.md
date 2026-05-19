@@ -3604,7 +3604,7 @@ the resulting Expr.
 
 
 # Note: the "📍" symbols in the expressions above are concise representations
-# of `kd.annotation.source_location` operators attached automatically during
+# of `annotation.source_location` operators attached automatically during
 # tracing to improve traceback in case of evaluation errors.
 
 >>> kd.trace_py_fn(fn1)

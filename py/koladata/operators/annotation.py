@@ -18,17 +18,19 @@ from arolla import arolla
 from koladata.expr import view
 from koladata.operators import optools
 
-# NOTE: Implemented in C++.
-
 
 optools.set_namespace_docstring('kd.annotation', __doc__)
 
-
+# NOTE: Implemented in C++.
+# TODO: Remove once old models no longer reference
+# kd.annotation.source_location.
 source_location = arolla.abc.lookup_operator('kd.annotation.source_location')
 with_name = arolla.abc.lookup_operator('kd.annotation.with_name')
 
 optools.add_to_registry('kd.with_name', via_cc_operator_package=True)(with_name)
 
+# TODO: Remove once old models no longer reference
+# kd.annotation.source_location.
 arolla.abc.set_expr_view_for_registered_operator(
     'kd.annotation.source_location', view.UnpackableAnnotationView
 )

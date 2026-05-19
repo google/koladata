@@ -58,6 +58,8 @@ AROLLA_INITIALIZER(
               arolla::expr::RegisterOperator<NonDeterministicOperator>(
                   "koda_internal.non_deterministic")
                   .status());
+          // TODO: Remove once old models no longer reference
+          // kd.annotation.source_location.
           RETURN_IF_ERROR(
               arolla::expr::RegisterOperatorAlias(
                   "kd.annotation.source_location", "annotation.source_location")

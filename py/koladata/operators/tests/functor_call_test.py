@@ -163,7 +163,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_eval_error(self):
     fn = functor_factories.expr_fn(
-        returns=kde.annotation.source_location(
+        returns=arolla.M.annotation.source_location(
             I.x.foo, 'test_function', 'test_file.py', 57, 0, '  return I.x.foo'
         ),
         signature=signature_utils.signature([

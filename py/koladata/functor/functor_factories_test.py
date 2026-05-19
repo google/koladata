@@ -1313,13 +1313,13 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     fn1 = functor_factories.expr_fn(
         V.y + 1,
-        y=kde.annotation.source_location(
+        y=arolla.M.annotation.source_location(
             1 // I.x, 'fn1', 'my_file.py', 57, 0, '  y = 1 // I.x'
         ),
     )
     fn2 = functor_factories.expr_fn(
         V.z + 1,
-        z=kde.annotation.source_location(
+        z=arolla.M.annotation.source_location(
             fn1(x=V.y), 'fn2', 'my_file.py', 58, 0, '  z = fn1(y)'
         ),
         y=I.x,

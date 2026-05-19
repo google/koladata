@@ -38,15 +38,15 @@ class TracingTest(absltest.TestCase):
 
   def test_simple(self):
     e = tracing.trace(lambda x, y: x + y)
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_several_operators(self):
     e = tracing.trace(lambda x, y, z: x + y + z)
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], e.node_deps[0].node_deps[0] + I.z)
     testing.assert_equal(
-        e.node_deps[0].node_deps[0].op, kde.annotation.source_location
+        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location
     )
     testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
 
@@ -55,22 +55,22 @@ class TracingTest(absltest.TestCase):
     # No source location for explicit usage of kde.math.add.
     testing.assert_equal(e, e.node_deps[0] + I.z)
     # But the inner "+" got a source location.
-    testing.assert_equal(e.node_deps[0].op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0].op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0].node_deps[0], I.x + I.y)
 
   def test_ops(self):
     e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.sum(I.x))
 
   def test_ops_in_namespace(self):
     e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.math.abs(I.x))
 
   def test_keyword_only(self):
     e = tracing.trace(lambda x, *, y: x + y)
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_kd_constants(self):
@@ -96,12 +96,12 @@ class TracingTest(absltest.TestCase):
 
   def test_defaults_ignored(self):
     e = tracing.trace(lambda x=1, *, y=2: x + y)
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_positional_only(self):
     e = tracing.trace(lambda x, /, y: x + y)
-    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_other_types_not_allowed(self):

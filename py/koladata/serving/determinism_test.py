@@ -334,7 +334,7 @@ class DeterminizerTest(parameterized.TestCase):
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(fn.returns).op,
-        arolla.abc.lookup_operator('kd.annotation.source_location'),
+        arolla.M.annotation.source_location,
     )
 
     det_fn = determinizer.make_deterministic(fn)

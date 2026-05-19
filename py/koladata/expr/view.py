@@ -794,3 +794,6 @@ def has_arolla_view(node: arolla.Expr) -> bool:
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, KodaView)
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, KodaView)
 arolla.abc.set_expr_view_for_qtype(qtypes.JAGGED_SHAPE, KodaView)
+arolla.abc.set_expr_view_for_registered_operator(
+    'annotation.source_location', UnpackableAnnotationView
+)

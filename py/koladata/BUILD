@@ -151,5 +151,6 @@ py_test(
         "//py/koladata/ext:npkd",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )

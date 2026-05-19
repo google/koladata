@@ -90,6 +90,8 @@ AROLLA_INITIALIZER(.init_fn = [] {
                                                      KodaInputOpRepr);
   arolla::expr::RegisterOpReprFnByQValueSpecializationKey(
       "::koladata::expr::LiteralOperator", KodaLiteralOpRepr);
+  // TODO: Remove once old models no longer reference
+  // kd.annotation.source_location.
   arolla::expr::RegisterOpReprFnByByRegistrationName(
       "kd.annotation.source_location", KodaSourceLocationOpRepr);
 })
