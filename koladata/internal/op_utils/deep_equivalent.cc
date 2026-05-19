@@ -151,6 +151,10 @@ class EquivalentComparator : public AbstractComparator {
     }
     return true;
   }
+  bool NeedDeepCompare(const TraverseHelper::Transition& lhs,
+                       const TraverseHelper::Transition& rhs) override {
+    return true;
+  }
 
  private:
   bool IsSchemaMismatch(const TraverseHelper::Transition& lhs,

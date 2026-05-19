@@ -125,6 +125,14 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
     }
     return true;
   }
+  bool NeedDeepCompare(const TraverseHelper::Transition& lhs,
+                       const TraverseHelper::Transition& rhs) override {
+    if (lhs.schema.is_primitive_schema() || rhs.schema.is_primitive_schema() ||
+        lhs.item == schema::kObject || rhs.item == schema::kObject) {
+      return false;
+    }
+    return true;
+  }
   std::vector<std::string> GetDiffPaths() {
     std::vector<std::string> result;
     for (const auto& [token, key] : diffs_) {
@@ -466,6 +474,33 @@ TEST_P(DeepEqualTest, PrimitiveWithObjectSchema) {
       auto result,
       DeepCompare(ds, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()},
                   cloned_ds, schema_a, *cloned_db, {}));
+
+  EXPECT_THAT(result, ::testing::IsEmpty());
+}
+
+TEST_P(DeepEqualTest, NeedDeepCompareEarlyStop) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema_a, {{"self", schema_a}, {"x", DataItem(schema::kObject)}}},
+      {schema_b, {{"self", schema_b}, {"x", list_schema}}},
+      {list_schema, {{schema::kListItemsSchemaAttr, schema_b}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds_lhs = DataSliceImpl::Create(
+      arolla::CreateDenseArray<DataItem>({schema_a}));
+  auto ds_rhs = DataSliceImpl::Create(
+      arolla::CreateDenseArray<DataItem>({schema_b}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      DeepCompare(ds_lhs, DataItem(schema::kSchema), *GetMainDb(db),
+                  {GetFallbackDb(db).get()}, ds_rhs, DataItem(schema::kSchema),
+                  *GetMainDb(db), {GetFallbackDb(db).get()}));
 
   EXPECT_THAT(result, ::testing::IsEmpty());
 }

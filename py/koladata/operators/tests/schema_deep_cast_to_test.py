@@ -264,6 +264,12 @@ class SchemaDeepCastToTest(parameterized.TestCase):
     testing.assert_equivalent(res, kd.obj(x=1))
     testing.assert_equivalent(res.get_obj_schema(), e1.get_schema())
 
+  def test_list_as_object(self):
+    db = data_bag.DataBag.empty_mutable()
+    schema = db.named_schema('Foo', x=db.list_schema(schema_constants.STRING))
+    res = kd.schema.deep_cast_to(kd.new(x=db.obj(db.list(['abc']))), schema)
+    testing.assert_equivalent(res, schema.new(x=db.list(['abc'])))
+
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"

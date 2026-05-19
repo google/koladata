@@ -53,6 +53,10 @@ class AbstractComparator {
   virtual bool Equal(const TraverseHelper::Transition& lhs,
                      const TraverseHelper::Transition& rhs) = 0;
 
+  // Returns true if the (equal) transitions should be compared deeply.
+  virtual bool NeedDeepCompare(const TraverseHelper::Transition& lhs,
+                               const TraverseHelper::Transition& rhs) = 0;
+
   // Returns a token that represents the (lhs, rhs) pair.
   virtual absl::StatusOr<DataItem> CreateToken(
       const TraverseHelper::Transition& lhs,
@@ -183,7 +187,9 @@ class DeepComparator {
     }
     ASSIGN_OR_RETURN(it->second,
                      comparator_->ComparatorT::CreateToken(lhs, rhs));
-    to_compare_.push({it->second, lhs, rhs});
+    if (comparator_->ComparatorT::NeedDeepCompare(lhs, rhs)) {
+      to_compare_.push({it->second, lhs, rhs});
+    }
     return it->second;
   }
 

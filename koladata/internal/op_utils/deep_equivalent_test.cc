@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/op_utils/deep_equivalent.h"
 
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <string>
@@ -27,6 +28,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
@@ -278,6 +280,30 @@ TEST_P(DeepEquivalentTest, PrimitiveSlice) {
                                               ::testing::HasSubstr(".S[2]")));
 }
 
+TEST_P(DeepEquivalentTest, AllMissing) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op =
+      DeepEquivalentOp(result_db.get(), {.schemas_equality = false});
+  auto schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema, {{"self", schema}, {"b", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds, DataItem(schema::kInt32), *GetMainDb(db),
+                         {GetFallbackDb(db).get()}, ds, schema, *GetMainDb(db),
+                         {GetFallbackDb(db).get()}));
+
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_ds, DataItem(schema::kObject)));
+  EXPECT_THAT(diffs, ::testing::IsEmpty());
+}
+
 TEST_P(DeepEquivalentTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_schema = AllocateSchema();
@@ -321,6 +347,96 @@ TEST_P(DeepEquivalentTest, SchemaSlice) {
       diff_paths,
       ::testing::UnorderedElementsAre(::testing::HasSubstr(
           absl::StrFormat(".items.%s.x", schema::kListItemsSchemaAttr))));
+}
+
+TEST_P(DeepEquivalentTest, EntityAndObjectListsComparison) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto db2 = DataBagImpl::CreateEmptyDatabag();
+  auto root_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto root = DataItem(AllocateSingleObject());
+  auto list = DataItem(AllocateSingleList());
+  TriplesT schema_triples = {
+      {root_schema, {{"items", DataItem(schema::kObject)}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {
+    {root, {{"items", list}}},
+    {list, {{schema::kSchemaAttr, list_schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, GenDataTriplesForTest());
+  ASSERT_OK(db->ExtendList(
+      list, DataSliceImpl::Create(arolla::CreateDenseArray<int32_t>({1, 2}))));
+
+  TriplesT other_schema_triples = {
+      {root_schema, {{"items", list_schema}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db2, other_schema_triples);
+  SetSchemaTriples(*db2, GenSchemaTriplesFoTests());
+  SetDataTriples(*db2, data_triples);
+  SetDataTriples(*db2, GenDataTriplesForTest());
+  ASSERT_OK(db2->ExtendList(
+      list, DataSliceImpl::Create(arolla::CreateDenseArray<int32_t>({1, 3}))));
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get(), {});
+  ASSERT_OK_AND_ASSIGN(auto result_item,
+                       deep_equivalent_op(root, root_schema, *GetMainDb(db),
+                                          {GetFallbackDb(db).get()}, root,
+                                          root_schema, *db2, {}));
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_item, DataItem(schema::kObject)));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".items[1]"));
+}
+
+TEST_P(DeepEquivalentTest, ItemIdAndListMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto db2 = DataBagImpl::CreateEmptyDatabag();
+  auto root_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto root = DataItem(AllocateSingleObject());
+  auto list = DataItem(AllocateSingleList());
+  TriplesT schema_triples = {
+      {root_schema, {{"items", DataItem(schema::kItemId)}}}};
+  TriplesT data_triples = {{root, {{"items", list}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  TriplesT other_schema_triples = {
+      {root_schema, {{"items", list_schema}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db2, other_schema_triples);
+  SetSchemaTriples(*db2, GenSchemaTriplesFoTests());
+  SetDataTriples(*db2, data_triples);
+  SetDataTriples(*db2, GenDataTriplesForTest());
+  ASSERT_OK(db2->ExtendList(
+      list, DataSliceImpl::Create(arolla::CreateDenseArray<int32_t>({1, 3}))));
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get(), {});
+  ASSERT_OK_AND_ASSIGN(auto result_item,
+                       deep_equivalent_op(root, root_schema, *GetMainDb(db),
+                                          {GetFallbackDb(db).get()}, root,
+                                          root_schema, *db2, {}));
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_item, DataItem(schema::kObject)));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths, ::testing::UnorderedElementsAre(".items"));
 }
 
 }  // namespace

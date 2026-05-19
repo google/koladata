@@ -143,6 +143,10 @@ class SchemaCompatibleComparator : public AbstractComparator {
     }
     return schema_compatible_callback_(from_schema, to_schema);
   }
+  bool NeedDeepCompare(const TraverseHelper::Transition& lhs,
+                       const TraverseHelper::Transition& rhs) override {
+    return (lhs.item != schema::kObject && rhs.item != schema::kObject);
+  }
   bool HasDiff() const { return diff_found_; }
 
  private:

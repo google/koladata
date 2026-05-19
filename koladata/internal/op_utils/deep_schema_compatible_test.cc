@@ -46,6 +46,19 @@ bool ImplicitCastCompatible(const DataItem& from_schema,
   return schema::IsImplicitlyCastableTo(from_schema, to_schema);
 }
 
+bool ImplicitOrObjectsCastCompatible(const DataItem& from_schema,
+                                     const DataItem& to_schema) {
+  if (from_schema.is_struct_schema()) {
+    // Struct schemas are traversed further.
+    return to_schema.is_struct_schema();
+  }
+  if (from_schema.is_object_schema()) {
+    return true;
+  }
+  // Validate schemas compatibility.
+  return schema::IsImplicitlyCastableTo(from_schema, to_schema);
+}
+
 class DeepSchemaCompatibleTest : public DeepOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, DeepSchemaCompatibleTest,
@@ -472,6 +485,30 @@ TEST_P(DeepSchemaCompatibleTest, NotCastable) {
         TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths, ::testing::ElementsAre(".x"));
+}
+
+TEST_P(DeepSchemaCompatibleTest, ObjectAttributeEarlyStop) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema_a, {{"self", schema_a}, {"x", DataItem(schema::kObject)}}},
+      {schema_b, {{"self", schema_b}, {"x", list_schema}}},
+      {list_schema, {{schema::kListItemsSchemaAttr, schema_b}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_schema_compatible_op = DeepSchemaCompatibleOp(
+      result_db.get(), {}, ImplicitOrObjectsCastCompatible);
+  ASSERT_OK_AND_ASSIGN(
+      (auto [is_compatible, _]),
+      deep_schema_compatible_op(schema_a, *GetMainDb(db),
+                                {GetFallbackDb(db).get()}, schema_b,
+                                *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_TRUE(is_compatible);
 }
 
 }  // namespace
