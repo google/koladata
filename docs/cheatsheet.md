@@ -2513,8 +2513,9 @@ ValueError: [FAILED_PRECONDITION] x must be less than y...
 ### Debug Printing with `kd.with_print`
 
 Python print-statements are useful for general debugging. Since these are not
-traceable, Koda provides the [`kd.with_print`](api_reference#kd.core.with_print)
-operator, with prints available in both Python and C++ (stdout).
+traceable, Koda provides the
+[`kd.with_print`](api_reference.md#kd.core.with_print) operator, with prints
+available in both Python and C++ (stdout).
 
 ```py
 >>> def print_input(x):
