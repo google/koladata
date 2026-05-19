@@ -360,6 +360,7 @@ def _make_stats_html(ds: kd.types.DataSlice) -> str:
       value_str = str(value)
       if len(value_str) > 50:
         value_str = value_str[:50] + '...'
+      value_str = html.escape(value_str)
       stats += f'top {i}:\tcount: {count},\tvalue: {value_str}</br>'
   return f"""<details><summary>Statistics</summary>\
       <div id="stats-data">{stats}</div></details>"""
