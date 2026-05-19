@@ -28,12 +28,13 @@ def load_tests(loader, tests, ignore):
   del loader, ignore
   tests.addTests(
       doctest.DocFileSuite(
-          'quick_recipes.md',
           '10_min_intro.md',
-          'common_pitfalls.md',
-          'overview.md',
           'cheatsheet.md',
+          'common_pitfalls.md',
           'index.md',
+          'fundamentals.md',
+          'overview.md',
+          'quick_recipes.md',
           optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE,
           parser=CustomParser(),
       )
