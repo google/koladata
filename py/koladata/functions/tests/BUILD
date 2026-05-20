@@ -291,6 +291,18 @@ py_test(
 )
 
 py_test(
+    name = "schema_to_py_test",
+    srcs = ["schema_to_py_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/functions:schema",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "new_test",
     srcs = ["new_test.py"],
     deps = [

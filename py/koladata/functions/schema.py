@@ -18,7 +18,7 @@ import dataclasses
 import enum
 import types as py_types
 import typing
-from typing import Any
+from typing import Any, Union, Optional
 
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -120,3 +120,62 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       schema_item.SchemaItem,
       schema_from_py_impl(tpe).freeze_bag(),
   )
+
+_koda_to_py_type_map = {
+    schema_constants.INT64: int,
+    schema_constants.INT32: int,
+    schema_constants.FLOAT32: float,
+    schema_constants.FLOAT64: float,
+    schema_constants.BOOLEAN: bool,
+    schema_constants.STRING: str,
+    schema_constants.BYTES: bytes,
+}
+
+_PRIMITIVETYPE = type[Union[bool, bytes, float, int, str]]
+
+
+def _primitive_schema_to_py(schema: schema_item.SchemaItem) -> _PRIMITIVETYPE:
+  """Returns the Python type corresponding to the given Koda primitive schema."""
+  if schema not in _koda_to_py_type_map:
+    raise TypeError(f'unsupported primitive schema: {schema}.')
+  return _koda_to_py_type_map[schema]
+
+
+def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
+  """Creates a Python type corresponding to the given Koda schema.
+
+  Primitive Koda schemas are converted to the corresponding Python types.
+  List schemas are converted to lists, dict schemas to dicts.
+  kd.OBJECT is not supported at any level, since there is no corresponding
+  Python type.
+
+  Please note that all Koda types become optional in Python.
+
+  Args:
+    schema: The Koda schema to convert to a Python type.
+
+  Returns:
+    The Python type corresponding to the given Koda schema.
+
+  Raises:
+    TypeError: If the given schema is not supported.
+    NotImplementedError: If the given schema is an entity schema.
+  """
+
+  if schema.is_primitive():
+    return _primitive_schema_to_py(schema) | None
+  if schema.is_list_schema():
+    return list[schema_to_py(schema.get_item_schema())] | None
+  if schema.is_dict_schema():
+    return (
+        dict[
+            schema_to_py(schema.get_key_schema()),
+            schema_to_py(schema.get_value_schema()),
+        ]
+        | None
+    )
+  if schema.is_entity_schema():
+    raise NotImplementedError(
+        'entity schemas are not supported in schema_to_py'
+    )
+  raise TypeError(f'unsupported schema: {schema}.')
