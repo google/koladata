@@ -51,6 +51,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
+        "//py/koladata/base/py_conversions:dataclasses_util",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

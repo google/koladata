@@ -156,6 +156,7 @@ koladata_pybind_extension(
     srcs = ["testing_clib.cc"],
     deps = [
         ":dataclasses_util",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//py/arolla/abc:pybind11_utils",

@@ -54,26 +54,47 @@ def fields_names_and_values(py_obj):
   return None
 
 
-def _get_underlying_optional_type(
-    t: _Type,
-) -> type[Any] | None:
-  """If t is Optional[T] or T | None, returns the underlying type T.
+def _is_union(t: _Type) -> bool:
+  """If t is (Optional[T] which is the same as T | None) or a Union (T | SomeType), returns True."""
+  return typing.get_origin(t) is Union or isinstance(t, types.UnionType)
+
+
+def _raise_bad_optional_union(t: _Type) -> None:
+  raise ValueError(
+      f'only unions `SomeType | None` are supported ; got instead: {t}'
+  )
+
+
+def maybe_decay_optional(t: _Type) -> tuple[_Type, bool]:
+  """Unwraps the underlying type of an Optional type.
 
   Args:
-    t: The type to inspect.
+    t: The type to decay.
 
   Returns:
-    The underlying type T if t is Optional[T] or T | None, otherwise None.
-  """
+    A tuple (`underlying_type`, `is_optional`), where `underlying_type` is the
+    type of the field (if it is Optional[underlying_type]) and `is_optional` is
+    a boolean indicating if the field is
+    optional.
 
-  if typing.get_origin(t) is Union or isinstance(t, types.UnionType):
-    args = typing.get_args(t)
-    if len(args) != 2 or args[1] is not types.NoneType:
-      raise ValueError(
-          f'only unions `SomeType | None` are supported ; got instead: {t}'
-      )
-    return args[0]
-  return None
+    If the field is optional (e.g., `SomeType | None` or `Optional[SomeType]`),
+    `underlying_type` will be `SomeType` and `is_optional` will be `True`.
+
+    If the field is a not-supported union (e.g., `SomeType | OtherType |
+    ThirdType`), raises a `ValueError`.
+    Otherwise, returns `(t, False)`.
+  """
+  if not _is_union(t):
+    return (t, False)
+  args = typing.get_args(t)
+  if len(args) != 2:
+    _raise_bad_optional_union(t)
+  underlying_type, none_type = args
+  if underlying_type is types.NoneType:
+    underlying_type, none_type = none_type, underlying_type
+  if underlying_type is types.NoneType or none_type is not types.NoneType:
+    _raise_bad_optional_union(t)
+  return (underlying_type, True)
 
 
 def _get_field_type_annotation(
@@ -93,10 +114,8 @@ def get_class_field_type(
     attr_name: str,
     for_primitive: bool,
     type_hints_cache: dict[_Type, dict[str, _Type]],
-) -> _Type | None:
-  """Returns the type of the given field of py_obj.
-
-  If not found, returns None.
+) -> tuple[_Type | None, bool]:
+  """Returns information about the type of the given field of py_obj.
 
   Args:
     py_obj: The class to inspect.
@@ -106,33 +125,38 @@ def get_class_field_type(
     type_hints_cache: A cache of type hints for dataclasses.
 
   Returns:
-    The type of the given field of py_obj.
+    A tuple (`field_type`, `is_optional`), where `field_type` is the type of
+    the field and `is_optional` is a boolean indicating if the field is
+    Optional. If the field is optional (e.g., `SomeType | None`), `field_type`
+    will be `SomeType` and `is_optional` will be `True`. Otherwise,
+    `is_optional` is `False`. If the field type cannot be determined,
+    `(None, False)` is returned.
   """
 
   if py_obj is types.SimpleNamespace:
     if for_primitive:
-      return None
+      return (None, True)
     else:
-      return types.SimpleNamespace
+      return (types.SimpleNamespace, True)
 
   if dataclasses.is_dataclass(py_obj):
 
     t = _get_field_type_annotation(py_obj, attr_name, type_hints_cache)
     if t is None:
-      return None
+      return (None, False)
     if dataclasses.is_dataclass(t):
-      return t
+      return (t, False)
     # x: Optional[Obj] or x: Obj | None
-    underlying_optional_type = _get_underlying_optional_type(t)
-    if underlying_optional_type is not None:
-      return underlying_optional_type
+    underlying_optional_type, is_optional = maybe_decay_optional(t)
+    if is_optional:
+      return (underlying_optional_type, is_optional)
     # x: list[Obj] or x: dict[Obj, int]
     if isinstance(t, types.GenericAlias):
-      return t
+      return (t, False)
     if t is types.SimpleNamespace:
-      return t
+      return (t, False)
     if for_primitive:
-      return t
+      return (t, False)
     raise ValueError(f"field '{attr_name}' has unsupported type: {t}")
 
   if origin_type := typing.get_origin(py_obj):
@@ -154,14 +178,14 @@ def get_class_field_type(
               'only tuple[T, ...] is supported; got instead:'
               f' {typing.get_origin(py_obj)}'
           )
-      return args[0]
+      return maybe_decay_optional(args[0])
 
     if isinstance(origin_type, type) and issubclass(
         origin_type, typing.Mapping
     ):
       # `dict[Obj, int]`
       if attr_name == '__keys__':
-        return typing.get_args(py_obj)[0]
+        return maybe_decay_optional(typing.get_args(py_obj)[0])
       # `dict[int, Obj]`
       if attr_name == '__values__':
         args = typing.get_args(py_obj)
@@ -169,7 +193,7 @@ def get_class_field_type(
           raise ValueError(
               f'expected dict; got instead: {typing.get_origin(py_obj)}'
           )
-        return args[1]
+        return maybe_decay_optional(args[1])
     if attr_name == '__keys__' or attr_name == '__values__':
       raise ValueError(f'expected dict class; got instead: {py_obj}')
     if attr_name == '__items__':
@@ -182,37 +206,6 @@ def get_class_field_type(
       f'could not get type for attribute {attr_name}; only dataclasses or'
       f' SimpleNamespace are supported; got instead: {py_obj}'
   )
-
-
-def get_optional_field_type(
-    py_class: _Type,
-    attr_name: str,
-    type_hints_cache: dict[_Type, dict[str, _Type]],
-) -> bool | None:
-  """Returns the type of the given attribute in the dataclass.
-
-  If the class is not a dataclass, returns True (as any attribute of the
-  SimpleNamespace is optional).
-  If the attribute is not present, returns None.
-  If the attribute is present but is not optional, returns
-  False.
-  If the attribute is present and is optional, returns
-  True.
-
-  Args:
-    py_class: The class to inspect.
-    attr_name: The name of the attribute to inspect.
-    type_hints_cache: A cache of type hints for dataclasses.
-
-  Returns:
-    The OptionalFieldType of the given attribute in the dataclass.
-  """
-  if not dataclasses.is_dataclass(py_class):
-    return True
-  field = _get_field_type_annotation(py_class, attr_name, type_hints_cache)
-  if field is None:
-    return None
-  return _get_underlying_optional_type(field) is not None
 
 
 _simple_namespace_class = types.SimpleNamespace

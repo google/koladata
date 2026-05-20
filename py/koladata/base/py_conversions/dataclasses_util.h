@@ -37,12 +37,18 @@ namespace koladata::python {
 // instances, etc.) It also owns the dataclass object instances it creates.
 class DataClassesUtil {
  public:
+  // Descriptor of a Python type, returned by `GetClassFieldType` and
+  // `MaybeDecayOptional`. `type` is the underlying type and `is_optional`
+  // indicates whether the field is optional (e.g. `SomeType | None`).
+  struct FieldTypeDescriptor {
+    arolla::python::PyObjectPtr type;
+    bool is_optional;
+  };
+
   struct AttrResult {
     std::vector<std::string> attr_names;
     std::vector<PyObject*> values;
   };
-
-  enum OptionalFieldType { kNotPresent = 0, kOptional = 1, kNonOptional = 2 };
 
   DataClassesUtil() = default;
 
@@ -65,6 +71,8 @@ class DataClassesUtil {
   // If the class is a dataclass, the type of the field is returned.
   // If the class field is a SimpleNamespace, the SimpleNamespace class is
   // returned.
+  // Please note if the field is optional (e.g. `SomeType | None`), the
+  // underlying type is returned.
   // - `list[SomeType]` and `attr_name==__items__` -> SomeType is returned.
   // - `dict[OneType, SecondType]`:
   //   - 'attr_name == '__keys__' -> OneType is returned.
@@ -75,15 +83,9 @@ class DataClassesUtil {
   // fields are not typed, so with `for_primitive=True` the type of the field is
   // considered to be `None`, so that any type can be assigned to it; otherwise
   // it will be `SimpleNamespace`.
-  absl::StatusOr<arolla::python::PyObjectPtr> GetClassFieldType(
+  absl::StatusOr<FieldTypeDescriptor> GetClassFieldType(
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::string_view attr_name, bool for_primitive = false);
-
-  // Returns the type of the given attribute in the dataclass from the optional
-  // point of view.
-  absl::StatusOr<OptionalFieldType> GetOptionalFieldType(
-      arolla::python::PyObjectPtr absl_nonnull py_class,
-      absl::string_view attr_name);
 
   // Creates a class instance with the given attributes and values.
   // The `attr_names` and `attr_values` should have the same size.
@@ -91,6 +93,11 @@ class DataClassesUtil {
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::Span<const std::string> attr_names,
       absl::Span<const arolla::python::PyObjectPtr absl_nonnull> attr_values);
+
+  // If the field is optional, returns the underlying type and
+  // `is_optional=true`. Otherwise, returns the type and `is_optional=false`.
+  absl::StatusOr<FieldTypeDescriptor> MaybeDecayOptional(
+      arolla::python::PyObjectPtr absl_nonnull py_type);
 
   // Returns a new reference to the SimpleNamespace class.
   absl::StatusOr<arolla::python::PyObjectPtr> GetSimpleNamespaceClass();
@@ -113,7 +120,7 @@ class DataClassesUtil {
   arolla::python::PyObjectPtr fn_make_dataclass_;
   arolla::python::PyObjectPtr fn_fields_;
   arolla::python::PyObjectPtr fn_get_class_field_type_;
-  arolla::python::PyObjectPtr fn_get_optional_field_type_;
+  arolla::python::PyObjectPtr fn_maybe_decay_optional_;
 
   arolla::python::PyObjectPtr simple_namespace_class_;
   bool fns_initialized_ = false;

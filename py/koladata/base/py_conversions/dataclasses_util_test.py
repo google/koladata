@@ -107,9 +107,9 @@ class DataclassesUtilTest(absltest.TestCase):
     class Obj2:
       a: Obj1
 
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
-    self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
-    self.assertIsNone(util.get_class_field_type(Obj2, 'b', True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, False))
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), (None, False))
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), (None, False))
 
   def test_get_class_field_type_optional(self):
     util = testing_clib.DataClassesUtil()
@@ -119,8 +119,8 @@ class DataclassesUtilTest(absltest.TestCase):
       a: Obj1 | None
       b: Optional[Obj1]
 
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), Obj1)
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), Obj1)
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, True))
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), (Obj1, True))
 
   def test_get_class_field_list_tuple(self):
     util = testing_clib.DataClassesUtil()
@@ -130,12 +130,14 @@ class DataclassesUtilTest(absltest.TestCase):
       a: list[Obj1]
       b: tuple[Obj1, ...]
 
-    list_type = util.get_class_field_type(Obj2, 'a', False)
-    tuple_type = util.get_class_field_type(Obj2, 'b', False)
+    list_type, is_optional = util.get_class_field_type(Obj2, 'a', False)
+    self.assertFalse(is_optional)
+    tuple_type, is_optional = util.get_class_field_type(Obj2, 'b', False)
+    self.assertFalse(is_optional)
     self.assertEqual(list_type, list[Obj1])
     self.assertEqual(tuple_type, tuple[Obj1, ...])
     self.assertEqual(
-        util.get_class_field_type(list_type, '__items__', False), Obj1
+        util.get_class_field_type(list_type, '__items__', False), (Obj1, False)
     )
     with self.assertRaisesRegex(ValueError, 'only tuple.T, .... is supported'):
       _ = util.get_class_field_type(tuple[Obj1, Obj1], '__items__', False)
@@ -149,14 +151,15 @@ class DataclassesUtilTest(absltest.TestCase):
     class Obj2:
       a: dict[Obj1, _py_types.SimpleNamespace]
 
-    dict_type = util.get_class_field_type(Obj2, 'a', False)
+    dict_type, is_optional = util.get_class_field_type(Obj2, 'a', False)
+    self.assertFalse(is_optional)
     self.assertEqual(dict_type, dict[Obj1, _py_types.SimpleNamespace])
     self.assertEqual(
-        util.get_class_field_type(dict_type, '__keys__', False), Obj1
+        util.get_class_field_type(dict_type, '__keys__', False), (Obj1, False)
     )
     self.assertEqual(
         util.get_class_field_type(dict_type, '__values__', False),
-        _py_types.SimpleNamespace,
+        (_py_types.SimpleNamespace, False),
     )
 
   def test_get_class_field_type_simple_namespace(self):
@@ -168,13 +171,14 @@ class DataclassesUtilTest(absltest.TestCase):
 
     self.assertEqual(
         util.get_class_field_type(_py_types.SimpleNamespace, 'any_attr', False),
-        _py_types.SimpleNamespace,
+        (_py_types.SimpleNamespace, True),
     )
     self.assertEqual(
-        util.get_class_field_type(Obj2, 'a', False), _py_types.SimpleNamespace
+        util.get_class_field_type(Obj2, 'a', False),
+        (_py_types.SimpleNamespace, False),
     )
 
-  def test_get_class_field_typefor_primitive(self):
+  def test_get_class_field_type_for_primitive(self):
     util = testing_clib.DataClassesUtil()
 
     @dataclasses.dataclass
@@ -182,16 +186,17 @@ class DataclassesUtilTest(absltest.TestCase):
       a: int
       b: Obj1
 
-    self.assertEqual(util.get_class_field_type(Obj2, 'a', True), int)
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), Obj1)
+    self.assertEqual(util.get_class_field_type(Obj2, 'a', True), (int, False))
+    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), (Obj1, False))
 
-    self.assertIsNone(
-        util.get_class_field_type(_py_types.SimpleNamespace, 'a', True), None
+    self.assertEqual(
+        util.get_class_field_type(_py_types.SimpleNamespace, 'a', True),
+        (None, True),
     )
 
   def test_get_class_field_type_errors(self):
     util = testing_clib.DataClassesUtil()
-    self.assertIsNone(util.get_class_field_type(Obj1, 'x', False))
+    self.assertEqual(util.get_class_field_type(Obj1, 'x', False), (None, False))
 
     with self.assertRaisesRegex(ValueError, "field 'a' has unsupported type"):
       _ = util.get_class_field_type(Obj1, 'a', False)
@@ -215,7 +220,7 @@ class DataclassesUtilTest(absltest.TestCase):
     ):
       _ = util.get_class_field_type(dict[int, int], '__items__', False)
 
-  def test_get_optional_field_type(self):
+  def test_get_maybe_decay_optional(self):
     util = testing_clib.DataClassesUtil()
 
     @dataclasses.dataclass
@@ -225,51 +230,53 @@ class DataclassesUtilTest(absltest.TestCase):
       d: int
       e: None
       f: Any
+      h: None | int
       bad_0: int | Any
       bad_1: int | float | None
-      bad_2: None | int
       g: int = 1
 
-    self.assertEqual(util.get_optional_field_type(Obj2, 'a'), util.k_optional)
+    fields = dataclasses.fields(Obj2)
+
+    def get_field_type(field):
+      for f in fields:
+        if f.name == field:
+          return f.type
+      raise ValueError(f'field {field} not found')
+
     self.assertEqual(
-        util.get_optional_field_type(Obj2, 'b'), util.k_not_present
-    )
-    self.assertEqual(util.get_optional_field_type(Obj2, 'c'), util.k_optional)
-    self.assertEqual(
-        util.get_optional_field_type(Obj2, 'd'), util.k_non_optional
-    )
-    self.assertEqual(
-        util.get_optional_field_type(Obj2, 'e'), util.k_non_optional
-    )
-    self.assertEqual(
-        util.get_optional_field_type(Obj2, 'f'), util.k_non_optional
+        util.maybe_decay_optional(get_field_type('a')), (Obj1, True)
     )
     self.assertEqual(
-        util.get_optional_field_type(Obj2, 'g'), util.k_non_optional
+        util.maybe_decay_optional(get_field_type('c')), (Obj1, True)
     )
     self.assertEqual(
-        util.get_optional_field_type(Obj2, 'non_existent_field'),
-        util.k_not_present,
+        util.maybe_decay_optional(get_field_type('d')), (int, False)
+    )
+    self.assertEqual(
+        util.maybe_decay_optional(get_field_type('e')), (None, False)
+    )
+    self.assertEqual(
+        util.maybe_decay_optional(get_field_type('f')), (Any, False)
+    )
+    self.assertEqual(
+        util.maybe_decay_optional(get_field_type('g')), (int, False)
+    )
+    self.assertEqual(
+        util.maybe_decay_optional(get_field_type('h')), (int, True)
     )
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int |'
         ' typing.Any',
     ):
-      _ = util.get_optional_field_type(Obj2, 'bad_0')
+      _ = util.maybe_decay_optional(get_field_type('bad_0'))
 
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int | float'
         ' | None',
     ):
-      _ = util.get_optional_field_type(Obj2, 'bad_1')
-    with self.assertRaisesRegex(
-        ValueError,
-        'only unions `SomeType | None` are supported ; got instead: int | float'
-        ' | None',
-    ):
-      _ = util.get_optional_field_type(Obj2, 'bad_2')
+      _ = util.maybe_decay_optional(get_field_type('bad_1'))
 
   def test_create_class_instance_kwargs(self):
     util = testing_clib.DataClassesUtil()

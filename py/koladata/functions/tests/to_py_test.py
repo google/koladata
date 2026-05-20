@@ -502,19 +502,89 @@ class ToPyTest(parameterized.TestCase):
       _ = py_conversions.to_py(fns.int32(3), output_class=float)
 
     with self.assertRaisesRegex(
-        ValueError, 'value is missing, but requested output class is not None'
+        ValueError,
+        'value is missing, but requested output class is not optional',
     ):
       _ = py_conversions.to_py(ds(None), output_class=int)
 
-    with self.assertRaisesRegex(
-        ValueError, 'value is missing, but requested output class is not None'
-    ):
-      _ = py_conversions.to_py(fns.item(None), output_class=int | None)
+    res = py_conversions.to_py(fns.item(None), output_class=int | None)
+    self.assertIsNone(res)
 
     with self.assertRaisesRegex(
         ValueError, 'value is bool, but requested output class is not bool'
     ):
       _ = py_conversions.to_py(fns.bool(True), output_class=int)
+
+  def test_sparse_slice_with_output_class(self):
+    s = ds([1, 2, None, 3, None])
+    self.assertEqual(s.to_py(output_class=int | None), [1, 2, None, 3, None])
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is missing, but requested output class is not optional',
+    ):
+      _ = py_conversions.to_py(s, output_class=int)
+
+  def test_sparse_list_with_output_class(self):
+    s = fns.list([1, 2, None, 3, None])
+    self.assertEqual(
+        s.to_py(output_class=list[int | None]), [1, 2, None, 3, None]
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is missing, but requested output class is not optional',
+    ):
+      _ = py_conversions.to_py(s, output_class=list[int])
+
+  def test_sparse_tuple_with_output_class(self):
+    s = fns.list([1, 2, None, 3, None])
+    self.assertEqual(
+        s.to_py(output_class=tuple[int | None, ...]), (1, 2, None, 3, None)
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is missing, but requested output class is not optional',
+    ):
+      _ = py_conversions.to_py(s, output_class=tuple[int, ...])
+
+  def test_sparse_dict_with_output_class(self):
+    s = fns.dict({'a': 1, 'b': 2, 'c': None, None: 3})
+    self.assertEqual(
+        s.to_py(output_class=dict[str | None, int | None]),
+        {'a': 1, 'b': 2, 'c': None},
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is missing, but requested output class is not optional',
+    ):
+      _ = py_conversions.to_py(s, output_class=dict[str, int])
+
+  def test_sparse_obj_with_output_class(self):
+    s = fns.obj(x=[1, 2, None, 3, None])
+
+    @dataclasses.dataclass
+    class SparseObj:
+      x: list[int | None]
+
+    @dataclasses.dataclass
+    class DenseObj:
+      x: list[int]
+
+    self.assertEqual(
+        s.to_py(output_class=SparseObj), SparseObj(x=[1, 2, None, 3, None])
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'value is missing, but requested output class is not optional',
+    ):
+      _ = py_conversions.to_py(s, output_class=DenseObj)
+
+  def test_sparse_obj_with_output_class_simple_namespace(self):
+    s = fns.obj(x=[1, 2, None, 3, None])
+
+    self.assertEqual(
+        s.to_py(output_class=_py_types.SimpleNamespace),
+        _py_types.SimpleNamespace(x=[1, 2, None, 3, None]),
+    )
 
   def test_output_class_list_with_primitive(self):
     root = fns.list([1, 2, 3])

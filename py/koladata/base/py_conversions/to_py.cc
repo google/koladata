@@ -109,17 +109,19 @@ class ToPyVisitor : internal::AbstractVisitor {
   ToPyVisitor(bool obj_as_dict, bool include_missing_attrs,
               const absl::flat_hash_set<ObjectId>& objects_not_to_convert,
               DataBagPtr db, internal::DataBagImpl::FallbackSpan fallback_span,
-              PyObject* output_class)
+              std::optional<DataClassesUtil::FieldTypeDescriptor>
+                  output_class_descriptor)
       : obj_as_dict_(obj_as_dict),
         include_missing_attrs_(include_missing_attrs),
         objects_not_to_convert_(objects_not_to_convert),
         db_(std::move(db)),
         fallback_span_(fallback_span),
-        output_class_(PyObjectPtr::NewRef(output_class)) {}
+        output_class_descriptor_(std::move(output_class_descriptor)) {}
 
   ItemToPyConverter GetItemToPyConverter(const DataItem& schema) {
     return [&](const DataItem& item) -> absl::StatusOr<PyObjectPtr> {
-      return GetConvertedPyObjectOrCreatePrimitive(item, output_class_.get());
+      return GetConvertedPyObjectOrCreatePrimitive(item,
+                                                   output_class_descriptor_);
     };
   }
 
@@ -130,29 +132,32 @@ class ToPyVisitor : internal::AbstractVisitor {
     return item;
   }
 
-  // If output_class_ is provided, we need to compute the class for the `item`
-  // and store it in the `class_cache_by_object_id` and `classes_by_path_`.
-  // Returns true if it should be visited, false otherwise (which is
-  // the case when there is no corresponding field in the output class, i.e. the
-  // field does not exist and should not be created).
+  // If output_class_descriptor_ is provided (which is always the case when we
+  // call this method), we need to compute the class for the `item` and store it
+  // in the `class_cache_by_object_id` and `classes_by_path_`. Returns true if
+  // it should be visited, false otherwise (which is the case when there is no
+  // corresponding field in the output class, i.e. the field does not exist and
+  // should not be created).
   absl::StatusOr<bool> ComputeAndStoreClassForItem(
       const DataItem& from_item, absl::string_view from_item_attr_name,
       const DataItem& item) {
     const ObjectId& object_id = item.value<ObjectId>();
+    DCHECK(output_class_descriptor_.has_value());
 
     if (from_item_attr_name == kSliceItemPath) {
       // Root case; take the output object as is.
-      class_cache_by_object_id_[object_id] = output_class_;
+      class_cache_by_object_id_[object_id] = *output_class_descriptor_;
       return true;
     }
 
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
     std::pair<PyObject*, std::string> path_key(parent_class,
                                                from_item_attr_name);
-    PyObjectPtr& class_cached_by_path = classes_by_path_[std::move(path_key)];
-    if (class_cached_by_path != nullptr) {
+    DataClassesUtil::FieldTypeDescriptor& class_cached_by_path =
+        classes_by_path_[std::move(path_key)];
+    if (class_cached_by_path.type != nullptr) {
       class_cache_by_object_id_[object_id] = class_cached_by_path;
-      return !Py_IsNone(class_cached_by_path.get());
+      return !Py_IsNone(class_cached_by_path.type.get());
     }
 
     // In this case we are going to get class field type for an object, so
@@ -161,24 +166,25 @@ class ToPyVisitor : internal::AbstractVisitor {
                      dataclasses_util_.GetClassFieldType(
                          PyObjectPtr::NewRef(parent_class), from_item_attr_name,
                          /*for_primitive=*/false));
-    DCHECK(class_cached_by_path != nullptr);
+    DCHECK(class_cached_by_path.type != nullptr);
 
     // We need to check that the same object is not reached with different
     // paths. We do this check only if this path was not visited before.
     auto& class_cached_by_object_id = class_cache_by_object_id_[object_id];
-    if (class_cached_by_object_id == nullptr) {
+    if (class_cached_by_object_id.type == nullptr) {
       class_cached_by_object_id = class_cached_by_path;
-      return !Py_IsNone(class_cached_by_path.get());
+      return !Py_IsNone(class_cached_by_path.type.get());
     }
 
     // Koda object is the same, but Python class is different.
-    if (class_cached_by_object_id.get() != class_cached_by_path.get()) {
+    if (class_cached_by_object_id.type.get() !=
+        class_cached_by_path.type.get()) {
       return absl::InternalError(absl::StrFormat(
           "same object is reached with different classes: %s and %s",
-          PyObjectTypeName(class_cached_by_object_id.get()),
-          PyObjectTypeName(class_cached_by_path.get())));
+          PyObjectTypeName(class_cached_by_object_id.type.get()),
+          PyObjectTypeName(class_cached_by_path.type.get())));
     }
-    return !Py_IsNone(class_cached_by_path.get());
+    return !Py_IsNone(class_cached_by_path.type.get());
   }
 
   // Pre-visiting Entities in order to decide whether we need to create a
@@ -204,13 +210,13 @@ class ToPyVisitor : internal::AbstractVisitor {
       return true;
     }
 
-    if (output_class_.get() != Py_None && schema.is_itemid_schema()) {
+    if (output_class_descriptor_.has_value() && schema.is_itemid_schema()) {
       return absl::InvalidArgumentError(
           "itemid is not supported together with output_class");
     }
 
     const ObjectId& object_id = item.value<ObjectId>();
-    if (output_class_.get() != Py_None) {
+    if (output_class_descriptor_.has_value()) {
       // `output_class` is provided, so we need to compute the class for
       // the `item`.
       if (!from_item_attr_name.has_value()) {
@@ -306,12 +312,12 @@ class ToPyVisitor : internal::AbstractVisitor {
   absl::Status AddItemsToPyList(const DataItem& list, PyObjectPtr py_list,
                                 const DataSliceImpl& items) {
     DCHECK(PyList_CheckExact(py_list.get()));
-    ASSIGN_OR_RETURN(PyObjectPtr attr_class,
-                     GetAttrClass(list, schema::kListItemsSchemaAttr));
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
+        GetAttrClass(list, schema::kListItemsSchemaAttr));
     for (const DataItem& item : items) {
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_item,
-          GetConvertedPyObjectOrCreatePrimitive(item, attr_class.get()));
+      ASSIGN_OR_RETURN(PyObjectPtr py_item,
+                       GetConvertedPyObjectOrCreatePrimitive(item, attr_class));
       if (PyList_Append(py_list.get(), py_item.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not append an item to a list");
@@ -338,8 +344,9 @@ class ToPyVisitor : internal::AbstractVisitor {
 
     ObjectId list_id = list.value<ObjectId>();
 
-    // This part can only happen if output_class_ is not provided; in that case
-    // tuples are not supported, only lists, and they are created in Previsit.
+    // This part can only happen if output_class_descriptor_ is not provided;
+    // in that case tuples are not supported, only lists, and
+    // they are created in Previsit.
 
     // We need to be careful not to invalidate the result reference.
     PyObjectPtr& result = converted_object_cache_[list_id];
@@ -352,8 +359,10 @@ class ToPyVisitor : internal::AbstractVisitor {
     ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(list));
     ASSIGN_OR_RETURN(PyObjectPtr real_result_class,
                      DecayGenericAlias(result_class));
-    ASSIGN_OR_RETURN(PyObjectPtr attr_class,
-                     GetAttrClass(list, schema::kListItemsSchemaAttr));
+
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
+        GetAttrClass(list, schema::kListItemsSchemaAttr));
     if (real_result_class.get() == (PyObject*)&PyTuple_Type) {
       result = PyObjectPtr::Own(PyTuple_New(items.size()));
     } else {
@@ -369,7 +378,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     for (size_t i = 0; i < items.size() && i < span.size(); ++i) {
       ASSIGN_OR_RETURN(
           PyObjectPtr py_item,
-          GetConvertedPyObjectOrCreatePrimitive(items[i], attr_class.get()));
+          GetConvertedPyObjectOrCreatePrimitive(items[i], attr_class));
       span[i] = py_item.release();
     }
     return absl::OkStatus();
@@ -402,7 +411,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     PyObjectPtr& result = converted_object_cache_[dict_id];
 
     if (result == nullptr) {
-      // This can only happen with output_class_ provided.
+      // This can only happen with output_class_descriptor_ provided.
       result = PyObjectPtr::Own(PyDict_New());
       if (result == nullptr) {
         return arolla::python::StatusWithRawPyErr(
@@ -410,16 +419,14 @@ class ToPyVisitor : internal::AbstractVisitor {
       }
     }
 
-    // In case of output_class_ is provided, these will fail if the class for
-    // this dict is not a dict.
-    PyObjectPtr dict_keys_class = PyObjectPtr::NewRef(Py_None);
-    PyObjectPtr dict_values_class = PyObjectPtr::NewRef(Py_None);
-    if (output_class_.get() != Py_None) {
-      ASSIGN_OR_RETURN(dict_keys_class,
-                       GetAttrClass(dict, schema::kDictKeysSchemaAttr));
-      ASSIGN_OR_RETURN(dict_values_class,
-                       GetAttrClass(dict, schema::kDictValuesSchemaAttr));
-    }
+    // In case of output_class_descriptor_ is provided, these will fail
+    // if the class for this dict is not a dict.
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_keys_class,
+        GetAttrClass(dict, schema::kDictKeysSchemaAttr));
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> dict_values_class,
+        GetAttrClass(dict, schema::kDictValuesSchemaAttr));
 
     DCHECK_EQ(keys.size(), values.size());
     DataItem dict_schema = schema;
@@ -436,24 +443,24 @@ class ToPyVisitor : internal::AbstractVisitor {
 
       PyObjectPtr py_key;
 
-      if (output_class_.get() != Py_None) {
-        // If output_class_ is provided, we convert the key to a Python object.
-        // TODO: we can reconsider this behavior. and only
-        // support primitive keys.
+      if (output_class_descriptor_.has_value()) {
+        // If output_class_descriptor_ is provided, we convert the key to a
+        // Python object. TODO: we can reconsider this behavior
+        // and only support primitive keys.
         ASSIGN_OR_RETURN(py_key, GetConvertedPyObjectOrCreatePrimitive(
-                                     key, dict_keys_class.get()));
+                                     key, dict_keys_class));
       } else {
-        // In the case when output_class_ is not provided, If dict keys are
-        // objects, we keep them as data items (without data bag being
-        // assigned), because list/dict/dataclass object keys are not hashable
-        // in Python.
+        // In the case when output_class_descriptor_ is not provided, If
+        // dict keys are objects, we keep them as data items (without data bag
+        // being assigned), because list/dict/dataclass object keys are
+        // not hashable in Python.
         ASSIGN_OR_RETURN(py_key,
                          PyObjectFromDataItem(key, key_schema, /*db=*/nullptr));
       }
 
-      ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetConvertedPyObjectOrCreatePrimitive(
-                           values[i], dict_values_class.get()));
+      ASSIGN_OR_RETURN(
+          PyObjectPtr py_value,
+          GetConvertedPyObjectOrCreatePrimitive(values[i], dict_values_class));
       if (PyDict_SetItem(result.get(), py_key.get(), py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not set an item in a dict");
@@ -473,9 +480,9 @@ class ToPyVisitor : internal::AbstractVisitor {
       if (!attr_value.present || !attr_name.present) {
         continue;
       }
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_value,
-          GetConvertedPyObjectOrCreatePrimitive(attr_value.value, Py_None));
+      ASSIGN_OR_RETURN(PyObjectPtr py_value,
+                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
+                                                             std::nullopt));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_name.value));
       if (PyObject_SetAttr(object.get(), attr_name_py.get(), py_value.get()) <
@@ -488,18 +495,26 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
   // Returns the class of the given attribute of the given object.
-  // If the output_class_ is not provided, returns Py_None.
-  absl::StatusOr<PyObjectPtr> GetAttrClass(const DataItem& object,
-                                           absl::string_view attr_name) {
-    if (output_class_.get() == Py_None) {
-      return output_class_;
+  // If the output_class_descriptor_ is not provided, returns nullopt.
+  // If the object is a SimpleNamespace, returns nullopt to indicate that
+  // all of its attributes are not typed.
+  absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
+  GetAttrClass(const DataItem& object, absl::string_view attr_name) {
+    if (!output_class_descriptor_.has_value()) {
+      return std::nullopt;
     }
     ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(object));
     DCHECK(result_class != nullptr);
+    ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
+                     dataclasses_util_.GetSimpleNamespaceClass());
+    if (result_class == simple_namespace_class.get()) {
+      return std::nullopt;
+    }
 
     std::pair<PyObject*, std::string> key{result_class, attr_name};
-    PyObjectPtr& attr_class = classes_by_path_[std::move(key)];
-    if (attr_class == nullptr) {
+    DataClassesUtil::FieldTypeDescriptor& attr_class =
+        classes_by_path_[std::move(key)];
+    if (attr_class.type.get() == nullptr) {
       // If the attr would have been an object, it would have been already
       // pre-visited and cached; at this point it can only be a primitive.
       ASSIGN_OR_RETURN(attr_class, dataclasses_util_.GetClassFieldType(
@@ -530,6 +545,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       // Object was already converted, just set the attributes.
       return SetObjectAttributes(result, attr_names, attr_values);
     }
+    DCHECK(output_class_descriptor_.has_value());
     ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(object));
     DCHECK(result_class != nullptr);
     ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
@@ -548,39 +564,28 @@ class ToPyVisitor : internal::AbstractVisitor {
       }
 
       const arolla::OptionalValue<DataItem>& attr_value = attr_values[i];
-      if (!attr_value.present || !attr_value.value.has_value()) {
-        // If attribute exists but is not optional, an error will be returned.
-        ASSIGN_OR_RETURN(
-            DataClassesUtil::OptionalFieldType optional_field_type,
-            dataclasses_util_.GetOptionalFieldType(
-                PyObjectPtr::NewRef(result_class), attr_name.value));
 
-        switch (optional_field_type) {
-          // No need to set the attribute if it is not present.
-          case DataClassesUtil::OptionalFieldType::kNotPresent:
-            break;
-          // Set the attribute to None if it is optional.
-          case DataClassesUtil::OptionalFieldType::kOptional:
-            attr_names_vec.emplace_back(attr_name.value);
-            attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
-            break;
-          // Raise an error if the attribute is present but not optional.
-          case DataClassesUtil::OptionalFieldType::kNonOptional:
-            return absl::InvalidArgumentError(absl::StrFormat(
-                "field cannot have missing values: %s", attr_name.value));
-        }
-        continue;
-      }
-      PyObjectPtr attr_class = PyObjectPtr::NewRef(Py_None);
+      std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class;
       if (!result_class_is_simple_namespace) {
         ASSIGN_OR_RETURN(attr_class, GetAttrClass(object, attr_name.value));
-        if (attr_class.get() == Py_None) {
+        DCHECK(attr_class.has_value());
+        if (attr_class->type.get() == Py_None) {
           continue;  // no field with this name in the class
+        }
+        if (!attr_value.present || !attr_value.value.has_value()) {
+          if (!attr_class->is_optional) {
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "field cannot have missing values: %s", attr_name.value));
+          } else {
+            attr_names_vec.emplace_back(attr_name.value);
+            attr_values_vec.emplace_back(PyObjectPtr::NewRef(Py_None));
+            continue;
+          }
         }
       }
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
-                                                             attr_class.get()));
+                       GetConvertedPyObjectOrCreatePrimitive(
+                           attr_value.value, std::move(attr_class)));
       attr_names_vec.push_back(std::string(attr_name.value));
       attr_values_vec.push_back(std::move(py_value));
     }
@@ -632,7 +637,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::InternalError(
           "GetCachedClass is called, but item does not hold ObjectId");
     }
-    if (output_class_.get() == Py_None) {
+    if (!output_class_descriptor_.has_value()) {
       return absl::InternalError(
           "GetCachedClass is called, but output_class is not provided");
     }
@@ -647,17 +652,18 @@ class ToPyVisitor : internal::AbstractVisitor {
           "item holds an object id, but its class is not found in cache; "
           "probably, it was not pre-visited");
     }
-    DCHECK(it->second != nullptr);
-    return it->second.get();
+    DCHECK(it->second.type != nullptr);
+    return it->second.type.get();
   }
 
   // If the given `item` holds ObjectId, returns a cached Python object for
   // the item (or an error if the object is not found in the converted object
   // cache). Otherwise, returns a new Python primitive for it.
   absl::StatusOr<PyObjectPtr> GetConvertedPyObjectOrCreatePrimitive(
-      const DataItem& item, PyObject* output_primitive_type) {
+      const DataItem& item,
+      const std::optional<DataClassesUtil::FieldTypeDescriptor>& field_type) {
     if (!item.holds_value<ObjectId>()) {
-      return PyObjectFromDataItem(item, DataItem(), db_, output_primitive_type);
+      return PyObjectFromDataItem(item, DataItem(), db_, field_type);
     }
     return GetConvertedPyObject(item);
   }
@@ -667,7 +673,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_values) {
     ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(object));
-    if (output_class_.get() != Py_None) {
+    if (output_class_descriptor_.has_value()) {
       return absl::InvalidArgumentError(
           "obj_as_dict cannot be used with output_class");
     }
@@ -695,9 +701,9 @@ class ToPyVisitor : internal::AbstractVisitor {
           attr_values[attr_index];
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_name_str));
-      ASSIGN_OR_RETURN(
-          PyObjectPtr py_value,
-          GetConvertedPyObjectOrCreatePrimitive(attr_value.value, Py_None));
+      ASSIGN_OR_RETURN(PyObjectPtr py_value,
+                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
+                                                             std::nullopt));
       if (py_value.get() != Py_None || include_missing_attrs_) {
         if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
             0) {
@@ -724,7 +730,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   // converted_object_cache_) and used during the visit stage to instantiate
   // the class for objects/entities/lists. Please note that it also used to
   // check if the same object is reached by different classes to fail early.
-  absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr>
+  absl::flat_hash_map<ObjectId, DataClassesUtil::FieldTypeDescriptor>
       class_cache_by_object_id_;
 
   // Cache for Python classes that are accessed by path.
@@ -736,7 +742,8 @@ class ToPyVisitor : internal::AbstractVisitor {
   //  obj3: Obj3
   // classes_by_path_ will be:
   // { (Obj1, 'obj2'): Obj2, (Obj1, 'obj3'): Obj3 }
-  absl::flat_hash_map<std::pair<PyObject*, std::string>, PyObjectPtr>
+  absl::flat_hash_map<std::pair<PyObject*, std::string>,
+                      DataClassesUtil::FieldTypeDescriptor>
       classes_by_path_;
 
   absl::flat_hash_map<ObjectId, ObjectId> item_schemas_;
@@ -750,22 +757,31 @@ class ToPyVisitor : internal::AbstractVisitor {
   DataClassesUtil dataclasses_util_;
   DataBagPtr db_;
   internal::DataBagImpl::FallbackSpan fallback_span_;
-  PyObjectPtr output_class_;
+  std::optional<DataClassesUtil::FieldTypeDescriptor> output_class_descriptor_;
 };
 
 PyObject* absl_nullable ToPyImplInternal(
     const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
     bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids,
     PyObject* output_class) {
+  DataClassesUtil dataclasses_util;
+  std::optional<DataClassesUtil::FieldTypeDescriptor> output_class_descriptor;
+  const bool output_class_is_provided = output_class != Py_None;
+  if (output_class_is_provided) {
+    ASSIGN_OR_RETURN(
+        output_class_descriptor,
+        dataclasses_util.MaybeDecayOptional(PyObjectPtr::NewRef(output_class)),
+        arolla::python::SetPyErrFromStatus(_));
+  }
   if (ds.IsEmpty() || bag == nullptr ||
       GetNarrowedSchema(ds).is_primitive_schema()) {
-    ASSIGN_OR_RETURN(
-        PyObjectPtr res,
-        PyObjectFromDataSlice(ds, /*optional_converter=*/nullptr, output_class),
-        arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(PyObjectPtr res,
+                     PyObjectFromDataSlice(ds, /*optional_converter=*/nullptr,
+                                           std::move(output_class_descriptor)),
+                     arolla::python::SetPyErrFromStatus(_));
     return res.release();
   }
-  if (obj_as_dict && output_class != Py_None) {
+  if (obj_as_dict && output_class_is_provided) {
     arolla::python::SetPyErrFromStatus(absl::InvalidArgumentError(
         "obj_as_dict cannot be used with output_class"));
     return nullptr;
@@ -777,9 +793,9 @@ PyObject* absl_nullable ToPyImplInternal(
   const internal::DataBagImpl::FallbackSpan fallback_span =
       fb_finder.GetFlattenFallbacks();
   // We use original DataBag in ToPyVisitor.
-  std::shared_ptr<ToPyVisitor> visitor =
-      std::make_shared<ToPyVisitor>(obj_as_dict, include_missing_attrs,
-                                    leaf_ids, bag, fallback_span, output_class);
+  std::shared_ptr<ToPyVisitor> visitor = std::make_shared<ToPyVisitor>(
+      obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span,
+      std::move(output_class_descriptor));
   // We use extracted DataBag for traversal.
   internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
                                                visitor);

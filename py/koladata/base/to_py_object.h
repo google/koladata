@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <optional>
+
+#include "py/koladata/base/py_conversions/dataclasses_util.h"
 // Building blocks for "To Python".
 
 #ifndef KOLADATA_BASE_TO_PY_OBJECT_H_
@@ -34,21 +37,25 @@ using ItemToPyConverter =
         const internal::DataItem& item)>;
 // Returns a new reference to a Python object, equivalent to the value stored in
 // a `internal::DataItem`. Ensures that the returned value is not nullptr.
-// If `output_primitive_type` is not Py_None, it must be a Python type
+// If `output_class_descriptor` is provided, its `type` must be a Python type
 // corresponding to the C++ type of `item`, otherwise an error is returned.
+// Its `is_optional` is used only when converting missing items: if
+// it is true or `type` is Py_None, `None` is
+// returned, otherwise an error is returned.
 absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataItem(
     const internal::DataItem& item, const internal::DataItem& schema,
-    const DataBagPtr& db, PyObject* output_primitive_type = Py_None);
+    const DataBagPtr& db,
+    const std::optional<DataClassesUtil::FieldTypeDescriptor>&
+        output_class_descriptor = std::nullopt);
 
 // Converts a DataSlice `ds` to an equivalent Python value. In case of presence
 // of multiple dimensions, a nested list of items is returned. Returns a new
 // reference to a Python object. Ensures that the returned value is not nullptr.
-// If `output_primitive_type` is not Py_None, it must be a Python type
-// corresponding to the C++ type of the DataSlice, otherwise an error is
-// returned.
+// `output_class_descriptor` - see the comment above `PyObjectFromDataItem`.
 absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataSlice(
     const DataSlice& ds, const ItemToPyConverter& optional_converter = nullptr,
-    PyObject* output_primitive_type = Py_None);
+    const std::optional<DataClassesUtil::FieldTypeDescriptor>&
+        output_class_descriptor = std::nullopt);
 
 }  // namespace koladata::python
 

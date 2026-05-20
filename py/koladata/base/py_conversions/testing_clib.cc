@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "py/arolla/abc/pybind11_utils.h"
@@ -42,35 +43,36 @@ PYBIND11_MODULE(testing_clib, m) {
            })
       .def("get_class_field_type",
            [](DataClassesUtil& self, py::handle py_class,
-              absl::string_view attr_name, bool for_primitive) -> py::object {
-             arolla::python::PyObjectPtr py_obj =
-                 arolla::python::pybind11_unstatus_or(self.GetClassFieldType(
+              absl::string_view attr_name, bool for_primitive) -> py::tuple {
+             absl::StatusOr<DataClassesUtil::FieldTypeDescriptor> field_type =
+                 self.GetClassFieldType(
                      arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                     attr_name, for_primitive));
-             return py::reinterpret_steal<py::object>(py_obj.release());
+                     attr_name, for_primitive);
+
+             if (!field_type.ok()) {
+               arolla::python::SetPyErrFromStatus(field_type.status());
+               throw pybind11::error_already_set();
+             }
+             auto type =
+                 py::reinterpret_steal<py::object>(field_type->type.release());
+             auto is_optional = py::bool_(field_type->is_optional);
+             return py::make_tuple(type, is_optional);
            })
-      .def_property_readonly(
-          "k_not_present",
-          [](DataClassesUtil& self) -> int {
-            return DataClassesUtil::OptionalFieldType::kNotPresent;
-          })
-      .def_property_readonly(
-          "k_optional",
-          [](DataClassesUtil& self) -> int {
-            return DataClassesUtil::OptionalFieldType::kOptional;
-          })
-      .def_property_readonly(
-          "k_non_optional",
-          [](DataClassesUtil& self) -> int {
-            return DataClassesUtil::OptionalFieldType::kNonOptional;
-          })
-      .def("get_optional_field_type",
-           [](DataClassesUtil& self, py::handle py_class,
-              absl::string_view attr_name) -> int {  // OptionalFieldType
-             return arolla::python::pybind11_unstatus_or(
-                 self.GetOptionalFieldType(
-                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                     attr_name));
+      .def("maybe_decay_optional",
+           [](DataClassesUtil& self, py::handle py_class) -> py::tuple {
+             absl::StatusOr<DataClassesUtil::FieldTypeDescriptor> field_type =
+                 self.MaybeDecayOptional(
+                     arolla::python::PyObjectPtr::NewRef(py_class.ptr()));
+
+             if (!field_type.ok()) {
+               arolla::python::SetPyErrFromStatus(field_type.status());
+               throw pybind11::error_already_set();
+             }
+
+             auto type =
+                 py::reinterpret_steal<py::object>(field_type->type.release());
+             auto is_optional = py::bool_(field_type->is_optional);
+             return py::make_tuple(type, is_optional);
            })
       .def("get_attr_values",
            [](DataClassesUtil& self, py::handle dataclass_obj,

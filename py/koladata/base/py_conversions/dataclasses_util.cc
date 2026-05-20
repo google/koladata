@@ -44,7 +44,7 @@ constexpr const char* kDataClassesUtilModuleName =
 constexpr const char* kMakeDataClassFnName = "make_dataclass";
 constexpr const char* kFieldsNamesAndValuesFnName = "fields_names_and_values";
 constexpr const char* kGetClassFieldTypeFnName = "get_class_field_type";
-constexpr const char* kGetOptionalFieldTypeFnName = "get_optional_field_type";
+constexpr const char* kMaybeDecayOptionalFnName = "maybe_decay_optional";
 
 constexpr const char* kSimpleNamespaceClassName = "_simple_namespace_class";
 
@@ -224,9 +224,10 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
   return values;
 }
 
-absl::StatusOr<PyObjectPtr> DataClassesUtil::GetClassFieldType(
-    PyObjectPtr absl_nonnull py_class, absl::string_view attr_name,
-    bool for_primitive) {
+absl::StatusOr<DataClassesUtil::FieldTypeDescriptor>
+DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
+                                   absl::string_view attr_name,
+                                   bool for_primitive) {
   if (attr_name.empty()) {
     return absl::InvalidArgumentError("attr_name is empty");
   }
@@ -257,7 +258,18 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::GetClassFieldType(
         absl::StatusCode::kInvalidArgument,
         absl::StrFormat("Could not get attribute %s from class", attr_name));
   }
-  return py_attr;
+  if (!PyTuple_Check(py_attr.get()) || PyTuple_GET_SIZE(py_attr.get()) != 2) {
+    return arolla::python::StatusWithRawPyErr(
+        absl::StatusCode::kInvalidArgument,
+        absl::StrFormat(
+            "dataclasses.get_class_field_type is expected to return a tuple "
+            "with 2 elements, got %s",
+            py_attr.get()->ob_type->tp_name));
+  }
+  FieldTypeDescriptor res;
+  res.type = PyObjectPtr::NewRef(PyTuple_GET_ITEM(py_attr.get(), 0));
+  res.is_optional = PyTuple_GET_ITEM(py_attr.get(), 1) == Py_True;
+  return res;
 }
 
 absl::StatusOr<std::optional<DataClassesUtil::AttrResult>>
@@ -321,40 +333,31 @@ DataClassesUtil::GetAttrNamesAndValues(PyObject* py_obj) {
   return AttrResult{std::move(attr_names), std::move(values)};
 }
 
-absl::StatusOr<DataClassesUtil::OptionalFieldType>
-DataClassesUtil::GetOptionalFieldType(PyObjectPtr absl_nonnull py_class,
-                                      absl::string_view attr_name) {
-  if (attr_name.empty()) {
-    return absl::InvalidArgumentError("attr_name is empty");
-  }
+absl::StatusOr<DataClassesUtil::FieldTypeDescriptor>
+DataClassesUtil::MaybeDecayOptional(arolla::python::PyObjectPtr
+                                    absl_nonnull py_type) {
   RETURN_IF_ERROR(InitFns());
-  PyObjectPtr args = PyObjectPtr::Own(PyTuple_New(3));
-  PyTuple_SET_ITEM(args.get(), 0, py_class.release());
-  PyObject* py_attr_name =
-      PyUnicode_FromStringAndSize(attr_name.data(), attr_name.size());
-  if (py_attr_name == nullptr) {
-    return arolla::python::StatusCausedByPyErr(
-        absl::StatusCode::kInternal,
-        absl::StrFormat("could not create a string for attr name %s",
-                        attr_name));
+  PyObjectPtr args = PyObjectPtr::Own(PyTuple_New(1));
+  PyTuple_SET_ITEM(args.get(), 0, py_type.release());
+  PyObjectPtr py_result = PyObjectPtr::Own(PyObject_Call(
+      fn_maybe_decay_optional_.get(), /*args=*/args.get(), nullptr));
+  if (py_result == nullptr) {
+    return arolla::python::StatusWithRawPyErr(
+        absl::StatusCode::kInvalidArgument, "could not decay optional type");
   }
-  PyTuple_SET_ITEM(args.get(), 1, py_attr_name);
-  PyTuple_SET_ITEM(args.get(), 2, Py_NewRef(type_hints_cache_.get()));
-
-  PyObjectPtr py_attr = PyObjectPtr::Own(PyObject_Call(
-      fn_get_optional_field_type_.get(), /*args=*/args.get(), nullptr));
-  if (py_attr == nullptr) {
+  if (!PyTuple_Check(py_result.get()) ||
+      PyTuple_GET_SIZE(py_result.get()) != 2) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
-        absl::StrFormat("could not check dataclass field %s", attr_name));
+        absl::StrFormat("koladata.base.py_conversions.dataclasses_util.maybe_"
+                        "decay_optional is expected to return a tuple "
+                        "with 2 elements, got %s",
+                        py_result.get()->ob_type->tp_name));
   }
-  if (Py_IsNone(py_attr.get())) {
-    return OptionalFieldType::kNotPresent;
-  }
-  if (Py_IsTrue(py_attr.get())) {
-    return OptionalFieldType::kOptional;
-  }
-  return OptionalFieldType::kNonOptional;
+  return FieldTypeDescriptor{
+      .type = PyObjectPtr::NewRef(PyTuple_GET_ITEM(py_result.get(), 0)),
+      .is_optional = PyTuple_GET_ITEM(py_result.get(), 1) == Py_True,
+  };
 }
 
 absl::Status DataClassesUtil::InitFns() {
@@ -366,8 +369,8 @@ absl::Status DataClassesUtil::InitFns() {
   ASSIGN_OR_RETURN(fn_fields_, InitFnFromModule(kFieldsNamesAndValuesFnName));
   ASSIGN_OR_RETURN(fn_get_class_field_type_,
                    InitFnFromModule(kGetClassFieldTypeFnName));
-  ASSIGN_OR_RETURN(fn_get_optional_field_type_,
-                   InitFnFromModule(kGetOptionalFieldTypeFnName));
+  ASSIGN_OR_RETURN(fn_maybe_decay_optional_,
+                   InitFnFromModule(kMaybeDecayOptionalFnName));
   type_hints_cache_ = PyObjectPtr::Own(PyDict_New());
   if (type_hints_cache_ == nullptr) {
     return arolla::python::StatusCausedByPyErr(
