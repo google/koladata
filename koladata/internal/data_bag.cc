@@ -310,7 +310,7 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
   auto process_source = [&](const SparseSource* source,
                             auto skip_obj_fn) -> absl::Status {
     for (const auto& [key, item] : source->GetAll()) {
-      if (!item.has_value() || skip_obj_fn(key)) {
+      if (skip_obj_fn(key)) {
         continue;
       }
       if (options.data_conflict_policy == MergeOptions::kOverwrite) {
@@ -318,7 +318,7 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
         continue;
       }
       if (std::optional<DataItem> this_result = result.Get(key);
-          !this_result.has_value() || !this_result->has_value()) {
+          !this_result.has_value()) {
         result.Set(key, item);
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&

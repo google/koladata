@@ -1656,6 +1656,28 @@ Assigned schema for keys: INT32""",
     ):
       d1.get_bag().merge_inplace(d2.get_bag(), allow_data_conflicts=False)
 
+  def test_merge_sparse_removed(self):
+    db1 = bag()
+    # Create a big allocation to force the use of big alloc sparse sources.
+    schema = db1.new_schema(x=schema_constants.INT32)
+    objs = db1.new_shaped(ds([None] * 200).get_shape(), schema=schema)
+
+    obj0 = objs.S[0]
+    obj1 = objs.S[1]
+    obj0.x = 1
+
+    db2 = bag()
+
+    entity0_in_db2 = db2.adopt(obj0.stub())
+    entity1_in_db2 = db2.adopt(obj1.stub())
+
+    entity1_in_db2.x = 2
+    del entity0_in_db2.x
+
+    testing.assert_equal(obj0.x.no_bag(), ds(1))
+    db1.merge_inplace(db2, overwrite=True)
+    testing.assert_equal(obj0.x.no_bag(), ds(None, schema_constants.INT32))
+
   def test_overwriting_merge_update(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)
