@@ -770,5 +770,37 @@ void BM_CreatePrimitive_Text(benchmark::State& state) {
 
 BENCHMARK(BM_CreatePrimitive_Text);
 
+void BM_MergeFrozenBag(benchmark::State& state) {
+  constexpr int64_t kSize = 10000;
+  DataBagPtr db = DataBag::EmptyMutable();
+  auto ds = *EntityCreator::Shaped(
+      db, DataSlice::JaggedShape::FlatFromSize(kSize), {}, {});
+  CHECK_OK(ds.GetSchema().SetAttr("a", ds.GetSchema()));
+
+  auto objs = ds.slice().values<internal::ObjectId>().values;
+  internal::SliceBuilder bldr(kSize);
+  bldr.GetMutableAllocationIds().Insert(ds.slice().allocation_ids());
+  for (int64_t i = 0; i < kSize; ++i) {
+    bldr.InsertIfNotSet(i, objs[kSize - i - 1]);
+  }
+  auto inversed_ds = DataSlice::CreateWithFlatShape(std::move(bldr).Build(),
+                                                    ds.GetSchemaImpl(), db);
+
+  // Set values in inversed order in order to force a mutable data source.
+  CHECK_OK(inversed_ds->SetAttr("a", ds));
+
+  db->Freeze();
+
+  for (auto _ : state) {
+    DataBagPtr dst = DataBag::EmptyMutable();
+    benchmark::DoNotOptimize(dst);
+    benchmark::DoNotOptimize(db);
+    CHECK_OK(dst->MergeInplace(db, true, true, true));
+    benchmark::DoNotOptimize(dst);
+  }
+}
+
+BENCHMARK(BM_MergeFrozenBag);
+
 }  // namespace
 }  // namespace koladata
