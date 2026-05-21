@@ -570,12 +570,22 @@ void ValueArraySet(AllocationId alloc_id, ValueArray& data,
 
 template <typename ValueArray>
 void ValueArrayUnset(AllocationId alloc_id, ValueArray& data,
+                     std::vector<uint32_t>& mask,
                      const ObjectIdArray& objects) {
-  objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
-    if (present && alloc_id.Contains(obj)) {
-      data.Unset(obj.Offset());
-    }
-  });
+  if (mask.empty()) {
+    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
+      if (present && alloc_id.Contains(obj)) {
+        data.Unset(obj.Offset());
+      }
+    });
+  } else {
+    objects.ForEach([&](int64_t id, bool present, ObjectId obj) {
+      if (present && alloc_id.Contains(obj)) {
+        data.Unset(obj.Offset());
+        arolla::bitmap::SetBit(mask.data(), obj.Offset());
+      }
+    });
+  }
 }
 
 struct AllRemovedTag {};
@@ -756,7 +766,7 @@ class TypedDenseSource final : public DenseSource {
       return multitype_->Set(objects, values);
     }
     if (values.is_empty_and_unknown()) {
-      ValueArrayUnset(obj_allocation_id_, values_, objects);
+      ValueArrayUnset(obj_allocation_id_, values_, values_mask_, objects);
       return absl::OkStatus();
     }
     if (values.is_mixed_dtype() || values.dtype() != arolla::GetQType<T>()) {

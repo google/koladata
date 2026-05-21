@@ -2336,6 +2336,56 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
       db_new <<= db_fallback
       self.assertEqual(db_new.get_approx_size(), 5000)
 
+  def test_merge_inplace_dense_to_sparse(self):
+    # Recreate the shared pointer mutation bug exactly mirroring the C++ steps.
+    db_other = bag()
+    # Allocate 100 objects in db_other
+    objs = db_other.new(x=ds([None] * 100))
+
+    # Populate attribute 'a' in db_other for items 1 to 99.
+    # It creates a mutable DenseSource where index 0 is uninitialized.
+    objs.S[1:].a = ds(list(range(1, 100)))
+
+    db_this = bag()
+    # It creates a SparseSource with index 0 only.
+    objs.with_bag(db_this).S[0].set_attr('a', 999, overwrite_schema=True)
+
+    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
+
+    db_this.merge_inplace(db_other, overwrite=True)
+
+    # Assert that `db_other` wasn't changed during merge.
+    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
+
+  def test_sparse_to_dense_with_removed_value(self):
+    db = bag()
+    schema = db.new_schema(x=schema_constants.INT32)
+    objs = db.new_shaped(
+        ds([None] * 200).get_shape(), schema=schema
+    )
+
+    db_fallback = bag()
+    db_fallback.adopt(schema)
+    objs.with_bag(db_fallback).x = 99
+
+    # Creates SparseSource with REMOVED value
+    del objs.S[0].x
+
+    # Verify that objs.S[0] is REMOVED and we don't get values from the fallback
+    testing.assert_equal(
+        objs.freeze_bag().enriched(db_fallback).S[0].x.no_bag(),
+        ds(None, schema=schema_constants.INT32),
+    )
+
+    # Trigger sparse-to-dense upgrade in db
+    objs.S[1:181].x = 5
+
+    # objs.S[0] should still be REMOVED
+    testing.assert_equal(
+        objs.freeze_bag().enriched(db_fallback).S[0].x.no_bag(),
+        ds(None, schema=schema_constants.INT32),
+    )
+
 
 class NullDataBagTest(absltest.TestCase):
 
@@ -2363,27 +2413,6 @@ class NullDataBagTest(absltest.TestCase):
 
   def test_str(self):
     self.assertEqual(str(data_bag.null_bag()), 'DataBag(null)')
-
-  def test_merge_inplace_dense_to_sparse(self):
-    # Recreate the shared pointer mutation bug exactly mirroring the C++ steps.
-    db_other = bag()
-    # Allocate 100 objects in db_other
-    objs = db_other.new(x=ds([None] * 100))
-
-    # Populate attribute 'a' in db_other for items 1 to 99.
-    # It creates a mutable DenseSource where index 0 is uninitialized.
-    objs.S[1:].a = ds(list(range(1, 100)))
-
-    db_this = bag()
-    # It creates a SparseSource with index 0 only.
-    objs.with_bag(db_this).S[0].set_attr('a', 999, overwrite_schema=True)
-
-    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
-
-    db_this.merge_inplace(db_other, overwrite=True)
-
-    # Assert that `db_other` wasn't changed during merge.
-    self.assertIsNone(objs.with_bag(db_other).S[0].a.to_py())
 
 
 if __name__ == '__main__':
