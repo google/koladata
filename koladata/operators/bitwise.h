@@ -15,7 +15,6 @@
 #ifndef KOLADATA_OPERATORS_BITWISE_H_
 #define KOLADATA_OPERATORS_BITWISE_H_
 
-#include "koladata/operators/bitwise.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 
