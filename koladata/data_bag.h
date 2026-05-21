@@ -94,6 +94,7 @@ class DataBag : public arolla::RefcountedBase {
     // We check forked_ first without exchanging to be more efficient when it is
     // already false (which is the common case).
     if (forked_ && forked_.exchange(false)) {
+      impl_->Freeze();
       impl_ = impl_->PartiallyPersistentFork();
       impl_->AssignToDataBag();
     }
@@ -112,7 +113,10 @@ class DataBag : public arolla::RefcountedBase {
   // Use this function with caution because if the data bag is shared between
   // several users, some of them might not expect that it suddenly becomes
   // immutable.
-  void UnsafeMakeImmutable() { is_mutable_ = false; }
+  void UnsafeMakeImmutable() {
+    is_mutable_ = false;
+    impl_->Freeze();
+  }
 
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
@@ -220,7 +224,11 @@ class DataBag : public arolla::RefcountedBase {
         is_mutable_(is_mutable),
         // NOTE: consider lazy initialization of the fingerprint if it becomes
         // expensive to compute.
-        fingerprint_(internal::PseudoRandomFingerprint()) {}
+        fingerprint_(internal::PseudoRandomFingerprint()) {
+    if (!is_mutable) {
+      impl_->Freeze();
+    }
+  }
 
   // Returns a mutable DataBag that wraps provided low-level DataBagImpl.
   static DataBagPtr FromImpl(internal::DataBagImplPtr impl);

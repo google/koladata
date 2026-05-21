@@ -172,6 +172,12 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Returns true if this DataBag is empty.
   bool IsEmpty() const;
 
+  // Freezing a DataBagImpl forbids all mutating operations (e.g. SetAttr on
+  // a frozen bag will return an error). It is useful because for some
+  // operations with frozen bags we can avoid data copying.
+  bool IsFrozen() const { return frozen_; }
+  void Freeze() { frozen_ = true; }
+
   // Returns DataSliceImpl with attribute for every object.
   // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttr(
@@ -766,6 +772,8 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   DataBagImpl() = default;
 
+  absl::Status CheckNotFrozen() const;
+
   bool IsUnmodifiedForkOf(const DataBagImpl* other) const;
 
   // Returns this if it's not pristine, otherwise returns the first non-pristine
@@ -1015,6 +1023,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   //   While we use the DictVector with a single element, where we set `present`
   //   value for every attribute name that appears in the allocation.
   absl::flat_hash_map<AllocationId, std::shared_ptr<DictVector>> dicts_;
+
+  bool frozen_ = false;
 };
 
 }  // namespace koladata::internal

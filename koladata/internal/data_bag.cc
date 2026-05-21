@@ -865,9 +865,18 @@ absl::Status DataBagImpl::GetOrCreateMutableSourceInCollection(
   return absl::OkStatus();
 }
 
+absl::Status DataBagImpl::CheckNotFrozen() const {
+  if (frozen_) {
+    return absl::FailedPreconditionError(
+        "modifying a frozen DataBagImpl is not allowed");
+  }
+  return absl::OkStatus();
+}
+
 absl::StatusOr<DataSliceImpl>
 DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
     const DataSliceImpl& objects, absl::string_view attr) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (objects.is_empty_and_unknown()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(0);
   }
@@ -949,6 +958,7 @@ DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
 absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
     absl::Span<const absl::string_view> attr_names,
     const std::vector<std::reference_wrapper<const DataSliceImpl>>& slices) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(attr_names.size(), slices.size());
   int64_t ds_size = -1;
   for (const auto& value : slices) {
@@ -990,6 +1000,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
 absl::StatusOr<DataItem> DataBagImpl::CreateObjectsFromFields(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(attr_names.size(), items.size());
   ObjectId object_id = AllocateSingleObject();
   for (int i = 0; i < attr_names.size(); ++i) {
@@ -1076,6 +1087,7 @@ DataBagImpl::SourceCollection& DataBagImpl::GetOrCreateSourceCollection(
 absl::Status DataBagImpl::SetAttrFullAlloc(AllocationId alloc_id,
                                            absl::string_view attr,
                                            const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (values.is_empty_and_unknown()) {
     // All new values are unset -> no op
     return absl::OkStatus();
@@ -1126,6 +1138,7 @@ absl::Status DataBagImpl::SetAttrFullAlloc(AllocationId alloc_id,
 absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
                                   absl::string_view attr,
                                   const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (objects.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -1175,6 +1188,7 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
 
 absl::Status DataBagImpl::SetAttr(const DataItem& object,
                                   absl::string_view attr, DataItem value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!object.holds_value<ObjectId>()) {
     if (object.has_value()) {
       return absl::FailedPreconditionError(
@@ -1441,6 +1455,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromLists(
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::PopFromLists(
     const DataSliceImpl& lists, const arolla::DenseArray<int64_t>& indices) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.is_empty_and_unknown()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(lists.size());
   }
@@ -1546,6 +1561,7 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
 absl::Status DataBagImpl::ExtendLists(
     const DataSliceImpl& lists, const DataSliceImpl& values,
     const arolla::DenseArrayEdge& values_to_lists) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -1585,6 +1601,7 @@ absl::Status DataBagImpl::ExtendLists(
 absl::Status DataBagImpl::ReplaceInLists(
     const DataSliceImpl& lists, ListRange range, const DataSliceImpl& values,
     const arolla::DenseArrayEdge& values_to_lists) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(values_to_lists.parent_size(), lists.size());
   DCHECK_EQ(values_to_lists.child_size(), values.size());
   if (lists.is_empty_and_unknown()) {
@@ -1652,6 +1669,7 @@ absl::Status DataBagImpl::ReplaceInLists(
 absl::Status DataBagImpl::SetInLists(const DataSliceImpl& lists,
                                      const arolla::DenseArray<int64_t>& indices,
                                      const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.size() != values.size()) {
     return absl::FailedPreconditionError("lists.size() != values.size()");
   }
@@ -1713,6 +1731,7 @@ absl::Status DataBagImpl::SetInLists(const DataSliceImpl& lists,
 
 absl::Status DataBagImpl::RemoveInList(
     const DataSliceImpl& lists, const arolla::DenseArray<int64_t>& indices) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.size() != indices.size()) {
     return absl::FailedPreconditionError("lists.size() != indices.size()");
   }
@@ -1746,6 +1765,7 @@ absl::Status DataBagImpl::RemoveInList(
 
 absl::Status DataBagImpl::AppendToList(const DataSliceImpl& lists,
                                        const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.size() != values.size()) {
     return absl::FailedPreconditionError("lists.size() != values.size()");
   }
@@ -1793,6 +1813,7 @@ absl::Status DataBagImpl::AppendToList(const DataSliceImpl& lists,
 
 absl::Status DataBagImpl::RemoveInList(const DataSliceImpl& lists,
                                        ListRange range) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (lists.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -1847,6 +1868,7 @@ absl::StatusOr<DataItem> DataBagImpl::GetFromList(
 
 absl::StatusOr<DataItem> DataBagImpl::PopFromList(const DataItem& list,
                                                   int64_t index) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return DataItem();
   }
@@ -1882,6 +1904,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::ExplodeList(
 
 absl::Status DataBagImpl::SetInList(const DataItem& list, int64_t index,
                                     DataItem value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return absl::OkStatus();
   }
@@ -1898,6 +1921,7 @@ absl::Status DataBagImpl::SetInList(const DataItem& list, int64_t index,
 }
 
 absl::Status DataBagImpl::AppendToList(const DataItem& list, DataItem value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return absl::OkStatus();
   }
@@ -1910,6 +1934,7 @@ absl::Status DataBagImpl::AppendToList(const DataItem& list, DataItem value) {
 
 absl::Status DataBagImpl::ExtendList(const DataItem& list,
                                      const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return absl::OkStatus();
   }
@@ -1936,6 +1961,7 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
 
 absl::Status DataBagImpl::ReplaceInList(const DataItem& list, ListRange range,
                                         const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return absl::OkStatus();
   }
@@ -1975,6 +2001,7 @@ int64_t DataBagImpl::RemoveAndReserveInList(DataList& list, ListRange range,
 }
 
 absl::Status DataBagImpl::RemoveInList(const DataItem& list, ListRange range) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!list.has_value()) {
     return absl::OkStatus();
   }
@@ -2345,6 +2372,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDict(
 absl::Status DataBagImpl::SetInDict(const DataSliceImpl& dicts,
                                     const DataSliceImpl& keys,
                                     const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (dicts.size() != keys.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("dicts and keys sizes don't match: %d vs %d",
@@ -2421,6 +2449,7 @@ absl::Status DataBagImpl::SetInDict(const DataSliceImpl& dicts,
 }
 
 absl::Status DataBagImpl::ClearDict(const DataSliceImpl& dicts) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (dicts.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -2581,6 +2610,7 @@ absl::StatusOr<DataItem> DataBagImpl::GetFromDict(
 
 absl::Status DataBagImpl::SetInDict(const DataItem& dict, const DataItem& key,
                                     const DataItem& value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!dict.has_value()) {
     return absl::OkStatus();
   }
@@ -2594,6 +2624,7 @@ absl::Status DataBagImpl::SetInDict(const DataItem& dict, const DataItem& key,
 }
 
 absl::Status DataBagImpl::ClearDict(const DataItem& dict) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!dict.has_value()) {
     return absl::OkStatus();
   }
@@ -2827,6 +2858,7 @@ absl::Status InvalidRhsSetSchemaAttrError(const DataSliceImpl& not_a_schema) {
 absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
                                         absl::string_view attr,
                                         const DataItem& value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!schema_item.holds_value<ObjectId>()) {
     if (!schema_item.has_value()) {
       return absl::OkStatus();
@@ -2878,6 +2910,7 @@ DataSliceImpl DataBagImpl::WithoutSmallAllocs(
 absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataItem& value) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (attr != schema::kSchemaNameAttr && attr != schema::kSchemaMetadataAttr) {
     RETURN_IF_ERROR(VerifyIsSchemaOrNone(value));
   }
@@ -2929,6 +2962,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
 absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataSliceImpl& values) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -3024,6 +3058,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
 
 absl::Status DataBagImpl::DelSchemaAttr(const DataItem& schema_item,
                                         absl::string_view attr) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   RETURN_IF_ERROR(GetSchemaAttr(schema_item, attr).status());
   if (!schema_item.has_value()) {
     return absl::OkStatus();
@@ -3033,6 +3068,7 @@ absl::Status DataBagImpl::DelSchemaAttr(const DataItem& schema_item,
 
 absl::Status DataBagImpl::DelSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   RETURN_IF_ERROR(GetSchemaAttr(schema_slice, attr).status());
   return SetSchemaAttr(schema_slice, attr,
                        DataSliceImpl::Create(schema_slice.size(), DataItem()));
@@ -3053,6 +3089,7 @@ absl::Status DataBagImpl::SetSchemaFields(
     const DataItem& schema_item,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (!schema_item.holds_value<ObjectId>()) {
     if (!schema_item.has_value()) {
       return absl::OkStatus();
@@ -3074,6 +3111,7 @@ absl::Status DataBagImpl::SetSchemaFields(
     const DataSliceImpl& schema_slice,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(attr_names.size(), items.size());
   if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
@@ -3088,6 +3126,7 @@ absl::Status DataBagImpl::SetSchemaFieldsForEntireAllocation(
     AllocationId schema_alloc_id, size_t size,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const std::reference_wrapper<const DataItem>> items) {
+  RETURN_IF_ERROR(CheckNotFrozen());
   DCHECK_EQ(attr_names.size(), items.size());
   DCHECK(schema_alloc_id.IsSchemasAlloc());
   if (size == 0) {
@@ -3307,7 +3346,8 @@ absl::Status DataBagImpl::MergeBigAllocImpl(
           // In case single dense source is immutable, it is fine to share it
           // across DataBags.
           if (!other_sparse_sources.empty() ||
-              other_source_collection_copy.const_dense_source->IsMutable()) {
+              (other_source_collection_copy.const_dense_source->IsMutable() &&
+               !other.IsFrozen())) {
             RETURN_IF_ERROR(other_db->CreateMutableDenseSource(
                 other_source_collection_copy, alloc, attr_name,
                 // QType is not needed if dense source is present
@@ -3620,6 +3660,7 @@ absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
                                        MergeOptions options) {
   arolla::profiling::TraceMe traceme(
       "::koladata::internal::DataBagImpl::MergeInplace");
+  RETURN_IF_ERROR(CheckNotFrozen());
   if (other.IsSubsetOf(*this)) {
     return absl::OkStatus();
   }

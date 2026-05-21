@@ -69,6 +69,10 @@ DataBagPtr DataBag::FallbackFreeFork(bool immutable) {
   }
   new_db->impl_ = impl_->PartiallyPersistentFork();
   new_db->impl_->AssignToDataBag();
+  impl_->Freeze();
+  if (immutable) {
+    new_db->impl_->Freeze();
+  }
 
   // If the original DataBag is mutable, we need to assign a new implementation
   // to it, because it can be modified and the modifications will affect the
@@ -117,6 +121,7 @@ constexpr absl::string_view kNullDataBagQValueSpecializationKey =
 
 absl::StatusOr<internal::DataBagImplPtr> MergeFallbacksToForkedImpl(
     const DataBag& db) {
+  DCHECK(db.GetImpl().IsFrozen());
   auto forked_impl = db.GetImpl().PartiallyPersistentFork();
   FlattenFallbackFinder fallback_finder(db);
   auto keep_original = internal::MergeOptions{

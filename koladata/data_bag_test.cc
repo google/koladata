@@ -45,6 +45,7 @@ TEST(DataBagTest, Empty) {
   auto db = DataBag::Empty();
   EXPECT_FALSE(db->IsMutable());
   EXPECT_TRUE(db->IsEmpty());
+  EXPECT_TRUE(db->GetImpl().IsFrozen());
 }
 
 TEST(DataBagTest, Fallbacks) {
@@ -52,6 +53,7 @@ TEST(DataBagTest, Fallbacks) {
   EXPECT_TRUE(db->IsMutable());
   EXPECT_OK(db->GetMutableImpl());
   EXPECT_THAT(db->GetFallbacks(), ElementsAre());
+  EXPECT_FALSE(db->GetImpl().IsFrozen());
   auto db_fb = DataBag::EmptyMutable();
 
   EXPECT_THAT(
@@ -59,6 +61,7 @@ TEST(DataBagTest, Fallbacks) {
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
 
   db->UnsafeMakeImmutable();
+  EXPECT_TRUE(db->GetImpl().IsFrozen());
   EXPECT_THAT(
       DataBag::ImmutableEmptyWithFallbacks({db, nullptr, db_fb}),
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
@@ -73,6 +76,7 @@ TEST(DataBagTest, Fallbacks) {
   EXPECT_THAT(
       new_db->GetMutableImpl(),
       StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("immutable")));
+  EXPECT_TRUE(new_db->GetImpl().IsFrozen());
 }
 
 TEST(DataBagTest, CollectFlattenFallbacks) {
@@ -294,6 +298,7 @@ TEST(DataBagTest, Fork) {
   ASSERT_OK_AND_ASSIGN(auto ds1,
                        EntityCreator::FromAttrs(db1, {"a"}, {ds_a_db1}));
   EXPECT_FALSE(db1->IsEmpty());
+  EXPECT_FALSE(db1->GetImpl().IsFrozen());
 
   ASSERT_OK_AND_ASSIGN(auto db2, db1->Fork());
   auto ds2 = ds1.WithBag(db2);
@@ -317,14 +322,17 @@ TEST(DataBagTest, Fork_Immutable) {
   ASSERT_OK_AND_ASSIGN(auto immutable_db, db->Fork(/*immutable=*/true));
   EXPECT_TRUE(db->IsEmpty());
   const internal::DataBagImpl* immutable_db_impl_ptr = &immutable_db->GetImpl();
+  EXPECT_TRUE(immutable_db_impl_ptr->IsFrozen());
 
   // Check that forking an immutable DataBag doesn't change its DataBagImpl.
   {
-    auto forked_db = immutable_db->Fork(true);
+    ASSERT_OK_AND_ASSIGN(auto forked_db, immutable_db->Fork(true));
+    EXPECT_TRUE(forked_db->GetImpl().IsFrozen());
     EXPECT_EQ(immutable_db_impl_ptr, &immutable_db->GetImpl());
   }
   {
-    auto forked_db = immutable_db->Fork(false);
+    ASSERT_OK_AND_ASSIGN(auto forked_db, immutable_db->Fork(false));
+    EXPECT_FALSE(forked_db->GetImpl().IsFrozen());
     EXPECT_EQ(immutable_db_impl_ptr, &immutable_db->GetImpl());
   }
 }
@@ -361,6 +369,7 @@ TEST(DataBagTest, MergeFallbacks) {
   ASSERT_OK_AND_ASSIGN(auto db,
                        DataBag::ImmutableEmptyWithFallbacks({fallback_db}));
   EXPECT_FALSE(db->IsEmpty());
+  EXPECT_TRUE(db->GetImpl().IsFrozen());
   auto ds2 = ds1.WithBag(db);
 
   const internal::DataBagImpl* db_impl = &db->GetImpl();
