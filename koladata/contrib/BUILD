@@ -23,7 +23,9 @@ licenses(["notice"])
 cc_library(
     name = "operators",
     srcs = ["operators.cc"],
-    visibility = ["//py/koladata/ext/contrib:__pkg__"],
+    visibility = [
+        "//py/koladata/ext:__pkg__",
+    ],
     deps = [
         ":flatten_cyclic_references",
         ":sanitize_names",

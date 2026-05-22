@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Building block for :cc_operators package."""
+# Tests for kd_ext.ids operators.
 
-from koladata.operators import optools
+load("@rules_python//python:defs.bzl", "py_test")
 
-# pylint: disable=g-import-not-at-top
+licenses(["notice"])
 
-with optools.building_cc_operator_package():
-  from koladata.ext.contrib import operators as _
+py_test(
+    name = "ids_with_auto_attributes_test",
+    srcs = ["ids_with_auto_attributes_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)

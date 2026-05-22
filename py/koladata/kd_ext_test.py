@@ -87,6 +87,17 @@ class KdExtTest(absltest.TestCase):
         arolla.M.annotation.source_location,
     )
 
+  def test_ids_package(self):
+    self.assertIn('ids', dir(kd_ext))
+    schema = kd_ext.ids.with_auto_attributes(
+        kd.schema.new_schema(a=kd.INT32),
+        foo_id=kd_ext.ids.auto_id('foo'),
+    )
+    kd.testing.assert_equal(
+        schema.foo_id,
+        kd.STRING.with_bag(schema.get_bag()),
+    )
+
   def test_function(self):
     self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
 

@@ -12,16 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@com_google_arolla//py/arolla/dynamic_deps:build_defs.bzl", "arolla_py_cc_deps")
 load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 # Tools for working with external libraries, such as numpy, pandas, etc.
+
+load("//py/koladata/operators:optools.bzl", "koladata_cc_operator_package")
 
 package(default_visibility = [
     "//koladata:internal",
 ])
 
 licenses(["notice"])
+
+# C++-only kd_ext operator package. Use this one for serving.
+# In Python `from koladata import kd_ext` instead.
+koladata_cc_operator_package(
+    name = "cc_operators",
+    arolla_initializer = {
+        "name": "arolla_operators/kd_ext",
+        "deps": ["arolla_operators/koda_base"],
+    },
+    imports = [
+        "koladata.ext.build_cc_operators",
+    ],
+    preimports = ["koladata.kd"],
+    tool_deps = [
+        ":build_cc_operators",
+        "//py/koladata:kd",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//koladata/contrib:operators",
+        "//py/koladata/operators:cc_operators",
+    ],
+)
+
+arolla_py_cc_deps(
+    name = "cc_operators_py_clib",
+    dynamic_deps = [
+        "//py/koladata/dynamic_deps:koladata_so",
+        "//py/koladata/dynamic_deps:koladata_operators_so",
+    ],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata:__subpackages__",
+    ],
+    deps = [
+        ":cc_operators",
+    ],
+)
 
 py_library(
     name = "npkd",
@@ -129,6 +170,33 @@ py_library(
         ":functools",
         "//py:python_path",
         "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "build_cc_operators",
+    srcs = ["build_cc_operators.py"],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata:__subpackages__",
+    ],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/ext/contrib:operators",
+        "//py/koladata/ext/ids:operators",
+        "//py/koladata/operators:optools",
+    ],
+)
+
+py_library(
+    name = "kde_operators",
+    srcs = ["kde_operators.py"],
+    deps = [
+        ":cc_operators_py_clib",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/ext/contrib:operators",
+        "//py/koladata/ext/ids:operators",
     ],
 )
 

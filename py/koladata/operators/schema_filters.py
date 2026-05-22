@@ -18,9 +18,7 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 
-M = arolla.M
 P = arolla.P
-constraints = arolla.optools.constraints
 
 
 optools.set_namespace_docstring('kd.schema_filters', __doc__)

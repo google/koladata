@@ -12,16 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes Koda extension operators.
+# Auto-ID and auto-reference operators for Koda.
 
-Do not use directly, use `from koladata import kd_ext` instead.
-"""
+load("@rules_python//python:defs.bzl", "py_library")
 
-from koladata import kd
-from koladata.ext.contrib import cc_operators_py_clib as _
+package(default_visibility = ["//visibility:private"])
 
-# The Expr operators are coming from :cc_operators package, importing this
-# module in order to register Koda-specific parts like view and repr.
-from koladata.ext.contrib import operators as _  # pylint: disable=g-bad-import-order
+licenses(["notice"])
 
-kde_ext = kd.optools.make_operators_container('kd_ext', 'kd_ext.contrib').kd_ext
+py_library(
+    name = "operators",
+    srcs = ["operators.py"],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata/ext:__pkg__",
+    ],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
+    ],
+)

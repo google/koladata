@@ -21,13 +21,13 @@ import typing as _typing
 from koladata import kd as _kd
 from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
+from koladata.ext import kde_operators as _kde_operators
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
 from koladata.ext import py_cloudpickle as _py_cloudpickle
 from koladata.ext import vis as _vis
 from koladata.ext.contrib import functions as _contrib_functions
-from koladata.ext.contrib import kde_operators as _kde_operators
 from koladata.ext.pseudo_random import pseudo_random as _pseudo_random
 from koladata.ext.storage import storage as _storage
 from koladata.ext.view import kv as _kv

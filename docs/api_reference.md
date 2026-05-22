@@ -50,6 +50,7 @@ Category  | Subcategory | Description
  | [types](api/kd/types.md) | Types used as type annotations in users&#39;s code.
 [kd_ext](api/kd_ext.md) | | `kd_ext` operators
  | [contrib](api/kd_ext/contrib.md) | Contrib operators.
+ | [ids](api/kd_ext/ids.md) | Auto-ID and auto-reference operators.
  | [kv](api/kd_ext/kv.md) | Experimental Koda View API.
  | [nested_data](api/kd_ext/nested_data.md) | Utilities for manipulating nested data.
  | [npkd](api/kd_ext/npkd.md) | Tools for Numpy &lt;-&gt; Koda interoperability.
