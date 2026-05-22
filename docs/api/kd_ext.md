@@ -32,4 +32,3 @@ Alias for [kd.functor.py_fn](kd/functor.md#kd.functor.py_fn)
 ### `kd_ext.py_cloudpickle(obj: Any) -> PyObject` {#kd_ext.py_cloudpickle}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps into a Arolla QValue using cloudpickle for serialization.</code></pre>
-

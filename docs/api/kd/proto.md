@@ -232,4 +232,3 @@ Args:
 
 Returns:
   A DataSlice of STRING with the same shape and sparsity as `x`.</code></pre>
-

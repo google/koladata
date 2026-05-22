@@ -473,4 +473,3 @@ Args:
 Returns:
   The quantiles corresponding to the probabilities in `x` for the Student&#39;s
   t-distribution with the given degrees of freedom.</code></pre>
-

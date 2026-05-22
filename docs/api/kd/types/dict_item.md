@@ -12,4 +12,3 @@
 ### `DictItem.pop(self, key: Any) -> DataItem` {#kd.types.DictItem.pop}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Removes an item from the DictItem.</code></pre>
-

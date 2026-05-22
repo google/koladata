@@ -408,4 +408,3 @@ Args:
     mentioned above apply.
   description: A description of the update. Optional. If provided, it will
     be stored in the history metadata of this manager.</code></pre>
-

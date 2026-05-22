@@ -149,4 +149,3 @@ Returns:
 ### `View.take(self, index: ViewOrAutoBoxType) -> View` {#kd_ext.kv.types.View.take}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a view with the given index in the last dimension.</code></pre>
-

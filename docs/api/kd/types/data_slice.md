@@ -1150,4 +1150,3 @@ Returns:
 
 Args:
   x: An OBJECT DataSlice.</code></pre>
-

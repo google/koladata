@@ -23,4 +23,3 @@ human-readable strings.
 ### `RevisionMetadata.__init__(self, description: str, timestamp: str) -> None` {#kd_ext.storage.data_slice_manager.RevisionMetadata.__init__}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Initialize self.  See help(type(self)) for accurate signature.</code></pre>
-

@@ -92,4 +92,3 @@ Aliases:
 - [kd.new_listid_shaped_as](../kd.md#kd.new_listid_shaped_as)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Allocates new List ItemIds with the shape of shape_from.</code></pre>
-

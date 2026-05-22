@@ -72,4 +72,3 @@ Args:
   x: a Python value or a DataItem.
   schema: schema DataItem to set. If `x` is already a DataItem, this will cast
     it to the given schema.</code></pre>
-

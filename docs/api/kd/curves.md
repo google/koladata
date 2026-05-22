@@ -63,4 +63,3 @@ Args:
 
 Returns:
   FLOAT64 DataSlice with the same dimensions as p with interpolation results.</code></pre>
-

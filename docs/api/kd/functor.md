@@ -978,4 +978,3 @@ Returns:
   If `returns` is a state variable, the value of `returns` when the loop
   ended. Otherwise, an iterable combining the values of `yields` or
   `yields_interleaved` from each body invocation.</code></pre>
-

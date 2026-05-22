@@ -276,4 +276,3 @@ Aliases:
 ### `kd.shapes.size(shape)` {#kd.shapes.size}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the total number of elements the jagged shape represents.</code></pre>
-

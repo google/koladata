@@ -44,4 +44,3 @@ Alias for [kd_ext.storage.data_slice_path.DataSlicePath.parse_from_string](data_
 ### `DataSlicePath.to_string(self) -> str` {#kd_ext.storage.DataSlicePath.to_string}
 
 Alias for [kd_ext.storage.data_slice_path.DataSlicePath.to_string](data_slice_path/data_slice_path.md#kd_ext.storage.data_slice_path.DataSlicePath.to_string)
-

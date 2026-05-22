@@ -43,4 +43,3 @@ Aliases:
 - [kd.bitwise_invert](../kd.md#kd.bitwise_invert)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise ~x.</code></pre>
-

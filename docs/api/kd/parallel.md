@@ -96,4 +96,3 @@ Args:
 
 Returns:
   Yields the items of the output iterable as soon as they are available.</code></pre>
-

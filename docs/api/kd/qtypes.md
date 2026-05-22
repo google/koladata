@@ -24,4 +24,3 @@
 ### `kd.qtypes.NON_DETERMINISTIC_TOKEN` {#kd.qtypes.NON_DETERMINISTIC_TOKEN}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">QType for non-deterministic token.</code></pre>
-

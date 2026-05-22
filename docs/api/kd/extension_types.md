@@ -223,4 +223,3 @@ Args:
 ### `kd.extension_types.wrap(x: Any, qtype: QType) -> Any` {#kd.extension_types.wrap}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Wraps `x` into an instance of the given extension type.</code></pre>
-

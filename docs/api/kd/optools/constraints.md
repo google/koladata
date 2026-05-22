@@ -36,4 +36,3 @@
 ### `kd.optools.constraints.expect_jagged_shape_or_unspecified(param) -> tuple[Expr, str]` {#kd.optools.constraints.expect_jagged_shape_or_unspecified}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a constraint that the argument is a jagged shape or unspecified().</code></pre>
-

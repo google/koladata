@@ -140,4 +140,3 @@ Args:
 
 Returns:
   The merged data bag.</code></pre>
-

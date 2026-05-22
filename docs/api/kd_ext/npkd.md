@@ -84,4 +84,3 @@ Returns:
 ### `kd_ext.npkd.to_array(ds: DataSlice) -> ndarray` {#kd_ext.npkd.to_array}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Converts a DataSlice to a numpy array.</code></pre>
-

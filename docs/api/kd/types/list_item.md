@@ -12,4 +12,3 @@
 ### `ListItem.pop(self, index: int = -1) -> DataItem` {#kd.types.ListItem.pop}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Removes an item from the ListItem.</code></pre>
-

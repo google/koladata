@@ -48,4 +48,3 @@
 ### `AccessType.VALUE_SCHEMA` {#kd_ext.vis.AccessType.VALUE_SCHEMA}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Types of accesses that can appear in an access path.</code></pre>
-

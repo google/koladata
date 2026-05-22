@@ -160,4 +160,3 @@ Args:
 
 Returns:
   Series representing the extracted column.</code></pre>
-

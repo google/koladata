@@ -49,4 +49,3 @@ attributes -- see the documentation for details.
 
 ### `DescendMode.VALUE` {#kd_ext.vis.DescendMode.VALUE}
 *No description*
-

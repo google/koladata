@@ -104,4 +104,3 @@ Args:
 ### `kd.expr.unwrap_named(expr: Expr) -> Expr` {#kd.expr.unwrap_named}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Unwraps a named Expr, raising if it is not named.</code></pre>
-

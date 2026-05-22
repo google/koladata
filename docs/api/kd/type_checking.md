@@ -234,4 +234,3 @@ Args:
 
 Returns:
   A constraint that the argument is a static when tracing.</code></pre>
-

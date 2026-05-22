@@ -69,4 +69,3 @@ Returns:
 
 Raises:
   ActionParsingError: if the action is applicable but it cannot be parsed.</code></pre>
-

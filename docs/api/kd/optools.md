@@ -229,4 +229,3 @@ Raises:
 ### `kd.optools.unified_non_deterministic_kwarg() -> dict[str, Expr]` {#kd.optools.unified_non_deterministic_kwarg}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., **kwarg)`.</code></pre>
-

@@ -24,4 +24,3 @@ Subcategory | Description
 
 ### `kd.file_io.get_default_file_system_interaction() -> FileSystemInterface` {#kd.file_io.get_default_file_system_interaction}
 *No description*
-

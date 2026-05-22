@@ -80,4 +80,3 @@ Returns:
 ### `kd_ext.vis.visualize_slice(ds: DataSlice, options: DataSliceVisOptions | None = None) -> _DataSliceViewState` {#kd_ext.vis.visualize_slice}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Visualizes a DataSlice as a html widget.</code></pre>
-

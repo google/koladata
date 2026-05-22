@@ -45,4 +45,3 @@ the given time, the method raises a `TimeoutError`.
 
 Args:
   timeout: A timeout in seconds. `None` means wait indefinitely.</code></pre>
-

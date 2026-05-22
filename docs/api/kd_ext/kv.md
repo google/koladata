@@ -716,4 +716,3 @@ Args:
 
 Returns:
   A scalar view on the object.</code></pre>
-

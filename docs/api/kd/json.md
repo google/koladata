@@ -328,4 +328,3 @@ Args:
   include_missing_values: A BOOLEAN DataItem. If `False`, attributes with
     missing values will be omitted from entity JSON objects. Defaults to
     `True`.</code></pre>
-

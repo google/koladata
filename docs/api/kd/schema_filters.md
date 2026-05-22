@@ -57,4 +57,3 @@ Args:
 Returns:
   A DataSlice with the subset of the structure of `x`, filtered according to
   the `schema_filter`.</code></pre>
-

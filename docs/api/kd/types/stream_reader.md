@@ -36,4 +36,3 @@ call is guaranteed to return a non-trivial result:
  * a non-empty list if there are more items available,
  * `None` if the stream was closed without an error, or
  * raise an error if the stream was closed with an error.</code></pre>
-

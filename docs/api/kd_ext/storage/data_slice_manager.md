@@ -143,4 +143,3 @@ Alias for [kd_ext.storage.data_slice_manager.DataSliceManager.set_read_only](dat
 ### `DataSliceManager.update(self, *, at_path: data_slice_path_lib.DataSlicePath, attr_name: str, attr_value: kd.types.DataSlice, description: str | None = None)` {#kd_ext.storage.DataSliceManager.update}
 
 Alias for [kd_ext.storage.data_slice_manager.DataSliceManager.update](data_slice_manager/data_slice_manager.md#kd_ext.storage.data_slice_manager.DataSliceManager.update)
-

@@ -20,4 +20,3 @@
 
 ### `JaggedShape.rank(self) -> int` {#kd.types.JaggedShape.rank}
 *No description*
-

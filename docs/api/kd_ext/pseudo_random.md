@@ -42,4 +42,3 @@ distinct `entropy` values will produce distinct sequences.
 Args:
   entropy: Entropy to use for reseeding; either an integer or a byte string.
     If not provided, uses `os.urandom(16)`.</code></pre>
-

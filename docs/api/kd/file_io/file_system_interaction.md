@@ -39,4 +39,3 @@ Args:
   newpath: the new name of the file or directory.
   overwrite: boolean; if False, it is an error for newpath to be occupied by
     an existing file or directory.</code></pre>
-

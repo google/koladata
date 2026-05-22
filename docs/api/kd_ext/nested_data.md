@@ -37,4 +37,3 @@ Returns:
   also removed. The output DataBag only contains modified lists, and it may
   need to be combined with the @root_ds via
   @root_ds.updated(selected_path(....)).</code></pre>
-

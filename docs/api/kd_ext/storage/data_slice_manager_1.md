@@ -100,4 +100,3 @@ sessions or during debugging. So as a rule of thumb, the data should be
 organized in a way that is easy to consume. E.g. it should be flattened, not
 (deeply) nested, and timestamps and DataSlicePath are presented as
 human-readable strings.</code></pre>
-

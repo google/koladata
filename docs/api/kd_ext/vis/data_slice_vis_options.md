@@ -44,4 +44,3 @@
 ### `DataSliceVisOptions.unbounded_type_max_len` {#kd_ext.vis.DataSliceVisOptions.unbounded_type_max_len}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">256</code></pre>
-

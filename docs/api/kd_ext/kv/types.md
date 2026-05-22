@@ -18,4 +18,3 @@ Subcategory | Description
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A view on a particular path inside an object.
 
 See the docstring for view() method for more details.</code></pre>
-

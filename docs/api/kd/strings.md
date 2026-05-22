@@ -617,4 +617,3 @@ Args:
 
 Returns:
   A String DataSlice of uppercase strings.</code></pre>
-

@@ -83,4 +83,3 @@ Normal clients should not call this method. It is intended for use by low
 level code that needs to interact with the global cache, for example for
 adjusting the maximum size of the cache or for clearing the cache in OOM
 prevention.</code></pre>
-

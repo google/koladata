@@ -85,4 +85,3 @@ f&#39;Initial state with {initial_data_manager.get_description()}&#39;.</code></
 ### `CompositeInitialDataManager.serialize(self, persistence_dir: str, *, fs: kd.file_io.FileSystemInterface)` {#kd_ext.storage.CompositeInitialDataManager.serialize}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Serializes the initial data and metadata to the given directory.</code></pre>
-

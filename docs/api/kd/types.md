@@ -100,4 +100,3 @@ Note: This class supports parametrization like StreamReader[T].</code></pre>
 Note: This class supports parametrization like StreamWriter[T].
 
 Note: It is strongly advised that all streams be explicitly closed.</code></pre>
-

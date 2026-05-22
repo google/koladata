@@ -29,4 +29,3 @@ Args:
 ### `kd.annotation.with_name(obj: Any, name: str | Text) -> Any` {#kd.annotation.with_name}
 
 Alias for [kd.types.DataBag.with_name](types/data_bag.md#kd.types.DataBag.with_name)
-

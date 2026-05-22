@@ -24,4 +24,3 @@ Note: It is strongly advised that all streams be explicitly closed.
 ### `StreamWriter.write(item, /)` {#kd.types.StreamWriter.write}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Write an item to the stream.</code></pre>
-

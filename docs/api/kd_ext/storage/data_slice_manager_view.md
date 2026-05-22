@@ -305,4 +305,3 @@ Args:
     the underlying DataSliceManager must be respected.
   description: A description of the update. Optional. If provided, it will
     be stored in the history metadata of the underlying DataSliceManager.</code></pre>
-

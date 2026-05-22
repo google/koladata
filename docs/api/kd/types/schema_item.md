@@ -31,4 +31,3 @@
 ### `SchemaItem.strict_new(self, **attrs) -> DataSlice | Expr` {#kd.types.SchemaItem.strict_new}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new Entity with this Schema, checks for missing attributes.</code></pre>
-

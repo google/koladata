@@ -778,4 +778,3 @@ Args:
 Returns:
   A tuple of `x` and a FLOAT64 DataSlice containing the timestamp in seconds
   since the Unix epoch.</code></pre>
-

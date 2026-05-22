@@ -102,4 +102,3 @@ Args:
   schema: the Koda schema that induces the data slice paths.
   max_depth: the maximum depth of the data slice paths to generate. Pass -1 to
     generate all data slice paths.</code></pre>
-

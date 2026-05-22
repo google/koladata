@@ -544,4 +544,3 @@ Returns:
   If `returns` is a state variable, the value of `returns` when the loop
   ended. Otherwise, a stream combining the values of `yields` or
   `yields_interleaved` from each body invocation.</code></pre>
-

@@ -47,4 +47,3 @@ Aliases:
 - [kd.tuple](../kd.md#kd.tuple)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a tuple-like object containing the given `*args`.</code></pre>
-

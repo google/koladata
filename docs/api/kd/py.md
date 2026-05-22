@@ -185,4 +185,3 @@ Args:
 
 Returns:
   Result DataSlice.</code></pre>
-

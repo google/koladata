@@ -94,4 +94,3 @@ Args:
   message_or_fn: The error message to raise if `condition` is not present, or
     a functor producing such an error message.
   *args: Auxiliary data to be passed to the `message_or_fn` functor.</code></pre>
-

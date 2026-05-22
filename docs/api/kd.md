@@ -1697,4 +1697,3 @@ Alias for [kd.masking.xor](kd/masking.md#kd.masking.xor)
 ### `kd.zip(*args)` {#kd.zip}
 
 Alias for [kd.slices.zip](kd/slices.md#kd.slices.zip)
-
