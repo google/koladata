@@ -25,6 +25,34 @@ Args:
 Returns:
   Tuple that can be used as description of an AUTO_ID attribute.</code></pre>
 
+### `kd_ext.ids.auto_id_update(x)` {#kd_ext.ids.auto_id_update}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_id values to all auto_id attributes in x.
+
+For each auto_id attribute in the schema, assigns a string id of the form
+&#39;&lt;namespace&gt;_&lt;counter&gt;&#39;, where counter is an integer incremented for each
+item (starting from 1). The order of assignment is not guaranteed but will be
+the same on repeated calls to this operator with the same inputs.
+
+Example:
+  schema = kd.schema.new_schema(a=kd.INT32)
+  schema = kd_ext.ids.auto_attributes(
+      schema,
+      foo_id=kd_ext.ids.auto_id(&#39;foo&#39;),
+  )
+  x = kd.new(a=kd.slice([1, 3, 2]), schema=schema)
+  x.enriched(kd_ext.ids.auto_id_update(x))
+    -&gt; kd.new(
+        a=kd.slice([1, 3, 2]),
+        foo_id=kd.slice([&#39;foo_1&#39;, &#39;foo_2&#39;, &#39;foo_3&#39;]),
+    )
+
+Args:
+  x: DataSlice with a schema that has auto_id attributes.
+
+Returns:
+  A DataBag with auto_id attributes set.</code></pre>
+
 ### `kd_ext.ids.with_auto_attributes(schema, /, **auto_attrs)` {#kd_ext.ids.with_auto_attributes}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated attrs in `schema`.

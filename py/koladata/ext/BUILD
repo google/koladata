@@ -45,6 +45,7 @@ koladata_cc_operator_package(
     visibility = ["//visibility:public"],
     deps = [
         "//koladata/contrib:operators",
+        "//koladata/ids:operators",
         "//py/koladata/operators:cc_operators",
     ],
 )
