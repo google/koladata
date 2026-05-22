@@ -53,6 +53,23 @@ Args:
 Returns:
   A DataBag with auto_id attributes set.</code></pre>
 
+### `kd_ext.ids.auto_reference(namespace)` {#kd_ext.ids.auto_reference}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a description of the auto_reference attribute.
+
+This is used as a value in `auto_attributes` to mark an attribute
+as an auto_reference attribute within the `namespace` namespace.
+
+Args:
+  namespace: The namespace for the auto_reference.
+
+Returns:
+  Tuple that can be used as description of an auto_reference attribute.</code></pre>
+
+### `kd_ext.ids.auto_reference_list(auto_schema_tuple)` {#kd_ext.ids.auto_reference_list}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a tuple that can be used for an auto_reference list attributes.</code></pre>
+
 ### `kd_ext.ids.with_auto_attributes(schema, /, **auto_attrs)` {#kd_ext.ids.with_auto_attributes}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag containing updated attrs in `schema`.

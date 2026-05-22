@@ -63,6 +63,51 @@ def auto_id(name):
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
 @kd.optools.as_lambda_operator(
+    'kd_ext.ids.auto_reference',
+    qtype_constraints=[
+        kd.optools.constraints.expect_data_slice(P.namespace),
+    ],
+)
+def auto_reference(namespace):
+  """Returns a description of the auto_reference attribute.
+
+  This is used as a value in `auto_attributes` to mark an attribute
+  as an auto_reference attribute within the `namespace` namespace.
+
+  Args:
+    namespace: The namespace for the auto_reference.
+
+  Returns:
+    Tuple that can be used as description of an auto_reference attribute.
+  """
+  metadata_schema = kd.schema.named_schema(
+      kd.strings.join('__AUTO_REFERENCE__', namespace)
+  )
+  str_schema = kd.STRING
+  return M.core.make_tuple(metadata_schema, str_schema)
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_lambda_operator(
+    'kd_ext.ids.auto_reference_list',
+    qtype_constraints=[
+        kd.optools.constraints.expect_tuple(
+            P.auto_schema_tuple, kd.qtypes.DATA_SLICE, kd.qtypes.DATA_SLICE
+        ),
+    ],
+)
+def auto_reference_list(auto_schema_tuple):
+  """Returns a tuple that can be used for an auto_reference list attributes."""
+  metadata_schema = _get_metadata_schema(auto_schema_tuple)
+  actual_schema = _get_actual_schema(auto_schema_tuple)
+  return M.core.make_tuple(
+      kd.schema.list_schema(metadata_schema),
+      kd.schema.list_schema(actual_schema),
+  )
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_lambda_operator(
     'kd_ext.ids.with_auto_attributes',
     qtype_constraints=[
         kd.optools.constraints.expect_data_slice(P.schema),

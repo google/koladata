@@ -18,6 +18,7 @@ from koladata import kd
 from koladata import kd_ext
 
 kde = kd_ext.lazy
+ds = kd.slice
 
 
 class IdsWithAutoAttributesTest(parameterized.TestCase):
@@ -63,6 +64,67 @@ class IdsWithAutoAttributesTest(parameterized.TestCase):
     kd.testing.assert_equal(
         schema.foo_id,
         kd.STRING.with_bag(schema.get_bag()),
+    )
+
+  def test_auto_reference_attributes(self):
+    schema = kd.schema.new_schema(a=kd.INT32)
+    schema = kd_ext.ids.with_auto_attributes(
+        schema,
+        foo_ref=kd_ext.ids.auto_reference('foo'),
+        foo_ref_second=kd_ext.ids.auto_reference('foo'),
+    )
+    # The schema should now have a STRING attribute for foo_id and bar_id.
+    kd.testing.assert_equal(
+        schema.foo_ref,
+        kd.STRING.with_bag(schema.get_bag()),
+    )
+    kd.testing.assert_equal(
+        schema.foo_ref_second,
+        kd.STRING.with_bag(schema.get_bag()),
+    )
+    # The schema should still have the original INT32 attribute.
+    kd.testing.assert_equal(
+        schema.a,
+        kd.INT32.with_bag(schema.get_bag()),
+    )
+    # The metadata should have the namespace mapping.
+    metadata = kd.get_metadata(schema)
+    kd.testing.assert_equivalent(
+        metadata.foo_ref.get_attr('__schema_name__'),
+        kd.slice('__AUTO_REFERENCE__foo'),
+    )
+    kd.testing.assert_equivalent(
+        metadata.foo_ref_second.get_attr('__schema_name__'),
+        kd.slice('__AUTO_REFERENCE__foo'),
+    )
+
+  def test_auto_reference_list_attribute(self):
+    schema = kd.schema.new_schema(a=kd.INT32)
+    schema = kd_ext.ids.with_auto_attributes(
+        schema,
+        foo_id=kd_ext.ids.auto_reference_list(
+            kd_ext.ids.auto_reference('foo')
+        ),
+    )
+    # The schema should now have a STRING attribute for foo_id.
+    kd.testing.assert_equal(
+        schema.foo_id,
+        kd.schema.list_schema(kd.STRING).with_bag(
+            schema.get_bag()
+        ),
+    )
+    # The schema should still have the original INT32 attribute.
+    kd.testing.assert_equal(
+        schema.a,
+        kd.INT32.with_bag(schema.get_bag()),
+    )
+    # The metadata should have the namespace mapping.
+    metadata = kd.get_metadata(schema)
+    metadata_foo = metadata.foo_id
+    metadata_foo_item = metadata_foo.get_item_schema()
+    kd.testing.assert_equal(
+        metadata_foo_item.get_attr('__schema_name__').no_bag(),
+        ds('__AUTO_REFERENCE__foo'),
     )
 
 
