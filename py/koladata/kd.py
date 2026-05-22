@@ -125,6 +125,7 @@ optools.constraints.expect_data_slice_kwargs = (
 optools.constraints.expect_data_slice_or_unspecified = (
     _qtype_utils.expect_data_slice_or_unspecified
 )
+optools.constraints.expect_tuple = _qtype_utils.expect_tuple
 optools.constraints.expect_data_bag_args = _qtype_utils.expect_data_bag_args
 optools.constraints.expect_jagged_shape = _qtype_utils.expect_jagged_shape
 optools.constraints.expect_jagged_shape_or_unspecified = (

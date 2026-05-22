@@ -23,7 +23,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import iterable_qvalue
 from koladata.types import jagged_shape
-from koladata.types import qtypes as _  # pylint: disable=unused-import
+from koladata.types import qtypes
 
 koda_internal_parallel = kde_operators.internal.parallel
 
@@ -353,6 +353,70 @@ class KodaQTypesTest(absltest.TestCase):
           'expected a tuple, got x: INT32',
       ):
         _op(arolla.int32(1))
+
+    @arolla.optools.as_lambda_operator(
+        'op4.tuple_with_fields',
+        qtype_constraints=[
+            qtype_utils.expect_tuple(
+                arolla.P.x, qtypes.DATA_SLICE, qtypes.DATA_SLICE
+            )
+        ],
+    )
+    def _op_fields(x):
+      return x
+
+    with self.subTest('fields_success'):
+      _op_fields(
+          arolla.tuple(
+              data_slice.DataSlice.from_vals(1),
+              data_slice.DataSlice.from_vals(2),
+          )
+      )
+
+    with self.subTest('fields_failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a tuple of (DATA_SLICE, DATA_SLICE), got x:'
+              ' tuple<DATA_SLICE,INT32>'
+          ),
+      ):
+        _op_fields(
+            arolla.tuple(
+                data_slice.DataSlice.from_vals(1),
+                arolla.int32(1),
+            )
+        )
+
+    with self.subTest('too_many_fields_failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a tuple of (DATA_SLICE, DATA_SLICE), got x:'
+              ' tuple<DATA_SLICE,DATA_SLICE,DATA_SLICE>'
+          ),
+      ):
+        _op_fields(
+            arolla.tuple(
+                data_slice.DataSlice.from_vals(1),
+                data_slice.DataSlice.from_vals(2),
+                data_slice.DataSlice.from_vals(3),
+            )
+        )
+
+    with self.subTest('too_few_fields_failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a tuple of (DATA_SLICE, DATA_SLICE), got x:'
+              ' tuple<DATA_SLICE>'
+          ),
+      ):
+        _op_fields(
+            arolla.tuple(
+                data_slice.DataSlice.from_vals(1),
+            )
+        )
 
   def test_expect_namedtuple(self):
     @arolla.optools.as_lambda_operator(

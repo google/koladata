@@ -193,12 +193,31 @@ def expect_iterable_or_unspecified(param):
   )
 
 
-def expect_tuple(param) -> constraints.QTypeConstraint:
+def expect_tuple(
+    param, *field_qtypes: arolla.QType
+) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a tuple."""
+  if not field_qtypes:
+    return (
+        M.qtype.is_tuple_qtype(param),
+        (
+            'expected a tuple, got'
+            f' {arolla.optools.constraints.name_type_msg(param)}'
+        ),
+    )
+  expected_types_str = ', '.join(t.name for t in field_qtypes)
+  pred = M.qtype.is_tuple_qtype(param) & (
+      M.seq.size(M.qtype.get_field_qtypes(param))
+      == arolla.int64(len(field_qtypes))
+  )
+  for i, expected_qtype in enumerate(field_qtypes):
+    field_qtype = M.qtype.get_field_qtype(param, arolla.int64(i))
+    pred = pred & (field_qtype == expected_qtype)
+
   return (
-      M.qtype.is_tuple_qtype(param),
+      pred,
       (
-          'expected a tuple, got'
+          f'expected a tuple of ({expected_types_str}), got'
           f' {arolla.optools.constraints.name_type_msg(param)}'
       ),
   )
