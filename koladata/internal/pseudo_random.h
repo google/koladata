@@ -91,7 +91,7 @@ arolla::Fingerprint PseudoRandomFingerprint();
 absl::Status ReseedPseudoRandom(std::seed_seq&& entropy);
 
 // Returns a pointer to the atomic identifier for the current pseudo-random
-// generator epoch. The function always returns the same pointer.
+// generator epoch. The function always returns the same static address.
 //
 // This ID remains constant until the underlying generator is reseeded
 // (e.g., after process forking or checkpoint restoration), at which
@@ -104,11 +104,15 @@ const std::atomic_uint64_t* absl_nonnull PseudoRandomEpochIdPtr();
 // (e.g., after process forking or checkpoint restoration), at which
 // point a new ID can be generated to ensure uniqueness across the new state.
 inline uint64_t PseudoRandomEpochId() {
-  static const std::atomic_uint64_t* ptr;
+  static std::atomic<const std::atomic_uint64_t*> cached_ptr{nullptr};
+  // NOTE: The relaxed memory order is safe because PseudoRandomEpochIdPtr()
+  // returns a static memory address.
+  const std::atomic_uint64_t* ptr = cached_ptr.load(std::memory_order_relaxed);
   if (ptr == nullptr) [[unlikely]] {
     ptr = PseudoRandomEpochIdPtr();
+    cached_ptr.store(ptr, std::memory_order_relaxed);
   }
-  return std::atomic_load_explicit(ptr, std::memory_order_relaxed);
+  return ptr->load(std::memory_order_acquire);
 }
 
 }  // namespace koladata::internal

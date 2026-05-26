@@ -48,28 +48,32 @@ namespace {
 
 constinit std::atomic_uint64_t pseudo_random_epoch_id = 0;
 
+uint64_t GetNextEpochId() {
+  uint64_t new_epoch_id = KoladataInternalPseudoRandomUint64();
+  while (new_epoch_id == 0) [[unlikely]] {
+    new_epoch_id = KoladataInternalPseudoRandomUint64();
+  }
+  return new_epoch_id;
+}
+
 }  // namespace
 
-// Reseeds the pseudo-random sequence using the given seed.
-//
-// This function has effect on the subsequent calls to
-// KoladataInternalPseudoRandomUint64 and, consequently, on the pseudo-random
-// instance ID and fingerprint.
 absl::Status ReseedPseudoRandom(std::seed_seq&& entropy) {
   if (KoladataInternalReseedPseudoRandom(std::move(entropy)) < 0) {
     return absl::UnimplementedError(
         "KoladataInternalReseedPseudoRandom does not support reseeding.");
   }
-  pseudo_random_epoch_id = KoladataInternalPseudoRandomUint64();
+  pseudo_random_epoch_id.store(GetNextEpochId(), std::memory_order_release);
   return absl::OkStatus();
 }
 
 const std::atomic_uint64_t* absl_nonnull PseudoRandomEpochIdPtr() {
-  while (pseudo_random_epoch_id.load(std::memory_order_relaxed) == 0)
+  if (pseudo_random_epoch_id.load(std::memory_order_acquire) == 0)
       [[unlikely]] {
     uint64_t zero = 0;
-    pseudo_random_epoch_id.compare_exchange_weak(
-        zero, KoladataInternalPseudoRandomUint64());
+    pseudo_random_epoch_id.compare_exchange_strong(zero, GetNextEpochId(),
+                                                   std::memory_order_release,
+                                                   std::memory_order_relaxed);
   }
   return &pseudo_random_epoch_id;
 }
