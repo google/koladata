@@ -2037,5 +2037,16 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName_SkipNone) {
   }
 }
 
+TEST(DataSliceReprTest, SchemaItemLimit) {
+  DataBagPtr bag = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice entity,
+      EntityCreator::FromAttrs(bag, {"a", "b", "c", "d", "e", "f"},
+                               std::vector<DataSlice>(6, test::DataItem(1))));
+  EXPECT_THAT(
+      DataSliceToStr(entity.GetSchema(), {.item_limit = 5}),
+      IsOkAndHolds("ENTITY(a=INT32, b=INT32, c=INT32, d=INT32, e=INT32, ...)"));
+}
+
 }  // namespace
 }  // namespace koladata

@@ -612,8 +612,7 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     if (ignore_attrs.contains(attr_name)) {
       continue;
     }
-    // Keeps all attributes from schema.
-    if (!ds.item().is_schema() && item_count >= option.item_limit) {
+    if (item_count >= option.item_limit) {
       parts.emplace_back(wrapping.ItemLimitEllipsis());
       break;
     }

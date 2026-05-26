@@ -754,6 +754,91 @@ class DataSliceTest(parameterized.TestCase):
         f' {bag_id})',
     )
 
+  def test_repr_large_schema(self):
+    db = bag()
+    attrs = {f'x{i:02d}': 1 for i in range(25)}
+    x = db.new(**attrs)
+    schema = x.get_schema()
+    bag_id = '$' + str(db.fingerprint)[-4:]
+
+    expected = f"""DataItem(ENTITY(
+  x00=INT32,
+  x01=INT32,
+  x02=INT32,
+  x03=INT32,
+  x04=INT32,
+  x05=INT32,
+  x06=INT32,
+  x07=INT32,
+  x08=INT32,
+  x09=INT32,
+  x10=INT32,
+  x11=INT32,
+  x12=INT32,
+  x13=INT32,
+  x14=INT32,
+  x15=INT32,
+  x16=INT32,
+  x17=INT32,
+  x18=INT32,
+  x19=INT32,
+  ...,
+), schema: SCHEMA, bag_id: {bag_id})"""
+    self.assertEqual(repr(schema), expected)
+
+  def test_repr_entity_with_large_schema(self):
+    db = bag()
+    attrs = {f'x{i:02d}': i for i in range(25)}
+    x = db.new(**attrs)
+    bag_id = '$' + str(db.fingerprint)[-4:]
+
+    expected = f"""DataItem(Entity(
+  x00=0,
+  x01=1,
+  x02=2,
+  x03=3,
+  x04=4,
+  x05=5,
+  x06=6,
+  x07=7,
+  x08=8,
+  x09=9,
+  x10=10,
+  x11=11,
+  x12=12,
+  x13=13,
+  x14=14,
+  x15=15,
+  x16=16,
+  x17=17,
+  x18=18,
+  x19=19,
+  ...,
+), schema: ENTITY(
+  x00=INT32,
+  x01=INT32,
+  x02=INT32,
+  x03=INT32,
+  x04=INT32,
+  x05=INT32,
+  x06=INT32,
+  x07=INT32,
+  x08=INT32,
+  x09=INT32,
+  x10=INT32,
+  x11=INT32,
+  x12=INT32,
+  x13=INT32,
+  x14=INT32,
+  x15=INT32,
+  x16=INT32,
+  x17=INT32,
+  x18=INT32,
+  x19=INT32,
+  ...,
+), bag_id: {bag_id})"""
+    self.assertEqual(repr(x), expected)
+
   # Special case for itemid, since it includes a non-deterministic id.
   def test_str_repr_itemid_works(self):
     x = bag().list()
