@@ -32,7 +32,6 @@ from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
-
 I = input_container.InputContainer('I')
 
 kde = kde_operators.kde
@@ -173,7 +172,8 @@ Top attrs:
       (
           'multiple_fallbacks',
           bag()
-          .new(a=ds([1, 2, 3]), b=ds([1, 2, 3])).freeze_bag()
+          .new(a=ds([1, 2, 3]), b=ds([1, 2, 3]))
+          .freeze_bag()
           .enriched(bag().list([1, 2]).get_bag())
           .enriched(bag().new(c=ds([3, 4, 5]), a=ds([4, 5, 6])).get_bag())
           .enriched(bag().dict({'a': 42}).get_bag())
@@ -465,22 +465,23 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
     self.assertNotEqual(repr_3, repr_2)
 
   def test_contents_repr_no_refs_to_data_bag(self):
-    gc.collect()
     db = bag()
-    self.assertEqual(sys.getrefcount(db), 2)
+
+    gc.collect()
+    base_count = sys.getrefcount(db)
+    self.assertGreaterEqual(base_count, 1)
+
     _ = db.new(a=db.new(x=42))
-    self.assertEqual(sys.getrefcount(db), 2)
+    self.assertEqual(sys.getrefcount(db), base_count)
 
-    r = repr(db)
-    self.assertEqual(sys.getrefcount(db), 2)
+    _ = repr(db)
+    self.assertEqual(sys.getrefcount(db), base_count)
 
-    r = db.contents_repr()
-    self.assertEqual(sys.getrefcount(db), 2)
+    _ = db.contents_repr()
+    self.assertEqual(sys.getrefcount(db), base_count)
 
-    r = repr(db.contents_repr())
-    self.assertEqual(sys.getrefcount(db), 2)
-
-    del r
+    _ = repr(db.contents_repr())
+    self.assertEqual(sys.getrefcount(db), base_count)
 
   def test_data_triples_repr(self):
     db = bag()
@@ -2360,9 +2361,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
   def test_sparse_to_dense_with_removed_value(self):
     db = bag()
     schema = db.new_schema(x=schema_constants.INT32)
-    objs = db.new_shaped(
-        ds([None] * 200).get_shape(), schema=schema
-    )
+    objs = db.new_shaped(ds([None] * 200).get_shape(), schema=schema)
 
     db_fallback = bag()
     db_fallback.adopt(schema)
