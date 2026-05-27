@@ -271,12 +271,17 @@ class ids:
 @_dataclass
 class iterables:
   chain = _operators_iterables.chain
+  flat_map_chain = _operators_functor.flat_map_chain
+  flat_map_interleaved = _operators_functor.flat_map_interleaved
+  for_ = _operators_functor.for_
   from_1d_slice = _operators_iterables.from_1d_slice
   interleave = _operators_iterables.interleave
   make = _operators_iterables.make
   make_unordered = _operators_iterables.make_unordered
+  reduce = _operators_functor.reduce
   reduce_concat = _operators_iterables.reduce_concat
   reduce_updated_bag = _operators_iterables.reduce_updated_bag
+  while_ = _operators_functor.while_
 
 
 @_dataclass

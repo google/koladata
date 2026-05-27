@@ -473,6 +473,9 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.functor.while_, kde.while_))
+    self.assertTrue(
+        optools.equiv_to_op(kde.functor.while_, kde.iterables.while_)
+    )
 
   def test_repr(self):
     self.assertEqual(

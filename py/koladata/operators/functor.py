@@ -753,9 +753,11 @@ def _while(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.while_'], via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.while_', 'kd.functor.while_'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
-    'kd.functor.while_',
+    'kd.iterables.while_',
     qtype_constraints=(
         qtype_utils.expect_data_slice(P.condition_fn),
         qtype_utils.expect_data_slice(P.body_fn),
@@ -900,9 +902,11 @@ def _reduce_op(tuple_fn_x, y):
   )
 
 
-@optools.add_to_registry(via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.functor.reduce'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
-    'kd.functor.reduce',
+    'kd.iterables.reduce',
     qtype_constraints=[
         qtype_utils.expect_iterable(P.items),
         qtype_utils.expect_data_slice(P.fn),
@@ -1143,9 +1147,11 @@ _FOR_ITERATION_BODY_FN = _create_for_iteration_body_fn()
 _FOR_ITERATION_CONDITION_FN = _create_for_iteration_condition_fn()
 
 
-@optools.add_to_registry(aliases=['kd.for_'], via_cc_operator_package=True)
+@optools.add_to_registry(
+    aliases=['kd.for_', 'kd.functor.for_'], via_cc_operator_package=True
+)
 @optools.as_lambda_operator(
-    'kd.functor.for_',
+    'kd.iterables.for_',
     qtype_constraints=(
         qtype_utils.expect_iterable(P.iterable),
         qtype_utils.expect_data_slice(P.body_fn),
@@ -1381,10 +1387,11 @@ _FOR_FLAT_MAP_INTERLEAVED_STEP_FN = _create_for_flat_map_step_fn(
 
 
 @optools.add_to_registry(
-    aliases=['kd.flat_map_chain'], via_cc_operator_package=True
+    aliases=['kd.flat_map_chain', 'kd.functor.flat_map_chain'],
+    via_cc_operator_package=True,
 )
 @optools.as_lambda_operator(
-    'kd.functor.flat_map_chain',
+    'kd.iterables.flat_map_chain',
     qtype_constraints=(
         qtype_utils.expect_iterable(P.iterable),
         qtype_utils.expect_data_slice(P.fn),
@@ -1439,10 +1446,11 @@ def flat_map_chain(
 
 
 @optools.add_to_registry(
-    aliases=['kd.flat_map_interleaved'], via_cc_operator_package=True
+    aliases=['kd.flat_map_interleaved', 'kd.functor.flat_map_interleaved'],
+    via_cc_operator_package=True,
 )
 @optools.as_lambda_operator(
-    'kd.functor.flat_map_interleaved',
+    'kd.iterables.flat_map_interleaved',
     qtype_constraints=(
         qtype_utils.expect_iterable(P.iterable),
         qtype_utils.expect_data_slice(P.fn),

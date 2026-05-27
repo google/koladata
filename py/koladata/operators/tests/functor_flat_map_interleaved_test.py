@@ -215,6 +215,11 @@ class FlatMapInterleavedTest(absltest.TestCase):
             kde.functor.flat_map_interleaved, kde.flat_map_interleaved
         )
     )
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.functor.flat_map_interleaved, kde.iterables.flat_map_interleaved
+        )
+    )
 
 
 if __name__ == '__main__':

@@ -63,9 +63,7 @@ class FunctorForTest(absltest.TestCase):
         lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(
-            returns=-returns
-        ),
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         returns=1,
     )
     testing.assert_equal(
@@ -78,9 +76,7 @@ class FunctorForTest(absltest.TestCase):
         lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(
-            returns=-returns
-        ),
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         returns=1,
     )
     testing.assert_equal(
@@ -106,9 +102,7 @@ class FunctorForTest(absltest.TestCase):
         lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.namedtuple(
-            returns=-returns
-        ),
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(returns=-returns),
         condition_fn=lambda returns: returns < 120,
         returns=1,
     )
@@ -282,9 +276,7 @@ class FunctorForTest(absltest.TestCase):
     loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
-        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(
-            foo=1
-        ),
+        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(foo=1),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -468,6 +460,7 @@ class FunctorForTest(absltest.TestCase):
 
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.for_))
+    self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.iterables.for_))
 
 
 if __name__ == '__main__':

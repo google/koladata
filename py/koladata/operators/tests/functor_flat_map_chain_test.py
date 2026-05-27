@@ -187,6 +187,11 @@ class FlatMapChainTest(absltest.TestCase):
     self.assertTrue(
         optools.equiv_to_op(kde.functor.flat_map_chain, kde.flat_map_chain)
     )
+    self.assertTrue(
+        optools.equiv_to_op(
+            kde.functor.flat_map_chain, kde.iterables.flat_map_chain
+        )
+    )
 
 
 if __name__ == '__main__':

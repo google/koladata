@@ -8666,6 +8666,7 @@ py_test(
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

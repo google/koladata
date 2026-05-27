@@ -465,11 +465,11 @@ Alias for [kd.core.extract_update](kd/core.md#kd.core.extract_update)
 
 ### `kd.flat_map_chain(iterable, fn, value_type_as=None)` {#kd.flat_map_chain}
 
-Alias for [kd.functor.flat_map_chain](kd/functor.md#kd.functor.flat_map_chain)
+Alias for [kd.iterables.flat_map_chain](kd/iterables.md#kd.iterables.flat_map_chain)
 
 ### `kd.flat_map_interleaved(iterable, fn, value_type_as=None)` {#kd.flat_map_interleaved}
 
-Alias for [kd.functor.flat_map_interleaved](kd/functor.md#kd.functor.flat_map_interleaved)
+Alias for [kd.iterables.flat_map_interleaved](kd/iterables.md#kd.iterables.flat_map_interleaved)
 
 ### `kd.flatten(x, from_dim=0, to_dim=unspecified)` {#kd.flatten}
 
@@ -497,7 +497,7 @@ Alias for [kd.core.follow](kd/core.md#kd.core.follow)
 
 ### `kd.for_(iterable, body_fn, *, finalize_fn=unspecified, condition_fn=unspecified, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.for_}
 
-Alias for [kd.functor.for_](kd/functor.md#kd.functor.for_)
+Alias for [kd.iterables.for_](kd/iterables.md#kd.iterables.for_)
 
 ### `kd.format(fmt, /, **kwargs)` {#kd.format}
 
@@ -1640,7 +1640,7 @@ Alias for [kd.slices.val_shaped_as](kd/slices.md#kd.slices.val_shaped_as)
 
 ### `kd.while_(condition_fn, body_fn, *, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.while_}
 
-Alias for [kd.functor.while_](kd/functor.md#kd.functor.while_)
+Alias for [kd.iterables.while_](kd/iterables.md#kd.iterables.while_)
 
 ### `kd.with_attr(x, attr_name, value, overwrite_schema=False)` {#kd.with_attr}
 

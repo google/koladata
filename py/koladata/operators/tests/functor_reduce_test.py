@@ -22,6 +22,7 @@ from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 
@@ -192,6 +193,11 @@ class IterablesReduceTest(absltest.TestCase):
     self.assertEqual(
         repr(kde.functor.reduce(I.fn, I.iter, I.initial)),
         'kd.functor.reduce(I.fn, I.iter, I.initial)',
+    )
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(kde.functor.reduce, kde.iterables.reduce)
     )
 
 
