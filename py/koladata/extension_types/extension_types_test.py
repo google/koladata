@@ -1162,7 +1162,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       expected_repr = (
           re.escape(
               """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_default_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A']), DataItem('x', schema: STRING), DATA_SLICE),
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_default_repr.<locals>.A'])📍, DataItem('x', schema: STRING), DATA_SLICE)📍,
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'
@@ -1218,7 +1218,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       expected_repr = (
           re.escape(
               """kd.extension_types.make(LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'], Object{attributes={_functor_impl__virt_fn=DataItem(Functor ExtensionTypesTest.test_custom_repr.<locals>.A.virt_fn[self](
-  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A']), DataItem('x', schema: STRING), DATA_SLICE),
+  returns=kd.extension_types.get_attr(kd.extension_types.dynamic_cast(S, LABEL['__main__.ExtensionTypesTest.test_custom_repr.<locals>.A'])📍, DataItem('x', schema: STRING), DATA_SLICE)📍,
 ), schema: OBJECT, bag_id: $"""
           )
           + '[a-z0-9]+'

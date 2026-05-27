@@ -252,13 +252,13 @@ class FunctorSwitchTest(absltest.TestCase):
     I.k,
     {
         'b': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING)),
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('b', schema: STRING))📍,
         ),
         'a': Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING))📍,
         ),
         kd.SWITCH_DEFAULT: Functor FunctorSwitchTest.test_repr.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING)),
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('default', schema: STRING))📍,
         ),
     },
     x=I.x, return_type_as=kd.attrs(I.k, overwrite_schema=DataItem(False, schema: BOOLEAN)))""",
@@ -292,7 +292,7 @@ class FunctorSwitchTest(absltest.TestCase):
     I.k,
     {
         'a': Functor FunctorSwitchTest.test_repr_no_args.<locals>.<lambda>[x](
-          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING)),
+          returns=kd.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN), foo=DataItem('a', schema: STRING))📍,
         ),
     })""",
     )

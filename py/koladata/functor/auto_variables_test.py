@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import introspection
-from koladata.expr import source_location
 from koladata.expr import view as _
 from koladata.functions import attrs
 from koladata.functions import functions as fns
@@ -210,8 +210,8 @@ class AutoVariablesTest(absltest.TestCase):
 
   def test_literal_with_source_location(self):
     fn = functor_factories.expr_fn(
-        source_location.annotate_with_current_source_location(
-            kde.item(57)
+        arolla.M.annotation.source_location(
+            kde.item(57), 'test', 'test.py', 1, 0, ''
         ).with_name('foo')
         * I.x,
         auto_variables=True,
@@ -392,7 +392,9 @@ class AutoVariablesTest(absltest.TestCase):
     )
 
   def test_extract_extra_nodes_literal_with_source_location(self):
-    expr = source_location.annotate_with_current_source_location(kde.item(57))
+    expr = arolla.M.annotation.source_location(
+        kde.item(57), 'test', 'test.py', 1, 0, ''
+    )
     fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
     testing.assert_equal(res(x=2), ds(114))

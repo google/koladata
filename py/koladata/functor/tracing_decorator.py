@@ -25,7 +25,9 @@ from koladata.functor import functor_factories
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
-from koladata.util import kd_functools
+
+
+_arolla_tracebackhide_ = True
 
 
 def _return_type_as(annotation: type[Any]) -> arolla.AnyQValue:
@@ -171,7 +173,6 @@ class TraceAsFnDecorator:
     to_call = py_boxing.as_expr(to_call).with_name(name)
 
     @functools.wraps(fn)
-    @kd_functools.skip_from_functor_stack_trace
     def wrapper(*args: Any, **kwargs: Any) -> Any:
       __tracebackhide__ = True  # pylint: disable=invalid-name,unused-variable
 
@@ -185,20 +186,20 @@ class TraceAsFnDecorator:
       # We don't call apply_defaults() here since the default values are
       # stored in the functor already, which allows the user to edit the functor
       # to change them if necessary.
-      for param in sig.parameters.values():
-        if param.name in bound.arguments:
-          bound.arguments[param.name] = py_boxing.as_qvalue_or_expr(
-              bound.arguments[param.name]
-          )
+      args = tuple(py_boxing.as_qvalue_or_expr(arg) for arg in bound.args)
+      kwargs = {
+          k: py_boxing.as_qvalue_or_expr(v)
+          for k, v in bound.kwargs.items()
+      }
 
       if tracing_mode.is_tracing_enabled():
         res = to_call(
-            *bound.args,
-            **bound.kwargs,
+            *args,
+            **kwargs,
             return_type_as=return_type_as,
         ).with_name(f'_{name}_result')
       else:
-        res = kd_fn(*bound.args, **bound.kwargs)
+        res = kd_fn(*args, **kwargs)
         if isinstance(res, arolla.Expr):
           raise ValueError(
               f'The function [{name}] annotated with @kd.trace_as_fn() was'

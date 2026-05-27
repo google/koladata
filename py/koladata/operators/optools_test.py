@@ -120,14 +120,18 @@ class OptoolsTest(parameterized.TestCase):
     self.assertTrue(args_has_view)
     # Assert that temporary operators are not present in the final output.
     arolla.testing.assert_expr_equal_by_fingerprint(
-        arolla.abc.to_lower_node(
-            op_view_in_lambda_operator(arolla.L.x, arolla.L.y)
+        arolla.expr.strip_source_locations(
+            arolla.abc.to_lower_node(
+                op_view_in_lambda_operator(arolla.L.x, arolla.L.y)
+            )
         ),
         fake_add(arolla.L.x, arolla.L.y),
     )
     # Assert that default values are handled correctly.
     arolla.testing.assert_expr_equal_by_fingerprint(
-        arolla.abc.to_lower_node(op_view_in_lambda_operator(arolla.L.x)),
+        arolla.expr.strip_source_locations(
+            arolla.abc.to_lower_node(op_view_in_lambda_operator(arolla.L.x))
+        ),
         fake_add(arolla.L.x, ds(1)),
     )
 
@@ -656,13 +660,13 @@ class OptoolsTest(parameterized.TestCase):
             + arolla.M.annotation.source_location(
                 py_boxing.as_expr(2) * py_boxing.as_expr(3),
                 'op',
-                'py/koladata/operators/optools_test.py',
+                'koladata/operators/optools_test.py',
                 lineno,
                 0,
                 '      return a + b * c',
             ),
             'op',
-            'py/koladata/operators/optools_test.py',
+            'koladata/operators/optools_test.py',
             lineno,
             0,
             '      return a + b * c',

@@ -23,6 +23,7 @@ import warnings
 
 from arolla import arolla
 from koladata.expr import input_container
+from koladata.expr import tracing
 from koladata.expr import tracing_mode
 from koladata.operators import aux_policies
 from koladata.operators import op_repr
@@ -401,7 +402,7 @@ def _build_lambda_body_from_fn(fn: types.FunctionType):
     return result
 
   with tracing_mode.enable_tracing():
-    expr = arolla.optools.trace_function(fn, gen_tracer=gen_tracer)
+    expr = tracing.trace_function(fn, gen_tracer=gen_tracer)
   return arolla.abc.sub_by_fingerprint(expr, unmangling)
 
 

@@ -3881,7 +3881,7 @@ DataItem(16, schema: INT32)
 >>> fn2_fn = kd.fn(fn2)
 
 >>> fn2_fn.returns  # "variables"
-DataItem(((V.x📍 + V.y)📍 + DataItem(3, schema: INT32))📍, schema: EXPR, bag_id: ...)
+DataItem(((V.x + V.y)📍 + DataItem(3, schema: INT32))📍, schema: EXPR, bag_id: ...)
 
 >>> fn2_fn.x
 DataItem((I.a + DataItem(1, schema: INT32))📍, schema: EXPR, bag_id: ...)

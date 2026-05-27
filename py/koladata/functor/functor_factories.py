@@ -35,8 +35,8 @@ from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import signature_utils
-from koladata.util import kd_functools
 
+_arolla_tracebackhide_ = True
 
 _kd = eager_op_utils.operators_container('kd')
 
@@ -112,7 +112,6 @@ def is_fn(obj: Any) -> data_item.DataItem:
     return mask_constants.missing
 
 
-@kd_functools.skip_from_functor_stack_trace
 def trace_py_fn(
     f: Callable[..., Any], *, auto_variables: bool = True, **defaults: Any
 ) -> data_item.DataItem:
@@ -555,7 +554,6 @@ def fstr_fn(returns: str, **kwargs) -> data_item.DataItem:
 data_item.register_bind_method_implementation(bind)
 
 
-@kd_functools.skip_from_functor_stack_trace
 def fn(
     f: Any, *, use_tracing: bool = True, **kwargs: Any
 ) -> data_item.DataItem:

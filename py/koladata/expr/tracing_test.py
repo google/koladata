@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import functools
+import inspect
 import re
 
 from absl.testing import absltest
@@ -52,11 +53,14 @@ class TracingTest(absltest.TestCase):
 
   def test_explicit_lazy_operator_usage(self):
     e = tracing.trace(lambda x, y, z: kde.math.add(x + y, z))
-    # No source location for explicit usage of kde.math.add.
-    testing.assert_equal(e, e.node_deps[0] + I.z)
-    # But the inner "+" got a source location.
-    testing.assert_equal(e.node_deps[0].op, arolla.M.annotation.source_location)
-    testing.assert_equal(e.node_deps[0].node_deps[0], I.x + I.y)
+    # The topmost `math.add` is annotated with source location.
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], e.node_deps[0].node_deps[0] + I.z)
+    # The inner `+` is annotated as well.
+    testing.assert_equal(
+        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location
+    )
+    testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
 
   def test_ops(self):
     e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda
@@ -395,6 +399,35 @@ class TracingTest(absltest.TestCase):
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(expr.eval(a=b), b_upcasted)
+
+  def test_trace_function_basics(self):
+    def fn(a, b):
+      return a + b
+
+    res = tracing.trace_function(
+        fn,
+        gen_tracer=lambda name: arolla.M.annotation.qtype(
+            arolla.abc.placeholder(name), arolla.types.INT32
+        ),
+    )
+    arolla.testing.assert_expr_equal_by_fingerprint(
+        res,
+        arolla.M.annotation.source_location(
+            arolla.M.math.add(
+                arolla.M.annotation.qtype(
+                    arolla.abc.placeholder('a'), arolla.types.INT32
+                ),
+                arolla.M.annotation.qtype(
+                    arolla.abc.placeholder('b'), arolla.types.INT32
+                ),
+            ),
+            'fn',
+            'koladata/expr/tracing_test.py',
+            inspect.getsourcelines(fn)[1] + 1,  # pytype: disable=attribute-error
+            0,
+            '      return a + b',
+        ),
+    )
 
 
 if __name__ == '__main__':

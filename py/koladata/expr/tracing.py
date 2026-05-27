@@ -29,6 +29,7 @@ from koladata.types import py_boxing
 from koladata.util import kd_functools
 
 
+_arolla_tracebackhide_ = True
 I = input_container.InputContainer('I')
 
 
@@ -40,7 +41,8 @@ def _inspect_signature(fn: py_types.FunctionType) -> inspect.Signature:
   return inspect.signature(fn, eval_str=True)
 
 
-@kd_functools.skip_from_functor_stack_trace
+# TODO: This function is specific for functor construction and
+# is only used there. Move it to functor_factories.py.
 def trace(fn: Callable[..., Any]) -> arolla.Expr:
   """Converts the given Python function to an Expr by tracing it.
 
@@ -116,10 +118,11 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
   passed_arg_names = set()
   mangled_subs = {}
 
-  def get_arg_value(param: inspect.Parameter) -> Any:
-    mangled_name = mangle_name(param.name)
+  def gen_tracer(name: str) -> Any:
+    param = sig.parameters[name]
+    mangled_name = mangle_name(name)
     arg_value = I[mangled_name]
-    mangled_subs[arg_value.fingerprint] = I[param.name]
+    mangled_subs[arg_value.fingerprint] = I[name]
     passed_arg_names.add(mangled_name)
     if extension_type_registry.is_koda_extension_type(param.annotation):
       ext_qtype = extension_type_registry.get_extension_qtype(param.annotation)
@@ -130,10 +133,7 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
 
   try:
     with tracing_mode.enable_tracing():
-      res = fn(
-          *(get_arg_value(p) for p in positional_params),
-          **{p.name: get_arg_value(p) for p in keyword_params},
-      )
+      res = trace_function(fn, gen_tracer=gen_tracer)
     expr = py_boxing.as_expr(res)
   except Exception as e:
     e.add_note(
@@ -154,3 +154,31 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
   if mangled_subs:
     expr = arolla.sub_by_fingerprint(expr, mangled_subs)
   return expr
+
+
+def trace_function(
+    fn: Callable[..., Any], *, gen_tracer: Callable[[str], Any]
+) -> Any:
+  """Traces `fn` with automatic source location annotations, stripping them from specific Koda operators."""
+  res = arolla.optools.trace_function(
+      fn, gen_tracer=gen_tracer, annotate_with_source_locations=True
+  )
+
+  if not isinstance(res, arolla.Expr):
+    return res
+
+  source_location_op = arolla.abc.lookup_operator(
+      'annotation.source_location')
+
+  def strip_unnecessary_source_locations_visitor(node):
+    if node.is_operator and node.op == source_location_op and node.node_deps:
+      dep = node.node_deps[0]
+      if (
+          introspection.is_input(dep)
+          or introspection.is_variable(dep)
+          or introspection.is_literal(dep)
+      ):
+        return dep
+    return node
+
+  return arolla.abc.transform(res, strip_unnecessary_source_locations_visitor)

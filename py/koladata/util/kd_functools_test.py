@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
 import functools
-import inspect
 from absl.testing import absltest
 from koladata.util import kd_functools
 
@@ -40,47 +38,6 @@ class FunctoolsTest(absltest.TestCase):
 
     bar = functools.update_wrapper(foo, bar)
     self.assertIs(kd_functools.unwrap(bar), bar)  # Infinite loop detected.
-
-  def test_current_stack_trace_frame(self):
-    @kd_functools.skip_from_functor_stack_trace
-    def foo():
-      return kd_functools.current_stack_trace_frame()
-
-    class Foo:
-      @staticmethod
-      @kd_functools.skip_from_functor_stack_trace
-      def static_method():
-        return foo()
-
-      @kd_functools.skip_from_functor_stack_trace
-      def method(self):
-        return self.static_method()
-
-    def bar():
-      return Foo().method()
-
-    def baz():
-      return bar()
-
-    frame = baz()
-    self.assertIsNotNone(frame)
-    self.assertEqual(frame.f_code.co_name, 'bar')
-    self.assertIn('kd_functools_test.py', frame.f_code.co_filename)
-    self.assertEqual(
-        frame.f_lineno,
-        inspect.getsourcelines(bar)[1] + 1  # first line of the function.
-    )
-
-    @contextlib.contextmanager
-    def temporarily_skip_the_file():
-      kd_functools.skip_file_from_functor_stack_trace(__file__)
-      yield
-      kd_functools._FILES_SKIPPED_FROM_STACK_TRACE.remove(__file__)
-
-    with temporarily_skip_the_file():
-      frame = baz()
-
-    self.assertNotEqual(frame.f_code.co_name, 'baz')
 
 
 if __name__ == '__main__':

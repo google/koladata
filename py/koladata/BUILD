@@ -45,7 +45,6 @@ py_library(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
-        "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/extension_types",
         "//py/koladata/extension_types:functions",
@@ -101,7 +100,6 @@ py_library(
     deps = [
         ":kd",
         "//py:python_path",
-        "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/ext:kde_operators",
         "//py/koladata/ext:nested_data",

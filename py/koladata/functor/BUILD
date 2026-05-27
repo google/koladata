@@ -133,7 +133,6 @@ py_library(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
-        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -181,7 +180,6 @@ py_test(
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
-        "//py/koladata/expr:source_location",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
         "//py/koladata/functions:attrs",
@@ -192,6 +190,7 @@ py_test(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -205,7 +204,6 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
-        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )

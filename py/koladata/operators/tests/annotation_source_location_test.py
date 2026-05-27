@@ -72,6 +72,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
     @kd_optools.as_lambda_operator('inner_lambda')
     def inner_lambda(x, y):
+      _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
       return kde.annotation.source_location(
           kde.math.floordiv(x, y),
           'inner_lambda',
@@ -83,6 +84,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
     @kd_optools.as_lambda_operator('outer_lambda')
     def outer_lambda(x, y):
+      _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
       inner = kde.annotation.source_location(
           inner_lambda(x, y),
           'outer_lambda',
@@ -128,7 +130,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
     # eval_op uses a different code path, so we test it separately.
     try:
-      eval_op(outer_lambda, 1, 0)
+      eval_op(outer_lambda, kd_item(1), kd_item(0))
     except ValueError as e:
       ex = e
 

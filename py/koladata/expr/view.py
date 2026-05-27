@@ -21,19 +21,14 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
-from koladata.expr import source_location
-from koladata.expr import tracing_mode
 from koladata.fstring import fstring
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
-from koladata.util import kd_functools
 
-
+_arolla_tracebackhide_ = True
 I = input_container.InputContainer('I')
-
-
-kd_functools.skip_file_from_functor_stack_trace(__file__)
+_aux_bind_op = arolla.abc.aux_bind_op
 
 
 def _raise_eager_only_method(method_name: str, class_name: str):
@@ -41,18 +36,6 @@ def _raise_eager_only_method(method_name: str, class_name: str):
       f'calling .{method_name}() on a {class_name} is not supported in'
       ' expr/tracing mode'
   )
-
-
-def _aux_bind_op(op_name: str, *args, **kwargs):
-  bound = arolla.abc.aux_bind_op(op_name, *args, **kwargs)
-  # So far we only annotate expressions with source location in tracing mode,
-  # because there are generally fewer expectations on the structure of exprs
-  # embedded into the functors. kd.lazy operators are not modified and enable
-  # users full control over the expr structure.
-  if tracing_mode.is_tracing_enabled():
-    return source_location.annotate_with_current_source_location(bound)
-  else:
-    return bound
 
 
 class SlicingHelper:

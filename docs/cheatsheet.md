@@ -3620,7 +3620,7 @@ DataItem(Functor fn1[a, b](
 
 >>> kd.trace_py_fn(fn2)
 DataItem(Functor fn2[a, b](
-      returns=((V.x📍 + V.y📍)📍 + DataItem(3, schema: INT32))📍,
+      returns=((V.x + V.y)📍 + DataItem(3, schema: INT32))📍,
       x=(I.a + DataItem(1, schema: INT32))📍,
       y=(I.b + DataItem(2, schema: INT32))📍,
     ), schema: OBJECT, bag_id:...)

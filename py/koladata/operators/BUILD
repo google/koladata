@@ -269,6 +269,7 @@ py_library(
         ":unified_binding_policy",
         "//py:python_path",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:tracing",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",

@@ -23,7 +23,6 @@ from koladata.base import init as _
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
-from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.extension_types import extension_types as _extension_types
 from koladata.extension_types import functions as _extension_type_functions
@@ -213,9 +212,7 @@ def _InitOpsAndContainers():
     assert op_or_container_name not in globals()
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ops, op_or_container_name),
-        tracing=_source_location.attaching_source_location(
-            getattr(_kde_operators.kde, op_or_container_name)
-        ),
+        tracing=getattr(_kde_operators.kde, op_or_container_name),
     )
 
 
@@ -246,9 +243,7 @@ def _LoadImpureFunctions(*modules: _py_types.ModuleType):
             fn_val = _eager_op_utils.add_overrides(globals()[fn_name], fn_val)
           globals()[fn_name] = _dispatch(
               eager=fn_val,
-              tracing=_source_location.attaching_source_location(
-                  getattr(_kde_operators.kde, fn_name)
-              ),
+              tracing=getattr(_kde_operators.kde, fn_name),
           )
         else:
           globals()[fn_name] = _eager_only(fn_val)
