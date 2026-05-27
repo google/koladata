@@ -1627,7 +1627,10 @@ DataSlice([1, 2, 3], schema: INT32,...)
 >>> # Fails. `x[:]` is not possible for an entity.
 >>> explode_or_default(kd.new(x=1), 2)
 Traceback (most recent call last):
-ValueError: koda_internal.view.get_item: kd.core.get_list_item_by_range: the attribute '__items__' is missing on the schema...
+  ...
+ValueError: kd.core.get_list_item_by_range: the attribute '__items__' is missing on the schema.
+<BLANKLINE>
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('__items__')
 ```
 
 ### `kd.if_`

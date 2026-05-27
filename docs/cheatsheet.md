@@ -1594,13 +1594,13 @@ DataSlice([[[1, 1], [2]], [[3, 3]]], schema: INT32, present: 5/5)
 
 >>> kd.expand_to(a, c)
 Traceback (most recent call last):
+  ...
 ValueError: kd.shapes.expand_to_shape: DataSlice with shape=JaggedShape(2, [2, 1]) cannot be expanded to shape=JaggedShape(2, [1, 2])
-...
 
 >>> kd.expand_to(a, c, ndim=0)
 Traceback (most recent call last):
+  ...
 ValueError: kd.shapes.expand_to_shape: DataSlice with shape=JaggedShape(2, [2, 1]) cannot be expanded to shape=JaggedShape(2, [1, 2])
-...
 
 >>> kd.expand_to(a, c, ndim=1)
 DataSlice([[[1, 2]], [[3], [3]]], schema: INT32, present: 4/4)
@@ -1610,8 +1610,8 @@ DataSlice([[[[1, 2], [3]]], [[[1, 2], [3]], [[1, 2], [3]]]], schema: INT32, pres
 
 >>> kd.expand_to(a, c, ndim=3)
 Traceback (most recent call last):
+  ...
 ValueError: kd.shapes.expand_to_shape: ndim must be a positive integer and <= x.ndim, got 3
-...
 ```
 
 </section>

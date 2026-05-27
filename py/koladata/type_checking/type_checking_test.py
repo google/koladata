@@ -25,7 +25,6 @@ from koladata.testing import testing
 from koladata.type_checking import type_checking
 from koladata.types import data_slice
 
-
 ds = data_slice.DataSlice.from_vals
 kdf = kd.functor
 Person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)
@@ -424,8 +423,7 @@ class TypeCheckingTest(parameterized.TestCase):
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Could the .*assertion.* prefix be removed?
-        'kd.assertion.with_assertion: '
+        r'\[FAILED_PRECONDITION\] '
         + error_message.format(
             decorator='kd.check_inputs', parameter=r'(parameter\s)?x'
         ),
@@ -453,8 +451,7 @@ class TypeCheckingTest(parameterized.TestCase):
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Could the .*assertion.* prefix be removed?
-        'kd.assertion.with_assertion: '
+        r'\[FAILED_PRECONDITION\] '
         + error_message.format(decorator='kd.check_output', parameter='output'),
     ):
       _ = fn(value)
@@ -694,8 +691,7 @@ class TypeCheckingTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Could the .*assertion.* prefix be removed?
-        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        r'\[FAILED_PRECONDITION\] kd.check_inputs: type mismatch'
         ' for parameter traced; expected type INT32, got FLOAT32',
     ):
       _ = fn(ds([1.0, 2, 3]))
@@ -723,7 +719,7 @@ class TypeCheckingTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        r'\[FAILED_PRECONDITION\] kd.check_inputs: type mismatch'
         ' for parameter x; expected type INT32, got FLOAT32',
     ):
       _ = fn(ds([1.0]), ds([1]))
@@ -859,7 +855,7 @@ class TypeCheckingTest(parameterized.TestCase):
     fn = kdf.fn(call_f)
     with self.assertRaisesRegex(
         ValueError,
-        'kd.assertion.with_assertion: kd.check_inputs:'
+        r'\[FAILED_PRECONDITION\] kd.check_inputs:'
         r' expected parameter f to be a functor with signature \(x\), got a'
         r' functor with signature Obj\(parameters=List\[\]\)',
     ):
@@ -890,9 +886,7 @@ class TypeCheckingTest(parameterized.TestCase):
   def test_functor_with_signature_static_when_tracing(self):
     @type_checking.check_inputs(
         f=type_checking.static_when_tracing(
-            type_checking.functor(
-                signature=inspect.signature(lambda x: x)
-            )
+            type_checking.functor(signature=inspect.signature(lambda x: x))
         )
     )
     def call_f(f, x):

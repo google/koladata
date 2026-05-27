@@ -88,6 +88,8 @@ def eval_(
 
 eval = eval_  # pylint: disable=redefined-builtin
 
+eval_op = _py_expr_eval_py_ext.eval_op
+
 
 # Subscribe the compilation cache for arolla cleanups.
 arolla.abc.cache_clear_callbacks.add(

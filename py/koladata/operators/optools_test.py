@@ -14,6 +14,7 @@
 
 import inspect
 import re
+import traceback
 import warnings
 
 from absl.testing import absltest
@@ -982,6 +983,34 @@ class OptoolsTest(parameterized.TestCase):
         container.test.set_namespace_docstring_override.ns.__doc__,
         'Second docstring.',
     )
+
+  def test_as_lambda_operator_stack_trace(self):
+    @optools.as_lambda_operator('test.inner_lambda')
+    def inner_lambda(x, y):
+      return x // y
+
+    @optools.as_lambda_operator('test.outer_lambda')
+    def outer_lambda(x, y):
+      return inner_lambda(x, y) + 1
+
+    try:
+      expr_eval.eval(outer_lambda(I.x, I.y), x=ds(1), y=ds(0))
+    except ValueError as e:
+      ex = e
+
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*inner_lambda')
+    self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*outer_lambda')
+
+    # eval_op uses different evaluation path, so testing it separately.
+    try:
+      expr_eval.eval_op(outer_lambda, ds(1), ds(0))
+    except ValueError as e:
+      ex = e
+
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*inner_lambda')
+    self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*outer_lambda')
 
 
 if __name__ == '__main__':

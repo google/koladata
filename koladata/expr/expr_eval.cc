@@ -57,7 +57,6 @@
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "koladata/internal/op_utils/error.h"
 
 namespace koladata::expr {
 namespace {
@@ -302,6 +301,7 @@ absl::StatusOr<CompiledExpr> CompileOp(
             // Most of our expressions are small and don't contain any literals.
             // In such cases the always clone thread safety policy is faster.
             .SetAlwaysCloneThreadSafetyPolicy()
+            .EnableExprStackTrace(true)
             .CompileOperator(op, arg_types));
     fn = CompilationCache::Instance().Put(key, std::move(fn));
   }
@@ -309,8 +309,7 @@ absl::StatusOr<CompiledExpr> CompileOp(
 }
 
 // Strips the top level Arolla's NotePayload and VerboseRuntimeError layers from
-// the error and annotates the cause message with the operator name. The source
-// location payloads layers are preserved.
+// the error. The source location payloads layers are preserved.
 // TODO: Consider keeping NotePayloads.
 absl::Status SimplifyExprEvaluationError(const absl::Status& status) {
   const auto* cause = arolla::GetCause(status);
@@ -329,11 +328,9 @@ absl::Status SimplifyExprEvaluationError(const absl::Status& status) {
     return arolla::WithSourceLocation(std::move(simplified_cause),
                                       *source_location);
   }
-  if (const auto* verbose_runtime_error =
-          arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status);
-      verbose_runtime_error != nullptr) {
-    return internal::OperatorEvalError(std::move(simplified_cause),
-                                       verbose_runtime_error->operator_name);
+  if (arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status) !=
+      nullptr) {
+    return simplified_cause;
   }
 
   // Unknown structure of the status, just return it as is.

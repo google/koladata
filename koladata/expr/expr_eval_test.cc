@@ -23,9 +23,14 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/expr/eval/verbose_runtime_error.h"
 #include "arolla/expr/expr.h"
+#include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/lambda_expr_operator.h"
+#include "arolla/expr/testing/testing.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 
 namespace koladata::expr {
@@ -34,16 +39,25 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::SourceLocationPayload;
+using ::arolla::Text;
+using ::arolla::expr::CallOp;
+using ::arolla::expr::Literal;
+using ::arolla::expr::Placeholder;
+using ::arolla::expr::VerboseRuntimeError;
+using ::arolla::testing::CausedBy;
+using ::arolla::testing::PayloadIs;
+using ::arolla::testing::WithSourceLocationAnnotation;
+using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
+using ::testing::Not;
 
 TEST(ExprEvalTest, Basic) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("I")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("I")), Literal(Text("foo"))}));
   auto foo_value = arolla::TypedValue::FromValue(1);
   ASSERT_OK_AND_ASSIGN(
       auto result,
@@ -53,16 +67,11 @@ TEST(ExprEvalTest, Basic) {
 
 TEST(ExprEvalTest, Variables) {
   ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp(
-          "math.subtract",
-          {arolla::expr::CallOp("koda_internal.input",
-                                {arolla::expr::Literal(arolla::Text("I")),
-                                 arolla::expr::Literal(arolla::Text("foo"))}),
-           arolla::expr::CallOp(
-               "koda_internal.input",
-               {arolla::expr::Literal(arolla::Text("V")),
-                arolla::expr::Literal(arolla::Text("foo"))})}));
+      auto expr, CallOp("math.subtract",
+                        {CallOp("koda_internal.input",
+                                {Literal(Text("I")), Literal(Text("foo"))}),
+                         CallOp("koda_internal.input",
+                                {Literal(Text("V")), Literal(Text("foo"))})}));
   auto i_foo_value = arolla::TypedValue::FromValue(1);
   auto v_foo_value = arolla::TypedValue::FromValue(2);
   ASSERT_OK_AND_ASSIGN(auto result, EvalExprWithCompilationCache(
@@ -72,22 +81,18 @@ TEST(ExprEvalTest, Variables) {
 }
 
 TEST(ExprEvalTest, MissingInput) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("I")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("I")), Literal(Text("foo"))}));
   EXPECT_THAT(EvalExprWithCompilationCache(expr, {}, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "kd.eval() has missing inputs for: [I.foo]"));
 }
 
 TEST(ExprEvalTest, DuplicateInput) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("I")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("I")), Literal(Text("foo"))}));
   auto foo_value = arolla::TypedValue::FromValue(1);
   EXPECT_THAT(
       EvalExprWithCompilationCache(
@@ -97,22 +102,18 @@ TEST(ExprEvalTest, DuplicateInput) {
 }
 
 TEST(ExprEvalTest, MissingVariable) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("V")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("V")), Literal(Text("foo"))}));
   EXPECT_THAT(EvalExprWithCompilationCache(expr, {}, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "kd.eval() has missing inputs for: [V.foo]"));
 }
 
 TEST(ExprEvalTest, DuplicateVariable) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("V")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("V")), Literal(Text("foo"))}));
   auto foo_value = arolla::TypedValue::FromValue(1);
   EXPECT_THAT(
       EvalExprWithCompilationCache(
@@ -122,11 +123,9 @@ TEST(ExprEvalTest, DuplicateVariable) {
 }
 
 TEST(ExprEvalTest, UnknownContainer) {
-  ASSERT_OK_AND_ASSIGN(
-      auto expr,
-      arolla::expr::CallOp("koda_internal.input",
-                           {arolla::expr::Literal(arolla::Text("Z")),
-                            arolla::expr::Literal(arolla::Text("foo"))}));
+  ASSERT_OK_AND_ASSIGN(auto expr,
+                       CallOp("koda_internal.input",
+                              {Literal(Text("Z")), Literal(Text("foo"))}));
   auto foo_value = arolla::TypedValue::FromValue(1);
   EXPECT_THAT(
       EvalExprWithCompilationCache(expr, {{"foo", foo_value.AsRef()}}, {}),
@@ -134,53 +133,64 @@ TEST(ExprEvalTest, UnknownContainer) {
                "unknown input container: [Z]"));
 }
 
+TEST(ExprEvalTest, ErrorPropagation) {
+  ASSERT_OK_AND_ASSIGN(
+      auto x_expr,
+      CallOp("koda_internal.input", {Literal(Text("I")), Literal(Text("x"))}));
+  ASSERT_OK_AND_ASSIGN(
+      auto y_expr,
+      CallOp("koda_internal.input", {Literal(Text("I")), Literal(Text("y"))}));
+  ASSERT_OK_AND_ASSIGN(auto floordiv_expr,
+                       CallOp("math.floordiv", {x_expr, y_expr}));
+  ASSERT_OK_AND_ASSIGN(
+      auto expr, WithSourceLocationAnnotation(floordiv_expr, "foo", "bar.py",
+                                              57, 0, "  return x // y"));
+
+  auto x_value = arolla::TypedValue::FromValue(int64_t{1});
+  auto y_value = arolla::TypedValue::FromValue(int64_t{0});
+
+  EXPECT_THAT(EvalExprWithCompilationCache(
+                  expr, {{"x", x_value.AsRef()}, {"y", y_value.AsRef()}}, {}),
+              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                             HasSubstr("bar.py:57, in foo\n  return x // y")),
+                    PayloadIs<SourceLocationPayload>(),
+                    CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                            "division by zero"),
+                                   Not(PayloadIs<VerboseRuntimeError>())))));
+}
+
 TEST(GetExprVariablesTest, Basic) {
   ASSERT_OK_AND_ASSIGN(
       auto expr,
-      arolla::expr::CallOp(
-          "math.add",
-          {arolla::expr::CallOp("koda_internal.input",
-                                {arolla::expr::Literal(arolla::Text("V")),
-                                 arolla::expr::Literal(arolla::Text("foo"))}),
-           arolla::expr::CallOp(
-               "math.add",
-               {arolla::expr::CallOp(
-                    "koda_internal.input",
-                    {arolla::expr::Literal(arolla::Text("V")),
-                     arolla::expr::Literal(arolla::Text("bar"))}),
-                arolla::expr::CallOp(
-                    "koda_internal.input",
-                    {arolla::expr::Literal(arolla::Text("I")),
-                     arolla::expr::Literal(arolla::Text("baz"))})})}));
+      CallOp("math.add",
+             {CallOp("koda_internal.input",
+                     {Literal(Text("V")), Literal(Text("foo"))}),
+              CallOp("math.add",
+                     {CallOp("koda_internal.input",
+                             {Literal(Text("V")), Literal(Text("bar"))}),
+                      CallOp("koda_internal.input",
+                             {Literal(Text("I")), Literal(Text("baz"))})})}));
   EXPECT_THAT(GetExprVariables(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
 }
 
 TEST(GetExprInputsTest, Basic) {
   ASSERT_OK_AND_ASSIGN(
       auto expr,
-      arolla::expr::CallOp(
-          "math.add",
-          {arolla::expr::CallOp("koda_internal.input",
-                                {arolla::expr::Literal(arolla::Text("I")),
-                                 arolla::expr::Literal(arolla::Text("foo"))}),
-           arolla::expr::CallOp(
-               "math.add",
-               {arolla::expr::CallOp(
-                    "koda_internal.input",
-                    {arolla::expr::Literal(arolla::Text("I")),
-                     arolla::expr::Literal(arolla::Text("bar"))}),
-                arolla::expr::CallOp(
-                    "koda_internal.input",
-                    {arolla::expr::Literal(arolla::Text("V")),
-                     arolla::expr::Literal(arolla::Text("baz"))})})}));
+      CallOp("math.add",
+             {CallOp("koda_internal.input",
+                     {Literal(Text("I")), Literal(Text("foo"))}),
+              CallOp("math.add",
+                     {CallOp("koda_internal.input",
+                             {Literal(Text("I")), Literal(Text("bar"))}),
+                      CallOp("koda_internal.input",
+                             {Literal(Text("V")), Literal(Text("baz"))})})}));
   EXPECT_THAT(GetExprInputs(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
 }
 
 TEST(OpEvalTest, Basic) {
-  ASSERT_OK_AND_ASSIGN(auto op,
-                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
-                           "math.add", {arolla::expr::Placeholder("x"),
-                                        arolla::expr::Placeholder("x")})));
+  ASSERT_OK_AND_ASSIGN(
+      auto op, arolla::expr::MakeLambdaOperator(
+                   CallOp("math.add", {Placeholder("x"), Placeholder("x")})));
   auto foo_value = arolla::TypedValue::FromValue(1);
   ASSERT_OK_AND_ASSIGN(auto result,
                        EvalOpWithCompilationCache(op, {foo_value.AsRef()}));
@@ -188,10 +198,9 @@ TEST(OpEvalTest, Basic) {
 }
 
 TEST(OpEvalTest, DifferentTypes) {
-  ASSERT_OK_AND_ASSIGN(auto op,
-                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
-                           "math.add", {arolla::expr::Placeholder("x"),
-                                        arolla::expr::Placeholder("x")})));
+  ASSERT_OK_AND_ASSIGN(
+      auto op, arolla::expr::MakeLambdaOperator(
+                   CallOp("math.add", {Placeholder("x"), Placeholder("x")})));
   auto int_value = arolla::TypedValue::FromValue(1);
   auto float_value = arolla::TypedValue::FromValue(1.0);
   ASSERT_OK_AND_ASSIGN(auto int_result,
@@ -203,15 +212,40 @@ TEST(OpEvalTest, DifferentTypes) {
 }
 
 TEST(OpEvalTest, WrongNumberOfArgs) {
-  ASSERT_OK_AND_ASSIGN(auto op,
-                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
-                           "math.add", {arolla::expr::Placeholder("x"),
-                                        arolla::expr::Placeholder("x")})));
+  ASSERT_OK_AND_ASSIGN(
+      auto op, arolla::expr::MakeLambdaOperator(
+                   CallOp("math.add", {Placeholder("x"), Placeholder("x")})));
   auto foo_value = arolla::TypedValue::FromValue(1);
   EXPECT_THAT(
       EvalOpWithCompilationCache(op, {foo_value.AsRef(), foo_value.AsRef()}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("too many positional arguments")));
+}
+
+TEST(OpEvalTest, ErrorPropagation) {
+  ASSERT_OK_AND_ASSIGN(
+      auto floordiv_expr,
+      CallOp("math.floordiv", {Placeholder("x"), Placeholder("y")}));
+  ASSERT_OK_AND_ASSIGN(
+      auto annotated_floordiv_expr,
+      WithSourceLocationAnnotation(floordiv_expr, "foo", "bar.py", 57, 0,
+                                   "  return x // y"));
+  ASSERT_OK_AND_ASSIGN(
+      auto op,
+      arolla::expr::MakeLambdaOperator(
+          "my_lambda", arolla::expr::ExprOperatorSignature{{"x"}, {"y"}},
+          annotated_floordiv_expr));
+
+  auto x_value = arolla::TypedValue::FromValue(int64_t{1});
+  auto y_value = arolla::TypedValue::FromValue(int64_t{0});
+  EXPECT_THAT(
+      EvalOpWithCompilationCache(op, {x_value.AsRef(), y_value.AsRef()}),
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                     HasSubstr("bar.py:57, in foo\n  return x // y")),
+            PayloadIs<SourceLocationPayload>(),
+            CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                    "division by zero"),
+                           Not(PayloadIs<VerboseRuntimeError>())))));
 }
 
 }  // namespace

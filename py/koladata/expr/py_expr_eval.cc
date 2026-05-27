@@ -45,7 +45,6 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
-#include "py/arolla/abc/py_cached_eval.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_operator.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -63,7 +62,6 @@ using ::arolla::expr::MakeOpNode;
 using ::arolla::python::AuxBindArguments;
 using ::arolla::python::AuxBindingPolicyPtr;
 using ::arolla::python::DCheckPyGIL;
-using ::arolla::python::InvokeOpWithCompilationCache;
 using ::arolla::python::ParseArgPyOperator;
 using ::arolla::python::PyCancellationScope;
 using ::arolla::python::QValueOrExpr;
@@ -218,11 +216,14 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   ProvideDefaultCurrentExecutorScopeGuard executor_scope;
 
   // Call the implementation.
-  ASSIGN_OR_RETURN(
-      auto result,
-      InvokeOpWithCompilationCache(std::move(op), input_qvalues,
-                                   {.enable_expr_stack_trace = true}),
-      SetPyErrFromStatus(_));
+  absl::StatusOr<TypedValue> result_or_error;
+  {
+    ReleasePyGIL guard;
+    result_or_error =
+        expr::EvalOpWithCompilationCache(std::move(op), input_qvalues);
+  }
+  ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
+                   SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
 }
 
@@ -279,11 +280,14 @@ PyObject* absl_nullable PyEvalOrBindOp(PyObject* /*self*/, PyObject** py_args,
     // Set default executor for the current thread, if not already set.
     ProvideDefaultCurrentExecutorScopeGuard executor_scope;
     // Call the implementation.
-    ASSIGN_OR_RETURN(
-        auto result,
-        InvokeOpWithCompilationCache(std::move(op), input_qvalues,
-                                     {.enable_expr_stack_trace = true}),
-        SetPyErrFromStatus(_));
+    absl::StatusOr<TypedValue> result_or_error;
+    {
+      ReleasePyGIL guard;
+      result_or_error =
+          expr::EvalOpWithCompilationCache(std::move(op), input_qvalues);
+    }
+    ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
+                     SetPyErrFromStatus(_));
     return WrapAsPyQValue(std::move(result));
   }
 

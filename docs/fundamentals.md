@@ -1691,7 +1691,6 @@ with the target.
 Traceback (most recent call last):
   ...
 ValueError: kd.shapes.expand_to_shape: DataSlice with shape=JaggedShape(2) cannot be expanded to shape=JaggedShape(3)
- ...
 
 >>> y.expand_to(x, ndim=1)
 DataSlice([[5, 6], [5, 6], [5, 6]], schema: INT32, present: 6/6)
