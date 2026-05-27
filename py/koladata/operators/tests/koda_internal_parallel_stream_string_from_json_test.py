@@ -67,27 +67,20 @@ class KodaInternalParallelStreamStringFromJsonTest(absltest.TestCase):
       res_str = ''.join([str(x) for x in res_list])
       self.assertEqual(res_str, expected)
 
-  def test_errors(self):
-    # Field not found
-    expr = kde_internal.parallel.stream_string_from_json(
-        kde_internal.parallel.get_default_executor(),
-        kde_internal.parallel.stream_from_1d_slice(I.arg),
-        ds('$.not_found'),
-    )
-    with self.assertRaisesRegex(
-        ValueError, r"field '\$.not_found' is not found in JSON stream"):
-      _ = expr.eval(arg=ds(['{}'])).read_all(timeout=None)
-
-    # Not a string
+  def test_not_found(self):
     expr = kde_internal.parallel.stream_string_from_json(
         kde_internal.parallel.get_default_executor(),
         kde_internal.parallel.stream_from_1d_slice(I.arg),
         ds('$.a'),
     )
-    with self.assertRaisesRegex(
-        ValueError, r"field '\$.a' is not found in JSON stream"):
-      _ = expr.eval(arg=ds(['{"a": 123}'])).read_all(timeout=None)
 
+    res = expr.eval(arg=ds([''])).read_all(timeout=None)
+    self.assertEmpty(res)
+
+    res = expr.eval(arg=ds(['{"a": 123}'])).read_all(timeout=None)
+    self.assertEmpty(res)
+
+  def test_errors(self):
     # Input not a string stream
     expr = kde_internal.parallel.stream_string_from_json(
         kde_internal.parallel.get_default_executor(),

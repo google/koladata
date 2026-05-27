@@ -233,12 +233,7 @@ class StreamStringFromJsonHooks final : public BasicRoutineHooks {
     }
     if (absl::Status* status = try_read_result.close_status()) {
       if (status->ok()) {
-        absl::Status st = ProcessChunk(" ");
-        if (st.ok() && state_ == FILTERING) {
-          st = absl::InvalidArgumentError(absl::StrFormat(
-              "field '%s' is not found in JSON stream", field_to_extract_));
-        }
-        writer_->TryClose(std::move(st));
+        writer_->TryClose(ProcessChunk(" "));
       } else {
         writer_->TryClose(*status);
       }
