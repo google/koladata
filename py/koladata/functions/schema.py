@@ -18,8 +18,9 @@ import dataclasses
 import enum
 import types as py_types
 import typing
-from typing import Any, Union, Optional
+from typing import Any, Optional, Union
 
+from koladata.functions import attrs
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
@@ -141,11 +142,29 @@ def _primitive_schema_to_py(schema: schema_item.SchemaItem) -> _PRIMITIVETYPE:
   return _koda_to_py_type_map[schema]
 
 
+def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
+  """Returns the Python dataclass name corresponding to the given Koda schema.
+
+  Args:
+    schema: The Koda schema to get the dataclass name for.
+
+  Returns:
+    If the `__schema_name__` attribute is present, it returns the last part of
+    the name. Otherwise (e.g., if the schema was created via `kd.new_schema`
+    without an explicit name), it returns 'Entity'.
+  """
+  # TODO(b/510247584) Once the public API for schema_name is implemented, use
+  # that instead.
+  dataclass_name = schema.get_attr('__schema_name__', 'Entity').to_py()
+  return dataclass_name.split('.')[-1]
+
+
 def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
   """Creates a Python type corresponding to the given Koda schema.
 
   Primitive Koda schemas are converted to the corresponding Python types.
   List schemas are converted to lists, dict schemas to dicts.
+  Entity schemas are converted to dynamically created dataclasses.
   kd.OBJECT is not supported at any level, since there is no corresponding
   Python type.
 
@@ -159,7 +178,6 @@ def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
 
   Raises:
     TypeError: If the given schema is not supported.
-    NotImplementedError: If the given schema is an entity schema.
   """
 
   if schema.is_primitive():
@@ -175,7 +193,15 @@ def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
         | None
     )
   if schema.is_entity_schema():
-    raise NotImplementedError(
-        'entity schemas are not supported in schema_to_py'
+    dataclass_fields = [
+        (name, schema_to_py(schema.get_attr(name)))
+        for name in attrs.dir(schema)
+    ]
+    return (
+        dataclasses.make_dataclass(
+            _get_dataclass_name(schema),
+            dataclass_fields,
+        )
+        | None
     )
   raise TypeError(f'unsupported schema: {schema}.')

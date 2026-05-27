@@ -58,6 +58,7 @@ py_library(
     name = "schema",
     srcs = ["schema.py"],
     deps = [
+        ":attrs",
         "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",

@@ -296,6 +296,7 @@ py_test(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/base/py_conversions:dataclasses_py_util",
         "//py/koladata/functions:schema",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
