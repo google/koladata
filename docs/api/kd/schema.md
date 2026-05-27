@@ -110,36 +110,8 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Dict schema with the provided `key_schema` and `value_schema`.</code></pre>
 
 ### `kd.schema.get_dtype(ds)` {#kd.schema.get_dtype}
-Aliases:
 
-- [kd.schema.get_primitive_schema](#kd.schema.get_primitive_schema)
-
-- [kd.get_dtype](../kd.md#kd.get_dtype)
-
-- [kd.get_primitive_schema](../kd.md#kd.get_primitive_schema)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a primitive schema representing the underlying items&#39; dtype.
-
-If `ds` has a primitive schema, this returns that primitive schema, even if
-all items in `ds` are missing. If `ds` has an OBJECT schema but contains
-primitive values of a single dtype, it returns the schema for that primitive
-dtype.
-
-In case of items in `ds` have non-primitive types or mixed dtypes, returns
-a missing schema (i.e. `kd.item(None, kd.SCHEMA)`).
-
-Examples:
-  kd.get_primitive_schema(kd.slice([1, 2, 3])) -&gt; kd.INT32
-  kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -&gt; kd.INT32
-  kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -&gt; kd.INT32
-  kd.get_primitive_schema(kd.slice([1, &#39;a&#39;, 3], kd.OBJECT)) -&gt; missing schema
-  kd.get_primitive_schema(kd.obj())) -&gt; missing schema
-
-Args:
-  ds: DataSlice to get dtype from.
-
-Returns:
-  a primitive schema DataSlice.</code></pre>
+Alias for [kd.schema.get_primitive_schema](#kd.schema.get_primitive_schema)
 
 ### `kd.schema.get_item_schema(list_schema)` {#kd.schema.get_item_schema}
 Aliases:
@@ -149,15 +121,8 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the item schema of a List schema`.</code></pre>
 
 ### `kd.schema.get_itemid(x)` {#kd.schema.get_itemid}
-Aliases:
 
-- [kd.schema.to_itemid](#kd.schema.to_itemid)
-
-- [kd.get_itemid](../kd.md#kd.get_itemid)
-
-- [kd.to_itemid](../kd.md#kd.to_itemid)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to ITEMID using explicit (permissive) casting rules.</code></pre>
+Alias for [kd.schema.to_itemid](#kd.schema.to_itemid)
 
 ### `kd.schema.get_key_schema(dict_schema)` {#kd.schema.get_key_schema}
 Aliases:
@@ -202,8 +167,36 @@ Returns:
   A DataSlice of schemas.</code></pre>
 
 ### `kd.schema.get_primitive_schema(ds)` {#kd.schema.get_primitive_schema}
+Aliases:
 
-Alias for [kd.schema.get_dtype](#kd.schema.get_dtype)
+- [kd.schema.get_dtype](#kd.schema.get_dtype)
+
+- [kd.get_dtype](../kd.md#kd.get_dtype)
+
+- [kd.get_primitive_schema](../kd.md#kd.get_primitive_schema)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a primitive schema representing the underlying items&#39; dtype.
+
+If `ds` has a primitive schema, this returns that primitive schema, even if
+all items in `ds` are missing. If `ds` has an OBJECT schema but contains
+primitive values of a single dtype, it returns the schema for that primitive
+dtype.
+
+In case of items in `ds` have non-primitive types or mixed dtypes, returns
+a missing schema (i.e. `kd.item(None, kd.SCHEMA)`).
+
+Examples:
+  kd.get_primitive_schema(kd.slice([1, 2, 3])) -&gt; kd.INT32
+  kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -&gt; kd.INT32
+  kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -&gt; kd.INT32
+  kd.get_primitive_schema(kd.slice([1, &#39;a&#39;, 3], kd.OBJECT)) -&gt; missing schema
+  kd.get_primitive_schema(kd.obj())) -&gt; missing schema
+
+Args:
+  ds: DataSlice to get dtype from.
+
+Returns:
+  a primitive schema DataSlice.</code></pre>
 
 ### `kd.schema.get_repr(schema)` {#kd.schema.get_repr}
 
@@ -382,8 +375,15 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to INT64 using explicit (permissive) casting rules.</code></pre>
 
 ### `kd.schema.to_itemid(x)` {#kd.schema.to_itemid}
+Aliases:
 
-Alias for [kd.schema.get_itemid](#kd.schema.get_itemid)
+- [kd.schema.get_itemid](#kd.schema.get_itemid)
+
+- [kd.get_itemid](../kd.md#kd.get_itemid)
+
+- [kd.to_itemid](../kd.md#kd.to_itemid)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Casts `x` to ITEMID using explicit (permissive) casting rules.</code></pre>
 
 ### `kd.schema.to_mask(x)` {#kd.schema.to_mask}
 

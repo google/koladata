@@ -186,7 +186,7 @@ Alias for [kd.math.argmin](kd/math.md#kd.math.argmin)
 
 ### `kd.at(x, indices)` {#kd.at}
 
-Alias for [kd.slices.at](kd/slices.md#kd.slices.at)
+Alias for [kd.slices.take](kd/slices.md#kd.slices.take)
 
 ### `kd.attr(x, attr_name, value, overwrite_schema=False)` {#kd.attr}
 
@@ -198,7 +198,7 @@ Alias for [kd.core.attrs](kd/core.md#kd.core.attrs)
 
 ### `kd.bag()` {#kd.bag}
 
-Alias for [kd.types.DataBag.empty](kd/types/data_bag.md#kd.types.DataBag.empty)
+Alias for [kd.bags.new](kd/bags.md#kd.bags.new)
 
 ### `kd.bind(fn_def: DataItem, /, *args: Any, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **kwargs: Any) -> DataItem` {#kd.bind}
 
@@ -676,7 +676,7 @@ Alias for [kd.core.get_bag](kd/core.md#kd.core.get_bag)
 
 ### `kd.get_dtype(ds)` {#kd.get_dtype}
 
-Alias for [kd.schema.get_dtype](kd/schema.md#kd.schema.get_dtype)
+Alias for [kd.schema.get_primitive_schema](kd/schema.md#kd.schema.get_primitive_schema)
 
 ### `kd.get_item(x, key_or_index)` {#kd.get_item}
 
@@ -688,7 +688,7 @@ Alias for [kd.schema.get_item_schema](kd/schema.md#kd.schema.get_item_schema)
 
 ### `kd.get_itemid(x)` {#kd.get_itemid}
 
-Alias for [kd.schema.get_itemid](kd/schema.md#kd.schema.get_itemid)
+Alias for [kd.schema.to_itemid](kd/schema.md#kd.schema.to_itemid)
 
 ### `kd.get_key_schema(dict_schema)` {#kd.get_key_schema}
 
@@ -716,7 +716,7 @@ Alias for [kd.schema.get_obj_schema](kd/schema.md#kd.schema.get_obj_schema)
 
 ### `kd.get_primitive_schema(ds)` {#kd.get_primitive_schema}
 
-Alias for [kd.schema.get_dtype](kd/schema.md#kd.schema.get_dtype)
+Alias for [kd.schema.get_primitive_schema](kd/schema.md#kd.schema.get_primitive_schema)
 
 ### `kd.get_proto_attr(x, field_name)` {#kd.get_proto_attr}
 
@@ -884,7 +884,7 @@ Alias for [kd.slices.isin](kd/slices.md#kd.slices.isin)
 
 ### `kd.item(x, /, schema=None)` {#kd.item}
 
-Alias for [kd.types.DataItem.from_vals](kd/types/data_item.md#kd.types.DataItem.from_vals)
+Alias for [kd.slices.item](kd/slices.md#kd.slices.item)
 
 ### `kd.less(x, y)` {#kd.less}
 
@@ -1395,7 +1395,7 @@ Alias for [kd.slices.size](kd/slices.md#kd.slices.size)
 
 ### `kd.slice(x, /, schema=None)` {#kd.slice}
 
-Alias for [kd.types.DataSlice.from_vals](kd/types/data_slice.md#kd.types.DataSlice.from_vals)
+Alias for [kd.slices.slice](kd/slices.md#kd.slices.slice)
 
 ### `kd.sort(x, sort_by=unspecified, descending=False)` {#kd.sort}
 
@@ -1443,7 +1443,7 @@ Alias for [kd.functor.switch](kd/functor.md#kd.functor.switch)
 
 ### `kd.take(x, indices)` {#kd.take}
 
-Alias for [kd.slices.at](kd/slices.md#kd.slices.at)
+Alias for [kd.slices.take](kd/slices.md#kd.slices.take)
 
 ### `kd.tile(x, shape)` {#kd.tile}
 
@@ -1455,7 +1455,7 @@ Alias for [kd.schema.to_expr](kd/schema.md#kd.schema.to_expr)
 
 ### `kd.to_itemid(x)` {#kd.to_itemid}
 
-Alias for [kd.schema.get_itemid](kd/schema.md#kd.schema.get_itemid)
+Alias for [kd.schema.to_itemid](kd/schema.md#kd.schema.to_itemid)
 
 ### `kd.to_json(x, /, *, indent=None, ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.to_json}
 

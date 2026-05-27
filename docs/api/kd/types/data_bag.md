@@ -166,13 +166,8 @@ Returns:
   A DataSlice with the dicts.</code></pre>
 
 ### `DataBag.empty()` {#kd.types.DataBag.empty}
-Aliases:
 
-- [kd.bags.new](../bags.md#kd.bags.new)
-
-- [kd.bag](../../kd.md#kd.bag)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
+Alias for [kd.bags.new](../bags.md#kd.bags.new)
 
 ### `DataBag.empty_mutable()` {#kd.types.DataBag.empty_mutable}
 Aliases:

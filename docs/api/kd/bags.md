@@ -38,8 +38,13 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns `present` if DataBag `bag` is a NullDataBag.</code></pre>
 
 ### `kd.bags.new()` {#kd.bags.new}
+Aliases:
 
-Alias for [kd.types.DataBag.empty](types/data_bag.md#kd.types.DataBag.empty)
+- [kd.types.DataBag.empty](types/data_bag.md#kd.types.DataBag.empty)
+
+- [kd.bag](../kd.md#kd.bag)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns an empty immutable DataBag.</code></pre>
 
 ### `kd.bags.updated(*bags)` {#kd.bags.updated}
 Aliases:

@@ -56,19 +56,5 @@ Returns:
   A new Koda functor with some parameters bound.</code></pre>
 
 ### `DataItem.from_vals(x, /, schema=None)` {#kd.types.DataItem.from_vals}
-Aliases:
 
-- [kd.slices.item](../slices.md#kd.slices.item)
-
-- [kd.item](../../kd.md#kd.item)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem created from `x`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`x`. Python value must be convertible to Koda scalar and the result cannot
-be multidimensional DataSlice.
-
-Args:
-  x: a Python value or a DataItem.
-  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
-    it to the given schema.</code></pre>
+Alias for [kd.slices.item](../slices.md#kd.slices.item)

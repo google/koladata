@@ -188,11 +188,8 @@ Args:
     defaults to 0.</code></pre>
 
 ### `kd.shapes.ndim(shape)` {#kd.shapes.ndim}
-Aliases:
 
-- [kd.shapes.rank](#kd.shapes.rank)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the rank of the jagged shape.</code></pre>
+Alias for [kd.shapes.rank](#kd.shapes.rank)
 
 ### `kd.shapes.new(*dimensions)` {#kd.shapes.new}
 
@@ -226,8 +223,11 @@ Args:
     supported.</code></pre>
 
 ### `kd.shapes.rank(shape)` {#kd.shapes.rank}
+Aliases:
 
-Alias for [kd.shapes.ndim](#kd.shapes.ndim)
+- [kd.shapes.ndim](#kd.shapes.ndim)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the rank of the jagged shape.</code></pre>
 
 ### `kd.shapes.reshape(x, shape)` {#kd.shapes.reshape}
 Aliases:

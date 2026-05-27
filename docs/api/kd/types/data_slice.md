@@ -361,22 +361,8 @@ Args:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a frozen DataSlice equivalent to `self`.</code></pre>
 
 ### `DataSlice.from_vals(x, /, schema=None)` {#kd.types.DataSlice.from_vals}
-Aliases:
 
-- [kd.slices.slice](../slices.md#kd.slices.slice)
-
-- [kd.slice](../../kd.md#kd.slice)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice created from `x`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`x`.
-
-Args:
-  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
-    a multidimensional DataSlice is created.
-  schema: schema DataItem to set. If `x` is already a DataSlice, this will
-    cast it to the given schema.</code></pre>
+Alias for [kd.slices.slice](../slices.md#kd.slices.slice)
 
 ### `DataSlice.get_attr(attr_name, /, default=None)` {#kd.types.DataSlice.get_attr}
 

@@ -82,45 +82,8 @@ Returns:
   A tuple of aligned DataSlices, matching `args`.</code></pre>
 
 ### `kd.slices.at(x, indices)` {#kd.slices.at}
-Aliases:
 
-- [kd.slices.take](#kd.slices.take)
-
-- [kd.at](../kd.md#kd.at)
-
-- [kd.take](../kd.md#kd.take)
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataSlice with items at provided indices.
-
-`indices` must have INT32 or INT64 dtype or OBJECT schema holding INT32 or
-INT64 items.
-
-Indices in the DataSlice `indices` are based on the last dimension of the
-DataSlice `x`. Negative indices are supported and out-of-bound indices result
-in missing items.
-
-If ndim(x) - 1 &gt; ndim(indices), indices are broadcasted to shape(x)[:-1].
-If ndim(x) &lt;= ndim(indices), indices are unchanged but shape(x)[:-1] must be
-broadcastable to shape(indices).
-
-Example:
-  x = kd.slice([[1, None, 2], [3, 4]])
-  kd.take(x, kd.item(1))  # -&gt; kd.slice([[None, 4]])
-  kd.take(x, kd.slice([0, 1]))  # -&gt; kd.slice([1, 4])
-  kd.take(x, kd.slice([[0, 1], [1]]))  # -&gt; kd.slice([[1, None], [4]])
-  kd.take(x, kd.slice([[[0, 1], []], [[1], [0]]]))
-    # -&gt; kd.slice([[[1, None]], []], [[4], [3]]])
-  kd.take(x, kd.slice([3, -3]))  # -&gt; kd.slice([None, None])
-  kd.take(x, kd.slice([-1, -2]))  # -&gt; kd.slice([2, 3])
-  kd.take(x, kd.slice(&#39;1&#39;)) # -&gt; dtype mismatch error
-  kd.take(x, kd.slice([1, 2, 3])) -&gt; incompatible shape
-
-Args:
-  x: DataSlice to be indexed
-  indices: indices used to select items
-
-Returns:
-  A new DataSlice with items selected by indices.</code></pre>
+Alias for [kd.slices.take](#kd.slices.take)
 
 ### `kd.slices.bool(x: Any) -> DataSlice` {#kd.slices.bool}
 Aliases:
@@ -762,8 +725,22 @@ Aliases:
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem indicating whether DataItem x is present in y.</code></pre>
 
 ### `kd.slices.item(x, /, schema=None)` {#kd.slices.item}
+Aliases:
 
-Alias for [kd.types.DataItem.from_vals](types/data_item.md#kd.types.DataItem.from_vals)
+- [kd.types.DataItem.from_vals](types/data_item.md#kd.types.DataItem.from_vals)
+
+- [kd.item](../kd.md#kd.item)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataItem created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`. Python value must be convertible to Koda scalar and the result cannot
+be multidimensional DataSlice.
+
+Args:
+  x: a Python value or a DataItem.
+  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
+    it to the given schema.</code></pre>
 
 ### `kd.slices.mask(x: Any) -> DataSlice` {#kd.slices.mask}
 Aliases:
@@ -993,8 +970,22 @@ Returns:
   The size of `x`.</code></pre>
 
 ### `kd.slices.slice(x, /, schema=None)` {#kd.slices.slice}
+Aliases:
 
-Alias for [kd.types.DataSlice.from_vals](types/data_slice.md#kd.types.DataSlice.from_vals)
+- [kd.types.DataSlice.from_vals](types/data_slice.md#kd.types.DataSlice.from_vals)
+
+- [kd.slice](../kd.md#kd.slice)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`.
+
+Args:
+  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
+    a multidimensional DataSlice is created.
+  schema: schema DataItem to set. If `x` is already a DataSlice, this will
+    cast it to the given schema.</code></pre>
 
 ### `kd.slices.sort(x, sort_by=unspecified, descending=False)` {#kd.slices.sort}
 Aliases:
@@ -1202,8 +1193,45 @@ Returns:
   A DataSlice with selected items</code></pre>
 
 ### `kd.slices.take(x, indices)` {#kd.slices.take}
+Aliases:
 
-Alias for [kd.slices.at](#kd.slices.at)
+- [kd.slices.at](#kd.slices.at)
+
+- [kd.at](../kd.md#kd.at)
+
+- [kd.take](../kd.md#kd.take)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a new DataSlice with items at provided indices.
+
+`indices` must have INT32 or INT64 dtype or OBJECT schema holding INT32 or
+INT64 items.
+
+Indices in the DataSlice `indices` are based on the last dimension of the
+DataSlice `x`. Negative indices are supported and out-of-bound indices result
+in missing items.
+
+If ndim(x) - 1 &gt; ndim(indices), indices are broadcasted to shape(x)[:-1].
+If ndim(x) &lt;= ndim(indices), indices are unchanged but shape(x)[:-1] must be
+broadcastable to shape(indices).
+
+Example:
+  x = kd.slice([[1, None, 2], [3, 4]])
+  kd.take(x, kd.item(1))  # -&gt; kd.slice([[None, 4]])
+  kd.take(x, kd.slice([0, 1]))  # -&gt; kd.slice([1, 4])
+  kd.take(x, kd.slice([[0, 1], [1]]))  # -&gt; kd.slice([[1, None], [4]])
+  kd.take(x, kd.slice([[[0, 1], []], [[1], [0]]]))
+    # -&gt; kd.slice([[[1, None]], []], [[4], [3]]])
+  kd.take(x, kd.slice([3, -3]))  # -&gt; kd.slice([None, None])
+  kd.take(x, kd.slice([-1, -2]))  # -&gt; kd.slice([2, 3])
+  kd.take(x, kd.slice(&#39;1&#39;)) # -&gt; dtype mismatch error
+  kd.take(x, kd.slice([1, 2, 3])) -&gt; incompatible shape
+
+Args:
+  x: DataSlice to be indexed
+  indices: indices used to select items
+
+Returns:
+  A new DataSlice with items selected by indices.</code></pre>
 
 ### `kd.slices.tile(x, shape)` {#kd.slices.tile}
 Aliases:
