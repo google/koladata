@@ -805,6 +805,8 @@ cc_test(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/qtype",

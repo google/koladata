@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <utility>
+
 #include "benchmark/benchmark.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "arolla/qtype/base_types.h"
@@ -21,8 +24,10 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/deep_op_benchmarks_util.h"
 #include "koladata/internal/op_utils/extract.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 namespace {
@@ -111,6 +116,41 @@ inline void BM_ScalarPrimitive(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_ScalarPrimitive);
+
+void BM_FullAllocs(benchmark::State& state) {
+  int size = state.range(0);
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto schema = DataItem(AllocateExplicitSchema());
+  CHECK_OK(db->SetSchemaAttr(schema, "a", DataItem(schema::kInt32)));
+  CHECK_OK(db->SetSchemaAttr(schema, "b", DataItem(schema::kInt32)));
+  CHECK_OK(db->SetSchemaAttr(schema, "c", DataItem(schema::kInt32)));
+
+  SliceBuilder ba(size), bb(size), bc(size);
+  for (int i = 0; i < size; ++i) {
+    ba.InsertIfNotSet(i, i);
+    bb.InsertIfNotSet(i, size + i);
+    bc.InsertIfNotSet(i, size * 2 + i);
+  }
+  auto ds_x = std::move(ba).Build();
+  auto ds_y = std::move(bb).Build();
+  auto ds_z = std::move(bc).Build();
+  auto ds1 =
+      db->CreateObjectsFromFields({"a", "b", "c"}, {ds_x, ds_y, ds_z}).value();
+  auto ds2 =
+      db->CreateObjectsFromFields({"a", "b", "c"}, {ds_y, ds_z, ds_x}).value();
+
+  while (state.KeepRunning()) {
+    auto res_db = DataBagImpl::CreateEmptyDatabag();
+    benchmark::DoNotOptimize(db);
+    benchmark::DoNotOptimize(res_db);
+    ExtractOp op(res_db.get());
+    CHECK_OK(op(ds1, schema, *db, {}, nullptr, {}));
+    benchmark::DoNotOptimize(res_db);
+  }
+}
+
+BENCHMARK(BM_FullAllocs)->Arg(10)->Arg(100)->Arg(1000)->Arg(10000);
 
 }  // namespace
 }  // namespace koladata::internal
