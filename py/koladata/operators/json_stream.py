@@ -99,13 +99,11 @@ def filter_json(input_chunks, field_to_extract):
     to the given JSONPath.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              koda_internal_parallel.stream_filter_json(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  field_to_extract,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          koda_internal_parallel.stream_filter_json(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              field_to_extract,
           )
       )
   )
@@ -137,13 +135,11 @@ def stream_string_value(input_chunks, field_to_extract):
     An iterable of STRING DataItems.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              koda_internal_parallel.stream_string_from_json(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  field_to_extract,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          koda_internal_parallel.stream_string_from_json(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              field_to_extract,
           )
       )
   )
@@ -253,12 +249,10 @@ def chunk_values(input_chunks, /):
     top-level JSON value followed by a newline.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _chunk_values_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _chunk_values_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -324,12 +318,10 @@ def explode_array(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _explode_array_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _explode_array_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -400,13 +392,11 @@ def get_array_nth_value(input_chunks, /, *, n):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _get_array_nth_value_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  n,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _get_array_nth_value_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              n,
           )
       )
   )
@@ -478,13 +468,11 @@ def get_object_key_value(input_chunks, /, *, key):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _get_object_key_value_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  key,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _get_object_key_value_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              key,
           )
       )
   )
@@ -556,13 +544,11 @@ def get_object_key_values(input_chunks, /, *, key):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _get_object_key_values_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  key,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _get_object_key_values_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              key,
           )
       )
   )
@@ -633,13 +619,11 @@ def head(input_chunks, /, *, n=1):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _head_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  n,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _head_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              n,
           )
       )
   )
@@ -702,12 +686,10 @@ def implode_array(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _implode_array_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _implode_array_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -790,13 +772,11 @@ def prettify(input_chunks, /, *, indent_string='  '):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _prettify_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  indent_string,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _prettify_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              indent_string,
           )
       )
   )
@@ -863,12 +843,10 @@ def quote(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _quote_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _quote_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -997,15 +975,13 @@ def salvage(
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _salvage_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-                  allow_nan,
-                  ensure_ascii,
-                  max_depth,
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _salvage_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
+              allow_nan,
+              ensure_ascii,
+              max_depth,
           )
       )
   )
@@ -1068,12 +1044,10 @@ def select_nonempty_arrays(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _select_nonempty_arrays_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _select_nonempty_arrays_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -1136,12 +1110,10 @@ def select_nonempty_objects(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _select_nonempty_objects_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _select_nonempty_objects_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -1204,12 +1176,10 @@ def select_nonnull(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _select_nonnull_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _select_nonnull_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
@@ -1282,12 +1252,10 @@ def unquote(input_chunks, /):
     these string chunks.
   """
   return koda_internal_parallel.unsafe_blocking_wait(
-      koda_internal_parallel.stream_from_future(
-          koda_internal_parallel.future_iterable_from_stream(
-              _unquote_stream(
-                  streams.get_eager_executor(),
-                  koda_internal_parallel.stream_from_iterable(input_chunks),
-              )
+      koda_internal_parallel.future_iterable_from_stream(
+          _unquote_stream(
+              streams.get_eager_executor(),
+              koda_internal_parallel.stream_from_iterable(input_chunks),
           )
       )
   )
