@@ -36,6 +36,8 @@
 #include "arolla/util/status_macros_backport.h"
 #include "koladata/functor/parallel/basic_routine.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -95,17 +97,21 @@ class StreamCallHooks final : public BasicRoutineHooks {
         continue;
       }
       arg = arolla::DecayDerivedQValue(arg);
-      if (!IsStreamQType(arg.GetType())) {
+      if (!IsStreamQType(arg.GetType()) && !IsFutureQType(arg.GetType())) {
         args_.push_back(arg);
         continue;
       }
       awaited_arg_index_ = args_.size();
-      ASSIGN_OR_RETURN(
-          auto reader,
-          ProcessAwaitedArg(arg.UnsafeAs<StreamPtr>()->MakeReader()),
-          OnError(std::move(_)));
-      if (reader != nullptr) {
-        return reader;
+      StreamReaderPtr arg_reader;
+      if (IsStreamQType(arg.GetType())) {
+        arg_reader = arg.UnsafeAs<StreamPtr>()->MakeReader();
+      } else {
+        arg_reader = StreamReaderFromFuture(arg.UnsafeAs<FuturePtr>());
+      }
+      ASSIGN_OR_RETURN(arg_reader, ProcessAwaitedArg(std::move(arg_reader)),
+                       OnError(std::move(_)));
+      if (arg_reader != nullptr) {
+        return arg_reader;
       }
     }
     if (Interrupted()) {
@@ -186,7 +192,7 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamCall(
 }
 
 arolla::TypedRef MakeStreamCallAwaitArg(arolla::TypedRef arg) {
-  if (!IsStreamQType(arg.GetType())) {
+  if (!IsStreamQType(arg.GetType()) && !IsFutureQType(arg.GetType())) {
     return arg;
   }
   return arolla::UnsafeDowncastDerivedQValue(

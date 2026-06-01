@@ -48,6 +48,8 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_call.h"
 #include "koladata/functor/parallel/stream_composition.h"
@@ -159,8 +161,7 @@ StreamFilterJsonOperatorFamily::DoGetOperator(
         "the second argument must be a stream of DataSlices");
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "the third argument must be a DataSlice");
+    return absl::InvalidArgumentError("the third argument must be a DataSlice");
   }
   return std::make_shared<StreamFilterJsonOp>(input_types, output_type);
 }
@@ -184,8 +185,7 @@ StreamStringFromJsonOperatorFamily::DoGetOperator(
         "the second argument must be a stream of DataSlices");
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "the third argument must be a DataSlice");
+    return absl::InvalidArgumentError("the third argument must be a DataSlice");
   }
   return std::make_shared<StreamStringFromJsonOp>(input_types, output_type);
 }
@@ -1527,7 +1527,32 @@ absl::StatusOr<arolla::TypedRef> UnsafeBlockingWait(const StreamPtr
   ABSL_UNREACHABLE();
 }
 
-class UnsafeBlockingWaitOp final : public arolla::QExprOperator {
+absl::StatusOr<const arolla::TypedValue&> UnsafeBlockingWait(
+    const FuturePtr absl_nonnull& future) {
+  // Fast path if the value is already available.
+  if (auto peek = future->PeekValue(); peek.has_value()) {
+    return *peek;
+  }
+
+  auto ready = arolla::PermanentEvent::Make();
+  arolla::CancellationContext::Subscription subscription;
+  if (auto cancellation_context = arolla::CurrentCancellationContext();
+      cancellation_context != nullptr) {
+    subscription =
+        cancellation_context->Subscribe([ready] { ready->Notify(); });
+  }
+  future->AddConsumer(
+      [ready](absl::StatusOr<arolla::TypedValue> /*val*/) { ready->Notify(); });
+  ready->Wait();
+  RETURN_IF_ERROR(arolla::CheckCancellation());
+  auto peek = future->PeekValue();
+  if (!peek.has_value()) {
+    return absl::InternalError("Future wait finished but value is missing");
+  }
+  return *peek;
+}
+
+class UnsafeBlockingWaitStreamOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -1546,9 +1571,28 @@ class UnsafeBlockingWaitOp final : public arolla::QExprOperator {
   }
 };
 
+class UnsafeBlockingWaitFutureOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.unsafe_blocking_wait",
+        [input_future_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(const arolla::TypedValue& result,
+                           UnsafeBlockingWait(frame.Get(input_future_slot)));
+          return result.CopyToSlot(output_slot, frame);
+        });
+  }
+};
+
 }  // namespace
 
-// stream_unsafe_blocking_wait(stream: STREAM) -> STREAM
+// stream_unsafe_blocking_wait(stream: STREAM[T]|FUTURE[T]) -> T
 absl::StatusOr<arolla::OperatorPtr>
 UnsafeBlockingWaitOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
@@ -1556,19 +1600,29 @@ UnsafeBlockingWaitOperatorFamily::DoGetOperator(
   if (input_types.size() != 1) {
     return absl::InvalidArgumentError("requires exactly 1 argument");
   }
-  if (!IsStreamQType(input_types[0])) {
-    return absl::InvalidArgumentError("first argument must be a stream");
+  if (IsStreamQType(input_types[0])) {
+    if (input_types[0]->value_qtype() != output_type) {
+      return absl::InvalidArgumentError(
+          "output type must be the same as the value type of the input stream");
+    }
+    return std::make_shared<UnsafeBlockingWaitStreamOp>(input_types,
+                                                        output_type);
   }
-  if (input_types[0]->value_qtype() != output_type) {
-    return absl::InvalidArgumentError(
-        "output type must be the same as the value type of the input stream");
+  if (IsFutureQType(input_types[0])) {
+    if (input_types[0]->value_qtype() != output_type) {
+      return absl::InvalidArgumentError(
+          "output type must be the same as the value type of the input future");
+    }
+    return std::make_shared<UnsafeBlockingWaitFutureOp>(input_types,
+                                                        output_type);
   }
-  return std::make_shared<UnsafeBlockingWaitOp>(input_types, output_type);
+  return absl::InvalidArgumentError(
+      "first argument must be a stream or a future");
 }
 
 namespace {
 
-class SyncWaitOp final : public arolla::QExprOperator {
+class SyncWaitStreamOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -1592,23 +1646,55 @@ class SyncWaitOp final : public arolla::QExprOperator {
   }
 };
 
+class SyncWaitFutureOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.sync_wait",
+        [input_future_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
+          if (IsExecutorTask()) {
+            return absl::InvalidArgumentError(
+                "`sync_wait` operator cannot be called from an asynchronous "
+                "task");
+          }
+          ASSIGN_OR_RETURN(const arolla::TypedValue& result,
+                           UnsafeBlockingWait(frame.Get(input_future_slot)));
+          return result.CopyToSlot(output_slot, frame);
+        });
+  }
+};
+
 }  // namespace
 
-// stream_sync_wait(stream: STREAM) -> STREAM
+// stream_sync_wait(stream: STREAM[T]|FUTURE[T]) -> T
 absl::StatusOr<arolla::OperatorPtr> SyncWaitOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   if (input_types.size() != 1) {
     return absl::InvalidArgumentError("requires exactly 1 argument");
   }
-  if (!IsStreamQType(input_types[0])) {
-    return absl::InvalidArgumentError("first argument must be a stream");
+  if (IsStreamQType(input_types[0])) {
+    if (input_types[0]->value_qtype() != output_type) {
+      return absl::InvalidArgumentError(
+          "output type must be the same as the value type of the input stream");
+    }
+    return std::make_shared<SyncWaitStreamOp>(input_types, output_type);
   }
-  if (input_types[0]->value_qtype() != output_type) {
-    return absl::InvalidArgumentError(
-        "output type must be the same as the value type of the input stream");
+  if (IsFutureQType(input_types[0])) {
+    if (input_types[0]->value_qtype() != output_type) {
+      return absl::InvalidArgumentError(
+          "output type must be the same as the value type of the input future");
+    }
+    return std::make_shared<SyncWaitFutureOp>(input_types, output_type);
   }
-  return std::make_shared<SyncWaitOp>(input_types, output_type);
+  return absl::InvalidArgumentError(
+      "first argument must be a stream or a future");
 }
 
 }  // namespace koladata::functor::parallel

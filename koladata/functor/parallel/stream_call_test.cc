@@ -33,6 +33,8 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
 #include "koladata/functor/parallel/eager_executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -279,6 +281,26 @@ TEST(StreamCallTest, OrphanedBeforeFunctor) {
   std::move(*arg_writer).Close();
 }
 
+TEST(StreamCallTest, FutureBasic) {
+  auto functor = [](absl::Span<const arolla::TypedRef> args) {
+    EXPECT_THAT(args, ElementsAre(QValueWith<int>(2), QValueWith<double>(3.5)));
+    return arolla::TypedValue::FromValue(std::string("result"));
+  };
+  auto [arg1, arg1_writer] = MakeFuture(arolla::GetQType<double>());
+  ASSERT_OK_AND_ASSIGN(
+      auto stream,
+      StreamCall(GetEagerExecutor(), functor, arolla::GetQType<std::string>(),
+                 {arolla::TypedRef::FromValue(2),
+                  MakeStreamCallAwaitArg(MakeFutureQValueRef(arg1))}));
+  EXPECT_THAT(stream->value_qtype(), arolla::GetQType<std::string>());
+  auto reader = stream->MakeReader();
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(arg1_writer).SetValue(arolla::TypedValue::FromValue(3.5));
+  EXPECT_THAT(reader->TryRead().item(),
+              Pointee(QValueWith<std::string>("result")));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
 TEST(MakeStreamCallAwaitArg, Basic) {
   {
     auto [stream, writer] = MakeStream(arolla::GetQType<double>());
@@ -286,6 +308,13 @@ TEST(MakeStreamCallAwaitArg, Basic) {
     EXPECT_EQ(awaited_stream.GetType(),
               arolla::GetLabeledQType(GetStreamQType<double>(), "AWAIT"));
     EXPECT_EQ(awaited_stream.GetRawPointer(), &stream);
+  }
+  {
+    auto [future, writer] = MakeFuture(arolla::GetQType<double>());
+    auto awaited_future = MakeStreamCallAwaitArg(MakeFutureQValueRef(future));
+    EXPECT_EQ(awaited_future.GetType(),
+              arolla::GetLabeledQType(GetFutureQType<double>(), "AWAIT"));
+    EXPECT_EQ(awaited_future.GetRawPointer(), &future);
   }
   {
     auto int_value = 1;

@@ -35,6 +35,9 @@ is_future_qtype = arolla.abc.unsafe_make_registered_operator(
 is_stream_qtype = arolla.abc.unsafe_make_registered_operator(
     'koda_internal.parallel.is_stream_qtype'
 )
+get_future_qtype = arolla.abc.unsafe_make_registered_operator(
+    'koda_internal.parallel.get_future_qtype'
+)
 get_stream_qtype = arolla.abc.unsafe_make_registered_operator(
     'koda_internal.parallel.get_stream_qtype'
 )
@@ -287,7 +290,7 @@ def expect_future(param) -> constraints.QTypeConstraint:
   )
 
 
-def expect_stream(param, value_qtype=None) -> constraints.QTypeConstraint:
+def expect_stream(param, *, value_qtype=None) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Stream."""
   if value_qtype is not None:
     return (
@@ -309,7 +312,7 @@ def expect_stream(param, value_qtype=None) -> constraints.QTypeConstraint:
 
 
 def expect_stream_or_unspecified(
-    param, value_qtype=None
+    param, *, value_qtype=None
 ) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Stream."""
   if value_qtype is not None:
@@ -327,6 +330,30 @@ def expect_stream_or_unspecified(
         is_stream_qtype(param) | (param == arolla.UNSPECIFIED),
         (
             'expected a stream, got'
+            f' {arolla.optools.constraints.name_type_msg(param)}'
+        ),
+    )
+
+
+def expect_stream_or_future(
+    param, *, value_qtype=None
+) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a Stream or Future."""
+  if value_qtype is not None:
+    return (
+        (param == get_stream_qtype(value_qtype))
+        | (param == get_future_qtype(value_qtype)),
+        (
+            'expected a stream or a future of'
+            f' {value_qtype}, got'
+            f' {arolla.optools.constraints.name_type_msg(param)}'
+        ),
+    )
+  else:
+    return (
+        is_stream_qtype(param) | is_future_qtype(param),
+        (
+            'expected a stream or a future, got'
             f' {arolla.optools.constraints.name_type_msg(param)}'
         ),
     )

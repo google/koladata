@@ -40,7 +40,6 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-
 M = arolla.M | derived_qtype.M
 P = arolla.P
 constraints = arolla.optools.constraints
@@ -2052,23 +2051,25 @@ def stream_await(arg):
 
   This operator acts as a marker. When the returned value is passed to
   `kd.streams.call`, it signals that `kd.streams.call` should await
-  the underlying stream to yield a single item. This single item is then
-  passed to the functor.
+  the underlying stream or future to yield a single item. This single item is
+  then passed to the functor.
 
   Importantly, `stream_await` itself does not perform any awaiting or blocking.
 
-  If the input `arg` is not a stream, this operators returns `arg` unchanged.
+  If the input `arg` is not a stream or a future, this operator returns `arg`
+  unchanged.
 
   Note: `kd.streams.call` expects an awaited stream to yield exactly one item.
   Producing zero or more than one item from an awaited stream will result in
   an error during the `kd.streams.call` evaluation.
 
   Args:
-    arg: The input argument (the operator has effect only if `arg` is a stream).
+    arg: The input argument (the operator has effect only if `arg` is a stream
+      or a future).
 
   Returns:
-    If `arg` was a stream, it gets labeled with 'AWAIT'. If `arg` was not
-    a stream, `arg` is returned without modification.
+    If `arg` was a stream or a future, it gets labeled with 'AWAIT'. If `arg`
+    was not a stream or a future, `arg` is returned without modification.
   """
   return arolla.types.DispatchOperator(
       'arg',
@@ -2081,6 +2082,15 @@ def stream_await(arg):
           ),
           condition=is_stream_qtype(P.arg),
       ),
+      future_case=arolla.types.DispatchCase(
+          M.derived_qtype.downcast(
+              M.derived_qtype.get_labeled_qtype(
+                  M.qtype.qtype_of(P.arg), 'AWAIT'
+              ),
+              P.arg,
+          ),
+          condition=is_future_qtype(P.arg),
+      ),
       default=P.arg,
   )(arg)
 
@@ -2091,21 +2101,21 @@ def stream_await(arg):
 @optools.as_backend_operator(
     'koda_internal.parallel.sync_wait',
     qtype_constraints=[
-        qtype_utils.expect_stream(P.stream),
+        qtype_utils.expect_stream_or_future(P.stream_or_future),
     ],
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream),
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),
 )
-def sync_wait(stream):
-  """Blocks until the given stream yields a single item.
+def sync_wait(stream_or_future):
+  """Blocks until the given stream or future yields a single item.
 
   NOTE: This operator cannot be used from an asynchronous task running on
   an executor (even if it's an eager executor).
 
   Args:
-    stream: A single-item input stream.
+    stream_or_future: A single-item input stream or a future.
 
   Returns:
-    The single item from the stream.
+    The single item from the stream or the future.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -2115,13 +2125,11 @@ def sync_wait(stream):
 )
 @optools.as_backend_operator(
     'koda_internal.parallel.unsafe_blocking_wait',
-    qtype_constraints=[
-        qtype_utils.expect_stream(P.stream),
-    ],
-    qtype_inference_expr=M.qtype.get_value_qtype(P.stream),
+    qtype_constraints=[qtype_utils.expect_stream_or_future(P.stream_or_future)],
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_or_future),
 )
-def unsafe_blocking_wait(stream):
-  """Blocks until the given stream yields a single item.
+def unsafe_blocking_wait(stream_or_future):
+  """Blocks until the given stream or future yields a single item.
 
   Unlike `kd.streams.sync_wait`, this operator can be used from an asynchronous
   task running on an executor, but that makes it inherently unsafe.
@@ -2141,10 +2149,10 @@ def unsafe_blocking_wait(stream):
   of your computation.
 
   Args:
-    stream: A single-item input stream.
+    stream_or_future: A single-item input stream or a future.
 
   Returns:
-    The single item from the stream.
+    The single item from the stream or the future.
   """
   raise NotImplementedError('implemented in the backend')
 

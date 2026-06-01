@@ -25,6 +25,7 @@
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/meta.h"
@@ -75,6 +76,12 @@ arolla::TypedValue MakeFutureQValue(FuturePtr future) {
       std::move(future), GetFutureQType(future->value_qtype()));
   DCHECK_OK(result.status());
   return *std::move(result);
+}
+
+arolla::TypedRef MakeFutureQValueRef(const FuturePtr& future) {
+  DCHECK_NE(future, nullptr);
+  return arolla::TypedRef::UnsafeFromRawPointer(
+      GetFutureQType(future->value_qtype()), &future);
 }
 
 }  // namespace koladata::functor::parallel

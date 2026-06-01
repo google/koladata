@@ -154,7 +154,7 @@ def stream_string_value(input_chunks, field_to_extract):
     'kd.json_stream._filter_json_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.field_to_extract),
     ],
 )
@@ -176,7 +176,7 @@ def _filter_json_parallel(executor, stream, field_to_extract):
     'kd.json_stream._stream_string_value_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.field_to_extract),
     ],
 )
@@ -208,7 +208,7 @@ def _chunk_values_stream(executor, stream):
     'kd.json_stream._chunk_values_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _chunk_values_parallel(executor, stream):
@@ -279,7 +279,7 @@ def _explode_array_stream(executor, stream):
     'kd.json_stream._explode_array_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _explode_array_parallel(executor, stream):
@@ -350,7 +350,7 @@ def _get_array_nth_value_stream(executor, stream, n):
     'kd.json_stream._get_array_nth_value_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.n),
     ],
 )
@@ -427,7 +427,7 @@ def _get_object_key_value_stream(executor, stream, key):
     'kd.json_stream._get_object_key_value_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.key),
     ],
 )
@@ -505,7 +505,7 @@ def _get_object_key_values_stream(executor, stream, key):
     'kd.json_stream._get_object_key_values_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.key),
     ],
 )
@@ -583,7 +583,7 @@ def _head_stream(executor, stream, n):
     'kd.json_stream._head_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.n),
     ],
 )
@@ -660,7 +660,7 @@ def _implode_array_stream(executor, stream):
     'kd.json_stream._implode_array_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _implode_array_parallel(executor, stream):
@@ -728,7 +728,7 @@ def _prettify_stream(executor, stream, indent_string):
     'kd.json_stream._prettify_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.indent_string),
     ],
 )
@@ -817,7 +817,7 @@ def _quote_stream(executor, stream):
     'kd.json_stream._quote_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _quote_parallel(executor, stream):
@@ -889,7 +889,7 @@ def _salvage_stream(executor, stream, allow_nan, ensure_ascii, max_depth):
     'kd.json_stream._salvage_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
         qtype_utils.expect_future(P.allow_nan),
         qtype_utils.expect_future(P.ensure_ascii),
         qtype_utils.expect_future(P.max_depth),
@@ -1026,7 +1026,7 @@ def _select_nonempty_arrays_stream(executor, stream):
     'kd.json_stream._select_nonempty_arrays_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _select_nonempty_arrays_parallel(executor, stream):
@@ -1094,7 +1094,7 @@ def _select_nonempty_objects_stream(executor, stream):
     'kd.json_stream._select_nonempty_objects_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _select_nonempty_objects_parallel(executor, stream):
@@ -1162,7 +1162,7 @@ def _select_nonnull_stream(executor, stream):
     'kd.json_stream._select_nonnull_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _select_nonnull_parallel(executor, stream):
@@ -1230,7 +1230,7 @@ def _unquote_stream(executor, stream):
     'kd.json_stream._unquote_parallel',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_stream(P.stream, qtypes.DATA_SLICE),
+        qtype_utils.expect_stream(P.stream, value_qtype=qtypes.DATA_SLICE),
     ],
 )
 def _unquote_parallel(executor, stream):

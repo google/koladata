@@ -90,9 +90,15 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
     ).eval()
     self.assertEqual(result, 1)
 
+  def test_future(self):
+    result = kde_internal.parallel.sync_wait(
+        kde_internal.parallel.as_future(1)
+    ).eval()
+    self.assertEqual(result, 1)
+
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.sync_wait(I.stream))
+        view.has_koda_view(kde_internal.parallel.sync_wait(I.stream_or_future))
     )
 
   def test_alias(self):
@@ -105,12 +111,12 @@ class KodaInternalParallelSyncWaitTest(absltest.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.sync_wait(I.stream)),
-        'koda_internal.parallel.sync_wait(I.stream)',
+        repr(kde_internal.parallel.sync_wait(I.stream_or_future)),
+        'koda_internal.parallel.sync_wait(I.stream_or_future)',
     )
     self.assertEqual(
-        repr(kde.streams.sync_wait(I.stream)),
-        'kd.streams.sync_wait(I.stream)',
+        repr(kde.streams.sync_wait(I.stream_or_future)),
+        'kd.streams.sync_wait(I.stream_or_future)',
     )
 
 

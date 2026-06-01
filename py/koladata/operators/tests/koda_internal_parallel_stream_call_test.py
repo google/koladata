@@ -79,6 +79,18 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
     y_writer.close()
     self.assertEqual(res.read_all(timeout=1), [ds(6)])
 
+  def test_awaited_future_arg(self):
+    res = kde_internal.parallel.stream_call(
+        default_executor,
+        lambda x: x * 2,
+        x=kde_internal.parallel.stream_await(
+            kde_internal.parallel.as_future(ds(3))
+        ),
+    ).eval()
+    self.assertIsInstance(res, Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(res.read_all(timeout=1), [ds(6)])
+
   def test_mixed_types(self):
     def fn(x, y, z):
       return M.math.add(M.math.multiply(x, y), z)

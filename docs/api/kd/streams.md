@@ -15,23 +15,25 @@
 
 This operator acts as a marker. When the returned value is passed to
 `kd.streams.call`, it signals that `kd.streams.call` should await
-the underlying stream to yield a single item. This single item is then
-passed to the functor.
+the underlying stream or future to yield a single item. This single item is
+then passed to the functor.
 
 Importantly, `stream_await` itself does not perform any awaiting or blocking.
 
-If the input `arg` is not a stream, this operators returns `arg` unchanged.
+If the input `arg` is not a stream or a future, this operator returns `arg`
+unchanged.
 
 Note: `kd.streams.call` expects an awaited stream to yield exactly one item.
 Producing zero or more than one item from an awaited stream will result in
 an error during the `kd.streams.call` evaluation.
 
 Args:
-  arg: The input argument (the operator has effect only if `arg` is a stream).
+  arg: The input argument (the operator has effect only if `arg` is a stream
+    or a future).
 
 Returns:
-  If `arg` was a stream, it gets labeled with &#39;AWAIT&#39;. If `arg` was not
-  a stream, `arg` is returned without modification.</code></pre>
+  If `arg` was a stream or a future, it gets labeled with &#39;AWAIT&#39;. If `arg`
+  was not a stream or a future, `arg` is returned without modification.</code></pre>
 
 ### `kd.streams.call(fn, *args, executor=unspecified, return_type_as=None, **kwargs)` {#kd.streams.call}
 
@@ -462,22 +464,22 @@ Args:
 Returns:
   A single-item stream with the stacked data slice.</code></pre>
 
-### `kd.streams.sync_wait(stream)` {#kd.streams.sync_wait}
+### `kd.streams.sync_wait(stream_or_future)` {#kd.streams.sync_wait}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream yields a single item.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream or future yields a single item.
 
 NOTE: This operator cannot be used from an asynchronous task running on
 an executor (even if it&#39;s an eager executor).
 
 Args:
-  stream: A single-item input stream.
+  stream_or_future: A single-item input stream or a future.
 
 Returns:
-  The single item from the stream.</code></pre>
+  The single item from the stream or the future.</code></pre>
 
-### `kd.streams.unsafe_blocking_wait(stream)` {#kd.streams.unsafe_blocking_wait}
+### `kd.streams.unsafe_blocking_wait(stream_or_future)` {#kd.streams.unsafe_blocking_wait}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream yields a single item.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream or future yields a single item.
 
 Unlike `kd.streams.sync_wait`, this operator can be used from an asynchronous
 task running on an executor, but that makes it inherently unsafe.
@@ -497,10 +499,10 @@ operator will eventually cause deadlocks, requiring a non-trivial refactoring
 of your computation.
 
 Args:
-  stream: A single-item input stream.
+  stream_or_future: A single-item input stream or a future.
 
 Returns:
-  The single item from the stream.</code></pre>
+  The single item from the stream or the future.</code></pre>
 
 ### `kd.streams.while_(condition_fn, body_fn, *, executor=unspecified, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.streams.while_}
 

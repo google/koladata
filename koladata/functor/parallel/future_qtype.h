@@ -15,9 +15,11 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 
+#include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/future.h"
 
@@ -37,7 +39,12 @@ arolla::QTypePtr GetFutureQType() {
   return *result;
 }
 
+// Wraps the given future into a qvalue.
 arolla::TypedValue MakeFutureQValue(FuturePtr future);
+
+// Wraps the given future into a qvalue.
+arolla::TypedRef MakeFutureQValueRef(
+    const FuturePtr& future ABSL_ATTRIBUTE_LIFETIME_BOUND);
 
 }  // namespace koladata::functor::parallel
 

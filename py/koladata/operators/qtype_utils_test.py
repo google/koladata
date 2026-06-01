@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+
 from absl.testing import absltest
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
@@ -509,6 +510,78 @@ class KodaQTypesTest(absltest.TestCase):
 
     # Make sure we can serialize operators using expect_stream.
     _ = arolla.s11n.dumps(_op)
+
+  def test_expect_stream_or_future(self):
+    @arolla.optools.as_lambda_operator(
+        'generic_op',
+        qtype_constraints=[qtype_utils.expect_stream_or_future(arolla.P.x)],
+    )
+    def _generic_op(x):
+      return x
+
+    @arolla.optools.as_lambda_operator(
+        'specific_op',
+        qtype_constraints=[
+            qtype_utils.expect_stream_or_future(
+                arolla.P.x, value_qtype=arolla.INT32
+            )
+        ],
+    )
+    def _specific_op(x):
+      return x
+
+    stream_int32 = arolla.eval(
+        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+    )
+    future_int32 = arolla.eval(
+        koda_internal_parallel.get_future_qtype(arolla.INT32)
+    )
+    stream_float32 = arolla.eval(
+        koda_internal_parallel.get_stream_qtype(arolla.FLOAT32)
+    )
+    future_float32 = arolla.eval(
+        koda_internal_parallel.get_future_qtype(arolla.FLOAT32)
+    )
+
+    with self.subTest('success'):
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))
+      _generic_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))
+      _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_int32))
+      _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_int32))
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape('expected a stream or a future, got x: DATA_SLICE'),
+      ):
+        _generic_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a stream or a future of INT32, got x: DATA_SLICE'
+          ),
+      ):
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, qtypes.DATA_SLICE))
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a stream or a future of INT32, got x: STREAM[FLOAT32]'
+          ),
+      ):
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, stream_float32))
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected a stream or a future of INT32, got x: FUTURE[FLOAT32]'
+          ),
+      ):
+        _specific_op(arolla.M.annotation.qtype(arolla.L.x, future_float32))
+
+    # Make sure we can serialize operators using expect_stream_or_future.
+    _ = arolla.s11n.dumps(_generic_op)
+    _ = arolla.s11n.dumps(_specific_op)
 
   def test_expect_parallel_transform_config(self):
     @arolla.optools.as_lambda_operator(

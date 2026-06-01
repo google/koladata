@@ -71,5 +71,13 @@ TEST(FutureQTypeTest, MakeFutureQValue) {
             MakeFutureQValue(future2).GetFingerprint());
 }
 
+TEST(FutureQTypeTest, MakeFutureQValueRef) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int32_t>());
+  auto qvalue = MakeFutureQValueRef(future);
+  EXPECT_THAT(qvalue.GenReprToken(), ReprTokenEq("future[INT32]"));
+  ASSERT_EQ(qvalue.GetType(), GetFutureQType<int32_t>());
+  ASSERT_EQ(qvalue.GetRawPointer(), &future);
+}
+
 }  // namespace
 }  // namespace koladata::functor::parallel

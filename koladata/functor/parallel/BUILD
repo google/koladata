@@ -655,6 +655,8 @@ cc_library(
     deps = [
         ":basic_routine",
         ":executor",
+        ":future",
+        ":future_qtype",
         ":stream",
         ":stream_composition",
         ":stream_qtype",
@@ -677,6 +679,8 @@ cc_test(
     srcs = ["stream_call_test.cc"],
     deps = [
         ":eager_executor",
+        ":future",
+        ":future_qtype",
         ":make_executor",
         ":stream",
         ":stream_call",
@@ -917,6 +921,8 @@ cc_library(
     hdrs = ["stream_operators.h"],
     deps = [
         ":executor",
+        ":future",
+        ":future_qtype",
         ":stream",
         ":stream_call",
         ":stream_composition",
