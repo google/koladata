@@ -219,6 +219,13 @@ class TestUtilsTest(parameterized.TestCase):
           bag().new(a=1).get_bag(), bag().new(a=1).get_bag()
       )
 
+    # NaNs count as equivalent.
+    test_utils.assert_equivalent(
+        ds([float('nan'), 1.0]), ds([float('nan'), 1.0])
+    )
+    with self.assertRaises(AssertionError):
+      test_utils.assert_equivalent(ds(float('nan')), ds(1.0))
+
   def test_assert_equivalent_complex(self):
     obj = bag().obj(a=1)
     db1 = obj.get_bag()
@@ -230,6 +237,13 @@ class TestUtilsTest(parameterized.TestCase):
     with self.assertRaises(AssertionError):
       test_utils.assert_equivalent(db1, db2)
     obj.b = 'a'
+    test_utils.assert_equivalent(db1, db2)
+
+    # NaNs in DataBags count as equivalent.
+    obj.c = float('nan')
+    with self.assertRaises(AssertionError):
+      test_utils.assert_equivalent(db1, db2)
+    obj.with_bag(db2).c = float('nan')
     test_utils.assert_equivalent(db1, db2)
 
   def test_assert_equivalent_data_slice_with_noise_in_bag(self):

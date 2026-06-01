@@ -134,7 +134,9 @@ class EquivalentComparator : public AbstractComparator {
     }
     if (!lhs.item.holds_value<ObjectId>() ||
         !rhs.item.holds_value<ObjectId>() || params_.ids_equality) {
-      // If lhs and rhs are NaNs, they are considered not equal.
+      if (lhs.item.is_nan() && rhs.item.is_nan()) {
+        return true;
+      }
       return lhs.item == rhs.item;
     }
     if (lhs.item.is_list() != rhs.item.is_list()) {

@@ -74,6 +74,26 @@ TEST_P(DeepEquivalentTest, FloatSlice) {
                          {GetFallbackDb(db).get()}));
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
+  EXPECT_THAT(diffs, ::testing::IsEmpty());
+}
+
+TEST_P(DeepEquivalentTest, FloatSliceMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds_a =
+      DataSliceImpl::Create(CreateDenseArray<float>({1.0, NaN, std::nullopt}));
+  auto ds_b =
+      DataSliceImpl::Create(CreateDenseArray<float>({1.0, 2.0, std::nullopt}));
+  auto schema = DataItem(schema::kObject);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get(), {});
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds_a, schema, *GetMainDb(db),
+                         {GetFallbackDb(db).get()}, ds_b, schema,
+                         *GetMainDb(db), {GetFallbackDb(db).get()}));
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_ds, DataItem(schema::kObject)));
   std::vector<std::string> diff_paths;
   for (const auto& diff : diffs) {
     diff_paths.push_back(

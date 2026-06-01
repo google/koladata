@@ -61,12 +61,7 @@ class ImplodeTest(parameterized.TestCase):
     ndim = 1
     expected = db.list([o])
     result = db.implode(x, ndim)
-    with self.assertRaisesRegex(
-        AssertionError,
-        r'expected\[0\].a:\nDataItem\(nan, schema: FLOAT32\)\n'
-        r'-> actual\[0\].a:\nDataItem\(nan, schema: FLOAT32\)',
-    ):
-      testing.assert_equivalent(result, expected)
+    testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
     itemid = kde.allocation.new_listid_shaped_as(ds([1, 1])).eval()

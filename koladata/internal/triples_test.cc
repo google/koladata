@@ -15,6 +15,7 @@
 #include "koladata/internal/triples.h"
 
 #include <cstdint>
+#include <limits>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -219,6 +220,48 @@ TEST(TriplesTest, DictAndListWithParent) {
   ASSERT_OK(db_a2->AppendToList(list1, DataItem(7)));
 
   EXPECT_THAT(db_a2, DataBagEqual(db_b2));
+}
+
+TEST(TriplesTest, NaNAttributes) {
+  auto ds = DataSliceImpl::AllocateEmptyObjects(2);
+  constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
+  auto ds_nan = DataSliceImpl::Create({DataItem(NaN), DataItem(1.0f)});
+
+  auto db1 = DataBagImpl::CreateEmptyDatabag();
+  auto db2 = DataBagImpl::CreateEmptyDatabag();
+  auto db3 = DataBagImpl::CreateEmptyDatabag();
+
+  ASSERT_OK(db1->SetAttr(ds, "a", ds_nan));
+  ASSERT_OK(db2->SetAttr(ds, "a", ds_nan));  // equal to db1 (both have NaN)
+
+  auto ds_other = DataSliceImpl::Create({DataItem(2.0f), DataItem(1.0f)});
+  ASSERT_OK(db3->SetAttr(ds, "a", ds_other));  // different values (NaN vs 2.0)
+
+  EXPECT_THAT(db1, DataBagEqual(db2));
+  EXPECT_THAT(db1, Not(DataBagEqual(db3)));
+}
+
+TEST(TriplesTest, NaNDictAndList) {
+  DataItem dict = DataItem(AllocateSingleDict());
+  DataItem list = DataItem(AllocateSingleList());
+  constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
+
+  auto db1 = DataBagImpl::CreateEmptyDatabag();
+  auto db2 = DataBagImpl::CreateEmptyDatabag();
+  auto db3 = DataBagImpl::CreateEmptyDatabag();
+
+  // Dict with NaN value
+  ASSERT_OK(db1->SetInDict(dict, DataItem(1), DataItem(NaN)));
+  ASSERT_OK(db2->SetInDict(dict, DataItem(1), DataItem(NaN)));
+  ASSERT_OK(db3->SetInDict(dict, DataItem(1), DataItem(2.0f)));
+
+  // List with NaN value
+  ASSERT_OK(db1->AppendToList(list, DataItem(NaN)));
+  ASSERT_OK(db2->AppendToList(list, DataItem(NaN)));
+  ASSERT_OK(db3->AppendToList(list, DataItem(2.0f)));
+
+  EXPECT_THAT(db1, DataBagEqual(db2));
+  EXPECT_THAT(db1, Not(DataBagEqual(db3)));
 }
 
 }  // namespace

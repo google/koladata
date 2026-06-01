@@ -74,12 +74,7 @@ class ListLikeTest(parameterized.TestCase):
     ndim = 1
     expected = kd.list([o])
     result = kd.lists.implode(x, ndim)
-    with self.assertRaisesRegex(
-        AssertionError,
-        r'expected\[0\].a:\nDataItem\(nan, schema: FLOAT32\)\n'
-        r'-> actual\[0\].a:\nDataItem\(nan, schema: FLOAT32\)',
-    ):
-      testing.assert_equivalent(result, expected)
+    testing.assert_equivalent(result, expected)
 
   def test_itemid(self):
     itemid = kd.allocation.new_listid_shaped_as(ds([1, 1]))

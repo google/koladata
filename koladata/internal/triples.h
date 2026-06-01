@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_TRIPLES_H_
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -60,14 +61,18 @@ struct DictItemTriple {
   std::string DebugString() const { return absl::StrCat(*this); }
 };
 
+inline bool AreSemanticallyEqual(const DataItem& a, const DataItem& b) {
+  return (a.is_nan() && b.is_nan()) || a == b;
+}
+
 inline bool operator==(const AttrTriple& lhs, const AttrTriple& rhs) {
-  return std::tie(lhs.object, lhs.attribute, lhs.value) ==
-         std::tie(rhs.object, rhs.attribute, rhs.value);
+  return lhs.object == rhs.object && lhs.attribute == rhs.attribute &&
+         AreSemanticallyEqual(lhs.value, rhs.value);
 }
 
 inline bool operator==(const DictItemTriple& lhs, const DictItemTriple& rhs) {
-  return std::tie(lhs.object, lhs.key, lhs.value) ==
-         std::tie(rhs.object, rhs.key, rhs.value);
+  return lhs.object == rhs.object && lhs.key == rhs.key &&
+         AreSemanticallyEqual(lhs.value, rhs.value);
 }
 
 // Converting DataBag to Triples is slow. Intended for tests and debug.
@@ -154,8 +159,21 @@ class Triples {
 };
 
 inline bool operator==(const Triples& lhs, const Triples& rhs) {
-  return lhs.attributes() == rhs.attributes() && lhs.lists() == rhs.lists() &&
-         lhs.dicts() == rhs.dicts();
+  auto lists_equal = [&](const auto& l, const auto& r) {
+    if (l.size() != r.size()) return false;
+    for (const auto& [list_id, l_values] : l) {
+      auto it = r.find(list_id);
+      if (it == r.end()) return false;
+      const auto& r_values = it->second;
+      if (l_values.size() != r_values.size()) return false;
+      for (size_t i = 0; i < l_values.size(); ++i) {
+        if (!AreSemanticallyEqual(l_values[i], r_values[i])) return false;
+      }
+    }
+    return true;
+  };
+  return lhs.attributes() == rhs.attributes() &&
+         lists_equal(lhs.lists(), rhs.lists()) && lhs.dicts() == rhs.dicts();
 }
 
 }  // namespace koladata::internal::debug
