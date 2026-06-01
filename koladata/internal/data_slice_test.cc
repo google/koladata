@@ -1272,12 +1272,72 @@ TEST(DataSliceImplDeathTest, TransformValuesDeath) {
                      return CreateDenseArray<T>({T()});
                    }),
                "ids are intersecting");
-  EXPECT_DEATH(auto res = ds.TransformValues(
+    EXPECT_DEATH(auto res = ds.TransformValues(
                    1, std::nullopt,
                    []<class T>(const arolla::DenseArray<T>& x) {
                      return CreateDenseArray<int>({0});
                    }),
                "duplicated type.*INT32");
+}
+
+TEST(DataSliceImpl, SubSlice) {
+  // Empty and Unknown Type
+  {
+    DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(10);
+    DataSliceImpl ss = ds.SubSlice(1, 4);
+    EXPECT_EQ(ss.size(), 4);
+    EXPECT_TRUE(ss.is_empty_and_unknown());
+    EXPECT_EQ(ss.dtype(), arolla::GetNothingQType());
+  }
+
+  // Single primitive type
+  {
+    auto array = arolla::CreateDenseArray<int64_t>({57, 75, 19, 42});
+    DataSliceImpl ds = DataSliceImpl::Create(array);
+
+    DataSliceImpl ss = ds.SubSlice(1, 2);
+    EXPECT_EQ(ss.size(), 2);
+    EXPECT_EQ(ss.dtype(), arolla::GetQType<int64_t>());
+    EXPECT_FALSE(ss.is_empty_and_unknown());
+    EXPECT_THAT(ss, ElementsAre(DataItem(75), DataItem(19)));
+  }
+
+  // Mixed type
+  {
+    auto int_array = CreateDenseArray<int>({1, std::nullopt, 3, std::nullopt});
+    auto float_array =
+        CreateDenseArray<float>({std::nullopt, 2.0f, std::nullopt, 4.0f});
+    DataSliceImpl ds = DataSliceImpl::Create(int_array, float_array);
+
+    // ss = [float{2.0f}, int{3}]
+    DataSliceImpl ss = ds.SubSlice(1, 2);
+    EXPECT_EQ(ss.size(), 2);
+    EXPECT_TRUE(ss.is_mixed_dtype());
+    EXPECT_THAT(ss, ElementsAre(DataItem(2.0f), DataItem(3)));
+
+    EXPECT_THAT(ss.types_buffer().types,
+                ElementsAre(ScalarTypeId<int>(), ScalarTypeId<float>()));
+    EXPECT_THAT(ss.types_buffer().id_to_typeidx, ElementsAre(1, 0));
+  }
+
+  // allocation_ids
+  {
+    constexpr int64_t kSize = 3;
+    AllocationId alloc_id0 = Allocate(kSize);
+    AllocationId alloc_id1 = Allocate(kSize);
+    DataSliceImpl ds = DataSliceImpl::CreateObjectsDataSlice(
+        arolla::CreateFullDenseArray<ObjectId>({alloc_id0.ObjectByOffset(0),
+                                                alloc_id1.ObjectByOffset(1),
+                                                alloc_id0.ObjectByOffset(2)}),
+        AllocationIdSet({alloc_id0, alloc_id1}));
+
+    DataSliceImpl ss = ds.SubSlice(0, 2);
+    EXPECT_EQ(ss.size(), 2);
+    EXPECT_EQ(ss.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(ss.allocation_ids(), ElementsAre(alloc_id0, alloc_id1));
+    EXPECT_THAT(ss, ElementsAre(alloc_id0.ObjectByOffset(0),
+                                alloc_id1.ObjectByOffset(1)));
+  }
 }
 
 TEST(DataSliceImplTest, GetMemoryStats) {

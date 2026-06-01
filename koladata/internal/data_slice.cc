@@ -193,6 +193,26 @@ absl::StatusOr<DataSliceImpl> DataSliceImpl::Create(arolla::TypedRef values) {
   return *std::move(result);
 }
 
+DataSliceImpl DataSliceImpl::SubSlice(int64_t offset, int64_t size) const {
+  DCHECK_GT(size, 0);
+  DCHECK_GE(offset, 0);
+  DCHECK_LE(offset + size, internal_->size);
+  DataSliceImpl res;
+  res.internal_->size = size;
+  res.internal_->dtype = internal_->dtype;
+  res.internal_->allocation_ids = internal_->allocation_ids;
+  if (internal_->types_buffer.size() > 0) {
+    res.internal_->types_buffer.types = internal_->types_buffer.types;
+    auto tb_it = internal_->types_buffer.id_to_typeidx.begin() + offset;
+    res.internal_->types_buffer.id_to_typeidx.assign(tb_it, tb_it + size);
+  }
+  VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
+    res.internal_->values.emplace_back(
+        array.Slice(offset, size).ForceNoBitmapBitOffset());
+  });
+  return res;
+}
+
 size_t DataSliceImpl::present_count() const {
   size_t res = 0;
   VisitValues([&](const auto& array) { res += array.PresentCount(); });

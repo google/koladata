@@ -121,6 +121,10 @@ class DataSliceImpl {
   // Returns error if type is not supported.
   static absl::StatusOr<DataSliceImpl> Create(arolla::TypedRef values);
 
+  // Return the subslice [offset, offset+size).
+  // Requirement: size > 0 && offset >= 0 && offset + size <= this->size().
+  DataSliceImpl SubSlice(int64_t offset, int64_t size) const;
+
   // Returns number of elements in the flat array.
   size_t size() const { return internal_->size; }
 
