@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
@@ -60,6 +61,14 @@ class Future {
   // Adds a consumer to be notified when the value is ready. If the value is
   // already set, the consumer is called immediately.
   void AddConsumer(ConsumerFn&& consumer);
+
+  // Returns the value of the future if it is ready, or std::nullopt if it is
+  // not.
+  //
+  // NOTE: The returned reference is tied to the lifetime of the future
+  // instance. If you need it to outlive the future, create a copy.
+  std::optional<absl::StatusOr<const arolla::TypedValue&>> PeekValue()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND;
 
   // Gets the value of the future for testing purposes. Returns an error if the
   // future is not ready yet. Real code should rely on AddConsumer instead.
@@ -130,6 +139,10 @@ class FutureWriter {
 
 // Creates a future and a writer for it.
 std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype);
+
+// Returns a stream reader from the given future.
+StreamReaderPtr absl_nonnull StreamReaderFromFuture(  // clang-format hint
+    const FuturePtr absl_nonnull& future);
 
 // Returns a stream from the given future.
 StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future);

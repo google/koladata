@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -67,9 +68,20 @@ void Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
   }
 }
 
+std::optional<absl::StatusOr<const arolla::TypedValue&>> Future::PeekValue() {
+  absl::MutexLock l(lock_);
+  if (!value_.has_value()) {
+    return std::nullopt;
+  }
+  if (!value_->ok()) {
+    return value_->status();
+  }
+  return **value_;
+}
+
 absl::StatusOr<arolla::TypedValue> Future::GetValueForTesting() {
   absl::MutexLock l(lock_);
-  if (!value_) {
+  if (!value_.has_value()) {
     return absl::InvalidArgumentError("future has no value");
   }
   return *value_;
@@ -96,20 +108,61 @@ std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype) {
   return {std::move(future), std::move(future_writer)};
 }
 
-StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future) {
-  // Note: Consider implementing the stream interface directly over the future
-  // to avoid copying values into the stream buffer.
-  auto [result, writer] = MakeStream(future->value_qtype(), 1);
-  future->AddConsumer([writer = std::move(writer)](
-                          absl::StatusOr<arolla::TypedValue> value) mutable {
-    if (value.ok()) {
-      writer->Write(value->AsRef());
-      std::move(*writer).Close();
-    } else {
-      std::move(*writer).Close(std::move(value).status());
+namespace {
+
+class FutureStreamReader final : public StreamReader {
+ public:
+  explicit FutureStreamReader(FuturePtr future) : future_(std::move(future)) {}
+
+  TryReadResult TryRead() final {
+    if (read_) {
+      return status_;
     }
-  });
-  return std::move(result);
+    std::optional<absl::StatusOr<const arolla::TypedValue&>> peek =
+        future_->PeekValue();
+    if (!peek.has_value()) {
+      return TryReadResult{};  // Not ready yet.
+    }
+    read_ = true;
+    if (!peek->ok()) {
+      status_ = std::move(*peek).status();
+      return status_;
+    }
+    // We return a reference to the value stored inside the future.
+    return (**peek).AsRef();
+  }
+
+  void SubscribeOnce(absl::AnyInvocable<void() &&>&& callback) final {
+    future_->AddConsumer(
+        [cb = std::move(callback)](auto) mutable { std::move(cb)(); });
+  }
+
+ private:
+  FuturePtr future_;
+  bool read_ = false;
+  absl::Status status_ = absl::OkStatus();
+};
+
+class FutureStream final : public Stream {
+ public:
+  explicit FutureStream(FuturePtr future)
+      : Stream(future->value_qtype()), future_(std::move(future)) {}
+
+  StreamReaderPtr MakeReader() final { return StreamReaderFromFuture(future_); }
+
+ private:
+  FuturePtr future_;
+};
+
+}  // namespace
+
+StreamPtr absl_nonnull StreamFromFuture(const FuturePtr absl_nonnull& future) {
+  return std::make_shared<FutureStream>(future);
+}
+
+StreamReaderPtr absl_nonnull StreamReaderFromFuture(  // clang-format hint
+    const FuturePtr absl_nonnull& future) {
+  return std::make_unique<FutureStreamReader>(future);
 }
 
 }  // namespace koladata::functor::parallel

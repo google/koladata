@@ -53,6 +53,23 @@ TEST(FutureTest, Basic) {
   EXPECT_THAT(future->GetValueForTesting(), IsOkAndHolds(QValueWith<int>(1)));
 }
 
+TEST(FutureTest, PeekValue) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  EXPECT_FALSE(future->PeekValue().has_value());
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  ASSERT_TRUE(future->PeekValue().has_value());
+  EXPECT_THAT(*future->PeekValue(), IsOkAndHolds(QValueWith<int>(1)));
+}
+
+TEST(FutureTest, PeekValueError) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  EXPECT_FALSE(future->PeekValue().has_value());
+  std::move(writer).SetValue(absl::OutOfRangeError("test error"));
+  ASSERT_TRUE(future->PeekValue().has_value());
+  EXPECT_THAT(*future->PeekValue(),
+              StatusIs(absl::StatusCode::kOutOfRange, "test error"));
+}
+
 TEST(FutureTest, FutureValueFingerprint) {
   auto [x, x_writer] = MakeFuture(arolla::GetQType<int>());
   auto [y, y_writer] = MakeFuture(arolla::GetQType<int>());
@@ -145,6 +162,64 @@ TEST(FutureTest, GetValueForTestingOnError) {
               StatusIs(absl::StatusCode::kOutOfRange, "test error"));
 }
 
+TEST(FutureTest, StreamReaderFromFutureBasic) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream_reader = StreamReaderFromFuture(future);
+  EXPECT_TRUE(stream_reader->TryRead().empty());
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_THAT(stream_reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
+TEST(FutureTest, StreamReaderFromFutureSetError) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream_reader = StreamReaderFromFuture(future);
+  std::move(writer).SetValue(absl::InvalidArgumentError("Boom!"));
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+}
+
+TEST(FutureTest, StreamReaderFromFutureSubscription) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream_reader = StreamReaderFromFuture(future);
+  {
+    bool callback_done = false;
+    stream_reader->SubscribeOnce([&callback_done] { callback_done = true; });
+    ASSERT_FALSE(callback_done);
+    std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+    ASSERT_TRUE(callback_done);
+  }
+  {
+    bool callback_done = false;
+    stream_reader->SubscribeOnce([&callback_done] { callback_done = true; });
+    ASSERT_TRUE(callback_done);
+    ASSERT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  }
+  {
+    bool callback_done = false;
+    stream_reader->SubscribeOnce([&callback_done] { callback_done = true; });
+    ASSERT_TRUE(callback_done);
+    ASSERT_THAT(stream_reader->TryRead().close_status(), Pointee(IsOk()));
+  }
+}
+
+TEST(FutureTest,
+     StreamReaderFromFutureSubscriptionCallbackTriggeredOnWriterDestructor) {
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  auto stream_reader = StreamReaderFromFuture(future);
+  bool callback_done = false;
+  stream_reader->SubscribeOnce([&callback_done] { callback_done = true; });
+  ASSERT_FALSE(callback_done);
+  {
+    auto tmp = std::move(writer);
+  }
+  ASSERT_TRUE(callback_done);
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
+}
+
 TEST(FutureTest, StreamFromFutureBasic) {
   auto [future, writer] = MakeFuture(arolla::GetQType<int>());
   auto stream = StreamFromFuture(future);
@@ -213,6 +288,8 @@ TEST(FutureTest, StreamFromFutureSetError) {
   auto stream = StreamFromFuture(future);
   auto stream_reader = stream->MakeReader();
   std::move(writer).SetValue(absl::InvalidArgumentError("Boom!"));
+  ASSERT_THAT(stream_reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
   ASSERT_THAT(stream_reader->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }

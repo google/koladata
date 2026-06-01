@@ -140,6 +140,8 @@ class StreamReader {
   // and the stream is still open, returns a result with neither `item` nor
   // `close_status` set.
   //
+  // Note: The lifetime of the returned value is tied to the reader object.
+  //
   // Note: This method is not thread-safe.
   virtual TryReadResult TryRead() ABSL_ATTRIBUTE_LIFETIME_BOUND = 0;
 
