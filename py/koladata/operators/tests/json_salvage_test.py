@@ -54,6 +54,39 @@ class JsonSalvageTest(parameterized.TestCase):
         kd.json.salvage(ds('None True False')).to_py(), 'null\ntrue\nfalse'
     )
 
+  def test_incomplete_json(self):
+    salvaged = kd.json.salvage(ds("""
+    {"results": [
+      {"name": "person1", "attributes": [{"name": "age", "value": "30"}]},
+      {"name": "person2", "attr
+    """))
+    self.assertEqual(
+        salvaged.to_py(),
+        '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attr\\n'
+        '    ":null}]null}',
+    )
+
+    salvaged = kd.json.salvage(ds("""
+    {"results": [
+      {"name": "person1", "attributes": [{"name": "age", "value": "30"}]},
+      {"name": "person2", "attributes": [
+    """))
+    self.assertEqual(
+        salvaged.to_py(),
+        '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attributes":[]null}]null}',
+    )
+
+    salvaged = kd.json.salvage(ds("""
+    {"results": [
+      {"name": "person1", "attributes": [{"name": "age", "value": "30"}]},
+      {"name": "person2", "attributes": [{"na
+    """))
+    self.assertEqual(
+        salvaged.to_py(),
+        '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attributes":[{"na\\n'
+        '    ":null}]null}]null}',
+    )
+
   def test_missing(self):
     result = kd.json.salvage(ds([None], schema=schema_constants.STRING))
     testing.assert_equal(result, ds([None], schema=schema_constants.STRING))
