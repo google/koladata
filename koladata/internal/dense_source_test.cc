@@ -1122,5 +1122,44 @@ TEST(DenseSourceTest, GetMemoryStats) {
   }
 }
 
+TEST(DenseSourceTest, GetAll) {
+  AllocationId alloc = Allocate(10);
+  ASSERT_OK_AND_ASSIGN(auto ds, DenseSource::CreateMutable(alloc, 5));
+  ASSERT_OK(ds->Set(alloc.ObjectByOffset(0), DataItem(1)));
+  ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(Unit())));
+  ASSERT_OK(ds->Set(alloc.ObjectByOffset(2), DataItem()));  // Removed
+  // offset 3 is unset
+  ASSERT_OK(ds->Set(alloc.ObjectByOffset(4), DataItem(2.0)));
+
+  auto check_slice = [&](const DataSliceImpl& slice) {
+    EXPECT_EQ(slice.size(), 5);
+    EXPECT_EQ(slice[0], DataItem(1));
+    EXPECT_EQ(slice[1], DataItem(Unit()));
+    EXPECT_EQ(slice[2], DataItem());
+    EXPECT_EQ(slice[3], std::nullopt);
+    EXPECT_EQ(slice[4], DataItem(2.0));
+  };
+
+  {
+    SCOPED_TRACE("Mutable GetAll(false)");
+    check_slice(ds->GetAll(false));
+  }
+  {
+    SCOPED_TRACE("Mutable GetAll(true)");
+    check_slice(ds->GetAll(true));
+  }
+
+  ASSERT_OK_AND_ASSIGN(auto readonly_ds,
+                       DenseSource::CreateReadonly(alloc, ds->GetAll(true)));
+  {
+    SCOPED_TRACE("Readonly GetAll(false)");
+    check_slice(readonly_ds->GetAll(false));
+  }
+  {
+    SCOPED_TRACE("Readonly GetAll(true)");
+    check_slice(readonly_ds->GetAll(true));
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal

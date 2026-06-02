@@ -202,6 +202,17 @@ class DataBagImpl : public arolla::RefcountedBase {
       absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
+  // Similar to GetAttrWithRemoved.
+  // If full_alloc==true, then it expects `objects` to be an entire allocation
+  // in the right order, and applies related optimizations.
+  // If full_alloc==false, then it checks if it is actually full alloc, and may
+  // set it to `true`.
+  absl::StatusOr<DataSliceImpl> GetMaybeFullAllocAttrWithRemoved(
+      const DataSliceImpl& objects,
+      absl::string_view attr,
+      FallbackSpan fallbacks,
+      bool& full_alloc) const;
+
   absl::StatusOr<DataItem> GetAttr(
       const DataItem& object,
       absl::string_view attr,

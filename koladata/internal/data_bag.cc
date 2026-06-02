@@ -714,6 +714,73 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrWithRemoved(
   return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
 }
 
+namespace {
+
+bool IsFullAllocPrefix(const DataSliceImpl& objects) {
+  if (objects.is_empty_and_unknown() ||
+      objects.dtype() != arolla::GetQType<ObjectId>()) {
+    return false;
+  }
+  const arolla::DenseArray<ObjectId>& objs = objects.values<ObjectId>();
+  absl::Span<const ObjectId> objs_span = objs.values.span();
+  if (objects.allocation_ids().contains_small_allocation_id() ||
+      objects.allocation_ids().size() != 1 || !objs.bitmap.empty()) {
+    return false;
+  }
+  AllocationId alloc_id = objects.allocation_ids().ids()[0];
+  for (int64_t i = 0; i < objs_span.size(); ++i) {
+    if (objs_span[i] != alloc_id.ObjectByOffset(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+}  // namespace
+
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetMaybeFullAllocAttrWithRemoved(
+    const DataSliceImpl& objects, absl::string_view attr,
+    FallbackSpan fallbacks, bool& full_alloc) const {
+  if (!full_alloc && !IsFullAllocPrefix(objects)) {
+    return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
+  }
+
+  DCHECK(!objects.allocation_ids().contains_small_allocation_id());
+  DCHECK_EQ(objects.allocation_ids().size(), 1);
+  AllocationId alloc_id = objects.allocation_ids().ids()[0];
+
+  ConstSparseSourceArray sparse_sources;
+  ConstDenseSourceArray dense_sources;
+  size_t alloc_size =
+      GetAttributeDataSources(alloc_id, attr, dense_sources, sparse_sources);
+  full_alloc = full_alloc || (alloc_size == objects.size());
+  if (dense_sources.size() > 1 || !sparse_sources.empty()) {
+    return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
+  }
+  for (const DataBagImpl* db : fallbacks) {
+    size_t alloc_size = db->GetAttributeDataSources(
+        alloc_id, attr, dense_sources, sparse_sources);
+    full_alloc = full_alloc || (alloc_size == objects.size());
+    if (dense_sources.size() > 1 || !sparse_sources.empty()) {
+      return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
+    }
+  }
+  if (dense_sources.empty()) {
+    // Return an all-unset slice.
+    // Note: DataSliceImpl::CreateEmptyAndUnknownType can't be used here
+    // because it would return an all-removed slice instead.
+    SliceBuilder bldr(objects.size());
+    return std::move(bldr).Build();
+  }
+
+  DataSliceImpl res = dense_sources[0]->GetAll(/*copy=*/true);
+  if (res.size() == objects.size()) {
+    return res;
+  } else {
+    return res.SubSlice(0, objects.size());
+  }
+}
+
 std::optional<DataItem> DataBagImpl::GetAttrWithRemoved(
     ObjectId object_id, absl::string_view attr, FallbackSpan fallbacks) const {
   auto lookup = [&](auto lookup_one_bag) -> std::optional<DataItem> {

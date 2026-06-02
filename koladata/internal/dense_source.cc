@@ -208,9 +208,7 @@ class MultitypeDenseSource : public DenseSource {
     }
   }
 
-  DataSliceImpl GetAll() const final {
-    // TODO: Instead of DataSliceImpl return a struct with all
-    // data for merging. Should be O(type_count).
+  DataSliceImpl GetAll(bool /*copy*/) const final {
     SliceBuilder bldr(size_);
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
     // Note: we use ApplyMask to set kUnset to kRemoved for removed values.
@@ -702,12 +700,12 @@ class TypedDenseSource final : public DenseSource {
     }
   }
 
-  DataSliceImpl GetAll() const final {
+  DataSliceImpl GetAll(bool copy) const final {
     if (multitype_) {
-      return multitype_->GetAll();
+      return multitype_->GetAll(copy);
     }
     TypesBuffer types_buffer;
-    auto values = values_.GetAll();
+    auto values = values_.GetAll(copy);
     if (!values_mask_.empty()) {
       types_buffer.types.push_back(ScalarTypeId<T>());
       types_buffer.id_to_typeidx.resize(values_.size());
@@ -1061,7 +1059,7 @@ class ReadOnlyDenseSource : public DenseSource {
   }
 
  private:
-  DataSliceImpl GetAll() const final { return data_; }
+  DataSliceImpl GetAll(bool /*copy*/) const final { return data_; }
 
   absl::Status MergeImpl(const DataSliceImpl&,
                          const ConflictHandlingOption&) final {

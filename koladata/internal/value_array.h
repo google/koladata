@@ -244,14 +244,24 @@ class ValueArray {
     }
   }
 
-  DenseArray<T> GetAll() const {
-    if constexpr (std::is_same_v<arolla::view_type_t<T>, absl::string_view>) {
-      return DenseArray<T>{Buffer<T>::Create(values_.begin(), values_.end()),
-                           Buffer<Word>(nullptr, presence_)};
-    } else if constexpr (std::is_same_v<T, Unit>) {
-      return {arolla::VoidBuffer(size()), Buffer<Word>(nullptr, presence_)};
+  DenseArray<T> GetAll(bool copy) const {
+    Buffer<Word> bitmap;
+    if (copy) {
+      bitmap = Buffer<Word>::Create(presence_.begin(), presence_.end());
     } else {
-      return {Buffer<T>(nullptr, values_), Buffer<Word>(nullptr, presence_)};
+      bitmap = Buffer<Word>(nullptr, presence_);
+    }
+    if constexpr (std::is_same_v<T, Unit>) {
+      return {arolla::VoidBuffer(size()), std::move(bitmap)};
+    } else if constexpr (std::is_same_v<arolla::view_type_t<T>,
+                                        absl::string_view>) {
+      return DenseArray<T>{Buffer<T>::Create(values_.begin(), values_.end()),
+                           std::move(bitmap)};
+    } else if (copy) {
+      return DenseArray<T>{Buffer<T>::Create(values_.begin(), values_.end()),
+                           std::move(bitmap)};
+    } else {
+      return {Buffer<T>(nullptr, values_), std::move(bitmap)};
     }
   }
 

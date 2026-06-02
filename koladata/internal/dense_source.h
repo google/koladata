@@ -112,7 +112,7 @@ class DenseSource {
       const ConflictHandlingOption& option = ConflictHandlingOption{
           .option = ConflictHandlingOption::kRaiseOnConflict,
           .on_conflict_callback = {}}) {
-    return MergeImpl(source.GetAll(), option);
+    return MergeImpl(source.GetAll(/*copy=*/false), option);
   }
 
   virtual std::shared_ptr<DenseSource> CreateMutableCopy() const = 0;
@@ -132,16 +132,18 @@ class DenseSource {
 
   virtual MemoryStatsEntry GetMemoryStats() const = 0;
 
- private:
-  // It is private because it can return internal data of a mutable
-  // DenseSource. The returned DataSliceImpl is not guaranteed to be immutable.
-  // Used in `MergeOverwrite`.
-  // Returned DataSlice may contain TypesBuffer even if the DataSlice is single
-  // type. TypesBuffer is used to distinguish kRemoved and kUnset values.
-  // If in a single type slice TypesBuffer is empty, all missing values are
-  // kRemoved.
-  virtual DataSliceImpl GetAll() const = 0;
+  // It returns a DataSlice with all the data from the DenseSource.
+  // If the DenseSource is immutable, then it is O(1).
+  // If the DenseSource is mutable and copy==true, then all the data is copied.
+  // If the DenseSource is mutable and copy==false, then the resulted
+  // DataSliceImpl may contain pointers to mutable data.
+  // The returned DataSlice may contain TypesBuffer even if the DataSlice is
+  // a single-type. TypesBuffer is used to distinguish kRemoved and kUnset
+  // values. If in a single type slice TypesBuffer is empty, all missing values
+  // are kRemoved.
+  virtual DataSliceImpl GetAll(bool copy) const = 0;
 
+ private:
   // Add all present items from `values` to this DenseSource. Depending on
   // `options` in case of conflicts (i.e. another value for the same index
   // already present in the source) it can either overwrite, keep original, or

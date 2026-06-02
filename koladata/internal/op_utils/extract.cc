@@ -359,7 +359,7 @@ class CopyingProcessor {
 
   absl::Status ProcessAttribute(const QueuedSlice& slice,
                                 const std::string_view attr_name,
-                                const DataItem& attr_schema) {
+                                const DataItem& attr_schema, bool& full_alloc) {
     auto ds = slice.slice;
     DataSliceImpl old_ds;
     if (is_shallow_clone_) {
@@ -367,14 +367,22 @@ class CopyingProcessor {
     } else {
       old_ds = ds;
     }
-    ASSIGN_OR_RETURN(auto attr_ds, databag_.GetAttrWithRemoved(
-                                       old_ds, attr_name, fallbacks_));
+    ASSIGN_OR_RETURN(auto attr_ds,
+                     databag_.GetMaybeFullAllocAttrWithRemoved(
+                         old_ds, attr_name, fallbacks_, full_alloc));
     if (casting_callback_.has_value()) {
       ASSIGN_OR_RETURN(attr_ds, (*casting_callback_)(attr_ds, attr_schema));
     }
     if (max_depth_ == -1 || slice.depth < max_depth_) {
-      RETURN_IF_ERROR(
-          SetAttrToNewDatabagSkipUnset(std::move(ds), attr_name, attr_ds));
+      if (full_alloc) {
+        DCHECK(!ds.allocation_ids().contains_small_allocation_id());
+        DCHECK_EQ(ds.allocation_ids().size(), 1);
+        RETURN_IF_ERROR(new_databag_->SetAttrFullAlloc(
+            ds.allocation_ids().ids()[0], attr_name, attr_ds));
+      } else {
+        RETURN_IF_ERROR(
+            SetAttrToNewDatabagSkipUnset(std::move(ds), attr_name, attr_ds));
+      }
     }
     RETURN_IF_ERROR(Visit(
         {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth},
@@ -617,6 +625,8 @@ class CopyingProcessor {
       return absl::OkStatus();
     }
 
+    bool full_alloc = false;
+
     bool has_list_items_attr = false;
     bool has_dict_keys_attr = false;
     bool has_dict_values_attr = false;
@@ -653,8 +663,8 @@ class CopyingProcessor {
       has_regular_attr = true;
       if (was_schema_updated || ds.slice.present_count() > 0) {
         // Data or schema are not yet copied.
-        RETURN_IF_ERROR(
-            ProcessAttribute(ds, attr_name, std::move(attr_schema)));
+        RETURN_IF_ERROR(ProcessAttribute(ds, attr_name, std::move(attr_schema),
+                                         /*mutable*/ full_alloc));
       }
     }
     if (has_list_items_attr) {
@@ -840,7 +850,8 @@ class CopyingProcessor {
   absl::Status ProcessObjectsAttribute(const DataSliceImpl& new_ds,
                                        const DataSliceImpl& new_schemas,
                                        const DataSliceImpl& old_schemas,
-                                       std::string_view attr_name, int depth) {
+                                       std::string_view attr_name, int depth,
+                                       bool& full_alloc) {
     ASSIGN_OR_RETURN((auto [attr_schemas, was_schema_updated]),
                      CopyAttrSchemas(new_schemas, old_schemas, attr_name));
     if (attr_name == schema::kSchemaMetadataAttr) {
@@ -866,7 +877,7 @@ class CopyingProcessor {
                                .schema = DataItem(schema::kObject),
                                .schema_source = SchemaSource::kDataDatabag,
                                .depth = depth},
-                              attr_name, std::move(*single_schema));
+                              attr_name, std::move(*single_schema), full_alloc);
     }
     ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
                      group_by_.BySchemas(attr_schemas, new_ds));
@@ -885,7 +896,7 @@ class CopyingProcessor {
                    .schema = DataItem(schema::kObject),
                    .schema_source = SchemaSource::kDataDatabag,
                    .depth = depth},
-                  attr_name, DataItem(attr_schema));
+                  attr_name, DataItem(attr_schema), full_alloc);
             });
           } else {
             DCHECK(false);
@@ -911,6 +922,7 @@ class CopyingProcessor {
     }
     bool has_lists = false;
     bool has_dicts = false;
+    bool full_alloc = false;
     for (const auto& attr_name : attr_names) {
       auto attr_name_str = attr_name.value<arolla::Text>();
       if (attr_name_str == schema::kListItemsSchemaAttr) {
@@ -919,8 +931,9 @@ class CopyingProcessor {
                  attr_name_str == schema::kDictValuesSchemaAttr) {
         has_dicts = true;
       } else {
-        RETURN_IF_ERROR(ProcessObjectsAttribute(
-            new_ds, new_schemas, old_schemas, attr_name_str, depth));
+        RETURN_IF_ERROR(ProcessObjectsAttribute(new_ds, new_schemas,
+                                                old_schemas, attr_name_str,
+                                                depth, full_alloc));
       }
     }
     if (has_lists) {

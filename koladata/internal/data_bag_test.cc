@@ -2329,5 +2329,96 @@ INSTANTIATE_TEST_SUITE_P(
       return {{db_no_parent}, {db_with_parent}};
     }()));
 
+TEST(DataBagTest, GetMaybeFullAllocAttrWithRemoved) {
+  constexpr int64_t kSize = 1000;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  AllocationId alloc = Allocate(kSize);
+  auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, kSize);
+  std::vector<int32_t> values_vec(kSize);
+  for (int i = 0; i < kSize; ++i) {
+    values_vec[i] = i;
+  }
+  auto values = DataSliceImpl::Create(
+      arolla::CreateFullDenseArray<int32_t>(values_vec));
+
+  ASSERT_OK(db->SetAttrFullAlloc(alloc, "a", values));
+
+  {
+    // Full alloc prefix, full_alloc = false initially.
+    bool full_alloc = false;
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetMaybeFullAllocAttrWithRemoved(
+                                       objects, "a", {}, full_alloc));
+    EXPECT_TRUE(full_alloc);
+    EXPECT_THAT(res, IsEquivalentTo(values));
+  }
+
+  {
+    // Full alloc prefix, full_alloc = true initially.
+    bool full_alloc = true;
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetMaybeFullAllocAttrWithRemoved(
+                                       objects, "a", {}, full_alloc));
+    EXPECT_TRUE(full_alloc);
+    EXPECT_THAT(res, IsEquivalentTo(values));
+  }
+
+  {
+    // Sub-allocation prefix.
+    bool full_alloc = false;
+    auto sub_objects = objects.SubSlice(0, 5);
+    auto sub_values = values.SubSlice(0, 5);
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetMaybeFullAllocAttrWithRemoved(
+                                       sub_objects, "a", {}, full_alloc));
+    // full_alloc is only set to true if it covers the whole allocation.
+    EXPECT_FALSE(full_alloc);
+    EXPECT_THAT(res, IsEquivalentTo(sub_values));
+  }
+
+  {
+    // Not a prefix.
+    bool full_alloc = false;
+    auto sub_objects = objects.SubSlice(1, 6);
+    auto sub_values = values.SubSlice(1, 6);
+    ASSERT_OK_AND_ASSIGN(auto res, db->GetMaybeFullAllocAttrWithRemoved(
+                                       sub_objects, "a", {}, full_alloc));
+    EXPECT_FALSE(full_alloc);
+    EXPECT_THAT(res, IsEquivalentTo(sub_values));
+  }
+
+  {
+    // Sparse source on top of dense source (via fork).
+    auto db2 = db->PartiallyPersistentFork();
+    // Setting 1 element in 1000 will create a sparse source.
+    ASSERT_OK(db2->SetAttr(objects[0], "a", DataItem(100)));
+
+    bool full_alloc = false;
+    ASSERT_OK_AND_ASSIGN(auto res, db2->GetMaybeFullAllocAttrWithRemoved(
+                                       objects, "a", {}, full_alloc));
+    EXPECT_TRUE(full_alloc);
+    EXPECT_EQ(res[0], 100);
+    EXPECT_EQ(res[1], 1);
+  }
+
+  {
+    // Fallbacks.
+    auto db_empty = DataBagImpl::CreateEmptyDatabag();
+    bool full_alloc = false;
+    ASSERT_OK_AND_ASSIGN(auto res, db_empty->GetMaybeFullAllocAttrWithRemoved(
+                                       objects, "a", {db.get()}, full_alloc));
+    EXPECT_TRUE(full_alloc);
+    EXPECT_THAT(res, IsEquivalentTo(values));
+  }
+
+  {
+    // Sparse source.
+    auto db_sparse = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db_sparse->SetAttr(objects[0], "a", DataItem(57)));
+    bool full_alloc = false;
+    ASSERT_OK_AND_ASSIGN(auto res, db_sparse->GetMaybeFullAllocAttrWithRemoved(
+                                       objects, "a", {}, full_alloc));
+    EXPECT_FALSE(full_alloc);
+    EXPECT_EQ(res[0], 57);
+  }
+}
+
 }  // namespace
 }  // namespace koladata::internal
