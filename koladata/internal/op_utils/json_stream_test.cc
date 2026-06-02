@@ -676,6 +676,12 @@ TEST(JsonStreamTest, SalvageStreamProcessorInvalidFormat) {
   EXPECT_EQ(RunSalvage("{[1],[2]}"), "{\"\":[1],\"\":[2]}");
   EXPECT_EQ(RunSalvage("{{1}:{2}}"), "{\"\":{\"1\":null},\"\":{\"2\":null}}");
   EXPECT_EQ(RunSalvage("{[1]:\"a\"}"), "{\"\":[1],\"a\":null}");
+  EXPECT_EQ(RunSalvage("{\"results\":[{\"name\":\"person1\",\"attributes\":[{"
+                       "\"name\":\"age\"}]},"
+                       "{\"name\":\"person2\",\"attr"),
+            "{\"results\":[{\"name\":\"person1\",\"attributes\":[{\"name\":"
+            "\"age\"}]},"
+            "{\"name\":\"person2\",\"attr\":null}]}");
 
   EXPECT_EQ(RunSalvage("[1 2 3]"), "[1,2,3]");
   EXPECT_EQ(RunSalvage("[,, ,1,,2,, ,,3,,]"), "[1,2,3]");

@@ -63,7 +63,7 @@ class JsonSalvageTest(parameterized.TestCase):
     self.assertEqual(
         salvaged.to_py(),
         '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attr\\n'
-        '    ":null}]null}',
+        '    ":null}]}',
     )
 
     salvaged = kd.json.salvage(ds("""
@@ -73,7 +73,7 @@ class JsonSalvageTest(parameterized.TestCase):
     """))
     self.assertEqual(
         salvaged.to_py(),
-        '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attributes":[]null}]null}',
+        '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attributes":[]}]}',
     )
 
     salvaged = kd.json.salvage(ds("""
@@ -84,7 +84,7 @@ class JsonSalvageTest(parameterized.TestCase):
     self.assertEqual(
         salvaged.to_py(),
         '{"results":[{"name":"person1","attributes":[{"name":"age","value":"30"}]},{"name":"person2","attributes":[{"na\\n'
-        '    ":null}]null}]null}',
+        '    ":null}]}]}',
     )
 
   def test_missing(self):

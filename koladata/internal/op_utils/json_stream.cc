@@ -181,6 +181,10 @@ void JsonSalvageStreamProcessor::ProcessInputEndInternal() {
       output_.push_back(']');
     }
     container_stack_.pop_back();
+    if (!container_stack_.empty() &&
+        container_stack_.back() == ContainerType::kObject) {
+      is_object_key_ = true;
+    }
   }
 }
 
