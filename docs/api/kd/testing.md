@@ -6,8 +6,16 @@
 </code></pre>
 
 
+Subcategory | Description
+----------- | ------------
+[DataSliceMatcher](testing/data_slice_matcher.md) | DataSlice matcher to allow unittest.mock assertions to work with KolaData DataSlices.
 
 
+
+
+### `kd.testing.DataSliceMatcher(expected, *, partial: bool | None = None, ids_equality: bool | None = None, schemas_equality: bool | None = None)` {#kd.testing.DataSliceMatcher}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">DataSlice matcher to allow unittest.mock assertions to work with KolaData DataSlices.</code></pre>
 
 ### `kd.testing.assert_allclose(actual_value: DataSlice, expected_value: DataSlice, *, rtol: float | None = None, atol: float = 0.0)` {#kd.testing.assert_allclose}
 

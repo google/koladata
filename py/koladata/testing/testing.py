@@ -31,5 +31,6 @@ assert_traced_exprs_equal = _test_utils.assert_traced_exprs_equal
 assert_traced_non_deterministic_exprs_equal = (
     _test_utils.assert_traced_non_deterministic_exprs_equal
 )
+DataSliceMatcher = _test_utils.DataSliceMatcher
 
 DETECT_SIGNATURES_QTYPES = _test_qtypes.DETECT_SIGNATURES_QTYPES

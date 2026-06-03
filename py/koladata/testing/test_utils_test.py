@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -586,6 +587,68 @@ class TestUtilsTest(parameterized.TestCase):
           )
           + 1,
       )
+
+
+class DataSliceMatcherTest(parameterized.TestCase):
+
+  def test_matcher(self):
+    matcher = test_utils.DataSliceMatcher(ds([1, 2, 3]))
+    self.assertEqual(matcher, ds([1, 2, 3]))
+    self.assertNotEqual(matcher, ds([1, 2, 4]))
+    self.assertNotEqual(matcher, [1, 2, 3])
+
+  def test_matcher_equivalent(self):
+    matcher = test_utils.DataSliceMatcher(ds([1, 2, 3]).with_bag(bag()))
+    self.assertEqual(matcher, ds([1, 2, 3]).with_bag(bag()))
+
+  def test_mock_assert_called_with(self):
+    m = mock.MagicMock()
+    m(ds([1, 2, 3]))
+    m.assert_called_with(test_utils.DataSliceMatcher(ds([1, 2, 3])))
+    m.assert_called_with(test_utils.DataSliceMatcher([1, 2, 3]))
+
+  def test_matcher_partial(self):
+    obj1 = bag().obj(a=1, b=2)
+    obj2 = bag().obj(a=1)
+    matcher = test_utils.DataSliceMatcher(obj2, partial=True)
+    self.assertEqual(matcher, obj1)
+    matcher_not_partial = test_utils.DataSliceMatcher(obj2, partial=False)
+    self.assertNotEqual(matcher_not_partial, obj1)
+
+  def test_matcher_ids_equality(self):
+    obj1 = bag().obj(a=1)
+    obj2 = bag().obj(a=1)
+    matcher = test_utils.DataSliceMatcher(obj1, ids_equality=False)
+    self.assertEqual(matcher, obj2)
+    matcher_ids = test_utils.DataSliceMatcher(obj1, ids_equality=True)
+    self.assertNotEqual(matcher_ids, obj2)
+
+  def test_matcher_schemas_equality(self):
+    schema1 = bag().new_schema(a=schema_constants.INT32)
+    schema2 = bag().new_schema(a=schema_constants.INT32)
+    obj1 = bag().new(a=1, schema=schema1)
+    obj2 = bag().new(a=1, schema=schema2)
+    matcher = test_utils.DataSliceMatcher(obj1, schemas_equality=False)
+    self.assertEqual(matcher, obj2)
+    matcher_schemas = test_utils.DataSliceMatcher(obj1, schemas_equality=True)
+    self.assertNotEqual(matcher_schemas, obj2)
+
+  def test_repr(self):
+    expected = ds([1, 2, 3])
+    matcher = test_utils.DataSliceMatcher(expected)
+    self.assertEqual(
+        repr(matcher),
+        f'<DataSliceMatcher {expected!r}, partial=None, ids_equality=None,'
+        ' schemas_equality=None>',
+    )
+    matcher = test_utils.DataSliceMatcher(
+        expected, partial=True, ids_equality=False, schemas_equality=True
+    )
+    self.assertEqual(
+        repr(matcher),
+        f'<DataSliceMatcher {expected!r}, partial=True, ids_equality=False,'
+        ' schemas_equality=True>',
+    )
 
 
 if __name__ == '__main__':

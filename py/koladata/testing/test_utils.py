@@ -36,6 +36,49 @@ _KodaVal = (
 )
 
 
+class DataSliceMatcher:
+  """DataSlice matcher to allow unittest.mock assertions to work with KolaData DataSlices."""
+
+  def __init__(
+      self,
+      expected,
+      *,
+      partial: bool | None = None,
+      ids_equality: bool | None = None,
+      schemas_equality: bool | None = None,
+  ):
+    self._expected = (
+        _data_slice.from_vals(expected)
+        if not isinstance(expected, _data_slice.DataSlice)
+        else expected
+    )
+    self._partial = partial
+    self._ids_equality = ids_equality
+    self._schemas_equality = schemas_equality
+
+  def __eq__(self, other):
+    if not isinstance(other, _data_slice.DataSlice):
+      return False
+    try:
+      assert_equivalent(
+          other,
+          self._expected,
+          partial=self._partial,
+          ids_equality=self._ids_equality,
+          schemas_equality=self._schemas_equality,
+      )
+      return True
+    except AssertionError:
+      return False
+
+  def __repr__(self):
+    return (
+        f'<DataSliceMatcher {self._expected!r}, partial={self._partial},'
+        f' ids_equality={self._ids_equality},'
+        f' schemas_equality={self._schemas_equality}>'
+    )
+
+
 def _expect_data_slice(ds: Any):
   if not isinstance(ds, _data_slice.DataSlice):
     raise TypeError('expected DataSlice, got ', type(ds))
