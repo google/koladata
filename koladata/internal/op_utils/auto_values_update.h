@@ -24,7 +24,7 @@
 
 namespace koladata::internal {
 
-// kd.core.auto_id_update operator.
+// kd_ext.ids.auto_id_update operator.
 class AutoIdsUpdateOp {
  public:
   static constexpr std::string_view kAutoIdPrefix = "__AUTO_ID__";
@@ -39,6 +39,44 @@ class AutoIdsUpdateOp {
   absl::Status operator()(const DataItem& item, const DataItem& schema,
                           const DataBagImpl& databag,
                           DataBagImpl::FallbackSpan fallbacks = {}) const;
+
+ private:
+  DataBagImpl* new_databag_;
+};
+
+// kd_ext.ids.auto_reference_update operator.
+class AutoReferenceUpdateOp {
+ public:
+  static constexpr std::string_view kAutoReferencePrefix = "__AUTO_REFERENCE__";
+
+  explicit AutoReferenceUpdateOp(DataBagImpl* new_databag)
+      : new_databag_(new_databag) {}
+
+  absl::Status operator()(
+      const DataSliceImpl& ds, const DataItem& schema,
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      const DataSliceImpl& input_ds, const DataItem& input_schema,
+      const DataBagImpl& input_databag,
+      DataBagImpl::FallbackSpan input_fallbacks) const;
+
+  absl::Status operator()(
+      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks, const DataSliceImpl& input_ds,
+      const DataItem& input_schema, const DataBagImpl& input_databag,
+      DataBagImpl::FallbackSpan input_fallbacks) const;
+
+  absl::Status operator()(
+      const DataSliceImpl& ds, const DataItem& schema,
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      const DataItem& input_item, const DataItem& input_schema,
+      const DataBagImpl& input_databag,
+      DataBagImpl::FallbackSpan input_fallbacks) const;
+
+  absl::Status operator()(
+      const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks, const DataItem& input_item,
+      const DataItem& input_schema, const DataBagImpl& input_databag,
+      DataBagImpl::FallbackSpan input_fallbacks) const;
 
  private:
   DataBagImpl* new_databag_;

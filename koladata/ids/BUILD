@@ -29,6 +29,7 @@ cc_library(
     ],
     deps = [
         ":auto_id_update",
+        ":auto_reference_update",
         "//koladata:data_slice_qtype",
         "//koladata/internal/op_utils:qexpr",
     ],
@@ -39,6 +40,21 @@ cc_library(
     name = "auto_id_update",
     srcs = ["auto_id_update.cc"],
     hdrs = ["auto_id_update.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal/op_utils:auto_values_update",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "auto_reference_update",
+    srcs = ["auto_reference_update.cc"],
+    hdrs = ["auto_reference_update.h"],
     deps = [
         "//koladata:data_bag",
         "//koladata:data_slice",

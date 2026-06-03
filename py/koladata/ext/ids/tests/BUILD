@@ -41,3 +41,15 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "auto_reference_update_test",
+    srcs = ["auto_reference_update_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)

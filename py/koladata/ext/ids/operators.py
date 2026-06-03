@@ -44,7 +44,7 @@ def _get_actual_schema(pair):
 def auto_id(name):
   """Returns a description of the auto_id attribute.
 
-  This is used as a value in `auto_attributes` to mark an attribute
+  This is used as a value in `with_auto_attributes` to mark an attribute
   as an AUTO_ID attribute with `name` as the AUTO_ID namespace.
   The auto-assigned values of AUTO_ID attribute are generated in the form of
   <name>_<id>, where <id> is an auto-incrementing positive integer (e.g. foo_1,
@@ -71,7 +71,7 @@ def auto_id(name):
 def auto_reference(namespace):
   """Returns a description of the auto_reference attribute.
 
-  This is used as a value in `auto_attributes` to mark an attribute
+  This is used as a value in `with_auto_attributes` to mark an attribute
   as an auto_reference attribute within the `namespace` namespace.
 
   Args:
@@ -130,7 +130,7 @@ def with_auto_attributes(schema, /, **auto_attrs):  # pylint: disable=unused-arg
   metadata schema (e.g. a named schema for the auto-id namespace).
 
   Example:
-    schema = kd_ext.ids.auto_attributes(
+    schema = kd_ext.ids.with_auto_attributes(
         kd.schema.new_schema(x=kd.INT32),
         foo_id=kd_ext.ids.auto_id('foo'),
         bar_id=kd_ext.ids.auto_id('bar'),
@@ -195,7 +195,7 @@ def auto_id_update(x):  # pylint: disable=unused-argument
 
   Example:
     schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.auto_attributes(
+    schema = kd_ext.ids.with_auto_attributes(
         schema,
         foo_id=kd_ext.ids.auto_id('foo'),
     )
@@ -213,3 +213,48 @@ def auto_id_update(x):  # pylint: disable=unused-argument
     A DataBag with auto_id attributes set.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@kd.optools.add_to_registry(via_cc_operator_package=True)
+@kd.optools.as_backend_operator(
+    'kd_ext.ids.auto_reference_update',
+    qtype_constraints=[
+        kd.optools.constraints.expect_data_slice(P.x),
+        kd.optools.constraints.expect_data_slice(P.input_ds),
+    ],
+    qtype_inference_expr=kd.qtypes.DATA_BAG,
+)
+def auto_reference_update(x, input_ds):  # pylint: disable=unused-argument
+  """Assigns auto_reference values to all auto_reference attributes in x.
+
+  For each auto_reference attribute in the schema, resolves string references
+  to the corresponding items in input_ds by matching their auto_id values.
+
+  Example:
+    input_schema = kd.schema.new_schema(a=kd.INT32)
+    input_schema = kd_ext.ids.with_auto_attributes(
+        input_schema,
+        foo_id=kd_ext.ids.auto_id('foo'),
+    )
+    x_input = kd.new(a=kd.slice([1, 2]), schema=input_schema)
+    x_input = x_input.enriched(kd_ext.ids.auto_id_update(x_input))
+
+    schema = kd.schema.new_schema()
+    schema = kd_ext.ids.with_auto_attributes(
+        schema,
+        foo_ref=kd_ext.ids.auto_reference('foo'),
+    )
+    x = schema.new(foo_ref=kd.slice(['foo_2', 'foo_1']))
+    update_db = kd_ext.ids.auto_reference_update(x, x_input)
+    x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+      -> kd.new(foo_ref=kd.slice([x_input.S[1], x_input.S[0]]))
+
+  Args:
+    x: DataSlice with a schema that has auto_reference attributes.
+    input_ds: DataSlice with auto_id values to reference.
+
+  Returns:
+    A DataBag with auto_reference attributes set.
+  """
+  raise NotImplementedError('implemented in the backend')
+

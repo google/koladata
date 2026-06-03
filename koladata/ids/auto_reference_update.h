@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/ids/auto_id_update.h"
-#include "koladata/ids/auto_reference_update.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/internal/op_utils/qexpr.h"
+#ifndef KOLADATA_IDS_AUTO_REFERENCE_UPDATE_H_
+#define KOLADATA_IDS_AUTO_REFERENCE_UPDATE_H_
+
+#include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ids {
-namespace {
 
-KODA_QEXPR_OPERATOR("kd_ext.ids.auto_id_update",
-                    AutoIdUpdate);
+absl::StatusOr<DataBagPtr> AutoReferenceUpdate(const DataSlice& ds,
+                                               const DataSlice& input_ds);
 
-KODA_QEXPR_OPERATOR("kd_ext.ids.auto_reference_update",
-                    AutoReferenceUpdate);
-
-}  // namespace
 }  // namespace koladata::ids
+
+#endif  // KOLADATA_IDS_AUTO_REFERENCE_UPDATE_H_
