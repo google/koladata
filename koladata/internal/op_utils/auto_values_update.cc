@@ -65,7 +65,8 @@ class AutoValuesVisitor : public AbstractVisitor {
 
  public:
   explicit AutoValuesVisitor(DataBagImplPtr new_databag)
-      : new_databag_(std::move(new_databag)) {}
+      : new_databag_(std::move(new_databag)),
+        process_auto_reference_(false) {}
 
   // Do nothing on previsit.
   absl::StatusOr<bool> Previsit(
