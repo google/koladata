@@ -245,15 +245,6 @@ class FromPyConverter {
     return false;
   }
 
-  // Verifies that dict_as_obj is not set for dict schema.
-  absl::Status VerifyDictAsObj(const std::optional<DataSlice>& schema) {
-    if (dict_as_obj_ && schema && schema->IsDictSchema()) {
-      return absl::InvalidArgumentError(
-          "dict_as_obj=True is not supported for dict schema");
-    }
-    return absl::OkStatus();
-  }
-
   // Returns true if the given Python objects should be parsed as a dict,
   // but converted to objects or entities.
   bool IsDictAsObj(const std::vector<PyObject*>& py_objects,
@@ -516,7 +507,6 @@ class FromPyConverter {
                                   itemid, cur_depth, executor, result);
     }
 
-    RETURN_IF_ERROR(VerifyDictAsObj(schema));
     if (IsDictAsObj(py_objects, schema)) {
       return ConvertDictsAsObj(py_objects, std::move(cur_shape), schema,
                                std::move(itemid), cur_depth, executor, result);

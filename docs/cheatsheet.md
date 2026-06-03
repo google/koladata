@@ -2615,6 +2615,8 @@ DataItem(Dict{...'y'=2.0...}, schema: OBJECT, bag_id:...)
 >>> s3 = kd.dict_schema(kd.STRING, kd.FLOAT64)
 >>> kd.from_py(py_dict, schema=s3)
 DataItem(Dict{...'y'=2.0...}, schema: DICT{STRING, FLOAT64}, bag_id:...)
+>>> kd.from_py(py_dict, dict_as_obj=True, schema=s3) # Dict (overrides dict_as_obj=True)
+DataItem(Dict{...'y'=2.0...}, schema: DICT{STRING, FLOAT64}, bag_id:...)
 
 # Use provided itemids
 >>> id1 = kd.new_itemid()

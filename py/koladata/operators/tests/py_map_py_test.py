@@ -375,6 +375,18 @@ assigned schema: ENTITY(u=INT64)"""),
     testing.assert_equal(res.a.no_bag(), ds([1.0, 2.0]))
     testing.assert_equal(res.b.no_bag(), ds([2.0, 3.0]))
 
+  def test_map_py_dict_as_obj_with_dict_schema(self):
+    schema = kd.dict_schema(schema_constants.STRING, schema_constants.INT32)
+    res = kd.py.map_py(
+        lambda x: {'a': x, 'b': x + 1},
+        ds([1, 2]),
+        dict_as_obj=True,
+        schema=schema,
+    )
+    self.assertTrue(res.S[0].is_dict())
+    testing.assert_equal(res[ds('a')].no_bag(), ds([1, 2]))
+    testing.assert_equal(res[ds('b')].no_bag(), ds([2, 3]))
+
   def test_map_py_dict_as_obj_non_string_key(self):
     with self.assertRaisesWithPredicateMatch(
         ValueError,

@@ -318,8 +318,10 @@ tree-like structure built out of container-like Python objects.
 
 When importing a pytree to Koda, we can use `kd.from_py` or `kd.from_pytree` and
 they are exactly the same. A Python list is converted to a Koda List and a
-Python dict is converted to a Koda Dict if `dict_as_obj=False` or a Koda Object
-if `dict_as_obj=True`.
+Python dict is converted to a Koda Dict if `dict_as_obj=False` (default) or a
+Koda Object if `dict_as_obj=True` (when schema is not specified or is
+`kd.OBJECT`). If a specific entity or dict schema is provided, it overrides
+`dict_as_obj`.
 
 To convert a Koda DataSlice to Python objects, we can use `kd.to_py()` or
 `kd.to_pytree()` which is equivalent to `kd.to_py(..., obj_as_dict=True)`. A

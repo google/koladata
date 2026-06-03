@@ -1281,19 +1281,21 @@ assigned schema: INT32"""),
     ):
       from_py({ds(b'abc'): 42}, dict_as_obj=True)
 
-  def test_dict_as_obj_with_dict_schema_raises(self):
+  def test_dict_as_obj_with_dict_schema(self):
     # Python dictionary keys and values can be various Python / Koda objects
     # that are normalized to Koda Items.
-    with self.assertRaisesRegex(
-        ValueError, 'dict_as_obj=True is not supported for dict schema'
-    ):
-      _ = from_py(
-          {ds('a'): [1, 2], 'b': [42]},
-          schema=kde.dict_schema(
-              schema_constants.STRING, kde.list_schema(schema_constants.INT32)
-          ).eval(),
-          dict_as_obj=True,
-      )
+    schema = kde.dict_schema(
+        schema_constants.STRING, kde.list_schema(schema_constants.INT32)
+    ).eval()
+    d = from_py(
+        {ds('a'): [1, 2], 'b': [42]},
+        schema=schema,
+        dict_as_obj=True,
+    )
+    self.assertTrue(d.is_dict())
+    testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
+    testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
   def test_incompatible_schema(self):
     entity = fns.new(x=1)

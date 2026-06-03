@@ -383,7 +383,9 @@ def _basic_map_py(
       cases like progress reporting. As such, it can not be attached to the `fn`
       itself.
     dict_as_obj: If True, will convert dicts with string keys returned by `fn`
-      into Koda objects instead of Koda dicts.
+      into Koda objects instead of Koda dicts. This only specifies the default
+      behavior for schema=None or schema=kd.OBJECT, and is overridden by the
+      actual entity or dict schema.
 
   Returns:
     The resulting DataSlice.
@@ -527,7 +529,9 @@ def map_py(
       only to items present in all `args` and `kwargs` (`=False`, valid only
       when `ndim=0`); defaults to `False` when `ndim=0`.
     dict_as_obj: If True, will convert dicts with string keys returned by `fn`
-      into Koda objects instead of Koda dicts.
+      into Koda objects instead of Koda dicts. This only specifies the default
+      behavior for schema=None or schema=kd.OBJECT, and is overridden by the
+      actual entity or dict schema.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called `map_py`
       in case `max_threads` is greater than 1, as we rely on this property for
@@ -635,7 +639,9 @@ def map_py_on_cond(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     dict_as_obj: If True, will convert dicts with string keys returned by
-      `true_fn` and `false_fn` into Koda objects instead of Koda dicts.
+      `true_fn` and `false_fn` into Koda objects instead of Koda dicts. This
+      only specifies the default behavior for schema=None or schema=kd.OBJECT,
+      and is overridden by the actual entity or dict schema.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called
       `map_py_on_cond` in case `max_threads` is greater than 1, as we rely on
@@ -747,7 +753,9 @@ def map_py_on_selected(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     dict_as_obj: If True, will convert dicts with string keys returned by `fn`
-      into Koda objects instead of Koda dicts.
+      into Koda objects instead of Koda dicts. This only specifies the default
+      behavior for schema=None or schema=kd.OBJECT, and is overridden by the
+      actual entity or dict schema.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called
       `map_py_on_selected` in case `max_threads` is greater than 1, as we rely

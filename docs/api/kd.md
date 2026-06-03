@@ -633,7 +633,9 @@ Can convert nested lists/dicts into Koda objects recursively as well.
 Args:
   py_obj: Python object to convert.
   dict_as_obj: If True, will convert dicts with string keys into Koda objects
-    instead of Koda dicts.
+    instead of Koda dicts. This only specifies the default behavior for
+    schema=None or schema=kd.OBJECT, and is overridden by the actual entity or
+    dict schema.
   itemid: The ItemId to use for the root object. If not specified, will
     allocate a new id. If specified, will also infer the ItemIds for all child
     items such as list items from this id, so that repeated calls to this
