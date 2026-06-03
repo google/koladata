@@ -105,12 +105,11 @@ OPERATOR("kd.core._clone", Clone, "kd.core.clone");
 OPERATOR("kd.core._deep_clone", DeepClone, "kd.core.deep_clone");
 OPERATOR("kd.core._extract", Extract, "kd.core.extract");
 OPERATOR("kd.core._get_attr", GetAttr, "kd.core.get_attr");
-OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault,
-         "kd.core.get_attr_with_default");
+OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault, "");
 OPERATOR("kd.core._get_item", GetItem, "kd.core.get_item");
 OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange,
          "kd.core.get_list_item_by_range");
-OPERATOR("kd.core._new_ids_like", NewIdsLike, "kd.core.new_ids_like");
+OPERATOR("kd.core._new_ids_like", NewIdsLike, "");
 OPERATOR("kd.core._shallow_clone", ShallowClone, "kd.core.shallow_clone");
 OPERATOR("kd.core.attr", Attr);
 OPERATOR_FAMILY("kd.core.enriched",
@@ -190,7 +189,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamChunkValuesStream);
+    &JsonStreamChunkValuesStream, "kd.json_stream.chunk_values");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._explode_array_stream",
     arolla::QExprOperatorSignature::Get(
@@ -199,7 +198,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamExplodeArrayStream);
+    &JsonStreamExplodeArrayStream, "kd.json_stream.explode_array");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._get_array_nth_value_stream",
     arolla::QExprOperatorSignature::Get(
@@ -209,7 +208,7 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamGetArrayNthValueStream);
+    &JsonStreamGetArrayNthValueStream, "kd.json_stream.get_array_nth_value");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._get_object_key_value_stream",
     arolla::QExprOperatorSignature::Get(
@@ -219,7 +218,7 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamGetObjectKeyValueStream);
+    &JsonStreamGetObjectKeyValueStream, "kd.json_stream.get_object_key_value");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._get_object_key_values_stream",
     arolla::QExprOperatorSignature::Get(
@@ -229,7 +228,8 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamGetObjectKeyValuesStream);
+    &JsonStreamGetObjectKeyValuesStream,
+    "kd.json_stream.get_object_key_values");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._head_stream",
     arolla::QExprOperatorSignature::Get(
@@ -239,7 +239,7 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamHeadStream);
+    &JsonStreamHeadStream, "kd.json_stream.head");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._implode_array_stream",
     arolla::QExprOperatorSignature::Get(
@@ -248,7 +248,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamImplodeArrayStream);
+    &JsonStreamImplodeArrayStream, "kd.json_stream.implode_array");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._prettify_stream",
     arolla::QExprOperatorSignature::Get(
@@ -258,7 +258,7 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamPrettifyStream);
+    &JsonStreamPrettifyStream, "kd.json_stream.prettify");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._quote_stream",
     arolla::QExprOperatorSignature::Get(
@@ -267,7 +267,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamQuoteStream);
+    &JsonStreamQuoteStream, "kd.json_stream.quote");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._salvage_stream",
     arolla::QExprOperatorSignature::Get(
@@ -279,7 +279,7 @@ OPERATOR_WITH_SIGNATURE(
             arolla::GetQType<DataSlice>(),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamSalvageStream);
+    &JsonStreamSalvageStream, "kd.json_stream.salvage");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._select_nonempty_arrays_stream",
     arolla::QExprOperatorSignature::Get(
@@ -288,7 +288,8 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamSelectNonemptyArraysStream);
+    &JsonStreamSelectNonemptyArraysStream,
+    "kd.json_stream.select_nonempty_arrays");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._select_nonempty_objects_stream",
     arolla::QExprOperatorSignature::Get(
@@ -297,7 +298,8 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamSelectNonemptyObjectsStream);
+    &JsonStreamSelectNonemptyObjectsStream,
+    "kd.json_stream.select_nonempty_objects");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._select_nonnull_stream",
     arolla::QExprOperatorSignature::Get(
@@ -306,7 +308,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamSelectNonnullStream);
+    &JsonStreamSelectNonnullStream, "kd.json_stream.select_nonnull");
 OPERATOR_WITH_SIGNATURE(
     "kd.json_stream._unquote_stream",
     arolla::QExprOperatorSignature::Get(
@@ -315,7 +317,7 @@ OPERATOR_WITH_SIGNATURE(
             functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>()),
         },
         functor::parallel::GetStreamQType(arolla::GetQType<DataSlice>())),
-    &JsonStreamUnquoteStream);
+    &JsonStreamUnquoteStream, "kd.json_stream.unquote");
 //
 OPERATOR_FAMILY("kd.lists._concat",
                 arolla::MakeVariadicInputOperatorFamily(ConcatLists));

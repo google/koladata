@@ -103,7 +103,7 @@ class JsonStreamPrettifyTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._prettify_stream: argument `indent_string` must be'
+            'kd.json_stream.prettify: argument `indent_string` must be'
             ' an item holding STRING, got missing'
         ),
     ):

@@ -94,7 +94,7 @@ class JsonStreamGetObjectKeyValuesTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._get_object_key_values_stream: argument `key` must'
+            'kd.json_stream.get_object_key_values: argument `key` must'
             ' be an item holding STRING, got missing'
         ),
     ):

@@ -90,7 +90,7 @@ class JsonStreamGetArrayNthValueTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._get_array_nth_value_stream: argument `n` must be a'
+            'kd.json_stream.get_array_nth_value: argument `n` must be a'
             ' slice of integer values, got a slice of STRING'
         ),
     ):
@@ -98,8 +98,7 @@ class JsonStreamGetArrayNthValueTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._get_array_nth_value_stream: expected a present'
-            ' value'
+            'kd.json_stream.get_array_nth_value: expected a present value'
         ),
     ):
       kd.json_stream.get_array_nth_value(
@@ -109,7 +108,7 @@ class JsonStreamGetArrayNthValueTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._get_array_nth_value_stream: expected rank 0, but'
+            'kd.json_stream.get_array_nth_value: expected rank 0, but'
             ' got rank=1'
         ),
     ):

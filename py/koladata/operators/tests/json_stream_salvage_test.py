@@ -87,7 +87,7 @@ class JsonStreamSalvageTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._salvage_stream: argument `allow_nan` must be an'
+            'kd.json_stream.salvage: argument `allow_nan` must be an'
             ' item holding BOOLEAN, got missing'
         ),
     ):
@@ -112,7 +112,7 @@ class JsonStreamSalvageTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._salvage_stream: argument `ensure_ascii` must be an'
+            'kd.json_stream.salvage: argument `ensure_ascii` must be an'
             ' item holding BOOLEAN, got missing'
         ),
     ):
@@ -133,16 +133,14 @@ class JsonStreamSalvageTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.json_stream._salvage_stream: argument `max_depth` must be a'
+            'kd.json_stream.salvage: argument `max_depth` must be a'
             ' slice of integer values, got a slice of STRING'
         ),
     ):
       kd.json_stream.salvage(kd.iterables.make(), max_depth='x')
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: expected a present value'
-        ),
+        re.escape('kd.json_stream.salvage: expected a present value'),
     ):
       kd.json_stream.salvage(
           kd.iterables.make(),
@@ -150,9 +148,7 @@ class JsonStreamSalvageTest(parameterized.TestCase):
       )
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'kd.json_stream._salvage_stream: expected rank 0, but got rank=1'
-        ),
+        re.escape('kd.json_stream.salvage: expected rank 0, but got rank=1'),
     ):
       kd.json_stream.salvage(kd.iterables.make(), max_depth=ds([123, 456]))
 

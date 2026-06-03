@@ -95,7 +95,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
       kd.json_stream.head(kd.iterables.make(), n='x')
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.json_stream._head_stream: expected a present value'),
+        re.escape('kd.json_stream.head: expected a present value'),
     ):
       kd.json_stream.head(
           kd.iterables.make(),
@@ -103,9 +103,7 @@ class JsonStreamHeadTest(parameterized.TestCase):
       )
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'kd.json_stream._head_stream: expected rank 0, but got rank=1'
-        ),
+        re.escape('kd.json_stream.head: expected rank 0, but got rank=1'),
     ):
       kd.json_stream.head(kd.iterables.make(), n=ds([1, 2]))
 
