@@ -201,7 +201,7 @@ DataSliceImpl DataSliceImpl::SubSlice(int64_t offset, int64_t size) const {
   res.internal_->size = size;
   res.internal_->dtype = internal_->dtype;
   res.internal_->allocation_ids = internal_->allocation_ids;
-  if (internal_->types_buffer.size() > 0) {
+  if (has_types_buffer()) {
     res.internal_->types_buffer.types = internal_->types_buffer.types;
     auto tb_it = internal_->types_buffer.id_to_typeidx.begin() + offset;
     res.internal_->types_buffer.id_to_typeidx.assign(tb_it, tb_it + size);
@@ -210,6 +210,32 @@ DataSliceImpl DataSliceImpl::SubSlice(int64_t offset, int64_t size) const {
     res.internal_->values.emplace_back(
         array.Slice(offset, size).ForceNoBitmapBitOffset());
   });
+  return res;
+}
+
+DataSliceImpl DataSliceImpl::UnsetToRemoved() const {
+  size_t size = internal_->size;
+  if (!has_types_buffer()) {
+    return *this;
+  }
+  if (internal_->values.empty()) {
+    return CreateEmptyAndUnknownType(size);
+  }
+  DataSliceImpl res;
+  res.internal_->size = size;
+  res.internal_->dtype = internal_->dtype;
+  res.internal_->allocation_ids = internal_->allocation_ids;
+  res.internal_->values = internal_->values;
+  if (internal_->values.size() > 1) {
+    res.internal_->types_buffer.types = internal_->types_buffer.types;
+    const unsigned char* src = internal_->types_buffer.id_to_typeidx.data();
+    auto& dst = res.internal_->types_buffer.id_to_typeidx;
+    dst.reserve(size);
+    for (size_t i = 0; i < size; ++i) {
+      dst.push_back(src[i] == TypesBuffer::kUnset ? TypesBuffer::kRemoved
+                                                  : src[i]);
+    }
+  }
   return res;
 }
 

@@ -53,6 +53,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -2824,6 +2825,47 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
   EXPECT_THAT(
       ds.GetAttr("b"),
       IsOkAndHolds(Property(&DataSlice::item, Eq(arolla::Text("abc")))));
+}
+
+TEST(DataSliceTest, SetFullAlloc) {
+  constexpr int size = 64;
+  internal::AllocationId alloc = internal::Allocate(size);
+  auto db = DataBag::EmptyMutable();
+  internal::DataItem schema(internal::AllocateExplicitSchema());
+  ASSERT_OK(db->GetMutableImpl()->SetSchemaAttr(
+      schema, "a", internal::DataItem(schema::kObject)));
+  auto shape = DataSlice::JaggedShape::FlatFromSize(size);
+  ASSERT_OK_AND_ASSIGN(DataSlice ds,
+                       DataSlice::CreateFullAlloc(alloc, shape, schema, db));
+
+  internal::SliceBuilder bldr(size);
+  bldr.InsertIfNotSet(1, 11);
+  bldr.InsertIfNotSet(2, std::nullopt);
+  bldr.InsertIfNotSet(3, 13.0);
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice values,
+      DataSlice::CreateWithFlatShape(std::move(bldr).Build(),
+                                     internal::DataItem(schema::kObject)));
+
+  ASSERT_OK(ds.SetAttr("a", values));
+
+  ASSERT_OK_AND_ASSIGN(
+      internal::DataSliceImpl res,
+      db->GetMutableImpl()->GetAttrWithRemoved(
+          DataSliceImpl::ObjectsFromAllocation(alloc, size), "a"));
+  EXPECT_EQ(res[0], std::nullopt);
+  EXPECT_EQ(res[1], 11);
+  EXPECT_EQ(res[2], std::nullopt);
+  EXPECT_EQ(res[3], 13.0);
+  EXPECT_EQ(res.types_buffer().size(), 64);
+
+  // Check that UNSET became REMOVED
+  const auto& id_to_typeidx = res.types_buffer().id_to_typeidx;
+  EXPECT_EQ(id_to_typeidx[0], internal::TypesBuffer::kRemoved);
+  EXPECT_EQ(id_to_typeidx[1], 0);
+  EXPECT_EQ(id_to_typeidx[2], internal::TypesBuffer::kRemoved);
+  EXPECT_EQ(id_to_typeidx[3], 1);
+  EXPECT_EQ(id_to_typeidx[4], internal::TypesBuffer::kRemoved);
 }
 
 TEST(DataSliceTest, SetGetSchemaSlice) {

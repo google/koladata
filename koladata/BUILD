@@ -381,6 +381,7 @@ cc_test(
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_attrs",
+        "//koladata/internal:types_buffer",
         "//koladata/internal/testing:matchers",
         "//koladata/s11n",
         "//koladata/testing:matchers",

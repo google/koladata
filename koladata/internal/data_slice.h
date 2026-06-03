@@ -125,6 +125,9 @@ class DataSliceImpl {
   // Requirement: size > 0 && offset >= 0 && offset + size <= this->size().
   DataSliceImpl SubSlice(int64_t offset, int64_t size) const;
 
+  // Returns a copy of this slice with all UNSET replaced with REMOVED.
+  DataSliceImpl UnsetToRemoved() const;
+
   // Returns number of elements in the flat array.
   size_t size() const { return internal_->size; }
 
@@ -178,6 +181,12 @@ class DataSliceImpl {
   // `DataSlice::values(type_idx)` to get the underlying DenseArray holding
   // values of the corresponding type.
   const TypesBuffer& types_buffer() const { return internal_->types_buffer; }
+
+  // Return True if TypesBuffer is actually present. It is always present for
+  // multitype slices.
+  // If there is no TypesBuffer (in a single-type or all-empty slice), then
+  // the slice has no UNSET values: all missing values are REMOVED values.
+  bool has_types_buffer() const { return internal_->types_buffer.size() > 0; }
 
   // Call `visitor` on each internal DenseArray of values. Each item is a
   // variant with a value of DenseArray of some of supported scalar types

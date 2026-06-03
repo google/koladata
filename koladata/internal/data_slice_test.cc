@@ -1280,6 +1280,60 @@ TEST(DataSliceImplDeathTest, TransformValuesDeath) {
                "duplicated type.*INT32");
 }
 
+TEST(DataSliceImpl, UnsetToRemoved) {
+  {
+    SCOPED_TRACE("All UNSET");
+    SliceBuilder bldr(3);
+    auto ds = std::move(bldr).Build();
+    auto res = ds.UnsetToRemoved();
+    EXPECT_EQ(res.size(), 3);
+    EXPECT_TRUE(res.is_empty_and_unknown());
+    EXPECT_EQ(res.types_buffer().size(), 0);
+  }
+  {
+    SCOPED_TRACE("Single type, no types buffer");
+    auto ds =
+        DataSliceImpl::Create(CreateDenseArray<int>({1, std::nullopt, 3}));
+    auto res = ds.UnsetToRemoved();
+    EXPECT_EQ(res.size(), 3);
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
+    EXPECT_THAT(res.values<int>(), ElementsAre(1, std::nullopt, 3));
+    EXPECT_EQ(res.types_buffer().size(), 0);
+  }
+  {
+    SCOPED_TRACE("Single type with types buffer");
+    SliceBuilder bldr(3);
+    bldr.InsertIfNotSet(0, 1);
+    auto ds = std::move(bldr).Build();
+    auto res = ds.UnsetToRemoved();
+
+    EXPECT_EQ(res.size(), 3);
+    EXPECT_THAT(res.values<int>(), ElementsAre(1, std::nullopt, std::nullopt));
+    EXPECT_EQ(res.types_buffer().size(), 0);
+  }
+  {
+    SCOPED_TRACE("Mixed type with UNSET");
+    SliceBuilder bldr(4);
+    bldr.InsertIfNotSet(0, 1);
+    bldr.InsertIfNotSet(1, std::nullopt);  // REMOVED
+    // 2 - UNSET
+    bldr.InsertIfNotSet(3, 1.5);
+    auto ds = std::move(bldr).Build();
+    auto res = ds.UnsetToRemoved();
+
+    EXPECT_EQ(res.size(), 4);
+    EXPECT_EQ(res[0], DataItem(1));
+    EXPECT_EQ(res[3], DataItem(1.5));
+    EXPECT_THAT(res.types_buffer().types,
+                ElementsAre(ScalarTypeId<int>(), ScalarTypeId<double>()));
+    EXPECT_EQ(res.types_buffer().size(), 4);
+    EXPECT_EQ(res.types_buffer().id_to_typeidx[0], 0);
+    EXPECT_EQ(res.types_buffer().id_to_typeidx[1], TypesBuffer::kRemoved);
+    EXPECT_EQ(res.types_buffer().id_to_typeidx[2], TypesBuffer::kRemoved);
+    EXPECT_EQ(res.types_buffer().id_to_typeidx[3], 1);
+  }
+}
+
 TEST(DataSliceImpl, SubSlice) {
   // Empty and Unknown Type
   {

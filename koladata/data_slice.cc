@@ -1675,8 +1675,9 @@ absl::Status SetAttrImpl(const DataSlice& obj, absl::string_view attr_name,
   }
   if (auto full_alloc = obj.GetFullAllocOrNone();
       full_alloc.has_value() && !obj.is_item() && !full_alloc->IsSmall()) {
-    return db_mutable_impl.SetAttrFullAlloc(*full_alloc, attr_name,
-                                            data_handler.GetValues().slice());
+    return db_mutable_impl.SetAttrFullAlloc(
+        *full_alloc, attr_name,
+        data_handler.GetValues().slice().UnsetToRemoved());
   }
   return obj.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.SetAttr(impl, attr_name,
