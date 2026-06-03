@@ -754,6 +754,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetMaybeFullAllocAttrWithRemoved(
   size_t alloc_size =
       GetAttributeDataSources(alloc_id, attr, dense_sources, sparse_sources);
   full_alloc = full_alloc || (alloc_size == objects.size());
+  bool mutable_dense_source = dense_sources.size() == 1 && !this->IsFrozen();
   if (dense_sources.size() > 1 || !sparse_sources.empty()) {
     return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
   }
@@ -773,7 +774,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetMaybeFullAllocAttrWithRemoved(
     return std::move(bldr).Build();
   }
 
-  DataSliceImpl res = dense_sources[0]->GetAll(/*copy=*/true);
+  DataSliceImpl res = dense_sources[0]->GetAll(/*copy=*/mutable_dense_source);
   if (res.size() == objects.size()) {
     return res;
   } else {

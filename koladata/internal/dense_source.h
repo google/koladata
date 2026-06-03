@@ -36,7 +36,7 @@
 namespace koladata::internal {
 
 // DenseSource represents a single attribute of some set of objects.
-class DenseSource {
+class DenseSource : public std::enable_shared_from_this<DenseSource> {
  public:
   virtual ~DenseSource() = default;
 

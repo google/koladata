@@ -705,7 +705,7 @@ class TypedDenseSource final : public DenseSource {
       return multitype_->GetAll(copy);
     }
     TypesBuffer types_buffer;
-    auto values = values_.GetAll(copy);
+    auto values = values_.GetAll(copy, copy ? nullptr : shared_from_this());
     if (!values_mask_.empty()) {
       types_buffer.types.push_back(ScalarTypeId<T>());
       types_buffer.id_to_typeidx.resize(values_.size());

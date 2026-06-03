@@ -33,6 +33,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -244,12 +245,12 @@ class ValueArray {
     }
   }
 
-  DenseArray<T> GetAll(bool copy) const {
+  DenseArray<T> GetAll(bool copy, arolla::RawBufferPtr holder = nullptr) const {
     Buffer<Word> bitmap;
     if (copy) {
       bitmap = Buffer<Word>::Create(presence_.begin(), presence_.end());
     } else {
-      bitmap = Buffer<Word>(nullptr, presence_);
+      bitmap = Buffer<Word>(holder, presence_);
     }
     if constexpr (std::is_same_v<T, Unit>) {
       return {arolla::VoidBuffer(size()), std::move(bitmap)};
@@ -261,7 +262,7 @@ class ValueArray {
       return DenseArray<T>{Buffer<T>::Create(values_.begin(), values_.end()),
                            std::move(bitmap)};
     } else {
-      return {Buffer<T>(nullptr, values_), std::move(bitmap)};
+      return {Buffer<T>(holder, values_), std::move(bitmap)};
     }
   }
 
