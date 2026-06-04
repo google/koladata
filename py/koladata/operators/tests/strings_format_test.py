@@ -194,7 +194,6 @@ class StringsFormatTest(parameterized.TestCase):
   def test_incompatible_text_bytes_types_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,TEXT,BYTES)'),
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(b'foo')))

@@ -142,7 +142,6 @@ class MathFloorDivTest(parameterized.TestCase):
     w = ds(0)
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         'division by zero',
     ):
       kd.math.floordiv(x, w)

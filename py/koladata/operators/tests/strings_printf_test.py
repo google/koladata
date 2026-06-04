@@ -91,7 +91,6 @@ class StringsFormatTest(parameterized.TestCase):
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,BYTES)'),
     ):
       kd.strings.printf(ds('%s'), ds(b'foo'))
@@ -99,7 +98,6 @@ class StringsFormatTest(parameterized.TestCase):
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
       kd.strings.printf(ds('%s'))
@@ -107,7 +105,6 @@ class StringsFormatTest(parameterized.TestCase):
   def test_incompatible_format_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
       kd.strings.printf(ds('%s'), ds(1))

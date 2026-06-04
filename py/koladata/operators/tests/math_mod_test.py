@@ -143,7 +143,6 @@ class MathModTest(parameterized.TestCase):
     w = ds(0)
     with self.assertRaisesRegex(
         ValueError,
-        # TODO: Make errors Koda friendly.
         'division by zero',
     ):
       kd.math.mod(x, w)
