@@ -57,9 +57,8 @@ def list_(
   Returns:
     The slice with list/lists.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('list', ...)` however it
-  # has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .list(
@@ -99,9 +98,8 @@ def list_like(
   Returns:
     A DataSlice with the lists.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('list_like', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .list_like(
@@ -141,9 +139,8 @@ def list_shaped(
   Returns:
     A DataSlice with the lists.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('list_shaped', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .list_shaped(
@@ -242,9 +239,8 @@ def dict_(
   Returns:
     A DataSlice with the dict.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('dict', ...)` however it
-  # has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .dict(
@@ -297,9 +293,8 @@ def dict_like(
   Returns:
     A DataSlice with the dicts.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('dict_like', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .dict_like(
@@ -350,9 +345,8 @@ def dict_shaped(
   Returns:
     A DataSlice with the dicts.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('dict_shaped', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .dict_shaped(
@@ -476,9 +470,8 @@ def new_shaped(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .new_shaped(
@@ -556,9 +549,8 @@ def new_like(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .new_like(
@@ -617,9 +609,8 @@ def obj_shaped(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return mutable_bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
 
 
@@ -665,9 +656,8 @@ def obj_like(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .obj_like(shape_and_mask_from, itemid=itemid, **attrs)
