@@ -14,11 +14,12 @@
 
 """Koda functions for creating schemas."""
 
+from collections.abc import MutableMapping
 import dataclasses
 import enum
 import types as py_types
 import typing
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from koladata.functions import attrs
 from koladata.types import data_bag
@@ -159,7 +160,56 @@ def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
   return dataclass_name.split('.')[-1]
 
 
-def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
+def _internal_schema_to_py(
+    schema: schema_item.SchemaItem,
+    visited: MutableMapping[Any, type[Any] | None],
+) -> type[Any] | None:
+  """Implementation of `schema_to_py`; handles recursive types via the `visited` dict."""
+
+  fp = schema.fingerprint
+  if fp in visited:
+    return visited[fp]
+  if schema.is_primitive():
+    return _primitive_schema_to_py(schema) | None
+
+  if schema.is_list_schema():
+    res = list[_internal_schema_to_py(schema.get_item_schema(), visited)] | None
+  elif schema.is_dict_schema():
+    res = (
+        dict[
+            _internal_schema_to_py(schema.get_key_schema(), visited),
+            _internal_schema_to_py(schema.get_value_schema(), visited),
+        ]
+        | None
+    )
+  elif schema.is_entity_schema():
+    dc_type = dataclasses.make_dataclass(
+        _get_dataclass_name(schema),
+        [(name, Any) for name in attrs.dir(schema)],
+    )
+    res = dc_type | None
+    visited[fp] = res
+    fields = dataclasses.fields(dc_type)
+
+    for field in fields:
+      name = field.name
+      correct_type = _internal_schema_to_py(schema.get_attr(name), visited)
+      dc_type.__annotations__[name] = (
+          correct_type  # This is needed for `typing.get_type_hints`.
+      )
+      field.type = correct_type
+
+  else:
+    raise TypeError(f'unsupported schema: {schema!r}.')
+
+  if fp in visited:
+    res = visited[fp]
+  else:
+    visited[fp] = res
+  return res
+
+
+def schema_to_py(schema: schema_item.SchemaItem) -> type[Any] | None:
   """Creates a Python type corresponding to the given Koda schema.
 
   Primitive Koda schemas are converted to the corresponding Python types.
@@ -179,29 +229,4 @@ def schema_to_py(schema: schema_item.SchemaItem) -> Optional[type[Any]]:
   Raises:
     TypeError: If the given schema is not supported.
   """
-
-  if schema.is_primitive():
-    return _primitive_schema_to_py(schema) | None
-  if schema.is_list_schema():
-    return list[schema_to_py(schema.get_item_schema())] | None
-  if schema.is_dict_schema():
-    return (
-        dict[
-            schema_to_py(schema.get_key_schema()),
-            schema_to_py(schema.get_value_schema()),
-        ]
-        | None
-    )
-  if schema.is_entity_schema():
-    dataclass_fields = [
-        (name, schema_to_py(schema.get_attr(name)))
-        for name in attrs.dir(schema)
-    ]
-    return (
-        dataclasses.make_dataclass(
-            _get_dataclass_name(schema),
-            dataclass_fields,
-        )
-        | None
-    )
-  raise TypeError(f'unsupported schema: {schema}.')
+  return _internal_schema_to_py(schema, visited={})

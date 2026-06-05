@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import dataclasses
+import types
+import typing
 from typing import Any
 
 from absl.testing import absltest
@@ -39,18 +41,26 @@ class ComplexClass:
   z: Another | None
   a: Entity | None
 
+MAX_DEPTH = 10
+
 
 class SchemaToPyTest(parameterized.TestCase):
 
   def _get_underlying_optional_type(self, tpe: Any) -> Any:
     underlying_tpe, is_optional = dataclasses_util.maybe_decay_optional(tpe)
-    self.assertTrue(is_optional)
+    self.assertTrue(is_optional, f'Type {tpe!r} is not optional')
     return underlying_tpe
 
   def _assert_similar_dataclasses(
-      self, tpe1: type[Any], tpe2: type[Any]
+      self, tpe1: type[Any], tpe2: type[Any], *, depth: int = 0
   ) -> None:
     """Asserts that two dataclasses are similar, recursively checking fields."""
+    if depth > MAX_DEPTH:
+      return
+    if not dataclasses.is_dataclass(tpe1) or not dataclasses.is_dataclass(tpe2):
+      self.assertEqual(tpe1, tpe2)
+      return
+
     self.assertEqual(tpe1.__name__, tpe2.__name__)
     fields1 = {f.name: f for f in dataclasses.fields(tpe1)}
     fields2 = {f.name: f for f in dataclasses.fields(tpe2)}
@@ -67,7 +77,17 @@ class SchemaToPyTest(parameterized.TestCase):
       c2 = self._get_underlying_optional_type(field2.type)
 
       if dataclasses.is_dataclass(c1) and dataclasses.is_dataclass(c2):
-        self._assert_similar_dataclasses(c1, c2)
+        self._assert_similar_dataclasses(c1, c2, depth=depth + 1)
+      elif isinstance(c1, types.GenericAlias) and isinstance(
+          c2, types.GenericAlias
+      ):
+        args1 = typing.get_args(c1)
+        args2 = typing.get_args(c2)
+        self.assertLen(args1, len(args2))
+        for arg1, arg2 in zip(args1, args2):
+          arg_c1 = self._get_underlying_optional_type(arg1)
+          arg_c2 = self._get_underlying_optional_type(arg2)
+          self._assert_similar_dataclasses(arg_c1, arg_c2, depth=depth + 1)
       else:
         self.assertEqual(c1, c2)
         self.assertEqual(field1.type, field2.type)
@@ -197,6 +217,7 @@ class SchemaToPyTest(parameterized.TestCase):
   def test_named_schema_as_output_class(self):
     schema = kd_schema.schema_from_py(ComplexClass)
     converted_type = kd_schema.schema_to_py(schema)
+
     converted_obj = kd.to_py(
         kd.new(x=[1, 2], y={1: 'a', 2: 'b'}, z=kd.new(x=1), a=kd.new(a=1)),
         output_class=converted_type,
@@ -242,6 +263,71 @@ class SchemaToPyTest(parameterized.TestCase):
             )
         ),
     )
+
+  def test_recursive_schema(self):
+    tree_node_schema = kd.schema.named_schema('TreeNode', value=kd.INT64)
+    tree_node_schema = tree_node_schema.with_attr('child1', tree_node_schema)
+    tree_node_schema = tree_node_schema.with_attr('child2', tree_node_schema)
+    tree_node_schema = tree_node_schema.with_attr(
+        'child_list', kd.schema.list_schema(tree_node_schema)
+    )
+    tree_node_schema = tree_node_schema.with_attr(
+        'child_dict', kd.schema.dict_schema(kd.INT32, tree_node_schema)
+    )
+
+    converted_type = kd_schema.schema_to_py(tree_node_schema)
+    converted_type = self._get_underlying_optional_type(converted_type)
+
+    expected_type = dataclasses.make_dataclass(
+        'TreeNode',
+        [
+            ('child1', Any | None),
+            ('child2', Any | None),
+            ('value', int | None),
+            ('child_list', list[Any | None] | None),
+            ('child_dict', dict[str, float] | None),
+        ],
+        module='koladata.functions.schema',
+    )
+    dataclasses.fields(expected_type)[0].type = expected_type | None
+    dataclasses.fields(expected_type)[1].type = expected_type | None
+    dataclasses.fields(expected_type)[3].type = (
+        list[expected_type | None] | None
+    )
+    dataclasses.fields(expected_type)[4].type = (
+        dict[int | None, expected_type | None] | None
+    )
+
+    self._assert_similar_dataclasses(converted_type, expected_type)
+
+    # The same schema at different paths will be mapped to the same class.
+    fields = dataclasses.fields(converted_type)
+    self.assertEqual(fields[0].type, fields[1].type)
+
+  def test_recursive_list(self):
+    x = kd.mutable_bag().new()
+    x.a = kd.list([x])
+
+    expected_dataclass = dataclasses.make_dataclass(
+        'Entity',
+        [
+            ('a', Any),
+        ],
+    )
+    dataclasses.fields(expected_dataclass)[0].type = (
+        list[expected_dataclass | None] | None
+    )
+
+    res = kd_schema.schema_to_py(x.a.get_schema())
+    res = self._get_underlying_optional_type(res)
+    res_item = self._get_underlying_optional_type(typing.get_args(res)[0])
+    self._assert_similar_dataclasses(res_item, expected_dataclass)
+    a_field = dataclasses.fields(res_item)[0]
+    a_field = self._get_underlying_optional_type(a_field.type)
+    list_item_type = self._get_underlying_optional_type(
+        typing.get_args(a_field)[0]
+    )
+    self.assertIs(list_item_type, res_item)
 
 
 if __name__ == '__main__':
