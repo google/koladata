@@ -424,6 +424,14 @@ class PdkdTest(parameterized.TestCase):
     self.assertEqual(series.name, 'x')
     self.assertEqual(list(series), [1, 2, 3])
 
+  def test_to_series_all_none_object(self):
+    ds = kd.slice([None, None], kd.OBJECT).with_bag(kd.bag())
+    series = pdkd.to_series(ds)
+    self.assertIsInstance(series, pd.Series)
+    self.assertEqual(series.name, 'self_')
+    self.assertLen(series, 2)
+    self.assertTrue(series.isna().all())
+
   def test_to_series_multiple_cols_error(self):
     ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
     with self.assertRaisesRegex(

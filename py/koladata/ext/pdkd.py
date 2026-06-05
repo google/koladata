@@ -185,12 +185,12 @@ def _prepare_cols(
       cols = ['self_']
     elif schema.is_entity_schema():
       cols = kd.dir(ds)
-      if include_self:
+      if include_self or not cols:
         cols.append('self_')
     elif schema == kd.OBJECT and kd.is_entity(ds):
       cols = kd.dir(ds, intersection=False)
       get_attr_fn = kdi.maybe
-      if include_self:
+      if include_self or not cols:
         cols.append('self_')
     else:
       cols = ['self_']
