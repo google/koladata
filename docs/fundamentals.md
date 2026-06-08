@@ -2791,20 +2791,9 @@ Processing items in parallel.
 ```py
 >>> import time
 >>> def expensive_fn(x):
-...   time.sleep(0.01 * x)
-...   print('Start', x)
 ...   time.sleep(0.5)
-...   print('Done', x)
 ...   return x + 1
 >>> kd.map_py(expensive_fn, kd.range(16), schema=kd.INT32, max_threads=16)
-Start 0
-Start 1
-Start 2
-...
-Done 0
-Done 1
-Done 2
-...
 DataSlice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], schema: INT32, present: 16/16)
 ```
 
@@ -2814,10 +2803,7 @@ Processing batches in parallel.
 >>> import time
 >>> def expensive_fn(x):
 ...   x = x[:][:]
-...   time.sleep(0.01*float(kd.math.mean(x)))
-...   print('Start', x)
 ...   time.sleep(0.5)
-...   print('Done', x)
 ...   return kd.implode(x + 1, ndim=2)
 ...
 >>> data = kd.slice([[1, 2], [3, 4, 5], [6, 7, 8, 9], [10, 11], [12]])
@@ -2825,12 +2811,6 @@ Processing batches in parallel.
 >>> batched_data = kd.group_by(imploded_data, kd.index(imploded_data) // 2)
 >>> batches = kd.implode(batched_data)
 >>> res = kd.map_py(expensive_fn, batches, schema=kd.list_schema(kd.list_schema(kd.INT32)), max_threads=16)
-Start [[1, 2], [3, 4, 5]]
-Start [[6, 7, 8, 9], [10, 11]]
-Start [[12]]
-Done [[1, 2], [3, 4, 5]]
-Done [[6, 7, 8, 9], [10, 11]]
-Done [[12]]
 >>> res[:][:].flatten(0, 2)
 DataSlice([[2, 3], [4, 5, 6], [7, 8, 9, 10], [11, 12], [13]], schema: INT32, present: 12/12, bag_id: ...)
 ```
