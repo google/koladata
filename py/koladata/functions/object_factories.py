@@ -687,9 +687,8 @@ def uu(
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
-  # has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
       .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)
@@ -722,9 +721,8 @@ def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
   Returns:
     data_slice.DataSlice
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
-  # it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()
 
 
@@ -778,7 +776,6 @@ def concat_lists(
   Returns:
     DataSlice of concatenated Lists
   """
-  # TODO: Find a better way in order to avoid calling
-  # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
-  # however it has different boxing rules.
+  # NOTE: We create a mutable bag and freeze it for performance reasons.
+  # The alternative to rely on eager version of kd.lazy is significantly slower.
   return mutable_bag().concat_lists(*lists).freeze_bag()
