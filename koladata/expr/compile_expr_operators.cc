@@ -14,15 +14,15 @@
 //
 // Arolla compiler extensions for Koda expr operators.
 
+#include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "arolla/expr/eval/eval.h"
 #include "arolla/expr/eval/extensions.h"
-#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
-#include "arolla/expr/registered_expr_operator.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/status_macros_backport.h"
@@ -34,11 +34,11 @@ namespace {
 // Node transformation extension that returns an understandable error if a kola
 // input is encountered. Without it, the error message is more cryptic and looks
 // unintentional.
-absl::StatusOr<arolla::expr::ExprNodePtr> TransformInputOperatorNode(
+absl::StatusOr<arolla::expr::ExprNodePtr absl_nonnull>
+TransformInputOperatorNode(
     const arolla::expr::DynamicEvaluationEngineOptions& options,
-    arolla::expr::ExprNodePtr node) {
-  ASSIGN_OR_RETURN(auto decayed_op,
-                   arolla::expr::DecayRegisteredOperator(node->op()));
+    const arolla::expr::ExprNodePtr absl_nonnull& node,
+    const arolla::expr::ExprOperatorPtr absl_nullable& decayed_op) {
   if (arolla::fast_dynamic_downcast_final<const InputOperator*>(
           decayed_op.get()) != nullptr) {
     return absl::FailedPreconditionError(

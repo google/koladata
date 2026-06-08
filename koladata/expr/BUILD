@@ -78,6 +78,7 @@ cc_library(
         ":expr_operators",
         "//koladata:data_slice_qtype",
         "//koladata/internal:ellipsis",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
