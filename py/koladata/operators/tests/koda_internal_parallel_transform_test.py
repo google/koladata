@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import traceback
 
 from absl.testing import absltest
 from arolla import arolla
@@ -911,6 +912,49 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     testing.assert_equal(res, ds(5))
+
+  def test_transform_source_location_propagation(self):
+    map_py = kde.annotation.source_location(
+        kde.py.map_py(lambda x: x // 0, x=I.x),
+        'map_py',
+        'map_py.py',
+        123,
+        12,
+        'y = map_py(fn, I.x)',
+    )
+    call = kde.annotation.source_location(
+        kde.functor.call(map_py, I.x),
+        'call',
+        'call.py',
+        456,
+        12,
+        'y = call(fn, I.x)',
+    )
+    switch = kde.annotation.source_location(
+        kde.functor.switch(
+            'a',
+            {
+                'a': call,
+                'b': lambda x: x // 2,
+            },
+            x=I.x,
+        ),
+        'switch',
+        'switch.py',
+        789,
+        12,
+        'y = switch(key, cases)',
+    )
+
+    functor = functor_factories.expr_fn(switch)
+    tb_str = ''
+    try:
+      _ = user_facing_kd.parallel.call_multithreaded(functor, x=1)
+    except Exception:  # pylint: disable=broad-exception-caught
+      tb_str = traceback.format_exc()
+    self.assertIn('map_py.py', tb_str)
+    self.assertIn('call.py', tb_str)
+    self.assertIn('switch.py', tb_str)
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(

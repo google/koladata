@@ -88,6 +88,12 @@ OPERATOR_FAMILY("koda_internal.parallel._stream_while_returns",
                 std::make_unique<StreamWhileReturnsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel._stream_while_yields",
                 std::make_unique<StreamWhileYieldsOperatorFamily>());
+OPERATOR_FAMILY(
+    "koda_internal.parallel.add_source_location_on_error_to_future",
+    std::make_unique<AddSourceLocationOnErrorToFutureOperatorFamily>());
+OPERATOR_FAMILY(
+    "koda_internal.parallel.add_source_location_on_error_to_stream",
+    std::make_unique<AddSourceLocationOnErrorToStreamOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_eval",

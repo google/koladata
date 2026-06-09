@@ -41,6 +41,7 @@
 #include "arolla/util/cancellation.h"
 #include "arolla/util/permanent_event.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
@@ -59,6 +60,7 @@
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
 #include "koladata/functor/parallel/stream_reduce_stack_or_concat.h"
+#include "koladata/functor/parallel/source_location_utils.h"
 #include "koladata/functor/parallel/stream_while.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
@@ -1695,6 +1697,96 @@ absl::StatusOr<arolla::OperatorPtr> SyncWaitOperatorFamily::DoGetOperator(
   }
   return absl::InvalidArgumentError(
       "first argument must be a stream or a future");
+}
+
+namespace {
+
+class AddSourceLocationOnErrorToStreamOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.add_source_location_on_error_to_stream",
+        [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
+         function_name_slot = input_slots[1].UnsafeToSlot<arolla::Text>(),
+         file_name_slot = input_slots[2].UnsafeToSlot<arolla::Text>(),
+         line_slot = input_slots[3].UnsafeToSlot<int>(),
+         column_slot = input_slots[4].UnsafeToSlot<int>(),
+         line_text_slot = input_slots[5].UnsafeToSlot<arolla::Text>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& stream = frame.Get(input_slot);
+          if (stream == nullptr) {
+            return absl::InvalidArgumentError("stream is null");
+          }
+          arolla::SourceLocationPayload payload{
+              .function_name =
+                  std::string(frame.Get(function_name_slot).view()),
+              .file_name = std::string(frame.Get(file_name_slot).view()),
+              .line = frame.Get(line_slot),
+              .column = frame.Get(column_slot),
+              .line_text = std::string(frame.Get(line_text_slot).view()),
+          };
+          auto [result_stream, result_writer] =
+              MakeStream(stream->value_qtype());
+          frame.Set(output_slot, std::move(result_stream));
+          Process(stream->MakeReader(), std::move(result_writer),
+                  std::move(payload));
+          return absl::OkStatus();
+        });
+  }
+
+ private:
+  static void Process(StreamReaderPtr reader, StreamWriterPtr writer,
+                      arolla::SourceLocationPayload payload) {
+    auto try_read_result = reader->TryRead();
+    while (auto* item = try_read_result.item()) {
+      if (!writer->TryWrite(*item)) {
+        return;
+      }
+      try_read_result = reader->TryRead();
+    }
+    if (auto* status = try_read_result.close_status()) {
+      if (!status->ok()) {
+        writer->TryClose(
+            arolla::WithSourceLocation(std::move(*status), std::move(payload)));
+      } else {
+        writer->TryClose(absl::OkStatus());
+      }
+      return;
+    }
+    auto* reader_ptr = reader.get();
+    reader_ptr->SubscribeOnce([reader = std::move(reader),
+                               writer = std::move(writer),
+                               payload = std::move(payload)]() mutable {
+      Process(std::move(reader), std::move(writer), std::move(payload));
+    });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+AddSourceLocationOnErrorToStreamOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  }
+  if (!IsStreamQType(input_types[0])) {
+    return absl::InvalidArgumentError("first argument must be a stream");
+  }
+  if (input_types[0] != output_type) {
+    return absl::InvalidArgumentError(
+        "output type must be the same as input type");
+  }
+  RETURN_IF_ERROR(VerifySourceLocationTypes(input_types.subspan(1)));
+  return std::make_shared<AddSourceLocationOnErrorToStreamOperator>(
+      input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

@@ -28,6 +28,14 @@ namespace koladata::functor::parallel {
 // koda_internal.parallel.stream_from_1d_slice operator.
 absl::StatusOr<StreamPtr> StreamFrom1dSlice(const DataSlice& slice);
 
+// koda_internal.parallel.add_source_location_on_error_to_stream operator.
+class AddSourceLocationOnErrorToStreamOperatorFamily final
+    : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // koda_internal.parallel.stream_chain_from_stream operator.
 class EmptyStreamLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

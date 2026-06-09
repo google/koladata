@@ -9525,6 +9525,26 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_parallel_add_source_location_on_error_to_parallel_test",
+    srcs = ["koda_internal_parallel_add_source_location_on_error_to_parallel_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "koda_internal_to_arolla_jagged_shape_test",
     srcs = ["koda_internal_to_arolla_jagged_shape_test.py"],
     deps = [

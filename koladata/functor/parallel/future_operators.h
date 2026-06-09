@@ -60,6 +60,14 @@ class UnwrapFutureToStreamOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.add_source_location_on_error_to_future operator.
+class AddSourceLocationOnErrorToFutureOperatorFamily
+    : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // koda_internal.parallel.stream_from_future
 // Given a future[X], returns a stream[X] that will either have exactly one
 // value if the future does not store an error, or only the error from the

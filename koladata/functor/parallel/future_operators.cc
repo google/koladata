@@ -33,10 +33,13 @@
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/sequence/mutable_sequence.h"
+#include "arolla/util/status.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/source_location_utils.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -495,6 +498,79 @@ FutureIterableFromStreamOperatorFamily::DoGetOperator(
   }
   return std::make_shared<FutureIterableFromStreamOperator>(input_types,
                                                             output_type);
+}
+
+namespace {
+
+class AddSourceLocationOnErrorToFutureOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.add_source_location_on_error_to_future",
+        [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         function_name_slot = input_slots[1].UnsafeToSlot<arolla::Text>(),
+         file_name_slot = input_slots[2].UnsafeToSlot<arolla::Text>(),
+         line_slot = input_slots[3].UnsafeToSlot<int>(),
+         column_slot = input_slots[4].UnsafeToSlot<int>(),
+         line_text_slot = input_slots[5].UnsafeToSlot<arolla::Text>(),
+         output_slot = output_slot.UnsafeToSlot<FuturePtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& future = frame.Get(input_slot);
+          if (future == nullptr) {
+            return absl::InvalidArgumentError("future is null");
+          }
+          arolla::SourceLocationPayload payload{
+              .function_name =
+                  std::string(frame.Get(function_name_slot).view()),
+              .file_name = std::string(frame.Get(file_name_slot).view()),
+              .line = frame.Get(line_slot),
+              .column = frame.Get(column_slot),
+              .line_text = std::string(frame.Get(line_text_slot).view()),
+          };
+          auto [result_future, result_writer] =
+              MakeFuture(future->value_qtype());
+          future->AddConsumer(
+              [result_writer = std::move(result_writer),
+               payload = std::move(payload)](
+                  absl::StatusOr<arolla::TypedValue> value) mutable {
+                if (!value.ok()) {
+                  std::move(result_writer)
+                      .SetValue(arolla::WithSourceLocation(
+                          std::move(value).status(), std::move(payload)));
+                  return;
+                }
+                std::move(result_writer).SetValue(std::move(value));
+              });
+          frame.Set(output_slot, std::move(result_future));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+AddSourceLocationOnErrorToFutureOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  }
+  if (!IsFutureQType(input_types[0])) {
+    return absl::InvalidArgumentError("first argument must be a future");
+  }
+  if (input_types[0] != output_type) {
+    return absl::InvalidArgumentError(
+        "output type must be the same as input type");
+  }
+  RETURN_IF_ERROR(VerifySourceLocationTypes(input_types.subspan(1)));
+  return std::make_shared<AddSourceLocationOnErrorToFutureOperator>(
+      input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

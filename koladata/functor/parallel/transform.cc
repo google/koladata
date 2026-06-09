@@ -81,6 +81,57 @@ namespace {
 
 inline constexpr absl::string_view kExecutorParamName = "_executor";
 
+// Finds variables wrapped  by `annotation.source_location` nodes and collects
+// the ExprNodes of the SourceLocation annotations in a map keyed by variable
+// names.
+absl::StatusOr<
+    absl::flat_hash_map<std::string, arolla::expr::ExprNodePtr>>
+FindSourceLocationsForVariables(
+    const DataSlice& functor, const expr::InputContainer& variable_container) {
+  ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
+  ASSIGN_OR_RETURN(
+      auto attr_names,
+      functor.GetAttrNames(DataSlice::OnAttrNamesMismatch::kIntersection));
+
+  absl::flat_hash_map<std::string, arolla::expr::ExprNodePtr> res;
+
+  auto find_variable_source_locations =
+      [&res, &variable_container](
+          arolla::expr::ExprNodePtr node,
+          absl::Span<const std::monostate* const> visits)
+      -> absl::StatusOr<std::monostate> {
+    if (arolla::expr::IsSourceLocationAnnotation(node)) {
+      ASSIGN_OR_RETURN(auto var_name,
+                       variable_container.GetInputName(node->node_deps()[0]));
+      if (var_name.has_value()) {
+        // Similar to the logic in Arolla's prepare_expression.cc, when there
+        // are two source location annotations for the same variable, we let
+        // this overwrite and choose ~arbitrarily. This should normally not
+        // happen.
+        res[*var_name] = std::move(node);
+      }
+    }
+    return std::monostate();
+  };
+
+  for (const auto& attr_name : attr_names) {
+    if (attr_name == kSignatureAttrName) {
+      continue;
+    }
+    ASSIGN_OR_RETURN(DataSlice var, functor.GetAttr(attr_name));
+    DCHECK(var.is_item());
+    if (var.is_item() && var.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(auto var_expr,
+                       var.item().value<arolla::expr::ExprQuote>().expr());
+      ASSIGN_OR_RETURN(std::monostate unused_visit_result,
+                       arolla::expr::PostOrderTraverse(
+                           var_expr, find_variable_source_locations));
+      (void)unused_visit_result;  // We don't care about the result.
+    }
+  }
+  return res;
+}
+
 // Adds names to the literal arguments of the replacement ops that should not
 // be kept as literals. Together with AddVariables, this ensures that we extract
 // those arguments into new variables, while not touching other copies of the
@@ -193,7 +244,7 @@ absl::StatusOr<DataSlice> AddVariables(
   auto find_matches_and_inputs =
       [&extra_nodes_to_extract, &find_replacement_fn, &variable_container](
           arolla::expr::ExprNodePtr node,
-          absl::Span<const std::monostate* const> visits)
+                            absl::Span<const std::monostate* const> visits)
       -> absl::StatusOr<std::monostate> {
     if (expr::IsInput(node) || node->is_leaf()) {
       // Check that it's not already a variable, as it makes no sense to
@@ -483,7 +534,8 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
     const ParallelTransformConfig::Replacement& replacement,
     const arolla::expr::ExprNodePtr& executor_input,
     const expr::InputContainer& variable_container,
-    InnerTransformManager& inner_transform_manager) {
+    InnerTransformManager& inner_transform_manager,
+    arolla::expr::ExprNodePtr absl_nullable source_location_node) {
   std::vector<arolla::expr::ExprNodePtr> new_deps;
   new_deps.reserve(
       var_expr->node_deps().size() +
@@ -523,7 +575,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         break;
       }
       case ParallelTransformConfigProto::ArgumentTransformation::EXECUTOR: {
-        new_deps.push_back(executor_input);
+          new_deps.push_back(executor_input);
         break;
       }
       case ParallelTransformConfigProto::ArgumentTransformation::
@@ -538,13 +590,36 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
       }
     }
   }
+  arolla::expr::ExprNodePtr result_node;
   if (functor_future_indices.empty()) {
-    return arolla::expr::MakeOpNode(replacement.op, std::move(new_deps));
+    ASSIGN_OR_RETURN(
+        result_node,
+        arolla::expr::MakeOpNode(replacement.op, std::move(new_deps)));
   } else {
-    return CreateAsyncReplacement(replacement.op, std::move(new_deps),
-                                  std::move(functor_future_indices),
-                                  variable_container, executor_input);
+    ASSIGN_OR_RETURN(
+        result_node,
+        CreateAsyncReplacement(replacement.op, std::move(new_deps),
+                               std::move(functor_future_indices),
+                               variable_container, executor_input));
   }
+  if (!transformation.functor_argument_indices().empty() &&
+      source_location_node != nullptr) {
+    // The existence of a functor argument implies that this is a "function
+    // call"-like operation, such as kd.call, kd.map or kd.if. As such, it is
+    // appropriate to augment the stack trace with the source location of the
+    // call site.
+    ASSIGN_OR_RETURN(
+        result_node,
+        arolla::expr::CallOp(
+            "koda_internal.parallel.add_source_location_on_error_to_parallel",
+            {std::move(result_node),
+             source_location_node->node_deps()[1],
+             source_location_node->node_deps()[2],
+             source_location_node->node_deps()[3],
+             source_location_node->node_deps()[4],
+             source_location_node->node_deps()[5]}));
+  }
+  return result_node;
 }
 
 absl::StatusOr<DataSlice> MakeParallelDefaultValueMarker() {
@@ -781,6 +856,9 @@ absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
   // - inputs and leaves (non-deterministic leaf) will only appear as a whole
   //   variable expression, but not inside a more complex expression. So we can
   //   have V.smth = I.smth, but not V.smth = I.smth + 1.
+  ASSIGN_OR_RETURN(
+      auto variable_source_locations,
+      FindSourceLocationsForVariables(functor, variable_container));
   ASSIGN_OR_RETURN(DataSlice orig_signature,
                    functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN((auto [signature, defaults]),
@@ -813,12 +891,19 @@ absl::StatusOr<DataSlice> TransformToParallel(  // clang-format hint
     } else {
       var_expr = arolla::expr::Literal(std::move(var));
     }
+    arolla::expr::ExprNodePtr source_location_node = nullptr;
+    auto source_location_it = variable_source_locations.find(attr_name);
+    if (source_location_it != variable_source_locations.end()) {
+      source_location_node = source_location_it->second;
+    }
     ASSIGN_OR_RETURN(const auto* replacement, find_replacement(var_expr));
     if (replacement) {
       ASSIGN_OR_RETURN(
-          var_expr, ApplyReplacement(std::move(var_expr), config, *replacement,
-                                     executor_input, variable_container,
-                                     inner_transform_manager));
+          var_expr,
+          ApplyReplacement(std::move(var_expr), config, *replacement,
+                           executor_input, variable_container,
+                           inner_transform_manager,
+                           std::move(source_location_node)));
     } else if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
       ASSIGN_OR_RETURN(var_expr, ApplyInputReplacement(
                                      std::move(var_expr), variable_container,
