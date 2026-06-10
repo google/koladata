@@ -351,6 +351,11 @@ class ToPyVisitor : internal::AbstractVisitor {
     // We need to be careful not to invalidate the result reference.
     PyObjectPtr& result = converted_object_cache_[list_id];
     if (result != nullptr) {
+      if (PyList_Size(result.get()) != 0) {
+        // If the list was already populated, we don't need to do anything.
+        // This can happen if the list is reached both as Object and as Entity.
+        return absl::OkStatus();
+      }
       return AddItemsToPyList(list, result, items);
     }
 

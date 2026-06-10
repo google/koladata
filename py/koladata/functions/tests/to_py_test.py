@@ -839,6 +839,21 @@ class ToPyTest(parameterized.TestCase):
   def test_list_obj(self):
     self.assertEqual(py_conversions.to_py(fns.obj(fns.list([1, 2]))), [1, 2])
 
+  def test_object_list_reachable_as_entity(self):
+    db = object_factories.mutable_bag()
+    lst = db.list([10, 20, 30])
+    parent = db.new(lst=lst)
+
+    o = ds([parent.embed_schema(), lst.embed_schema()])
+
+    @dataclasses.dataclass
+    class Obj:
+      lst: list[int]
+
+    self.assertEqual(
+        py_conversions.to_py(o), [Obj(lst=[10, 20, 30]), [10, 20, 30]]
+    )
+
   def test_dict_obj(self):
     self.assertEqual(py_conversions.to_py(fns.obj(fns.dict({1: 2}))), {1: 2})
 

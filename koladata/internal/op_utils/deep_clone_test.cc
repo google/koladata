@@ -1140,5 +1140,73 @@ TEST_P(DeepCloneTest, SparseSliceWithItemIds) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(DeepCloneTest, ObjectListReachableAsEntity) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto parent = DataItem(AllocateSingleObject());
+  auto list = AllocateEmptyLists(1)[0];
+  auto parent_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+
+  ASSERT_OK(db->ExtendList(
+      list, DataSliceImpl::Create(CreateDenseArray<int32_t>({10, 20, 30}))));
+
+  TriplesT schema_triples = {
+      {parent_schema, {{"lst", list_schema}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+
+  TriplesT data_triples = {
+      {parent, {{schema::kSchemaAttr, parent_schema}, {"lst", list}}},
+      {list, {{schema::kSchemaAttr, list_schema}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto ds = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({parent, list}));
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result_slice,
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kObject),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  auto result_parent = result_slice[0];
+  auto result_list = result_slice[1];
+  EXPECT_NE(result_parent, parent);
+  EXPECT_NE(result_list, list);
+  EXPECT_TRUE(result_list.is_list());
+
+  ASSERT_OK_AND_ASSIGN(auto result_list_items,
+                       result_db->ExplodeList(result_list));
+  EXPECT_EQ(result_list_items.size(), 3);
+
+  ASSERT_OK_AND_ASSIGN(auto result_list_schema_attr,
+                       result_db->GetAttr(result_list, schema::kSchemaAttr));
+  EXPECT_EQ(result_list_schema_attr, list_schema);
+
+  ASSERT_OK_AND_ASSIGN(auto result_parent_lst,
+                       result_db->GetAttr(result_parent, "lst"));
+  EXPECT_EQ(result_parent_lst, result_list);
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(expected_db->ExtendList(
+      result_list,
+      DataSliceImpl::Create(CreateDenseArray<int32_t>({10, 20, 30}))));
+  TriplesT expected_data_triples = {
+      {result_parent,
+       {{schema::kSchemaAttr, parent_schema}, {"lst", result_list}}},
+      {result_list, {{schema::kSchemaAttr, list_schema}}},
+  };
+  TriplesT expected_schema_triples = {
+      {parent_schema, {{"lst", list_schema}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(expected_db));
+}
+
 }  // namespace
 }  // namespace koladata::internal

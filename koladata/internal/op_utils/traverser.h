@@ -15,7 +15,6 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_TRAVERSER_H_
 #define KOLADATA_INTERNAL_OP_UTILS_TRAVERSER_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -26,7 +25,6 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
@@ -84,6 +82,8 @@ class AbstractVisitor {
   // - schema: contains ObjectId of the list schema.
   // - is_object_schema: true iff schema was taken from kSchemaAttr attribute.
   // - items: contains values of the list items.
+  // Note: as other Visit* methods, called for each reached (list, schema) pair
+  // once. Therefore care should be taken to avoid list content duplication.
   virtual absl::Status VisitList(const DataItem& list, const DataItem& schema,
                                  bool is_object_schema,
                                  const DataSliceImpl& items) = 0;
@@ -233,7 +233,8 @@ class Traverser {
       ItemWithSchema item = std::move(previsit_stack_.top());
       previsit_stack_.pop();
       if (!used_items.contains({item.item, item.schema})) {
-        // This item would be later added with actual schema.
+        // This item would be added to topological order after all reachable
+        // items are visited.
         objects_on_stack.emplace(previsit_stack_.size(), item);
         // Please note that we cannot insert NaN values into the set (see
         // b/395020189); one way to avoid this is not to insert primitives at

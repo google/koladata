@@ -116,6 +116,19 @@ class CoreDeepCloneTest(parameterized.TestCase):
     self.assertTrue(result.get_schema().is_dict_schema())
 
   @parameterized.parameters(True, False)
+  def test_object_list_reachable_as_entity(self, pass_schema):
+    db = data_bag.DataBag.empty_mutable()
+    lst = db.list([10, 20, 30])
+    parent = db.new(lst=lst)
+
+    o = ds([parent.embed_schema(), lst.embed_schema()])
+    if pass_schema:
+      result = kd.deep_clone(o, o.get_schema())
+    else:
+      result = kd.deep_clone(o)
+    testing.assert_equivalent(result, o)
+
+  @parameterized.parameters(True, False)
   def test_entity(self, pass_schema):
     db = data_bag.DataBag.empty_mutable()
     b_slice = db.new(a=ds([1, None, 2]))

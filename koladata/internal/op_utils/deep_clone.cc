@@ -15,6 +15,7 @@
 #include "koladata/internal/op_utils/deep_clone.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -188,6 +189,16 @@ class DeepCloneVisitor : AbstractVisitor {
     ASSIGN_OR_RETURN(auto new_list, GetValue(list, schema));
     if (is_object_schema) {
       RETURN_IF_ERROR(SetSchemaAttr(new_list, schema));
+    }
+    ASSIGN_OR_RETURN(auto list_size, new_databag_->GetListSize(new_list));
+    DCHECK(list_size.holds_value<int64_t>());
+    if (list_size.value<int64_t>() != 0) {
+      if (items.size() != list_size.value<int64_t>()) {
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "Different numbers of items provided for the list %v: %d vs %d",
+              list, list_size.value<int64_t>(), items.size()));
+      }
+      return absl::OkStatus();
     }
     RETURN_IF_ERROR(new_databag_->ExtendList(new_list, items));
     return absl::OkStatus();
