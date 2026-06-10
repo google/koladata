@@ -3318,6 +3318,32 @@ without a bag attached.
 
 </section>
 
+<section>
+
+### Performance Tips
+
+When combining data slices from different bags (e.g., using `kd.new`, `kd.obj`,
+`kd.concat`, `kd.concat_lists`, `kd.stack`, `kd.zip`), Koda eagerly extracts and
+adopts the attributes of the inputs into the target DataBag. For large inputs
+with deeply nested structures, this can cause significant performance overhead.
+
+To avoid this, you can convert the inputs to stubs using `.stub()` before
+combining them, and then restore their attributes by calling `.enriched()` with
+the original bags on the result.
+
+See [Immutable Workflows](fundamentals.md#immutable-workflows) for more details
+and caveats.
+
+```py
+>>> l1 = kd.list([kd.obj(x=1)])
+>>> l2 = kd.list([kd.obj(x=2)])
+>>> concatenated = kd.concat_lists(l1.stub(), l2.stub()).enriched(l1.get_bag(), l2.get_bag())
+>>> concatenated[0].x
+DataItem(1, schema: INT32, bag_id: ...)
+```
+
+</section>
+
 ## Tracing (a.k.a JIT Compilation)
 
 <section>
