@@ -424,7 +424,7 @@ class TracingTest(absltest.TestCase):
             'fn',
             'koladata/expr/tracing_test.py',
             inspect.getsourcelines(fn)[1] + 1,  # pytype: disable=attribute-error
-            0,
+            13,
             '      return a + b',
         ),
     )
