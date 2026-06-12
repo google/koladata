@@ -19,6 +19,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"

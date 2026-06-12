@@ -16,6 +16,7 @@
 
 #include "benchmark/benchmark.h"
 #include "gmock/gmock.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
 #include "koladata/internal/data_item.h"

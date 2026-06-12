@@ -4,6 +4,14 @@ common --enable_platform_specific_config
 # Enable Bzlmod for every Bazel command.
 common --enable_bzlmod
 
+# Enable unqualified Abseil status macros (RETURN_IF_ERROR, ASSIGN_OR_RETURN)
+common --copt=-DABSL_DEFINE_UNQUALIFIED_STATUS_MACROS
+common --host_copt=-DABSL_DEFINE_UNQUALIFIED_STATUS_MACROS
+
+# Enable unqualified Abseil status testing macros (EXPECT_OK, ASSERT_OK)
+common --copt=-DABSL_DEFINE_UNQUALIFIED_STATUS_TESTING_MACROS
+common --host_copt=-DABSL_DEFINE_UNQUALIFIED_STATUS_TESTING_MACROS
+
 # Enable bazel_local_registry.
 #
 # TODO: Remove the local registry once Arolla is available through

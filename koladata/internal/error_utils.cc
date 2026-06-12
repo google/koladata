@@ -19,16 +19,18 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/source_location.h"
 #include "arolla/util/status.h"
 #include "koladata/s11n/codec.pb.h"
 
 namespace koladata::internal {
 
-absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
+absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause,
+                                absl::SourceLocation location) {
   if (cause.ok()) {
     return cause;
   }
-  absl::Status status = absl::Status(cause.code(), msg);
+  absl::Status status = absl::Status(cause.code(), msg, location);
   return arolla::WithCause(std::move(status), std::move(cause));
 }
 

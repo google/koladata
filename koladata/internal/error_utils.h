@@ -17,6 +17,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/source_location.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "koladata/s11n/codec.pb.h"
 
@@ -24,8 +25,9 @@ namespace koladata::internal {
 
 // Creates Error with `msg` from the status and sets the cause to `cause`.
 // The result's status code is the same as `cause`.
-//
-absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause);
+absl::Status KodaErrorFromCause(
+    absl::string_view msg, absl::Status cause,
+    absl::SourceLocation location = absl::SourceLocation::current());
 
 }  // namespace koladata::internal
 

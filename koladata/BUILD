@@ -819,6 +819,7 @@ cc_test(
         ":data_bag_comparison",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_slice",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

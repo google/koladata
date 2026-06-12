@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
