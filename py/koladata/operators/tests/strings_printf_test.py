@@ -91,7 +91,10 @@ class StringsFormatTest(parameterized.TestCase):
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('unsupported argument types (TEXT,BYTES)'),
+        re.escape(
+            'BYTES arguments are not supported for text formatting,'
+            ' got *args: (BYTES)'
+        ),
     ):
       kd.strings.printf(ds('%s'), ds(b'foo'))
 
