@@ -195,6 +195,7 @@ cc_test(
         "//koladata/proto/testing:test_proto2_cc_proto",
         "//koladata/proto/testing:test_proto3_cc_proto",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",

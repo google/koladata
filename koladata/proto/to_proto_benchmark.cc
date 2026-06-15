@@ -20,6 +20,7 @@
 #include "benchmark/benchmark.h"
 #include "gmock/gmock.h"
 #include "absl/log/check.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/proto/from_proto.h"
 #include "koladata/proto/testing/test_proto2.pb.h"
