@@ -21,6 +21,7 @@ from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import ids as ids_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import masking as masking_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -30,7 +31,6 @@ from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
-
 
 M = arolla.M | jagged_shape.M
 P = arolla.P
@@ -758,3 +758,41 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
     values: A DataSlice of values, or unspecified if `keys` contains dicts.
   """
   return core_ops.updated(x, dict_update(x, keys, values))
+
+
+@optools.add_to_registry(
+    aliases=['kd.get_present_keys'], via_cc_operator_package=True
+)
+@optools.as_lambda_operator(
+    'kd.dicts.get_present_keys',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.dict_ds),
+    ],
+)
+def get_present_keys(dict_ds):
+  """Returns keys associated with present values of all Dicts in `dict_ds`.
+
+  Args:
+    dict_ds: DataSlice of Dicts.
+  """
+  keys = get_keys(dict_ds)
+  values = get_values(dict_ds)
+  return slices_ops.select_present(keys & masking_ops.has(values))
+
+
+@optools.add_to_registry(
+    aliases=['kd.get_present_values'], via_cc_operator_package=True
+)
+@optools.as_lambda_operator(
+    'kd.dicts.get_present_values',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.dict_ds),
+    ],
+)
+def get_present_values(dict_ds):
+  """Returns present values of all Dicts in `dict_ds`.
+
+  Args:
+    dict_ds: DataSlice of Dicts.
+  """
+  return slices_ops.select_present(get_values(dict_ds))

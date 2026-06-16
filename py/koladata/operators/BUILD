@@ -830,6 +830,7 @@ py_library(
         ":core",
         ":ids",
         ":jagged_shape",
+        ":masking",
         ":op_repr",
         ":optools",
         ":qtype_utils",

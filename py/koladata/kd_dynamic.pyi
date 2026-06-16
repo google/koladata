@@ -171,6 +171,8 @@ class dicts:
   dict_update = _operators_dicts.dict_update
   get_item = _operators_core.get_item
   get_keys = _operators_dicts.get_keys
+  get_present_keys = _operators_dicts.get_present_keys
+  get_present_values = _operators_dicts.get_present_values
   get_values = _operators_dicts.get_values
   has_dict = _operators_dicts.has_dict
   is_dict = _operators_dicts.is_dict
@@ -739,6 +741,8 @@ get_metadata = _operators_core.get_metadata
 get_ndim = _operators_slices.get_ndim
 get_nofollowed_schema = _operators_schema.get_nofollowed_schema
 get_obj_schema = _operators_schema.get_obj_schema
+get_present_keys = _operators_dicts.get_present_keys
+get_present_values = _operators_dicts.get_present_values
 get_primitive_schema = _operators_schema.get_primitive_schema
 get_proto_attr = _operators_proto.get_proto_attr
 get_repr = _operators_slices.get_repr

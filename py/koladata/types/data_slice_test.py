@@ -959,6 +959,54 @@ class DataSliceTest(parameterized.TestCase):
         x.get_values(), ds([], schema_constants.NONE).with_bag(x.get_bag())
     )
 
+  def test_get_present_keys(self):
+    db = bag()
+    d1 = db.dict({1: 2, 3: 4})
+    del d1[1]
+    d2 = db.dict({3: 5})
+    d = ds([d1, None, d2])
+
+    testing.assert_unordered_equal(
+        d.get_present_keys(),
+        ds([[3], [], [3]]).with_bag(db),
+    )
+
+  def test_get_present_keys_on_none(self):
+    x = ds([None]).with_bag(bag())
+    testing.assert_equal(
+        x.get_present_keys(),
+        ds([[]], schema_constants.NONE).with_bag(x.get_bag()),
+    )
+    x = ds(None).with_bag(bag())
+    testing.assert_equal(
+        x.get_present_keys(),
+        ds([], schema_constants.NONE).with_bag(x.get_bag()),
+    )
+
+  def test_get_present_values(self):
+    db = bag()
+    d1 = db.dict({1: 2, 3: 4})
+    del d1[1]
+    d2 = db.dict({3: 5})
+    d = ds([d1, None, d2])
+
+    testing.assert_unordered_equal(
+        d.get_present_values(),
+        ds([[4], [], [5]]).with_bag(db),
+    )
+
+  def test_get_present_values_on_none(self):
+    x = ds([None]).with_bag(bag())
+    testing.assert_equal(
+        x.get_present_values(),
+        ds([[]], schema_constants.NONE).with_bag(x.get_bag()),
+    )
+    x = ds(None).with_bag(bag())
+    testing.assert_equal(
+        x.get_present_values(),
+        ds([], schema_constants.NONE).with_bag(x.get_bag()),
+    )
+
   def test_fork_bag(self):
     x = ds([1, 2, 3])
 

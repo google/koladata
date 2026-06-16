@@ -476,6 +476,12 @@ class KodaView(BaseKodaView):
   def get_keys(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_keys', self)
 
+  def get_present_keys(self) -> arolla.Expr:
+    return _aux_bind_op('kd.get_present_keys', self)
+
+  def get_present_values(self) -> arolla.Expr:
+    return _aux_bind_op('kd.get_present_values', self)
+
   def get_nofollowed_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_nofollowed_schema', self)
 

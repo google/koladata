@@ -38,102 +38,76 @@ QTYPES = frozenset([
 ])
 
 
-class DictsGetKeysTest(parameterized.TestCase):
+class DictsGetPresentKeysTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Dict DataItem
-      (kd.dict({1: 2, 3: 4}), ds([1, 3])),
-      (kd.obj(kd.dict({1: 2, 3: 4})), ds([1, 3])),
+      (kd.dict({1: None, 3: 4}), ds([3])),
+      (kd.obj(kd.dict({1: None, 3: 4})), ds([3])),
       (
-          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
+          ds(None).with_schema(kd.dict({1: None, 3: 4}).get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None).with_bag(data_bag.DataBag.empty()), ds([])),
       (kd.obj(None).with_bag(data_bag.DataBag.empty()), ds([])),
       # Dict DataSlice
       (
-          ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})]),
-          ds([[1, 3], [], [3]]),
+          ds([kd.dict({1: None, 3: 4}), None, kd.dict({3: 5})]),
+          ds([[3], [], [3]]),
       ),
       (
-          kd.obj(ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})])),
-          ds([[1, 3], [], [3]]),
+          kd.obj(ds([kd.dict({1: None, 3: 4}), None, kd.dict({3: 5})])),
+          ds([[3], [], [3]]),
       ),
   )
   def test_eval(self, dict_ds, expected):
-    testing.assert_unordered_equal(kd.get_keys(dict_ds).no_bag(), expected)
+    testing.assert_equivalent(kd.get_present_keys(dict_ds), expected)
 
-  def test_fork(self):
-    d1 = data_bag.DataBag.empty_mutable().dict({1: 2, 3: 4})
-    result = kd.get_keys(d1)
-    testing.assert_unordered_equal(result, ds([1, 3]).with_bag(d1.get_bag()))
-
-    d2 = d1.freeze_bag()
-    result = kd.get_keys(d2)
-    testing.assert_unordered_equal(result, ds([1, 3]).with_bag(d2.get_bag()))
-
-    d3 = d2.fork_bag()
-    del d3[1]
-    result = kd.get_keys(d3)
-    testing.assert_unordered_equal(result, ds([1, 3]).with_bag(d3.get_bag()))
-
-    d4 = d3.fork_bag()
-    d4[1] = 1
-    d4[5] = 6
-    result = kd.get_keys(d4)
-    testing.assert_unordered_equal(result, ds([1, 3, 5]).with_bag(d4.get_bag()))
-
-  def test_fallback(self):
-    d1 = data_bag.DataBag.empty_mutable().dict({1: 2, 3: 4})
-    d2 = data_bag.DataBag.empty_mutable().dict(
-        {1: 1, 3: 3, 5: 6}, itemid=d1.get_itemid()
+  def test_deleted_keys(self):
+    db = data_bag.DataBag.empty_mutable()
+    d = ds([db.dict({1: 2, 3: 4}), db.dict({1: 3, 5: 6})]).with_bag(db)
+    del d[1]
+    testing.assert_unordered_equal(
+        kd.get_present_keys(d),
+        ds([[3], [5]]).with_bag(db),
     )
-    del d2[1]
-
-    d3 = d1.freeze_bag().enriched(d2.get_bag())
-    result = kd.get_keys(d3)
-    testing.assert_unordered_equal(result, ds([1, 3, 5]).with_bag(d3.get_bag()))
-
-    d4 = d2.freeze_bag().enriched(d1.get_bag())
-    result = kd.get_keys(d4)
-    testing.assert_unordered_equal(result, ds([1, 3, 5]).with_bag(d4.get_bag()))
 
   def test_errors(self):
     with self.assertRaisesRegex(
         ValueError,
         'cannot get dict keys without a DataBag',
     ):
-      kd.get_keys(ds([1, 2, 3]).no_bag())
+      kd.get_present_keys(ds([1, 2, 3]).no_bag())
 
     db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         'cannot get or set attributes',
     ):
-      kd.get_keys(ds([1, 2, 3]).with_bag(db))
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'getting attributes of primitives is not allowed',
-    ):
-      kd.get_keys(
-          ds([db.dict({1: 2}), 1], schema_constants.OBJECT).with_bag(db)
-      )
+      kd.get_present_keys(ds([1, 2, 3]).with_bag(db))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.dicts.get_keys,
+            kde.dicts.get_present_keys,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
     )
 
+  def test_determinism(self):
+    testing.assert_equal(
+        kde.dicts.get_present_keys(I.dict_ds),
+        kde.dicts.get_present_keys(I.dict_ds),
+    )
+
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.get_keys(I.dict_ds)))
+    self.assertTrue(view.has_koda_view(kde.get_present_keys(I.dict_ds)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.get_keys, kde.get_keys))
+    self.assertTrue(
+        optools.equiv_to_op(kde.dicts.get_present_keys, kde.get_present_keys)
+    )
 
 
 if __name__ == '__main__':

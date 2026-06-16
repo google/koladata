@@ -256,6 +256,18 @@ def _dict_size(self) -> DataSlice:
   return _eval_op('kd.dict_size', self)
 
 
+@add_method(DataSlice, 'get_present_keys', docstring_from='kd.get_present_keys')
+def _get_present_keys(self) -> DataSlice:
+  return _eval_op('kd.get_present_keys', self)
+
+
+@add_method(
+    DataSlice, 'get_present_values', docstring_from='kd.get_present_values'
+)
+def _get_present_values(self) -> DataSlice:
+  return _eval_op('kd.get_present_values', self)
+
+
 @add_method(DataSlice, 'with_dict_update', docstring_from='kd.with_dict_update')
 def _with_dict_update(
     self, keys: Any, values: Any = arolla.unspecified()

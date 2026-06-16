@@ -508,6 +508,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_keys(self):
     self.assert_exprs_equal(C.x.get_keys(), kde.get_keys(C.x))
 
+  def test_get_present_keys(self):
+    self.assert_exprs_equal(C.x.get_present_keys(), kde.get_present_keys(C.x))
+
   def test_get_nofollowed_schema(self):
     self.assert_exprs_equal(
         C.x.get_nofollowed_schema(), kde.get_nofollowed_schema(C.x)
@@ -515,6 +518,11 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_get_values(self):
     self.assert_exprs_equal(C.x.get_values(), kde.get_values(C.x))
+
+  def test_get_present_values(self):
+    self.assert_exprs_equal(
+        C.x.get_present_values(), kde.get_present_values(C.x)
+    )
 
   def test_get_bag(self):
     self.assert_exprs_equal(C.x.get_bag(), kde.get_bag(C.x))

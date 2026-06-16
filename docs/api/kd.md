@@ -716,6 +716,14 @@ Alias for [kd.schema.get_nofollowed_schema](kd/schema.md#kd.schema.get_nofollowe
 
 Alias for [kd.schema.get_obj_schema](kd/schema.md#kd.schema.get_obj_schema)
 
+### `kd.get_present_keys(dict_ds)` {#kd.get_present_keys}
+
+Alias for [kd.dicts.get_present_keys](kd/dicts.md#kd.dicts.get_present_keys)
+
+### `kd.get_present_values(dict_ds)` {#kd.get_present_values}
+
+Alias for [kd.dicts.get_present_values](kd/dicts.md#kd.dicts.get_present_values)
+
 ### `kd.get_primitive_schema(ds)` {#kd.get_primitive_schema}
 
 Alias for [kd.schema.get_primitive_schema](kd/schema.md#kd.schema.get_primitive_schema)

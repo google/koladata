@@ -60,7 +60,6 @@ py_library(
         ":expr_eval",
         ":input_container",
         ":introspection",
-        ":tracing_mode",
         "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",

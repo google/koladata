@@ -18,8 +18,8 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
-from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,23 +29,16 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
-DATA_SLICE = qtypes.DATA_SLICE
-UNSPECIFIED = arolla.UNSPECIFIED
-db = data_bag.DataBag.empty_mutable()
-ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_bag(db)
-
-dict_item = db.dict({1: 2, 3: 4})
-dict_item2 = db.dict({3: 5})
-dict_slice = ds([dict_item, None, dict_item2])
+kd = eager_op_utils.operators_container('kd')
+ds = data_slice.DataSlice.from_vals
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, UNSPECIFIED, DATA_SLICE),
+    (qtypes.DATA_SLICE, qtypes.DATA_SLICE),
+    (qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
+    (qtypes.DATA_SLICE, arolla.UNSPECIFIED, qtypes.DATA_SLICE),
 ])
 
 
@@ -53,75 +46,89 @@ class DictsGetValuesTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # Dict DataItem
-      (dict_item, ds([2, 4])),
-      (dict_item.embed_schema(), ds([2, 4])),
+      (kd.dict({1: 2, 3: 4}), ds([2, 4])),
+      (kd.obj(kd.dict({1: 2, 3: 4})), ds([2, 4])),
       (
-          ds(None).with_schema(dict_item.get_schema()),
+          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
           ds([], schema_constants.INT32),
       ),
-      (ds(None), ds([])),
-      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
+      (ds(None).with_bag(data_bag.DataBag.empty()), ds([])),
+      (kd.obj(None).with_bag(data_bag.DataBag.empty()), ds([])),
       # Dict DataSlice
-      (dict_slice, ds([[2, 4], [], [5]])),
-      (dict_slice.embed_schema(), ds([[2, 4], [], [5]])),
+      (
+          ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})]),
+          ds([[2, 4], [], [5]]),
+      ),
+      (
+          kd.obj(ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})])),
+          ds([[2, 4], [], [5]]),
+      ),
   )
   def test_eval(self, dict_ds, expected):
-    result = eval_op('kd.get_values', dict_ds)
-    testing.assert_unordered_equal(result, expected)
+    result = kd.get_values(dict_ds)
+    testing.assert_unordered_equal(result.no_bag(), expected)
     testing.assert_equal(dict_ds[dict_ds.get_keys()], result)
 
   @parameterized.parameters(
       # Dict DataItem
-      (dict_item, ds([3, 1]), ds([4, 2])),
-      (dict_item.embed_schema(), ds([3, 1]), ds([4, 2])),
+      (kd.dict({1: 2, 3: 4}), ds([3, 1]), ds([4, 2])),
+      (kd.obj(kd.dict({1: 2, 3: 4})), ds([3, 1]), ds([4, 2])),
       (
-          ds(None).with_schema(dict_item.get_schema()),
+          ds(None).with_schema(kd.dict({1: 2, 3: 4}).get_schema()),
           ds([3, 1]),
           ds([None, None], schema_constants.INT32),
       ),
       (
-          ds(None).with_schema(schema_constants.OBJECT),
+          ds(None).with_schema(schema_constants.OBJECT).with_bag(kd.bag()),
           ds([3, 1]),
           ds([None, None]),
       ),
       # Dict DataSlice
-      (dict_slice, ds([[3, 1], [1], [3]]), ds([[4, 2], [None], [5]])),
       (
-          dict_slice.embed_schema(),
+          ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})]),
+          ds([[3, 1], [1], [3]]),
+          ds([[4, 2], [None], [5]]),
+      ),
+      (
+          kd.obj(ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})])),
           ds([[3, 1], [1], [3]]),
           ds([[4, 2], [None], [5]]),
       ),
   )
   def test_eval_with_key(self, dict_ds, key_ds, expected):
-    result = eval_op('kd.get_values', dict_ds, key_ds)
-    testing.assert_equal(result, expected)
+    result = kd.get_values(dict_ds, key_ds)
+    testing.assert_equivalent(result, expected)
 
   @parameterized.parameters(
-      (dict_item, arolla.unspecified(), ds([2, 4])),
-      (dict_slice, arolla.unspecified(), ds([[2, 4], [], [5]])),
+      (kd.dict({1: 2, 3: 4}), arolla.unspecified(), ds([2, 4])),
+      (
+          ds([kd.dict({1: 2, 3: 4}), None, kd.dict({3: 5})]),
+          arolla.unspecified(),
+          ds([[2, 4], [], [5]]),
+      ),
   )
   def test_eval_with_unspecified_key(self, dict_ds, key_ds, expected):
-    result = eval_op('kd.get_values', dict_ds, key_ds)
-    testing.assert_unordered_equal(result, expected)
+    result = kd.get_values(dict_ds, key_ds)
+    testing.assert_unordered_equal(result.no_bag(), expected)
 
   def test_fork(self):
     d1 = data_bag.DataBag.empty_mutable().dict({1: 2, 3: 4})
-    result = eval_op('kd.get_values', d1)
+    result = kd.get_values(d1)
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d1.get_bag()))
 
     d2 = d1.freeze_bag()
-    result = eval_op('kd.get_values', d2)
+    result = kd.get_values(d2)
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d2.get_bag()))
 
     d3 = d2.fork_bag()
     del d3[1]
-    result = eval_op('kd.get_values', d3)
+    result = kd.get_values(d3)
     testing.assert_unordered_equal(result, ds([None, 4]).with_bag(d3.get_bag()))
 
     d4 = d3.fork_bag()
     d4[1] = 1
     d4[5] = 6
-    result = eval_op('kd.get_values', d4)
+    result = kd.get_values(d4)
     testing.assert_unordered_equal(result, ds([1, 4, 6]).with_bag(d4.get_bag()))
 
   def test_fallback(self):
@@ -132,11 +139,11 @@ class DictsGetValuesTest(parameterized.TestCase):
     del d2[1]
 
     d3 = d1.freeze_bag().enriched(d2.get_bag())
-    result = eval_op('kd.get_values', d3)
+    result = kd.get_values(d3)
     testing.assert_unordered_equal(result, ds([2, 4, 6]).with_bag(d3.get_bag()))
 
     d4 = d2.freeze_bag().enriched(d1.get_bag())
-    result = eval_op('kd.get_values', d4)
+    result = kd.get_values(d4)
     testing.assert_unordered_equal(
         result, ds([None, 3, 6]).with_bag(d4.get_bag())
     )
@@ -146,31 +153,34 @@ class DictsGetValuesTest(parameterized.TestCase):
         ValueError,
         'cannot get dict values without a DataBag',
     ):
-      eval_op('kd.get_values', ds([1, 2, 3]).no_bag())
+      kd.get_values(ds([1, 2, 3]).no_bag())
 
+    db = data_bag.DataBag.empty_mutable()
     with self.assertRaisesRegex(
         ValueError,
         'cannot get or set attributes',
     ):
-      eval_op('kd.get_values', ds([1, 2, 3]))
+      kd.get_values(ds([1, 2, 3]).with_bag(db))
 
     with self.assertRaisesRegex(
         ValueError,
         'getting attributes of primitives is not allowed',
     ):
-      eval_op('kd.get_values', ds([dict_item, 1], schema_constants.OBJECT))
+      kd.get_values(
+          ds([db.dict({1: 2}), 1], schema_constants.OBJECT).with_bag(db)
+      )
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('cannot get attribute from list'),
     ):
-      eval_op('kd.get_values', db.list([1, 2, 3]))
+      kd.get_values(db.list([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('dict(s) expected, got LIST[INT32]'),
     ):
-      eval_op('kd.get_values', db.list([1, 2, 3]), ds([0, 1]))
+      kd.get_values(db.list([1, 2, 3]), ds([0, 1]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

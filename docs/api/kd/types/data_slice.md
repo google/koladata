@@ -455,6 +455,20 @@ The result is a zero-dimensional DataItem.
 Args:
   x: A DataSlice of numbers.</code></pre>
 
+### `DataSlice.get_present_keys(self) -> DataSlice` {#kd.types.DataSlice.get_present_keys}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns keys associated with present values of all Dicts in `dict_ds`.
+
+Args:
+  dict_ds: DataSlice of Dicts.</code></pre>
+
+### `DataSlice.get_present_values(self) -> DataSlice` {#kd.types.DataSlice.get_present_values}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present values of all Dicts in `dict_ds`.
+
+Args:
+  dict_ds: DataSlice of Dicts.</code></pre>
+
 ### `DataSlice.get_schema()` {#kd.types.DataSlice.get_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a schema DataItem with type information about this DataSlice.</code></pre>

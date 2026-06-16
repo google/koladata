@@ -50,6 +50,26 @@ Args:
 Returns:
   A DataSlice of keys.</code></pre>
 
+### `kd.dicts.get_present_keys(dict_ds)` {#kd.dicts.get_present_keys}
+Aliases:
+
+- [kd.get_present_keys](../kd.md#kd.get_present_keys)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns keys associated with present values of all Dicts in `dict_ds`.
+
+Args:
+  dict_ds: DataSlice of Dicts.</code></pre>
+
+### `kd.dicts.get_present_values(dict_ds)` {#kd.dicts.get_present_values}
+Aliases:
+
+- [kd.get_present_values](../kd.md#kd.get_present_values)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present values of all Dicts in `dict_ds`.
+
+Args:
+  dict_ds: DataSlice of Dicts.</code></pre>
+
 ### `kd.dicts.get_values(dict_ds, key_ds=unspecified)` {#kd.dicts.get_values}
 Aliases:
 
