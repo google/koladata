@@ -44,8 +44,8 @@ functor = _py_types.SimpleNamespace(
     signature_utils=_signature_utils,
     sub=_substitute.sub,
     sub_by_name=_substitute.sub_by_name,
+    visit_functors=_visitor.visit_functors,
     visit_variables=_visitor.visit_variables,
-    visit_subfunctors=_visitor.visit_subfunctors,
     FunctorFactory=_tracing_decorator.FunctorFactory,
 )
 

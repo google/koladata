@@ -24,6 +24,9 @@ namespace koladata::python {
 PyObject* absl_nullable PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
                                         Py_ssize_t nargs);
 
+PyObject* absl_nullable PyGetVariableEvaluationOrder(PyObject* /*self*/,
+                                                     PyObject* py_arg);
+
 }  // namespace koladata::python
 
 #endif  // PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_

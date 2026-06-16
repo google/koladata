@@ -359,6 +359,8 @@ enum class VariableState {
   kVisited,
 };
 
+}  // namespace
+
 // Returns the order in which the variables should be
 // evaluated through topological sorting.
 absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
@@ -414,8 +416,6 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
   }
   return res;
 }
-
-}  // namespace
 
 absl::StatusOr<DataSlice> AutoVariables(
     const DataSlice& functor,

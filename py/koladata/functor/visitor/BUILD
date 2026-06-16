@@ -25,12 +25,9 @@ py_library(
     srcs = ["visitor.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:introspection",
         "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor:py_functors_py_ext",
         "//py/koladata/types:data_item",
-        "//py/koladata/types:schema_constants",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -40,10 +37,10 @@ py_test(
     deps = [
         ":visitor",
         "//py:python_path",
+        "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/functions",
-        "//py/koladata/functions:predicates",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:eager_op_utils",
@@ -51,5 +48,6 @@ py_test(
         "//py/koladata/testing",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )

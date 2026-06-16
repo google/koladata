@@ -15,6 +15,9 @@
 #ifndef KOLADATA_FUNCTOR_AUTO_VARIABLES_H_
 #define KOLADATA_FUNCTOR_AUTO_VARIABLES_H_
 
+#include <string>
+#include <vector>
+
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -106,6 +109,11 @@ constexpr absl::string_view kSelfBagInput = "__bag";
 // In order to avoid circular ownership all references to the functor's data bag
 // are replaced with a special input `kSelfBagInput`.
 absl::StatusOr<arolla::expr::ExprNodePtr> InlineAllVariables(
+    const DataSlice& functor);
+
+// Returns variables in the order they should be evaluated (topologically
+// sorted).
+absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
     const DataSlice& functor);
 
 }  // namespace koladata::functor

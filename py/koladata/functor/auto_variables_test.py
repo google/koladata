@@ -439,5 +439,35 @@ class AutoVariablesTest(absltest.TestCase):
     )
 
 
+class GetVariableEvaluationOrderTest(absltest.TestCase):
+
+  def test_basic(self):
+    fn = functor_factories.expr_fn(I.x + 1)
+    eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
+    self.assertEqual(eval_order, ['returns'])
+
+  def test_linear(self):
+    fn = functor_factories.expr_fn(V.a + 1, a=I.x * 2)
+    eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
+    self.assertEqual(eval_order, ['a', 'returns'])
+
+  def test_dag(self):
+    fn = functor_factories.expr_fn(V.a + V.b, a=V.c + 1, b=V.c + 2, c=I.x * 2)
+    eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
+    self.assertEqual(eval_order, ['c', 'a', 'b', 'returns'])
+
+  def test_non_expr_variable(self):
+    fn = functor_factories.expr_fn(V.a + 1, a=57)
+    eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
+    self.assertEqual(eval_order, ['a', 'returns'])
+
+  def test_cycle(self):
+    fn = functor_factories.expr_fn(V.a, a=V.b, b=V.a)
+    with self.assertRaisesRegex(
+        ValueError, r'variable \[a\] has a dependency cycle'
+    ):
+      _py_functors_py_ext.get_variable_evaluation_order(fn)
+
+
 if __name__ == '__main__':
   absltest.main()

@@ -16,6 +16,8 @@
 
 #include <Python.h>  // IWYU pragma: keep
 
+#include <cstddef>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -71,6 +73,32 @@ PyObject* absl_nullable PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
       functor::AutoVariables(*fn, std::move(extra_nodes_to_extract)),
       arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
+}
+
+PyObject* absl_nullable PyGetVariableEvaluationOrder(PyObject* /*self*/,
+                                                     PyObject* py_arg) {
+  arolla::python::DCheckPyGIL();
+  const auto* fn = UnwrapDataSlice(py_arg, "fn");
+  if (fn == nullptr) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(std::vector<std::string> eval_order,
+                   functor::GetVariableEvaluationOrder(*fn),
+                   arolla::python::SetPyErrFromStatus(_));
+  arolla::python::PyObjectPtr py_list =
+      arolla::python::PyObjectPtr::Own(PyList_New(eval_order.size()));
+  if (py_list == nullptr) {
+    return nullptr;
+  }
+  for (size_t i = 0; i < eval_order.size(); ++i) {
+    PyObject* py_str =
+        PyUnicode_FromStringAndSize(eval_order[i].data(), eval_order[i].size());
+    if (py_str == nullptr) {
+      return nullptr;
+    }
+    PyList_SET_ITEM(py_list.get(), i, py_str);
+  }
+  return py_list.release();
 }
 
 }  // namespace koladata::python

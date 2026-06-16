@@ -755,52 +755,59 @@ Args:
 Returns:
   A DataItem representing the functor.</code></pre>
 
-### `kd.functor.visit_subfunctors(functor: DataItem, callback_fn: Callable[[DataItem], None])` {#kd.functor.visit_subfunctors}
+### `kd.functor.visit_functors(functor: DataItem, callback_fn: Callable[[DataItem, dict[str, Any]], Any]) -> DataItem` {#kd.functor.visit_functors}
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Traverses the functor and calls callback_fn on sub-functors recursively.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Recursively visits functors in the functor graph, bottom-up.
 
-The visit is done using the postorder strategy. Result of `callback_fn` is
-not used.
+Traverses the graph of nested functors.  For each functor, `callback_fn`
+is called with:
 
-Args:
-  functor: Root functor to be traversed.
-  callback_fn: callable that accepts a single Koda Functor provided by the
-    caller.</code></pre>
+* the functor itself, and
+* a dict mapping attribute names that hold subfunctors to their
+  already-visited (transformed) results.
 
-### `kd.functor.visit_variables(functor: DataItem, callback_fn: Callable[[DataItem, dict[str, DataItem | None]], DataItem | None]) -> DataItem | None` {#kd.functor.visit_variables}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Traverses the functor and calls callback_fn on each variable recursively.
-
-`callback_fn` is called on the top-level Functor, as well.
-
-The visit is done using the postorder strategy.
-
-The `callback_fn` provided by the caller is used to compute the new Koda
-Functor using the returned variable values in a bottom-up fashion. If
-`callback_fn` returns `None`, the original value will be passed up.
+To visit / transform functor variables (without recursing into subfunctors),
+use kd.functor.visit_variables.
 
 Example:
-  f = kd.fn(lambda x: kd.V.a * x + kd.V.b).with_attrs(a=42, b=37)
+  fn = kd.fn(kd.V.g(kd.I.x, g=kd.fn(lambda x: x + 1)))
 
-  def transform_fn(fn, sub_vars):
-    if fn == f:
-      return fn.with_attrs(a=12)
-    return fn
+  def transform(fn, subfunctors):
+    # subfunctors == {&#39;g&#39;: &lt;visited g&gt;}
+    return fn.with_attrs(**subfunctors)
 
-  visitor.visit_variables(f, transform_fn)
-  # Returns result equivalent to:
-  # kd.fn(lambda x: kd.V.a * x + kd.V.b).with_attrs(a=12, b=37)
-
-To do a read-only traversal to only collect information, the `callback_fn`
-does not need to return a value or it can return the unmodified variable.
+  visitor.visit_functors(fn, transform)
 
 Args:
-  functor: Root functor to be traversed.
-  callback_fn: callable that accepts a single Koda Functor and a dictionary of
-    its variables on which `callback_fn` has already been applied.
+  functor: Root functor to traverse.
+  callback_fn: Called on each functor with its visited subfunctors.
 
 Returns:
-  New Koda Functor or None</code></pre>
+  Visit result.</code></pre>
+
+### `kd.functor.visit_variables(functor: DataItem, callback_fn: Callable[[str, DataItem, dict[str, Any]], Any]) -> Any` {#kd.functor.visit_variables}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Visits variables of a single functor in topological order.
+
+This function does **not** recurse into subfunctors.  It iterates over the
+variables of `functor` in evaluation order (topological order) and calls
+`callback_fn` on each variable.
+
+`callback_fn` receives:
+
+* the variable name (str),
+* the variable value (DataItem - kd.EXPR which can be accessed via
+      kd.expr.unpack_expr, while all other DataItems represent literals
+      (even subfunctors)),
+* a dict mapping variable names to the results of all previously visited
+      variables.
+
+Args:
+  functor: The functor whose variables to visit.
+  callback_fn: Called on each variable.
+
+Returns:
+  A visit result for &#39;returns&#39; variable.</code></pre>
 
 ### `kd.functor.while_(condition_fn, body_fn, *, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.functor.while_}
 

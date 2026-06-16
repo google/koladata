@@ -26,6 +26,10 @@ constexpr const char* kThisModuleName = "koladata.functor.py_functors";
 PyMethodDef kPyFunctorsModule_methods[] = {
     {"auto_variables", (PyCFunction)PyAutoVariables, METH_FASTCALL,
      "Returns a functor with auto-variables extracted."},
+    {"get_variable_evaluation_order", (PyCFunction)PyGetVariableEvaluationOrder,
+     METH_O,
+     "Returns the topologically-sorted variable evaluation order of a "
+     "functor."},
     {nullptr} /* sentinel */
 };
 

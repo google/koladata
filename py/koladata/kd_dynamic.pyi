@@ -250,7 +250,7 @@ class functor:
   switch = _operators_functor.switch
   trace_as_fn = _functor_tracing_decorator.TraceAsFnDecorator
   trace_py_fn = _functor_functor_factories.trace_py_fn
-  visit_subfunctors = _visitor_visitor.visit_subfunctors
+  visit_functors = _visitor_visitor.visit_functors
   visit_variables = _visitor_visitor.visit_variables
   while_ = _operators_functor.while_
 

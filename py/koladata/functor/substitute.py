@@ -251,8 +251,6 @@ def sub(
 
   def transform_callback(node, subvars):
     subvars = dict(**subvars)
-    if not functor_factories.is_fn(node):
-      return
     for attr_name in attrs.dir(node):
       attr_val = node.get_attr(attr_name)
       attr_key = get_key(attr_val)
@@ -267,7 +265,7 @@ def sub(
       node = node.with_attrs(**subvars)
     return node
 
-  return visitor.visit_variables(functor, transform_callback)
+  return visitor.visit_functors(functor, transform_callback)
 
 
 def sub_by_name(
@@ -338,7 +336,7 @@ def sub_by_name(
   # intention.
   names_to_fns = {}
 
-  def validation_callback(node):
+  def validation_callback(node, _):
     for attr_name in attrs.dir(node):
       if attr_name not in subs:
         continue
@@ -355,13 +353,11 @@ def sub_by_name(
         names_to_fns[attr_name] = val
     return None
 
-  visitor.visit_subfunctors(functor, validation_callback)
+  visitor.visit_functors(functor, validation_callback)
 
   # Pass 2: Substitution
   def transform_callback(node, subvars):
     subvars = dict(**subvars)
-    if not functor_factories.is_fn(node):
-      return
     for attr_name in attrs.dir(node):
       if attr_name not in subs:
         continue
@@ -375,4 +371,4 @@ def sub_by_name(
       node = node.with_attrs(**subvars)
     return node
 
-  return visitor.visit_variables(functor, transform_callback)
+  return visitor.visit_functors(functor, transform_callback)
