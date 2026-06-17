@@ -781,24 +781,12 @@ cc_test(
 )
 
 cc_library(
-    name = "source_location_utils",
-    hdrs = ["source_location_utils.h"],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-    ],
-)
-
-cc_library(
     name = "future_operators",
     srcs = ["future_operators.cc"],
     hdrs = ["future_operators.h"],
     deps = [
         ":future",
         ":future_qtype",
-        ":source_location_utils",
         ":stream",
         ":stream_composition",
         ":stream_qtype",
@@ -809,6 +797,7 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
@@ -936,7 +925,6 @@ cc_library(
         ":executor",
         ":future",
         ":future_qtype",
-        ":source_location_utils",
         ":stream",
         ":stream_call",
         ":stream_composition",
@@ -960,6 +948,7 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",

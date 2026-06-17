@@ -916,19 +916,23 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
   def test_transform_source_location_propagation(self):
     map_py = kde.annotation.source_location(
         kde.py.map_py(lambda x: x // 0, x=I.x),
-        'map_py',
-        'map_py.py',
-        123,
-        12,
-        'y = map_py(fn, I.x)',
+        arolla.namedtuple(
+            function_name='map_py',
+            file_name='map_py.py',
+            line=123,
+            column=12,
+            line_text='y = map_py(fn, I.x)',
+        ),
     )
     call = kde.annotation.source_location(
         kde.functor.call(map_py, I.x),
-        'call',
-        'call.py',
-        456,
-        12,
-        'y = call(fn, I.x)',
+        arolla.namedtuple(
+            function_name='call',
+            file_name='call.py',
+            line=456,
+            column=12,
+            line_text='y = call(fn, I.x)',
+        ),
     )
     switch = kde.annotation.source_location(
         kde.functor.switch(
@@ -939,11 +943,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             },
             x=I.x,
         ),
-        'switch',
-        'switch.py',
-        789,
-        12,
-        'y = switch(key, cases)',
+        arolla.namedtuple(
+            function_name='switch',
+            file_name='switch.py',
+            line=789,
+            column=12,
+            line_text='y = switch(key, cases)',
+        ),
     )
 
     functor = functor_factories.expr_fn(switch)

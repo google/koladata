@@ -500,18 +500,39 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_traced_exprs_equal(self):
     test_utils.assert_traced_exprs_equal(
         arolla.M.annotation.source_location(
-            I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+            I.x // I.y,
+            arolla.namedtuple(
+                function_name='foo',
+                file_name='file.py',
+                line=123,
+                column=0,
+                line_text='  x // y',
+            ),
         )
         + 1,
         I.x // I.y + 1,
     )
     test_utils.assert_traced_exprs_equal(
         arolla.M.annotation.source_location(
-            I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+            I.x // I.y,
+            arolla.namedtuple(
+                function_name='foo',
+                file_name='file.py',
+                line=123,
+                column=0,
+                line_text='  x // y',
+            ),
         )
         + 1,
         arolla.M.annotation.source_location(
-            I.x // I.y, 'bar', 'file.py', 432, 0, '  x // y'
+            I.x // I.y,
+            arolla.namedtuple(
+                function_name='bar',
+                file_name='file.py',
+                line=432,
+                column=0,
+                line_text='  x // y',
+            ),
         )
         + 1,
     )
@@ -520,11 +541,25 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_traced_exprs_equal(
           arolla.M.annotation.source_location(
-              I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+              I.x // I.y,
+              arolla.namedtuple(
+                  function_name='foo',
+                  file_name='file.py',
+                  line=123,
+                  column=0,
+                  line_text='  x // y',
+              ),
           )
           + 1,
           arolla.M.annotation.source_location(
-              I.y // I.x, 'bar', 'file.py', 432, 0, '  y // x'
+              I.y // I.x,
+              arolla.namedtuple(
+                  function_name='bar',
+                  file_name='file.py',
+                  line=432,
+                  column=0,
+                  line_text='  y // x',
+              ),
           )
           + 1,
       )
@@ -536,11 +571,25 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_traced_exprs_equal(
           arolla.M.annotation.source_location(
-              kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+              kde.new(a=12),
+              arolla.namedtuple(
+                  function_name='foo',
+                  file_name='file.py',
+                  line=123,
+                  column=0,
+                  line_text='  kd.new(a=12)',
+              ),
           )
           + 1,
           arolla.M.annotation.source_location(
-              kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+              kde.new(a=12),
+              arolla.namedtuple(
+                  function_name='bar',
+                  file_name='file.py',
+                  line=432,
+                  column=0,
+                  line_text='  kd.new(a=12)',
+              ),
           )
           + 1,
       )
@@ -559,18 +608,39 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_traced_non_deterministic_exprs_equal(self):
     test_utils.assert_traced_non_deterministic_exprs_equal(
         arolla.M.annotation.source_location(
-            kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+            kde.new(a=12),
+            arolla.namedtuple(
+                function_name='foo',
+                file_name='file.py',
+                line=123,
+                column=0,
+                line_text='  kd.new(a=12)',
+            ),
         )
         + 1,
         kde.new(a=12) + 1,
     )
     test_utils.assert_traced_non_deterministic_exprs_equal(
         arolla.M.annotation.source_location(
-            kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+            kde.new(a=12),
+            arolla.namedtuple(
+                function_name='foo',
+                file_name='file.py',
+                line=123,
+                column=0,
+                line_text='  kd.new(a=12)',
+            ),
         )
         + 1,
         arolla.M.annotation.source_location(
-            kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+            kde.new(a=12),
+            arolla.namedtuple(
+                function_name='bar',
+                file_name='file.py',
+                line=432,
+                column=0,
+                line_text='  kd.new(a=12)',
+            ),
         )
         + 1,
     )
@@ -579,11 +649,25 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_traced_non_deterministic_exprs_equal(
           arolla.M.annotation.source_location(
-              kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+              kde.new(a=12),
+              arolla.namedtuple(
+                  function_name='foo',
+                  file_name='file.py',
+                  line=123,
+                  column=0,
+                  line_text='  kd.new(a=12)',
+              ),
           )
           + 1,
           arolla.M.annotation.source_location(
-              kde.new(a=42), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+              kde.new(a=42),
+              arolla.namedtuple(
+                  function_name='bar',
+                  file_name='file.py',
+                  line=432,
+                  column=0,
+                  line_text='  kd.new(a=12)',
+              ),
           )
           + 1,
       )

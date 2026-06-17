@@ -9,7 +9,7 @@
 
 
 
-### `kd.annotation.source_location(expr, function_name, file_name, line, column, line_text)` {#kd.annotation.source_location}
+### `kd.annotation.source_location(expr, loc)` {#kd.annotation.source_location}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Annotation for source location where the expr node was created.
 
@@ -17,14 +17,14 @@ The annotation is considered as &#34;best effort&#34; so any of the
 arguments may be missing.
 
 Args:
-  function_name: name of the function where the expr node was
-    created
-  file_name: name of the file where the expr node was created
-  line: line number where the expr node was created. 0 indicates
-    an unknown line number.
-  column: column number where the expr node was created. 0
-    indicates an unknown line number.
- line_text: text of the line where the expr node was created</code></pre>
+  expr: The expression to be annotated.
+  loc: Source location information. Must be a literal
+    namedtuple with the following fields:
+    - function_name: Name of the function (TEXT)
+    - file_name: Name of the file (TEXT)
+    - line: Line number (INT32)
+    - column: Column number (INT32)
+    - line_text: Source code line (TEXT)</code></pre>
 
 ### `kd.annotation.with_name(obj: Any, name: str | Text) -> Any` {#kd.annotation.with_name}
 

@@ -421,11 +421,17 @@ class TracingTest(absltest.TestCase):
                     arolla.abc.placeholder('b'), arolla.types.INT32
                 ),
             ),
-            'fn',
-            'koladata/expr/tracing_test.py',
-            inspect.getsourcelines(fn)[1] + 1,  # pytype: disable=attribute-error
-            13,
-            '      return a + b',
+            arolla.namedtuple(
+                function_name='fn',
+                file_name=(
+                    'koladata/expr/tracing_test.py'
+                ),
+                line=(
+                    inspect.getsourcelines(fn)[1] + 1
+                ),  # pytype: disable=attribute-error
+                column=13,
+                line_text='      return a + b',
+            ),
         ),
     )
 

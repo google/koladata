@@ -660,17 +660,23 @@ class OptoolsTest(parameterized.TestCase):
             py_boxing.as_expr(1)
             + arolla.M.annotation.source_location(
                 py_boxing.as_expr(2) * py_boxing.as_expr(3),
-                'op',
-                'koladata/operators/optools_test.py',
-                lineno,
-                17,
-                '      return a + b * c',
+                arolla.namedtuple(
+                    function_name='op',
+                    file_name=
+                    'koladata/operators/optools_test.py',
+                    line=lineno,
+                    column=17,
+                    line_text='      return a + b * c',
+                ),
             ),
-            'op',
-            'koladata/operators/optools_test.py',
-            lineno,
-            13,
-            '      return a + b * c',
+            arolla.namedtuple(
+                function_name='op',
+                file_name=
+                'koladata/operators/optools_test.py',
+                line=lineno,
+                column=13,
+                line_text='      return a + b * c',
+            ),
         ),
     )
     with self.assertRaisesRegex(ValueError, re.escape('my_qtype_constraint')):

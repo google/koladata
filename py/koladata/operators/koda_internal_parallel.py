@@ -1225,23 +1225,15 @@ def unwrap_future_to_parallel(arg):
     'koda_internal.parallel.add_source_location_on_error_to_future',
     qtype_constraints=[
         qtype_utils.expect_future(P.future),
-        constraints.expect_scalar_text(P.function_name),
-        constraints.expect_scalar_text(P.file_name),
         (
-            P.line == arolla.INT32,
-            f'expected INT32 got {constraints.name_type_msg(P.line)}',
+            arolla.M.qtype.is_namedtuple_qtype(P.source_location),
+            'expected a named tuple, got source_location: '
+            f'{constraints.name_type_msg(P.source_location)}',
         ),
-        (
-            P.column == arolla.INT32,
-            f'expected INT32 got {constraints.name_type_msg(P.column)}',
-        ),
-        constraints.expect_scalar_text(P.line_text),
     ],
     qtype_inference_expr=P.future,
 )
-def add_source_location_on_error_to_future(
-    future, function_name, file_name, line, column, line_text
-):
+def add_source_location_on_error_to_future(future, source_location):
   """Returns a future that adds source location to the error if the input fails."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1251,23 +1243,15 @@ def add_source_location_on_error_to_future(
     'koda_internal.parallel.add_source_location_on_error_to_stream',
     qtype_constraints=[
         qtype_utils.expect_stream(P.stream),
-        constraints.expect_scalar_text(P.function_name),
-        constraints.expect_scalar_text(P.file_name),
         (
-            P.line == arolla.INT32,
-            f'expected INT32 got {constraints.name_type_msg(P.line)}',
+            arolla.M.qtype.is_namedtuple_qtype(P.source_location),
+            'expected a named tuple, got source_location: '
+            f'{constraints.name_type_msg(P.source_location)}',
         ),
-        (
-            P.column == arolla.INT32,
-            f'expected INT32 got {constraints.name_type_msg(P.column)}',
-        ),
-        constraints.expect_scalar_text(P.line_text),
     ],
     qtype_inference_expr=P.stream,
 )
-def add_source_location_on_error_to_stream(
-    stream, function_name, file_name, line, column, line_text
-):
+def add_source_location_on_error_to_stream(stream, source_location):
   """Returns a stream that adds source location to the error if the input fails."""
   raise NotImplementedError('implemented in the backend')
 
@@ -1277,25 +1261,17 @@ def add_source_location_on_error_to_stream(
 )
 def _internal_add_source_location_on_error_to_parallel(
     outer_arg,
-    outer_function_name,
-    outer_file_name,
-    outer_line,
-    outer_column,
-    outer_line_text,
+    outer_source_location,
     outer_self_op,
 ):
   """Implementation helper for add_source_location_on_error_to_parallel."""
   return arolla.types.DispatchOperator(
-      'arg, function_name, file_name, line, column, line_text, self_op',
+      'arg, source_location, self_op',
       tuple_case=arolla.types.DispatchCase(
           M.core.map_tuple(
               P.self_op,
               P.arg,
-              P.function_name,
-              P.file_name,
-              P.line,
-              P.column,
-              P.line_text,
+              P.source_location,
               P.self_op,  # Compile-time recursion works.
           ),
           condition=M.qtype.is_tuple_qtype(P.arg),
@@ -1307,11 +1283,7 @@ def _internal_add_source_location_on_error_to_parallel(
               M.core.map_tuple(
                   P.self_op,
                   M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
-                  P.function_name,
-                  P.file_name,
-                  P.line,
-                  P.column,
-                  P.line_text,
+                  P.source_location,
                   P.self_op,  # Compile-time recursion works.
               ),
           ),
@@ -1320,22 +1292,14 @@ def _internal_add_source_location_on_error_to_parallel(
       future_case=arolla.types.DispatchCase(
           add_source_location_on_error_to_future(
               P.arg,
-              P.function_name,
-              P.file_name,
-              P.line,
-              P.column,
-              P.line_text,
+              P.source_location,
           ),
           condition=is_future_qtype(P.arg),
       ),
       stream_case=arolla.types.DispatchCase(
           add_source_location_on_error_to_stream(
               P.arg,
-              P.function_name,
-              P.file_name,
-              P.line,
-              P.column,
-              P.line_text,
+              P.source_location,
           ),
           condition=is_stream_qtype(P.arg),
       ),
@@ -1347,11 +1311,7 @@ def _internal_add_source_location_on_error_to_parallel(
       ),
   )(
       outer_arg,
-      outer_function_name,
-      outer_file_name,
-      outer_line,
-      outer_column,
-      outer_line_text,
+      outer_source_location,
       outer_self_op,
   )
 
@@ -1360,17 +1320,11 @@ def _internal_add_source_location_on_error_to_parallel(
 @optools.as_lambda_operator(
     'koda_internal.parallel.add_source_location_on_error_to_parallel',
 )
-def add_source_location_on_error_to_parallel(
-    arg, function_name, file_name, line, column, line_text
-):
+def add_source_location_on_error_to_parallel(arg, source_location):
   """Adds source location to errors in the given parallel value."""
   return _internal_add_source_location_on_error_to_parallel(
       arg,
-      function_name,
-      file_name,
-      line,
-      column,
-      line_text,
+      source_location,
       _internal_add_source_location_on_error_to_parallel,
   )
 

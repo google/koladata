@@ -51,7 +51,6 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
-#include "koladata/functor/parallel/source_location_utils.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_call.h"
 #include "koladata/functor/parallel/stream_composition.h"
@@ -61,6 +60,7 @@
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
 #include "koladata/functor/parallel/stream_reduce_stack_or_concat.h"
+#include "arolla/expr/annotation_utils.h"
 #include "koladata/functor/parallel/stream_while.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
@@ -1708,14 +1708,41 @@ class AddSourceLocationOnErrorToStreamOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
+    // Qtype and presence of fields already verified in DoGetOperator.
+    const auto* named_tuple_interface =
+        dynamic_cast<const arolla::NamedFieldQTypeInterface*>(
+            input_slots[1].GetType());
+
+    int64_t function_name_idx =
+    // NOLINTNEXTLINE
+        *named_tuple_interface->GetFieldIndexByName("function_name");
+    int64_t file_name_idx =
+    // NOLINTNEXTLINE
+        *named_tuple_interface->GetFieldIndexByName("file_name");
+    int64_t line_idx =
+    // NOLINTNEXTLINE
+        *named_tuple_interface->GetFieldIndexByName("line");
+    int64_t column_idx =
+    // NOLINTNEXTLINE
+        *named_tuple_interface->GetFieldIndexByName("column");
+    int64_t line_text_idx =
+    // NOLINTNEXTLINE
+        *named_tuple_interface->GetFieldIndexByName("line_text");
+
     return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
         "koda_internal.parallel.add_source_location_on_error_to_stream",
         [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
-         function_name_slot = input_slots[1].UnsafeToSlot<arolla::Text>(),
-         file_name_slot = input_slots[2].UnsafeToSlot<arolla::Text>(),
-         line_slot = input_slots[3].UnsafeToSlot<int>(),
-         column_slot = input_slots[4].UnsafeToSlot<int>(),
-         line_text_slot = input_slots[5].UnsafeToSlot<arolla::Text>(),
+         function_name_slot = input_slots[1]
+                                  .SubSlot(function_name_idx)
+                                  .UnsafeToSlot<arolla::Text>(),
+         file_name_slot = input_slots[1]
+                              .SubSlot(file_name_idx)
+                              .UnsafeToSlot<arolla::Text>(),
+         line_slot = input_slots[1].SubSlot(line_idx).UnsafeToSlot<int>(),
+         column_slot = input_slots[1].SubSlot(column_idx).UnsafeToSlot<int>(),
+         line_text_slot = input_slots[1]
+                              .SubSlot(line_text_idx)
+                              .UnsafeToSlot<arolla::Text>(),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
@@ -1774,8 +1801,8 @@ absl::StatusOr<arolla::OperatorPtr>
 AddSourceLocationOnErrorToStreamOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 6) {
-    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
   }
   if (!IsStreamQType(input_types[0])) {
     return absl::InvalidArgumentError("first argument must be a stream");
@@ -1784,7 +1811,7 @@ AddSourceLocationOnErrorToStreamOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "output type must be the same as input type");
   }
-  RETURN_IF_ERROR(VerifySourceLocationTypes(input_types.subspan(1)));
+  RETURN_IF_ERROR(arolla::expr::VerifySourceLocationType(input_types[1]));
   return std::make_shared<AddSourceLocationOnErrorToStreamOperator>(
       input_types, output_type);
 }

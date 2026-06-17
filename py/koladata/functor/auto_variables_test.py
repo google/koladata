@@ -211,7 +211,14 @@ class AutoVariablesTest(absltest.TestCase):
   def test_literal_with_source_location(self):
     fn = functor_factories.expr_fn(
         arolla.M.annotation.source_location(
-            kde.item(57), 'test', 'test.py', 1, 0, ''
+            kde.item(57),
+            arolla.namedtuple(
+                function_name='test',
+                file_name='test.py',
+                line=1,
+                column=0,
+                line_text='',
+            ),
         ).with_name('foo')
         * I.x,
         auto_variables=True,
@@ -393,7 +400,14 @@ class AutoVariablesTest(absltest.TestCase):
 
   def test_extract_extra_nodes_literal_with_source_location(self):
     expr = arolla.M.annotation.source_location(
-        kde.item(57), 'test', 'test.py', 1, 0, ''
+        kde.item(57),
+        arolla.namedtuple(
+            function_name='test',
+            file_name='test.py',
+            line=1,
+            column=0,
+            line_text='',
+        ),
     )
     fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])

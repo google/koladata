@@ -37,33 +37,33 @@ SRC_PIN = kd_optools.SRC_PIN
 class AnnotationSourceLocationTest(absltest.TestCase):
 
   def test_boxing(self):
-    expr = kde.annotation.source_location(
-        1, 'foo', 'test.py', 123, 456, '  x + 1'
+    loc = arolla.namedtuple(
+        function_name='foo',
+        file_name='test.py',
+        line=123,
+        column=456,
+        line_text='  x + 1',
     )
+    expr = kde.annotation.source_location(1, loc)
     # We don't expect users to call the operator directly, so there is no point
     # in boxing the first argument specifically for Koda.
     arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[0], arolla.literal(arolla.int32(1))
+        expr.node_deps[0], arolla.literal(1)
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[1], arolla.literal(arolla.text('foo'))
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[2], arolla.literal(arolla.text('test.py'))
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[3], arolla.literal(arolla.int32(123))
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[4], arolla.literal(arolla.int32(456))
-    )
-    arolla.testing.assert_expr_equal_by_fingerprint(
-        expr.node_deps[5], arolla.literal(arolla.text('  x + 1'))
+        expr.node_deps[1], arolla.literal(loc)
     )
 
   def test_noop_eval(self):
     expr = kde.annotation.source_location(
-        I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
+        I.x + 1,
+        arolla.namedtuple(
+            function_name='foo',
+            file_name='test.py',
+            line=123,
+            column=456,
+            line_text='  x + 1',
+        ),
     )
     kd_testing.assert_equal(expr_eval.eval(expr, x=1), kd_item(2))
 
@@ -74,11 +74,13 @@ class AnnotationSourceLocationTest(absltest.TestCase):
       _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
       return kde.annotation.source_location(
           kde.math.floordiv(x, y),
-          'inner_lambda',
-          'file.py',
-          57,
-          2,
-          'kde.math.floordiv(x, y)',
+          arolla.namedtuple(
+              function_name='inner_lambda',
+              file_name='file.py',
+              line=57,
+              column=2,
+              line_text='kde.math.floordiv(x, y)',
+          ),
       )
 
     @kd_optools.as_lambda_operator('outer_lambda')
@@ -86,28 +88,34 @@ class AnnotationSourceLocationTest(absltest.TestCase):
       _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
       inner = kde.annotation.source_location(
           inner_lambda(x, y),
-          'outer_lambda',
-          'file.py',
-          58,
-          2,
-          'inner_lambda(x, y)',
+          arolla.namedtuple(
+              function_name='outer_lambda',
+              file_name='file.py',
+              line=58,
+              column=2,
+              line_text='inner_lambda(x, y)',
+          ),
       )
       return kde.annotation.source_location(
           kde.math.add(inner, 1),
-          'outer_lambda',
-          'file.py',
-          59,
-          2,
-          'kde.math.add(inner, 1)',
+          arolla.namedtuple(
+              function_name='outer_lambda',
+              file_name='file.py',
+              line=59,
+              column=2,
+              line_text='kde.math.add(inner, 1)',
+          ),
       )
 
     expr = kde.annotation.source_location(
         outer_lambda(I.x, I.y),
-        'main',
-        'file.py',
-        60,
-        2,
-        'outer_lambda(L.x, L.y)',
+        arolla.namedtuple(
+            function_name='main',
+            file_name='file.py',
+            line=60,
+            column=2,
+            line_text='outer_lambda(L.x, L.y)',
+        ),
     )
 
     try:
@@ -140,7 +148,14 @@ class AnnotationSourceLocationTest(absltest.TestCase):
   def test_tuple_unpacking(self):
     expr = kde.tuple(I.x, I.y)
     wrapped = kde.annotation.source_location(
-        expr, 'test', 'test.py', 1, 1, 'code'
+        expr,
+        arolla.namedtuple(
+            function_name='test',
+            file_name='test.py',
+            line=1,
+            column=1,
+            line_text='code',
+        ),
     )
 
     x, y = wrapped
@@ -149,19 +164,52 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     kd_testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
     kd_testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
+  def test_error_partial_source_location(self):
+    partial_loc = arolla.namedtuple(
+        file_name='test.py',
+        line=123,
+        column=45,
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'invalid argument for `loc`',
+    ):
+      kde.annotation.source_location(1, partial_loc)
+
   def test_repr(self):
     expr = kde.annotation.source_location(
-        I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
+        I.x + 1,
+        arolla.namedtuple(
+            function_name='foo',
+            file_name='test.py',
+            line=123,
+            column=456,
+            line_text='  x + 1',
+        ),
     )
     self.assertEqual(repr(expr), f'(I.x + DataItem(1, schema: INT32)){SRC_PIN}')
 
     expr = kde.annotation.source_location(
-        I.x.attr, 'foo', 'test.py', 123, 456, '  x.attr'
+        I.x.attr,
+        arolla.namedtuple(
+            function_name='foo',
+            file_name='test.py',
+            line=123,
+            column=456,
+            line_text='  x.attr',
+        ),
     )
     self.assertEqual(repr(expr), f'I.x.attr{SRC_PIN}')
 
     expr = kde.annotation.source_location(
-        -I.x, 'foo', 'test.py', 123, 456, '  x.attr'
+        -I.x,
+        arolla.namedtuple(
+            function_name='foo',
+            file_name='test.py',
+            line=123,
+            column=456,
+            line_text='  x.attr',
+        ),
     )
     self.assertEqual(repr(expr), f'(-I.x){SRC_PIN}')
 

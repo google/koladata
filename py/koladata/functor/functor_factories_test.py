@@ -1314,13 +1314,27 @@ class FunctorFactoriesTest(parameterized.TestCase):
     fn1 = functor_factories.expr_fn(
         V.y + 1,
         y=arolla.M.annotation.source_location(
-            1 // I.x, 'fn1', 'my_file.py', 57, 0, '  y = 1 // I.x'
+            1 // I.x,
+            arolla.namedtuple(
+                function_name='fn1',
+                file_name='my_file.py',
+                line=57,
+                column=0,
+                line_text='  y = 1 // I.x',
+            ),
         ),
     )
     fn2 = functor_factories.expr_fn(
         V.z + 1,
         z=arolla.M.annotation.source_location(
-            fn1(x=V.y), 'fn2', 'my_file.py', 58, 0, '  z = fn1(y)'
+            fn1(x=V.y),
+            arolla.namedtuple(
+                function_name='fn2',
+                file_name='my_file.py',
+                line=58,
+                column=0,
+                line_text='  z = fn1(y)',
+            ),
         ),
         y=I.x,
     )

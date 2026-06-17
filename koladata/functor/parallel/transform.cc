@@ -613,11 +613,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
         arolla::expr::CallOp(
             "koda_internal.parallel.add_source_location_on_error_to_parallel",
             {std::move(result_node),
-             source_location_node->node_deps()[1],
-             source_location_node->node_deps()[2],
-             source_location_node->node_deps()[3],
-             source_location_node->node_deps()[4],
-             source_location_node->node_deps()[5]}));
+             source_location_node->node_deps()[1]}));
   }
   return result_node;
 }

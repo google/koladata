@@ -14,6 +14,7 @@
 
 import traceback
 
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
@@ -34,15 +35,39 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     absltest.TestCase
 ):
 
+  def make_source_location(self):
+    return arolla.namedtuple(
+        function_name='my_func',
+        file_name='my_file.py',
+        line=123,
+        column=45,
+        line_text='my_op',
+    )
+
+  def make_scrambled_source_location(self):
+    return arolla.namedtuple(
+        file_name='my_file.py',
+        line_text='my_op',
+        column=45,
+        line=123,
+        function_name='my_func',
+    )
+
+  def assert_has_correct_source_location(self, tb):
+    self.assertIsNotNone(tb, 'traceback not found')
+    self.assertGreaterEqual(len(tb), 2)
+    frame = next((f for f in tb if f.filename == 'my_file.py'), None)
+    self.assertIsNotNone(frame, 'my_file.py frame not found in traceback')
+    self.assertEqual(frame.name, 'my_func')
+    self.assertEqual(frame.lineno, 123)
+    self.assertEqual(frame.colno, 45)
+    # TODO: Check the line text as well.
+
   def test_future_input_success(self):
     future = kde_internal.parallel.as_future(arolla.int32(10))
     expr = kde_internal.parallel.add_source_location_on_error_to_future(
         future,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  x + y'),
+        self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     self.assertEqual(
@@ -65,19 +90,36 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     )
     expr = kde_internal.parallel.add_source_location_on_error_to_future(
         future,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  x / 0'),
+        self.make_source_location(),
     )
     res = kde_internal.parallel.get_future_value_for_testing(expr)
-    tb_str = ''
+    tb = None
     try:
       _ = res.eval()
-    except Exception:  # pylint: disable=broad-exception-caught
-      tb_str = traceback.format_exc()
-    self.assertIn('my_file.py', tb_str)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
+
+  def test_future_input_error_scrambled_source_location(self):
+    executor = kde_internal.parallel.get_eager_executor()
+    # future that will have an error
+    future = kde_internal.parallel.async_eval(
+        executor,
+        kde.math.floordiv,
+        ds(1),
+        ds(0),
+    )
+    expr = kde_internal.parallel.add_source_location_on_error_to_future(
+        future,
+        self.make_scrambled_source_location(),
+    )
+    res = kde_internal.parallel.get_future_value_for_testing(expr)
+    tb = None
+    try:
+      _ = res.eval()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
 
   def test_stream_input_success(self):
     stream = kde_internal.parallel.stream_make(
@@ -85,11 +127,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     )
     expr = kde_internal.parallel.add_source_location_on_error_to_stream(
         stream,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  my_stream'),
+        self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     self.assertEqual(
@@ -111,19 +149,35 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
 
     expr = kde_internal.parallel.add_source_location_on_error_to_stream(
         failing_stream,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  my_stream'),
+        self.make_source_location(),
     )
     res = expr_eval.eval(expr)
-    tb_str = ''
+    tb = None
     try:
       _ = res.read_all(timeout=1.0)
-    except Exception:  # pylint: disable=broad-exception-caught
-      tb_str = traceback.format_exc()
-    self.assertIn('my_file.py', tb_str)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
+
+  def test_stream_input_error_scrambled_source_location(self):
+    executor = kde_internal.parallel.get_eager_executor()
+    # stream that will have an error
+    failing_future = kde_internal.parallel.async_eval(
+        executor, kde.math.floordiv, ds(1), ds(0)
+    )
+    failing_stream = kde_internal.parallel.stream_from_future(failing_future)
+
+    expr = kde_internal.parallel.add_source_location_on_error_to_stream(
+        failing_stream,
+        self.make_scrambled_source_location(),
+    )
+    res = expr_eval.eval(expr)
+    tb = None
+    try:
+      _ = res.read_all(timeout=1.0)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
 
   def test_parallel_tuple(self):
     executor = kde_internal.parallel.get_eager_executor()
@@ -136,11 +190,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     )
     expr = kde_internal.parallel.add_source_location_on_error_to_parallel(
         parallel_value,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  my_tuple'),
+        self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     # first element is fine
@@ -151,14 +201,14 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
         arolla.int32(10),
     )
     # second element should have source location
-    tb_str = ''
+    tb = None
     try:
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res[1])
       )
-    except Exception:  # pylint: disable=broad-exception-caught
-      tb_str = traceback.format_exc()
-    self.assertIn('my_file.py', tb_str)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
 
   def test_parallel_namedtuple(self):
     executor = kde_internal.parallel.get_eager_executor()
@@ -171,11 +221,7 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     )
     expr = kde_internal.parallel.add_source_location_on_error_to_parallel(
         parallel_value,
-        arolla.text('my_func'),
-        arolla.text('my_file.py'),
-        arolla.int32(123),
-        arolla.int32(456),
-        arolla.text('  my_namedtuple'),
+        self.make_source_location(),
     )
     res = expr_eval.eval(expr)
     # 'a' is fine
@@ -186,25 +232,21 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
         arolla.int32(10),
     )
     # 'b' should have source location
-    tb_str = ''
+    tb = None
     try:
       _ = expr_eval.eval(
           kde_internal.parallel.get_future_value_for_testing(res['b'])
       )
-    except Exception:  # pylint: disable=broad-exception-caught
-      tb_str = traceback.format_exc()
-    self.assertIn('my_file.py', tb_str)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      tb = traceback.extract_tb(e.__traceback__)
+    self.assert_has_correct_source_location(tb)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
             kde_internal.parallel.add_source_location_on_error_to_parallel(
                 I.x,
-                arolla.text('f'),
-                arolla.text('file.py'),
-                arolla.int32(1),
-                arolla.int32(1),
-                arolla.text('line'),
+                self.make_source_location(),
             )
         )
     )
@@ -216,22 +258,19 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     stream_int32_qtype = expr_eval.eval(
         kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
+    loc_qtype = self.make_source_location().qtype
 
     # test signature of add_source_location_on_error_to_future
     arolla.testing.assert_qtype_signatures(
         kde_internal.parallel.add_source_location_on_error_to_future,
         [(
             future_int32_qtype,
-            arolla.TEXT,
-            arolla.TEXT,
-            arolla.INT32,
-            arolla.INT32,
-            arolla.TEXT,
+            loc_qtype,
             future_int32_qtype,
         )],
         possible_qtypes=[
             arolla.INT32,
-            arolla.TEXT,
+            loc_qtype,
             future_int32_qtype,
         ],
     )
@@ -241,16 +280,12 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
         kde_internal.parallel.add_source_location_on_error_to_stream,
         [(
             stream_int32_qtype,
-            arolla.TEXT,
-            arolla.TEXT,
-            arolla.INT32,
-            arolla.INT32,
-            arolla.TEXT,
+            loc_qtype,
             stream_int32_qtype,
         )],
         possible_qtypes=[
             arolla.INT32,
-            arolla.TEXT,
+            loc_qtype,
             stream_int32_qtype,
         ],
     )
