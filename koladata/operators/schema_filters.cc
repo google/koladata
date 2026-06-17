@@ -16,8 +16,8 @@
 
 #include <utility>
 
-#include "absl/status/statusor.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/op_utils/apply_filter.h"

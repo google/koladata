@@ -21,6 +21,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -35,7 +36,6 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/async_eval.h"
 #include "koladata/functor/parallel/executor.h"

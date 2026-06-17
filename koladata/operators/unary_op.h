@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -30,7 +31,6 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "arolla/util/view_types.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"

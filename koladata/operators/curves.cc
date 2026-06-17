@@ -22,12 +22,12 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/pwlcurve/curves.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"

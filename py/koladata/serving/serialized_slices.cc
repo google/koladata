@@ -19,6 +19,7 @@
 
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -27,7 +28,6 @@
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/riegeli.h"
 #include "arolla/util/text.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::serving {

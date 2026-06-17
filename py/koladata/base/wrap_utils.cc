@@ -22,12 +22,12 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/strings/string_view.h"
 #include "arolla/jagged_shape/array/qtype/qtype.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"

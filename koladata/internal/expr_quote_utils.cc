@@ -16,11 +16,11 @@
 
 #include <string>
 
+#include "arolla/util/status_macros_backport.h"
 #include "absl/strings/string_view.h"
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/quote.h"
 #include "arolla/serialization/encode.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 

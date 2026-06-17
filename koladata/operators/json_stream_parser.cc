@@ -18,12 +18,12 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 

@@ -25,6 +25,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
@@ -48,7 +49,6 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_slice.h"

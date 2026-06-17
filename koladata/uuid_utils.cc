@@ -22,11 +22,11 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/util/text.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"

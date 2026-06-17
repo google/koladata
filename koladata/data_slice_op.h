@@ -19,8 +19,8 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/statusor.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"

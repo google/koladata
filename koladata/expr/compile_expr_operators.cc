@@ -16,6 +16,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "arolla/expr/eval/eval.h"
@@ -25,7 +26,6 @@
 #include "arolla/expr/expr_operator.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/init_arolla.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/expr/expr_operators.h"
 
 namespace koladata::expr {

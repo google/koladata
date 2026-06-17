@@ -14,9 +14,9 @@
 //
 #include "koladata/functor_storage.h"
 
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/object_id.h"

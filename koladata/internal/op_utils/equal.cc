@@ -15,6 +15,7 @@
 #include "koladata/internal/op_utils/equal.h"
 
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -22,7 +23,6 @@
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 

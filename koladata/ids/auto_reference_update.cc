@@ -15,8 +15,8 @@
 #include "koladata/ids/auto_reference_update.h"
 
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "arolla/util/status_macros_backport.h"
+#include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"

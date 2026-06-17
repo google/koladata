@@ -22,6 +22,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -36,7 +37,6 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/unit.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/slice_builder.h"

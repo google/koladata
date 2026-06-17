@@ -17,9 +17,9 @@
 #include <string>
 #include <vector>
 
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/constants.h"
 #include "koladata/functor/signature_utils.h"

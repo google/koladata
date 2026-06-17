@@ -15,9 +15,9 @@
 #ifndef KOLADATA_OPERATORS_ASSERTION_H_
 #define KOLADATA_OPERATORS_ASSERTION_H_
 
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "arolla/util/text.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"

@@ -23,11 +23,11 @@
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/view_types.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/slice_builder.h"
 

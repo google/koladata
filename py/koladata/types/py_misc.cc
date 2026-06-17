@@ -19,10 +19,10 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "arolla/util/status_macros_backport.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/status_macros_backport.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
