@@ -223,7 +223,7 @@ class UuOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetUnspecifiedQType()) {
-            schema = absl::nullopt;
+            schema = std::nullopt;
           } else {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
