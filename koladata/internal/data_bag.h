@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_DATA_BAG_H_
 
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -1035,7 +1036,8 @@ class DataBagImpl : public arolla::RefcountedBase {
   //   value for every attribute name that appears in the allocation.
   absl::flat_hash_map<AllocationId, std::shared_ptr<DictVector>> dicts_;
 
-  bool frozen_ = false;
+  // This flag can be set to true from multiple threads.
+  std::atomic_bool frozen_ = false;
 };
 
 }  // namespace koladata::internal
