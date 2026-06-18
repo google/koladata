@@ -177,19 +177,18 @@ TEST(DataBagReprTest,
       CreateDictShaped(fallback_db1, DataSlice::JaggedShape::Empty(),
                        /*keys=*/test::DataSlice<arolla::Text>({"a", "b"}),
                        /*values=*/test::DataSlice<int>({1, 2}), dict_schema,
-                       /*key_schema=*/absl::nullopt,
-                       /*value_schema=*/absl::nullopt,
+                       /*key_schema=*/std::nullopt,
+                       /*value_schema=*/std::nullopt,
                        /*item_id=*/uuid));
 
   auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
-      auto ds2,
-      CreateDictShaped(
-          fallback_db2, DataSlice::JaggedShape::Empty(),
-          /*keys=*/test::DataSlice<arolla::Text>({"a", "b", "c"}),
-          /*values=*/test::DataSlice<int>({10, 20, 30}), dict_schema,
-          /*key_schema=*/absl::nullopt, /*value_schema=*/absl::nullopt,
-          /*item_id=*/uuid));
+      auto ds2, CreateDictShaped(
+                    fallback_db2, DataSlice::JaggedShape::Empty(),
+                    /*keys=*/test::DataSlice<arolla::Text>({"a", "b", "c"}),
+                    /*values=*/test::DataSlice<int>({10, 20, 30}), dict_schema,
+                    /*key_schema=*/std::nullopt, /*value_schema=*/std::nullopt,
+                    /*item_id=*/uuid));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks(
                 {fallback_db1->Freeze(), fallback_db2->Freeze()})
@@ -234,21 +233,19 @@ TEST(DataBagReprTest,
       auto list_schema,
       CreateListSchema(fallback_db1, test::Schema(schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
-      auto ds1,
-      CreateListShaped(fallback_db1, DataSlice::JaggedShape::Empty(),
-                       /*values=*/test::DataSlice<int64_t>({1, 2, 3}),
-                       list_schema,
-                       /*item_schema=*/absl::nullopt,
-                       /*item_id=*/uuid));
+      auto ds1, CreateListShaped(fallback_db1, DataSlice::JaggedShape::Empty(),
+                                 /*values=*/test::DataSlice<int64_t>({1, 2, 3}),
+                                 list_schema,
+                                 /*item_schema=*/std::nullopt,
+                                 /*item_id=*/uuid));
 
   auto fallback_db2 = DataBag::EmptyMutable();
   ASSERT_OK_AND_ASSIGN(
-      auto ds2,
-      CreateListShaped(fallback_db2, DataSlice::JaggedShape::Empty(),
-                       /*values=*/test::DataSlice<int64_t>({4, 5, 6}),
-                       list_schema,
-                       /*item_schema=*/absl::nullopt,
-                       /*item_id=*/uuid));
+      auto ds2, CreateListShaped(fallback_db2, DataSlice::JaggedShape::Empty(),
+                                 /*values=*/test::DataSlice<int64_t>({4, 5, 6}),
+                                 list_schema,
+                                 /*item_schema=*/std::nullopt,
+                                 /*item_id=*/uuid));
 
   auto db = DataBag::ImmutableEmptyWithFallbacks(
                 {fallback_db1->Freeze(), fallback_db2->Freeze()})
