@@ -508,6 +508,30 @@ class KdTest(absltest.TestCase):
       ):
         _ = kd.to_py
 
+  def test_I_unavailable_in_tracing(self):
+    with tracing_mode.enable_tracing():
+      with self.assertRaisesRegex(
+          AttributeError,
+          "attribute 'I' is not available in tracing mode on 'koladata.kd'",
+      ):
+        _ = kd.I
+
+  def test_V_unavailable_in_tracing(self):
+    with tracing_mode.enable_tracing():
+      with self.assertRaisesRegex(
+          AttributeError,
+          "attribute 'V' is not available in tracing mode on 'koladata.kd'",
+      ):
+        _ = kd.V
+
+  def test_S_unavailable_in_tracing(self):
+    with tracing_mode.enable_tracing():
+      with self.assertRaisesRegex(
+          AttributeError,
+          "attribute 'S' is not available in tracing mode on 'koladata.kd'",
+      ):
+        _ = kd.S
+
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
       with_name_expr = kd.with_name(1, 'foo')
