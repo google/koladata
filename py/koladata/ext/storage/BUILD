@@ -109,6 +109,9 @@ py_proto_library(
 py_library(
     name = "data_bag_manager",
     srcs = ["data_bag_manager.py"],
+    visibility = [
+        "//koladata:internal",
+    ],
     deps = [
         ":data_bag_manager_metadata_py_pb2",
         ":global_cache_lib",

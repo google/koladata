@@ -1029,6 +1029,40 @@ class DataBagManagerTest(parameterized.TestCase):
         bag6,
     )
 
+  def test_load_bags(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+
+    o = kd.new(a=1, b=2)
+    bag0 = o.get_bag()
+    bag1 = kd.attrs(o, b=3, c=4)
+    bag2 = kd.attrs(o, c=5, d=6)
+
+    # bag1 depends on bag0
+    # bag2 depends on bag1
+    manager.add_bags([
+        BagToAdd('bag0', bag0, dependencies=()),
+        BagToAdd('bag1', bag1, dependencies=('bag0',)),
+        BagToAdd('bag2', bag2, dependencies=('bag1',)),
+    ])
+
+    # Test loading bag1 (should load bag0 and bag1, but not bag2)
+    loaded_bags = manager.load_bags(['bag1'])
+    self.assertEqual(set(loaded_bags.keys()), {'bag0', 'bag1'})
+    self.assert_equivalent_bags(loaded_bags['bag0'], bag0)
+    self.assert_equivalent_bags(loaded_bags['bag1'], bag1)
+
+    # Test loading bag1 with all dependents (should load bag0, bag1, and bag2)
+    loaded_bags_with_deps = manager.load_bags(
+        ['bag1'], with_all_dependents=True
+    )
+    self.assertEqual(
+        set(loaded_bags_with_deps.keys()), {'bag0', 'bag1', 'bag2'}
+    )
+    self.assert_equivalent_bags(loaded_bags_with_deps['bag0'], bag0)
+    self.assert_equivalent_bags(loaded_bags_with_deps['bag1'], bag1)
+    self.assert_equivalent_bags(loaded_bags_with_deps['bag2'], bag2)
+
   def test_calling_constructor_directly_raises(self):
     with self.assertRaisesRegex(
         ValueError,

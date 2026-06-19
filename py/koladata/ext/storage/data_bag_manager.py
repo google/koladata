@@ -280,7 +280,7 @@ class DataBagManager:
       A minimal bag that has the data of the requested small bags. It will not
       include any bags that are not in the closure mentioned above.
     """
-    bag_name_to_bag_dict = self._load_bags(
+    bag_name_to_bag_dict = self.load_bags(
         bag_names, with_all_dependents=with_all_dependents
     )
     return self._make_single_bag(bag_name_to_bag_dict)
@@ -311,7 +311,7 @@ class DataBagManager:
       fs: All interactions with the file system for output_dir will happen via
         this instance.
     """
-    bag_name_to_bag = self._load_bags(
+    bag_name_to_bag = self.load_bags(
         bag_names, with_all_dependents=with_all_dependents
     )
     bag_dependencies = self._get_dependency_relation()
@@ -402,11 +402,11 @@ class DataBagManager:
 
     _persist_metadata(fs, output_dir, branch_metadata)
 
-  def _load_bags(
+  def load_bags(
       self,
       bag_names: Collection[str],
       *,
-      with_all_dependents: bool,
+      with_all_dependents: bool = False,
   ) -> dict[str, kd.types.DataBag]:
     """Loads the requested bags and their transitive dependencies.
 
