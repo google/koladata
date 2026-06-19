@@ -1309,6 +1309,27 @@ Alias for [kd.proto.schema_from_proto_path](kd/proto.md#kd.proto.schema_from_pro
 
 Alias for [kd.schema.schema_from_py](kd/schema.md#kd.schema.schema_from_py)
 
+### `kd.schema_to_py(schema: SchemaItem) -> type[Any] | None` {#kd.schema_to_py}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Python type corresponding to the given Koda schema.
+
+Primitive Koda schemas are converted to the corresponding Python types.
+List schemas are converted to lists, dict schemas to dicts.
+Entity schemas are converted to dynamically created dataclasses.
+kd.OBJECT is not supported at any level, since there is no corresponding
+Python type.
+
+Please note that all Koda types become optional in Python.
+
+Args:
+  schema: The Koda schema to convert to a Python type.
+
+Returns:
+  The Python type corresponding to the given Koda schema.
+
+Raises:
+  TypeError: If the given schema is not supported.</code></pre>
+
 ### `kd.select(ds, fltr, expand_filter=True)` {#kd.select}
 
 Alias for [kd.slices.select](kd/slices.md#kd.slices.select)
