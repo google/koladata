@@ -238,6 +238,14 @@ class CoreCloneTest(parameterized.TestCase):
     ):
       _ = kd.clone(x, itemid=itemid)
 
+  def test_nobag(self):
+    x = ds([1, 2, 3])
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot clone without a DataBag',
+    ):
+      _ = kd.clone(x)
+
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1))
     res_1 = kd.core.clone(x)
