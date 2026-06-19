@@ -61,7 +61,6 @@ class KodaInternalParallelAddSourceLocationOnErrorToParallelTest(
     self.assertEqual(frame.name, 'my_func')
     self.assertEqual(frame.lineno, 123)
     self.assertEqual(frame.colno, 45)
-    # TODO: Check the line text as well.
 
   def test_future_input_success(self):
     future = kde_internal.parallel.as_future(arolla.int32(10))
