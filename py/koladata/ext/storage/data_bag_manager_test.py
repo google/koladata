@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import itertools
 import os
 import re
@@ -1205,6 +1206,38 @@ class DataBagManagerTest(parameterized.TestCase):
         value_and_metadata.metadata.num_bytes_estimate,
         len(key) + bag1.get_approx_byte_size(),
     )
+
+  def test_parallelism_passed_to_thread_pool_executor_writing(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+    bag1 = kd.attrs(kd.new(), a=1)
+    with mock.patch.object(
+        concurrent.futures,
+        'ThreadPoolExecutor',
+        wraps=concurrent.futures.ThreadPoolExecutor,
+    ) as mock_executor:
+      manager.add_bags(
+          [dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=())]
+      )
+      mock_executor.assert_called_once_with(max_workers=dbm._PARALLELISM)
+
+  def test_parallelism_passed_to_thread_pool_executor_reading(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+    bag1 = kd.attrs(kd.new(), a=1)
+    manager.add_bags([dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=())])
+
+    # Clear the global cache to force loading from disk.
+    global_cache_lib.get_global_cache().clear()
+
+    manager = DataBagManager.create_from_dir(persistence_dir)
+    with mock.patch.object(
+        concurrent.futures,
+        'ThreadPoolExecutor',
+        wraps=concurrent.futures.ThreadPoolExecutor,
+    ) as mock_executor:
+      manager.get_minimal_bag({'bag1'})
+      mock_executor.assert_called_once_with(max_workers=dbm._PARALLELISM)
 
 
 if __name__ == '__main__':

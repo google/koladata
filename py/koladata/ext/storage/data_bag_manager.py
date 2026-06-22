@@ -34,6 +34,7 @@ from google.protobuf import any_pb2
 
 
 _INTERNAL_CALL = object()
+_PARALLELISM = 256
 
 
 @dataclasses.dataclass(frozen=True)
@@ -475,7 +476,9 @@ class DataBagManager:
     # Write the bags to files in parallel.
     bags = [bag_to_add.bag for bag_to_add in bags_to_add]
     bag_filenames = self._get_fresh_bag_filenames(len(bags_to_add))
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=_PARALLELISM
+    ) as executor:
       futures = [
           executor.submit(self._write_bag_to_file, bag, bag_filename)
           for bag, bag_filename in zip(bags, bag_filenames)
@@ -665,7 +668,9 @@ class DataBagManager:
     needed_bags = bags_to_load - result.keys()
     if not needed_bags:
       return result
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=_PARALLELISM
+    ) as executor:
       futures = [
           executor.submit(self._read_bag_from_file, bag_name)
           for bag_name in needed_bags
