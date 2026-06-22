@@ -22,7 +22,6 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
