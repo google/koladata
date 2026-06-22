@@ -23,6 +23,7 @@ from koladata import kd
 from koladata.ext.storage import data_bag_manager as dbm
 from koladata.ext.storage import data_bag_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.storage import global_cache_lib
+from google.protobuf import any_pb2
 
 
 BagToAdd = dbm.BagToAdd
@@ -294,7 +295,7 @@ class DataBagManagerTest(parameterized.TestCase):
       # were added. It is always deterministic and fixed:
       expected_canonical_sorting = [name0, name1, name2]
       self.assertEqual(
-          manager._canonical_topological_sorting(set(bag_names)),
+          manager.canonical_topological_sorting(set(bag_names)),
           expected_canonical_sorting,
       )
 
@@ -309,9 +310,66 @@ class DataBagManagerTest(parameterized.TestCase):
       ])
       expected_canonical_sorting = [name0, name1, name2]
       self.assertEqual(
-          manager._canonical_topological_sorting(set(bag_names)),
+          manager.canonical_topological_sorting(set(bag_names)),
           expected_canonical_sorting,
       )
+
+  def test_custom_metadata(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = DataBagManager.create_new(persistence_dir)
+
+    # Create custom metadata using a proto that is already in deps
+    metadata_val = metadata_pb2.DataBagMetadata(name='my-custom-metadata-test')
+    custom_metadata = any_pb2.Any()
+    custom_metadata.Pack(metadata_val)
+
+    # Add bag with custom metadata
+    bag0 = kd.bag()
+    manager.add_bags([
+        BagToAdd('bag0', bag0, dependencies=(), custom_metadata=custom_metadata)
+    ])
+
+    # Add bag without custom metadata
+    bag1 = kd.bag()
+    manager.add_bags([BagToAdd('bag1', bag1, dependencies=('bag0',))])
+
+    # Verify get_custom_metadata
+    metadata_dict = manager.get_custom_metadata(['bag0', 'bag1'])
+    self.assertLen(metadata_dict, 2)
+
+    # Check bag0 metadata
+    bag0_meta = metadata_dict['bag0']
+    self.assertIsNotNone(bag0_meta)
+    assert bag0_meta is not None
+    unpacked_val = metadata_pb2.DataBagMetadata()
+    bag0_meta.Unpack(unpacked_val)
+    self.assertEqual(unpacked_val.name, 'my-custom-metadata-test')
+
+    # Check bag1 metadata (should be None)
+    self.assertIsNone(metadata_dict['bag1'])
+
+    # Verify persistence
+    manager2 = DataBagManager.create_from_dir(persistence_dir)
+    metadata_dict2 = manager2.get_custom_metadata(['bag0', 'bag1'])
+    self.assertLen(metadata_dict2, 2)
+
+    bag0_meta2 = metadata_dict2['bag0']
+    self.assertIsNotNone(bag0_meta2)
+    assert bag0_meta2 is not None
+    unpacked_val2 = metadata_pb2.DataBagMetadata()
+    bag0_meta2.Unpack(unpacked_val2)
+    self.assertEqual(unpacked_val2.name, 'my-custom-metadata-test')
+    self.assertIsNone(metadata_dict2['bag1'])
+
+    # Verify error for unknown bag
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'bag_names must be a subset of get_available_bag_names().'
+            " The following bags are not available: ['unknown_bag']"
+        ),
+    ):
+      manager.get_custom_metadata(['unknown_bag'])
 
   def test_use_of_provided_file_system_interaction_object(self):
     # The assertions below check that the sequence of method names called on the

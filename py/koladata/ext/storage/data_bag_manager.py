@@ -30,6 +30,8 @@ from koladata import kd
 from koladata.ext.storage import data_bag_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.storage import global_cache_lib
 
+from google.protobuf import any_pb2
+
 
 _INTERNAL_CALL = object()
 
@@ -41,6 +43,7 @@ class BagToAdd:
   bag_name: str
   bag: kd.types.DataBag
   dependencies: tuple[str, ...]
+  custom_metadata: any_pb2.Any | None = None
 
 
 class DataBagManager:
@@ -221,6 +224,35 @@ class DataBagManager:
     """
     return frozenset([m.name for m in self._metadata.data_bag_metadata])
 
+  def get_custom_metadata(
+      self, bag_names: Collection[str]
+  ) -> dict[str, any_pb2.Any | None]:
+    """Returns the custom metadata for the given bag names.
+
+    Args:
+      bag_names: The names of the bags whose custom metadata to retrieve. Must
+        be a subset of get_available_bag_names().
+
+    Returns:
+      A dictionary mapping bag names to their custom metadata (or None if the
+      bag does not have custom metadata).
+    """
+    bag_names_set = set(bag_names)
+    result = {}
+    for m in self._metadata.data_bag_metadata:
+      if m.name in bag_names_set:
+        result[m.name] = (
+            m.custom_metadata if m.HasField('custom_metadata') else None
+        )
+
+    if len(result) != len(bag_names_set):
+      unknown_bags = bag_names_set - result.keys()
+      raise ValueError(
+          'bag_names must be a subset of get_available_bag_names().'
+          f' The following bags are not available: {sorted(unknown_bags)}'
+      )
+    return result
+
   def add_bags(self, bags_to_add: list[BagToAdd]):
     """Adds the given bags to the manager, which will persist them.
 
@@ -335,7 +367,7 @@ class DataBagManager:
             bag=bag_name_to_bag[bag_name],
             dependencies=tuple(bag_dependencies[bag_name]),
         )
-        for bag_name in self._canonical_topological_sorting(
+        for bag_name in self.canonical_topological_sorting(
             bag_name_to_bag.keys()
         )
     ]
@@ -456,13 +488,14 @@ class DataBagManager:
     new_metadata.CopyFrom(self._metadata)
     new_metadata.metadata_update_number += 1
     for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
-      new_metadata.data_bag_metadata.append(
-          metadata_pb2.DataBagMetadata(
-              name=bag_to_add.bag_name,
-              filename=bag_filename,
-              dependencies=bag_to_add.dependencies,
-          )
+      db_meta = metadata_pb2.DataBagMetadata(
+          name=bag_to_add.bag_name,
+          filename=bag_filename,
+          dependencies=bag_to_add.dependencies,
       )
+      if bag_to_add.custom_metadata is not None:
+        db_meta.custom_metadata.CopyFrom(bag_to_add.custom_metadata)
+      new_metadata.data_bag_metadata.append(db_meta)
 
     # Persist the new metadata in a transactional way. Concurrent writers are
     # detected and prevented from overwriting each other's changes when self._fs
@@ -529,7 +562,7 @@ class DataBagManager:
     """
     bags = [
         bag_name_to_bag[bn]
-        for bn in self._canonical_topological_sorting(bag_name_to_bag.keys())
+        for bn in self.canonical_topological_sorting(bag_name_to_bag.keys())
     ]
     return kd.bags.updated(*bags)
 
@@ -656,7 +689,7 @@ class DataBagManager:
       )
     return result
 
-  def _canonical_topological_sorting(
+  def canonical_topological_sorting(
       self,
       bag_names: AbstractSet[str],
   ) -> list[str]:

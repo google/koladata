@@ -16,6 +16,8 @@ edition = "2023";
 
 package koladata.ext.storage;
 
+import "google/protobuf/any.proto";
+
 message DataBagManagerMetadata {
   // The version of the manager. Always set. Example format: "1.0.0"
   string version = 1;
@@ -48,4 +50,7 @@ message DataBagMetadata {
   // Optional. The directory in which the bag is stored. If not set, then it is
   // assumed to be the persistence directory of the manager.
   string directory = 4;
+
+  // Custom metadata attached to this bag.
+  google.protobuf.Any custom_metadata = 5;
 }

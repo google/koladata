@@ -2251,7 +2251,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       assert isinstance(manager, DataSliceManager)
       bag_manager = manager._data_bag_manager
       bag_names = bag_manager.get_available_bag_names()
-      bag_names = bag_manager._canonical_topological_sorting(bag_names)
+      bag_names = bag_manager.canonical_topological_sorting(bag_names)
       return [bag_manager.get_minimal_bag({b}) for b in bag_names]
 
     for bags in zip(

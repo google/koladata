@@ -117,6 +117,7 @@ py_library(
         ":global_cache_lib",
         "//py:python_path",
         "//py/koladata:kd",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 
@@ -131,12 +132,14 @@ py_test(
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 
 proto_library(
     name = "data_bag_manager_metadata_proto",
     srcs = ["data_bag_manager_metadata.proto"],
+    deps = ["@com_google_protobuf//:any_proto"],
 )
 
 proto_library(
