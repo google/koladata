@@ -16,14 +16,21 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/functional/function_ref.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/quote.h"
@@ -102,6 +109,97 @@ absl::StatusOr<DataSlice> CreateFunctorImpl(
   return result;
 }
 
+enum class VariableState {
+  kInStack,
+  kVisited,
+};
+
+struct VariableProcessingFrame {
+  std::string variable_name;
+  DataSlice variable_value;
+  std::vector<std::string> dependencies;
+  size_t next_dependency_index = 0;
+};
+
+}  // namespace
+
+absl::Status ForEachReachableVariable(
+    const DataSlice& functor,
+    absl::FunctionRef<absl::Status(absl::string_view, const DataSlice&)>
+        visitor) {
+  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
+  if (!is_functor) return absl::InvalidArgumentError("functor expected");
+
+  std::stack<VariableProcessingFrame> stack;
+  absl::flat_hash_map<std::string, VariableState> variable_state;
+
+  auto reach_variable = [&stack, &functor, &variable_state](
+                            absl::string_view variable_name) -> absl::Status {
+    auto [it, was_inserted] =
+        variable_state.emplace(variable_name, VariableState::kInStack);
+    if (!was_inserted) {
+      if (it->second == VariableState::kInStack) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "variable [%s] has a dependency cycle", variable_name));
+      }
+      return absl::OkStatus();
+    }
+    ASSIGN_OR_RETURN(auto variable, functor.GetAttrOrMissing(variable_name));
+    DCHECK(variable.is_item());
+    std::vector<std::string> dependencies;
+    if (variable.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(
+          auto expr, variable.item().value<arolla::expr::ExprQuote>().expr());
+      ASSIGN_OR_RETURN(dependencies, expr::GetExprVariables(expr));
+    }
+    stack.push({.variable_name = std::string(variable_name),
+                .variable_value = std::move(variable),
+                .dependencies = std::move(dependencies)});
+    return absl::OkStatus();
+  };
+
+  RETURN_IF_ERROR(reach_variable(kReturnsAttrName));
+  while (!stack.empty()) {
+    auto& state = stack.top();
+    if (state.next_dependency_index >= state.dependencies.size()) {
+      variable_state[state.variable_name] = VariableState::kVisited;
+      RETURN_IF_ERROR(
+          visitor(state.variable_name, state.variable_value));
+      stack.pop();
+      continue;
+    }
+    RETURN_IF_ERROR(
+        reach_variable(state.dependencies[state.next_dependency_index++]));
+  }
+  return absl::OkStatus();
+}
+
+namespace {
+
+// Validates that the functor has no undefined variable references or cycles.
+// `variable_names` must include all defined variable names (including
+// 'returns' and '__signature__').
+absl::Status ValidateAllVariablesDefined(
+    const DataSlice& functor,
+    absl::Span<const absl::string_view> variable_names) {
+  absl::flat_hash_set<absl::string_view> defined(variable_names.begin(),
+                                                 variable_names.end());
+  std::vector<std::string> undefined;
+  RETURN_IF_ERROR(ForEachReachableVariable(
+      functor,
+      [&undefined, &defined](absl::string_view name, const DataSlice&) {
+        if (!defined.contains(name)) {
+          undefined.push_back(std::string(name));
+        }
+        return absl::OkStatus();
+      }));
+  if (!undefined.empty()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "undefined variables: ", absl::StrJoin(undefined, ", ")));
+  }
+  return absl::OkStatus();
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> CreateFunctor(
@@ -115,8 +213,11 @@ absl::StatusOr<DataSlice> CreateFunctor(
   }
   variable_names.insert(variable_names.begin(), kReturnsAttrName);
   variable_values.insert(variable_values.begin(), returns);
-  return CreateFunctorImpl(signature, std::move(variable_names),
-                           std::move(variable_values));
+  ASSIGN_OR_RETURN(auto result,
+                   CreateFunctorImpl(signature, variable_names,
+                                     std::move(variable_values)));
+  RETURN_IF_ERROR(ValidateAllVariablesDefined(result, variable_names));
+  return result;
 }
 
 }  // namespace koladata::functor

@@ -56,6 +56,8 @@ EXECUTOR = M.qtype.qtype_of(get_eager_executor())
 
 EMPTY_TUPLE = arolla.make_tuple_qtype()
 
+_NONE = py_boxing.as_qvalue(None)
+
 
 def _replace_non_deterministic_leaf_with_param(expr):
   """Replaces non-deterministic leaf with a param, for use in DispatchOperator."""
@@ -2664,6 +2666,9 @@ def _create_as_parallel_wrapping_fn():
       signature_utils.signature([
           signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
       ]),
+      fn=_NONE,
+      executor=_NONE,
+      return_type_as=_NONE,
   )
 
 
@@ -2747,6 +2752,9 @@ def _create_second_argument_as_parallel_wrapping_fn():
           signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
           signature_utils.parameter('y', kind_enum.POSITIONAL_ONLY),
       ]),
+      fn=_NONE,
+      executor=_NONE,
+      return_type_as=_NONE,
   )
 
 
@@ -2855,6 +2863,8 @@ def _create_loop_condition_wrapping_fn():
           )
       ),
       signature_utils.ARGS_KWARGS_SIGNATURE,
+      fn=_NONE,
+      executor=_NONE,
   )
 
 
@@ -2897,6 +2907,9 @@ def _create_while_body_wrapping_fn():
       signature_utils.signature([
           signature_utils.parameter('kwargs', kind_enum.VAR_KEYWORD),
       ]),
+      fn=_NONE,
+      executor=_NONE,
+      empty_yields_namedtuple=_NONE,
   )
 
 
@@ -3063,6 +3076,9 @@ def _create_for_body_wrapping_fn():
           signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
           signature_utils.parameter('kwargs', kind_enum.VAR_KEYWORD),
       ]),
+      fn=_NONE,
+      executor=_NONE,
+      empty_yields_namedtuple=_NONE,
   )
 
 
@@ -3105,6 +3121,9 @@ def _create_for_finalize_wrapping_fn():
       signature_utils.signature([
           signature_utils.parameter('kwargs', kind_enum.VAR_KEYWORD),
       ]),
+      fn=_NONE,
+      executor=_NONE,
+      empty_yields_namedtuple=_NONE,
   )
 
 
@@ -3319,6 +3338,10 @@ def _create_pointwise_invoke_fn_template():
       signature_utils.signature([
           signature_utils.parameter('idx', kind_enum.POSITIONAL_ONLY),
       ]),
+      fn=_NONE,
+      args=_NONE,
+      kwargs=_NONE,
+      executor=_NONE,
   )
 
 

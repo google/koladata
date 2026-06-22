@@ -748,7 +748,7 @@ class KdTest(absltest.TestCase):
   def test_functor_factorial(self):
     fn = kd.functor.expr_fn(
         kd.lazy.cond(I.n == 0, V.stop, V.go)(n=I.n),
-        go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1)),
+        go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1), rec=None),
         stop=kd.functor.expr_fn(1),
     )
     fn = fn.updated(kd.attrs(fn.go, rec=fn))

@@ -144,10 +144,8 @@ TEST(CallTest, VariableCycle) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("b")));
   ASSERT_OK_AND_ASSIGN(auto var_b_expr, WrapExpr(CreateVariable("a")));
-  ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {"a", "b"},
-                                     {var_a_expr, var_b_expr}));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
+  EXPECT_THAT(CreateFunctor(returns_expr, koda_signature, {"a", "b"},
+                            {var_a_expr, var_b_expr}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "variable [a] has a dependency cycle"));
 }

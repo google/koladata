@@ -120,6 +120,28 @@ class FunctorFactoriesTest(parameterized.TestCase):
     self.assertEqual(fn.bar, v)
     self.assertEqual(fn.bar.foo, 57)
 
+  def test_expr_fn_undefined_variables(self):
+    with self.assertRaisesRegex(ValueError, 'undefined variables: x, y'):
+      functor_factories.expr_fn(returns=V.x + V.y)
+
+    with self.assertRaisesRegex(ValueError, 'undefined variables: y'):
+      functor_factories.expr_fn(returns=V.x + V.y, x=1)
+
+    fn = functor_factories.expr_fn(returns=V.x + V.y, x=1, y=2)
+    self.assertEqual(fn.x, 1)
+    self.assertEqual(fn.y, 2)
+
+    # Even with auto_variables=True, if x is not defined anywhere, it should
+    # fail.
+    with self.assertRaisesRegex(ValueError, 'undefined variables: x'):
+      functor_factories.expr_fn(returns=V.x, auto_variables=True)
+
+    # This should succeed because 'x' is defined by with_name.
+    fn = functor_factories.expr_fn(
+        returns=(I.a + 1).with_name('x'), auto_variables=True
+    )
+    self.assertEqual(fn.x, pack_expr(I.a + 1))
+
   def test_expr_fn_default_signature(self):
     v = fns.new(foo=57)
     fn = functor_factories.expr_fn(returns=I.x + V.foo, foo=I.y, bar=v)
@@ -267,6 +289,17 @@ class FunctorFactoriesTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(lambda x, **unused_kwargs: x + 1)
     testing.assert_equal(fn(2), ds(3))
     testing.assert_equal(fn(2, foo=3), ds(3))
+
+  def test_trace_py_fn_undefined_variables(self):
+    def model_with_undefined_var(x):
+      return x + V.y
+
+    with self.assertRaisesRegex(ValueError, 'undefined variables: y'):
+      functor_factories.trace_py_fn(model_with_undefined_var)
+
+    # Should fail even if y is provided as default, because y is V.y (variable).
+    with self.assertRaisesRegex(ValueError, 'undefined variables: y'):
+      functor_factories.trace_py_fn(model_with_undefined_var, y=1)
 
   def test_trace_py_fn_docstring(self):
     def my_model(x):

@@ -17,6 +17,8 @@
 
 #include <vector>
 
+#include "absl/functional/function_ref.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
@@ -37,6 +39,16 @@ absl::StatusOr<DataSlice> CreateFunctor(
     const DataSlice& returns, const DataSlice& signature,
     std::vector<absl::string_view> variable_names,
     std::vector<DataSlice> variable_values);
+
+// Traverses all variables reachable from 'returns' in topological order
+// (DFS post-order). For each variable, calls visitor(name, value).
+// The 'returns' variable is visited last.
+// Undefined variables are treated as leaves with missing values.
+// Returns error on dependency cycles.
+absl::Status ForEachReachableVariable(
+    const DataSlice& functor,
+    absl::FunctionRef<absl::Status(absl::string_view, const DataSlice&)>
+        visitor);
 
 }  // namespace koladata::functor
 

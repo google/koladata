@@ -348,73 +348,19 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
   return arolla::expr::TransformOnPostOrder(post_order, transform_node);
 }
 
-struct VariableProcessingFrame {
-  std::string variable_name;
-  std::vector<std::string> dependencies;
-  int64_t next_dependency_index = 0;
-};
-
-enum class VariableState {
-  kInStack,
-  kVisited,
-};
-
 }  // namespace
 
 // Returns the order in which the variables should be
 // evaluated through topological sorting.
 absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
     const DataSlice& functor) {
-  // We implement depth-first search using our own stack to avoid recursion.
-  std::stack<VariableProcessingFrame> stack;
-  absl::flat_hash_map<std::string, VariableState> variable_state;
-
-  auto reach_variable = [&stack, &functor, &variable_state](
-                            absl::string_view variable_name) -> absl::Status {
-    auto [it, was_inserted] =
-        variable_state.emplace(variable_name, VariableState::kInStack);
-    if (!was_inserted) {
-      if (it->second == VariableState::kInStack) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "variable [%s] has a dependency cycle", variable_name));
-      }
-      return absl::OkStatus();
-    }
-    ASSIGN_OR_RETURN(auto variable, functor.GetAttr(variable_name));
-    // Note: koladata::functor::CreateFunctor validates that all variables
-    // are DataItems.
-    if (!variable.is_item()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "variable [%s] must be a data item, but has shape: %s", variable_name,
-          arolla::Repr(variable.GetShape())));
-    }
-    if (variable.item().holds_value<arolla::expr::ExprQuote>()) {
-      ASSIGN_OR_RETURN(auto expr,
-                       variable.item().value<arolla::expr::ExprQuote>().expr());
-      ASSIGN_OR_RETURN(auto dependencies, expr::GetExprVariables(expr));
-      stack.push({.variable_name = std::string(variable_name),
-                  .dependencies = std::move(dependencies)});
-    } else {
-      stack.push(
-          {.variable_name = std::string(variable_name), .dependencies = {}});
-    }
-    return absl::OkStatus();
-  };
-
-  RETURN_IF_ERROR(reach_variable(kReturnsAttrName));
-  std::vector<std::string> res;
-  while (!stack.empty()) {
-    auto& state = stack.top();
-    if (state.next_dependency_index >= state.dependencies.size()) {
-      variable_state[state.variable_name] = VariableState::kVisited;
-      res.push_back(state.variable_name);
-      stack.pop();
-      continue;
-    }
-    RETURN_IF_ERROR(
-        reach_variable(state.dependencies[state.next_dependency_index++]));
-  }
-  return res;
+  std::vector<std::string> result;
+  RETURN_IF_ERROR(ForEachReachableVariable(
+      functor, [&](absl::string_view name, const DataSlice&) {
+        result.push_back(std::string(name));
+        return absl::OkStatus();
+      }));
+  return result;
 }
 
 absl::StatusOr<DataSlice> AutoVariables(

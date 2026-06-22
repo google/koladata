@@ -15,7 +15,9 @@
 #include "koladata/functor/functor.h"
 
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -182,6 +184,137 @@ TEST(CreateFunctorTest, VariablesWithNon0Rank) {
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "variable [a] must be a data item, but has shape: JaggedShape(1)"));
+}
+
+TEST(CreateFunctorTest, UndefinedVariable) {
+  // returns = V.a, but 'a' is not defined.
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  EXPECT_THAT(CreateFunctor(returns_expr, koda_signature, {}, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("undefined variables: a")));
+}
+
+TEST(CreateFunctorTest, MultipleUndefinedVariables) {
+  // returns = V.a + V.b, neither defined.
+  ASSERT_OK_AND_ASSIGN(
+      auto returns_expr,
+      WrapExpr(arolla::expr::CallOp(
+          "math.add", {CreateVariable("a"), CreateVariable("b")})));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  EXPECT_THAT(CreateFunctor(returns_expr, koda_signature, {}, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("undefined variables: a, b")));
+}
+
+TEST(CreateFunctorTest, CycleDetection) {
+  // returns = V.a, a = V.b, b = V.a (cycle between a and b).
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("b")));
+  ASSERT_OK_AND_ASSIGN(auto var_b_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  EXPECT_THAT(
+      CreateFunctor(returns_expr, koda_signature, {"a", "b"},
+                    {var_a_expr, var_b_expr}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("has a dependency cycle")));
+}
+
+TEST(CreateFunctorTest, SelfCycle) {
+  // returns = V.a, a = V.a (self-cycle).
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  EXPECT_THAT(CreateFunctor(returns_expr, koda_signature, {"a"}, {var_a_expr}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("variable [a] has a dependency cycle")));
+}
+
+TEST(ForEachReachableVariableTest, TopologicalOrder) {
+  // returns = V.a, a = V.b, b = 42.
+  // Expected topological order: b, a, returns.
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("b")));
+  auto var_b = test::DataItem(42);
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn,
+      CreateFunctor(returns_expr, koda_signature, {"a", "b"},
+                    {var_a_expr, var_b}));
+
+  std::vector<std::string> visited;
+  ASSERT_OK(ForEachReachableVariable(
+      fn, [&visited](absl::string_view name, const DataSlice&) {
+        visited.push_back(std::string(name));
+        return absl::OkStatus();
+      }));
+  EXPECT_THAT(visited, ElementsAre("b", "a", "returns"));
+}
+
+TEST(ForEachReachableVariableTest, UndefinedVariablesAreLeaves) {
+  // Manually construct a functor where returns = V.a, but 'a' is not defined.
+  // ForEachReachableVariable should still succeed — it treats undefined
+  // variables as leaves with missing values.
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  DataBagPtr db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto fn,
+      ObjectCreator::FromAttrs(
+          db, {"returns", "__signature__"}, {returns_expr, koda_signature}));
+  db->UnsafeMakeImmutable();
+
+  std::vector<std::string> visited;
+  ASSERT_OK(ForEachReachableVariable(
+      fn, [&visited](absl::string_view name, const DataSlice&) {
+        visited.push_back(std::string(name));
+        return absl::OkStatus();
+      }));
+  EXPECT_THAT(visited, ElementsAre("a", "returns"));
+}
+
+TEST(ForEachReachableVariableTest, CycleDetection) {
+  // Manually construct a functor with a cycle: returns = V.a, a = V.a.
+  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("a")));
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  DataBagPtr db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, ObjectCreator::FromAttrs(
+                   db, {"returns", "a", "__signature__"},
+                   {returns_expr, var_a_expr, koda_signature}));
+  db->UnsafeMakeImmutable();
+
+  EXPECT_THAT(ForEachReachableVariable(
+                  fn, [](absl::string_view, const DataSlice&) {
+                    return absl::OkStatus();
+                  }),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("variable [a] has a dependency cycle")));
+}
+
+TEST(ForEachReachableVariableTest, NonFunctor) {
+  auto non_functor = test::DataItem(42);
+  EXPECT_THAT(ForEachReachableVariable(
+                  non_functor, [](absl::string_view, const DataSlice&) {
+                    return absl::OkStatus();
+                  }),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("functor expected")));
 }
 
 }  // namespace

@@ -800,7 +800,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         expected_output=ds([10, 1]),
     )
 
-    fn3 = functor_factories.expr_fn(S + V.foo)
+    fn3 = functor_factories.expr_fn(S + V.foo, foo=None)
     self._test_eval_on_futures(
         functor_factories.expr_fn(
             my_op_with_nested_transform(

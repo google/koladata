@@ -476,11 +476,22 @@ class GetVariableEvaluationOrderTest(absltest.TestCase):
     self.assertEqual(eval_order, ['a', 'returns'])
 
   def test_cycle(self):
-    fn = functor_factories.expr_fn(V.a, a=V.b, b=V.a)
     with self.assertRaisesRegex(
         ValueError, r'variable \[a\] has a dependency cycle'
     ):
-      _py_functors_py_ext.get_variable_evaluation_order(fn)
+      functor_factories.expr_fn(V.a, a=V.b, b=V.a)
+
+  def test_none_variable_presence(self):
+    fn = functor_factories.expr_fn(V.a, a=None)
+    self.assertIn('a', fn.get_attr_names().to_py())
+    eval_order = _py_functors_py_ext.get_variable_evaluation_order(fn)
+    self.assertEqual(eval_order, ['a', 'returns'])
+
+  def test_undefined_variable_fails(self):
+    with self.assertRaisesRegex(
+        ValueError, r'undefined variables: undefined'
+    ):
+      functor_factories.expr_fn(V.undefined)
 
 
 if __name__ == '__main__':

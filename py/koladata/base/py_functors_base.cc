@@ -102,13 +102,14 @@ PyObject* absl_nullable PyCreateFunctor(PyObject* /*self*/, PyObject** py_args,
         PyExc_ValueError,
         "kd.functor.expr_fn() expects exactly two positional inputs");
   }
-  const auto* returns = UnwrapDataSlice(py_args[0], "returns");
+  const auto* returns = UnwrapDataSlice(args.pos_only_args[0], "returns");
   if (returns == nullptr) {
     return nullptr;
   }
   DataSlice signature;
-  if (py_args[1] != Py_None) {
-    const auto* signature_ptr = UnwrapDataSlice(py_args[1], "signature");
+  if (args.pos_only_args[1] != Py_None) {
+    const auto* signature_ptr =
+        UnwrapDataSlice(args.pos_only_args[1], "signature");
     if (signature_ptr == nullptr) {
       return nullptr;
     }

@@ -80,7 +80,7 @@ class VisitFunctorsTest(absltest.TestCase):
   def test_transform_subfunctors(self):
     g = functor_factories.fn(V.a * I.x + V.b, a=None, b=3.14)
     h = functor_factories.fn(V.b * I.x, b=None)
-    fn = functor_factories.fn(V.g(I.x) + V.h(I.y)).with_attrs(g=g, h=h)
+    fn = functor_factories.fn(V.g(I.x) + V.h(I.y), g=g, h=h)
 
     def transform(f, subfunctors):
       if f == g:
@@ -134,8 +134,8 @@ class VisitFunctorsTest(absltest.TestCase):
             V.go,
         )(n=I.n),
         go=functor_factories.expr_fn(
-            I.n
-            * V.rec(n=I.n - 1)
+            I.n * V.rec(n=I.n - 1),
+            rec=None,
         ),
         stop=functor_factories.expr_fn(1),
     )
@@ -145,10 +145,8 @@ class VisitFunctorsTest(absltest.TestCase):
       _ = visitor.visit_functors(fn, lambda f, _: f)
 
   def test_expr_recursion_not_supported(self):
-    fn = functor_factories.fn(V.g(I.x), g=introspection.pack_expr(V.g))
-
     with self.assertRaisesRegex(ValueError, 'has a dependency cycle'):
-      _ = visitor.visit_variables(fn, lambda _1, _2: None)
+      _ = functor_factories.fn(V.g(I.x), g=introspection.pack_expr(V.g))
 
   def test_visiting_non_functor_raises_error(self):
     with self.assertRaisesRegex(ValueError, '.* is not a functor'):
