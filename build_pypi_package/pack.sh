@@ -56,6 +56,7 @@ setup(
         'cloudpickle',
         'numpy',
         'pandas',
+        'tqdm',
         'IPython',
     ],
     zip_safe=False,

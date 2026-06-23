@@ -57,4 +57,5 @@ Category  | Subcategory | Description
  | [pdkd](api/kd_ext/pdkd.md) | Tools for Pandas &lt;-&gt; Koda interoperability.
  | [pseudo_random](api/kd_ext/pseudo_random.md) | Pseudo-random utilities.
  | [storage](api/kd_ext/storage.md) | Koda data storage utilities.
+ | [tqdm](api/kd_ext/tqdm.md) | Public API for kd_ext.tqdm — tqdm progress reporting integration.
  | [vis](api/kd_ext/vis.md) | Koda visualization functionality.

@@ -6,3 +6,4 @@ numpy
 optree
 pandas
 scipy
+tqdm
