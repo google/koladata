@@ -242,6 +242,7 @@ class functor:
   is_fn = _operators_functor.is_fn
   map = _operators_functor.map_
   map_py_fn = _functor_functor_factories.map_py_fn
+  map_reduce_update = _operators_functor.map_reduce_update
   py_fn = _functor_functor_factories.py_fn
   reduce = _operators_functor.reduce
   register_py_fn = _functor_functor_factories.register_py_fn
@@ -796,6 +797,7 @@ map = _operators_functor.map_
 map_py = _operators_py.map_py
 map_py_on_cond = _operators_py.map_py_on_cond
 map_py_on_selected = _operators_py.map_py_on_selected
+map_reduce_update = _operators_functor.map_reduce_update
 mask = _operators_slices.mask
 mask_and = _operators_masking.mask_and
 mask_equal = _operators_masking.mask_equal

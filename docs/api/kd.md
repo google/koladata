@@ -977,6 +977,10 @@ Alias for [kd.py.map_py_on_cond](kd/py.md#kd.py.map_py_on_cond)
 
 Alias for [kd.py.map_py_on_selected](kd/py.md#kd.py.map_py_on_selected)
 
+### `kd.map_reduce_update(fn, *args, include_missing=False, **kwargs)` {#kd.map_reduce_update}
+
+Alias for [kd.functor.map_reduce_update](kd/functor.md#kd.functor.map_reduce_update)
+
 ### `kd.mask(x: Any) -> DataSlice` {#kd.mask}
 
 Alias for [kd.slices.mask](kd/slices.md#kd.slices.mask)

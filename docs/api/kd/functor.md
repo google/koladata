@@ -423,6 +423,33 @@ Args:
     may be kde expressions, format strings, or 0-dim DataSlices. See the
     docstring for py_fn for more details.</code></pre>
 
+### `kd.functor.map_reduce_update(fn, *args, include_missing=False, **kwargs)` {#kd.functor.map_reduce_update}
+Aliases:
+
+- [kd.map_reduce_update](../kd.md#kd.map_reduce_update)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
+
+Similar to `kd.map`, but expects each functor to return a DataBag instead of
+a DataItem. All the returned DataBags are merged into a single DataBag.
+
+Example:
+  fn = kdf.fn(lambda x: kd.attrs(x, y=x.a + 1))
+  x = kd.slice([kd.new(a=1), kd.new(a=2)])
+  update_bag = kd.map_reduce_update(fn, x=x)
+  # returns DataBag equal to kd.attrs(x, y=kd.slice([2, 3]))
+
+Args:
+  fn: DataSlice containing the functor(s) to evaluate. All functors must
+    return a DataBag.
+  *args: The positional argument(s) to pass to the functors.
+  include_missing: Whether to call the functors on missing items of
+    args/kwargs.
+  **kwargs: The keyword argument(s) to pass to the functors.
+
+Returns:
+  A DataBag containing the merged results of all functor evaluations.</code></pre>
+
 ### `kd.functor.py_fn(f: Callable[..., Any], *, return_type_as: Any = <class 'koladata.types.data_slice.DataSlice'>, **defaults: Any) -> DataItem` {#kd.functor.py_fn}
 Aliases:
 

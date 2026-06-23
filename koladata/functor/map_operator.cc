@@ -33,6 +33,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/map.h"
@@ -85,6 +86,50 @@ class MapOperator : public arolla::QExprOperator {
   }
 };
 
+class MapReduceUpdateOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator(
+        "kd.functor.map_reduce_update",
+        [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
+         args_slot = input_slots[1],
+         include_missing_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         kwargs_slot = input_slots[3],
+         output_slot = output_slot.UnsafeToSlot<DataBagPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& fn_data_slice = frame.Get(fn_slot);
+          ASSIGN_OR_RETURN(bool include_missing,
+                           ops::GetBoolArgument(frame.Get(include_missing_slot),
+                                                "include_missing"));
+
+          std::vector<DataSlice> args;
+          args.reserve(args_slot.SubSlotCount() + kwargs_slot.SubSlotCount());
+          for (int64_t i = 0; i < args_slot.SubSlotCount(); ++i) {
+            args.push_back(
+                frame.Get(args_slot.SubSlot(i).UnsafeToSlot<DataSlice>()));
+          }
+
+          auto kwargs_qtype = kwargs_slot.GetType();
+          auto kwarg_names = arolla::GetFieldNames(kwargs_qtype);
+          for (int64_t i = 0; i < kwargs_slot.SubSlotCount(); ++i) {
+            args.push_back(
+                frame.Get(kwargs_slot.SubSlot(i).UnsafeToSlot<DataSlice>()));
+          }
+          ASSIGN_OR_RETURN(auto result,
+                           functor::MapReduceUpdateFunctorWithCompilationCache(
+                               fn_data_slice, std::move(args), kwarg_names,
+                               include_missing));
+          frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
+        });
+  }
+};
+
 }  // namespace
 
 absl::StatusOr<arolla::OperatorPtr> MapOperatorFamily::DoGetOperator(
@@ -127,6 +172,49 @@ absl::StatusOr<arolla::OperatorPtr> MapOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<MapOperator>(input_types, output_type), input_types,
       output_type);
+}
+
+absl::StatusOr<arolla::OperatorPtr>
+MapReduceUpdateOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires functor argument to be DataSlice");
+  }
+  if (!arolla::IsTupleQType(input_types[1])) {
+    return absl::InvalidArgumentError("requires args argument to be Tuple");
+  }
+  for (const auto& sub_field : input_types[1]->type_fields()) {
+    if (sub_field.GetType() != arolla::GetQType<DataSlice>()) {
+      return absl::InvalidArgumentError(
+          "requires all values of the args argument to be DataSlices");
+    }
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires include_missing argument to be DataSlice");
+  }
+  if (!arolla::IsNamedTupleQType(input_types[3])) {
+    return absl::InvalidArgumentError(
+        "requires kwargs argument to be NamedTuple");
+  }
+  for (const auto& sub_field : input_types[3]->type_fields()) {
+    if (sub_field.GetType() != arolla::GetQType<DataSlice>()) {
+      return absl::InvalidArgumentError(
+          "requires all values of the kwargs argument to be DataSlices");
+    }
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
+  if (output_type != arolla::GetQType<DataBagPtr>()) {
+    return absl::InvalidArgumentError("requires output type to be DataBagPtr");
+  }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<MapReduceUpdateOperator>(input_types, output_type),
+      input_types, output_type);
 }
 
 }  // namespace koladata::functor

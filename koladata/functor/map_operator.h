@@ -30,6 +30,15 @@ class MapOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// kd.functor.map_reduce_update operator.
+// Calls the given functor(s) with the given arguments, expects each functor
+// to return a DataBag, and merges all results into a single DataBag.
+class MapReduceUpdateOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::functor
 
 #endif  // KOLADATA_FUNCTOR_MAP_OPERATOR_H_

@@ -366,6 +366,7 @@ cc_library(
     hdrs = ["map_operator.h"],
     deps = [
         ":map",
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal/op_utils:qexpr",
@@ -407,6 +408,7 @@ cc_library(
     hdrs = ["map.h"],
     deps = [
         ":call",
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:data_item",

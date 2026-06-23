@@ -20,6 +20,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::functor {
@@ -35,6 +36,13 @@ namespace koladata::functor {
 // `include_missing` controls whether to call the functors on missing items of
 // `args` and `kwargs`.
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
+    const DataSlice& functors, std::vector<DataSlice> args,
+    absl::Span<const std::string> kwnames, bool include_missing);
+
+// Like MapFunctorWithCompilationCache, but expects each functor to return a
+// DataBag instead of a DataItem. All returned DataBags are merged into a single
+// DataBag.
+absl::StatusOr<DataBagPtr> MapReduceUpdateFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
     absl::Span<const std::string> kwnames, bool include_missing);
 

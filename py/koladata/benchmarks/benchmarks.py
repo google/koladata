@@ -20,6 +20,7 @@ from koladata.benchmarks import create_benchmarks as _
 from koladata.benchmarks import from_to_json_benchmarks as _
 from koladata.benchmarks import from_to_proto_benchmarks as _
 from koladata.benchmarks import from_to_py_benchmarks as _
+from koladata.benchmarks import map_benchmarks as _
 from koladata.benchmarks import misc_benchmarks as _
 from koladata.benchmarks import operator_benchmarks as _
 from koladata.benchmarks import set_get_attr_benchmarks as _

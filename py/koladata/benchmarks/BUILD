@@ -33,6 +33,7 @@ py_test(
         "from_to_json_benchmarks.py",
         "from_to_proto_benchmarks.py",
         "from_to_py_benchmarks.py",
+        "map_benchmarks.py",
         "misc_benchmarks.py",
         "operator_benchmarks.py",
         "set_get_attr_benchmarks.py",
@@ -159,6 +160,20 @@ py_test(
         # Enables --cpu_profile.
         # Enables --peakheap_profile.
         # Memory usage counters.
+    ],
+)
+
+py_test(
+    name = "map_benchmarks",
+    srcs = ["map_benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        requirement("google-benchmark"),
     ],
 )
 

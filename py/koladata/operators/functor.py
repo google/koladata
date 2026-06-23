@@ -289,6 +289,52 @@ def map_(fn, *args, include_missing=False, **kwargs):  # pylint: disable=unused-
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(
+    aliases=['kd.map_reduce_update'], via_cc_operator_package=True
+)
+@optools.as_backend_operator(
+    'kd.functor.map_reduce_update',
+    qtype_constraints=[
+        (
+            P.fn == qtypes.DATA_SLICE,
+            (
+                'expected a functor DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.fn)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice(P.include_missing),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+    deterministic=False,
+)
+def map_reduce_update(fn, *args, include_missing=False, **kwargs):  # pylint: disable=unused-argument
+  """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
+
+  Similar to `kd.map`, but expects each functor to return a DataBag instead of
+  a DataItem. All the returned DataBags are merged into a single DataBag.
+
+  Example:
+    fn = kdf.fn(lambda x: kd.attrs(x, y=x.a + 1))
+    x = kd.slice([kd.new(a=1), kd.new(a=2)])
+    update_bag = kd.map_reduce_update(fn, x=x)
+    # returns DataBag equal to kd.attrs(x, y=kd.slice([2, 3]))
+
+  Args:
+    fn: DataSlice containing the functor(s) to evaluate. All functors must
+      return a DataBag.
+    *args: The positional argument(s) to pass to the functors.
+    include_missing: Whether to call the functors on missing items of
+      args/kwargs.
+    **kwargs: The keyword argument(s) to pass to the functors.
+
+  Returns:
+    A DataBag containing the merged results of all functor evaluations.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.if_'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.functor.if_',
