@@ -218,7 +218,7 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
           absl::StatusCode::kInvalidArgument,
           absl::StrFormat("could not get attr %s", attr_name));
     }
-    owned_values_.push_back(PyObjectPtr::NewRef(py_value));
+    owned_values_.push_back(PyObjectPtr::Own(py_value));
     values.push_back(py_value);
   }
   return values;

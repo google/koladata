@@ -74,17 +74,20 @@ PYBIND11_MODULE(testing_clib, m) {
              auto is_optional = py::bool_(field_type->is_optional);
              return py::make_tuple(type, is_optional);
            })
-      .def("get_attr_values",
-           [](DataClassesUtil& self, py::handle dataclass_obj,
-              absl::Span<const absl::string_view> attr_names) -> py::object {
-             auto attr_values = arolla::python::pybind11_unstatus_or(
-                 self.GetAttrValues(dataclass_obj.ptr(), attr_names));
-             PyObject* res = PyList_New(attr_names.size());
-             for (size_t i = 0; i < attr_names.size(); ++i) {
-               PyList_SET_ITEM(res, i, attr_values[i]);
-             }
-             return py::reinterpret_steal<py::object>(res);
-           })
+      .def(
+          "get_attr_values",
+          [](DataClassesUtil& self, py::handle dataclass_obj,
+             absl::Span<const absl::string_view> attr_names)
+              -> std::vector<py::object> {
+            auto attr_values = arolla::python::pybind11_unstatus_or(
+                self.GetAttrValues(dataclass_obj.ptr(), attr_names));
+            std::vector<py::object> res;
+            res.reserve(attr_names.size());
+            for (size_t i = 0; i < attr_names.size(); ++i) {
+              res.push_back(py::reinterpret_borrow<py::object>(attr_values[i]));
+            }
+            return res;
+          })
       .def("create_class_instance_kwargs",
            [](DataClassesUtil& self, py::handle py_class,
               absl::Span<const absl::string_view> attr_names,

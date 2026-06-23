@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import dataclasses
+import gc
+import sys
 import types as _py_types
 from typing import Any, Optional
 
@@ -83,6 +85,30 @@ class DataclassesUtilTest(absltest.TestCase):
 
     self.assertEqual(util.get_attr_values(obj, ['a', 'b', 'c']), [1, 2, 3])
     self.assertEqual(util.get_attr_values(obj, ['c', 'b', 'a']), [3, 2, 1])
+
+  def test_get_attr_values_no_leak(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class TestDataclass:
+      a: list[int]
+
+    val = [42]
+    obj = TestDataclass(a=val)
+    gc.collect()
+
+    ref_before = sys.getrefcount(val)
+
+    res = util.get_attr_values(obj, ['a'])
+    self.assertEqual(sys.getrefcount(val), ref_before + 2)
+
+    del res
+    gc.collect()
+    self.assertEqual(sys.getrefcount(val), ref_before + 1)
+
+    del util
+    gc.collect()
+    self.assertEqual(sys.getrefcount(val), ref_before)
 
   def test_get_attr_values_fails_for_non_existing_attr(self):
     util = testing_clib.DataClassesUtil()
