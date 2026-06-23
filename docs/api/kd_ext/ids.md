@@ -25,6 +25,39 @@ Args:
 Returns:
   Tuple that can be used as description of an AUTO_ID attribute.</code></pre>
 
+### `kd_ext.ids.auto_id_pointwise_update(x)` {#kd_ext.ids.auto_id_pointwise_update}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_id values independently to each item in x.
+
+Unlike `auto_id_update` which assigns IDs across the entire slice (e.g.
+foo_1, foo_2, foo_3 for a 3-item slice), this operator processes each
+top-level item independently. Each item receives IDs as if it were the only
+item in the slice.
+
+Example:
+  doc_schema = kd.schema.new_schema(val=kd.INT32)
+  doc_schema = kd_ext.ids.with_auto_attributes(
+      doc_schema, doc_id=kd_ext.ids.auto_id(&#39;doc&#39;)
+  )
+  input_schema = kd.schema.new_schema(docs=kd.list_schema(doc_schema))
+  docs = kd.slice([
+      kd.list([doc_schema.new(val=10), doc_schema.new(val=20)]),
+      kd.list([
+          doc_schema.new(val=40),
+          doc_schema.new(val=50),
+          doc_schema.new(val=60),
+      ]),
+  ])
+  x = kd.new(docs=docs, schema=input_schema)
+  x.enriched(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
+    -&gt; kd.slice([[&#39;doc_1&#39;, &#39;doc_2&#39;], [&#39;doc_1&#39;, &#39;doc_2&#39;, &#39;doc_3&#39;]])
+
+Args:
+  x: DataSlice with a schema that has auto_id attributes.
+
+Returns:
+  A DataBag with auto_id attributes set independently per item.</code></pre>
+
 ### `kd_ext.ids.auto_id_update(x)` {#kd_ext.ids.auto_id_update}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_id values to all auto_id attributes in x.
@@ -69,6 +102,48 @@ Returns:
 ### `kd_ext.ids.auto_reference_list(auto_schema_tuple)` {#kd_ext.ids.auto_reference_list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a tuple that can be used for an auto_reference list attributes.</code></pre>
+
+### `kd_ext.ids.auto_reference_pointwise_update(x, input_ds)` {#kd_ext.ids.auto_reference_pointwise_update}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_reference values independently to each item in x.
+
+Unlike `auto_reference_update` which resolves references across the entire
+slice, this operator processes each item independently. Each item&#39;s
+references are resolved only against the corresponding item in `input_ds`.
+
+Example:
+  doc_schema = kd.schema.new_schema(val=kd.INT32)
+  doc_schema = kd_ext.ids.with_auto_attributes(
+      doc_schema, doc_id=kd_ext.ids.auto_id(&#39;doc&#39;)
+  )
+  input_schema = kd.schema.new_schema(docs=kd.list_schema(doc_schema))
+  docs = kd.slice([
+      kd.list([doc_schema.new(val=10), doc_schema.new(val=20)]),
+      kd.list([
+          doc_schema.new(val=40),
+          doc_schema.new(val=50),
+          doc_schema.new(val=60),
+      ]),
+  ])
+  x_input = kd.new(docs=docs, schema=input_schema)
+  x_input = kd_ext.ids.with_auto_id_pointwise(x_input)
+
+  schema = kd.schema.new_schema()
+  schema = kd_ext.ids.with_auto_attributes(
+      schema,
+      doc_ref=kd_ext.ids.auto_reference(&#39;doc&#39;),
+  )
+  x = schema.new(doc_ref=kd.slice([&#39;doc_2&#39;, &#39;doc_1&#39;]))
+  update_db = kd_ext.ids.auto_reference_pointwise_update(x, x_input)
+  x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
+
+Args:
+  x: DataSlice with a schema that has auto_reference attributes.
+  input_ds: DataSlice with auto_id values to reference. Must have the same
+    top-level dimension as x.
+
+Returns:
+  A DataBag with auto_reference attributes set independently per item.</code></pre>
 
 ### `kd_ext.ids.auto_reference_update(x, input_ds)` {#kd_ext.ids.auto_reference_update}
 
@@ -144,104 +219,3 @@ Args:
 
 Returns:
   A schema with the auto attributes added to both schema and metadata.</code></pre>
-
-### `kd_ext.ids.with_auto_id_pointwise(x)` {#kd_ext.ids.with_auto_id_pointwise}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_id values independently to each item in x.
-
-Unlike `auto_id_update` which assigns IDs across the entire slice (e.g.
-foo_1, foo_2, foo_3 for a 3-item slice), this operator processes each
-top-level item independently using `kd.map`. Each item receives IDs as if
-it were the only item in the slice.
-
-Example:
-  doc_schema = kd.schema.new_schema(val=kd.INT32)
-  doc_schema = kd_ext.ids.with_auto_attributes(
-      doc_schema, doc_id=kd_ext.ids.auto_id(&#39;doc&#39;)
-  )
-  input_schema = kd.schema.new_schema(docs=kd.list_schema(doc_schema))
-  docs = kd.slice([
-      kd.list([doc_schema.new(val=10), doc_schema.new(val=20)]),
-      kd.list([
-          doc_schema.new(val=40),
-          doc_schema.new(val=50),
-          doc_schema.new(val=60),
-      ]),
-  ])
-  x = kd.new(docs=docs, schema=input_schema)
-  x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
-  x_with_ids.docs[:].doc_id
-    -&gt; kd.slice([[&#39;doc_1&#39;, &#39;doc_2&#39;], [&#39;doc_1&#39;, &#39;doc_2&#39;, &#39;doc_3&#39;]])
-
-Args:
-  x: DataSlice with a schema that has auto_id attributes.
-
-Returns:
-  A DataSlice `x` with the generated auto_id attributes.</code></pre>
-
-### `kd_ext.ids.with_auto_reference_pointwise(x, input_ds)` {#kd_ext.ids.with_auto_reference_pointwise}
-
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Assigns auto_reference values independently to each item in x.
-
-Unlike `auto_reference_update` which resolves references across the entire
-slice, this operator processes each item independently using `kd.map`.
-Each item&#39;s references are resolved only against the corresponding item
-in `input_ds`.
-
-Example:
-  doc_schema = kd.schema.new_schema(val=kd.INT32)
-  doc_schema = kd_ext.ids.with_auto_attributes(
-      doc_schema, doc_id=kd_ext.ids.auto_id(&#39;doc&#39;)
-  )
-  input_schema = kd.schema.new_schema(docs=kd.list_schema(doc_schema))
-  docs = kd.slice([
-      kd.list([doc_schema.new(val=10), doc_schema.new(val=20)]),
-      kd.list([
-          doc_schema.new(val=40),
-          doc_schema.new(val=50),
-          doc_schema.new(val=60),
-      ]),
-  ])
-  x_input = kd.new(docs=docs, schema=input_schema)
-  x_input = kd_ext.ids.with_auto_id_pointwise(x_input)
-
-  schema = kd.schema.new_schema()
-  schema = kd_ext.ids.with_auto_attributes(
-      schema,
-      doc_ref=kd_ext.ids.auto_reference(&#39;doc&#39;),
-      docs_ref=kd_ext.ids.auto_reference_list(
-          kd_ext.ids.auto_reference(&#39;doc&#39;)
-      ),
-  )
-  x = schema.new(
-      doc_ref=kd.slice([&#39;doc_2&#39;, &#39;doc_1&#39;]),
-      docs_ref=kd.slice([
-          kd.list([&#39;doc_1&#39;]),
-          kd.list([&#39;doc_3&#39;, &#39;doc_1&#39;]),
-      ]),
-  )
-  x_with_refs = kd_ext.ids.with_auto_reference_pointwise(x, x_input)
-  x_with_refs.enriched(x_input.get_bag())
-    -&gt; kd.new(
-        doc_ref=kd.slice([
-            x_input.S[0].docs[:].S[1],
-            x_input.S[1].docs[:].S[0],
-        ]),
-        docs_ref=kd.slice([
-            kd.list([x_input.S[0].docs[:].S[0]]),
-            kd.list([
-                x_input.S[1].docs[:].S[2],
-                x_input.S[1].docs[:].S[0],
-            ]),
-        ]),
-    )
-
-Args:
-  x: DataSlice with a schema that has auto_reference attributes.
-  input_ds: DataSlice with auto_id values to reference. Must have the same
-    top-level dimension as x.
-
-Returns:
-  A DataSlice `x` enriched with the independently resolved auto_reference
-  attributes. Note that to access the referenced items, you must also enrich
-  with `input_ds.get_bag()`.</code></pre>

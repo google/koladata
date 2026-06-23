@@ -261,40 +261,31 @@ def auto_reference_update(x, input_ds):  # pylint: disable=unused-argument
   """
   raise NotImplementedError('implemented in the backend')
 
-
 # Create functors for mapped operators. These are created after all backend
 # operators are defined so that operator references are valid during tracing.
 _x = kd.I.x
 _input_ds = kd.I.input_ds
 
-_auto_id_update_fn = kd.fn(kde.core.enriched(_x, auto_id_update(_x)))
+_auto_id_update_fn = kd.fn(auto_id_update(_x))
 
-# Note that kd.map supports only data_slice as a result, so we need to return
-# the slice with the update bag attached. Also all the updates must be reachable
-# from the slice, or they would be dropped.
-_auto_reference_update_fn = kd.fn(
-    kde.core.enriched(
-        kde.core.with_bag(_x, auto_reference_update(_x, _input_ds)),
-        kde.core.get_bag(_x),
-    ),
-)
+_auto_reference_update_fn = kd.fn(auto_reference_update(_x, _input_ds))
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
 @kd.optools.as_lambda_operator(
-    'kd_ext.ids.with_auto_id_pointwise',
+    'kd_ext.ids.auto_id_pointwise_update',
     qtype_constraints=[
         kd.optools.constraints.expect_data_slice(P.x),
     ],
     deterministic=False,
 )
-def with_auto_id_pointwise(x):
+def auto_id_pointwise_update(x):
   """Assigns auto_id values independently to each item in x.
 
   Unlike `auto_id_update` which assigns IDs across the entire slice (e.g.
   foo_1, foo_2, foo_3 for a 3-item slice), this operator processes each
-  top-level item independently using `kd.map`. Each item receives IDs as if
-  it were the only item in the slice.
+  top-level item independently. Each item receives IDs as if it were the only
+  item in the slice.
 
   Example:
     doc_schema = kd.schema.new_schema(val=kd.INT32)
@@ -311,37 +302,33 @@ def with_auto_id_pointwise(x):
         ]),
     ])
     x = kd.new(docs=docs, schema=input_schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
-    x_with_ids.docs[:].doc_id
+    x.enriched(kd_ext.ids.auto_id_pointwise_update(x)).docs[:].doc_id
       -> kd.slice([['doc_1', 'doc_2'], ['doc_1', 'doc_2', 'doc_3']])
 
   Args:
     x: DataSlice with a schema that has auto_id attributes.
 
   Returns:
-    A DataSlice `x` with the generated auto_id attributes.
+    A DataBag with auto_id attributes set independently per item.
   """
-  mapped = kde.functor.map(_auto_id_update_fn, x=x)
-  mapped = kde.schema.with_schema(mapped, kde.schema.get_schema(x))
-  return kde.core.enriched(mapped, kde.core.get_bag(x))
+  return kde.functor.map_reduce_update(_auto_id_update_fn, x=x)
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
 @kd.optools.as_lambda_operator(
-    'kd_ext.ids.with_auto_reference_pointwise',
+    'kd_ext.ids.auto_reference_pointwise_update',
     qtype_constraints=[
         kd.optools.constraints.expect_data_slice(P.x),
         kd.optools.constraints.expect_data_slice(P.input_ds),
     ],
     deterministic=False,
 )
-def with_auto_reference_pointwise(x, input_ds):
+def auto_reference_pointwise_update(x, input_ds):
   """Assigns auto_reference values independently to each item in x.
 
   Unlike `auto_reference_update` which resolves references across the entire
-  slice, this operator processes each item independently using `kd.map`.
-  Each item's references are resolved only against the corresponding item
-  in `input_ds`.
+  slice, this operator processes each item independently. Each item's
+  references are resolved only against the corresponding item in `input_ds`.
 
   Example:
     doc_schema = kd.schema.new_schema(val=kd.INT32)
@@ -364,32 +351,10 @@ def with_auto_reference_pointwise(x, input_ds):
     schema = kd_ext.ids.with_auto_attributes(
         schema,
         doc_ref=kd_ext.ids.auto_reference('doc'),
-        docs_ref=kd_ext.ids.auto_reference_list(
-            kd_ext.ids.auto_reference('doc')
-        ),
     )
-    x = schema.new(
-        doc_ref=kd.slice(['doc_2', 'doc_1']),
-        docs_ref=kd.slice([
-            kd.list(['doc_1']),
-            kd.list(['doc_3', 'doc_1']),
-        ]),
-    )
-    x_with_refs = kd_ext.ids.with_auto_reference_pointwise(x, x_input)
-    x_with_refs.enriched(x_input.get_bag())
-      -> kd.new(
-          doc_ref=kd.slice([
-              x_input.S[0].docs[:].S[1],
-              x_input.S[1].docs[:].S[0],
-          ]),
-          docs_ref=kd.slice([
-              kd.list([x_input.S[0].docs[:].S[0]]),
-              kd.list([
-                  x_input.S[1].docs[:].S[2],
-                  x_input.S[1].docs[:].S[0],
-              ]),
-          ]),
-      )
+    x = schema.new(doc_ref=kd.slice(['doc_2', 'doc_1']))
+    update_db = kd_ext.ids.auto_reference_pointwise_update(x, x_input)
+    x.with_bag(update_db).enriched(x_input.get_bag()).enriched(x.get_bag())
 
   Args:
     x: DataSlice with a schema that has auto_reference attributes.
@@ -397,11 +362,8 @@ def with_auto_reference_pointwise(x, input_ds):
       top-level dimension as x.
 
   Returns:
-    A DataSlice `x` enriched with the independently resolved auto_reference
-    attributes. Note that to access the referenced items, you must also enrich
-    with `input_ds.get_bag()`.
+    A DataBag with auto_reference attributes set independently per item.
   """
-  mapped = kde.functor.map(_auto_reference_update_fn, x=x, input_ds=input_ds)
-  return kde.core.enriched(
-      mapped, kde.core.get_bag(x)
+  return kde.functor.map_reduce_update(
+      _auto_reference_update_fn, x=x, input_ds=input_ds
   )

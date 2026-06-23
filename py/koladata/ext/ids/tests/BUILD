@@ -55,8 +55,8 @@ py_test(
 )
 
 py_test(
-    name = "with_auto_id_pointwise_test",
-    srcs = ["with_auto_id_pointwise_test.py"],
+    name = "auto_id_pointwise_update_test",
+    srcs = ["auto_id_pointwise_update_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
@@ -67,8 +67,8 @@ py_test(
 )
 
 py_test(
-    name = "with_auto_reference_pointwise_test",
-    srcs = ["with_auto_reference_pointwise_test.py"],
+    name = "auto_reference_pointwise_update_test",
+    srcs = ["auto_reference_pointwise_update_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata:kd",

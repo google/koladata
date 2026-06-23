@@ -20,7 +20,7 @@ from koladata import kd_ext
 ds = kd.slice
 
 
-class WithAutoIdPointwiseTest(parameterized.TestCase):
+class AutoIdPointwiseUpdateTest(parameterized.TestCase):
 
   def test_basic_mapped(self):
     schema = kd.schema.new_schema(a=kd.INT32)
@@ -29,7 +29,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
         foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x_with_ids = x.enriched(update_bag)
     # Each item gets foo_1 independently, since each is processed as if alone.
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
@@ -43,7 +44,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
         foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=42, schema=schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
         ds('foo_1'),
@@ -62,7 +64,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
     )
     child = kd.new(val=ds([10, 20]), schema=child_schema)
     parent = kd.new(child=child, schema=parent_schema)
-    parent_with_ids = kd_ext.ids.with_auto_id_pointwise(parent)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(parent)
+    parent_with_ids = parent.enriched(update_bag)
     # Each parent item is processed independently:
     # parent_id: each gets 'parent_1'
     kd.testing.assert_equivalent(
@@ -83,7 +86,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
         bar_id=kd_ext.ids.auto_id('bar'),
     )
     x = kd.new(a=ds([1, 2]), schema=schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
         ds(['foo_1', 'foo_1']),
@@ -100,7 +104,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
         foo_id=kd_ext.ids.auto_id('foo'),
     )
     x = kd.new(a=ds([], schema=kd.INT32), schema=schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
         ds([], schema=kd.STRING),
@@ -109,7 +114,8 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
   def test_no_auto_id_attributes(self):
     schema = kd.schema.new_schema(a=kd.INT32)
     x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    x_with_ids = kd_ext.ids.with_auto_id_pointwise(x)
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(x_with_ids.a, ds([1, 2, 3]))
 
   def test_merge_conflict(self):
@@ -133,8 +139,7 @@ class WithAutoIdPointwiseTest(parameterized.TestCase):
         ValueError,
         "The cause is the values of attribute 'child_id' are different",
     ):
-      _ = kd_ext.ids.with_auto_id_pointwise(ds([parent0, parent1]))
-
+      _ = kd_ext.ids.auto_id_pointwise_update(ds([parent0, parent1]))
 
 if __name__ == '__main__':
   absltest.main()
