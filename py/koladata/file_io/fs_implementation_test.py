@@ -136,6 +136,27 @@ class FsImplementationTest(parameterized.TestCase):
     self.assertTrue(fs.exists(os.path.join(test_dir, 'subdir')))
     self.assertFalse(fs.exists(os.path.join(test_dir, 'renamed_subdir')))
 
+  @parameterized.named_parameters(
+      ('FileSystemInteraction', fs_implementation.FileSystemInteraction()),
+  )
+  def test_make_dirs_permissions(self, fs: fs_interface.FileSystemInterface):
+    test_dir = self.create_tempdir().full_path
+
+    # Not group-writable (0o750).
+    old_umask = os.umask(0o027)
+    try:
+      subdir_no_group = os.path.join(test_dir, 'no_group')
+      fs.make_dirs(subdir_no_group)
+      self.assertEqual(os.stat(subdir_no_group).st_mode & 0o777, 0o750)
+
+      # Group-writable (0o770).
+      os.umask(0o007)
+      subdir_group = os.path.join(test_dir, 'group')
+      fs.make_dirs(subdir_group)
+      self.assertEqual(os.stat(subdir_group).st_mode & 0o777, 0o770)
+    finally:
+      os.umask(old_umask)
+
 
 if __name__ == '__main__':
   absltest.main()
