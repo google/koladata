@@ -193,7 +193,7 @@ PyObject* PyObjectFromValue(
             .c_str());
     return nullptr;
   }
-  return Py_NewRef(Py_None);
+  Py_RETURN_NONE;
 }
 
 ItemToPyConverter GetDataItemConverter(

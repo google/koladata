@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gc
+import sys
+
 from absl.testing import absltest
 from absl.testing import parameterized
+
 # This is needed for jagged_shape.create_shape() to work.
 from koladata.operators import kde_operators  # pylint: disable=unused-import
 from koladata.testing import testing
@@ -47,6 +51,13 @@ class PyMiscTest(parameterized.TestCase):
   def test_flatten_py_list_errors(self):
     with self.assertRaisesRegex(ValueError, 'has to be a valid nested list'):
       _ = py_misc_py_ext.flatten_py_list([[1, 2], 3])
+
+  def test_flatten_py_list_refcount_regression(self):
+    flat_list, shape = py_misc_py_ext.flatten_py_list([[1, 2, 3], [4, 5]])
+    reference_obj = object()
+    gc.collect()
+    self.assertEqual(sys.getrefcount(flat_list), sys.getrefcount(reference_obj))
+    self.assertEqual(sys.getrefcount(shape), sys.getrefcount(reference_obj))
 
 
 if __name__ == '__main__':

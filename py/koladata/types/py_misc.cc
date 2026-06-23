@@ -16,11 +16,11 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <utility>
 
 #include "absl/base/nullability.h"
 #include "arolla/util/status_macros_backport.h"
-#include "arolla/expr/expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
@@ -103,12 +103,15 @@ PyObject* absl_nullable PyFlattenPyList(PyObject* /*module*/,
                    arolla::python::SetPyErrFromStatus(_));
   auto py_list =
       arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/py_objects.size()));
-  for (int i = 0; i < py_objects.size(); ++i) {
-    PyList_SetItem(py_list.get(), i, Py_NewRef(py_objects[i]));
+  for (size_t i = 0; i < py_objects.size(); ++i) {
+    PyList_SET_ITEM(py_list.get(), i, Py_NewRef(py_objects[i]));
   }
   auto py_shape =
       arolla::python::PyObjectPtr::Own(WrapPyJaggedShape(std::move(shape)));
-  return PyTuple_Pack(2, py_list.release(), py_shape.release());
+  if (py_shape == nullptr) {
+    return nullptr;
+  }
+  return PyTuple_Pack(2, py_list.get(), py_shape.get());
 }
 
 PyObject* PyModule_get_jagged_shape_qtype(PyObject* /*module*/) {

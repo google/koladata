@@ -248,7 +248,7 @@ PyObject* absl_nullable PyDataSlice_to_proto(PyObject* self,
   // If the input was a DataItem, return a single message (or None).
   if (slice.is_item()) {
     if (num_messages == 0) {
-      return Py_None;
+      Py_RETURN_NONE;
     } else {
       auto py_message = WrapProtoMessage(
           std::move(messages[0]), py_message_class, using_fast_cpp_proto);
@@ -272,7 +272,7 @@ PyObject* absl_nullable PyDataSlice_to_proto(PyObject* self,
   Py_ssize_t i_message = 0;
   for (Py_ssize_t i = 0; i < slice.size(); ++i) {
     if (mask_values == nullptr || !mask_values->present(i)) {
-      PyList_SET_ITEM(py_result_list.get(), i, Py_None);
+      PyList_SET_ITEM(py_result_list.get(), i, Py_NewRef(Py_None));
       continue;
     }
     auto py_message = WrapProtoMessage(std::move(messages[i_message]),
@@ -616,10 +616,10 @@ PyObject* absl_nullable PyDataSlice_subscript(PyObject* self, PyObject* key) {
   // Expr) we have to handle here.
   if (arolla::python::IsPyExprInstance(key)) {
     auto key_expr = arolla::python::UnwrapPyExpr(key);
-    ASSIGN_OR_RETURN(auto ds_literal,
-                     koladata::expr::MakeLiteral(
-                         arolla::TypedValue::FromValue(self_ds)),
-                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(
+        auto ds_literal,
+        koladata::expr::MakeLiteral(arolla::TypedValue::FromValue(self_ds)),
+        arolla::python::SetPyErrFromStatus(_));
     ASSIGN_OR_RETURN(
         auto result_expr,
         arolla::expr::BindOp("kd.core.get_item",

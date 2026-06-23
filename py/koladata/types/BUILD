@@ -520,7 +520,6 @@ cc_library(
         "//py/koladata/base:boxing",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:nullability",
-        "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
