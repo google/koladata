@@ -2474,6 +2474,12 @@ absl::Status DataSlice::ClearDictOrList() const {
     return absl::InvalidArgumentError(
         "cannot clear lists or dicts without a DataBag");
   }
+  if (GetSchemaImpl().holds_value<schema::DType>() &&
+      GetSchemaImpl() != schema::kNone && GetSchemaImpl() != schema::kObject) {
+    return absl::FailedPreconditionError(absl::StrCat(
+        "cannot clear slice of schema: ", GetSchemaImpl(),
+        ", expected a list or dict"));
+  }
   if (present_count() == 0) {
     return absl::OkStatus();
   }

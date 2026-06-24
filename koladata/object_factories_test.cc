@@ -1883,6 +1883,25 @@ TEST(ObjectFactoriesTest, CreateEmptyList_ItemId) {
   }
 }
 
+TEST(ObjectFactoriesTest, CreateList_ClearsItemId) {
+  auto parent_db = DataBag::EmptyMutable();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(1);
+  ASSERT_OK_AND_ASSIGN(auto values_shape,
+                       shape.AddDims({test::EdgeFromSplitPoints({0, 3})}));
+  auto values = test::DataSlice<int>({1, 2, 3}, values_shape, parent_db);
+  ASSERT_OK_AND_ASSIGN(auto l1, CreateListShaped(parent_db, shape, values));
+  ASSERT_OK_AND_ASSIGN(auto itemid,
+                       l1.WithSchema(test::Schema(schema::kItemId)));
+
+  ASSERT_OK_AND_ASSIGN(auto child_db, parent_db->Fork());
+
+  ASSERT_OK_AND_ASSIGN(auto l_new,
+                       CreateEmptyList(child_db, /*schema=*/std::nullopt,
+                                       /*item_schema=*/std::nullopt, itemid));
+  ASSERT_OK_AND_ASSIGN(auto exploded_new, l_new.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_new.slice(), ElementsAre());
+}
+
 TEST(ObjectFactoriesTest, CreateEmptyList_ItemId_Error) {
   auto db = DataBag::EmptyMutable();
 

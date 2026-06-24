@@ -201,7 +201,12 @@ absl::Status InitItemIdsForLists(const DataSlice& itemid,
     return absl::InvalidArgumentError(
         "itemid argument to list creation, requires List ItemIds");
   }
-  return itemid.WithBag(db).ClearDictOrList();
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return itemid.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+    return db_mutable_impl.RemoveInList(impl,
+                                        internal::DataBagImpl::ListRange());
+  });
 }
 
 absl::Status InitItemIdsForDicts(const DataSlice& itemid,
@@ -215,7 +220,11 @@ absl::Status InitItemIdsForDicts(const DataSlice& itemid,
     return absl::InvalidArgumentError(
         "itemid argument to dict creation, requires Dict ItemIds");
   }
-  return itemid.WithBag(db).ClearDictOrList();
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  return itemid.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+    return db_mutable_impl.ClearDict(impl);
+  });
 }
 
 // Verifies that the given itemid is valid for creating Koda Items, optionally

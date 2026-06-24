@@ -2637,6 +2637,34 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     ):
       _ = list_slice[mask]
 
+  def test_clear_errors(self):
+    db = bag()
+    d_itemid = db.dict({1: 2}).get_itemid()
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot clear slice of schema: ITEMID, expected a list or dict',
+    ):
+      d_itemid.clear()
+
+    l_itemid = db.list([1, 2, 3]).get_itemid()
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot clear slice of schema: ITEMID, expected a list or dict',
+    ):
+      l_itemid.clear()
+
+    x = ds([1, 2, 3]).with_bag(db)
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot clear slice of schema: INT32, expected a list or dict',
+    ):
+      x.clear()
+
+    d_obj = db.dict({1: 2})
+    d_obj.clear()  # no error here
+    l_obj = db.list([1, 2])
+    l_obj.clear()  # no error here
+
   def test_dict_op_schema_errors(self):
     db = bag()
     db2 = bag()
