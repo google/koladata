@@ -116,17 +116,17 @@ struct PyStreamYieldAllObject final {
 };
 
 PyStreamWriterObject::Fields& PyStreamWriter_fields(PyObject* self) {
-  DCHECK(Py_TYPE(self) == &PyStreamWriter_Type);
+  DCHECK(Py_IS_TYPE(self, &PyStreamWriter_Type));
   return reinterpret_cast<PyStreamWriterObject*>(self)->fields;
 }
 
 PyStreamReaderObject::Fields& PyStreamReader_fields(PyObject* self) {
-  DCHECK(Py_TYPE(self) == &PyStreamReader_Type);
+  DCHECK(Py_IS_TYPE(self, &PyStreamReader_Type));
   return reinterpret_cast<PyStreamReaderObject*>(self)->fields;
 }
 
 PyStreamYieldAllObject::Fields& PyStreamYieldAll_fields(PyObject* self) {
-  DCHECK(Py_TYPE(self) == &PyStreamYieldAll_Type);
+  DCHECK(Py_IS_TYPE(self, &PyStreamYieldAll_Type));
   return reinterpret_cast<PyStreamYieldAllObject*>(self)->fields;
 }
 
