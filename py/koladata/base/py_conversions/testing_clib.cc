@@ -97,13 +97,10 @@ PYBIND11_MODULE(testing_clib, m) {
                attr_values_ptrs.push_back(
                    arolla::python::PyObjectPtr::NewRef(attr_value.ptr()));
              }
-             std::vector<std::string> attr_names_vec(attr_names.begin(),
-                                                     attr_names.end());
-
              auto res = arolla::python::pybind11_unstatus_or(
                  self.CreateClassInstanceKwargs(
                      arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
-                     attr_names_vec, attr_values_ptrs));
+                     attr_names, attr_values_ptrs));
              return py::reinterpret_steal<py::object>(res.release());
            })
       .def("get_simple_namespace_class",

@@ -91,7 +91,7 @@ class DataClassesUtil {
   // The `attr_names` and `attr_values` should have the same size.
   absl::StatusOr<arolla::python::PyObjectPtr> CreateClassInstanceKwargs(
       arolla::python::PyObjectPtr absl_nonnull py_class,
-      absl::Span<const std::string> attr_names,
+      absl::Span<const absl::string_view> attr_names,
       absl::Span<const arolla::python::PyObjectPtr absl_nonnull> attr_values);
 
   // If the field is optional, returns the underlying type and
@@ -102,6 +102,9 @@ class DataClassesUtil {
   // Returns a new reference to the SimpleNamespace class.
   absl::StatusOr<arolla::python::PyObjectPtr> GetSimpleNamespaceClass();
 
+  // Returns a python string with the given content.
+  absl::StatusOr<arolla::python::PyObjectPtr> GetPyStr(absl::string_view str);
+
  private:
   absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClass(
       absl::Span<const absl::string_view> attr_names);
@@ -110,6 +113,8 @@ class DataClassesUtil {
 
   absl::flat_hash_map<arolla::Fingerprint, arolla::python::PyObjectPtr>
       dataclasses_cache_;
+  absl::flat_hash_map<absl::string_view, arolla::python::PyObjectPtr>
+      py_str_cache_;
 
   // Cache (dict) for type hints.
   // The key is a class and the value is a dict of attribute names to types.

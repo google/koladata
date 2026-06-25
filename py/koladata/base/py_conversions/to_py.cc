@@ -85,19 +85,6 @@ std::string PyObjectTypeName(PyObject* py_obj) {
   return ((PyTypeObject*)py_obj)->tp_name;
 }
 
-absl::StatusOr<PyObjectPtr> AttrNamePyFromString(
-    absl::string_view attr_name_str) {
-  PyObjectPtr attr_name_py = PyObjectPtr::Own(
-      PyUnicode_FromStringAndSize(attr_name_str.data(), attr_name_str.size()));
-  if (attr_name_py == nullptr) {
-    return arolla::python::StatusWithRawPyErr(
-        absl::StatusCode::kInternal,
-        absl::StrFormat(
-            "could not create a Python string for an attribute name %s",
-            attr_name_str));
-  }
-  return attr_name_py;
-}
 
 // Implementation of the "To Python" visitor.
 // This visitor should be used to traverse DataSlice and convert it to a
@@ -489,7 +476,7 @@ class ToPyVisitor : internal::AbstractVisitor {
                        GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
                                                              std::nullopt));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
-                       AttrNamePyFromString(attr_name.value));
+                       dataclasses_util_.GetPyStr(attr_name.value));
       if (PyObject_SetAttr(object.get(), attr_name_py.get(), py_value.get()) <
           0) {
         return arolla::python::StatusWithRawPyErr(
@@ -558,7 +545,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     const bool result_class_is_simple_namespace =
         simple_namespace_class.get() == result_class;
 
-    std::vector<std::string> attr_names_vec;
+    std::vector<absl::string_view> attr_names_vec;
     attr_names_vec.reserve(attr_names.size());
     std::vector<PyObjectPtr> attr_values_vec;
     attr_values_vec.reserve(attr_names.size());
@@ -591,7 +578,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
                        GetConvertedPyObjectOrCreatePrimitive(
                            attr_value.value, std::move(attr_class)));
-      attr_names_vec.push_back(std::string(attr_name.value));
+      attr_names_vec.push_back(attr_name.value);
       attr_values_vec.push_back(std::move(py_value));
     }
 
@@ -705,7 +692,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       const arolla::OptionalValue<DataItem>& attr_value =
           attr_values[attr_index];
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
-                       AttrNamePyFromString(attr_name_str));
+                       dataclasses_util_.GetPyStr(attr_name_str));
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
                        GetConvertedPyObjectOrCreatePrimitive(attr_value.value,
                                                              std::nullopt));

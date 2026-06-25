@@ -48,7 +48,7 @@ constexpr const char* kMaybeDecayOptionalFnName = "maybe_decay_optional";
 
 constexpr const char* kSimpleNamespaceClassName = "_simple_namespace_class";
 
-using arolla::python::PyObjectPtr;
+using ::arolla::python::PyObjectPtr;
 
 std::vector<absl::string_view> GetSortedAttrNames(
     absl::Span<const absl::string_view> attr_names) {
@@ -61,7 +61,7 @@ std::vector<absl::string_view> GetSortedAttrNames(
 arolla::Fingerprint GetAttrNamesFingerprint(
     absl::Span<const absl::string_view> sorted_attr_names) {
   arolla::FingerprintHasher hasher("dataclass");
-  for (const absl::string_view& attr_name : sorted_attr_names) {
+  for (absl::string_view attr_name : sorted_attr_names) {
     hasher.Combine(attr_name);
   }
   return std::move(hasher).Finish();
@@ -120,16 +120,8 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClass(
   }
 
   for (size_t i = 0; i < attr_names_size; ++i) {
-    const absl::string_view& attr_name = sorted_attr_names[i];
-    const PyObject* attr_name_py =
-        PyUnicode_FromStringAndSize(attr_name.data(), attr_name.size());
-    if (attr_name_py == nullptr) {
-      return arolla::python::StatusCausedByPyErr(
-          absl::StatusCode::kInternal,
-          absl::StrFormat("could not create a string for attr name %s",
-                          attr_name));
-    }
-    PyList_SET_ITEM(py_list.get(), i, attr_name_py);
+    ASSIGN_OR_RETURN(auto py_str, GetPyStr(sorted_attr_names[i]));
+    PyList_SET_ITEM(py_list.get(), i, py_str.release());
   }
 
   PyObjectPtr dataclass = PyObjectPtr::Own(
@@ -143,38 +135,46 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClass(
   return dataclass;
 }
 
-absl::StatusOr<arolla::python::PyObjectPtr>
-DataClassesUtil::CreateClassInstanceKwargs(
-    PyObjectPtr absl_nonnull py_class, absl::Span<const std::string> attr_names,
+absl::StatusOr<PyObjectPtr> DataClassesUtil::GetPyStr(absl::string_view str) {
+  auto it = py_str_cache_.find(str);
+  if (it != py_str_cache_.end()) {
+    return it->second;
+  }
+  PyObjectPtr py_str =
+      PyObjectPtr::Own(PyUnicode_FromStringAndSize(str.data(), str.size()));
+  if (py_str != nullptr) {
+    Py_ssize_t size;
+    if (const char* data = PyUnicode_AsUTF8AndSize(py_str.get(), &size)) {
+      py_str_cache_[absl::string_view(data, size)] = py_str;
+      return py_str;
+    }
+  }
+  return arolla::python::StatusCausedByPyErr(
+      absl::StatusCode::kInternal, "failed to construct a python string");
+}
+
+absl::StatusOr<PyObjectPtr> DataClassesUtil::CreateClassInstanceKwargs(
+    PyObjectPtr absl_nonnull py_class,
+    absl::Span<const absl::string_view> attr_names,
     absl::Span<const PyObjectPtr absl_nonnull> attr_values) {
   const size_t attr_names_size = attr_names.size();
   if (attr_names_size != attr_values.size()) {
     return absl::InvalidArgumentError(
         "attr_names and attr_values should have the same size");
   }
-  PyObjectPtr py_dict = PyObjectPtr::Own(PyDict_New());
-  if (py_dict == nullptr) {
+  std::vector<PyObject*> args(attr_names_size);
+  PyObjectPtr kwnames = PyObjectPtr::Own(PyTuple_New(attr_names_size));
+  if (kwnames == nullptr) {
     return arolla::python::StatusCausedByPyErr(absl::StatusCode::kInternal,
-                                               "could not create a new dict");
+                                               "could not create a new tuple");
   }
-
-  for (size_t i = 0; i < attr_names_size; ++i) {
-    if (PyDict_SetItemString(py_dict.get(), attr_names[i].c_str(),
-                             attr_values[i].get()) < 0) {
-      return arolla::python::StatusCausedByPyErr(
-          absl::StatusCode::kInternal,
-          absl::StrFormat("could not set value for attr %s", attr_names[i]));
-    }
+  for (size_t i = 0; i < attr_names.size(); ++i) {
+    ASSIGN_OR_RETURN(PyObjectPtr py_str, GetPyStr(attr_names[i]));
+    PyTuple_SET_ITEM(kwnames.get(), i, py_str.release());
+    args[i] = attr_values[i].get();
   }
-
-  PyObjectPtr py_args = PyObjectPtr::Own(PyTuple_New(0));
-  if (py_args == nullptr) {
-    return arolla::python::StatusCausedByPyErr(
-        absl::StatusCode::kInternal, "could not create a new empty tuple");
-  }
-
   PyObjectPtr py_instance = PyObjectPtr::Own(
-      PyObject_Call(py_class.get(), py_args.get(), py_dict.get()));
+      PyObject_Vectorcall(py_class.get(), args.data(), 0, kwnames.get()));
   if (py_instance == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
@@ -183,8 +183,7 @@ DataClassesUtil::CreateClassInstanceKwargs(
   return py_instance;
 }
 
-absl::StatusOr<arolla::python::PyObjectPtr>
-DataClassesUtil::GetSimpleNamespaceClass() {
+absl::StatusOr<PyObjectPtr> DataClassesUtil::GetSimpleNamespaceClass() {
   RETURN_IF_ERROR(InitFns());
   return simple_namespace_class_;
 }
@@ -211,8 +210,8 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
   std::vector<PyObject*> values;
   values.reserve(attr_names.size());
   for (absl::string_view attr_name : attr_names) {
-    PyObject* py_value =
-        PyObject_GetAttrString(py_obj, std::string(attr_name).c_str());
+    ASSIGN_OR_RETURN(PyObjectPtr py_attr_name, GetPyStr(attr_name));
+    PyObject* py_value = PyObject_GetAttr(py_obj, py_attr_name.get());
     if (py_value == nullptr) {
       return arolla::python::StatusWithRawPyErr(
           absl::StatusCode::kInvalidArgument,
@@ -232,27 +231,13 @@ DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
     return absl::InvalidArgumentError("attr_name is empty");
   }
   RETURN_IF_ERROR(InitFns());
-  PyObjectPtr args = PyObjectPtr::Own(PyTuple_New(4));
-  if (args == nullptr) {
-    return arolla::python::StatusCausedByPyErr(
-        absl::StatusCode::kInternal, "could not create a new tuple of size 4");
-  }
-  PyTuple_SET_ITEM(args.get(), 0, py_class.release());
-  PyObject* py_attr_name =
-      PyUnicode_FromStringAndSize(attr_name.data(), attr_name.size());
-  if (py_attr_name == nullptr) {
-    return arolla::python::StatusCausedByPyErr(
-        absl::StatusCode::kInternal,
-        absl::StrFormat("could not create a string for attr name %s",
-                        attr_name));
-  }
-  PyTuple_SET_ITEM(args.get(), 1, py_attr_name);
-  PyObject* py_for_primitive = PyBool_FromLong(for_primitive);
-  PyTuple_SET_ITEM(args.get(), 2, py_for_primitive);
-  PyTuple_SET_ITEM(args.get(), 3,
-                   PyObjectPtr::NewRef(type_hints_cache_.get()).release());
-  PyObjectPtr py_attr = PyObjectPtr::Own(PyObject_Call(
-      fn_get_class_field_type_.get(), /*args=*/args.get(), nullptr));
+  ASSIGN_OR_RETURN(PyObjectPtr py_attr_name, GetPyStr(attr_name));
+  PyObjectPtr py_for_primitive =
+      PyObjectPtr::Own(PyBool_FromLong(for_primitive));
+  PyObject* call_args[] = {py_class.get(), py_attr_name.get(),
+                           py_for_primitive.get(), type_hints_cache_.get()};
+  PyObjectPtr py_attr = PyObjectPtr::Own(PyObject_Vectorcall(
+      fn_get_class_field_type_.get(), call_args, 4, nullptr));
   if (py_attr == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
@@ -266,18 +251,17 @@ DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
             "with 2 elements, got %s",
             py_attr.get()->ob_type->tp_name));
   }
-  FieldTypeDescriptor res;
-  res.type = PyObjectPtr::NewRef(PyTuple_GET_ITEM(py_attr.get(), 0));
-  res.is_optional = PyTuple_GET_ITEM(py_attr.get(), 1) == Py_True;
-  return res;
+  return FieldTypeDescriptor{
+      .type = PyObjectPtr::NewRef(PyTuple_GET_ITEM(py_attr.get(), 0)),
+      .is_optional = PyTuple_GET_ITEM(py_attr.get(), 1) == Py_True};
 }
 
 absl::StatusOr<std::optional<DataClassesUtil::AttrResult>>
 DataClassesUtil::GetAttrNamesAndValues(PyObject* py_obj) {
   RETURN_IF_ERROR(InitFns());
 
-  PyObjectPtr py_fields = arolla::python::PyObjectPtr::Own(
-      PyObject_CallOneArg(fn_fields_.get(), /*args=*/py_obj));
+  PyObjectPtr py_fields =
+      PyObjectPtr::Own(PyObject_CallOneArg(fn_fields_.get(), /*args=*/py_obj));
   if (py_fields == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument, "");
@@ -334,13 +318,10 @@ DataClassesUtil::GetAttrNamesAndValues(PyObject* py_obj) {
 }
 
 absl::StatusOr<DataClassesUtil::FieldTypeDescriptor>
-DataClassesUtil::MaybeDecayOptional(arolla::python::PyObjectPtr
-                                    absl_nonnull py_type) {
+DataClassesUtil::MaybeDecayOptional(PyObjectPtr absl_nonnull py_type) {
   RETURN_IF_ERROR(InitFns());
-  PyObjectPtr args = PyObjectPtr::Own(PyTuple_New(1));
-  PyTuple_SET_ITEM(args.get(), 0, py_type.release());
-  PyObjectPtr py_result = PyObjectPtr::Own(PyObject_Call(
-      fn_maybe_decay_optional_.get(), /*args=*/args.get(), nullptr));
+  PyObjectPtr py_result = PyObjectPtr::Own(
+      PyObject_CallOneArg(fn_maybe_decay_optional_.get(), py_type.get()));
   if (py_result == nullptr) {
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument, "could not decay optional type");
