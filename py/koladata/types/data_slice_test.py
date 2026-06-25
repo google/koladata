@@ -4422,6 +4422,56 @@ class DataSliceFallbackTest(parameterized.TestCase):
     self.assertFalse(ds([1, None]).is_empty())
 
 
+class DataSliceSlicingTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+      (ds([1, 2, 3]), 0, ds(1)),
+      (ds([1, 2, 3]), 1, ds(2)),
+      (ds([1, 2, 3]), 2, ds(3)),
+      (ds([1, 2, 3]), 3, ds(None, schema=schema_constants.INT32)),
+      (ds([1, 2, 3]), -1, ds(3)),
+      (ds([1, 2, 3]), slice(None), ds([1, 2, 3])),
+      (ds([1, 2, 3]), slice(None, 2), ds([1, 2])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 0, ds([1, 3, 4])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 1, ds([2, None, 5])),
+      (ds([[1, 2], [3], [4, 5, 6]]), 2, ds([None, None, 6])),
+      (ds([[1, 2], [3], [4, 5, 6]]), slice(1, 2), ds([[2], [], [5]])),
+      (ds([[1, 2], [3], [4, 5, 6]]), slice(1, None), ds([[2], [], [5, 6]])),
+      # multi-dim indexing/slicing
+      (ds([[1, 2], [3], [4, 5, 6]]), (0, -1), ds(2)),
+      (ds([[1, 2], [3], [4, 5, 6]]), (1, 0), ds(3)),
+      (
+          ds([[1, 2], [3], [4, 5, 6]]),
+          (slice(1, 3), slice(1, -1)),
+          ds([[], [5]]),
+      ),
+      (ds([[1, 2], [3], [4, 5, 6]]), (..., 1), ds([2, None, 5])),
+      (ds([[1, 2], [3], [4, 5, 6]]), (0, ...), ds([1, 2])),
+  )
+  def test_get_item(self, x, i, expected):
+    testing.assert_equal(x.S[i], expected)
+
+  @parameterized.parameters(
+      (ds([]), 0),
+      (ds([1]), 1),
+      (ds([1, 2, 3]), 3),
+      (ds([[1, 2], [3], [4, 5, 6]]), 3),
+  )
+  def test_len(self, x, expected):
+    self.assertLen(x.S, expected)
+
+  def test_iter(self):
+    d = ds([1, 2, 3])
+    for idx, el in enumerate(d.S):
+      self.assertEqual(el, d.S[idx])
+
+  def test_no_infinite_loop_in_iter(self):
+    x = ds([[1, 2], [3]])
+    for i, _ in enumerate(x.S):
+      if i > 30:
+        raise RuntimeError('infinite loop when iterating over x.S')
+
+
 class DataSliceListSlicingTest(parameterized.TestCase):
 
   @parameterized.parameters(
