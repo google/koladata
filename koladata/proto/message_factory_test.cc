@@ -51,7 +51,8 @@ TEST(ToProtoTest, DeserializeProtoByName) {
             koladata::testing::ExampleMessage::descriptor());
 
   auto* new_proto =
-      dynamic_cast<koladata::testing::ExampleMessage*>(message.get());
+      google::protobuf::DynamicCastMessage<koladata::testing::ExampleMessage>(
+          message.get());
   ASSERT_NE(new_proto, nullptr);
   EXPECT_EQ(new_proto->int32_field(), 123);
 
