@@ -16,6 +16,7 @@
 
 import types as py_types
 from typing import Any
+from typing import TYPE_CHECKING
 from koladata.expr import tracing_mode
 from koladata.functions import predicates
 from koladata.functor import tracing_decorator
@@ -59,6 +60,10 @@ class NamedContainer:
   """
 
   _HAS_DYNAMIC_ATTRIBUTES = True
+  if TYPE_CHECKING:
+
+    def __getattr__(self, name: str) -> Any:
+      ...
 
   def __dir__(self):
     return self.__dict__.keys()
