@@ -81,7 +81,7 @@ class ObjectsGroupBy {
       const arolla::DenseArray<ObjectId>& objs) {
     ASSIGN_OR_RETURN(auto group_sizes,
                      arolla::DenseArrayEdgeSizesOp()(&ctx_, edge));
-    ASSIGN_OR_RETURN(auto indicies, agg_index_op_.Apply(edge, objs.ToMask()));
+    ASSIGN_OR_RETURN(auto indices, agg_index_op_.Apply(edge, objs.ToMask()));
     std::vector<arolla::DenseArrayBuilder<ObjectId>> objs_grouped_bldr;
     objs_grouped_bldr.reserve(group_sizes.size());
     group_sizes.ForEachPresent([&](int64_t idx, int64_t size) {
@@ -91,7 +91,7 @@ class ObjectsGroupBy {
         [&](size_t idx, ObjectId new_obj, int64_t group_id, int64_t index) {
           objs_grouped_bldr[group_id].Set(index - 1, new_obj);
         },
-        objs, edge.ToMappingEdge().edge_values(), indicies));
+        objs, edge.ToMappingEdge().edge_values(), indices));
     std::vector<arolla::DenseArray<ObjectId>> objs_grouped;
     objs_grouped.reserve(group_sizes.size());
     for (auto& bldr : objs_grouped_bldr) {

@@ -160,7 +160,7 @@ def call_fn_returning_stream_when_parallel(
   """Special call that will be transformed to expect fn to return a stream.
 
   It should be used only if functor is provided externally in production
-  enviroment. Prefer `functor.call` for functors fully implemented in Python.
+  environment. Prefer `functor.call` for functors fully implemented in Python.
 
   Args:
     fn: function to be called. Should return Iterable in interactive mode and
