@@ -20,6 +20,7 @@ from typing import Any
 
 import google_benchmark
 from koladata import kd
+from koladata.functions.tests import test_pb2
 
 
 I = kd.I
@@ -402,6 +403,219 @@ def universal_converter_itemid(state):
     l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
   while (state):
     _ = kd.from_py(l, itemid=kd.uuid_for_list('itemid'), schema=schema)
+
+
+# -- Proto benchmarks via kd.from_py --
+# These benchmark the ConvertProto path in from_py, which converts proto
+# messages to Koda objects via from_py (as opposed to kd.from_proto).
+
+MESSAGE_C_SCHEMA = kd.schema_from_proto(test_pb2.MessageC)
+MESSAGE_D_SCHEMA = kd.schema_from_proto(test_pb2.MessageD)
+
+
+def _make_message_c_mixed():
+  """Creates a MessageC with all field types populated."""
+  return test_pb2.MessageC(
+      message_field=test_pb2.MessageC(),
+      int32_field=1,
+      bytes_field=b'a',
+      bool_field=True,
+      float_field=1.5,
+      double_field=2.5,
+      repeated_message_field=[test_pb2.MessageC()],
+      repeated_int32_field=[1, 2, 3],
+      repeated_bytes_field=[b'a', b'b', b'c'],
+      map_int32_int32_field={1: 2, 3: 4},
+      map_int32_message_field={1: test_pb2.MessageC()},
+  )
+
+
+def _make_message_d_full():
+  """Creates a MessageD with all 100 int32 fields populated."""
+  return test_pb2.MessageD(**{f'field{i}': i for i in range(1, 101)})
+
+
+def _make_deep_messages(count, depth):
+  """Creates `count` MessageC protos nested to `depth` levels."""
+  messages = [test_pb2.MessageC() for _ in range(count)]
+  leaf_messages = list(messages)
+  for _ in range(depth):
+    for i in range(count):
+      leaf_messages[i] = leaf_messages[i].message_field
+      leaf_messages[i].int32_field = i
+  return messages
+
+
+# --- Single proto via from_py ---
+
+
+@google_benchmark.register
+def from_py_proto_single_mixed_fields(state):
+  message = _make_message_c_mixed()
+  while state:
+    _ = kd.from_py(message)
+
+
+@google_benchmark.register
+def from_py_proto_single_mixed_fields_with_schema(state):
+  message = _make_message_c_mixed()
+  while state:
+    _ = kd.from_py(message, schema=MESSAGE_C_SCHEMA)
+
+
+# --- 1k protos with mixed fields via from_py ---
+
+
+@google_benchmark.register
+def from_py_proto_1k_mixed_fields(state):
+  messages = [_make_message_c_mixed() for _ in range(1000)]
+  while state:
+    _ = kd.from_py(messages)
+
+
+@google_benchmark.register
+def from_py_proto_1k_mixed_fields_with_schema(state):
+  messages = [_make_message_c_mixed() for _ in range(1000)]
+  schema = kd.list_schema(MESSAGE_C_SCHEMA)
+  while state:
+    _ = kd.from_py(messages, schema=schema)
+
+
+# --- 100-field MessageD via from_py ---
+
+
+@google_benchmark.register
+def from_py_proto_100fields_1k(state):
+  messages = [_make_message_d_full() for _ in range(1000)]
+  while state:
+    _ = kd.from_py(messages)
+
+
+@google_benchmark.register
+def from_py_proto_100fields_1k_with_schema(state):
+  messages = [_make_message_d_full() for _ in range(1000)]
+  schema = kd.list_schema(MESSAGE_D_SCHEMA)
+  while state:
+    _ = kd.from_py(messages, schema=schema)
+
+
+# --- Deeply nested protos via from_py ---
+
+
+@google_benchmark.register
+def from_py_proto_100_of_100_deep(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  while state:
+    _ = kd.from_py(messages)
+
+
+@google_benchmark.register
+def from_py_proto_100_of_100_deep_with_schema(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  schema = kd.list_schema(MESSAGE_C_SCHEMA)
+  while state:
+    _ = kd.from_py(messages, schema=schema)
+
+
+# --- Mixed: protos alongside Python dicts/lists ---
+
+
+@google_benchmark.register
+def from_py_proto_mixed_with_dicts(state):
+  """Protos interleaved with dicts in a list — exercises mixed conversion."""
+  items = []
+  for i in range(500):
+    items.append(test_pb2.MessageC(int32_field=i))
+    items.append({'int32_field': i})
+  while state:
+    _ = kd.from_py(items)
+
+
+# --- Comparison: from_py(from_dim=1) vs from_proto ---
+
+
+@google_benchmark.register
+def from_py_proto_1k_mixed_fields_with_schema_from_dim1(state):
+  messages = [_make_message_c_mixed() for _ in range(1000)]
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    # Use from_dim=1 to return a DataSlice of shape [1000] instead of a List,
+    # matching what from_proto does.
+    _ = kd.from_py(messages, schema=schema, from_dim=1)
+
+
+@google_benchmark.register
+def from_proto_1k_mixed_fields_with_schema_direct(state):
+  messages = [_make_message_c_mixed() for _ in range(1000)]
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    _ = kd.from_proto(messages, schema=schema)
+
+
+@google_benchmark.register
+def from_py_proto_100fields_1k_with_schema_from_dim1(state):
+  messages = [_make_message_d_full() for _ in range(1000)]
+  schema = MESSAGE_D_SCHEMA
+  while state:
+    _ = kd.from_py(messages, schema=schema, from_dim=1)
+
+
+@google_benchmark.register
+def from_proto_100fields_1k_with_schema_direct(state):
+  messages = [_make_message_d_full() for _ in range(1000)]
+  schema = MESSAGE_D_SCHEMA
+  while state:
+    _ = kd.from_proto(messages, schema=schema)
+
+
+@google_benchmark.register
+def from_py_proto_nested_100x10_with_schema_from_dim2(state):
+  nested_messages = [
+      [_make_message_c_mixed() for _ in range(10)] for _ in range(100)
+  ]
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    _ = kd.from_py(nested_messages, schema=schema, from_dim=2)
+
+
+@google_benchmark.register
+def from_proto_nested_100x10_with_schema_direct(state):
+  nested_messages = [
+      [_make_message_c_mixed() for _ in range(10)] for _ in range(100)
+  ]
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    _ = kd.from_proto(nested_messages, schema=schema)
+
+
+@google_benchmark.register
+def from_py_proto_100_of_100_deep_with_schema_from_dim1(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    _ = kd.from_py(messages, schema=schema, from_dim=1)
+
+
+@google_benchmark.register
+def from_proto_100_of_100_deep_with_schema_direct(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  schema = MESSAGE_C_SCHEMA
+  while state:
+    _ = kd.from_proto(messages, schema=schema)
+
+
+@google_benchmark.register
+def from_py_proto_100_of_100_deep_from_dim1(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  while state:
+    _ = kd.from_py(messages, schema=None, from_dim=1)
+
+
+@google_benchmark.register
+def from_proto_100_of_100_deep_direct(state):
+  messages = _make_deep_messages(count=100, depth=100)
+  while state:
+    _ = kd.from_proto(messages)
 
 
 if __name__ == '__main__':
