@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -25,11 +26,12 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/annotation_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/named_field_qtype.h"
+#include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
@@ -40,13 +42,11 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
-#include "arolla/expr/annotation_utils.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
-
 
 namespace koladata::functor::parallel {
 namespace {
