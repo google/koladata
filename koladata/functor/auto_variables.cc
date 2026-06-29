@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
