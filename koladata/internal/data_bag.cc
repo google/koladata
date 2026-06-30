@@ -2135,15 +2135,11 @@ inline Dict& DataBagImpl::GetOrCreateMutableDict(ObjectId object_id) {
 namespace {
 
 struct DictsAllocCheckFn {
-  inline bool operator()(AllocationId alloc_id) {
-    return alloc_id.IsDictsAlloc();
-  }
+  bool operator()(AllocationId alloc_id) { return alloc_id.IsDictsAlloc(); }
 };
 
 struct SchemasAllocCheckFn {
-  inline bool operator()(AllocationId alloc_id) {
-    return alloc_id.IsSchemasAlloc();
-  }
+  bool operator()(AllocationId alloc_id) { return alloc_id.IsSchemasAlloc(); }
 };
 
 }  // namespace
