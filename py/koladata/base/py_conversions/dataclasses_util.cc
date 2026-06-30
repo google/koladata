@@ -223,7 +223,7 @@ absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
   return values;
 }
 
-absl::StatusOr<DataClassesUtil::FieldTypeDescriptor>
+absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
 DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
                                    absl::string_view attr_name,
                                    bool for_primitive) {
@@ -242,6 +242,9 @@ DataClassesUtil::GetClassFieldType(PyObjectPtr absl_nonnull py_class,
     return arolla::python::StatusWithRawPyErr(
         absl::StatusCode::kInvalidArgument,
         absl::StrFormat("Could not get attribute %s from class", attr_name));
+  }
+  if (Py_IsNone(py_attr.get())) {
+    return std::nullopt;
   }
   if (!PyTuple_Check(py_attr.get()) || PyTuple_GET_SIZE(py_attr.get()) != 2) {
     return arolla::python::StatusWithRawPyErr(

@@ -134,8 +134,8 @@ class DataclassesUtilTest(absltest.TestCase):
       a: Obj1
 
     self.assertEqual(util.get_class_field_type(Obj2, 'a', False), (Obj1, False))
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', False), (None, False))
-    self.assertEqual(util.get_class_field_type(Obj2, 'b', True), (None, False))
+    self.assertIsNone(util.get_class_field_type(Obj2, 'b', False))
+    self.assertIsNone(util.get_class_field_type(Obj2, 'b', True))
 
   def test_get_class_field_type_optional(self):
     util = testing_clib.DataClassesUtil()
@@ -222,7 +222,6 @@ class DataclassesUtilTest(absltest.TestCase):
 
   def test_get_class_field_type_errors(self):
     util = testing_clib.DataClassesUtil()
-    self.assertEqual(util.get_class_field_type(Obj1, 'x', False), (None, False))
 
     with self.assertRaisesRegex(ValueError, "field 'a' has unsupported type"):
       _ = util.get_class_field_type(Obj1, 'a', False)
@@ -257,6 +256,7 @@ class DataclassesUtilTest(absltest.TestCase):
       e: None
       f: Any
       h: None | int
+      weird: Any | None
       bad_0: int | Any
       bad_1: int | float | None
       g: int = 1
@@ -282,7 +282,7 @@ class DataclassesUtilTest(absltest.TestCase):
         util.maybe_decay_optional(get_field_type('e')), (None, False)
     )
     self.assertEqual(
-        util.maybe_decay_optional(get_field_type('f')), (Any, False)
+        util.maybe_decay_optional(get_field_type('f')), (None, True)
     )
     self.assertEqual(
         util.maybe_decay_optional(get_field_type('g')), (int, False)
@@ -290,6 +290,10 @@ class DataclassesUtilTest(absltest.TestCase):
     self.assertEqual(
         util.maybe_decay_optional(get_field_type('h')), (int, True)
     )
+    self.assertEqual(
+        util.maybe_decay_optional(get_field_type('weird')), (None, True)
+    )
+
     with self.assertRaisesRegex(
         ValueError,
         'only unions `SomeType | None` are supported ; got instead: int |'

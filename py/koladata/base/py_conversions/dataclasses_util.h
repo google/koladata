@@ -69,6 +69,7 @@ class DataClassesUtil {
 
   // Returns the type of the given field in the class.
   // If the class is a dataclass, the type of the field is returned.
+  // If the class field is not present, `std::nullopt` is returned.
   // If the class field is a SimpleNamespace, the SimpleNamespace class is
   // returned.
   // Please note if the field is optional (e.g. `SomeType | None`), the
@@ -83,7 +84,7 @@ class DataClassesUtil {
   // fields are not typed, so with `for_primitive=True` the type of the field is
   // considered to be `None`, so that any type can be assigned to it; otherwise
   // it will be `SimpleNamespace`.
-  absl::StatusOr<FieldTypeDescriptor> GetClassFieldType(
+  absl::StatusOr<std::optional<FieldTypeDescriptor>> GetClassFieldType(
       arolla::python::PyObjectPtr absl_nonnull py_class,
       absl::string_view attr_name, bool for_primitive = false);
 

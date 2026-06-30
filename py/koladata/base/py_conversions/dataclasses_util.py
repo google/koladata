@@ -80,10 +80,15 @@ def maybe_decay_optional(t: _Type) -> tuple[_Type, bool]:
     If the field is optional (e.g., `SomeType | None` or `Optional[SomeType]`),
     `underlying_type` will be `SomeType` and `is_optional` will be `True`.
 
+    If the field is `Any`, `underlying_type` will be `None` (which means that
+    no type check is performed) and `is_optional`  will be `True`.
+
     If the field is a not-supported union (e.g., `SomeType | OtherType |
     ThirdType`), raises a `ValueError`.
     Otherwise, returns `(t, False)`.
   """
+  if t is Any:
+    return (None, True)
   if not _is_union(t):
     return (t, False)
   args = typing.get_args(t)
@@ -94,6 +99,8 @@ def maybe_decay_optional(t: _Type) -> tuple[_Type, bool]:
     underlying_type, none_type = none_type, underlying_type
   if underlying_type is types.NoneType or none_type is not types.NoneType:
     _raise_bad_optional_union(t)
+  if underlying_type is Any:
+    return (None, True)
   return (underlying_type, True)
 
 
@@ -114,7 +121,7 @@ def get_class_field_type(
     attr_name: str,
     for_primitive: bool,
     type_hints_cache: dict[_Type, dict[str, _Type]],
-) -> tuple[_Type | None, bool]:
+) -> tuple[_Type | None, bool] | None:
   """Returns information about the type of the given field of py_obj.
 
   Args:
@@ -129,9 +136,12 @@ def get_class_field_type(
     the field and `is_optional` is a boolean indicating if the field is
     Optional. If the field is optional (e.g., `SomeType | None`), `field_type`
     will be `SomeType` and `is_optional` will be `True`. Otherwise,
-    `is_optional` is `False`. If the field type cannot be determined,
-    `(None, False)` is returned.
+    `is_optional` is `False`.
+    Please note that `Any` is considered optional.
+    If the field is not present, `None` is returned.
   """
+  if py_obj is None:
+    return (None, True)
 
   if py_obj is types.SimpleNamespace:
     if for_primitive:
@@ -143,7 +153,9 @@ def get_class_field_type(
 
     t = _get_field_type_annotation(py_obj, attr_name, type_hints_cache)
     if t is None:
-      return (None, False)
+      return None
+    if t is Any:
+      return (None, True)
     if dataclasses.is_dataclass(t):
       return (t, False)
     # x: Optional[Obj] or x: Obj | None

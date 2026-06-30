@@ -61,6 +61,20 @@ PyObject* SetErrorForOutputTypeAndReturnNull(absl::string_view value_type,
   return nullptr;
 }
 
+bool CheckOutputType(const std::optional<DataClassesUtil::FieldTypeDescriptor>&
+                         output_class_descriptor,
+                     PyTypeObject* expected_type) {
+  if (!output_class_descriptor.has_value()) {
+    return true;
+  }
+
+  if (Py_IsNone(output_class_descriptor->type.get())) {
+    return true;
+  }
+
+  return ((PyTypeObject*)output_class_descriptor->type.get()) == expected_type;
+}
+
 // The following functions Return a new reference to a Python object, equivalent
 // to `value`.
 // If `output_primitive_type` is not Py_None, it must be a Python type
@@ -68,8 +82,7 @@ PyObject* SetErrorForOutputTypeAndReturnNull(absl::string_view value_type,
 PyObject* PyObjectFromValue(
     int32_t value, const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                        output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyLong_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyLong_Type)) {
     return SetErrorForOutputTypeAndReturnNull("int32", "int");
   }
   return PyLong_FromLongLong(value);
@@ -78,8 +91,7 @@ PyObject* PyObjectFromValue(
 PyObject* PyObjectFromValue(
     int64_t value, const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                        output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyLong_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyLong_Type)) {
     return SetErrorForOutputTypeAndReturnNull("int64", "int");
   }
   return PyLong_FromLongLong(value);
@@ -88,8 +100,7 @@ PyObject* PyObjectFromValue(
 PyObject* PyObjectFromValue(
     float value, const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                      output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyFloat_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyFloat_Type)) {
     return SetErrorForOutputTypeAndReturnNull("float", "float");
   }
   return PyFloat_FromDouble(value);
@@ -98,8 +109,7 @@ PyObject* PyObjectFromValue(
 PyObject* PyObjectFromValue(
     double value, const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                       output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyFloat_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyFloat_Type)) {
     return SetErrorForOutputTypeAndReturnNull("float64", "float");
   }
   return PyFloat_FromDouble(value);
@@ -108,8 +118,7 @@ PyObject* PyObjectFromValue(
 PyObject* PyObjectFromValue(
     bool value, const std::optional<DataClassesUtil::FieldTypeDescriptor>&
                     output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyBool_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyBool_Type)) {
     return SetErrorForOutputTypeAndReturnNull("bool", "bool");
   }
   return PyBool_FromLong(value);
@@ -129,8 +138,7 @@ PyObject* PyObjectFromValue(
     const arolla::Text& value,
     const std::optional<DataClassesUtil::FieldTypeDescriptor>&
         output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyUnicode_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyUnicode_Type)) {
     return SetErrorForOutputTypeAndReturnNull("text", "str");
   }
 
@@ -142,8 +150,7 @@ PyObject* PyObjectFromValue(
     const ::arolla::Bytes& value,
     const std::optional<DataClassesUtil::FieldTypeDescriptor>&
         output_class_descriptor) {
-  if (output_class_descriptor.has_value() &&
-      ((PyTypeObject*)output_class_descriptor->type.get()) != &PyBytes_Type) {
+  if (!CheckOutputType(output_class_descriptor, &PyBytes_Type)) {
     return SetErrorForOutputTypeAndReturnNull("bytes", "bytes");
   }
 

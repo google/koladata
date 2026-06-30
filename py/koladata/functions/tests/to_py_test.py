@@ -337,18 +337,6 @@ class ToPyTest(parameterized.TestCase):
     ):
       _ = py_conversions.to_py(root, output_class=ObjWithUnion)
 
-  def test_output_class_any_raises(self):
-    @dataclasses.dataclass
-    class ObjWithUnion:
-      o1: Any
-
-    root = fns.obj(o1=fns.obj(a=1, b='x'))
-
-    with self.assertRaisesRegex(
-        ValueError, "field 'o1' has unsupported type: typing.Any"
-    ):
-      _ = py_conversions.to_py(root, output_class=ObjWithUnion)
-
   def test_output_class_list(self):
 
     obj = fns.obj(a=1, b='x')
@@ -515,6 +503,37 @@ class ToPyTest(parameterized.TestCase):
     ):
       _ = py_conversions.to_py(fns.bool(True), output_class=int)
 
+  def test_output_class_primitive_float_with_any(self):
+    converted = py_conversions.to_py(fns.float32(3.14), output_class=Any)
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    converted = py_conversions.to_py(fns.float64(3.14), output_class=Any)
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    converted = py_conversions.to_py(
+        fns.item(3.14, schema=schema_constants.OBJECT), output_class=Any
+    )
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+  @parameterized.parameters(
+      (fns.int32(3), 3),
+      (fns.int64(3), 3),
+      (fns.str('abc'), 'abc'),
+      (fns.bytes(b'abc'), b'abc'),
+      (fns.bool(True), True),
+  )
+  def test_output_class_primitive_with_any(self, input_type, expected_res):
+    converted = py_conversions.to_py(input_type, output_class=Any)
+    self.assertEqual(converted, expected_res)
+
+    converted = py_conversions.to_py(fns.float64(3.14), output_class=Any)
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
+    converted = py_conversions.to_py(
+        fns.item(3.14, schema=schema_constants.OBJECT), output_class=Any
+    )
+    self.assertAlmostEqual(converted, 3.14, places=2)
+
   def test_sparse_slice_with_output_class(self):
     s = ds([1, 2, None, 3, None])
     self.assertEqual(s.to_py(output_class=int | None), [1, 2, None, 3, None])
@@ -654,7 +673,7 @@ class ToPyTest(parameterized.TestCase):
       b: str
 
     result = py_conversions.to_py(
-        fns.obj(a=1, b='x', c=2, d=None),
+        fns.obj(a=1, b='x', c=2, d=None, e=fns.obj(z=1)),
         output_class=Obj,
     )
     self.assertEqual(result, Obj(a=1, b='x'))
@@ -779,6 +798,94 @@ class ToPyTest(parameterized.TestCase):
         ValueError, 'object_id is not supported with output_primitive_type'
     ):
       _ = py_conversions.to_py(fns.new().no_bag(), output_class=int)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='_Any', output_class=Any),
+      dict(testcase_name='list[Any]', output_class=list[Any]),
+      dict(testcase_name='_None', output_class=None),
+  )
+  def test_output_class_any_with_primitive_list(self, output_class):
+    root = fns.list([1, 2, 3])
+    converted = py_conversions.to_py(root, output_class=output_class)
+    self.assertEqual(converted, [1, 2, 3])
+    self.assertIs(converted.__class__, list)
+
+  def test_output_class_any_with_complex_object(self):
+    @dataclasses.dataclass
+    class Obj2:
+      o1: Any
+      o2: Obj1
+      list1: list[Any]
+      list2: Any
+      dict1: dict[str, Any]
+      dict2: Any
+      i: int
+
+    koda_obj1 = fns.obj(a=1, b='x')
+    koda_obj2 = fns.obj(a=2, b='y')
+    koda_list = fns.list([koda_obj1, koda_obj2])
+    koda_dict = fns.dict({'a': koda_obj1, 'b': koda_obj2})
+    root = fns.new(
+        o1=koda_obj1,
+        o2=koda_obj2,
+        list1=koda_list,
+        list2=koda_list,
+        dict1=koda_dict,
+        dict2=koda_dict,
+        i=fns.int64(3),
+    )
+
+    o1 = Obj1(a=1, b='x')
+    o2 = Obj1(a=2, b='y')
+    l = [o1, o2]
+    d = {'a': o1, 'b': o2}
+    root_obj = Obj2(o1=o1, o2=o2, i=3, list1=l, list2=l, dict1=d, dict2=d)
+    converted = py_conversions.to_py(root, output_class=Obj2)
+    self.assertEqual(converted, root_obj)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='_Any', output_class=Any),
+      dict(testcase_name='dict[Any, Any]', output_class=dict[Any, Any]),
+      dict(testcase_name='_None', output_class=None),
+  )
+  def test_output_class_any_with_primitive_dict(self, output_class):
+    root = fns.dict({1: 2, 3: 4})
+    converted = py_conversions.to_py(root, output_class=output_class)
+    self.assertEqual(converted, {1: 2, 3: 4})
+    self.assertIs(converted.__class__, dict)
+
+  def test_output_class_any_type_fails_if_not_specified(self):
+    @dataclasses.dataclass
+    class Obj:
+      a: int
+      b: str
+      c: Any
+
+    with self.assertRaisesRegex(
+        TypeError, "missing 1 required positional argument: 'c'"
+    ):
+      _ = py_conversions.to_py(fns.obj(a=1, b='x'), output_class=Obj)
+
+  def test_sparse_obj_with_output_class_with_any(self):
+    s = fns.obj(x=[1, 2, None, 3, None])
+
+    @dataclasses.dataclass
+    class SparseObj:
+      x: list[Any]
+
+    self.assertEqual(
+        s.to_py(output_class=SparseObj), SparseObj(x=[1, 2, None, 3, None])
+    )
+
+  def test_output_class_missing_data_works_with_any(self):
+    @dataclasses.dataclass
+    class ObjTwoAttrs:
+      a: Any
+      b: int
+
+    o = fns.obj(a=fns.int32(None), b=1)
+    res = py_conversions.to_py(o, output_class=ObjTwoAttrs)
+    self.assertEqual(res, ObjTwoAttrs(a=None, b=1))
 
   def test_dict_with_obj_keys(self):
     root = mutable_obj()

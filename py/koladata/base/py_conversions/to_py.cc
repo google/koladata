@@ -119,13 +119,26 @@ class ToPyVisitor : internal::AbstractVisitor {
     return item;
   }
 
+  // Returns true if the field type is present, i.e. not `std::nullopt` and not
+  // `None`.
+  // std::nullopt means that the field is not present in the parent class;
+  // Py_IsNone means that the field is present, but is of type `Any`.
+  // so we need to go through the default logic without any output class for
+  // this object.
+  bool DescribesPresentFieldType(
+      const std::optional<DataClassesUtil::FieldTypeDescriptor>& field_type) {
+    return field_type.has_value() && !Py_IsNone(field_type->type.get());
+  }
+
   // If output_class_descriptor_ is provided (which is always the case when we
   // call this method), we need to compute the class for the `item` and store it
-  // in the `class_cache_by_object_id` and `classes_by_path_`. Returns true if
-  // it should be visited, false otherwise (which is the case when there is no
-  // corresponding field in the output class, i.e. the field does not exist and
-  // should not be created).
-  absl::StatusOr<bool> ComputeAndStoreClassForItem(
+  // in the `class_cache_by_object_id` and `classes_by_path_`.
+  // Returns true if the class was computed and stored successfully,
+  // false otherwise (which is the case when:
+  // 1. there is no corresponding field in the output class, i.e. the field
+  // does not exist and should not be created).
+  // 2. the field exists, but is of type `Any`.
+  absl::StatusOr<bool> MaybeComputeAndStoreClassForItem(
       const DataItem& from_item, absl::string_view from_item_attr_name,
       const DataItem& item) {
     const ObjectId& object_id = item.value<ObjectId>();
@@ -140,38 +153,52 @@ class ToPyVisitor : internal::AbstractVisitor {
     ASSIGN_OR_RETURN(PyObject * parent_class, GetCachedClass(from_item));
     std::pair<PyObject*, std::string> path_key(parent_class,
                                                from_item_attr_name);
-    DataClassesUtil::FieldTypeDescriptor& class_cached_by_path =
-        classes_by_path_[std::move(path_key)];
-    if (class_cached_by_path.type != nullptr) {
+    auto class_cached_by_path_it = classes_by_path_.find(path_key);
+    if (class_cached_by_path_it != classes_by_path_.end()) {
+      // We have already computed the class for this path.
+      auto& class_cached_by_path = class_cached_by_path_it->second;
       class_cache_by_object_id_[object_id] = class_cached_by_path;
-      return !Py_IsNone(class_cached_by_path.type.get());
+      return DescribesPresentFieldType(class_cached_by_path);
     }
 
     // In this case we are going to get class field type for an object, so
     // it is not a primitive here.
-    ASSIGN_OR_RETURN(class_cached_by_path,
-                     dataclasses_util_.GetClassFieldType(
-                         PyObjectPtr::NewRef(parent_class), from_item_attr_name,
-                         /*for_primitive=*/false));
-    DCHECK(class_cached_by_path.type != nullptr);
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::FieldTypeDescriptor> field_type,
+        dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(parent_class),
+                                            from_item_attr_name,
+                                            /*for_primitive=*/false));
+
+    classes_by_path_[std::move(path_key)] = field_type;
+
+    if (!DescribesPresentFieldType(field_type)) {
+      // The type of the field is not specified, so we fail back to the default
+      // behavior; It means that class_cache_by_object_id_ will not be used for
+      // this object, object will be created during Previsit and stored in
+      // converted_object_cache_.
+      return false;
+    }
 
     // We need to check that the same object is not reached with different
     // paths. We do this check only if this path was not visited before.
-    auto& class_cached_by_object_id = class_cache_by_object_id_[object_id];
-    if (class_cached_by_object_id.type == nullptr) {
-      class_cached_by_object_id = class_cached_by_path;
-      return !Py_IsNone(class_cached_by_path.type.get());
+    auto class_cached_by_object_id_it =
+        class_cache_by_object_id_.find(object_id);
+
+    if (class_cached_by_object_id_it == class_cache_by_object_id_.end()) {
+      class_cache_by_object_id_[object_id] = std::move(field_type);
+      return true;
+    } else {
+      // Koda object is the same, but Python class is different.
+      if (class_cached_by_object_id_it->second->type.get() !=
+          field_type->type.get()) {
+        return absl::InternalError(absl::StrFormat(
+            "same object is reached with different classes: %s and %s",
+            PyObjectTypeName(class_cached_by_object_id_it->second->type.get()),
+            PyObjectTypeName(field_type->type.get())));
+      }
     }
 
-    // Koda object is the same, but Python class is different.
-    if (class_cached_by_object_id.type.get() !=
-        class_cached_by_path.type.get()) {
-      return absl::InternalError(absl::StrFormat(
-          "same object is reached with different classes: %s and %s",
-          PyObjectTypeName(class_cached_by_object_id.type.get()),
-          PyObjectTypeName(class_cached_by_path.type.get())));
-    }
-    return !Py_IsNone(class_cached_by_path.type.get());
+    return true;
   }
 
   // Pre-visiting Entities in order to decide whether we need to create a
@@ -206,10 +233,24 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (output_class_descriptor_.has_value()) {
       // `output_class` is provided, so we need to compute the class for
       // the `item`.
-      if (!from_item_attr_name.has_value()) {
-        return true;
+      if (from_item_attr_name.has_value()) {
+        ASSIGN_OR_RETURN(bool class_computed,
+                         MaybeComputeAndStoreClassForItem(
+                             from_item, *from_item_attr_name, item));
+        if (class_computed) {
+          return true;
+        }
+      } else {
+        auto class_cached_by_object_id_it =
+            class_cache_by_object_id_.find(object_id);
+        if (class_cached_by_object_id_it != class_cache_by_object_id_.end() &&
+            DescribesPresentFieldType(class_cached_by_object_id_it->second)) {
+          return true;
+        }
       }
-      return ComputeAndStoreClassForItem(from_item, *from_item_attr_name, item);
+      // Fall through to the default logic, because the output class for this
+      // field turned out to be `Any` or the field is not present in the output
+      // class, we did not store it and need to create the actual object here.
     }
 
     if (schema.holds_value<ObjectId>()) {
@@ -495,7 +536,8 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (!output_class_descriptor_.has_value()) {
       return std::nullopt;
     }
-    ASSIGN_OR_RETURN(PyObject * result_class, GetCachedClass(object));
+    ASSIGN_OR_RETURN(PyObject * result_class,
+                     GetCachedClass(object, /*return_none_if_not_found=*/true));
     DCHECK(result_class != nullptr);
     ASSIGN_OR_RETURN(PyObjectPtr simple_namespace_class,
                      dataclasses_util_.GetSimpleNamespaceClass());
@@ -504,16 +546,19 @@ class ToPyVisitor : internal::AbstractVisitor {
     }
 
     std::pair<PyObject*, std::string> key{result_class, attr_name};
-    DataClassesUtil::FieldTypeDescriptor& attr_class =
-        classes_by_path_[std::move(key)];
-    if (attr_class.type.get() == nullptr) {
+    auto attr_class_it = classes_by_path_.find(key);
+    if (attr_class_it == classes_by_path_.end()) {
       // If the attr would have been an object, it would have been already
       // pre-visited and cached; at this point it can only be a primitive.
-      ASSIGN_OR_RETURN(attr_class, dataclasses_util_.GetClassFieldType(
-                                       PyObjectPtr::NewRef(result_class),
-                                       attr_name, /*for_primitive=*/true));
+      ASSIGN_OR_RETURN(
+          std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class,
+          dataclasses_util_.GetClassFieldType(PyObjectPtr::NewRef(result_class),
+                                              attr_name,
+                                              /*for_primitive=*/true));
+      classes_by_path_[std::move(key)] = attr_class;
+      return attr_class;
     }
-    return attr_class;
+    return attr_class_it->second;
   }
 
   absl::Status VisitObject(
@@ -560,8 +605,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       std::optional<DataClassesUtil::FieldTypeDescriptor> attr_class;
       if (!result_class_is_simple_namespace) {
         ASSIGN_OR_RETURN(attr_class, GetAttrClass(object, attr_name.value));
-        DCHECK(attr_class.has_value());
-        if (attr_class->type.get() == Py_None) {
+        if (!attr_class.has_value()) {
           continue;  // no field with this name in the class
         }
         if (!attr_value.present || !attr_value.value.has_value()) {
@@ -622,9 +666,12 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
   // Returns a converted Python class for the given `item`.
-  // Returns an error if the `item` does not hold ObjectId, or if the object
-  // is not found in the converted object cache.
-  absl::StatusOr<PyObject*> GetCachedClass(const DataItem& item) {
+  // Returns an error if the `item` does not hold ObjectId.
+  // If the class cannot be found in the cache:
+  // - returns an error, unless `return_none_if_not_found` is set to true, in
+  // which case it returns None.
+  absl::StatusOr<PyObject*> GetCachedClass(
+      const DataItem& item, bool return_none_if_not_found = false) {
     if (!item.holds_value<ObjectId>()) {
       return absl::InternalError(
           "GetCachedClass is called, but item does not hold ObjectId");
@@ -640,12 +687,18 @@ class ToPyVisitor : internal::AbstractVisitor {
         return absl::InvalidArgumentError(
             "schema is not supported in to_py conversion");
       }
+      if (return_none_if_not_found) {
+        return Py_None;
+      }
       return absl::InternalError(
           "item holds an object id, but its class is not found in cache; "
           "probably, it was not pre-visited");
     }
-    DCHECK(it->second.type != nullptr);
-    return it->second.type.get();
+    if (!it->second.has_value()) {
+      return Py_None;
+    }
+    DCHECK(it->second->type != nullptr);
+    return it->second->type.get();
   }
 
   // If the given `item` holds ObjectId, returns a cached Python object for
@@ -722,7 +775,8 @@ class ToPyVisitor : internal::AbstractVisitor {
   // converted_object_cache_) and used during the visit stage to instantiate
   // the class for objects/entities/lists. Please note that it also used to
   // check if the same object is reached by different classes to fail early.
-  absl::flat_hash_map<ObjectId, DataClassesUtil::FieldTypeDescriptor>
+  absl::flat_hash_map<ObjectId,
+                      std::optional<DataClassesUtil::FieldTypeDescriptor>>
       class_cache_by_object_id_;
 
   // Cache for Python classes that are accessed by path.
@@ -735,7 +789,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   // classes_by_path_ will be:
   // { (Obj1, 'obj2'): Obj2, (Obj1, 'obj3'): Obj3 }
   absl::flat_hash_map<std::pair<PyObject*, std::string>,
-                      DataClassesUtil::FieldTypeDescriptor>
+                      std::optional<DataClassesUtil::FieldTypeDescriptor>>
       classes_by_path_;
 
   absl::flat_hash_map<ObjectId, ObjectId> item_schemas_;

@@ -539,6 +539,8 @@ def to_py(
       objects.
     output_class: If not None, will be used recursively as the output type.
   """
+  if output_class is Any:
+    output_class = None
   return ds._to_py_impl(  # pylint: disable=protected-access
       max_depth=max_depth,
       obj_as_dict=obj_as_dict,

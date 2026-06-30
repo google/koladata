@@ -43,9 +43,9 @@ PYBIND11_MODULE(testing_clib, m) {
            })
       .def("get_class_field_type",
            [](DataClassesUtil& self, py::handle py_class,
-              absl::string_view attr_name, bool for_primitive) -> py::tuple {
-             absl::StatusOr<DataClassesUtil::FieldTypeDescriptor> field_type =
-                 self.GetClassFieldType(
+              absl::string_view attr_name, bool for_primitive) -> py::object {
+             absl::StatusOr<std::optional<DataClassesUtil::FieldTypeDescriptor>>
+                 field_type = self.GetClassFieldType(
                      arolla::python::PyObjectPtr::NewRef(py_class.ptr()),
                      attr_name, for_primitive);
 
@@ -53,9 +53,12 @@ PYBIND11_MODULE(testing_clib, m) {
                arolla::python::SetPyErrFromStatus(field_type.status());
                throw pybind11::error_already_set();
              }
-             auto type =
-                 py::reinterpret_steal<py::object>(field_type->type.release());
-             auto is_optional = py::bool_(field_type->is_optional);
+             if (!field_type->has_value()) {
+               return py::none();
+             }
+             auto type = py::reinterpret_steal<py::object>(
+                 field_type->value().type.release());
+             auto is_optional = py::bool_(field_type->value().is_optional);
              return py::make_tuple(type, is_optional);
            })
       .def("maybe_decay_optional",
