@@ -19,8 +19,7 @@ import dataclasses
 import enum
 import types as py_types
 import typing
-from typing import Any, Union
-
+from typing import Any, Optional, Union
 from koladata.functions import attrs
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -114,6 +113,8 @@ def schema_from_py(tpe: type[Any]) -> schema_item.SchemaItem:
       # kd.from_py always returns FLOAT32 for floats, so we do the same for
       # consistency.
       return schema_constants.FLOAT32
+    if tpe == Any:
+      return schema_constants.OBJECT
     if tpe == bool:
       return schema_constants.BOOLEAN
     raise TypeError(f'unsupported type in kd.schema_from_py: {tpe}.')
@@ -132,15 +133,18 @@ _koda_to_py_type_map = {
     schema_constants.STRING: str,
     schema_constants.BYTES: bytes,
 }
-
 _PRIMITIVETYPE = type[Union[bool, bytes, float, int, str]]
 
 
-def _primitive_schema_to_py(schema: schema_item.SchemaItem) -> _PRIMITIVETYPE:
+def _primitive_schema_to_py(
+    schema: schema_item.SchemaItem,
+) -> _PRIMITIVETYPE | None:
   """Returns the Python type corresponding to the given Koda primitive schema."""
+  if schema == schema_constants.OBJECT:
+    return Any
   if schema not in _koda_to_py_type_map:
     raise TypeError(f'unsupported primitive schema: {schema}.')
-  return _koda_to_py_type_map[schema]
+  return Optional[_koda_to_py_type_map[schema]]
 
 
 def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
@@ -170,8 +174,7 @@ def _internal_schema_to_py(
   if fp in visited:
     return visited[fp]
   if schema.is_primitive():
-    return _primitive_schema_to_py(schema) | None
-
+    return _primitive_schema_to_py(schema)
   if schema.is_list_schema():
     res = list[_internal_schema_to_py(schema.get_item_schema(), visited)] | None
   elif schema.is_dict_schema():
@@ -185,7 +188,10 @@ def _internal_schema_to_py(
   elif schema.is_entity_schema():
     dc_type = dataclasses.make_dataclass(
         _get_dataclass_name(schema),
-        [(name, Any) for name in attrs.dir(schema)],
+        [
+            (name, Any, dataclasses.field(default=None))
+            for name in attrs.dir(schema)
+        ],
     )
     res = dc_type | None
     visited[fp] = res

@@ -41,7 +41,7 @@ class ComplexClass:
   z: Another | None
   a: Entity | None
 
-MAX_DEPTH = 10
+MAX_DEPTH = 5
 
 
 class SchemaToPyTest(parameterized.TestCase):
@@ -146,6 +146,10 @@ class SchemaToPyTest(parameterized.TestCase):
           schema=kd.BYTES,
           expected_tpe=bytes | None,
       ),
+      dict(
+          schema=kd.OBJECT,
+          expected_tpe=Any,
+      ),
   )
   def test_primitives(self, schema, expected_tpe):
     self.assertEqual(kd_schema.schema_to_py(schema), expected_tpe)
@@ -165,9 +169,6 @@ class SchemaToPyTest(parameterized.TestCase):
     self.assertEqual(kd_schema.schema_to_py(schema), expected_tpe)
 
   @parameterized.parameters(
-      dict(
-          kd_type=kd.OBJECT,
-      ),
       dict(
           kd_type=kd.EXPR,
       ),
@@ -328,6 +329,14 @@ class SchemaToPyTest(parameterized.TestCase):
         typing.get_args(a_field)[0]
     )
     self.assertIs(list_item_type, res_item)
+
+  def test_schema_to_py_with_default_values(self):
+    schema = kd.schema.new_schema(x=kd.INT64, y=kd.STRING)
+    converted_type = kd_schema.schema_to_py(schema)
+    converted_type = self._get_underlying_optional_type(converted_type)
+    converted_obj = converted_type()
+    self.assertIsNone(converted_obj.x)
+    self.assertIsNone(converted_obj.y)
 
 
 if __name__ == '__main__':
