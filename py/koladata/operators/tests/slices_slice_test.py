@@ -141,6 +141,17 @@ class SlicesSliceTest(parameterized.TestCase):
     ):
       _ = kde.slices.slice([1, 2, 3], I.schema)
 
+  def test_slice_of_lists_with_list_schema(self):
+    lst1 = expr_eval.eval(kde.lists.new([[1, 2], [3]]))
+    lst2 = expr_eval.eval(kde.lists.new([[4, 5], [6]]))
+    self.assertEqual(lst1.get_schema(), lst2.get_schema())
+
+    # Creating a slice containing lists themselves as items
+    my_lists = expr_eval.eval(
+        kde.slices.slice([[lst1, lst2], [lst1]], schema=lst1.get_schema())
+    )
+    testing.assert_equal(my_lists.flatten().S[0].no_bag(), lst1.no_bag())
+
   def test_schema_adoption(self):
     schema = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))
     res = expr_eval.eval(kde.slices.slice([], schema))

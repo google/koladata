@@ -2476,12 +2476,121 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
     EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
   }
   {
+    ASSERT_OK_AND_ASSIGN(auto list_schema_1,
+                         CreateListSchema(db, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_2,
+                         CreateListSchema(db, list_schema_1));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_3,
+                         CreateListSchema(db, list_schema_2));
+
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         CreateNestedList(db, values, list_schema_3,
+                                          /*item_schema=*/std::nullopt));
+
+    EXPECT_EQ(lists.GetShape().rank(), 0);
+    EXPECT_THAT(lists.GetSchema(), IsEquivalentTo(list_schema_3));
+
+    ASSERT_OK_AND_ASSIGN(auto item_schema,
+                         lists.GetSchema().GetAttr("__items__"));
+    ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
+    ASSERT_OK_AND_ASSIGN(item_schema, item_schema.GetAttr("__items__"));
+    EXPECT_EQ(item_schema.item(), schema::kInt32);
+
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(exploded_lists,
+                         exploded_lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(exploded_lists,
+                         exploded_lists.ExplodeList(0, std::nullopt));
+    EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kInt32);
+    EXPECT_THAT(values.slice(), IsEquivalentTo(exploded_lists.slice()));
+    EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists.GetShape()));
+  }
+  {
     EXPECT_THAT(
         CreateNestedList(db, values, /*schema=*/std::nullopt,
                          test::Schema(schema::kString)),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("the schema for list items is incompatible")));
   }
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_Casting) {
+  auto db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 2, 3}),
+                            test::EdgeFromSplitPoints({0, 2, 3, 5})}));
+
+  // Case 1: Casting succeeds (INT32 -> FLOAT32)
+  {
+    auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
+    ASSERT_OK_AND_ASSIGN(auto list_schema_1,
+                         CreateListSchema(db, test::Schema(schema::kFloat32)));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_2,
+                         CreateListSchema(db, list_schema_1));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_3,
+                         CreateListSchema(db, list_schema_2));
+
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         CreateNestedList(db, values, list_schema_3,
+                                          /*item_schema=*/std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto exploded_lists,
+                         lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(exploded_lists,
+                         exploded_lists.ExplodeList(0, std::nullopt));
+    ASSERT_OK_AND_ASSIGN(exploded_lists,
+                         exploded_lists.ExplodeList(0, std::nullopt));
+    EXPECT_EQ(exploded_lists.GetSchemaImpl(), schema::kFloat32);
+    EXPECT_THAT(exploded_lists,
+                IsEquivalentTo(test::DataSlice<float>(
+                    {1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, shape, db)));
+  }
+
+  // Case 2: Casting fails (FLOAT64 -> INT32)
+  {
+    auto values = test::DataSlice<double>({1.5, 2.5, 3.5, 4.5, 5.5}, shape, db);
+    ASSERT_OK_AND_ASSIGN(auto list_schema_1,
+                         CreateListSchema(db, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_2,
+                         CreateListSchema(db, list_schema_1));
+    ASSERT_OK_AND_ASSIGN(auto list_schema_3,
+                         CreateListSchema(db, list_schema_2));
+
+    EXPECT_THAT(
+        CreateNestedList(db, values, list_schema_3,
+                         /*item_schema=*/std::nullopt),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("the schema for list items is incompatible")));
+  }
+}
+
+TEST(ObjectFactoriesTest, CreateNestedList_ItemSchema_Adopt) {
+  auto schema_db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity_schema,
+      CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kInt32)}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(1).AddDims(
+                           {test::EdgeFromSplitPoints({0, 1}),
+                            test::EdgeFromSplitPoints({0, 1})}));
+  ASSERT_OK_AND_ASSIGN(
+      auto values, EntityCreator::Shaped(schema_db, shape, {"a"},
+                                         {test::DataItem(42)}, entity_schema));
+
+  auto target_db = DataBag::EmptyMutable();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, CreateNestedList(target_db, values, /*schema=*/std::nullopt,
+                                /*item_schema=*/entity_schema));
+  EXPECT_EQ(ds.GetBag(), target_db);
+  ASSERT_OK_AND_ASSIGN(auto exploded_1, ds.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_2,
+                       exploded_1.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_3,
+                       exploded_2.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_3.GetAttr("a"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int>(
+                  {42}, exploded_3.GetShape(), target_db))));
 }
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {

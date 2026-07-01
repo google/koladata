@@ -19,13 +19,16 @@ from arolla.jagged_shape import jagged_shape
 from koladata.expr import py_expr_eval_py_ext as eval_clib
 from koladata.expr import view
 from koladata.operators import arolla_bridge
+from koladata.operators import comparison as comparison_ops
 from koladata.operators import core as core_ops
 from koladata.operators import ids as ids_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
+from koladata.operators import masking as masking_ops
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices as slices_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -386,32 +389,54 @@ def _new_bind_args(
         'please use kd.implode(ds) to create lists from ds'
     )
 
-  schema_to_use = arolla.unspecified()
+  schema_for_slice = arolla.unspecified()
   if not _is_unspecified(item_schema):
-    schema_to_use = item_schema
+    schema_for_slice = item_schema
   elif not _is_unspecified(schema):
-    schema_to_use = schema.get_item_schema()
+    schema_for_slice = schema.get_item_schema()
 
   if _is_unspecified(items):
     return (
         data_slice.DataSlice.from_vals(
             [],
             schema_constants.OBJECT
-            if _is_unspecified(schema_to_use)
-            else schema_to_use,
+            if _is_unspecified(schema_for_slice)
+            else schema_for_slice,
         ),
-        schema_to_use,
+        schema_for_slice,
         arolla.unspecified(),
         itemid,
         optools.unified_non_deterministic_arg(),
     )
 
-  if isinstance(schema_to_use, arolla.Expr) or (
-      not _is_unspecified(schema_to_use)
-      and schema_to_use != schema_constants.OBJECT
+  # We are going all the way down to the list's item schema,
+  # looking for either kd.OBJECT or unspecified.
+  while (
+      not isinstance(schema_for_slice, arolla.Expr)
+      and not _is_unspecified(schema_for_slice)
+      and schema_for_slice.is_list_schema()
   ):
-    schema_to_use = arolla.unspecified()
-  items = eval_clib.eval_or_bind_op('kd.slices.slice', items, schema_to_use)
+    schema_for_slice = schema_for_slice.get_item_schema()
+
+  # If schema_for_slice is an expression, we don't know at binding time if it
+  # will evaluate to OBJECT. If it evaluates to OBJECT, we want to create a
+  # DataSlice with OBJECT schema (to avoid upcasting/force explicit boxing to
+  # OBJECT). Otherwise, we create a DataSlice with unspecified schema (letting
+  # C++ backend handle implicit casting).
+  if isinstance(schema_for_slice, arolla.Expr):
+    is_object = comparison_ops.equal(schema_for_slice, schema_constants.OBJECT)
+    items_object = slices_ops.slice_(items, schema_constants.OBJECT)
+    items_unspecified = slices_ops.slice_(items, arolla.unspecified())
+    items = masking_ops.cond(is_object, items_object, items_unspecified)
+  else:
+    if (
+        not _is_unspecified(schema_for_slice)
+        and schema_for_slice != schema_constants.OBJECT
+    ):
+      schema_for_slice = arolla.unspecified()
+    items = eval_clib.eval_or_bind_op(
+        slices_ops.slice_, items, schema_for_slice
+    )
   return (
       items,
       item_schema,

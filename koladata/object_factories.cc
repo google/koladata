@@ -1093,24 +1093,65 @@ absl::StatusOr<DataSlice> CreateNestedList(
     const std::optional<DataSlice>& schema,
     const std::optional<DataSlice>& item_schema,
     const std::optional<DataSlice>& itemid) {
+  size_t rank = values.GetShape().rank();
+  if (rank == 0) {
+    return absl::InvalidArgumentError(
+        "creating a list from values requires at least one dimension");
+  }
+
+  if (schema.has_value() && item_schema.has_value()) {
+    return absl::InvalidArgumentError(
+        "creating lists with schema accepts either a list schema or item "
+        "schema, but not both");
+  }
+
+  std::optional<DataSlice> inner_item_schema;
+  if (item_schema.has_value()) {
+    DataSlice current_schema = *item_schema;
+    for (size_t i = 1; i < rank; ++i) {
+      if (!current_schema.IsListSchema()) {
+        break;
+      }
+      ASSIGN_OR_RETURN(current_schema,
+                       current_schema.GetAttr(schema::kListItemsSchemaAttr));
+    }
+    inner_item_schema = std::move(current_schema);
+  } else if (schema.has_value()) {
+    DataSlice current_schema = *schema;
+    for (size_t i = 0; i < rank; ++i) {
+      if (!current_schema.IsListSchema()) {
+        return absl::InvalidArgumentError(
+            absl::StrCat("expected List schema for get_item_schema, got ",
+                         arolla::Repr(current_schema)));
+      }
+      ASSIGN_OR_RETURN(current_schema,
+                       current_schema.GetAttr(schema::kListItemsSchemaAttr));
+    }
+    inner_item_schema = std::move(current_schema);
+  }
+
+  if (inner_item_schema.has_value()) {
+    AdoptionQueue schema_adoption_queue;
+    schema_adoption_queue.Add(*inner_item_schema);
+    RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+  }
+
   // NOTE: CreateListShaped deals with consistency of values and passed schema
   // args (called from CreateListsFromLastDimension below).
-  ASSIGN_OR_RETURN(
-      DataSlice res,
-      CreateListsFromLastDimension(
-          db, values, schema, item_schema,
-          values.GetShape().rank() <= 1 && itemid ? itemid : std::nullopt));
-  for (size_t rank = res.GetShape().rank(); rank > 0;
-       rank = res.GetShape().rank()) {
+  ASSIGN_OR_RETURN(DataSlice res,
+                   CreateListsFromLastDimension(
+                       db, values, /*schema=*/std::nullopt, inner_item_schema,
+                       rank <= 1 && itemid ? itemid : std::nullopt));
+  for (size_t i = 1; i < rank; ++i) {
     // NOTE: If `itemid` is present, the last "implosion" of a list needs to
     // happen to `itemid` ObjectIds.
     ASSIGN_OR_RETURN(
-        res,
-        CreateListsFromLastDimension(
-            db, res, /*schema=*/std::nullopt, /*item_schema=*/std::nullopt,
-            // TODO: When itemid is provided by the user, a proper
-            // nested / child itemid should be created.
-            rank == 1 && itemid ? itemid : std::nullopt));
+        res, CreateListsFromLastDimension(
+                 db, res, /*schema=*/std::nullopt,
+                 /*item_schema=*/std::nullopt,
+                 // TODO: When itemid is provided by the user, a
+                 // proper nested / child itemid should be created.
+                 i == rank - 1 && itemid ? itemid : std::nullopt));
   }
   return std::move(res);
 }

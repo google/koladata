@@ -82,12 +82,82 @@ class ListsListTest(parameterized.TestCase):
     res = kd.lists.new([1, 2, 3], schema=schema)
     testing.assert_equal(res[:].no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
-  # TODO: Re-enable once the bug is fixed.
-  # def test_eval_nested_list_schema(self):
-  #   schema = kde.list_schema(kde.list_schema(schema_constants.INT32)).eval()
-  #   res = kd.lists.new([[1, 2], [3]], schema=schema)
-  #   testing.assert_equal(
-  #       res[:].no_bag(), ds([1, 2, 3], schema_constants.INT32))
+  def test_eval_nested_list_schema(self):
+    schema = kde.list_schema(kde.list_schema(schema_constants.INT32)).eval()
+    res = kd.lists.new([[1, 2], [3]], schema=schema)
+    testing.assert_equal(
+        res.explode(-1).no_bag(), ds([[1, 2], [3]], schema_constants.INT32)
+    )
+
+  def test_eval_nested_list_item_schema(self):
+    res = kd.lists.new([[1, 2], [3]], item_schema=schema_constants.INT32)
+    testing.assert_equal(
+        res.explode(-1).no_bag(), ds([[1, 2], [3]], schema_constants.INT32)
+    )
+
+  def test_eval_nested_list_item_schema_adoption(self):
+    entity_schema = kd.schema.new_schema(a=schema_constants.INT32)
+    res = kd.lists.new([[], []], item_schema=entity_schema)
+    item_schema = res.get_schema().get_item_schema().get_item_schema()
+    testing.assert_equal(item_schema.a.no_bag(), schema_constants.INT32)
+
+  def test_nested_list_schema_casting(self):
+    schema = kde.list_schema(kde.list_schema(schema_constants.FLOAT32)).eval()
+    res = kd.lists.new([[1, 2], [3]], schema=schema)
+    testing.assert_equal(
+        res.explode(-1).no_bag(),
+        ds([[1.0, 2.0], [3.0]], schema_constants.FLOAT32),
+    )
+
+  def test_eval_item_schema_casting(self):
+    res = kd.lists.new(
+        [[[], [1, 2.5]], [[3.0]]], item_schema=schema_constants.FLOAT32
+    )
+    testing.assert_equal(
+        res.explode(-1).no_bag(),
+        ds([[[], [1.0, 2.5]], [[3.0]]], schema_constants.FLOAT32),
+    )
+
+  def test_nested_list_schema_from_lists(self):
+    lsts = kd.lists.new(
+        [kd.lists.new([1, 2]), kd.lists.new([3])],
+        item_schema=kde.list_schema(schema_constants.INT32).eval(),
+    )
+    self.assertEqual(
+        lsts.get_schema().no_bag(),
+        kde.list_schema(kde.list_schema(schema_constants.INT32))
+        .eval()
+        .no_bag(),
+    )
+    testing.assert_equal(lsts[:].S[0][:].no_bag(), ds([1, 2]))
+    testing.assert_equal(lsts[:].S[1][:].no_bag(), ds([3]))
+
+  def test_nested_list_item_schema_casting(self):
+    res = kd.lists.new(
+        [[[1, 2], [3]], [[4]]],
+        item_schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT32)
+        ).eval(),
+    )
+    self.assertEqual(
+        res.get_schema().no_bag(),
+        kde.list_schema(
+            kde.list_schema(kde.list_schema(schema_constants.FLOAT32))
+        )
+        .eval()
+        .no_bag(),
+    )
+    testing.assert_equal(
+        res.explode(-1).no_bag(),
+        ds([[[1.0, 2.0], [3.0]], [[4.0]]], schema_constants.FLOAT32),
+    )
+
+  def test_eval_nested_list_schema_casting_failure(self):
+    schema = kde.list_schema(kde.list_schema(schema_constants.INT32)).eval()
+    with self.assertRaisesRegex(
+        ValueError, 'the schema for list items is incompatible'
+    ):
+      kd.lists.new([[1.5, 2.0], [3.0]], schema=schema)
 
   @parameterized.parameters(
       ([1, 2, 3],),
@@ -194,6 +264,20 @@ class ListsListTest(parameterized.TestCase):
         repr(kde.lists.new(I.x)),
         'kd.lists.new(I.x, unspecified, unspecified, unspecified)',
     )
+
+  def test_schema_as_expr_object(self):
+    # When schema is OBJECT, it prevents auto-upcasting.
+    res = expr_eval.eval(
+        kde.lists.new([1, 2.5], item_schema=I.schema),
+        schema=schema_constants.OBJECT,
+    )
+    testing.assert_equal(res[:].no_bag(), ds([1, 2.5], schema_constants.OBJECT))
+
+    res = expr_eval.eval(
+        kde.lists.new([1, 2.5], schema=I.schema),
+        schema=kde.list_schema(item_schema=schema_constants.OBJECT).eval(),
+    )
+    testing.assert_equal(res[:].no_bag(), ds([1, 2.5], schema_constants.OBJECT))
 
 
 if __name__ == '__main__':

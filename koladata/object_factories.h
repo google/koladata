@@ -386,7 +386,7 @@ absl::StatusOr<DataSlice> CreateListsFromLastDimension(
 
 // Creates a list from values. If `values` dimension is more than one, the list
 // will contain other lists. If `item_schema` is not provided, it will be
-// taken from `values`.
+// taken from `values`. `item_schema` corresponds to the nested-most items.
 //
 // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
 // allocating them. If `itemid` already had lists in `db`, those will be

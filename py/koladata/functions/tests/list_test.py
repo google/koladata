@@ -66,7 +66,8 @@ class ListTest(parameterized.TestCase):
     )
     testing.assert_equal(
         fns.list(
-            [1, 2.0], schema=kde.list_schema(schema_constants.OBJECT).eval(),
+            [1, 2.0],
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
@@ -166,6 +167,12 @@ class ListTest(parameterized.TestCase):
           kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
+      (
+          [[[1, 2], [3]], [[4, 5], [6]]],
+          None,
+          kd.list_schema(kd.list_schema(kd.list_schema(kd.FLOAT32))),
+          kd.list_schema(kd.list_schema(kd.FLOAT32)).no_bag(),
+      ),
   )
   def test_schema(self, items, item_schema, schema, expected_item_schema):
     testing.assert_equal(
@@ -175,6 +182,17 @@ class ListTest(parameterized.TestCase):
         .no_bag(),
         expected_item_schema,
     )
+
+  def test_nested_list_schema_from_lists(self):
+    lsts = kd.list(
+        [kd.list([1, 2]), kd.list([3])], item_schema=kd.list_schema(kd.INT32)
+    )
+    self.assertEqual(
+        lsts.get_schema().no_bag(),
+        kd.list_schema(kd.list_schema(kd.INT32)).no_bag(),
+    )
+    testing.assert_equal(lsts[:].S[0][:].no_bag(), kd.slice([1, 2]))
+    testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))
 
   def test_schema_arg_error(self):
     list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
