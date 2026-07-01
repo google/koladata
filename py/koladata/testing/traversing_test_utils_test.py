@@ -457,6 +457,128 @@ class TraversingTestUtilsTest(absltest.TestCase):
     b = bag_b.uu(a=1, b=bag_b.uu(c=1, schema=bag_b.named_schema('bar')))
     _ = traversing_test_utils.assert_deep_equivalent(a, b, ids_equality=True)
 
+  def test_assert_deep_equivalent_empty_list_missing_item_schema(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'added:\n'
+        r'actual.get_item_schema\(\):\n'
+        r'DataItem\(None, schema: INT32\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.list([], item_schema=schema_constants.INT32)
+      b = a.with_bag(bag_b)
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_empty_list_missing_item_schema_ok(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.list([], item_schema=schema_constants.INT32)
+    b = a.with_bag(bag_b)
+    traversing_test_utils.assert_deep_equivalent(a, b)
+
+  def test_assert_deep_equivalent_empty_list_named_item_schema_diff(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'modified schema:\n'
+        r'expected.get_item_schema\(\).x:\n'
+        r'DataItem\(FLOAT64, schema: SCHEMA\)\n'
+        r'-\> actual.get_item_schema\(\).x:\n'
+        r'DataItem\(INT32, schema: SCHEMA\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      point_a = bag_a.named_schema(
+          'Point', x=schema_constants.INT32, y=schema_constants.INT32,
+      )
+      point_b = bag_b.named_schema(
+          'Point', x=schema_constants.FLOAT64, y=schema_constants.FLOAT64,
+      )
+      a = bag_a.list([], item_schema=point_a)
+      b = bag_b.list([], item_schema=point_b)
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_empty_list_named_item_schema_ok(self):
+    bag_a = bag()
+    bag_b = bag()
+    point_a = bag_a.named_schema(
+        'Point', x=schema_constants.INT32, y=schema_constants.INT32,
+    )
+    point_b = bag_b.named_schema(
+        'Point', x=schema_constants.FLOAT64, y=schema_constants.FLOAT64,
+    )
+    a = bag_a.list([], item_schema=point_a)
+    b = bag_b.list([], item_schema=point_b)
+    traversing_test_utils.assert_deep_equivalent(a, b)
+
+  def test_assert_deep_equivalent_empty_dict_missing_value_schema(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'added:\n'
+        r'actual.get_value_schema\(\):\n'
+        r'DataItem\(None, schema: INT32\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.dict(
+          {}, key_schema=schema_constants.STRING,
+          value_schema=schema_constants.INT32,
+      )
+      b = a.with_bag(bag_b)
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_empty_dict_missing_value_schema_ok(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.dict(
+        {}, key_schema=schema_constants.STRING,
+        value_schema=schema_constants.INT32,
+    )
+    b = a.with_bag(bag_b)
+    traversing_test_utils.assert_deep_equivalent(a, b)
+
+  def test_assert_deep_equivalent_empty_dict_named_value_schema_diff(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'modified schema:\n'
+        r'expected.get_value_schema\(\).x:\n'
+        r'DataItem\(FLOAT64, schema: SCHEMA\)\n'
+        r'-\> actual.get_value_schema\(\).x:\n'
+        r'DataItem\(INT32, schema: SCHEMA\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      point_a = bag_a.named_schema(
+          'Point', x=schema_constants.INT32, y=schema_constants.INT32,
+      )
+      point_b = bag_b.named_schema(
+          'Point', x=schema_constants.FLOAT64, y=schema_constants.FLOAT64,
+      )
+      a = bag_a.dict(
+          {}, key_schema=schema_constants.STRING, value_schema=point_a,
+      )
+      b = bag_b.dict(
+          {}, key_schema=schema_constants.STRING, value_schema=point_b,
+      )
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_empty_dict_named_value_schema_ok(self):
+    bag_a = bag()
+    bag_b = bag()
+    point_a = bag_a.named_schema(
+        'Point', x=schema_constants.INT32, y=schema_constants.INT32,
+    )
+    point_b = bag_b.named_schema(
+        'Point', x=schema_constants.FLOAT64, y=schema_constants.FLOAT64,
+    )
+    a = bag_a.dict(
+        {}, key_schema=schema_constants.STRING, value_schema=point_a,
+    )
+    b = bag_b.dict(
+        {}, key_schema=schema_constants.STRING, value_schema=point_b,
+    )
+    traversing_test_utils.assert_deep_equivalent(a, b)
+
 
 if __name__ == '__main__':
   absltest.main()

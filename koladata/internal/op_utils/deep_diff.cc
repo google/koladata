@@ -15,15 +15,19 @@
 #include "koladata/internal/op_utils/deep_diff.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "arolla/util/status_macros_backport.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -151,6 +155,9 @@ absl::Status DeepDiff::SaveTransition(const DataItem& token,
                                             schema::kDictValuesSchemaAttr,
                                             DataItem(schema::kObject)));
     RETURN_IF_ERROR(databag_->SetInDict(token, key.value, value));
+  } else if (TraverseHelper::IsEmptyStructTransition(key.type)) {
+    RETURN_IF_ERROR(EmptyStructDiffHelper::SaveEmptyStructTransition(
+        *databag_, token_schema, key.type, kSchemaAttrPrefix, value));
   } else {
     return absl::InternalError("unsupported transition type");
   }
@@ -232,6 +239,68 @@ absl::StatusOr<DataItem> DeepDiff::CreateDiffWrapper(
                                           DataItem(schema::kObject)));
   RETURN_IF_ERROR(databag_->SetAttr(result, schema::kSchemaAttr,
                                     std::move(diff_wrapper_schema)));
+  return result;
+}
+
+absl::Status EmptyStructDiffHelper::SaveEmptyStructTransition(
+    DataBagImpl& databag, const DataItem& token_schema,
+    TraverseHelper::TransitionType type,
+    absl::string_view schema_attr_prefix, const DataItem& value) {
+  // Save transition from an empty struct to a missing item.
+  // We can't save the transition directly to the corresponding structure,
+  // so we save it in the schema metadata instead.
+  auto attr_name = arolla::Text(absl::StrCat(
+      schema_attr_prefix,
+      TraverseHelper::EmptyStructTransitionSchemaAttr(type)));
+  ASSIGN_OR_RETURN(
+      auto metadata,
+      CreateUuidWithMainObject(token_schema, schema::kMetadataSeed));
+  RETURN_IF_ERROR(databag.SetSchemaAttr(
+      token_schema, schema::kSchemaMetadataAttr, metadata));
+  ASSIGN_OR_RETURN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  RETURN_IF_ERROR(databag.SetSchemaAttr(metadata_schema, attr_name,
+                                        DataItem(schema::kObject)));
+  RETURN_IF_ERROR(databag.SetAttr(metadata, schema::kSchemaAttr,
+                                  std::move(metadata_schema)));
+  RETURN_IF_ERROR(databag.SetAttr(metadata, attr_name, value));
+  return absl::OkStatus();
+}
+
+absl::StatusOr<std::vector<TraverseHelper::TransitionKey>>
+EmptyStructDiffHelper::RestoreEmptyStructTransitions(
+    std::vector<TraverseHelper::TransitionKey> path) {
+  using TransitionType = TraverseHelper::TransitionType;
+  std::vector<TraverseHelper::TransitionKey> result;
+  result.reserve(path.size());
+  for (size_t i = 0; i < path.size(); ++i) {
+    auto& key = path[i];
+    if (key.type == TransitionType::kObjectSchema && i + 2 < path.size() &&
+        path[i + 1].type == TransitionType::kSchemaAttributeName &&
+        path[i + 1].value ==
+            DataItem(arolla::Text(schema::kSchemaMetadataAttr)) &&
+        path[i + 2].type == TransitionType::kAttributeName &&
+        path[i + 2].value.holds_value<arolla::Text>()) {
+      auto attr_name = path[i + 2].value.value<arolla::Text>().view();
+      TransitionType empty_type;
+      if (attr_name == schema::kListItemsSchemaAttr) {
+        empty_type = TransitionType::kListNoItems;
+      } else if (attr_name == schema::kDictKeysSchemaAttr) {
+        empty_type = TransitionType::kDictNoKeys;
+      } else if (attr_name == schema::kDictValuesSchemaAttr) {
+        empty_type = TransitionType::kDictNoValues;
+      } else {
+        return absl::InvalidArgumentError(
+            absl::StrCat("unexpected schema attr in metadata: ", attr_name));
+      }
+      result.push_back({.type = empty_type});
+      i += 2;
+      continue;
+    }
+    result.push_back(std::move(key));
+  }
   return result;
 }
 

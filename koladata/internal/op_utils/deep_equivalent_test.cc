@@ -325,6 +325,108 @@ TEST_P(DeepEquivalentTest, AllMissing) {
   EXPECT_THAT(diffs, ::testing::IsEmpty());
 }
 
+TEST_P(DeepEquivalentTest, MissingEntitiesSchemaMismatchInAttributes) {
+  auto db_a = DataBagImpl::CreateEmptyDatabag();
+  auto db_b = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op =
+      DeepEquivalentOp(result_db.get(), {.schemas_equality = true});
+  auto schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema, {{"b", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db_a, schema_triples);
+  SetSchemaTriples(*db_a, GenSchemaTriplesFoTests());
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds, schema, *GetMainDb(db_a),
+                         {GetFallbackDb(db_a).get()}, ds, schema,
+                         *GetMainDb(db_b), {GetFallbackDb(db_b).get()}));
+
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_ds, DataItem(schema::kObject)));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths,
+              ::testing::UnorderedElementsAre(".S[0].b"));
+}
+
+TEST_P(DeepEquivalentTest, MissingListsSchemaMismatchInItems) {
+  auto db_a = DataBagImpl::CreateEmptyDatabag();
+  auto db_b = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op =
+      DeepEquivalentOp(result_db.get(), {.schemas_equality = true});
+  auto schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema, {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db_a, schema_triples);
+  SetSchemaTriples(*db_a, GenSchemaTriplesFoTests());
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds, schema, *GetMainDb(db_a),
+                         {GetFallbackDb(db_a).get()}, ds, schema,
+                         *GetMainDb(db_b), {GetFallbackDb(db_b).get()}));
+
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_ds, DataItem(schema::kObject)));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths,
+              ::testing::UnorderedElementsAre(".S[0].get_item_schema()"));
+}
+
+TEST_P(DeepEquivalentTest, MissingDictsSchemaMismatchInKeysAndValues) {
+  auto db_a = DataBagImpl::CreateEmptyDatabag();
+  auto db_b = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op =
+      DeepEquivalentOp(result_db.get(), {.schemas_equality = true});
+  auto schema = AllocateSchema();
+  auto value_schema = AllocateSchema();
+  TriplesT schema_triples_a = {
+      {schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kDictValuesSchemaAttr, value_schema}}},
+      {value_schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT schema_triples_b = {
+      {schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kDictValuesSchemaAttr, value_schema}}},
+      {value_schema, {{"y", DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db_a, schema_triples_a);
+  SetSchemaTriples(*db_a, GenSchemaTriplesFoTests());
+  SetSchemaTriples(*db_b, schema_triples_b);
+  SetSchemaTriples(*db_b, GenSchemaTriplesFoTests());
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds, schema, *GetMainDb(db_a),
+                         {GetFallbackDb(db_a).get()}, ds, schema,
+                         *GetMainDb(db_b), {GetFallbackDb(db_b).get()}));
+
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_ds, DataItem(schema::kObject)));
+  std::vector<std::string> diff_paths;
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
+  }
+  EXPECT_THAT(diff_paths,
+              ::testing::UnorderedElementsAre(".S[0].get_value_schema().x",
+                                              ".S[0].get_value_schema().y"));
+}
+
 TEST_P(DeepEquivalentTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_schema = AllocateSchema();

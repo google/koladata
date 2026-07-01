@@ -21,6 +21,8 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
@@ -112,6 +114,25 @@ class DeepDiff {
   absl::StatusOr<DataItem> CreateDiffWrapper(const DataItem& diff_item);
 
   DataBagImplPtr databag_;
+};
+
+// Helper to save and restore empty struct (empty list / empty dict) diff
+// transitions. These transitions cannot be stored directly as list/dict
+// attributes, so they are instead stored in schema metadata.
+class EmptyStructDiffHelper {
+ public:
+  // Saves a diff transition for an empty struct (empty list or empty dict) in
+  // the schema metadata.
+  static absl::Status SaveEmptyStructTransition(
+      DataBagImpl& databag, const DataItem& token_schema,
+      TraverseHelper::TransitionType type,
+      absl::string_view schema_attr_prefix, const DataItem& value);
+
+  // Method to restore empty struct transitions in the path by replacing the
+  // metadata attribute access patterns.
+  static absl::StatusOr<std::vector<TraverseHelper::TransitionKey>>
+  RestoreEmptyStructTransitions(
+      std::vector<TraverseHelper::TransitionKey> path);
 };
 
 }  // namespace koladata::internal

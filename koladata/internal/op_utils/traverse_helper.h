@@ -52,8 +52,11 @@ class TraverseHelper {
  public:
   enum class TransitionType {
     kListItem,
+    kListNoItems,
     kDictKey,
+    kDictNoKeys,
     kDictValue,
+    kDictNoValues,
     kAttributeName,
     kSchemaAttributeName,
     kObjectSchema,
@@ -123,6 +126,12 @@ class TraverseHelper {
         return "";
       }
       return absl::StrFormat(".S[%d]", key.index);
+    } else if (key.type == TransitionType::kListNoItems) {
+      return ".get_item_schema()";
+    } else if (key.type == TransitionType::kDictNoKeys) {
+      return ".get_key_schema()";
+    } else if (key.type == TransitionType::kDictNoValues) {
+      return ".get_value_schema()";
     }
     ABSL_UNREACHABLE();
   }
@@ -136,6 +145,28 @@ class TraverseHelper {
           &result, TransitionKeyToAccessString(key, ignore_attr_name_prefix));
     }
     return result;
+  }
+
+  // Returns true if the transition type represents a schema comparison for an
+  // empty structure (empty list or empty dict).
+  static bool IsEmptyStructTransition(TransitionType type) {
+    return type == TransitionType::kListNoItems ||
+           type == TransitionType::kDictNoKeys ||
+           type == TransitionType::kDictNoValues;
+  }
+
+  // Returns the schema attribute name corresponding to the empty struct
+  // transition type.
+  static absl::string_view EmptyStructTransitionSchemaAttr(
+      TransitionType type) {
+    DCHECK(IsEmptyStructTransition(type));
+    if (type == TransitionType::kListNoItems) {
+      return schema::kListItemsSchemaAttr;
+    } else if (type == TransitionType::kDictNoKeys) {
+      return schema::kDictKeysSchemaAttr;
+    } else {
+      return schema::kDictValuesSchemaAttr;
+    }
   }
 
   // Returns a copy of the sequence of transition keys, where attribute names
@@ -282,6 +313,9 @@ class TraverseHelper {
           transition_keys.push_back(
               {.type = TransitionType::kListItem, .index = i});
         }
+        if (list_items().size() == 0) {
+          transition_keys.push_back({.type = TransitionType::kListNoItems});
+        }
       } else if (is_dict()) {
         for (int64_t i = 0; i < dict_keys().size(); ++i) {
           transition_keys.push_back({.type = TransitionType::kDictKey,
@@ -290,6 +324,10 @@ class TraverseHelper {
           transition_keys.push_back({.type = TransitionType::kDictValue,
                                      .index = i,
                                      .value = dict_keys()[i]});
+        }
+        if (dict_keys().size() == 0) {
+          transition_keys.push_back({.type = TransitionType::kDictNoKeys});
+          transition_keys.push_back({.type = TransitionType::kDictNoValues});
         }
       } else if (has_attrs()) {
         TransitionType type = is_schema() ? TransitionType::kSchemaAttributeName
@@ -401,6 +439,15 @@ class TraverseHelper {
                          .schema = DataItem(schema::kSchema)});
     } else if (key.type == TransitionType::kSchema) {
       return Transition({.item = schema, .schema = DataItem(schema::kSchema)});
+    } else if (key.type == TransitionType::kListNoItems) {
+      return Transition({.item = DataItem(),
+                         .schema = transitions_set.list_item_schema()});
+    } else if (key.type == TransitionType::kDictNoKeys) {
+      return Transition({.item = DataItem(),
+                         .schema = transitions_set.dict_keys_schema()});
+    } else if (key.type == TransitionType::kDictNoValues) {
+      return Transition({.item = DataItem(),
+                         .schema = transitions_set.dict_values_schema()});
     } else {
       return absl::InternalError("unsupported transition key type");
     }
