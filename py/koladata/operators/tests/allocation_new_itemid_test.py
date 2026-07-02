@@ -47,7 +47,7 @@ class AllocationNewItemIdTest(absltest.TestCase):
     testing.assert_equal(entity.a, ds(42).with_bag(entity.get_bag()))
 
   def test_new_alloc_ids(self):
-    expr = kde.allocation.new_itemid()
+    expr = kde.allocation.new_itemid()  # pyrefly: ignore[missing-attribute]
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
     res3 = kd.allocation.new_itemid()
@@ -57,8 +57,8 @@ class AllocationNewItemIdTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.allocation.new_itemid,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.allocation.new_itemid,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(
             qtypes.NON_DETERMINISTIC_TOKEN,
@@ -67,11 +67,11 @@ class AllocationNewItemIdTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.allocation.new_itemid()))
+    self.assertTrue(view.has_koda_view(kde.allocation.new_itemid()))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.allocation.new_itemid, kde.new_itemid)
+        optools.equiv_to_op(kde.allocation.new_itemid, kde.new_itemid)  # pyrefly: ignore[missing-attribute]
     )
 
 

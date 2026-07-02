@@ -205,21 +205,21 @@ class StringsAggJoinTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.strings.agg_join,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.strings.agg_join,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr_without_optional_args(self):
     self.assertEqual(
-        repr(kde.strings.agg_join(I.x)),
+        repr(kde.strings.agg_join(I.x)),  # pyrefly: ignore[missing-attribute]
         'kd.strings.agg_join(I.x, DataItem(None, schema: NONE), unspecified)',
     )
 
   def test_repr_with_optional_args(self):
     self.assertEqual(
-        repr(kde.strings.agg_join(I.x, I.sep, I.ndim)),
+        repr(kde.strings.agg_join(I.x, I.sep, I.ndim)),  # pyrefly: ignore[missing-attribute]
         'kd.strings.agg_join(I.x, I.sep, I.ndim)',
     )
 
@@ -267,7 +267,7 @@ class StringsAggJoinTest(parameterized.TestCase):
       kd.strings.agg_join(x, ndim=ndim)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.agg_join(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.agg_join(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

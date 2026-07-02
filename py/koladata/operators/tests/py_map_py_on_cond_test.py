@@ -43,14 +43,14 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     no_fn = lambda x: x - 1 if x is not None else -1
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
-    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val))
+    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         res.no_bag(), ds([[0, 1, -1, 5], [-1, -1], [8, 9, 10]])
     )
 
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(
-            yes_fn, no_fn, kde.masking.has_not(val) | (val > 2), val
+        kde.py.map_py_on_cond(  # pyrefly: ignore[missing-attribute]
+            yes_fn, no_fn, kde.masking.has_not(val) | (val > 2), val  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(res.no_bag(), ds([[0, 1, 0, 5], [0, 0], [8, 9, 10]]))
@@ -63,7 +63,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         [mask_constants.present, mask_constants.missing, mask_constants.present]
     )
 
-    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, cond, val))
+    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, no_fn, cond, val))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res.no_bag(), ds([[2, 3, 0, 5], [-1, -1], [8, 9, 10]]))
 
   def test_no_false_fn(self):
@@ -73,7 +73,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         [mask_constants.present, mask_constants.missing, mask_constants.present]
     )
 
-    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
+    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
@@ -84,19 +84,19 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     val = ds([])
     cond = ds([], schema_constants.MASK)
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(
+        kde.py.map_py_on_cond(  # pyrefly: ignore[missing-attribute]
             yes_fn, None, cond, x=val, schema=schema_constants.FLOAT32
         )
     )
     testing.assert_equal(res, ds([], schema_constants.FLOAT32))
     self.assertFalse(res.has_bag())
 
-    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
+    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res.no_bag(), ds([]))
     self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(
+        kde.py.map_py_on_cond(  # pyrefly: ignore[missing-attribute]
             yes_fn, None, cond, x=val, schema=schema_constants.OBJECT
         )
     )
@@ -108,19 +108,19 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         [mask_constants.missing, mask_constants.missing, mask_constants.missing]
     )
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(
+        kde.py.map_py_on_cond(  # pyrefly: ignore[missing-attribute]
             yes_fn, None, cond, x=val, schema=schema_constants.FLOAT32
         )
     )
     testing.assert_equal(res, ds([None, None, None], schema_constants.FLOAT32))
     self.assertFalse(res.has_bag())
 
-    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
+    res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res, ds([None, None, None]))
     self.assertFalse(res.has_bag())
 
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(
+        kde.py.map_py_on_cond(  # pyrefly: ignore[missing-attribute]
             yes_fn, None, cond, x=val, schema=schema_constants.OBJECT
         )
     )
@@ -138,7 +138,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
             re.escape('expected a mask, got cond: INT32')
         ),
     ):
-      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))
+      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))  # pyrefly: ignore[missing-attribute]
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
@@ -152,7 +152,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
             )
         ),
     ):
-      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
+      expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))  # pyrefly: ignore[missing-attribute]
 
   def test_dict_as_obj(self):
     yes_fn = lambda x: {'a': x + 1, 'b': x + 2}
@@ -160,19 +160,19 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     val = ds([1, 2, 3, 4])
 
     res = expr_eval.eval(
-        kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val, dict_as_obj=True)
+        kde.py.map_py_on_cond(yes_fn, no_fn, val > 2, val, dict_as_obj=True)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res.a.no_bag(), ds([0, 1, 4, 5]))
     testing.assert_equal(res.b.no_bag(), ds([-1, 0, 5, 6]))
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.py.map_py_on_cond(I.fn, I.cond, I.arg))
+        view.has_koda_view(kde.py.map_py_on_cond(I.fn, I.cond, I.arg))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.py.map_py_on_cond, kde.map_py_on_cond)
+        optools.equiv_to_op(kde.py.map_py_on_cond, kde.map_py_on_cond)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_understandable_yes_fn_error(self):
@@ -182,7 +182,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     def fn2(x):
       return x
 
-    expr = kde.py.map_py_on_cond(fn1, fn2, mask_constants.present, ds(1))
+    expr = kde.py.map_py_on_cond(fn1, fn2, mask_constants.present, ds(1))  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -209,7 +209,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     def fn2(x):
       return x
 
-    expr = kde.py.map_py_on_cond(fn2, fn1, mask_constants.missing, ds(1))
+    expr = kde.py.map_py_on_cond(fn2, fn1, mask_constants.missing, ds(1))  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape(

@@ -62,31 +62,31 @@ class SlicesIsShapeCompatibleTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.is_shape_compatible(x, y))
+    result = expr_eval.eval(kde.is_shape_compatible(x, y))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
 
     # Verify commutativity.
-    result = expr_eval.eval(kde.is_shape_compatible(y, x))
+    result = expr_eval.eval(kde.is_shape_compatible(y, x))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.is_shape_compatible,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.is_shape_compatible,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.slices.is_shape_compatible(I.x, I.y))
+        view.has_koda_view(kde.slices.is_shape_compatible(I.x, I.y))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.slices.is_shape_compatible, kde.is_shape_compatible
+            kde.slices.is_shape_compatible, kde.is_shape_compatible  # pyrefly: ignore[missing-attribute]
         )
     )
 

@@ -40,13 +40,13 @@ class CoreReifyTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.reify,
+        kde.core.reify,  # pyrefly: ignore[missing-attribute]
         [(qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.with_bag, kde.with_bag))
+    self.assertTrue(optools.equiv_to_op(kde.core.with_bag, kde.with_bag))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

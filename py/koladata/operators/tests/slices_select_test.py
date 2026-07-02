@@ -89,21 +89,21 @@ class SlicesSelectTest(parameterized.TestCase):
       kd.slices.select(ds([1, 2, 3]), functor_factories.py_fn(filter_fn))
 
     with self.assertRaisesRegex(ValueError, 'test error'):
-      _ = kde.slices.select(I.x, filter_fn)
+      _ = kde.slices.select(I.x, filter_fn)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_note_regex(
             'Error occurred during tracing of the function.*'
         ),
     ):
-      _ = kde.slices.select(I.x, filter_fn)
+      _ = kde.slices.select(I.x, filter_fn)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_note_regex(
             'Error occurred while processing argument: `fltr`'
         ),
     ):
-      _ = kde.slices.select(I.x, filter_fn)
+      _ = kde.slices.select(I.x, filter_fn)  # pyrefly: ignore[missing-attribute]
 
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])
@@ -188,7 +188,7 @@ class SlicesSelectTest(parameterized.TestCase):
       kd.slices.select(ds([1, 2]), ds(arolla.present()), expand_filter=False)
 
   def test_select_expr_filter(self):
-    kd_select = eager_op_utils.EagerOperator(kde.slices.select)
+    kd_select = eager_op_utils.EagerOperator(kde.slices.select)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.slices.select: for eager evaluation, all arguments must be eager'
@@ -222,19 +222,19 @@ class SlicesSelectTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.select,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.select,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.slices.select(I.x, I.y, I.expand_filter))
+        view.has_koda_view(kde.slices.select(I.x, I.y, I.expand_filter))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.select, kde.select))
+    self.assertTrue(optools.equiv_to_op(kde.slices.select, kde.select))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

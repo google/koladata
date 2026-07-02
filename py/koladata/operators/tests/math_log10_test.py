@@ -148,17 +148,17 @@ class MathLogTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.log10,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.math.log10,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.log10(I.x)), 'kd.math.log10(I.x)')
+    self.assertEqual(repr(kde.math.log10(I.x)), 'kd.math.log10(I.x)')  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.log10(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.log10(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

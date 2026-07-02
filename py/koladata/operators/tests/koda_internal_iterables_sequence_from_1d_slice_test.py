@@ -33,11 +33,11 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
   def test_basic(self):
     a = fns.new(x=ds([1, 2, 3]))
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
+        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a  # pyrefly: ignore[missing-attribute]
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
-    res_list = list(res)
+    res_list = list(res)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(res_list, 3)
     testing.assert_equal(res_list[0], a.S[0])
     testing.assert_equal(res_list[1], a.S[1])
@@ -46,11 +46,11 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
   def test_empty(self):
     a = ds([])
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
+        kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a  # pyrefly: ignore[missing-attribute]
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
-    res_list = list(res)
+    res_list = list(res)  # pyrefly: ignore[bad-argument-type]
     self.assertEmpty(res_list)
 
   def test_non_1d(self):
@@ -59,18 +59,18 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
         ValueError, 'expected a 1D data slice, got 0 dimensions'
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a
+          kde_internal.iterables.sequence_from_1d_slice(I.arg), arg=a  # pyrefly: ignore[missing-attribute]
       )
 
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde_internal.iterables.sequence_from_1d_slice,
+                kde_internal.iterables.sequence_from_1d_slice,  # pyrefly: ignore[missing-attribute]
                 possible_qtypes=[
                     qtypes.DATA_SLICE,
                     qtypes.DATA_BAG,
@@ -85,7 +85,7 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.iterables.sequence_from_1d_slice(I.arg))
+        view.has_koda_view(kde_internal.iterables.sequence_from_1d_slice(I.arg))  # pyrefly: ignore[missing-attribute]
     )
 
 

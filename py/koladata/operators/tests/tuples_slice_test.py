@@ -33,7 +33,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 
 def _make_slice_qtype(*types):
-  return arolla.eval(M.qtype.make_slice_qtype(*types))
+  return arolla.eval(M.qtype.make_slice_qtype(*types))  # pyrefly: ignore[missing-attribute]
 
 
 # This is the signature restricted to DATA_SLICE type, because the
@@ -84,18 +84,18 @@ class TuplesSliceTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.tuples.slice(1, 2, 3),
+        kde.tuples.slice(1, 2, 3),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.tuples.slice,
+            kde.tuples.slice,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(1)),
             literal_operator.literal(ds(2)),
             literal_operator.literal(ds(3)),
         ),
     )
     testing.assert_equal(
-        kde.tuples.slice(stop=2),
+        kde.tuples.slice(stop=2),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.tuples.slice,
+            kde.tuples.slice,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(arolla.unspecified()),
             literal_operator.literal(ds(2)),
             literal_operator.literal(arolla.unspecified()),
@@ -104,7 +104,7 @@ class TuplesSliceTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.tuples.slice,
+        kde.tuples.slice,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         # only DATA_SLICE to avoid blowup, since this operator accepts any input
         # qtypes.
@@ -114,7 +114,7 @@ class TuplesSliceTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    x_slice = kde.tuples.slice(I.x, I.y)
+    x_slice = kde.tuples.slice(I.x, I.y)  # pyrefly: ignore[missing-attribute]
     self.assertTrue(view.has_koda_view(x_slice))
     self.assertLen(x_slice.node_deps, 3)
     self.assertTrue(view.has_koda_view(x_slice[0]))

@@ -146,7 +146,7 @@ class RandomShuffleTest(parameterized.TestCase):
     # a mean of 10000/24 = 416 and a scale of sqrt(10000*(23/24)*(1/24)) = 20.
     # Assert within 5 standard deviations (p < 8e-13).
     self.assertLen(counter, 24)
-    self.assertTrue(all(316 < x < 516) for x in counter.values())
+    self.assertTrue(all(316 < x < 516) for x in counter.values())  # pyrefly: ignore[bad-argument-type]
 
   def test_x_as_data_item(self):
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
@@ -177,8 +177,8 @@ class RandomShuffleTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.shuffle,
-            possible_qtypes=(
+            kde.random.shuffle,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
                 NON_DETERMINISTIC_TOKEN,
@@ -189,10 +189,10 @@ class RandomShuffleTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.shuffle(I.x, I.seed)))
+    self.assertTrue(view.has_koda_view(kde.random.shuffle(I.x, I.seed)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.random.shuffle, kde.shuffle))
+    self.assertTrue(optools.equiv_to_op(kde.random.shuffle, kde.shuffle))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

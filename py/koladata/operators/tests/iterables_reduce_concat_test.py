@@ -33,22 +33,22 @@ class IterablesReduceConcatTest(absltest.TestCase):
 
   def test_basic(self):
     res = expr_eval.eval(
-        kde.iterables.reduce_concat(
-            kde.iterables.make(ds([2]), ds([3]), ds([4])), ds([5])
+        kde.iterables.reduce_concat(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.make(ds([2]), ds([3]), ds([4])), ds([5])  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(res, ds([5, 2, 3, 4]))
 
   def test_empty(self):
     res = expr_eval.eval(
-        kde.iterables.reduce_concat(kde.iterables.chain(), ds([5]))
+        kde.iterables.reduce_concat(kde.iterables.chain(), ds([5]))  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds([5]))
 
   def test_2d(self):
     res = expr_eval.eval(
-        kde.iterables.reduce_concat(
-            kde.iterables.make(
+        kde.iterables.reduce_concat(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.make(  # pyrefly: ignore[missing-attribute]
                 ds([[2], [12]]), ds([[3], [13]]), ds([[4], [14]])
             ),
             ds([[5], [15]]),
@@ -58,8 +58,8 @@ class IterablesReduceConcatTest(absltest.TestCase):
 
   def test_ndim(self):
     res = expr_eval.eval(
-        kde.iterables.reduce_concat(
-            kde.iterables.make(
+        kde.iterables.reduce_concat(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.make(  # pyrefly: ignore[missing-attribute]
                 ds([[2], [12]]), ds([[3], [13]]), ds([[4], [14]])
             ),
             ds([[5], [15]]),
@@ -74,8 +74,8 @@ class IterablesReduceConcatTest(absltest.TestCase):
         'all concat/stack args must have the same rank',
     ):
       _ = expr_eval.eval(
-          kde.iterables.reduce_concat(
-              kde.iterables.make(
+          kde.iterables.reduce_concat(  # pyrefly: ignore[missing-attribute]
+              kde.iterables.make(  # pyrefly: ignore[missing-attribute]
                   ds([[2], [12]]), ds([[3], [13]]), ds([[4], [14]])
               ),
               ds([5]),
@@ -84,8 +84,8 @@ class IterablesReduceConcatTest(absltest.TestCase):
 
   def test_data_bag_adoption(self):
     res = expr_eval.eval(
-        kde.iterables.reduce_concat(
-            kde.iterables.make(fns.obj(x=ds([1])), fns.obj(x=ds([2]))),
+        kde.iterables.reduce_concat(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.make(fns.obj(x=ds([1])), fns.obj(x=ds([2]))),  # pyrefly: ignore[missing-attribute]
             fns.obj(x=ds([3])),
         )
     )
@@ -93,13 +93,13 @@ class IterablesReduceConcatTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     iterable_slice = arolla.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     iterable_bag = arolla.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde.iterables.reduce_concat,
+        kde.iterables.reduce_concat,  # pyrefly: ignore[missing-attribute]
         [
             (
                 iterable_slice,
@@ -113,16 +113,16 @@ class IterablesReduceConcatTest(absltest.TestCase):
                 qtypes.DATA_SLICE,
             ),
         ],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (iterable_slice, iterable_bag),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.reduce_concat(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.iterables.reduce_concat(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.reduce_concat(I.x, I.y)),
+        repr(kde.iterables.reduce_concat(I.x, I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.iterables.reduce_concat(I.x, I.y, DataItem(1, schema: INT32))',
     )
 

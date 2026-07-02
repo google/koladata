@@ -57,7 +57,7 @@ kde = kde_operators.kde
 kde_internal = kde_operators.internal
 kd = eager_op_utils.operators_container('kd')
 _PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
-    kde_internal.parallel.create_transform_config(
+    kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
         fns.obj(
             operator_replacements=[
                 fns.new(
@@ -88,23 +88,23 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       expected_output,
       allow_runtime_transforms=False
   ):
-    executor = kde_internal.parallel.get_eager_executor()
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=replacements,
                 allow_runtime_transforms=allow_runtime_transforms,
             ),
         )
     )
-    transformed_fn = kde_internal.parallel.transform(config, fn)
+    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(
+            kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
                 transformed_fn(
                     executor,
-                    *[kde_internal.parallel.as_future(x) for x in inputs],
-                    return_type_as=kde_internal.parallel.as_future(
+                    *[kde_internal.parallel.as_future(x) for x in inputs],  # pyrefly: ignore[missing-attribute]
+                    return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                         expected_output
                     ),
                 )
@@ -123,7 +123,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_replacement(self):
     future_data_slice_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)
+        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
 
     @optools.add_to_registry()
@@ -135,15 +135,15 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     def my_add(op_executor, x, y):
       testing.assert_equal(
           op_executor,
-          expr_eval.eval(kde_internal.parallel.get_eager_executor()),
+          expr_eval.eval(kde_internal.parallel.get_eager_executor()),  # pyrefly: ignore[missing-attribute]
       )
       x_value = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(x)
+          kde_internal.parallel.get_future_value_for_testing(x)  # pyrefly: ignore[missing-attribute]
       )
       y_value = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(y)
+          kde_internal.parallel.get_future_value_for_testing(y)  # pyrefly: ignore[missing-attribute]
       )
-      return expr_eval.eval(kde_internal.parallel.as_future(x_value - y_value))
+      return expr_eval.eval(kde_internal.parallel.as_future(x_value - y_value))  # pyrefly: ignore[missing-attribute]
 
     self._test_eval_on_futures(
         functor_factories.trace_py_fn(lambda x, y: x + y * 2),
@@ -171,10 +171,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     def parallel_chain(executor, *streams, value_type_as=arolla.unspecified()):
       streams = arolla.optools.fix_trace_args(streams)
-      return kde_internal.parallel.unwrap_future_to_stream(
-          kde_internal.parallel.async_eval(
+      return kde_internal.parallel.unwrap_future_to_stream(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
               executor,
-              kde_internal.parallel.stream_chain,
+              kde_internal.parallel.stream_chain,  # pyrefly: ignore[missing-attribute]
               streams,
               value_type_as,
               optools.unified_non_deterministic_arg(),
@@ -182,11 +182,11 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       )
 
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.iterables.chain(x, y)  # pylint: disable=unnecessary-lambda
+        lambda x, y: user_facing_kd.iterables.chain(x, y)  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
     )
-    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
+    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -208,13 +208,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    transformed_fn = kde_internal.parallel.transform(config, fn)
+    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
     res_stream = expr_eval.eval(
         transformed_fn(
             executor,
-            kde_internal.parallel.stream_make(1, 2),
-            kde_internal.parallel.stream_make(3),
-            return_type_as=kde_internal.parallel.stream_make(),
+            kde_internal.parallel.stream_make(1, 2),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.stream_make(3),  # pyrefly: ignore[missing-attribute]
+            return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(
@@ -229,14 +229,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.initial_decode',
     )
     def initial_decode(x):
-      return arolla.M.strings.decode(x)
+      return arolla.M.strings.decode(x)  # pyrefly: ignore[missing-attribute]
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode',
     )
     def my_decode(x):
-      return kde_internal.parallel.as_future(arolla.M.strings.static_decode(x))
+      return kde_internal.parallel.as_future(arolla.M.strings.static_decode(x))  # pyrefly: ignore[missing-attribute]
 
     self._test_eval_on_futures(
         functor_factories.expr_fn(initial_decode(arolla.bytes(b'123'))),
@@ -259,14 +259,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.initial_decode2',
     )
     def initial_decode2(x):
-      return arolla.M.strings.decode(x)
+      return arolla.M.strings.decode(x)  # pyrefly: ignore[missing-attribute]
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode2',
     )
     def my_decode2(x):
-      return kde_internal.parallel.as_future(arolla.M.strings.static_decode(x))
+      return kde_internal.parallel.as_future(arolla.M.strings.static_decode(x))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -274,7 +274,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     ):
       self._test_eval_on_futures(
           functor_factories.expr_fn(
-              initial_decode2(arolla.M.strings.join(b'123', b'456'))
+              initial_decode2(arolla.M.strings.join(b'123', b'456'))  # pyrefly: ignore[missing-attribute]
           ),
           replacements=[
               fns.obj(
@@ -297,7 +297,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.my_decode3',
     )
     def my_decode3(x, y, z):
-      return kde.tuple(x, y, z)
+      return kde.tuple(x, y, z)  # pyrefly: ignore[missing-attribute]
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
@@ -305,14 +305,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     def my_decode4(executor, x, y, z):
       del executor  # Unused.
-      return kde.tuple(
-          kde_internal.parallel.as_future(arolla.M.strings.static_decode(x)),
+      return kde.tuple(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.as_future(arolla.M.strings.static_decode(x)),  # pyrefly: ignore[missing-attribute]
           y,
-          kde_internal.parallel.as_future(arolla.M.strings.static_decode(z)),
+          kde_internal.parallel.as_future(arolla.M.strings.static_decode(z)),  # pyrefly: ignore[missing-attribute]
       )
 
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -338,32 +338,32 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             arolla.bytes(b'123'), arolla.bytes(b'123'), arolla.bytes(b'789')
         )
     )
-    transformed_fn = kde_internal.parallel.transform(config, fn)
+    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(
         transformed_fn(
-            kde_internal.parallel.get_eager_executor(),
-            return_type_as=kde.tuple(
-                kde_internal.parallel.as_future(arolla.text('')),
-                kde_internal.parallel.as_future(arolla.bytes(b'')),
-                kde_internal.parallel.as_future(arolla.text('')),
+            kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+            return_type_as=kde.tuple(  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(arolla.text('')),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(arolla.bytes(b'')),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(arolla.text('')),  # pyrefly: ignore[missing-attribute]
             ),
         )
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.text('123'),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[1])
+            kde_internal.parallel.get_future_value_for_testing(res[1])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.bytes(b'123'),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[2])
+            kde_internal.parallel.get_future_value_for_testing(res[2])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.text('789'),
     )
@@ -371,18 +371,18 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
   def test_no_expr_functor(self):
     fn = functor_factories.expr_fn(ds(1))
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(operator_replacements=[]),
         )
     )
-    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))
+    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(
+            kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
                 transformed_fn(
-                    kde_internal.parallel.get_eager_executor(),
+                    kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
                     return_type_as=expr_eval.eval(
-                        kde_internal.parallel.as_future(data_slice.DataSlice)
+                        kde_internal.parallel.as_future(data_slice.DataSlice)  # pyrefly: ignore[missing-attribute]
                     ),
                 )
             )
@@ -392,7 +392,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_non_functor(self):
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(operator_replacements=[]),
         )
     )
@@ -401,13 +401,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'functor must be a functor',
     ):
       expr_eval.eval(
-          kde_internal.parallel.transform(config, ds(1)),
+          kde_internal.parallel.transform(config, ds(1)),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_tuples_without_replacement(self):
     self._test_eval_on_futures(
         functor_factories.expr_fn(
-            arolla.abc.bind_op(kde.slices.stack, I.args),
+            arolla.abc.bind_op(kde.slices.stack, I.args),  # pyrefly: ignore[missing-attribute]
             signature=signature_utils.ARGS_KWARGS_SIGNATURE,
         ),
         replacements=[],
@@ -417,7 +417,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_tuples_with_replacement(self):
     future_data_slice_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)
+        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
 
     @optools.add_to_registry()
@@ -441,10 +441,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       return arolla.tuple(y, x)
 
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda
+        lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
     )
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -457,39 +457,39 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    transformed_fn = kde_internal.parallel.transform(config, fn)
+    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(
         transformed_fn(
-            kde_internal.parallel.get_eager_executor(),
-            kde.tuple(
-                kde_internal.parallel.as_future(ds(1)),
-                kde_internal.parallel.as_future(ds(2)),
+            kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+            kde.tuple(  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(ds(1)),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(ds(2)),  # pyrefly: ignore[missing-attribute]
             ),
-            kde_internal.parallel.as_future(ds(3)),
-            return_type_as=kde.tuple(
-                kde_internal.parallel.as_future(ds(0)),
-                kde.tuple(
-                    kde_internal.parallel.as_future(ds(0)),
-                    kde_internal.parallel.as_future(ds(0)),
+            kde_internal.parallel.as_future(ds(3)),  # pyrefly: ignore[missing-attribute]
+            return_type_as=kde.tuple(  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(ds(0)),  # pyrefly: ignore[missing-attribute]
+                kde.tuple(  # pyrefly: ignore[missing-attribute]
+                    kde_internal.parallel.as_future(ds(0)),  # pyrefly: ignore[missing-attribute]
+                    kde_internal.parallel.as_future(ds(0)),  # pyrefly: ignore[missing-attribute]
                 ),
             ),
         )
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[1][0])
+            kde_internal.parallel.get_future_value_for_testing(res[1][0])  # pyrefly: ignore[missing-attribute]
         ),
         ds(1),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[1][1])
+            kde_internal.parallel.get_future_value_for_testing(res[1][1])  # pyrefly: ignore[missing-attribute]
         ),
         ds(2),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])  # pyrefly: ignore[missing-attribute]
         ),
         ds(3),
     )
@@ -519,16 +519,16 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_default_value_non_parallel_slice_passed(self):
     fn = functor_factories.trace_py_fn(lambda y=1: y)
-    config = expr_eval.eval(kde_internal.parallel.create_transform_config(None))
-    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))
-    future_slice = kde_internal.parallel.as_future(data_slice.DataSlice).eval()
+    config = expr_eval.eval(kde_internal.parallel.create_transform_config(None))  # pyrefly: ignore[missing-attribute]
+    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))  # pyrefly: ignore[missing-attribute]
+    future_slice = kde_internal.parallel.as_future(data_slice.DataSlice).eval()  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         'a non-parallel data slice passed to a parallel functor',
     ):
       _ = expr_eval.eval(
           transformed_fn(
-              kde_internal.parallel.get_eager_executor(),
+              kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
               ds(1),
               return_type_as=future_slice,
           )
@@ -539,7 +539,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(
           transformed_fn(
-              kde_internal.parallel.get_eager_executor(),
+              kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
               fns.new(x=fns.slice([1, 2])),
               return_type_as=future_slice,
           )
@@ -547,20 +547,20 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_annotations_basic(self):
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(operator_replacements=[]),
         )
     )
-    expr = arolla.M.annotation.export(
-        arolla.M.annotation.export(kde.math.add(1, 2), 'foo'), 'bar'
+    expr = arolla.M.annotation.export(  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.export(kde.math.add(1, 2), 'foo'), 'bar'  # pyrefly: ignore[missing-attribute]
     )
     fn = functor_factories.expr_fn(expr)
-    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))
+    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn(
-                kde_internal.parallel.get_eager_executor(),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ).eval(),
             )
@@ -586,12 +586,12 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       del value_type_as  # Unused.
       x = elems[0]
       y = elems[1]
-      x_value = kde_internal.parallel.get_future_value_for_testing(x)
-      y_value = kde_internal.parallel.get_future_value_for_testing(y)
-      return kde_internal.parallel.stream_make(y_value, x_value)
+      x_value = kde_internal.parallel.get_future_value_for_testing(x)  # pyrefly: ignore[missing-attribute]
+      y_value = kde_internal.parallel.get_future_value_for_testing(y)  # pyrefly: ignore[missing-attribute]
+      return kde_internal.parallel.stream_make(y_value, x_value)  # pyrefly: ignore[missing-attribute]
 
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -602,16 +602,16 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    expr = arolla.M.annotation.export(
-        arolla.M.annotation.export(kde.iterables.make(1, 2), 'foo'), 'bar'
+    expr = arolla.M.annotation.export(  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.export(kde.iterables.make(1, 2), 'foo'), 'bar'  # pyrefly: ignore[missing-attribute]
     )
     fn = functor_factories.expr_fn(expr)
-    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))
+    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         arolla.tuple(
             *transformed_fn(
-                expr_eval.eval(kde_internal.parallel.get_eager_executor()),
-                return_type_as=kde_internal.parallel.stream_make().eval(),
+                expr_eval.eval(kde_internal.parallel.get_eager_executor()),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.stream_make().eval(),  # pyrefly: ignore[missing-attribute]
             ).read_all(timeout=1.0)
         ),
         arolla.tuple(ds(2), ds(1)),
@@ -626,17 +626,17 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.empty_stream',
     )
     def empty_stream():
-      return kde_internal.parallel.stream_make()
+      return kde_internal.parallel.stream_make()  # pyrefly: ignore[missing-attribute]
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.empty_iterable',
     )
     def empty_iterable():
-      return kde.iterables.make()
+      return kde.iterables.make()  # pyrefly: ignore[missing-attribute]
 
     config = expr_eval.eval(
-        kde_internal.parallel.create_transform_config(
+        kde_internal.parallel.create_transform_config(  # pyrefly: ignore[missing-attribute]
             fns.obj(
                 operator_replacements=[
                     fns.obj(
@@ -649,22 +649,22 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
-    expr = arolla.M.annotation.qtype(
+    expr = arolla.M.annotation.qtype(  # pyrefly: ignore[not-callable]
         empty_iterable(),
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE),
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(expr_eval.eval(expr), iterable_qvalue.Iterable())
     fn = functor_factories.expr_fn(expr)
-    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))
+    transformed_fn = expr_eval.eval(kde_internal.parallel.transform(config, fn))  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'inconsistent annotation.qtype'):
       _ = transformed_fn(
-          expr_eval.eval(kde_internal.parallel.get_eager_executor()),
-          return_type_as=kde_internal.parallel.stream_make().eval(),
+          expr_eval.eval(kde_internal.parallel.get_eager_executor()),  # pyrefly: ignore[missing-attribute]
+          return_type_as=kde_internal.parallel.stream_make().eval(),  # pyrefly: ignore[missing-attribute]
       ).read_all(timeout=1.0)
 
   def test_nested_replacement(self):
     future_data_slice_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)
+        kde_internal.parallel.get_future_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
 
     @optools.add_to_registry()
@@ -682,22 +682,22 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     def replaced_op_with_nested_transform(executor, x, fn1, y, fn2):
       testing.assert_equal(
           executor,
-          expr_eval.eval(kde_internal.parallel.get_eager_executor()),
+          expr_eval.eval(kde_internal.parallel.get_eager_executor()),  # pyrefly: ignore[missing-attribute]
       )
       x_value = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(x)
+          kde_internal.parallel.get_future_value_for_testing(x)  # pyrefly: ignore[missing-attribute]
       )
       y_value = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(y)
+          kde_internal.parallel.get_future_value_for_testing(y)  # pyrefly: ignore[missing-attribute]
       )
 
       def inner_eval(fn, x):
         return expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(
+            kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
                 fn(
                     executor,
-                    kde_internal.parallel.as_future(x),
-                    return_type_as=kde_internal.parallel.as_future(
+                    kde_internal.parallel.as_future(x),  # pyrefly: ignore[missing-attribute]
+                    return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                         data_slice.DataSlice
                     ),
                 )
@@ -707,7 +707,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       res = kd.map_py(inner_eval, fn1, x_value)
       if fn2.qtype != arolla.UNSPECIFIED:
         res += kd.map_py(inner_eval, fn2, y_value)
-      return expr_eval.eval(kde_internal.parallel.as_future(res))
+      return expr_eval.eval(kde_internal.parallel.as_future(res))  # pyrefly: ignore[missing-attribute]
 
     @optools.add_to_registry()
     @optools.as_py_function_operator(
@@ -723,10 +723,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     def replaced_nested_transform_inner_op(x):
       x_value = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(x)
+          kde_internal.parallel.get_future_value_for_testing(x)  # pyrefly: ignore[missing-attribute]
       )
       res = x_value * 10
-      return expr_eval.eval(kde_internal.parallel.as_future(res))
+      return expr_eval.eval(kde_internal.parallel.as_future(res))  # pyrefly: ignore[missing-attribute]
 
     fn1 = functor_factories.expr_fn(my_nested_transform_inner_op(S))
     fn2 = functor_factories.expr_fn(S)
@@ -773,7 +773,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             my_op_with_nested_transform(
                 S.x,
                 # Literal subexpressions are evaluated during transform.
-                kde.slice([fn1, fn2]),
+                kde.slice([fn1, fn2]),  # pyrefly: ignore[missing-attribute]
                 S.y,
                 arolla.unspecified(),
             ),
@@ -788,7 +788,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             my_op_with_nested_transform(
                 S.x,
                 # Literal subexpressions are evaluated during transform.
-                kde.slice([V.fn1, V.fn2]),
+                kde.slice([V.fn1, V.fn2]),  # pyrefly: ignore[missing-attribute]
                 S.y,
                 arolla.unspecified(),
             ),
@@ -800,13 +800,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         expected_output=ds([10, 1]),
     )
 
-    fn3 = functor_factories.expr_fn(S + V.foo, foo=None)
+    fn3 = functor_factories.expr_fn(S + V.foo, foo=None)  # pyrefly: ignore[unsupported-operation]
     self._test_eval_on_futures(
         functor_factories.expr_fn(
             my_op_with_nested_transform(
                 S.x,
                 # Literal subexpressions are evaluated during transform.
-                kde.slice([V.fn1, V.fn3.with_attrs(foo=5)]),
+                kde.slice([V.fn1, V.fn3.with_attrs(foo=5)]),  # pyrefly: ignore[missing-attribute]
                 S.y,
                 arolla.unspecified(),
             ),
@@ -822,7 +822,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       self._test_eval_on_futures(
           functor_factories.expr_fn(
               my_op_with_nested_transform(
-                  S.x, kde.slice([fn1, S.fn]), S.y, arolla.unspecified()
+                  S.x, kde.slice([fn1, S.fn]), S.y, arolla.unspecified()  # pyrefly: ignore[missing-attribute]
               ),
           ),
           replacements=replacements,
@@ -852,7 +852,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         lambda x: inner_fn(inner_fn(inner_fn(x)))
     )
     transformed_fn = expr_eval.eval(
-        kde_internal.parallel.transform(
+        kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
             _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn
         )
     )
@@ -861,11 +861,11 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         ['_transformed_inner_fn'],
     )
     res = expr_eval.eval(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn(
-                kde_internal.parallel.get_eager_executor(),
-                kde_internal.parallel.as_future(1),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ).eval(),
             )
@@ -883,7 +883,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         lambda x: inner_fn(inner_fn(inner_fn(x)))
     )
     transformed_fn = expr_eval.eval(
-        kde_internal.parallel.transform(
+        kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
             _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn
         )
     )
@@ -896,16 +896,16 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         lambda x: (x + 2).with_name(transformed_names[0]) + inner_fn(x)
     )
     transformed_fn2 = expr_eval.eval(
-        kde_internal.parallel.transform(
+        kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
             _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn2
         )
     )
     res = expr_eval.eval(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn2(
-                kde_internal.parallel.get_eager_executor(),
-                kde_internal.parallel.as_future(1),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ).eval(),
             )
@@ -914,8 +914,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     testing.assert_equal(res, ds(5))
 
   def test_transform_source_location_propagation(self):
-    map_py = kde.annotation.source_location(
-        kde.py.map_py(lambda x: x // 0, x=I.x),
+    map_py = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        kde.py.map_py(lambda x: x // 0, x=I.x),  # pyrefly: ignore[missing-attribute]
         arolla.namedtuple(
             function_name='map_py',
             file_name='map_py.py',
@@ -924,8 +924,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             line_text='y = map_py(fn, I.x)',
         ),
     )
-    call = kde.annotation.source_location(
-        kde.functor.call(map_py, I.x),
+    call = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        kde.functor.call(map_py, I.x),  # pyrefly: ignore[missing-attribute]
         arolla.namedtuple(
             function_name='call',
             file_name='call.py',
@@ -934,8 +934,8 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             line_text='y = call(fn, I.x)',
         ),
     )
-    switch = kde.annotation.source_location(
-        kde.functor.switch(
+    switch = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        kde.functor.switch(  # pyrefly: ignore[missing-attribute]
             'a',
             {
                 'a': call,
@@ -964,10 +964,10 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(
-        kde_internal.parallel.get_transform_config_qtype()
+        kde_internal.parallel.get_transform_config_qtype()  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.transform,
+        kde_internal.parallel.transform,  # pyrefly: ignore[missing-attribute]
         [
             (
                 parallel_transform_config_qtype,
@@ -975,13 +975,13 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
                 qtypes.DATA_SLICE,
             ),
         ],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (parallel_transform_config_qtype,),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.transform(I.config, I.fn))
+        view.has_koda_view(kde_internal.parallel.transform(I.config, I.fn))  # pyrefly: ignore[missing-attribute]
     )
 
 

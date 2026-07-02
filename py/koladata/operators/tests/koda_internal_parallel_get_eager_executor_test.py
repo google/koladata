@@ -27,20 +27,20 @@ class KodaInternalParallelGetEagerExecutorTest(absltest.TestCase):
   def test_simple(self):
     # We do not have a Python API to add tasks to an executor, so we just
     # test basic properties.
-    executor = arolla.eval(kde_internal.parallel.get_eager_executor())
+    executor = arolla.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(str(executor), 'eager_executor')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.get_eager_executor,
-        [(qtypes.EXECUTOR,)],
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        kde_internal.parallel.get_eager_executor,  # pyrefly: ignore[missing-attribute]
+        [(qtypes.EXECUTOR,)],  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.parallel.get_eager_executor())
+        view.has_koda_view(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
     )
 
 

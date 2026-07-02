@@ -39,8 +39,8 @@ class IterablesReduceUpdatedBagTest(absltest.TestCase):
     b2 = kd.attrs(o, b=2)
     b3 = kd.attrs(o, a=3, c=4)
     res = expr_eval.eval(
-        kde.iterables.reduce_updated_bag(
-            kde.iterables.make(b1, b2),
+        kde.iterables.reduce_updated_bag(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.make(b1, b2),  # pyrefly: ignore[missing-attribute]
             b3,
         )
     )
@@ -52,8 +52,8 @@ class IterablesReduceUpdatedBagTest(absltest.TestCase):
     o = fns.new()
     b1 = kd.attrs(o, a=1, b=5)
     res = expr_eval.eval(
-        kde.iterables.reduce_updated_bag(
-            kde.iterables.chain(value_type_as=b1), b1
+        kde.iterables.reduce_updated_bag(  # pyrefly: ignore[missing-attribute]
+            kde.iterables.chain(value_type_as=b1), b1  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(o.with_bag(res).a.no_bag(), ds(1))
@@ -61,13 +61,13 @@ class IterablesReduceUpdatedBagTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     iterable_slice = arolla.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     iterable_bag = arolla.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde.iterables.reduce_updated_bag,
+        kde.iterables.reduce_updated_bag,  # pyrefly: ignore[missing-attribute]
         [
             (
                 iterable_bag,
@@ -80,18 +80,18 @@ class IterablesReduceUpdatedBagTest(absltest.TestCase):
                 qtypes.DATA_BAG,
             ),
         ],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (iterable_slice, iterable_bag),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.iterables.reduce_updated_bag(I.x, I.y))
+        view.has_koda_view(kde.iterables.reduce_updated_bag(I.x, I.y))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.reduce_updated_bag(I.x, I.y)),
+        repr(kde.iterables.reduce_updated_bag(I.x, I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.iterables.reduce_updated_bag(I.x, I.y)',
     )
 

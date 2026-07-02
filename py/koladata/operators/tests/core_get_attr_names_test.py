@@ -96,24 +96,24 @@ class GetAttrNamesTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_attr_names,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.core.get_attr_names,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(qtypes.DATA_SLICE, qtypes.DATA_SLICE)]),
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.get_attr_names(I.x)),
+        repr(kde.core.get_attr_names(I.x)),  # pyrefly: ignore[missing-attribute]
         'kd.core.get_attr_names(I.x)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.get_attr_names(I.x)))
+    self.assertTrue(view.has_koda_view(kde.core.get_attr_names(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.get_attr_names, kde.get_attr_names)
+        optools.equiv_to_op(kde.core.get_attr_names, kde.get_attr_names)  # pyrefly: ignore[missing-attribute]
     )
 
 

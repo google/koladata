@@ -68,10 +68,10 @@ class KodaHasDictTest(parameterized.TestCase):
     testing.assert_equal(kd.dicts.has_dict(x), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.has_dict(I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.has_dict(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.has_dict, kde.has_dict))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.has_dict, kde.has_dict))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

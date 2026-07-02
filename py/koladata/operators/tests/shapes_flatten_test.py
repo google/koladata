@@ -56,9 +56,9 @@ class ShapesFlattenTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.shapes.flatten(1),
+        kde.shapes.flatten(1),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.shapes.flatten,
+            kde.shapes.flatten,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(data_slice.DataSlice.from_vals(1)),
             literal_operator.literal(
                 data_slice.DataSlice.from_vals(0, schema_constants.INT64)
@@ -70,17 +70,17 @@ class ShapesFlattenTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.flatten,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.shapes.flatten,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.flatten(I.x)))
+    self.assertTrue(view.has_koda_view(kde.shapes.flatten(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.shapes.flatten, kde.flatten))
+    self.assertTrue(optools.equiv_to_op(kde.shapes.flatten, kde.flatten))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

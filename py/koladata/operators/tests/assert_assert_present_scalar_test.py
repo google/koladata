@@ -101,8 +101,8 @@ class AssertionAssertPresentScalarTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.assertion.assert_present_scalar,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.assertion.assert_present_scalar,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
@@ -110,7 +110,7 @@ class AssertionAssertPresentScalarTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.assertion.assert_present_scalar(I.ds, I.dtype, I.message)
+            kde.assertion.assert_present_scalar(I.ds, I.dtype, I.message)  # pyrefly: ignore[missing-attribute]
         )
     )
 

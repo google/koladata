@@ -36,7 +36,7 @@ kde = kde_operators.kde
 class SchemaListSchemaTest(parameterized.TestCase):
 
   def test_get_attr(self):
-    schema = expr_eval.eval(kde.schema.list_schema(schema_constants.INT32))
+    schema = expr_eval.eval(kde.schema.list_schema(schema_constants.INT32))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         schema.get_attr('__items__'),
         schema_constants.INT32.with_bag(schema.get_bag()),
@@ -45,8 +45,8 @@ class SchemaListSchemaTest(parameterized.TestCase):
 
   def test_bag_adoption(self):
     schema = expr_eval.eval(
-        kde.schema.list_schema(
-            kde.schema.new_schema(
+        kde.schema.list_schema(  # pyrefly: ignore[missing-attribute]
+            kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
                 a=schema_constants.INT32, b=schema_constants.STRING
             ),
         )
@@ -61,23 +61,23 @@ class SchemaListSchemaTest(parameterized.TestCase):
         ValueError,
         "schema's schema must be SCHEMA, got: INT32",
     ):
-      _ = expr_eval.eval(kde.schema.list_schema(ds(1)))
+      _ = expr_eval.eval(kde.schema.list_schema(ds(1)))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.list_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.list_schema(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signature(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.list_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.schema.list_schema,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.list_schema, kde.list_schema)
+        optools.equiv_to_op(kde.schema.list_schema, kde.list_schema)  # pyrefly: ignore[missing-attribute]
     )
 
 

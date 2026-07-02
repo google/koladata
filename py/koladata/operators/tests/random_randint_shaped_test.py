@@ -93,7 +93,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
 
   def test_eval_without_seed(self):
     x = ds([[1, 2], [3]])
-    expr = kde.random.randint_shaped_as(x)
+    expr = kde.random.randint_shaped_as(x)  # pyrefly: ignore[missing-attribute]
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
     res3 = kd.random.randint_shaped_as(x)
@@ -156,8 +156,8 @@ class RandomRandintShapedTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.randint_shaped,
-            possible_qtypes=(
+            kde.random.randint_shaped,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 DATA_SLICE,
                 JAGGED_SHAPE,
@@ -170,7 +170,7 @@ class RandomRandintShapedTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.random.randint_shaped(I.shape, I.low, I.high, I.seed)
+            kde.random.randint_shaped(I.shape, I.low, I.high, I.seed)  # pyrefly: ignore[missing-attribute]
         )
     )
 

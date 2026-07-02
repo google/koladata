@@ -67,15 +67,15 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   @parameterized.parameters(
-      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 2, 3])),
-      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 2, 30])),
-      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 20, None])),
-      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', None, None])),
+      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 2, 30])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 20, None])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', None, None])),  # pyrefly: ignore[missing-attribute]
       (
-          kde.get_attr(I.x, ds(['b', 'a', None])),
+          kde.get_attr(I.x, ds(['b', 'a', None])),  # pyrefly: ignore[missing-attribute]
           ds(['a', 2, None], schema_constants.OBJECT),
       ),
-      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),
+      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),  # pyrefly: ignore[missing-attribute]
   )
   def test_eval_with_attr_name_slice(self, expr, expected):
     testing.assert_equal(
@@ -88,11 +88,11 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   @parameterized.parameters(
-      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 1, 1])),
-      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 1, 10])),
-      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 10, None])),
-      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', 'a', None])),
-      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),
+      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 1, 1])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 1, 10])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 10, None])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', 'a', None])),  # pyrefly: ignore[missing-attribute]
+      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),  # pyrefly: ignore[missing-attribute]
   )
   def test_eval_with_attr_name_slice_and_obj_item(self, expr, expected):
     testing.assert_equal(
@@ -145,7 +145,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_type_promotion(self):
     # Regression test for b/407094917.
     entity = eager.new(a=ds(None, schema_constants.INT64))
-    expr = kde.get_attr(I.x, 'a', ds(1))
+    expr = kde.get_attr(I.x, 'a', ds(1))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
         expr_eval.eval(expr, x=entity),
         ds(1, schema_constants.INT64).with_bag(entity.get_bag()),
@@ -153,7 +153,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          kde.get_attr(I.x, ds(['a', 'b', 'b', None])),
+          kde.get_attr(I.x, ds(['a', 'b', 'b', None])),  # pyrefly: ignore[missing-attribute]
           ds([
               schema_constants.INT32,
               schema_constants.STRING,
@@ -169,7 +169,7 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   def test_schema_slice_special_attr_name(self):
-    expr = kde.get_attr(I.x, I.ds)
+    expr = kde.get_attr(I.x, I.ds)  # pyrefly: ignore[missing-attribute]
     named_schema = eager.named_schema(
         'my_schema', a=schema_constants.INT32, b=schema_constants.STRING
     )
@@ -296,8 +296,8 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_attr,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.core.get_attr,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
@@ -317,19 +317,19 @@ class CoreGetAttrTest(parameterized.TestCase):
       eager.core.get_attr(ds([1, 2, 3]), ds(['a', 'b', 'c']))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.core.get_attr(I.x, 'a')), 'I.x.a')
+    self.assertEqual(repr(kde.core.get_attr(I.x, 'a')), 'I.x.a')  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        repr(kde.core.get_attr(I.x, 'a', None)),
+        repr(kde.core.get_attr(I.x, 'a', None)),  # pyrefly: ignore[missing-attribute]
         "kd.core.get_attr(I.x, DataItem('a', schema: STRING), "
         'DataItem(None, schema: NONE))',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.get_attr(I.x, 'a')))
-    self.assertTrue(view.has_koda_view(kde.core.get_attr(I.x, 'a', 42)))
+    self.assertTrue(view.has_koda_view(kde.core.get_attr(I.x, 'a')))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.get_attr(I.x, 'a', 42)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_attr, kde.get_attr))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_attr, kde.get_attr))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

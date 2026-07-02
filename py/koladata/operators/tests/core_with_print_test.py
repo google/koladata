@@ -75,9 +75,9 @@ class CoreWithPrintTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.with_print,
+        kde.core.with_print,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=POSSIBLE_QTYPES,
+        possible_qtypes=POSSIBLE_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=5,
     )
 
@@ -87,7 +87,7 @@ class CoreWithPrintTest(parameterized.TestCase):
       arolla.int32(57),
   )
   def test_propagate_x(self, x):
-    expr = kde.core.with_print(I.x, 'some message to log')
+    expr = kde.core.with_print(I.x, 'some message to log')  # pyrefly: ignore[missing-attribute]
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr.eval(x=x)
       expr.eval(x=x)
@@ -117,7 +117,7 @@ class CoreWithPrintTest(parameterized.TestCase):
   )
   def test_string_formatting(self, args, kwargs, expected):
     x = ds(['foo', 'bar', 'baz'])
-    expr = kde.core.with_print(I.x, *args, **kwargs)
+    expr = kde.core.with_print(I.x, *args, **kwargs)  # pyrefly: ignore[missing-attribute]
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr.eval(x=x)
 
@@ -127,9 +127,9 @@ class CoreWithPrintTest(parameterized.TestCase):
   def test_two_similar_nodes(self):
     x = ds([1, 2, 3])
     # A sum of two identical expressions.
-    expr = kde.core.with_print(
+    expr = kde.core.with_print(  # pyrefly: ignore[missing-attribute]
         I.x, 'some message to log'
-    ) + kde.core.with_print(I.x, 'some message to log')
+    ) + kde.core.with_print(I.x, 'some message to log')  # pyrefly: ignore[missing-attribute]
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr.eval(x=x)
 
@@ -140,7 +140,7 @@ class CoreWithPrintTest(parameterized.TestCase):
 
   def test_same_node_twice(self):
     x = ds([1, 2, 3])
-    logged_x = kde.core.with_print(I.x, 'some message to log')
+    logged_x = kde.core.with_print(I.x, 'some message to log')  # pyrefly: ignore[missing-attribute]
     expr = logged_x + logged_x
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr.eval(x=x)
@@ -149,7 +149,7 @@ class CoreWithPrintTest(parameterized.TestCase):
     testing.assert_equal(eval_result, ds([2, 4, 6]))
 
   def test_no_literal_folding(self):
-    expr = kde.core.with_print(ds([1, 2, 3]), 'some message to log') + 1
+    expr = kde.core.with_print(ds([1, 2, 3]), 'some message to log') + 1  # pyrefly: ignore[missing-attribute]
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr.eval()
       expr.eval()
@@ -169,15 +169,15 @@ class CoreWithPrintTest(parameterized.TestCase):
             ' *args: (DATA_SLICE, DATA_BAG)'
         ),
     ):
-      kde.core.with_print(
+      kde.core.with_print(  # pyrefly: ignore[missing-attribute]
           I.x,
           ds(['some message to log']).freeze_bag(),
           data_bag.DataBag.empty(),
       )
 
-  @parameterized.parameters(kde.core.with_print, kde.with_print)
+  @parameterized.parameters(kde.core.with_print, kde.with_print)  # pyrefly: ignore[missing-attribute]
   def test_tuple_unpacking(self, with_print):
-    expr = kde.tuple(I.x, I.y)
+    expr = kde.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
     wrapped = with_print(expr, 'msg')
 
     x, y = wrapped
@@ -187,10 +187,10 @@ class CoreWithPrintTest(parameterized.TestCase):
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.with_print(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.with_print(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.with_print, kde.with_print))
+    self.assertTrue(optools.equiv_to_op(kde.core.with_print, kde.with_print))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

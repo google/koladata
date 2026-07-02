@@ -143,9 +143,9 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.cast_to_narrow(1, schema_constants.INT64),
+        kde.schema.cast_to_narrow(1, schema_constants.INT64),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.schema.cast_to_narrow,
+            kde.schema.cast_to_narrow,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(1)),
             literal_operator.literal(schema_constants.INT64),
         ),
@@ -153,13 +153,13 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.cast_to_narrow,
+        kde.schema.cast_to_narrow,  # pyrefly: ignore[missing-attribute]
         [(DATA_SLICE, DATA_SLICE, DATA_SLICE)],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.cast_to_narrow(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.schema.cast_to_narrow(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

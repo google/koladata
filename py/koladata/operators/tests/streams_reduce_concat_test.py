@@ -21,7 +21,7 @@ from koladata.testing import testing
 
 
 I = kd.I
-ds = kd.slice
+ds = kd.slice  # pyrefly: ignore[missing-attribute]
 kde = kd.lazy
 
 
@@ -87,8 +87,8 @@ class StreamsReduceConcatTest(absltest.TestCase):
   def test_data_bag_adoption(self):
     [res] = (
         kde.streams.reduce_concat(
-            kde.streams.make(kd.obj(x=ds([1])), kd.obj(x=ds([2]))),
-            kd.obj(x=ds([3])),
+            kde.streams.make(kd.obj(x=ds([1])), kd.obj(x=ds([2]))),  # pyrefly: ignore[missing-attribute]
+            kd.obj(x=ds([3])),  # pyrefly: ignore[missing-attribute]
         )
         .eval()
         .read_all(timeout=1)

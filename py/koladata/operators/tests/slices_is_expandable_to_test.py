@@ -40,8 +40,8 @@ class SlicesIsExpandableToTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.is_expandable_to,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.is_expandable_to,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         [
             (DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
@@ -72,37 +72,37 @@ class SlicesIsExpandableToTest(parameterized.TestCase):
       (ds(["a", 2, 3]), ds([[1], [2], [3]]), 1, kd.present),
   )
   def test_eval(self, x, target, ndim, expected):
-    result = expr_eval.eval(kde.is_expandable_to(x, target, ndim))
+    result = expr_eval.eval(kde.is_expandable_to(x, target, ndim))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
 
     # Ensure result is consistent with `kde.expand_to` operator.
     if expected:
-      expr_eval.eval(kde.expand_to(x, target, ndim))
+      expr_eval.eval(kde.expand_to(x, target, ndim))  # pyrefly: ignore[missing-attribute]
     else:
       with self.assertRaisesRegex(
           ValueError, r"(DataSlice with shape|Cannot expand 'x').*"
       ):
-        expr_eval.eval(kde.expand_to(x, target, ndim))
+        expr_eval.eval(kde.expand_to(x, target, ndim))  # pyrefly: ignore[missing-attribute]
 
   def test_invalid_ndim_error(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape("expected 0 <= ndim <= rank"),
     ):
-      expr_eval.eval(kde.is_expandable_to(ds(1), ds(0), -1))
+      expr_eval.eval(kde.is_expandable_to(ds(1), ds(0), -1))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape("expected 0 <= ndim <= rank"),
     ):
-      expr_eval.eval(kde.is_expandable_to(ds(1), ds(0), 1))
+      expr_eval.eval(kde.is_expandable_to(ds(1), ds(0), 1))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.is_expandable_to(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.slices.is_expandable_to(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.is_expandable_to, kde.is_expandable_to)
+        optools.equiv_to_op(kde.slices.is_expandable_to, kde.is_expandable_to)  # pyrefly: ignore[missing-attribute]
     )
 
 

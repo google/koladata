@@ -47,7 +47,7 @@ class SlicesStrTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.str(x))
+    res = expr_eval.eval(kde.slices.str(x))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res, expected)
 
   def test_error(self):
@@ -55,36 +55,36 @@ class SlicesStrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'casting data of type EXPR to STRING is not supported'
     ):
-      expr_eval.eval(kde.slices.str(x))
+      expr_eval.eval(kde.slices.str(x))  # pyrefly: ignore[missing-attribute]
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.str(b'foo'),
+        kde.slices.str(b'foo'),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.slices.str, literal_operator.literal(ds("b'foo'"))
+            kde.slices.str, literal_operator.literal(ds("b'foo'"))  # pyrefly: ignore[missing-attribute]
         ),
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.str(I.x),
-        arolla.abc.bind_op(kde.slices.str, I.x),
+        kde.slices.str(I.x),  # pyrefly: ignore[missing-attribute]
+        arolla.abc.bind_op(kde.slices.str, I.x),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.str,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.str,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.str(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.str(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.str, kde.str))
+    self.assertTrue(optools.equiv_to_op(kde.slices.str, kde.str))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

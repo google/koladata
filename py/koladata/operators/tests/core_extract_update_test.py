@@ -89,18 +89,18 @@ class CoreExtractBagTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.extract_update,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.core.extract_update,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.extract_update(I.x)))
+    self.assertTrue(view.has_koda_view(kde.extract_update(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.extract_update, kde.extract_update)
+        optools.equiv_to_op(kde.core.extract_update, kde.extract_update)  # pyrefly: ignore[missing-attribute]
     )
 
 

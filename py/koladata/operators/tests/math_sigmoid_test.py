@@ -122,21 +122,21 @@ class MathSigmoidTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.sigmoid,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.math.sigmoid,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.sigmoid(I.x)),
+        repr(kde.math.sigmoid(I.x)),  # pyrefly: ignore[missing-attribute]
         'kd.math.sigmoid(I.x, DataItem(0.0, schema: FLOAT32), DataItem(1.0,'
         ' schema: FLOAT32))',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.sigmoid(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.sigmoid(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

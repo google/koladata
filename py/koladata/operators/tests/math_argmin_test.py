@@ -192,16 +192,16 @@ class MathArgminTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.argmin,
+        kde.math.argmin,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.argmin(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.argmin(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.math.argmin, kde.argmin))
+    self.assertTrue(optools.equiv_to_op(kde.math.argmin, kde.argmin))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

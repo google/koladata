@@ -57,46 +57,46 @@ class FunctorIsFnTest(parameterized.TestCase):
       (ds([1, 'a', None]), ds([None, None, None], schema_constants.MASK)),
       (ds(None), mask_constants.missing),
       (ds(None, schema=schema_constants.OBJECT), mask_constants.missing),
-      (ds(arolla.quote(I.self + 1)), mask_constants.missing),
-      (functor_factories.expr_fn(I.self + 1).no_bag(), mask_constants.missing),
+      (ds(arolla.quote(I.self + 1)), mask_constants.missing),  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+      (functor_factories.expr_fn(I.self + 1).no_bag(), mask_constants.missing),  # pyrefly: ignore[unsupported-operation]
       (
-          ds([functor_factories.expr_fn(I.self + 1)]).no_bag(),
+          ds([functor_factories.expr_fn(I.self + 1)]).no_bag(),  # pyrefly: ignore[unsupported-operation]
           ds([mask_constants.missing]),
       ),
       (
-          functor_factories.expr_fn(I.self + 1).with_attr('returns', None),
+          functor_factories.expr_fn(I.self + 1).with_attr('returns', None),  # pyrefly: ignore[unsupported-operation]
           mask_constants.missing,
       ),
       (
-          functor_factories.expr_fn(I.self + 1).with_attr(
+          functor_factories.expr_fn(I.self + 1).with_attr(  # pyrefly: ignore[unsupported-operation]
               '__signature__', None
           ),
           mask_constants.missing,
       ),
       (
           ds(
-              [functor_factories.expr_fn(I.self + 1).with_attr('returns', None)]
+              [functor_factories.expr_fn(I.self + 1).with_attr('returns', None)]  # pyrefly: ignore[unsupported-operation]
           ),
           ds([mask_constants.missing]),
       ),
       (
           ds([
-              functor_factories.expr_fn(I.self + 1).with_attr(
+              functor_factories.expr_fn(I.self + 1).with_attr(  # pyrefly: ignore[unsupported-operation]
                   '__signature__', None
               )
           ]),
           ds([mask_constants.missing]),
       ),
       # Functors.
-      (functor_factories.expr_fn(I.self + 1), mask_constants.present),
+      (functor_factories.expr_fn(I.self + 1), mask_constants.present),  # pyrefly: ignore[unsupported-operation]
       (
-          functor_factories.expr_fn(I.self + 1).with_schema(
+          functor_factories.expr_fn(I.self + 1).with_schema(  # pyrefly: ignore[unsupported-operation]
               get_functor_schema()
           ),
           mask_constants.present,
       ),
       (
-          ds([functor_factories.expr_fn(I.self + 1), None, 1]),
+          ds([functor_factories.expr_fn(I.self + 1), None, 1]),  # pyrefly: ignore[unsupported-operation]
           ds([mask_constants.present, None, None]),
       ),
   )
@@ -113,16 +113,16 @@ class FunctorIsFnTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.functor.has_fn,
+        kde.functor.has_fn,  # pyrefly: ignore[missing-attribute]
         [(qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.has_fn, kde.has_fn))
+    self.assertTrue(optools.equiv_to_op(kde.functor.has_fn, kde.has_fn))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.functor.has_fn(I.x)))
+    self.assertTrue(view.has_koda_view(kde.functor.has_fn(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

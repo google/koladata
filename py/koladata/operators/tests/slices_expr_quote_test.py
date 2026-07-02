@@ -53,7 +53,7 @@ class SlicesExprQuoteTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.expr_quote(x))
+    res = expr_eval.eval(kde.slices.expr_quote(x))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res, expected)
 
   def test_error(self):
@@ -61,37 +61,37 @@ class SlicesExprQuoteTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "casting data of type STRING to EXPR is not supported"
     ):
-      expr_eval.eval(kde.slices.expr_quote(x))
+      expr_eval.eval(kde.slices.expr_quote(x))  # pyrefly: ignore[missing-attribute]
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.expr_quote(ds(arolla.quote(I.x))),
+        kde.slices.expr_quote(ds(arolla.quote(I.x))),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.slices.expr_quote,
+            kde.slices.expr_quote,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(arolla.quote(I.x))),
         ),
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.expr_quote(I.x),
-        arolla.abc.bind_op(kde.slices.expr_quote, I.x),
+        kde.slices.expr_quote(I.x),  # pyrefly: ignore[missing-attribute]
+        arolla.abc.bind_op(kde.slices.expr_quote, I.x),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.expr_quote,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.expr_quote,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.expr_quote(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.expr_quote(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.expr_quote, kde.expr_quote))
+    self.assertTrue(optools.equiv_to_op(kde.slices.expr_quote, kde.expr_quote))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

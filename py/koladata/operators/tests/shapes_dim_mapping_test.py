@@ -96,14 +96,14 @@ class ShapesDimMappingTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.dim_mapping,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.shapes.dim_mapping,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.dim_mapping(I.x, I.dim)))
+    self.assertTrue(view.has_koda_view(kde.shapes.dim_mapping(I.x, I.dim)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

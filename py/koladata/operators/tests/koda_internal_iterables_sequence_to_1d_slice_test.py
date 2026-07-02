@@ -34,21 +34,21 @@ class IterablesInternalSequenceTo1DSliceTest(absltest.TestCase):
     a = fns.new(x=ds([1, 2, 3]))
     seq = arolla.types.Sequence(a.S[0], a.S[1], a.S[2])
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq
+        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, a)
 
   def test_empty(self):
     a = arolla.types.Sequence(value_qtype=qtypes.DATA_SLICE)
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=a
+        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=a  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds([]))
 
   def test_common_type(self):
     seq = arolla.types.Sequence(ds(1), ds(2.0))
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq
+        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds([1.0, 2.0]))
 
@@ -58,7 +58,7 @@ class IterablesInternalSequenceTo1DSliceTest(absltest.TestCase):
         a.S[0].extract(), a.S[1].extract(), a.S[2].extract()
     )
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq
+        kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=seq  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res.x.no_bag(), ds([1, 2, 3]))
 
@@ -68,18 +68,18 @@ class IterablesInternalSequenceTo1DSliceTest(absltest.TestCase):
         ValueError, 'All inputs must be DataItems, got 1 dimensions'
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=a
+          kde_internal.iterables.sequence_to_1d_slice(I.arg), arg=a  # pyrefly: ignore[missing-attribute]
       )
 
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde_internal.iterables.sequence_to_1d_slice,
+                kde_internal.iterables.sequence_to_1d_slice,  # pyrefly: ignore[missing-attribute]
                 possible_qtypes=[
                     qtypes.DATA_SLICE,
                     qtypes.DATA_BAG,
@@ -94,7 +94,7 @@ class IterablesInternalSequenceTo1DSliceTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.iterables.sequence_to_1d_slice(I.arg))
+        view.has_koda_view(kde_internal.iterables.sequence_to_1d_slice(I.arg))  # pyrefly: ignore[missing-attribute]
     )
 
 

@@ -36,8 +36,8 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(I.x + V.foo, I.x * V.foo),
-        foo=I.y * I.x,
+        returns=kde.iterables.make(I.x + V.foo, I.x * V.foo),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
     )
     expected = kd.iterables.make(ds(8), ds(12))
     testing.assert_equal(
@@ -52,7 +52,7 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
 
   def test_call_with_self(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(S.x + V.foo, S.x * V.foo),
+        returns=kde.iterables.make(S.x + V.foo, S.x * V.foo),  # pyrefly: ignore[missing-attribute]
         foo=S.y * S.x,
     )
     expected = kd.iterables.make(ds(8), ds(12))
@@ -65,7 +65,7 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
 
   def test_call_returns_databag(self):
     fn = functor_factories.expr_fn(
-        kde.iterables.make(I.x.get_bag(), I.y.get_bag())
+        kde.iterables.make(I.x.get_bag(), I.y.get_bag())  # pyrefly: ignore[missing-attribute]
     )
     obj1 = fns.obj(x=1)
     obj2 = fns.obj(y=1)
@@ -81,14 +81,14 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.call_fn_returning_stream_when_parallel(I.fn)
+            kde.functor.call_fn_returning_stream_when_parallel(I.fn)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.functor.call_fn_returning_stream_when_parallel(
+            kde.functor.call_fn_returning_stream_when_parallel(  # pyrefly: ignore[missing-attribute]
                 I.fn, I.x, I.y, a=I.z
             )
         ),

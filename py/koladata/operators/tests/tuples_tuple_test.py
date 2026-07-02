@@ -90,7 +90,7 @@ class TuplesTupleTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.tuple,
+        kde.tuple,  # pyrefly: ignore[missing-attribute]
         QTYPES,
         # DATA_SLICE + arbitrary other qtype (INT64) to avoid blowup, since
         # this operator accepts any tuple of input qtypes.
@@ -99,14 +99,14 @@ class TuplesTupleTest(parameterized.TestCase):
     )
 
   def test_boxing_rules_regression(self):
-    testing.assert_equal(kde.tuple(42).node_deps[0].qvalue, ds(42))
+    testing.assert_equal(kde.tuple(42).node_deps[0].qvalue, ds(42))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    x_tuple = kde.tuples.tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
     self.assertTrue(view.has_koda_view(x_tuple))
     self.assertLen(x_tuple.node_deps, 2)
 
-    x_tuple = kde.tuples.tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
     self.assertTrue(view.has_koda_view(x_tuple[0]))
     self.assertTrue(view.has_koda_view(x_tuple[1]))
     x, y = x_tuple
@@ -114,14 +114,14 @@ class TuplesTupleTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(y))
 
     # Also test alias.
-    x_tuple = kde.tuple(I.x, I.y)
+    x_tuple = kde.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
     self.assertTrue(view.has_koda_view(x_tuple))
     x, y = x_tuple
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.tuple, kde.tuple))
+    self.assertTrue(optools.equiv_to_op(kde.tuple, kde.tuple))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

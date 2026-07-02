@@ -36,12 +36,12 @@ kde = kde_operators.kde
 class FunctorIfTest(absltest.TestCase):
 
   def test_simple(self):
-    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)
+    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(expr_eval.eval(expr, x=ds(1)), ds(0))
     testing.assert_equal(expr_eval.eval(expr, x=ds(5)), ds(6))
 
   def test_complex_signature(self):
-    expr = kde.functor.if_(
+    expr = kde.functor.if_(  # pyrefly: ignore[missing-attribute]
         I.x > 3,
         lambda x, y, z=2, *, t: x + y + z + t,
         lambda x, *unused_args, **unused_kwargs: x - 1,
@@ -68,7 +68,7 @@ class FunctorIfTest(absltest.TestCase):
       no_called = True
       return x - 1
 
-    expr = kde.functor.if_(
+    expr = kde.functor.if_(  # pyrefly: ignore[missing-attribute]
         I.x > 3, functor_factories.py_fn(yes), functor_factories.py_fn(no), I.x
     )
     testing.assert_equal(expr_eval.eval(expr, x=ds(1)), ds(0))
@@ -81,7 +81,7 @@ class FunctorIfTest(absltest.TestCase):
     self.assertFalse(no_called)
 
   def test_non_functor(self):
-    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, None, I.x)
+    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, None, I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, r'the first argument of kd\.call must be a functor'
     ):
@@ -97,14 +97,14 @@ class FunctorIfTest(absltest.TestCase):
     )
 
   def test_non_scalar_condition(self):
-    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)
+    expr = kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, 'the condition in kd.if_ must be a MASK scalar'
     ):
       _ = expr_eval.eval(expr, x=ds([1]))
 
   def test_non_mask_condition(self):
-    expr = kde.functor.if_(I.x, lambda x: x + 1, lambda x: x - 1, I.x)
+    expr = kde.functor.if_(I.x, lambda x: x + 1, lambda x: x - 1, I.x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError, 'the condition in kd.if_ must be a MASK scalar'
     ):
@@ -112,10 +112,10 @@ class FunctorIfTest(absltest.TestCase):
 
   def test_data_bag_return(self):
     fn = functor_factories.trace_py_fn(
-        lambda x: user_facing_kd.functor.if_(
+        lambda x: user_facing_kd.functor.if_(  # pyrefly: ignore[missing-attribute]
             x.data > 3,
-            lambda x: user_facing_kd.attrs(x, res='yes'),
-            lambda x: user_facing_kd.attrs(x, res='no'),
+            lambda x: user_facing_kd.attrs(x, res='yes'),  # pyrefly: ignore[missing-attribute]
+            lambda x: user_facing_kd.attrs(x, res='no'),  # pyrefly: ignore[missing-attribute]
             x,
             return_type_as=data_bag.DataBag,
         )
@@ -133,12 +133,12 @@ class FunctorIfTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)
+            kde.functor.if_(I.x > 3, lambda x: x + 1, lambda x: x - 1, I.x)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.if_, kde.if_))
+    self.assertTrue(optools.equiv_to_op(kde.functor.if_, kde.if_))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

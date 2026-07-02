@@ -52,17 +52,17 @@ class SlicesTileTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.tile,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.tile,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.tile(I.x, I.shape)))
+    self.assertTrue(view.has_koda_view(kde.slices.tile(I.x, I.shape)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.tile, kde.slices.tile))
+    self.assertTrue(optools.equiv_to_op(kde.tile, kde.slices.tile))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

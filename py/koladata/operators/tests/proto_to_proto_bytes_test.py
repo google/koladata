@@ -101,27 +101,27 @@ class ProtoToProtoBytesTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.proto.to_proto_bytes,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.proto.to_proto_bytes,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.proto.to_proto_bytes(I.x, I.proto_path))
+        view.has_koda_view(kde.proto.to_proto_bytes(I.x, I.proto_path))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.proto.to_proto_bytes, kde.to_proto_bytes
+            kde.proto.to_proto_bytes, kde.to_proto_bytes  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.proto.to_proto_bytes(I.x, I.proto_path)),
+        repr(kde.proto.to_proto_bytes(I.x, I.proto_path)),  # pyrefly: ignore[missing-attribute]
         'kd.proto.to_proto_bytes(I.x, I.proto_path)',
     )
 

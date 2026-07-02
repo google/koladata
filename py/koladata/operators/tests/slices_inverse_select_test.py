@@ -52,8 +52,8 @@ class SlicesInverseSelectTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.inverse_select,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.inverse_select,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
@@ -107,16 +107,16 @@ class SlicesInverseSelectTest(parameterized.TestCase):
       kd.slices.inverse_select(ds(1), ds(arolla.present()))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.inverse_select(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.slices.inverse_select(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.inverse_select, kde.inverse_select)
+        optools.equiv_to_op(kde.slices.inverse_select, kde.inverse_select)  # pyrefly: ignore[missing-attribute]
     )
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.reverse_select, kde.inverse_select)
+        optools.equiv_to_op(kde.slices.reverse_select, kde.inverse_select)  # pyrefly: ignore[missing-attribute]
     )
-    self.assertTrue(optools.equiv_to_op(kde.reverse_select, kde.inverse_select))
+    self.assertTrue(optools.equiv_to_op(kde.reverse_select, kde.inverse_select))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

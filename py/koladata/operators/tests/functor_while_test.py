@@ -41,9 +41,9 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_while_returns(self):
     factorial = kdf.fn(
-        lambda n: user_facing_kd.functor.while_(
+        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda n, returns: n > 0,
-            lambda n, returns: user_facing_kd.namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
                 returns=returns * n,
                 n=n - 1,
             ),
@@ -55,32 +55,32 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_while_returns_databag(self):
     factorial = kdf.fn(
-        lambda n, x: user_facing_kd.functor.while_(
+        lambda n, x: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda x, returns: x.updated(returns).n > 0,
-            lambda x, returns: user_facing_kd.namedtuple(
-                returns=user_facing_kd.attrs(
+            lambda x, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+                returns=user_facing_kd.attrs(  # pyrefly: ignore[missing-attribute]
                     x,
                     n=x.updated(returns).n - 1,
                     result=x.updated(returns).result * x.updated(returns).n,
                 )
             ),
             x=x,
-            returns=user_facing_kd.attrs(x, n=n, result=1),
+            returns=user_facing_kd.attrs(x, n=n, result=1),  # pyrefly: ignore[missing-attribute]
         )
     )
 
-    x = user_facing_kd.new()
+    x = user_facing_kd.new()  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         x.updated(
-            factorial(n=5, x=x, return_type_as=user_facing_kd.bag())
+            factorial(n=5, x=x, return_type_as=user_facing_kd.bag())  # pyrefly: ignore[missing-attribute]
         ).result.to_py(),
         120,
     )
 
   def test_while_returns_with_databag_variable(self):
     def _factorial(n):
-      x = user_facing_kd.new()
-      initial_state_bag = user_facing_kd.attrs(
+      x = user_facing_kd.new()  # pyrefly: ignore[missing-attribute]
+      initial_state_bag = user_facing_kd.attrs(  # pyrefly: ignore[missing-attribute]
           x,
           n=n,
           result=1,
@@ -90,17 +90,17 @@ class FunctorWhileTest(parameterized.TestCase):
         _ = returns
 
         last_x = x.updated(state_bag)
-        next_state_bag = user_facing_kd.attrs(
+        next_state_bag = user_facing_kd.attrs(  # pyrefly: ignore[missing-attribute]
             x,
             n=last_x.n - 1,
             result=last_x.result * last_x.n,
         )
-        return user_facing_kd.namedtuple(
+        return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             state_bag=next_state_bag,
             returns=x.updated(next_state_bag).result,
         )
 
-      return user_facing_kd.functor.while_(
+      return user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
           lambda x, state_bag, returns: x.updated(state_bag).n > 0,
           _body_fn,
           x=x,
@@ -113,71 +113,71 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_while_yields(self):
     factorial = kdf.fn(
-        lambda n: user_facing_kd.functor.while_(
+        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(
-                yields=user_facing_kd.iterables.make(res * n),
+            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+                yields=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields=user_facing_kd.iterables.make(),
+            yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(
-        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),
-        user_facing_kd.iterables.make(ds(5), ds(20), ds(60), ds(120), ds(120)),
+        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.iterables.make(ds(5), ds(20), ds(60), ds(120), ds(120)),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_while_yields_no_yield_in_body(self):
     factorial = kdf.fn(
-        lambda n: user_facing_kd.functor.while_(
+        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields=user_facing_kd.iterables.make(5),
+            yields=user_facing_kd.iterables.make(5),  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(
-        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),
-        user_facing_kd.iterables.make(ds(5)),
+        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.iterables.make(ds(5)),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_while_yields_databag(self):
     def _factorial(n, x):
-      initial_update_bag = user_facing_kd.attrs(
+      initial_update_bag = user_facing_kd.attrs(  # pyrefly: ignore[missing-attribute]
           x,
           n=n,
           result=1,
       )
 
       def _body_fn(x):
-        update_bag = user_facing_kd.attrs(x, n=x.n - 1, result=x.result * x.n)
-        return user_facing_kd.namedtuple(
+        update_bag = user_facing_kd.attrs(x, n=x.n - 1, result=x.result * x.n)  # pyrefly: ignore[missing-attribute]
+        return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             x=x.updated(update_bag),
-            yields=user_facing_kd.iterables.make(update_bag),
+            yields=user_facing_kd.iterables.make(update_bag),  # pyrefly: ignore[missing-attribute]
         )
 
-      return user_facing_kd.functor.while_(
+      return user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
           lambda x: x.n > 0,
           _body_fn,
           x=x.updated(initial_update_bag),
-          yields=user_facing_kd.iterables.make(initial_update_bag),
+          yields=user_facing_kd.iterables.make(initial_update_bag),  # pyrefly: ignore[missing-attribute]
       )
 
     factorial = kdf.fn(_factorial)
 
-    x = user_facing_kd.new()
+    x = user_facing_kd.new()  # pyrefly: ignore[missing-attribute]
     steps = []
     for step_bag in factorial(
         n=5,
         x=x,
-        return_type_as=user_facing_kd.iterables.make(user_facing_kd.bag()),
+        return_type_as=user_facing_kd.iterables.make(user_facing_kd.bag()),  # pyrefly: ignore[missing-attribute]
     ):
       step_x = x.updated(step_bag)
       steps.append([step_x.n.to_py(), step_x.result.to_py()])
@@ -195,23 +195,23 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_while_yields_interleaved(self):
     factorial = kdf.fn(
-        lambda n: user_facing_kd.functor.while_(
+        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(
-                yields_interleaved=user_facing_kd.iterables.make(res * n),
+            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+                yields_interleaved=user_facing_kd.iterables.make(res * n),  # pyrefly: ignore[missing-attribute]
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields_interleaved=user_facing_kd.iterables.make(),
+            yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         ),
     )
     self.assertCountEqual(
         [
             x.to_py()
             for x in factorial(
-                n=5, return_type_as=user_facing_kd.iterables.make()
+                n=5, return_type_as=user_facing_kd.iterables.make()  # pyrefly: ignore[missing-attribute]
             )
         ],
         [5, 20, 60, 120, 120],
@@ -219,28 +219,28 @@ class FunctorWhileTest(parameterized.TestCase):
 
   def test_while_yields_interleaved_no_yield_in_body(self):
     factorial = kdf.fn(
-        lambda n: user_facing_kd.functor.while_(
+        lambda n: user_facing_kd.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
                 n=n - 1,
                 res=res * n,
             ),
             n=n,
             res=1,
-            yields_interleaved=user_facing_kd.iterables.make(5, 7),
+            yields_interleaved=user_facing_kd.iterables.make(5, 7),  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(
-        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),
-        user_facing_kd.iterables.make(ds(5), ds(7)),
+        factorial(n=5, return_type_as=user_facing_kd.iterables.make()),  # pyrefly: ignore[missing-attribute]
+        user_facing_kd.iterables.make(ds(5), ds(7)),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_cancel(self):
-    expr = kde.functor.while_(
+    expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         kdf.fn(lambda returns: mask_constants.present),
         kdf.fn(
-            lambda returns: arolla.M.core._identity_with_cancel(
-                user_facing_kd.namedtuple(), 'cancelled'
+            lambda returns: arolla.M.core._identity_with_cancel(  # pyrefly: ignore[missing-attribute]
+                user_facing_kd.namedtuple(), 'cancelled'  # pyrefly: ignore[missing-attribute]
             )
         ),
         returns=None,
@@ -251,27 +251,27 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_interleave_nondeterminism(self):
     # These exprs should be identical
     def _make_expr():
-      return kde.functor.while_(
+      return kde.functor.while_(  # pyrefly: ignore[missing-attribute]
           kdf.fn(lambda i, n: i < n),
           kdf.fn(
-              lambda i, n: user_facing_kd.namedtuple(
-                  i=i + 1, yields_interleaved=user_facing_kd.iterables.make(i)
+              lambda i, n: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+                  i=i + 1, yields_interleaved=user_facing_kd.iterables.make(i)  # pyrefly: ignore[missing-attribute]
               )
           ),
           i=0,
           n=20,
-          yields_interleaved=user_facing_kd.iterables.make(),
+          yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
     expr1 = _make_expr()
     expr2 = _make_expr()
 
-    values = arolla.M.core.make_tuple(expr1, expr2)
+    values = arolla.M.core.make_tuple(expr1, expr2)  # pyrefly: ignore[missing-attribute]
 
     values1 = [
-        v.to_py() for v in expr_eval.eval(arolla.M.core.get_nth(values, 0))
+        v.to_py() for v in expr_eval.eval(arolla.M.core.get_nth(values, 0))  # pyrefly: ignore[missing-attribute]
     ]
     values2 = [
-        v.to_py() for v in expr_eval.eval(arolla.M.core.get_nth(values, 1))
+        v.to_py() for v in expr_eval.eval(arolla.M.core.get_nth(values, 1))  # pyrefly: ignore[missing-attribute]
     ]
     self.assertCountEqual(values1, range(20))
     self.assertCountEqual(values2, range(20))
@@ -286,9 +286,9 @@ class FunctorWhileTest(parameterized.TestCase):
         'exactly one of `returns`, `yields`, or `yields_interleaved` must be'
         ' specified',
     ):
-      _ = kde.functor.while_(
+      _ = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_return_and_yield(self):
@@ -297,18 +297,18 @@ class FunctorWhileTest(parameterized.TestCase):
         'exactly one of `returns`, `yields`, or `yields_interleaved` must be'
         ' specified',
     ):
-      _ = kde.functor.while_(
+      _ = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
           returns=1,
-          yields=kde.iterables.make(),
+          yields=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_return_outside_yield_inside_body(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.namedtuple(
-            yields=kde.iterables.make()
+        lambda **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            yields=kde.iterables.make()  # pyrefly: ignore[missing-attribute]
         ),
         returns=1,
     )
@@ -323,10 +323,10 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_wrong_type_for_variable(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.namedtuple(
-            returns=user_facing_kd.tuple(1, 2)
+        lambda **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            returns=user_facing_kd.tuple(1, 2)  # pyrefly: ignore[missing-attribute]
         ),
         returns=1,
     )
@@ -340,12 +340,12 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_wrong_inner_type_for_yields(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.namedtuple(
-            yields=user_facing_kd.iterables.make(user_facing_kd.bag())
+        lambda **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+            yields=user_facing_kd.iterables.make(user_facing_kd.bag())  # pyrefly: ignore[missing-attribute]
         ),
-        yields=kde.iterables.make(),
+        yields=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -357,7 +357,7 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_return_dataslice(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: 2,
         returns=1,
@@ -372,10 +372,10 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_yield_dataslice(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
         lambda **unused_kwargs: 2,
-        yields=user_facing_kd.iterables.make(1),
+        yields=user_facing_kd.iterables.make(1),  # pyrefly: ignore[missing-attribute]
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -387,9 +387,9 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_non_mask_condition(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: 1,
-        lambda **unused_kwargs: user_facing_kd.namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -402,11 +402,11 @@ class FunctorWhileTest(parameterized.TestCase):
       _ = expr_eval.eval(loop_expr)
 
   def test_non_scalar_condition(self):
-    loop_expr = kde.functor.while_(
-        lambda **unused_kwargs: user_facing_kd.slice(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
+        lambda **unused_kwargs: user_facing_kd.slice(  # pyrefly: ignore[missing-attribute]
             [user_facing_kd.missing]
         ).no_bag(),
-        lambda **unused_kwargs: user_facing_kd.namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -423,14 +423,14 @@ class FunctorWhileTest(parameterized.TestCase):
         ValueError,
         'expected DATA_SLICE, got body_fn: namedtuple<>',
     ):
-      _ = kde.functor.while_(
+      _ = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
           lambda **unused_kwargs: user_facing_kd.present,
-          kde.namedtuple(),
+          kde.namedtuple(),  # pyrefly: ignore[missing-attribute]
           returns=1,
       )
 
   def test_non_functor_body(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         lambda **unused_kwargs: user_facing_kd.present,
         57,
         returns=1,
@@ -446,16 +446,16 @@ class FunctorWhileTest(parameterized.TestCase):
         ValueError,
         'expected DATA_SLICE, got condition_fn: namedtuple<>',
     ):
-      _ = kde.functor.while_(
-          kde.namedtuple(),
-          lambda **unused_kwargs: user_facing_kd.namedtuple(),
+      _ = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
+          kde.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
           returns=1,
       )
 
   def test_non_functor_condition(self):
-    loop_expr = kde.functor.while_(
+    loop_expr = kde.functor.while_(  # pyrefly: ignore[missing-attribute]
         user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -467,20 +467,20 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.while_(I.condition, I.body, returns=I.returns, x=I.x)
+            kde.functor.while_(I.condition, I.body, returns=I.returns, x=I.x)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.while_, kde.while_))
+    self.assertTrue(optools.equiv_to_op(kde.functor.while_, kde.while_))  # pyrefly: ignore[missing-attribute]
     self.assertTrue(
-        optools.equiv_to_op(kde.functor.while_, kde.iterables.while_)
+        optools.equiv_to_op(kde.functor.while_, kde.iterables.while_)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.functor.while_(
+            kde.functor.while_(  # pyrefly: ignore[missing-attribute]
                 I.condition,
                 I.body,
                 returns=I.returns,

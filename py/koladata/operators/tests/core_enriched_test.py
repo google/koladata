@@ -85,17 +85,17 @@ class CoreEnrichedTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.enriched,
+        kde.core.enriched,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.enriched(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.enriched(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.enriched, kde.enriched))
+    self.assertTrue(optools.equiv_to_op(kde.core.enriched, kde.enriched))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

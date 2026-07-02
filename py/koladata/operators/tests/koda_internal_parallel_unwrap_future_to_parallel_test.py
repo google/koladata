@@ -33,62 +33,62 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_future_input(self):
-    executor = kde_internal.parallel.get_eager_executor()
-    future_to_future = kde_internal.parallel.async_eval(
-        executor, kde_internal.parallel.as_future, I.x
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    future_to_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+        executor, kde_internal.parallel.as_future, I.x  # pyrefly: ignore[missing-attribute]
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_future)
+    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_future)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(expr, x=arolla.int32(10))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_future_qtype(arolla.INT32)),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
-        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),
+        expr_eval.eval(kde_internal.parallel.get_future_value_for_testing(res)),  # pyrefly: ignore[missing-attribute]
         arolla.int32(10),
     )
 
   def test_stream_input(self):
-    executor = kde_internal.parallel.get_eager_executor()
-    future_to_stream = kde_internal.parallel.async_eval(
+    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    future_to_stream = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
         executor,
-        kde_internal.parallel.stream_make,
+        kde_internal.parallel.stream_make,  # pyrefly: ignore[missing-attribute]
         I.x,
         arolla.unspecified(),
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_stream)
+    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_stream)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(expr, x=arolla.tuple(10, 20))
     self.assertEqual(
         res.qtype,
-        expr_eval.eval(kde_internal.parallel.get_stream_qtype(arolla.INT32)),
+        expr_eval.eval(kde_internal.parallel.get_stream_qtype(arolla.INT32)),  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=0)), arolla.tuple(10, 20)
     )
 
   def test_tuple_input(self):
-    future_to_tuple = kde_internal.parallel.as_future(
-        kde.tuple(
-            kde_internal.parallel.as_future(I.x),
-            kde_internal.parallel.stream_make(I.y),
+    future_to_tuple = kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
+        kde.tuple(  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.as_future(I.x),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.stream_make(I.y),  # pyrefly: ignore[missing-attribute]
         )
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_tuple)
+    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_tuple)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.int32(20))
     self.assertEqual(
         res.qtype,
         arolla.make_tuple_qtype(
             expr_eval.eval(
-                kde_internal.parallel.get_future_qtype(arolla.INT32)
+                kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
             ),
             expr_eval.eval(
-                kde_internal.parallel.get_stream_qtype(arolla.INT32)
+                kde_internal.parallel.get_stream_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
             ),
         ),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[0])
+            kde_internal.parallel.get_future_value_for_testing(res[0])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.int32(10),
     )
@@ -98,46 +98,46 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
     )
 
   def test_nested_tuple_input(self):
-    future_to_nested_tuple = kde_internal.parallel.as_future(
-        kde.tuple(kde.tuple(kde_internal.parallel.as_future(I.x)))
+    future_to_nested_tuple = kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
+        kde.tuple(kde.tuple(kde_internal.parallel.as_future(I.x)))  # pyrefly: ignore[missing-attribute]
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(
+    expr = kde_internal.parallel.unwrap_future_to_parallel(  # pyrefly: ignore[missing-attribute]
         future_to_nested_tuple
     )
     res = expr_eval.eval(expr, x=arolla.int32(10))
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res[0][0])
+            kde_internal.parallel.get_future_value_for_testing(res[0][0])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.int32(10),
     )
 
   def test_namedtuple_input(self):
-    future_to_namedtuple = kde_internal.parallel.as_future(
-        kde.namedtuple(a=kde_internal.parallel.as_future(I.x))
+    future_to_namedtuple = kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
+        kde.namedtuple(a=kde_internal.parallel.as_future(I.x))  # pyrefly: ignore[missing-attribute]
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_namedtuple)
+    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_namedtuple)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(expr, x=arolla.int32(10))
     testing.assert_equal(
         res.qtype,
         arolla.make_namedtuple_qtype(
             a=expr_eval.eval(
-                kde_internal.parallel.get_future_qtype(arolla.INT32)
+                kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
             )
         ),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde_internal.parallel.get_future_value_for_testing(res['a'])
+            kde_internal.parallel.get_future_value_for_testing(res['a'])  # pyrefly: ignore[missing-attribute]
         ),
         arolla.int32(10),
     )
 
   def test_non_deterministic_token_input(self):
-    future_to_token = kde_internal.parallel.as_future(
+    future_to_token = kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
         optools.unified_non_deterministic_arg()
     )
-    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_token)
+    expr = kde_internal.parallel.unwrap_future_to_parallel(future_to_token)  # pyrefly: ignore[missing-attribute]
     res = expr_eval.eval(expr)
     testing.assert_equal(
         res.qtype,
@@ -146,29 +146,29 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT32)
+        kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     future_int64_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT64)
+        kde_internal.parallel.get_future_qtype(arolla.INT64)  # pyrefly: ignore[missing-attribute]
     )
     stream_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_stream_qtype(arolla.INT32)
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     iterable_int32_qtype = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(arolla.INT32)
+        kde_internal.iterables.get_iterable_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
     )
     future_tuple_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(
+        kde_internal.parallel.get_future_qtype(  # pyrefly: ignore[missing-attribute]
             arolla.make_tuple_qtype(arolla.INT32, arolla.INT64)
         )
     )
     future_namedtuple_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(
+        kde_internal.parallel.get_future_qtype(  # pyrefly: ignore[missing-attribute]
             arolla.make_namedtuple_qtype(foo=arolla.INT32, bar=arolla.INT64)
         )
     )
     future_non_deterministic_token_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(qtypes.NON_DETERMINISTIC_TOKEN)
+        kde_internal.parallel.get_future_qtype(qtypes.NON_DETERMINISTIC_TOKEN)  # pyrefly: ignore[missing-attribute]
     )
     parallel_types_to_consider = (
         future_int32_qtype,
@@ -192,26 +192,26 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
         future_non_deterministic_token_qtype,
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.unwrap_future_to_parallel,
-        [
+        kde_internal.parallel.unwrap_future_to_parallel,  # pyrefly: ignore[missing-attribute]
+        [  # pyrefly: ignore[bad-argument-type]
             (
-                expr_eval.eval(kde_internal.parallel.get_future_qtype(t)),
+                expr_eval.eval(kde_internal.parallel.get_future_qtype(t)),  # pyrefly: ignore[missing-attribute]
                 qtypes.NON_DETERMINISTIC_TOKEN,
                 t,
             )
             for t in parallel_types_to_consider
         ],
-        possible_qtypes=parallel_types_to_consider
+        possible_qtypes=parallel_types_to_consider  # pyrefly: ignore[bad-argument-type]
         + other_types_to_consider
         + tuple(
-            expr_eval.eval(kde_internal.parallel.get_future_qtype(t))
+            expr_eval.eval(kde_internal.parallel.get_future_qtype(t))  # pyrefly: ignore[missing-attribute]
             for t in parallel_types_to_consider + other_types_to_consider
         ),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.unwrap_future_to_parallel(I.x))
+        view.has_koda_view(kde_internal.parallel.unwrap_future_to_parallel(I.x))  # pyrefly: ignore[missing-attribute]
     )
 
 

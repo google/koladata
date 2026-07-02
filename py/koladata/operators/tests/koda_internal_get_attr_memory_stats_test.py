@@ -26,14 +26,14 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal
+    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
 )
 
 
 class KodaInternalGetAttrMemoryStatsTest(absltest.TestCase):
 
   def test_basic(self):
-    obj = kd.new(
+    obj = kd.new(  # pyrefly: ignore[missing-attribute]
         x=ds([1, 2, None, 4, 5, 6, 7, 8, 9, 10] * 20, schema=kd.OBJECT),
         y=ds(['abc', None, 'a' * 42] + [None] * 197, schema=kd.OBJECT),
     )

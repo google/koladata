@@ -347,17 +347,17 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.ordinal_rank,
+        kde.slices.ordinal_rank,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.ordinal_rank(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.ordinal_rank(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.ordinal_rank, kde.ordinal_rank)
+        optools.equiv_to_op(kde.slices.ordinal_rank, kde.ordinal_rank)  # pyrefly: ignore[missing-attribute]
     )
 
 

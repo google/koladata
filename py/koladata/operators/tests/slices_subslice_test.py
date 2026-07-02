@@ -445,26 +445,26 @@ class SlicesSubsliceTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.subslice(I.x, slice(1))),
+        repr(kde.subslice(I.x, slice(1))),  # pyrefly: ignore[missing-attribute]
         'kd.subslice(I.x, slice(None, DataItem(1, schema: INT32)))',
     )
     self.assertEqual(
-        repr(kde.subslice(I.x, arolla.M.core.make_slice(I.start, I.end))),
+        repr(kde.subslice(I.x, arolla.M.core.make_slice(I.start, I.end))),  # pyrefly: ignore[missing-attribute]
         'kd.subslice(I.x, M.core.make_slice(I.start, I.end, unspecified))',
     )
-    self.assertEqual(repr(kde.subslice(I.x, ...)), 'kd.subslice(I.x, ...)')
+    self.assertEqual(repr(kde.subslice(I.x, ...)), 'kd.subslice(I.x, ...)')  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        repr(kde.subslice(I.x, ds(1), ...)),
+        repr(kde.subslice(I.x, ds(1), ...)),  # pyrefly: ignore[missing-attribute]
         'kd.subslice(I.x, DataItem(1, schema: INT32), ...)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.subslice(I.x, I.y, I.z)))
+    self.assertTrue(view.has_koda_view(kde.subslice(I.x, I.y, I.z)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.subslice, kde.subslice))
+    self.assertTrue(optools.equiv_to_op(kde.slices.subslice, kde.subslice))  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        repr(kde.slices.subslice(I.x, slice(1, 2))),
+        repr(kde.slices.subslice(I.x, slice(1, 2))),  # pyrefly: ignore[missing-attribute]
         'kd.slices.subslice(I.x, slice(DataItem(1, schema: INT32), DataItem(2,'
         ' schema: INT32)))',
     )
@@ -472,47 +472,47 @@ class SlicesSubsliceTest(parameterized.TestCase):
   def test_subslice_for_slicing_helper(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.slices._subslice_for_slicing_helper, kde.subslice
+            kde.slices._subslice_for_slicing_helper, kde.subslice  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertEqual(
-        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1)), 'I.x.S[I.s1]'
+        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1)), 'I.x.S[I.s1]'  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
-        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, I.s2)),
+        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, I.s2)),  # pyrefly: ignore[missing-attribute]
         'I.x.S[I.s1, I.s2]',
     )
     self.assertEqual(
-        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, 2))),
+        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, 2))),  # pyrefly: ignore[missing-attribute]
         'I.x.S[I.s1, DataItem(1, schema: INT32):DataItem(2, schema: INT32)]',
     )
     self.assertEqual(
         repr(
-            kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None, 2))
+            kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None, 2))  # pyrefly: ignore[missing-attribute]
         ),
         'I.x.S[I.s1, :DataItem(2, schema: INT32)]',
     )
     self.assertEqual(
         repr(
-            kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, None))
+            kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, None))  # pyrefly: ignore[missing-attribute]
         ),
         'I.x.S[I.s1, DataItem(1, schema: INT32):]',
     )
     self.assertEqual(
-        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None))),
+        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None))),  # pyrefly: ignore[missing-attribute]
         'I.x.S[I.s1, :]',
     )
     self.assertEqual(
-        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, ...)),
+        repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, ...)),  # pyrefly: ignore[missing-attribute]
         'I.x.S[I.s1, ...]',
     )
     self.assertEqual(
         repr(
-            kde.slices._subslice_for_slicing_helper(
+            kde.slices._subslice_for_slicing_helper(  # pyrefly: ignore[missing-attribute]
                 I.x,
                 I.s1,
                 ...,
-                kde.slices._subslice_for_slicing_helper(I.s2, I.s3),
+                kde.slices._subslice_for_slicing_helper(I.s2, I.s3),  # pyrefly: ignore[missing-attribute]
             )
         ),
         'I.x.S[I.s1, ..., I.s2.S[I.s3]]',

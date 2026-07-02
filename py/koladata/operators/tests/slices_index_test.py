@@ -140,17 +140,17 @@ class SlicesIndexTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.index,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.index,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.index(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.index(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.index, kde.index))
+    self.assertTrue(optools.equiv_to_op(kde.slices.index, kde.index))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

@@ -90,17 +90,17 @@ class LogicalMaskOrTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.masking.mask_or,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.masking.mask_or,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.mask_or, kde.mask_or))
+    self.assertTrue(optools.equiv_to_op(kde.masking.mask_or, kde.mask_or))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.mask_or(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.masking.mask_or(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

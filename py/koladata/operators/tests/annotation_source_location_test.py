@@ -44,7 +44,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
         column=456,
         line_text='  x + 1',
     )
-    expr = kde.annotation.source_location(1, loc)
+    expr = kde.annotation.source_location(1, loc)  # pyrefly: ignore[missing-attribute]
     # We don't expect users to call the operator directly, so there is no point
     # in boxing the first argument specifically for Koda.
     arolla.testing.assert_expr_equal_by_fingerprint(
@@ -55,8 +55,8 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     )
 
   def test_noop_eval(self):
-    expr = kde.annotation.source_location(
-        I.x + 1,
+    expr = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        I.x + 1,  # pyrefly: ignore[unsupported-operation]
         arolla.namedtuple(
             function_name='foo',
             file_name='test.py',
@@ -72,8 +72,8 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     @kd_optools.as_lambda_operator('inner_lambda')
     def inner_lambda(x, y):
       _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
-      return kde.annotation.source_location(
-          kde.math.floordiv(x, y),
+      return kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+          kde.math.floordiv(x, y),  # pyrefly: ignore[missing-attribute]
           arolla.namedtuple(
               function_name='inner_lambda',
               file_name='file.py',
@@ -86,7 +86,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     @kd_optools.as_lambda_operator('outer_lambda')
     def outer_lambda(x, y):
       _arolla_tracebackhide_ = True  # pylint: disable=unused-variable
-      inner = kde.annotation.source_location(
+      inner = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
           inner_lambda(x, y),
           arolla.namedtuple(
               function_name='outer_lambda',
@@ -96,8 +96,8 @@ class AnnotationSourceLocationTest(absltest.TestCase):
               line_text='inner_lambda(x, y)',
           ),
       )
-      return kde.annotation.source_location(
-          kde.math.add(inner, 1),
+      return kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+          kde.math.add(inner, 1),  # pyrefly: ignore[missing-attribute]
           arolla.namedtuple(
               function_name='outer_lambda',
               file_name='file.py',
@@ -107,7 +107,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
           ),
       )
 
-    expr = kde.annotation.source_location(
+    expr = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
         outer_lambda(I.x, I.y),
         arolla.namedtuple(
             function_name='main',
@@ -123,7 +123,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pyrefly: ignore[unbound-name]
     tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertRegex(tb, 'file.py.*line 57.*inner_lambda')
     self.assertRegex(tb, 'file.py.*line 58.*outer_lambda')
@@ -146,8 +146,8 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     self.assertNotIn('line 59', tb)
 
   def test_tuple_unpacking(self):
-    expr = kde.tuple(I.x, I.y)
-    wrapped = kde.annotation.source_location(
+    expr = kde.tuple(I.x, I.y)  # pyrefly: ignore[missing-attribute]
+    wrapped = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
         expr,
         arolla.namedtuple(
             function_name='test',
@@ -174,11 +174,11 @@ class AnnotationSourceLocationTest(absltest.TestCase):
         ValueError,
         r'invalid argument for `loc`',
     ):
-      kde.annotation.source_location(1, partial_loc)
+      kde.annotation.source_location(1, partial_loc)  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
-    expr = kde.annotation.source_location(
-        I.x + 1,
+    expr = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        I.x + 1,  # pyrefly: ignore[unsupported-operation]
         arolla.namedtuple(
             function_name='foo',
             file_name='test.py',
@@ -189,7 +189,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     )
     self.assertEqual(repr(expr), f'(I.x + DataItem(1, schema: INT32)){SRC_PIN}')
 
-    expr = kde.annotation.source_location(
+    expr = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
         I.x.attr,
         arolla.namedtuple(
             function_name='foo',
@@ -201,7 +201,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     )
     self.assertEqual(repr(expr), f'I.x.attr{SRC_PIN}')
 
-    expr = kde.annotation.source_location(
+    expr = kde.annotation.source_location(  # pyrefly: ignore[missing-attribute]
         -I.x,
         arolla.namedtuple(
             function_name='foo',

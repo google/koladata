@@ -52,7 +52,7 @@ class AllocationNewListIdLikeTest(parameterized.TestCase):
     testing.assert_equal(lst[:], items.with_bag(lst.get_bag()))
 
   def test_new_alloc_ids(self):
-    expr = kde.allocation.new_listid_like(ds([1, 1]))
+    expr = kde.allocation.new_listid_like(ds([1, 1]))  # pyrefly: ignore[missing-attribute]
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
     res3 = kd.allocation.new_listid_like(ds([1, 1]))
@@ -62,8 +62,8 @@ class AllocationNewListIdLikeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.allocation.new_listid_like,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.allocation.new_listid_like,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(
             qtypes.DATA_SLICE,
@@ -73,12 +73,12 @@ class AllocationNewListIdLikeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.allocation.new_listid_like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.allocation.new_listid_like(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.allocation.new_listid_like, kde.new_listid_like,
+            kde.allocation.new_listid_like, kde.new_listid_like,  # pyrefly: ignore[missing-attribute]
         )
     )
 

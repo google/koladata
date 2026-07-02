@@ -136,16 +136,16 @@ class SlicesGroupByTest(parameterized.TestCase):
       )
 
   def test_qtype_signatures(self):
-    signature = arolla.abc.get_operator_signature(kde.slices.group_by)
+    signature = arolla.abc.get_operator_signature(kde.slices.group_by)  # pyrefly: ignore[missing-attribute]
     self.assertLen(signature.parameters, 3)
     self.assertEqual(signature.parameters[0].name, 'x')
     self.assertEqual(signature.parameters[1].name, 'keys')
     self.assertEqual(signature.parameters[2].name, 'sort')
 
     arolla.testing.assert_qtype_signatures(
-        kde.slices.concat,
+        kde.slices.concat,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
@@ -155,10 +155,10 @@ class SlicesGroupByTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.group_by(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.group_by(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.group_by, kde.group_by))
+    self.assertTrue(optools.equiv_to_op(kde.slices.group_by, kde.group_by))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

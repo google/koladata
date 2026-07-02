@@ -38,7 +38,7 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
     self.assertLen(res_list, 2)
-    self.assertCountEqual([x.to_py() for x in res_list], [1, 2])
+    self.assertCountEqual([x.to_py() for x in res_list], [1, 2])  # pyrefly: ignore[missing-attribute]
 
   def test_make_unordered_does_not_have_fixed_order(self):
     seen = data_bag.DataBag.empty_mutable().dict()
@@ -91,11 +91,11 @@ class IterablesMakeUnorderedTest(absltest.TestCase):
     self.assertEmpty(list(res))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.make_unordered()))
+    self.assertTrue(view.has_koda_view(kde.iterables.make_unordered()))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.make_unordered(I.a, I.b)),
+        repr(kde.iterables.make_unordered(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
         'kd.iterables.make_unordered(I.a, I.b, value_type_as=unspecified)',
     )
 

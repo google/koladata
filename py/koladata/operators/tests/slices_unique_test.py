@@ -181,20 +181,20 @@ class SlicesUniqueTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.unique,
+        kde.slices.unique,  # pyrefly: ignore[missing-attribute]
         [
             (DATA_SLICE, DATA_SLICE),  # no sort argument
             (DATA_SLICE, DATA_SLICE, DATA_SLICE),
         ],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.unique(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.unique(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.unique, kde.unique))
+    self.assertTrue(optools.equiv_to_op(kde.slices.unique, kde.unique))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

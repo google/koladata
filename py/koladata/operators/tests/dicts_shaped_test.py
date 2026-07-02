@@ -65,7 +65,7 @@ class DictShapedTest(parameterized.TestCase):
       (
           jagged_shape.create_shape([2]),
           dict(
-              schema=kde.dict_schema(
+              schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
                   schema_constants.INT64, schema_constants.OBJECT
               ).eval()
           ),
@@ -247,7 +247,7 @@ Assigned schema for keys: STRING""",
     shape = jagged_shape.create_shape([2], [2, 1])
     keys = ds([2, 3]).freeze_bag()
     values = ds([3, 7]).freeze_bag()
-    expr = kde.dicts.shaped(shape, keys=keys, values=values)
+    expr = kde.dicts.shaped(shape, keys=keys, values=values)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -257,21 +257,21 @@ Assigned schema for keys: STRING""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.dicts.shaped,
-        QTYPE_SIGNATURES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.dicts.shaped,  # pyrefly: ignore[missing-attribute]
+        QTYPE_SIGNATURES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.shaped(I.x)))
-    self.assertTrue(view.has_koda_view(kde.dicts.shaped(I.x, keys=I.y)))
+    self.assertTrue(view.has_koda_view(kde.dicts.shaped(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.dicts.shaped(I.x, keys=I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.shaped, kde.dict_shaped))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.shaped, kde.dict_shaped))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.dicts.shaped(I.x, keys=I.y)),
+        repr(kde.dicts.shaped(I.x, keys=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.dicts.shaped(I.x, I.y, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )

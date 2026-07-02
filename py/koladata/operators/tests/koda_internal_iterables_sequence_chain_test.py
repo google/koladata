@@ -27,13 +27,13 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
 
   def test_chain(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(
-            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))
+        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
-    res_list = list(res)
+    res_list = list(res)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(res_list, 3)
     testing.assert_equal(res_list[0], arolla.int32(1))
     testing.assert_equal(res_list[1], arolla.int32(2))
@@ -41,27 +41,27 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
 
   def test_chain_empty(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(
-            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)
+        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertEmpty(list(res))
 
   def test_chain_with_only_empty_sequence(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_chain(
-            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))
+        kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     testing.assert_equal(res.qtype.value_qtype, arolla.INT32)
-    self.assertEmpty(list(res))
+    self.assertEmpty(list(res))  # pyrefly: ignore[bad-argument-type]
 
   def test_non_sequence_arg(self):
     with self.assertRaisesRegex(
         ValueError, 'expected a sequence type, got sequences: DATA_SLICE'
     ):
-      _ = expr_eval.eval(kde_internal.iterables.sequence_chain(1))
+      _ = expr_eval.eval(kde_internal.iterables.sequence_chain(1))  # pyrefly: ignore[missing-attribute]
 
   def test_non_sequence_of_sequences_arg(self):
     with self.assertRaisesRegex(
@@ -69,14 +69,14 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
         'expected a sequence of sequences',
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_chain(arolla.M.seq.make(1))
+          kde_internal.iterables.sequence_chain(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
       )
 
   def test_view(self):
     self.assertFalse(
         view.has_koda_view(
-            kde_internal.iterables.sequence_chain(
-                arolla.M.seq.make(arolla.M.seq.make(1, 2))
+            kde_internal.iterables.sequence_chain(  # pyrefly: ignore[missing-attribute]
+                arolla.M.seq.make(arolla.M.seq.make(1, 2))  # pyrefly: ignore[missing-attribute]
             )
         )
     )

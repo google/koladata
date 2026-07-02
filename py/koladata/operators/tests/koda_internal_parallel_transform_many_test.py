@@ -34,15 +34,15 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_item(self):
     fn = functor_factories.trace_py_fn(lambda x, y: x + y)
-    config = kde_internal.parallel.create_transform_config(None)
-    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn(
-                kde_internal.parallel.get_eager_executor(),
-                kde_internal.parallel.as_future(1),
-                kde_internal.parallel.as_future(2),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(2),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ),
             )
@@ -52,33 +52,33 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_missing_item(self):
     fn = fns.obj(None)
-    config = kde_internal.parallel.create_transform_config(None)
-    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()  # pyrefly: ignore[missing-attribute]
     # Note that here we get schema NONE, not schema OBJECT. It's probably OK.
     testing.assert_equal(transformed_fn, ds(None))
 
   def test_unspecified(self):
     fn = arolla.unspecified()
-    config = kde_internal.parallel.create_transform_config(None)
-    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(transformed_fn, fn)
 
   def test_slice(self):
     fn1 = functor_factories.trace_py_fn(lambda x, y: x + y)
     fn2 = functor_factories.trace_py_fn(lambda x, y: x - y)
     fn = fns.slice([[fn1, None, fn2], [fn1, fn1, None, None]])
-    config = kde_internal.parallel.create_transform_config(None)
-    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()
+    config = kde_internal.parallel.create_transform_config(None)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform_many(config, fn).eval()  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(transformed_fn.get_shape(), fn.get_shape())
     transformed_fn1 = transformed_fn.S[0, 0]
     transformed_fn2 = transformed_fn.S[0, 2]
     testing.assert_equal(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn1(
-                kde_internal.parallel.get_eager_executor(),
-                kde_internal.parallel.as_future(1),
-                kde_internal.parallel.as_future(2),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(2),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ),
             )
@@ -86,12 +86,12 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
         ds(3),
     )
     testing.assert_equal(
-        kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
             transformed_fn2(
-                kde_internal.parallel.get_eager_executor(),
-                kde_internal.parallel.as_future(1),
-                kde_internal.parallel.as_future(2),
-                return_type_as=kde_internal.parallel.as_future(
+                kde_internal.parallel.get_eager_executor(),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.as_future(2),  # pyrefly: ignore[missing-attribute]
+                return_type_as=kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
                     data_slice.DataSlice
                 ),
             )
@@ -109,10 +109,10 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     parallel_transform_config_qtype = expr_eval.eval(
-        kde_internal.parallel.get_transform_config_qtype()
+        kde_internal.parallel.get_transform_config_qtype()  # pyrefly: ignore[missing-attribute]
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.transform_many,
+        kde_internal.parallel.transform_many,  # pyrefly: ignore[missing-attribute]
         [
             (
                 parallel_transform_config_qtype,
@@ -125,13 +125,13 @@ class KodaInternalParallelTransformManyTest(absltest.TestCase):
                 arolla.UNSPECIFIED,
             ),
         ],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (parallel_transform_config_qtype,),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.transform(I.config, I.fn))
+        view.has_koda_view(kde_internal.parallel.transform(I.config, I.fn))  # pyrefly: ignore[missing-attribute]
     )
 
 

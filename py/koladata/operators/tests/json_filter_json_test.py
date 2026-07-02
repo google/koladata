@@ -25,55 +25,55 @@ class JsonFilterJsonTest(absltest.TestCase):
 
   def test_scalar_input(self):
     result = expr_eval.eval(
-        kde.json.filter_json(ds('{"a": 1, "b": 2}'), ds('$.a'))
+        kde.json.filter_json(ds('{"a": 1, "b": 2}'), ds('$.a'))  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(result.to_py(), ['1'])
 
   def test_multiple_matches(self):
     result = expr_eval.eval(
-        kde.json.filter_json(ds('{"a": [1, 2], "b": 3}'), ds('$.a[*]'))
+        kde.json.filter_json(ds('{"a": [1, 2], "b": 3}'), ds('$.a[*]'))  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(result.to_py(), ['1', '2'])
 
   def test_dataslice_input(self):
     result = expr_eval.eval(
-        kde.json.filter_json(ds(['{"a": 1}', '{"a": 2}']), ds('$.a'))
+        kde.json.filter_json(ds(['{"a": 1}', '{"a": 2}']), ds('$.a'))  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(result.to_py(), [['1'], ['2']])
 
   def test_multidimensional_dataslice_input(self):
     x = ds([['{"a": 1}'], ['{"a": 2}', '{"a": 3}']])
-    result = expr_eval.eval(kde.json.filter_json(x, ds('$.a')))
+    result = expr_eval.eval(kde.json.filter_json(x, ds('$.a')))  # pyrefly: ignore[missing-attribute]
     self.assertEqual(result.to_py(), [[['1']], [['2'], ['3']]])
 
   def test_missing_values(self):
     result = expr_eval.eval(
-        kde.json.filter_json(ds(['{"a": 1}', None]), ds('$.a'))
+        kde.json.filter_json(ds(['{"a": 1}', None]), ds('$.a'))  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(result.to_py(), [['1'], []])
 
   def test_no_matches(self):
-    result = expr_eval.eval(kde.json.filter_json(ds('{"a": 1}'), ds('$.b')))
+    result = expr_eval.eval(kde.json.filter_json(ds('{"a": 1}'), ds('$.b')))  # pyrefly: ignore[missing-attribute]
     self.assertEqual(result.to_py(), [])
 
   def test_error_non_string_input(self):
     with self.assertRaisesRegex(ValueError, 'must be a slice of STRING'):
-      expr_eval.eval(kde.json.filter_json(ds(1), ds('$.a')))
+      expr_eval.eval(kde.json.filter_json(ds(1), ds('$.a')))  # pyrefly: ignore[missing-attribute]
 
   def test_error_non_scalar_filter(self):
     with self.assertRaisesRegex(ValueError, 'must be an item holding STRING'):
-      expr_eval.eval(kde.json.filter_json(ds('{"a": 1}'), ds(['$.a'])))
+      expr_eval.eval(kde.json.filter_json(ds('{"a": 1}'), ds(['$.a'])))  # pyrefly: ignore[missing-attribute]
 
   def test_ignore_errors(self):
     result = expr_eval.eval(
-        kde.json.filter_json(
+        kde.json.filter_json(  # pyrefly: ignore[missing-attribute]
             ds('{"a": [, "b": 2}'), ds('$.a'), ignore_errors=True
         )
     )
     self.assertEqual(result.to_py(), [])
 
     result = expr_eval.eval(
-        kde.json.filter_json(
+        kde.json.filter_json(  # pyrefly: ignore[missing-attribute]
             ds('{"a": [1,2,,3,4,5]}'), ds('$.a[*]'), ignore_errors=True
         )
     )
@@ -81,7 +81,7 @@ class JsonFilterJsonTest(absltest.TestCase):
 
     x = ds([['{"a": 1}'], ['{"a": "}', '{"a": 3}']])
     result = expr_eval.eval(
-        kde.json.filter_json(x, ds('$.a'), ignore_errors=True)
+        kde.json.filter_json(x, ds('$.a'), ignore_errors=True)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(result.to_py(), [[['1']], [[], ['3']]])
 

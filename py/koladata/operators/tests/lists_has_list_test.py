@@ -68,10 +68,10 @@ class KodaHasListTest(parameterized.TestCase):
     testing.assert_equal(kd.lists.has_list(x), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.has_list(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.has_list(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.has_list, kde.has_list))
+    self.assertTrue(optools.equiv_to_op(kde.lists.has_list, kde.has_list))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

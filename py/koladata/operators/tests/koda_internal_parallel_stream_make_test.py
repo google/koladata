@@ -30,7 +30,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal
+    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
 )
 
 
@@ -98,11 +98,11 @@ class KodaInternalParallelStreamMakeTest(absltest.TestCase):
     self.assertEmpty(res_list)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.parallel.stream_make()))
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.stream_make()))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.stream_make(I.a, I.b)),
+        repr(kde_internal.parallel.stream_make(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
         'koda_internal.parallel.stream_make(I.a, I.b,'
         ' value_type_as=unspecified)',
     )

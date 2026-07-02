@@ -223,7 +223,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
 
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1)).freeze_bag()
-    expr = kde.core.deep_clone(x)
+    expr = kde.core.deep_clone(x)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -409,14 +409,14 @@ class CoreDeepCloneTest(parameterized.TestCase):
         kd.deep_clone(o.no_bag())
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
+    self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.deep_clone, kde.deep_clone))
+    self.assertTrue(optools.equiv_to_op(kde.core.deep_clone, kde.deep_clone))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.deep_clone(I.x, schema=I.schema, a=I.y)),
+        repr(kde.core.deep_clone(I.x, schema=I.schema, a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.core.deep_clone(I.x, I.schema, a=I.y)',
     )
 

@@ -109,7 +109,7 @@ class ListsConcatTest(parameterized.TestCase):
   def test_non_deterministic_token(self):
     x = db.list([1, 2]).freeze_bag()
     y = db.list([3]).freeze_bag()
-    expr = kde.lists.concat(x, y)
+    expr = kde.lists.concat(x, y)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -119,14 +119,14 @@ class ListsConcatTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.concat,
-        QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.lists.concat,  # pyrefly: ignore[missing-attribute]
+        QTYPES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.concat, kde.concat_lists))
+    self.assertTrue(optools.equiv_to_op(kde.lists.concat, kde.concat_lists))  # pyrefly: ignore[missing-attribute]
 
   def test_concat_failure(self):
     a = db.list([1, 2, 3])

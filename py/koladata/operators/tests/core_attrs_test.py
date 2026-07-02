@@ -202,20 +202,20 @@ To fix this, explicitly override schema of 'x' in the original schema by passing
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.attrs,
+        kde.core.attrs,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.attrs(I.x, a=I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.attrs(I.x, a=I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.attrs, kde.attrs))
+    self.assertTrue(optools.equiv_to_op(kde.core.attrs, kde.attrs))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.attrs(I.x, a=I.y)),
+        repr(kde.core.attrs(I.x, a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.core.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN),'
         ' a=I.y)',
     )

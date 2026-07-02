@@ -133,17 +133,17 @@ class MathMaximumTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.maximum,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.math.maximum,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.math.maximum, kde.maximum))
+    self.assertTrue(optools.equiv_to_op(kde.math.maximum, kde.maximum))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.maximum(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.math.maximum(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

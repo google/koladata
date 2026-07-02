@@ -49,16 +49,16 @@ class CoreGetAttrTest(parameterized.TestCase):
     self.object = eager.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
 
   @parameterized.parameters(
-      (kde.maybe(I.x, 'a'), ds([1, 2, 3])),
+      (kde.maybe(I.x, 'a'), ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
       (
-          kde.maybe(I.x, 'c'),
+          kde.maybe(I.x, 'c'),  # pyrefly: ignore[missing-attribute]
           ds([None, None, None], schema_constants.NONE),
       ),
-      (kde.maybe(I.x, 'b'), ds(['a', None, 'c'])),
+      (kde.maybe(I.x, 'b'), ds(['a', None, 'c'])),  # pyrefly: ignore[missing-attribute]
       (
           # Filter self.x
-          kde.maybe(
-              kde.apply_mask(
+          kde.maybe(  # pyrefly: ignore[missing-attribute]
+              kde.apply_mask(  # pyrefly: ignore[missing-attribute]
                   I.x, ds([None, arolla.present(), arolla.present()])
               ),
               'b',
@@ -67,8 +67,8 @@ class CoreGetAttrTest(parameterized.TestCase):
       ),
       (
           # Filter self.x completely.
-          kde.maybe(
-              kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b'
+          kde.maybe(  # pyrefly: ignore[missing-attribute]
+              kde.apply_mask(I.x, ds([None, arolla.present(), None])), 'b'  # pyrefly: ignore[missing-attribute]
           ),
           ds([None, None, None], schema_constants.STRING),
       ),
@@ -84,18 +84,18 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   @parameterized.parameters(
-      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 3])),
-      (kde.maybe(I.x, ds(['a', 'd', 'b'])), ds([1, None, 'c'])),
-      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),
+      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 3])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds(['a', 'd', 'b'])), ds([1, None, 'c'])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),  # pyrefly: ignore[missing-attribute]
       (
-          kde.maybe(I.x, ds(['d', 'b', None])),
+          kde.maybe(I.x, ds(['d', 'b', None])),  # pyrefly: ignore[missing-attribute]
           ds([None, None, None], schema_constants.STRING),
       ),
       (
-          kde.maybe(I.x, ds(['b', 'a', 'c'])),
+          kde.maybe(I.x, ds(['b', 'a', 'c'])),  # pyrefly: ignore[missing-attribute]
           ds(['a', 2, None], schema_constants.OBJECT),
       ),
-      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),
+      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),  # pyrefly: ignore[missing-attribute]
   )
   def test_eval_with_attr_name_slice(self, expr, expected):
     testing.assert_equal(
@@ -108,11 +108,11 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   @parameterized.parameters(
-      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 1])),
-      (kde.maybe(I.x, ds(['a', 'd', 'c'])), ds([1, None, None])),
-      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),
-      (kde.maybe(I.x, ds(['d', 'b', None])), ds([None, 'a', None])),
-      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),
+      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 1])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds(['a', 'd', 'c'])), ds([1, None, None])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds(['d', 'b', None])), ds([None, 'a', None])),  # pyrefly: ignore[missing-attribute]
+      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),  # pyrefly: ignore[missing-attribute]
   )
   def test_eval_with_attr_name_slice_and_obj_item(self, expr, expected):
     testing.assert_equal(
@@ -172,7 +172,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          kde.maybe(I.x, ds(['a', 'b', 'c', None])),
+          kde.maybe(I.x, ds(['a', 'b', 'c', None])),  # pyrefly: ignore[missing-attribute]
           ds([schema_constants.INT32, schema_constants.STRING, None, None]),
       ),
   )
@@ -199,23 +199,23 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.maybe,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.core.maybe,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.maybe(I.x, 'a')),
+        repr(kde.core.maybe(I.x, 'a')),  # pyrefly: ignore[missing-attribute]
         "kd.core.maybe(I.x, DataItem('a', schema: STRING))",
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.maybe(I.x, 'a')))
+    self.assertTrue(view.has_koda_view(kde.core.maybe(I.x, 'a')))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.maybe, kde.maybe))
+    self.assertTrue(optools.equiv_to_op(kde.core.maybe, kde.maybe))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

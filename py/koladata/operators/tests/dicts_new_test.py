@@ -95,12 +95,12 @@ class DictTest(parameterized.TestCase):
 
   def test_eval_expr_argument(self):
     res = expr_eval.eval(
-        kde.dicts.new({'a': I.x1, 'c': I.x2}), x1=1, x2=2
+        kde.dicts.new({'a': I.x1, 'c': I.x2}), x1=1, x2=2  # pyrefly: ignore[missing-attribute]
     )
     expected = bag().dict({'a': 1, 'c': 2})
     testing.assert_equivalent(res, expected)
 
-    res = expr_eval.eval(kde.dicts.new(I.keys, I.vals), keys='a', vals=1)
+    res = expr_eval.eval(kde.dicts.new(I.keys, I.vals), keys='a', vals=1)  # pyrefly: ignore[missing-attribute]
     expected = bag().dict({'a': 1})
     testing.assert_equivalent(res, expected)
 
@@ -255,7 +255,7 @@ Assigned schema for keys: STRING""",
   def test_non_determinism(self):
     keys = ds([2, 3]).freeze_bag()
     values = ds([3, 7]).freeze_bag()
-    expr = kde.dicts.new(keys, values)
+    expr = kde.dicts.new(keys, values)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -265,21 +265,21 @@ Assigned schema for keys: STRING""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.dicts.new,
-        QTYPE_SIGNATURES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.dicts.new,  # pyrefly: ignore[missing-attribute]
+        QTYPE_SIGNATURES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.new()))
-    self.assertTrue(view.has_koda_view(kde.dicts.new(items_or_keys=I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.new()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.dicts.new(items_or_keys=I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.new, kde.dict))
+    self.assertTrue(optools.equiv_to_op(kde.dicts.new, kde.dict))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.dicts.new(items_or_keys=I.x)),
+        repr(kde.dicts.new(items_or_keys=I.x)),  # pyrefly: ignore[missing-attribute]
         'kd.dicts.new(I.x, unspecified, unspecified,'
         ' unspecified, unspecified, unspecified)',
     )

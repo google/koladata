@@ -44,7 +44,7 @@ class KodaToArollaOptionalUnitTest(parameterized.TestCase):
   )
   def test_eval(self, x, expected):
     testing.assert_equal(
-        expr_eval.eval(kde_internal.to_arolla_optional_unit(I.x), x=x),
+        expr_eval.eval(kde_internal.to_arolla_optional_unit(I.x), x=x),  # pyrefly: ignore[missing-attribute]
         expected,
     )
 
@@ -53,32 +53,32 @@ class KodaToArollaOptionalUnitTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to MASK'
     ):
-      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))
+      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))  # pyrefly: ignore[missing-attribute]
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(True, schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to MASK'
     ):
-      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))
+      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))  # pyrefly: ignore[missing-attribute]
 
   def test_non_dataitem_error(self):
     x = data_slice.DataSlice.from_vals([True])
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))
+      expr_eval.eval(kde_internal.to_arolla_optional_unit(x))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde_internal.to_arolla_optional_unit,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde_internal.to_arolla_optional_unit,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(qtypes.DATA_SLICE, arolla.OPTIONAL_UNIT)]),
     )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.to_arolla_optional_unit(I.x))
+        view.has_koda_view(kde_internal.to_arolla_optional_unit(I.x))  # pyrefly: ignore[missing-attribute]
     )
 
 

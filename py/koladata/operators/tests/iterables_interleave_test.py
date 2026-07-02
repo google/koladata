@@ -39,8 +39,8 @@ class IterablesInterleaveTest(absltest.TestCase):
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
     self.assertLen(res_list, 3)
-    self.assertCountEqual([x.to_py() for x in res_list], [1, 2, 3])
-    pos_in_list = {x.to_py(): i for i, x in enumerate(res_list)}
+    self.assertCountEqual([x.to_py() for x in res_list], [1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    pos_in_list = {x.to_py(): i for i, x in enumerate(res_list)}  # pyrefly: ignore[missing-attribute]
     self.assertLess(pos_in_list[1], pos_in_list[2])
 
   def test_possible_orders(self):
@@ -178,11 +178,11 @@ class IterablesInterleaveTest(absltest.TestCase):
       _ = kd.iterables.interleave(ds(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.interleave()))
+    self.assertTrue(view.has_koda_view(kde.iterables.interleave()))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.interleave(I.a, I.b)),
+        repr(kde.iterables.interleave(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
         'kd.iterables.interleave(I.a, I.b, value_type_as=unspecified)',
     )
 

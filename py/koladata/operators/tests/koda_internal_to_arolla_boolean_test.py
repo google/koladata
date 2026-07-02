@@ -42,7 +42,7 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
   )
   def test_eval(self, x, expected):
     testing.assert_equal(
-        expr_eval.eval(kde_internal.to_arolla_boolean(I.x), x=x), expected
+        expr_eval.eval(kde_internal.to_arolla_boolean(I.x), x=x), expected  # pyrefly: ignore[missing-attribute]
     )
 
   def test_unsupported_schema_error(self):
@@ -50,36 +50,36 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to BOOLEAN'
     ):
-      expr_eval.eval(kde_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))  # pyrefly: ignore[missing-attribute]
 
   def test_unsupported_dtype_error(self):
     x = data_slice.DataSlice.from_vals(arolla.unit(), schema_constants.OBJECT)
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to BOOLEAN'
     ):
-      expr_eval.eval(kde_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))  # pyrefly: ignore[missing-attribute]
 
   def test_non_dataitem_error(self):
     x = data_slice.DataSlice.from_vals([True])
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=1'):
-      expr_eval.eval(kde_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))  # pyrefly: ignore[missing-attribute]
 
   def test_missing_value_error(self):
     x = data_slice.DataSlice.from_vals(arolla.optional_boolean(None))
     with self.assertRaisesRegex(ValueError, 'expected a present value'):
-      expr_eval.eval(kde_internal.to_arolla_boolean(x))
+      expr_eval.eval(kde_internal.to_arolla_boolean(x))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde_internal.to_arolla_boolean,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde_internal.to_arolla_boolean,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(qtypes.DATA_SLICE, arolla.BOOLEAN)]),
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_boolean(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_boolean(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

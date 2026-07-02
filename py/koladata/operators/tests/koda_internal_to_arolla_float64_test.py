@@ -34,7 +34,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal
+    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
 )
 
 
@@ -84,13 +84,13 @@ class KodaToArollaFloat64Test(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.to_arolla_float64,
+        kde_internal.to_arolla_float64,  # pyrefly: ignore[missing-attribute]
         [(qtypes.DATA_SLICE, arolla.FLOAT64)],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_float64(I.x)))
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_float64(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

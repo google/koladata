@@ -89,11 +89,11 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input(self, x, expected):
-    result = kd.group_by_indices(x)
+    result = kd.group_by_indices(x)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
     # passing the same agument many times should be equivalent to passing it
     # once.
-    result_tuple = kd.group_by_indices(x, x, x, x)
+    result_tuple = kd.group_by_indices(x, x, x, x)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result_tuple, expected)
 
   @parameterized.parameters(
@@ -118,11 +118,11 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input_sorted(self, x, expected):
-    result = kd.group_by_indices(x, sort=True)
+    result = kd.group_by_indices(x, sort=True)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
     # passing the same agument many times should be equivalent to passing it
     # once.
-    result_tuple = kd.group_by_indices(x, x, x, x, sort=True)
+    result_tuple = kd.group_by_indices(x, x, x, x, sort=True)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result_tuple, expected)
 
   @parameterized.parameters(
@@ -165,7 +165,7 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_inputs(self, x, y, expected):
-    result = kd.group_by_indices(x, y)
+    result = kd.group_by_indices(x, y)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -199,20 +199,20 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_inputs_sorted(self, x, y, expected):
-    result = kd.group_by_indices(x, y, sort=True)
+    result = kd.group_by_indices(x, y, sort=True)  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, expected)
 
   def test_eval_with_empty_or_unknown_input_flat(self):
     x = ds([1, 2, 1])
     y = ds([None] * 3)
-    expected = kd.slice([], schema_constants.INT64).repeat(0)
-    testing.assert_equal(kd.group_by_indices(x, y), expected)
+    expected = kd.slice([], schema_constants.INT64).repeat(0)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(kd.group_by_indices(x, y), expected)  # pyrefly: ignore[missing-attribute]
 
   def test_eval_with_empty_or_unknown_input_2d(self):
     x = ds([[1, 2, 1, 2], [2, 3, 2]])
     y = ds([[None] * 4, [None] * 3])
     expected = ds([[], []], schema_constants.INT64).repeat(0)
-    testing.assert_equal(kd.group_by_indices(x, y), expected)
+    testing.assert_equal(kd.group_by_indices(x, y), expected)  # pyrefly: ignore[missing-attribute]
 
   @parameterized.parameters(1, ds(1))
   def test_eval_scalar_input(self, inp):
@@ -220,42 +220,42 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
         ValueError,
         'group_by arguments must be DataSlices with ndim > 0, got DataItems',
     ):
-      kd.group_by_indices(inp)
+      kd.group_by_indices(inp)  # pyrefly: ignore[missing-attribute]
 
   def test_eval_empty_input(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected at least one argument',
     ):
-      kd.group_by_indices()
+      kd.group_by_indices()  # pyrefly: ignore[missing-attribute]
 
   def test_eval_wrong_type(self):
     with self.assertRaisesRegex(
         ValueError,
         'all arguments to be DATA_SLICE',
     ):
-      kd.group_by_indices(ds([1, 2]), arolla.dense_array(['a', 'b']))
+      kd.group_by_indices(ds([1, 2]), arolla.dense_array(['a', 'b']))  # pyrefly: ignore[missing-attribute]
 
   def test_eval_non_aligned(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.group_by_indices: all arguments must have the same shape',
     ):
-      kd.group_by_indices(
+      kd.group_by_indices(  # pyrefly: ignore[missing-attribute]
           ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
           ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
       )
 
   def test_qtype_signatures(self):
-    signature = arolla.abc.get_operator_signature(kde.slices.group_by_indices)
+    signature = arolla.abc.get_operator_signature(kde.slices.group_by_indices)  # pyrefly: ignore[missing-attribute]
     self.assertLen(signature.parameters, 2)
     self.assertEqual(signature.parameters[0].name, 'keys')
     self.assertEqual(signature.parameters[1].name, 'sort')
 
     arolla.testing.assert_qtype_signatures(
-        kde.slices.concat,
+        kde.slices.concat,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
@@ -265,11 +265,11 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.group_by_indices(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.group_by_indices(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.group_by_indices, kde.group_by_indices)
+        optools.equiv_to_op(kde.slices.group_by_indices, kde.group_by_indices)  # pyrefly: ignore[missing-attribute]
     )
 
 

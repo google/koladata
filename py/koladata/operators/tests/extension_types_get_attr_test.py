@@ -48,29 +48,29 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesGetAttrTest(parameterized.TestCase):
 
   def test_get_attr_ds(self):
-    a = A(ds(1), bag())
+    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.get_attr(a, "x", qtypes.DATA_SLICE)
+        kde.extension_types.get_attr(a, "x", qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(result, ds(1))
 
   def test_get_attr_ds_attr_name(self):
-    a = A(ds(1), bag())
+    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.get_attr(a, ds("x"), qtypes.DATA_SLICE)
+        kde.extension_types.get_attr(a, ds("x"), qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(result, ds(1))
 
   def test_get_attr_db(self):
     db = bag()
-    a = A(ds(1), db)
+    a = A(ds(1), db)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.get_attr(a, "y", qtypes.DATA_BAG)
+        kde.extension_types.get_attr(a, "y", qtypes.DATA_BAG)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(result, db)
 
   def test_get_attr_wrong_type(self):
-    a = A(ds(1), bag())
+    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -78,29 +78,29 @@ class ExtensionTypesGetAttrTest(parameterized.TestCase):
             " actual type DATA_SLICE"
         ),
     ):
-      _ = expr_eval.eval(kde.extension_types.get_attr(a, "x", qtypes.DATA_BAG))
+      _ = expr_eval.eval(kde.extension_types.get_attr(a, "x", qtypes.DATA_BAG))  # pyrefly: ignore[missing-attribute]
 
   def test_get_attr_non_existent_attr(self):
-    a = A(ds(1), bag())
+    a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(ValueError, "attribute not found: 'z'"):
       _ = expr_eval.eval(
-          kde.extension_types.get_attr(a, "z", qtypes.DATA_SLICE)
+          kde.extension_types.get_attr(a, "z", qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
       )
 
   def test_view(self):
     # Has the view of the ext QType.
     self.assertFalse(
-        view.has_koda_view(kde.extension_types.get_attr(I.x, "x", A_qtype))
+        view.has_koda_view(kde.extension_types.get_attr(I.x, "x", A_qtype))  # pyrefly: ignore[missing-attribute]
     )
     self.assertTrue(
         hasattr(
-            kde.extension_types.get_attr(I.x, "x", A_qtype),
+            kde.extension_types.get_attr(I.x, "x", A_qtype),  # pyrefly: ignore[missing-attribute]
             "x",
         )
     )
     self.assertTrue(
         view.has_koda_view(
-            kde.extension_types.get_attr(I.x, "x", qtypes.DATA_SLICE)
+            kde.extension_types.get_attr(I.x, "x", qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
         )
     )
 

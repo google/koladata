@@ -37,7 +37,7 @@ class SchemaDictSchemaTest(parameterized.TestCase):
 
   def test_get_attr(self):
     schema = expr_eval.eval(
-        kde.schema.dict_schema(schema_constants.STRING, schema_constants.INT32)
+        kde.schema.dict_schema(schema_constants.STRING, schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         schema.get_attr('__keys__'),
@@ -51,9 +51,9 @@ class SchemaDictSchemaTest(parameterized.TestCase):
 
   def test_bag_adoption(self):
     schema = expr_eval.eval(
-        kde.schema.dict_schema(
+        kde.schema.dict_schema(  # pyrefly: ignore[missing-attribute]
             schema_constants.STRING,
-            kde.schema.new_schema(
+            kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
                 a=schema_constants.INT32, b=schema_constants.STRING
             ),
         )
@@ -68,23 +68,23 @@ class SchemaDictSchemaTest(parameterized.TestCase):
         ValueError,
         "schema's schema must be SCHEMA, got: INT32",
     ):
-      _ = expr_eval.eval(kde.schema.dict_schema(ds(1), ds(2)))
+      _ = expr_eval.eval(kde.schema.dict_schema(ds(1), ds(2)))  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.dict_schema(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.schema.dict_schema(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signature(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.dict_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.schema.dict_schema,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE, DATA_SLICE),),
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.dict_schema, kde.dict_schema)
+        optools.equiv_to_op(kde.schema.dict_schema, kde.dict_schema)  # pyrefly: ignore[missing-attribute]
     )
 
 

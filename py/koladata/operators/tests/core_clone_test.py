@@ -317,14 +317,14 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.clone(I.x)))
+    self.assertTrue(view.has_koda_view(kde.clone(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.clone, kde.clone))
+    self.assertTrue(optools.equiv_to_op(kde.core.clone, kde.clone))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)),
+        repr(kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
     )
 

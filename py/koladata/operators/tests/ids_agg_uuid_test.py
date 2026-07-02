@@ -71,23 +71,23 @@ class IdsAggUuidTest(parameterized.TestCase):
        ds([1, 2], schema=schema_constants.INT64), False),
   )
   def test_eval_equal(self, x, y, expected_equal):
-    is_equal = kde.ids.agg_uuid(I.x) == kde.ids.agg_uuid(I.y)
+    is_equal = kde.ids.agg_uuid(I.x) == kde.ids.agg_uuid(I.y)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(bool(expr_eval.eval(is_equal, x=x, y=y)), expected_equal)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.ids.agg_uuid,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.ids.agg_uuid,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.size(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.size(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.ids.agg_uuid, kde.agg_uuid))
+    self.assertTrue(optools.equiv_to_op(kde.ids.agg_uuid, kde.agg_uuid))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

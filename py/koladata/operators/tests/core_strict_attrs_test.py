@@ -117,22 +117,22 @@ Assigned schema for 'x': ENTITY(z=INT32)"""),
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.strict_attrs,
+        kde.core.strict_attrs,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.strict_attrs(I.x, a=I.y)))
+    self.assertTrue(view.has_koda_view(kde.core.strict_attrs(I.x, a=I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.strict_attrs, kde.strict_attrs)
+        optools.equiv_to_op(kde.core.strict_attrs, kde.strict_attrs)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.strict_attrs(I.x, a=I.y)),
+        repr(kde.core.strict_attrs(I.x, a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.core.strict_attrs(I.x, a=I.y)',
     )
 

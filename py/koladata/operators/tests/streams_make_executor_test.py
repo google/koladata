@@ -27,7 +27,7 @@ class StreamsMakeExecutorTest(absltest.TestCase):
   def test_simple(self):
     # We do not have a Python API to add tasks to an executor, so we just
     # test basic properties.
-    executor = kde.streams.make_executor().eval()
+    executor = kde.streams.make_executor().eval()  # pyrefly: ignore[missing-attribute]
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -37,7 +37,7 @@ class StreamsMakeExecutorTest(absltest.TestCase):
   def test_simple_n(self):
     # We do not have a Python API to add tasks to an executor, so we just
     # test basic properties.
-    executor = kde.streams.make_executor(thread_limit=5).eval()
+    executor = kde.streams.make_executor(thread_limit=5).eval()  # pyrefly: ignore[missing-attribute]
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -46,13 +46,13 @@ class StreamsMakeExecutorTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.streams.make_executor,
-        [(qtypes.DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR)],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.streams.make_executor,  # pyrefly: ignore[missing-attribute]
+        [(qtypes.DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR)],  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.streams.make_executor()))
+    self.assertTrue(view.has_koda_view(kde.streams.make_executor()))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

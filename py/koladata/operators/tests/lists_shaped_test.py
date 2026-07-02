@@ -177,7 +177,7 @@ Assigned schema for list items: INT32""",
   def test_non_determinism(self):
     shape = jagged_shape.create_shape([2])
     items = ds([[1, 2], [3]]).freeze_bag()
-    expr = kde.lists.shaped(shape, items=items)
+    expr = kde.lists.shaped(shape, items=items)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -187,20 +187,20 @@ Assigned schema for list items: INT32""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.shaped,
-        QTYPE_SIGNATURES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.lists.shaped,  # pyrefly: ignore[missing-attribute]
+        QTYPE_SIGNATURES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.shaped(I.x)))
+    self.assertTrue(view.has_koda_view(kde.lists.shaped(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.shaped, kde.list_shaped))
+    self.assertTrue(optools.equiv_to_op(kde.lists.shaped, kde.list_shaped))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.lists.shaped(I.x, schema=I.y)),
+        repr(kde.lists.shaped(I.x, schema=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.lists.shaped(I.x, unspecified, item_schema=unspecified,'
         ' schema=I.y, itemid=unspecified)',
     )

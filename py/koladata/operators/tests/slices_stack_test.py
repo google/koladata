@@ -129,7 +129,7 @@ class SlicesStackTest(parameterized.TestCase):
 
   def test_default_output(self):
     # NOTE(b/390562645): Tests the default output of kd.stack.
-    result = kde.slices._concat_or_stack(I.x, I.y).eval(x=ds(True), y=ds(1))
+    result = kde.slices._concat_or_stack(I.x, I.y).eval(x=ds(True), y=ds(1))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, ds([]))
 
   @parameterized.parameters(
@@ -187,9 +187,9 @@ class SlicesStackTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.stack,
+        kde.slices.stack,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
@@ -199,10 +199,10 @@ class SlicesStackTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.stack(I.x, I.y, I.z)))
+    self.assertTrue(view.has_koda_view(kde.slices.stack(I.x, I.y, I.z)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.stack, kde.stack))
+    self.assertTrue(optools.equiv_to_op(kde.slices.stack, kde.stack))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

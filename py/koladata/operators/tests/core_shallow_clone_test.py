@@ -272,7 +272,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
 
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1)).freeze_bag()
-    expr = kde.core.shallow_clone(x)
+    expr = kde.core.shallow_clone(x)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -295,17 +295,17 @@ class CoreShallowCloneTest(parameterized.TestCase):
     _ = a.S[0].shallow_clone()
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shallow_clone(I.x)))
+    self.assertTrue(view.has_koda_view(kde.shallow_clone(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.shallow_clone, kde.shallow_clone)
+        optools.equiv_to_op(kde.core.shallow_clone, kde.shallow_clone)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)
+            kde.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)  # pyrefly: ignore[missing-attribute]
         ),
         'kd.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
     )

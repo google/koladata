@@ -189,20 +189,20 @@ Schema for `y`: ENTITY()"""
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.masking.disjoint_coalesce,
+        kde.masking.disjoint_coalesce,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.masking.disjoint_coalesce, kde.disjoint_coalesce
+            kde.masking.disjoint_coalesce, kde.disjoint_coalesce  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.disjoint_coalesce(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.masking.disjoint_coalesce(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

@@ -36,8 +36,8 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
 
   def test_basic(self):
-    result = kde_internal.parallel.unsafe_blocking_wait(
-        kde_internal.parallel.stream_make(1)
+    result = kde_internal.parallel.unsafe_blocking_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_make(1)  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertEqual(result, 1)
 
@@ -46,8 +46,8 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
         ValueError,
         re.escape('expected a stream with a single item, got an empty stream'),
     ):
-      _ = kde_internal.parallel.unsafe_blocking_wait(
-          kde_internal.parallel.stream_make()
+      _ = kde_internal.parallel.unsafe_blocking_wait(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_make()  # pyrefly: ignore[missing-attribute]
       ).eval()
 
   def test_error_stream_with_multiple_items(self):
@@ -58,8 +58,8 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
             ' items'
         ),
     ):
-      _ = kde_internal.parallel.unsafe_blocking_wait(
-          kde_internal.parallel.stream_make(1, 2)
+      _ = kde_internal.parallel.unsafe_blocking_wait(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_make(1, 2)  # pyrefly: ignore[missing-attribute]
       ).eval()
 
   def test_delayed_item(self):
@@ -67,41 +67,41 @@ class KodaInternalParallelUnsafeBlockingWaitTest(absltest.TestCase):
       time.sleep(0.02)
       return ds(1)
 
-    result = kde_internal.parallel.unsafe_blocking_wait(
-        kde_internal.parallel.stream_call(
-            kde_internal.parallel.get_default_executor(), py_fn(fn)
+    result = kde_internal.parallel.unsafe_blocking_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(), py_fn(fn)  # pyrefly: ignore[missing-attribute]
         )
     ).eval()
     self.assertEqual(result, 1)
 
   def test_future(self):
-    result = kde_internal.parallel.unsafe_blocking_wait(
-        kde_internal.parallel.as_future(1)
+    result = kde_internal.parallel.unsafe_blocking_wait(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.as_future(1)  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertEqual(result, 1)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.unsafe_blocking_wait(I.stream_or_future)
+            kde_internal.parallel.unsafe_blocking_wait(I.stream_or_future)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde_internal.parallel.unsafe_blocking_wait,
-            kde.streams.unsafe_blocking_wait,
+            kde_internal.parallel.unsafe_blocking_wait,  # pyrefly: ignore[missing-attribute]
+            kde.streams.unsafe_blocking_wait,  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.unsafe_blocking_wait(I.stream_or_future)),
+        repr(kde_internal.parallel.unsafe_blocking_wait(I.stream_or_future)),  # pyrefly: ignore[missing-attribute]
         'koda_internal.parallel.unsafe_blocking_wait(I.stream_or_future)',
     )
     self.assertEqual(
-        repr(kde.streams.unsafe_blocking_wait(I.stream_or_future)),
+        repr(kde.streams.unsafe_blocking_wait(I.stream_or_future)),  # pyrefly: ignore[missing-attribute]
         'kd.streams.unsafe_blocking_wait(I.stream_or_future)',
     )
 

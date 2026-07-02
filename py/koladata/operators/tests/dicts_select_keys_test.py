@@ -102,18 +102,18 @@ class DictsSelectKeysTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.dicts.select_keys,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.dicts.select_keys,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.select_keys(I.x, I.fltr)))
+    self.assertTrue(view.has_koda_view(kde.dicts.select_keys(I.x, I.fltr)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.dicts.select_keys, kde.select_keys)
+        optools.equiv_to_op(kde.dicts.select_keys, kde.select_keys)  # pyrefly: ignore[missing-attribute]
     )
 
 

@@ -26,21 +26,21 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
 
   def test_interleave(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(
-            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))
+        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
-    res_list = list(res)
+    res_list = list(res)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(res_list, 3)
     self.assertCountEqual(res_list, [1, 2, 3])
     pos_in_list = {x: i for i, x in enumerate(res_list)}
     self.assertLess(pos_in_list[1], pos_in_list[2])
 
   def test_possible_orders(self):
-    expr = kde_internal.iterables.sequence_interleave(
-        arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3, 4, 5))
+    expr = kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+        arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3, 4, 5))  # pyrefly: ignore[missing-attribute]
     )
     seen = set()
     # Assuming that each permutation has probability 1/10, then
@@ -67,9 +67,9 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
     )
 
   def test_possible_orders_three_iterables(self):
-    expr = kde_internal.iterables.sequence_interleave(
-        arolla.M.seq.make(
-            arolla.M.seq.make(1), arolla.M.seq.make(2), arolla.M.seq.make(3, 4)
+    expr = kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+        arolla.M.seq.make(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.make(1), arolla.M.seq.make(2), arolla.M.seq.make(3, 4)  # pyrefly: ignore[missing-attribute]
         )
     )
     seen = set()
@@ -100,30 +100,30 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
 
   def test_interleave_empty(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(
-            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)
+        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     testing.assert_equal(res.qtype.value_qtype, arolla.INT32)
-    self.assertEmpty(list(res))
+    self.assertEmpty(list(res))  # pyrefly: ignore[bad-argument-type]
 
   def test_interleave_with_only_empty_iterable(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(
-            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))
+        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))  # pyrefly: ignore[missing-attribute]
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
     testing.assert_equal(res.qtype.value_qtype, arolla.INT32)
-    self.assertEmpty(list(res))
+    self.assertEmpty(list(res))  # pyrefly: ignore[bad-argument-type]
 
   def test_non_sequence_arg(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected a sequence type, got sequences: DATA_SLICE',
     ):
-      _ = expr_eval.eval(kde_internal.iterables.sequence_interleave(1))
+      _ = expr_eval.eval(kde_internal.iterables.sequence_interleave(1))  # pyrefly: ignore[missing-attribute]
 
   def test_non_sequence_of_sequences_arg(self):
     with self.assertRaisesRegex(
@@ -131,14 +131,14 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
         'expected a sequence of sequences',
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_interleave(arolla.M.seq.make(1))
+          kde_internal.iterables.sequence_interleave(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
       )
 
   def test_view(self):
     self.assertFalse(
         view.has_koda_view(
-            kde_internal.iterables.sequence_interleave(
-                arolla.M.seq.make(arolla.M.seq.make(1))
+            kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
+                arolla.M.seq.make(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
             )
         )
     )

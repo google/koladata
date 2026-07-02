@@ -33,7 +33,7 @@ kde_internal = kde_operators.internal
 
 expr_fn = functor_factories.expr_fn
 
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
 
 
 def stream_make(*args, **kwargs):
@@ -50,10 +50,10 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
 
   def test_basic(self):
     fn = expr_fn(
-        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)
+        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
-    res = kde_internal.parallel.stream_flat_map_interleaved(
-        default_executor, kde_internal.parallel.stream_make(1, 10), fn
+    res = kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
+        default_executor, kde_internal.parallel.stream_make(1, 10), fn  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -66,11 +66,11 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
 
   def test_with_value_type_as(self):
     fn = expr_fn(
-        kde_internal.parallel.stream_make(I.self, M.math.multiply(3, I.self))
+        kde_internal.parallel.stream_make(I.self, M.math.multiply(3, I.self))  # pyrefly: ignore[missing-attribute]
     )
-    res = kde_internal.parallel.stream_flat_map_interleaved(
+    res = kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
         default_executor,
-        kde_internal.parallel.stream_make(i32(1), i32(5), i32(10)),
+        kde_internal.parallel.stream_make(i32(1), i32(5), i32(10)),  # pyrefly: ignore[missing-attribute]
         fn,
         value_type_as=i32(0),
     ).eval()
@@ -84,10 +84,10 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
 
   def test_empty_input_stream(self):
     fn = expr_fn(
-        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)
+        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)  # pyrefly: ignore[missing-attribute, unsupported-operation]
     )
-    res = kde_internal.parallel.stream_flat_map_interleaved(
-        default_executor, kde_internal.parallel.stream_make(), fn
+    res = kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
+        default_executor, kde_internal.parallel.stream_make(), fn  # pyrefly: ignore[missing-attribute]
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -95,7 +95,7 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
 
   def test_error_bad_fn(self):
     fn = ds(None)
-    res = kde_internal.parallel.stream_flat_map_interleaved(
+    res = kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
         default_executor, stream_make(1, 5, 10), fn
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -105,8 +105,8 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
       res.read_all(timeout=None)
 
   def test_error_wrong_value_type_as(self):
-    fn = expr_fn(2 * I.self)
-    res = kde_internal.parallel.stream_flat_map_interleaved(
+    fn = expr_fn(2 * I.self)  # pyrefly: ignore[unsupported-operation]
+    res = kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
         default_executor, stream_make(1, 5, 10), fn
     ).eval()  # no error
     with self.assertRaisesRegex(
@@ -123,7 +123,7 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde_internal.parallel.stream_flat_map_interleaved(
+            kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
                 I.executor, I.stream, I.fn
             )
         )
@@ -132,7 +132,7 @@ class KodaInternalParallelStreamFlatMapInterleavedTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde_internal.parallel.stream_flat_map_interleaved(
+            kde_internal.parallel.stream_flat_map_interleaved(  # pyrefly: ignore[missing-attribute]
                 I.executor, I.stream, I.fn
             )
         ),

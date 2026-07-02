@@ -49,7 +49,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
           ds([1, 2, 3]),
       ),
       (
-          functor_factories.expr_fn(I.self + 1),
+          functor_factories.expr_fn(I.self + 1),  # pyrefly: ignore[unsupported-operation]
           ds([1, 2, 3]),
           ds([2, 3, 4]),
       ),
@@ -88,7 +88,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
       kd.functor._maybe_call(f, db)
 
   def test_non_determinism(self):
-    fn = functor_factories.fn(kde.new(x=I.self, schema='new'))
+    fn = functor_factories.fn(kde.new(x=I.self, schema='new'))  # pyrefly: ignore[missing-attribute]
     x = ds(42)
 
     res = kd.tuples.tuple(
@@ -104,7 +104,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
 
   def test_cancellable(self):
     fn = functor_factories.expr_fn(
-        arolla.M.core._identity_with_cancel(I.self, 'cancelled')
+        arolla.M.core._identity_with_cancel(I.self, 'cancelled')  # pyrefly: ignore[missing-attribute]
     )
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
@@ -112,14 +112,14 @@ class FunctorMaybeCallTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.functor._maybe_call,
-        QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        kde.functor._maybe_call,  # pyrefly: ignore[missing-attribute]
+        QTYPES,  # pyrefly: ignore[bad-argument-type]
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.functor._maybe_call(I.maybe_fn, I.arg))
+        view.has_koda_view(kde.functor._maybe_call(I.maybe_fn, I.arg))  # pyrefly: ignore[missing-attribute]
     )
 
 

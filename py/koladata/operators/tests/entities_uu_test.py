@@ -241,19 +241,19 @@ class EntitiesUuTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.entities.uu(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.entities.uu(seed=I.seed)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.entities.uu, kde.uu))
+    self.assertTrue(optools.equiv_to_op(kde.entities.uu, kde.uu))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.entities.uu(a=I.z, seed=I.seed)),
+        repr(kde.entities.uu(a=I.z, seed=I.seed)),  # pyrefly: ignore[missing-attribute]
         'kd.entities.uu(I.seed, schema=unspecified,'
         ' overwrite_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
     self.assertEqual(
-        repr(kde.entities.uu(I.seed, a=I.z)),
+        repr(kde.entities.uu(I.seed, a=I.z)),  # pyrefly: ignore[missing-attribute]
         'kd.entities.uu(I.seed, schema=unspecified,'
         ' overwrite_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )

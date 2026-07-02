@@ -47,7 +47,7 @@ class CoreGetItemTest(parameterized.TestCase):
     testing.assert_equal(view_result, expected.with_bag(x.get_bag()))
 
   def test_slice_expr(self):
-    expr = kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))
+    expr = kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))  # pyrefly: ignore[missing-attribute]
     li = fns.list([1, 2, 3])
     result = expr_eval.eval(expr, x=li, start=0, end=-1)
     testing.assert_equal(result, ds([1, 2]).with_bag(li.get_bag()))
@@ -114,23 +114,23 @@ class CoreGetItemTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.get_item(I.x, slice(1))),
+        repr(kde.get_item(I.x, slice(1))),  # pyrefly: ignore[missing-attribute]
         'I.x[:DataItem(1, schema: INT32)]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, slice(1, None))),
+        repr(kde.get_item(I.x, slice(1, None))),  # pyrefly: ignore[missing-attribute]
         'I.x[DataItem(1, schema: INT32):]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, slice(1, -1))),
+        repr(kde.get_item(I.x, slice(1, -1))),  # pyrefly: ignore[missing-attribute]
         'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, kde.tuples.slice(I.start, I.end))),
+        repr(kde.get_item(I.x, kde.tuples.slice(I.start, I.end))),  # pyrefly: ignore[missing-attribute]
         'I.x[kd.tuples.slice(I.start, I.end, unspecified)]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, ds(1).no_bag())),
+        repr(kde.get_item(I.x, ds(1).no_bag())),  # pyrefly: ignore[missing-attribute]
         'I.x[DataItem(1, schema: INT32)]',
     )
     self.assertEqual(repr(I.x[:1]), 'I.x[:DataItem(1, schema: INT32)]')
@@ -147,18 +147,18 @@ class CoreGetItemTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.get_item,
+        kde.core.get_item,  # pyrefly: ignore[missing-attribute]
         ((DATA_SLICE, DATA_SLICE, DATA_SLICE),),
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.get_item(I.x, I.key_or_index)))
+    self.assertTrue(view.has_koda_view(kde.get_item(I.x, I.key_or_index)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.get_item))
-    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.dicts.get_item))
-    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.lists.get_item))
+    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.get_item))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.dicts.get_item))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.get_item, kde.lists.get_item))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

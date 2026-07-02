@@ -39,46 +39,46 @@ QTYPES = frozenset([
 class KodaInternalViewRshiftTest(parameterized.TestCase):
 
   def test_slice_and_bag(self):
-    o = kde.new(x=1, y=2)
-    b = kde.attrs(o, x=3, z=4)
+    o = kde.new(x=1, y=2)  # pyrefly: ignore[missing-attribute]
+    b = kde.attrs(o, x=3, z=4)  # pyrefly: ignore[missing-attribute]
     testing.assert_equivalent(
-        kde_internal.view.rshift(o, b).eval(),
-        kde.new(x=1, y=2, z=4).eval(),
+        kde_internal.view.rshift(o, b).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new(x=1, y=2, z=4).eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        kde_internal.view.rshift(b, o).eval(),
-        kde.new(x=3, y=2, z=4).eval(),
+        kde_internal.view.rshift(b, o).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new(x=3, y=2, z=4).eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
 
   def test_two_bags(self):
-    o = kde.new()
-    b1 = kde.attrs(o, x=1, y=2)
-    b2 = kde.attrs(o, x=3, z=4)
+    o = kde.new()  # pyrefly: ignore[missing-attribute]
+    b1 = kde.attrs(o, x=1, y=2)  # pyrefly: ignore[missing-attribute]
+    b2 = kde.attrs(o, x=3, z=4)  # pyrefly: ignore[missing-attribute]
     testing.assert_equivalent(
-        o.with_bag(kde_internal.view.rshift(b1, b2)).eval(),
-        kde.new(x=1, y=2, z=4).eval(),
+        o.with_bag(kde_internal.view.rshift(b1, b2)).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new(x=1, y=2, z=4).eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
 
   def test_null_bag(self):
-    o = kde.new()
-    b1 = kde.attrs(o, x=1, y=2)
-    null_bag = kde.item(None).get_bag()
+    o = kde.new()  # pyrefly: ignore[missing-attribute]
+    b1 = kde.attrs(o, x=1, y=2)  # pyrefly: ignore[missing-attribute]
+    null_bag = kde.item(None).get_bag()  # pyrefly: ignore[missing-attribute]
     testing.assert_equivalent(
-        o.with_bag(kde_internal.view.rshift(b1, null_bag)).eval(),
-        kde.new(x=1, y=2).eval(),
+        o.with_bag(kde_internal.view.rshift(b1, null_bag)).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new(x=1, y=2).eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        o.with_bag(kde_internal.view.rshift(null_bag, b1)).eval(),
-        kde.new(x=1, y=2).eval(),
+        o.with_bag(kde_internal.view.rshift(null_bag, b1)).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new(x=1, y=2).eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
     testing.assert_equivalent(
-        o.with_bag(kde_internal.view.rshift(null_bag, null_bag)).eval(),
-        kde.new().eval(),
+        o.with_bag(kde_internal.view.rshift(null_bag, null_bag)).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.new().eval(),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False,
     )
 
@@ -88,28 +88,28 @@ class KodaInternalViewRshiftTest(parameterized.TestCase):
         'at least one argument must be a DATA_BAG, this operation is'
         ' not supported on two DATA_SLICEs',
     ):
-      kde_internal.view.rshift(1, 2)
+      kde_internal.view.rshift(1, 2)  # pyrefly: ignore[missing-attribute]
 
   def test_type_error_correct_argument_name(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected DATA_SLICE or DATA_BAG, got x: INT32',
     ):
-      kde_internal.view.rshift(1, arolla.int32(1))
+      kde_internal.view.rshift(1, arolla.int32(1))  # pyrefly: ignore[missing-attribute]
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.view.rshift,
+        kde_internal.view.rshift,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.view.rshift(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde_internal.view.rshift(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.view.rshift(I.x, I.y)),
+        repr(kde_internal.view.rshift(I.x, I.y)),  # pyrefly: ignore[missing-attribute]
         'I.x >> I.y',
     )
 

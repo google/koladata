@@ -49,7 +49,7 @@ class SlicesBoolTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.bool(x))
+    res = expr_eval.eval(kde.slices.bool(x))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res, expected)
 
   def test_error(self):
@@ -57,7 +57,7 @@ class SlicesBoolTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "casting data of type STRING to BOOLEAN is not supported"
     ):
-      expr_eval.eval(kde.slices.bool(x))
+      expr_eval.eval(kde.slices.bool(x))  # pyrefly: ignore[missing-attribute]
 
   def test_mask_error(self):
     x = ds(arolla.present(), schema_constants.OBJECT)
@@ -68,34 +68,34 @@ class SlicesBoolTest(parameterized.TestCase):
             " `kd.cond(slice, True, False)` instead"
         ),
     ):
-      expr_eval.eval(kde.slices.bool(x))
+      expr_eval.eval(kde.slices.bool(x))  # pyrefly: ignore[missing-attribute]
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.bool(True),
-        arolla.abc.bind_op(kde.slices.bool, literal_operator.literal(ds(True))),
+        kde.slices.bool(True),  # pyrefly: ignore[missing-attribute]
+        arolla.abc.bind_op(kde.slices.bool, literal_operator.literal(ds(True))),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.bool(I.x),
-        arolla.abc.bind_op(kde.slices.bool, I.x),
+        kde.slices.bool(I.x),  # pyrefly: ignore[missing-attribute]
+        arolla.abc.bind_op(kde.slices.bool, I.x),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.bool,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.bool,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.bool(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.bool(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.bool, kde.bool))
+    self.assertTrue(optools.equiv_to_op(kde.slices.bool, kde.bool))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

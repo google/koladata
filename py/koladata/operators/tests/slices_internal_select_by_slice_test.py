@@ -268,8 +268,8 @@ class SlicesInternalSelectTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.internal_select_by_slice,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.internal_select_by_slice,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
@@ -277,7 +277,7 @@ class SlicesInternalSelectTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.slices.internal_select_by_slice(I.x, I.y, I.expand_filter)
+            kde.slices.internal_select_by_slice(I.x, I.y, I.expand_filter)  # pyrefly: ignore[missing-attribute]
         )
     )
 

@@ -32,23 +32,23 @@ class IterablesInternalShuffleTest(absltest.TestCase):
 
   def test_basic(self):
     a = iterable_qvalue.Iterable(1, 2)
-    res = expr_eval.eval(kde_internal.iterables.shuffle(I.arg), arg=a)
+    res = expr_eval.eval(kde_internal.iterables.shuffle(I.arg), arg=a)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
     self.assertLen(res_list, 2)
-    self.assertCountEqual([x.to_py() for x in res_list], [1, 2])
+    self.assertCountEqual([x.to_py() for x in res_list], [1, 2])  # pyrefly: ignore[missing-attribute]
 
   def test_empty(self):
     a = iterable_qvalue.Iterable()
-    res = expr_eval.eval(kde_internal.iterables.shuffle(I.arg), arg=a)
+    res = expr_eval.eval(kde_internal.iterables.shuffle(I.arg), arg=a)  # pyrefly: ignore[missing-attribute]
     self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     res_list = list(res)
     self.assertEmpty(res_list)
 
   def test_does_not_have_fixed_order(self):
-    expr = kde_internal.iterables.shuffle(iterable_qvalue.Iterable(1, 2))
+    expr = kde_internal.iterables.shuffle(iterable_qvalue.Iterable(1, 2))  # pyrefly: ignore[missing-attribute]
     seen = data_bag.DataBag.empty_mutable().dict()
     # This has probability 2**(-99) of failing.
     for _ in range(100):
@@ -61,16 +61,16 @@ class IterablesInternalShuffleTest(absltest.TestCase):
   def test_qtype_signatures(self):
     sequence_of_slice = arolla.types.make_sequence_qtype(qtypes.DATA_SLICE)
     iterable_of_slice = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
     )
     iterable_of_bag = expr_eval.eval(
-        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)
+        kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde_internal.iterables.shuffle,
-                possible_qtypes=[
+                kde_internal.iterables.shuffle,  # pyrefly: ignore[missing-attribute]
+                possible_qtypes=[  # pyrefly: ignore[bad-argument-type]
                     qtypes.DATA_SLICE,
                     qtypes.DATA_BAG,
                     arolla.INT32,
@@ -92,7 +92,7 @@ class IterablesInternalShuffleTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.iterables.shuffle(I.arg)))
+    self.assertTrue(view.has_koda_view(kde_internal.iterables.shuffle(I.arg)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

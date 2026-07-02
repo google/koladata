@@ -47,21 +47,21 @@ class TDistributionInverseCdfTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.t_distribution_inverse_cdf,
+        kde.math.t_distribution_inverse_cdf,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)),
+        repr(kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)),  # pyrefly: ignore[missing-attribute]
         'kd.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)',
     )
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)
+            kde.math.t_distribution_inverse_cdf(I.x, I.degrees_of_freedom)  # pyrefly: ignore[missing-attribute]
         )
     )
 

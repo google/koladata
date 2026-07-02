@@ -74,23 +74,23 @@ class SchemaToBytesTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.to_bytes('foo'),
+        kde.schema.to_bytes('foo'),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.schema.to_bytes, literal_operator.literal(ds('foo'))
+            kde.schema.to_bytes, literal_operator.literal(ds('foo'))  # pyrefly: ignore[missing-attribute]
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.to_bytes,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.schema.to_bytes,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.to_bytes(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.to_bytes(I.x)))  # pyrefly: ignore[missing-attribute]
 
 if __name__ == '__main__':
   absltest.main()

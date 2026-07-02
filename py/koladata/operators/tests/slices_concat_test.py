@@ -148,7 +148,7 @@ class SlicesConcatImplTest(parameterized.TestCase):
 
   def test_default_output(self):
     # NOTE(b/390562645): Tests the default output of kd.concat.
-    result = kde.slices._concat_or_stack(I.x, I.y).eval(x=ds(False), y=ds(1))
+    result = kde.slices._concat_or_stack(I.x, I.y).eval(x=ds(False), y=ds(1))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(result, ds([]))
 
   @parameterized.parameters(
@@ -240,15 +240,15 @@ class SlicesConcatImplTest(parameterized.TestCase):
     )
 
   def test_qtype_signatures(self):
-    signature = arolla.abc.get_operator_signature(kde.slices.concat)
+    signature = arolla.abc.get_operator_signature(kde.slices.concat)  # pyrefly: ignore[missing-attribute]
     self.assertLen(signature.parameters, 2)
     self.assertEqual(signature.parameters[0].name, 'args')
     self.assertEqual(signature.parameters[1].name, 'ndim')
 
     arolla.testing.assert_qtype_signatures(
-        kde.slices.concat,
+        kde.slices.concat,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
             arolla.make_tuple_qtype(),
             arolla.make_tuple_qtype(DATA_SLICE),
@@ -258,14 +258,14 @@ class SlicesConcatImplTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.concat(I.x, I.y, I.z)))
+    self.assertTrue(view.has_koda_view(kde.slices.concat(I.x, I.y, I.z)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.concat, kde.concat))
+    self.assertTrue(optools.equiv_to_op(kde.slices.concat, kde.concat))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.slices.concat(I.x, I.y, I.z, ndim=3)),
+        repr(kde.slices.concat(I.x, I.y, I.z, ndim=3)),  # pyrefly: ignore[missing-attribute]
         'kd.slices.concat(I.x, I.y, I.z, ndim=DataItem(3, schema: INT32))',
     )
 

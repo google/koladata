@@ -34,7 +34,7 @@ kde = kde_operators.kde
 kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 
-M = arolla.M | derived_qtype.M | objects.M
+M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
 
 
 @extension_types.extension_type()
@@ -48,7 +48,7 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesUnwrapTest(parameterized.TestCase):
 
   def test_unwrap(self):
-    ext = A(1)
+    ext = A(1)  # pyrefly: ignore[bad-argument-count]
     result = kd.extension_types.unwrap(ext)
     testing.assert_equal(result.qtype, objects.OBJECT)
     testing.assert_equal(result.get_attr("a", qtypes.DATA_SLICE), ds(1))
@@ -56,7 +56,7 @@ class ExtensionTypesUnwrapTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.extension_types.unwrap,
+        kde.extension_types.unwrap,  # pyrefly: ignore[missing-attribute]
         ((A_qtype, objects.OBJECT),),
         possible_qtypes=arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES
         + (A_qtype, objects.OBJECT),
@@ -67,22 +67,22 @@ class ExtensionTypesUnwrapTest(parameterized.TestCase):
         ValueError,
         re.escape("expected an extension type qtype, got ext: OBJECT"),
     ):
-      kde.extension_types.unwrap(objects.Object(x=ds(1)))
+      kde.extension_types.unwrap(objects.Object(x=ds(1)))  # pyrefly: ignore[missing-attribute]
 
   def test_unwrap_an_extension(self):
     foo_qtype = arolla.eval(
-        M.derived_qtype.get_labeled_qtype(qtypes.DATA_SLICE, "foo")
+        M.derived_qtype.get_labeled_qtype(qtypes.DATA_SLICE, "foo")  # pyrefly: ignore[missing-attribute]
     )
-    ext = arolla.eval(M.derived_qtype.downcast(foo_qtype, ds(1)))
+    ext = arolla.eval(M.derived_qtype.downcast(foo_qtype, ds(1)))  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape("expected an extension type qtype, got ext: LABEL[foo]"),
     ):
-      kde.extension_types.unwrap(ext)
+      kde.extension_types.unwrap(ext)  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.unwrap(I.x)))
-    self.assertTrue(view.has_base_koda_view(kde.extension_types.unwrap(I.x)))
+    self.assertFalse(view.has_koda_view(kde.extension_types.unwrap(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_base_koda_view(kde.extension_types.unwrap(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

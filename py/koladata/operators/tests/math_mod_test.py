@@ -150,17 +150,17 @@ class MathModTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.mod,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.math.mod,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.mod(I.x, I.y)), 'I.x % I.y')
+    self.assertEqual(repr(kde.math.mod(I.x, I.y)), 'I.x % I.y')  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.mod(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.math.mod(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

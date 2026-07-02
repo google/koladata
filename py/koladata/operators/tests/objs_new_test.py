@@ -195,10 +195,10 @@ class ObjsNewTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'object with unsupported type: dict'
     ):
-      kde.objs.new({'a': 42}, itemid=I.itemid)
+      kde.objs.new({'a': 42}, itemid=I.itemid)  # pyrefly: ignore[missing-attribute]
 
   def test_non_determinism(self):
-    expr = kde.objs.new(a=42)
+    expr = kde.objs.new(a=42)  # pyrefly: ignore[missing-attribute]
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -206,23 +206,23 @@ class ObjsNewTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.objs.new,
+        kde.objs.new,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.objs.new(I.x)))
+    self.assertTrue(view.has_koda_view(kde.objs.new(I.x)))  # pyrefly: ignore[missing-attribute]
     self.assertTrue(
-        view.has_koda_view(kde.objs.new(I.x, itemid=I.itemid, a=I.y))
+        view.has_koda_view(kde.objs.new(I.x, itemid=I.itemid, a=I.y))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.objs.new, kde.obj))
+    self.assertTrue(optools.equiv_to_op(kde.objs.new, kde.obj))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.objs.new(a=I.y)),
+        repr(kde.objs.new(a=I.y)),  # pyrefly: ignore[missing-attribute]
         'kd.objs.new(unspecified, itemid=unspecified, a=I.y)',
     )
 

@@ -101,10 +101,10 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
 
   def test_eval_without_seed(self):
     x = ds([[1, 2], [3]])
-    expr = kde.random.randint_shaped_as(x)
+    expr = kde.random.randint_shaped_as(x)  # pyrefly: ignore[missing-attribute]
     res1 = expr.eval()
     res2 = expr.eval()
-    res3 = kde.random.randint_shaped_as(x).eval()
+    res3 = kde.random.randint_shaped_as(x).eval()  # pyrefly: ignore[missing-attribute]
     self.assertNotEqual(res1.fingerprint, res2.fingerprint)
     self.assertNotEqual(res1.fingerprint, res3.fingerprint)
 
@@ -162,15 +162,15 @@ class RandomRandintShapedAsTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.random.randint_like,
+        kde.random.randint_like,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.random.randint_shaped_as(I.x, I.low, I.high, I.seed)
+            kde.random.randint_shaped_as(I.x, I.low, I.high, I.seed)  # pyrefly: ignore[missing-attribute]
         )
     )
 

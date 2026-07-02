@@ -35,18 +35,18 @@ kde_internal = kde_operators.internal
 class FlatMapChainTest(absltest.TestCase):
 
   def test_flat_map_chain(self):
-    py_fn = lambda x: kde.iterables.make(x, 2 * x)
+    py_fn = lambda x: kde.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(I.input_seq, I.fn)
+    expr = kde.functor.flat_map_chain(I.input_seq, I.fn)  # pyrefly: ignore[missing-attribute]
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 10), fn=py_fn)
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 10), fn=py_fn)  # pyrefly: ignore[missing-attribute]
 
-    testing.assert_equal(res, user_facing_kd.iterables.make(1, 2, 10, 20))
+    testing.assert_equal(res, user_facing_kd.iterables.make(1, 2, 10, 20))  # pyrefly: ignore[missing-attribute]
 
   def test_flat_map_chain_with_return_type_as(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq,
         I.fn,
         value_type_as=data_slice.DataSlice,
@@ -54,24 +54,24 @@ class FlatMapChainTest(absltest.TestCase):
 
     res = expr.eval(input_seq=iterable_qvalue.Iterable(*range(2, 5)), fn=py_fn)
 
-    testing.assert_equal(res, user_facing_kd.iterables.make(2, 4, 3, 6, 4, 8))
+    testing.assert_equal(res, user_facing_kd.iterables.make(2, 4, 3, 6, 4, 8))  # pyrefly: ignore[missing-attribute]
 
   def test_flat_map_chain_with_data_bag(self):
-    obj = user_facing_kd.new(a=1)
-    db1 = user_facing_kd.attrs(obj, a=2)
-    db2 = user_facing_kd.attrs(obj, a=3)
+    obj = user_facing_kd.new(a=1)  # pyrefly: ignore[missing-attribute]
+    db1 = user_facing_kd.attrs(obj, a=2)  # pyrefly: ignore[missing-attribute]
+    db2 = user_facing_kd.attrs(obj, a=3)  # pyrefly: ignore[missing-attribute]
 
     def py_fn(x):
-      return kde.iterables.make(x, user_facing_kd.attrs(obj, b=obj.a + 5))
+      return kde.iterables.make(x, user_facing_kd.attrs(obj, b=obj.a + 5))  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq, I.fn, value_type_as=data_bag.DataBag
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(db1, db2), fn=py_fn)  # pyrefly: ignore[missing-attribute]
 
     res = expr_eval.eval(
-        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res  # pyrefly: ignore[missing-attribute]
     )
     self.assertLen(res, 4)
     self.assertEqual(obj.with_bag(res[0]).to_py(obj_as_dict=True), {'a': 2})
@@ -80,24 +80,24 @@ class FlatMapChainTest(absltest.TestCase):
     self.assertEqual(obj.with_bag(res[3]).to_py(obj_as_dict=True), {'b': 6})
 
   def test_flat_map_chain_with_data_bag_input_as_data_slice(self):
-    obj1 = user_facing_kd.new(a=1, b=2)
-    obj2 = user_facing_kd.new(a=10, b=20)
+    obj1 = user_facing_kd.new(a=1, b=2)  # pyrefly: ignore[missing-attribute]
+    obj2 = user_facing_kd.new(a=10, b=20)  # pyrefly: ignore[missing-attribute]
 
     def py_fn(x):
-      return kde.iterables.make(
-          user_facing_kd.attrs(x, a=x.a + 1), user_facing_kd.attrs(x, b=x.b + 5)
+      return kde.iterables.make(  # pyrefly: ignore[missing-attribute]
+          user_facing_kd.attrs(x, a=x.a + 1), user_facing_kd.attrs(x, b=x.b + 5)  # pyrefly: ignore[missing-attribute]
       )
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq, I.fn, value_type_as=data_bag.DataBag
     )
 
     res = expr.eval(
-        input_seq=user_facing_kd.iterables.make(obj1, obj2), fn=py_fn
+        input_seq=user_facing_kd.iterables.make(obj1, obj2), fn=py_fn  # pyrefly: ignore[missing-attribute]
     )
 
     res = expr_eval.eval(
-        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res
+        kde_internal.iterables.to_sequence(I.input_seq), input_seq=res  # pyrefly: ignore[missing-attribute]
     )
     self.assertLen(res, 4)
     self.assertEqual(obj1.with_bag(res[0]).to_py(obj_as_dict=True), {'a': 2})
@@ -106,9 +106,9 @@ class FlatMapChainTest(absltest.TestCase):
     self.assertEqual(obj2.with_bag(res[3]).to_py(obj_as_dict=True), {'b': 25})
 
   def test_flat_map_chain_wrong_return_type_as(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq,
         I.fn,
         value_type_as=data_bag.DataBag,
@@ -122,54 +122,54 @@ class FlatMapChainTest(absltest.TestCase):
       _ = expr.eval(input_seq=iterable_qvalue.Iterable(*range(2, 5)), fn=py_fn)
 
   def test_flat_map_chain_empty_iterable(self):
-    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
+    py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq,
         I.fn,
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(), fn=py_fn)
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(), fn=py_fn)  # pyrefly: ignore[missing-attribute]
 
-    testing.assert_equal(res, user_facing_kd.iterables.make())
+    testing.assert_equal(res, user_facing_kd.iterables.make())  # pyrefly: ignore[missing-attribute]
 
   def test_flat_map_chain_fn_returns_empty_iterable(self):
-    py_fn = lambda x: user_facing_kd.iterables.make()
+    py_fn = lambda x: user_facing_kd.iterables.make()  # pyrefly: ignore[missing-attribute]
 
-    expr = kde.functor.flat_map_chain(
+    expr = kde.functor.flat_map_chain(  # pyrefly: ignore[missing-attribute]
         I.input_seq,
         I.fn,
     )
 
-    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 2, 3), fn=py_fn)
+    res = expr.eval(input_seq=user_facing_kd.iterables.make(1, 2, 3), fn=py_fn)  # pyrefly: ignore[missing-attribute]
 
-    testing.assert_equal(res, user_facing_kd.iterables.make())
+    testing.assert_equal(res, user_facing_kd.iterables.make())  # pyrefly: ignore[missing-attribute]
 
   def test_non_iterable(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected an iterable type, got iterable: DATA_SLICE',
     ):
-      py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)
+      py_fn = lambda x: user_facing_kd.iterables.make(x, 2 * x)  # pyrefly: ignore[missing-attribute]
 
-      expr = kde.functor.flat_map_chain(I.input_seq, I.fn)
-      _ = expr.eval(input_seq=kde.slice([1, 2, 3]).eval(), fn=py_fn)
+      expr = kde.functor.flat_map_chain(I.input_seq, I.fn)  # pyrefly: ignore[missing-attribute]
+      _ = expr.eval(input_seq=kde.slice([1, 2, 3]).eval(), fn=py_fn)  # pyrefly: ignore[missing-attribute]
 
   def test_non_functor_fn(self):
     with self.assertRaisesRegex(
         ValueError,
         'expected DATA_SLICE, got fn',
     ):
-      expr = kde.functor.flat_map_chain(I.input_seq, I.fn)
+      expr = kde.functor.flat_map_chain(I.input_seq, I.fn)  # pyrefly: ignore[missing-attribute]
       _ = expr.eval(
           input_seq=iterable_qvalue.Iterable(*range(2, 5)),
-          fn=user_facing_kd.iterables.make(1, 2, 3),
+          fn=user_facing_kd.iterables.make(1, 2, 3),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_fn_does_not_return_iterable(self):
     py_fn = lambda x: x * 2
 
-    expr = kde.functor.flat_map_chain(I.input_seq, I.fn)
+    expr = kde.functor.flat_map_chain(I.input_seq, I.fn)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -180,16 +180,16 @@ class FlatMapChainTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.functor.flat_map_chain(I.input_seq, I.body_fn))
+        view.has_koda_view(kde.functor.flat_map_chain(I.input_seq, I.body_fn))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.functor.flat_map_chain, kde.flat_map_chain)
+        optools.equiv_to_op(kde.functor.flat_map_chain, kde.flat_map_chain)  # pyrefly: ignore[missing-attribute]
     )
     self.assertTrue(
         optools.equiv_to_op(
-            kde.functor.flat_map_chain, kde.iterables.flat_map_chain
+            kde.functor.flat_map_chain, kde.iterables.flat_map_chain  # pyrefly: ignore[missing-attribute]
         )
     )
 

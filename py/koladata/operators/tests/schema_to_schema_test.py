@@ -95,25 +95,25 @@ class SchemaToSchemaTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.to_schema(schema_constants.INT32),
+        kde.schema.to_schema(schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.schema.to_schema,
+            kde.schema.to_schema,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(schema_constants.INT32),
         ),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.to_schema,
+        kde.schema.to_schema,  # pyrefly: ignore[missing-attribute]
         [(DATA_SLICE, DATA_SLICE)],
-        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.to_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.to_schema(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_schema, kde.to_schema))
+    self.assertTrue(optools.equiv_to_op(kde.schema.to_schema, kde.to_schema))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

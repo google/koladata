@@ -376,18 +376,18 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.json.to_json,
+        kde.json.to_json,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.json.to_json, kde.to_json))
+    self.assertTrue(optools.equiv_to_op(kde.json.to_json, kde.to_json))  # pyrefly: ignore[missing-attribute]
 
   def test_eval_deleted_entity_attr(self):
     x = fns.new(a=1, b=2).fork_bag()
-    del x.b
+    del x.b  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(kd.json.to_json(x), ds('{"a": 1, "b": null}'))
     testing.assert_equal(
         kd.json.to_json(x, include_missing_values=False), ds('{"a": 1}')
@@ -395,7 +395,7 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_eval_deleted_entity_schema_attr(self):
     x = fns.new(a=1, b=2).fork_bag()
-    del x.get_schema().b
+    del x.get_schema().b  # pyrefly: ignore[missing-attribute]
     result = kd.json.to_json(x)
     testing.assert_equal(result, ds('{"a": 1}'))
     testing.assert_equal(
@@ -404,7 +404,7 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_eval_deleted_object_attr(self):
     x = fns.obj(a=1, b=2).fork_bag()
-    del x.b
+    del x.b  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(kd.json.to_json(x), ds('{"a": 1}'))
     testing.assert_equal(
         kd.json.to_json(x, include_missing_values=False), ds('{"a": 1}')
@@ -412,7 +412,7 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_eval_deleted_object_schema_attr(self):
     x = fns.obj(a=1, b=2).fork_bag()
-    del x.get_obj_schema().b
+    del x.get_obj_schema().b  # pyrefly: ignore[missing-attribute]
     result = kd.json.to_json(x)
     testing.assert_equal(result, ds('{"a": 1}'))
     testing.assert_equal(
@@ -420,10 +420,10 @@ class JsonToJsonTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.json.to_json(I.x)))
+    self.assertTrue(view.has_koda_view(kde.json.to_json(I.x)))  # pyrefly: ignore[missing-attribute]
     self.assertTrue(
         view.has_koda_view(
-            kde.json.to_json(I.x, indent=I.indent, ensure_ascii=I.ensure_ascii)
+            kde.json.to_json(I.x, indent=I.indent, ensure_ascii=I.ensure_ascii)  # pyrefly: ignore[missing-attribute]
         )
     )
 

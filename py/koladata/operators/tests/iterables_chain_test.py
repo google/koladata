@@ -121,11 +121,11 @@ class IterablesChainTest(absltest.TestCase):
       _ = kd.iterables.chain(ds(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.chain()))
+    self.assertTrue(view.has_koda_view(kde.iterables.chain()))  # pyrefly: ignore[missing-attribute]
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.chain(I.a, I.b)),
+        repr(kde.iterables.chain(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
         'kd.iterables.chain(I.a, I.b, value_type_as=unspecified)',
     )
 

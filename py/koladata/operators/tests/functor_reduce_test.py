@@ -38,12 +38,12 @@ class IterablesReduceTest(absltest.TestCase):
     fn = lambda x, y: x + y
 
     res = expr_eval.eval(
-        kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)
+        kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds(6))
 
     res = expr_eval.eval(
-        kde.functor.reduce(fn, kde.iterables.make(4), initial_value=3)
+        kde.functor.reduce(fn, kde.iterables.make(4), initial_value=3)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds(7))
 
@@ -55,8 +55,8 @@ class IterablesReduceTest(absltest.TestCase):
     db2 = kd.attrs(initial_value, c=3)
 
     res = expr_eval.eval(
-        kde.functor.reduce(
-            py_fn, kde.iterables.make(db1, db2), initial_value=initial_value
+        kde.functor.reduce(  # pyrefly: ignore[missing-attribute]
+            py_fn, kde.iterables.make(db1, db2), initial_value=initial_value  # pyrefly: ignore[missing-attribute]
         )
     )
 
@@ -65,16 +65,16 @@ class IterablesReduceTest(absltest.TestCase):
     self.assertEqual(res.c, 3)
 
   def test_reduce_data_bags(self):
-    fn = lambda db1, db2: kde.bags.updated(db1, db2)
+    fn = lambda db1, db2: kde.bags.updated(db1, db2)  # pyrefly: ignore[missing-attribute]
 
     obj = kd.new(a=1)
     db1 = kd.attrs(obj, b=2)
     db2 = kd.attrs(obj, c=3)
 
     res = expr_eval.eval(
-        kde.functor.reduce(
+        kde.functor.reduce(  # pyrefly: ignore[missing-attribute]
             fn,
-            kde.iterables.make(db1, db2),
+            kde.iterables.make(db1, db2),  # pyrefly: ignore[missing-attribute]
             initial_value=obj.get_bag(),
         )
     )
@@ -88,7 +88,7 @@ class IterablesReduceTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x, y: x + y)
 
     res = expr_eval.eval(
-        kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)
+        kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds(6))
 
@@ -96,14 +96,14 @@ class IterablesReduceTest(absltest.TestCase):
     fn = lambda x, y: x * 0.1 + y
 
     res = expr_eval.eval(
-        kde.functor.reduce(fn, kde.iterables.make(3, 4), initial_value=2)
+        kde.functor.reduce(fn, kde.iterables.make(3, 4), initial_value=2)  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(res, ds(4.32))
 
   def test_reduce_empty(self):
     res = expr_eval.eval(
-        kde.functor.reduce(
-            lambda x, y: x + y, kde.iterables.chain(), initial_value=3
+        kde.functor.reduce(  # pyrefly: ignore[missing-attribute]
+            lambda x, y: x + y, kde.iterables.chain(), initial_value=3  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(res, ds(3))
@@ -115,7 +115,7 @@ class IterablesReduceTest(absltest.TestCase):
         ValueError,
         re.escape('expected an iterable type, got items'),
     ):
-      _ = expr_eval.eval(kde.functor.reduce(fn, ds(1), initial_value=1))
+      _ = expr_eval.eval(kde.functor.reduce(fn, ds(1), initial_value=1))  # pyrefly: ignore[missing-attribute]
 
   def test_functor_non_binary(self):
     fn = lambda x: x * 2
@@ -125,7 +125,7 @@ class IterablesReduceTest(absltest.TestCase):
         re.escape('too many positional arguments passed'),
     ):
       _ = expr_eval.eval(
-          kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)
+          kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
       )
 
     fn = lambda x, y, z: x + y + z
@@ -135,7 +135,7 @@ class IterablesReduceTest(absltest.TestCase):
         re.escape('no value provided for positional or keyword parameter'),
     ):
       _ = expr_eval.eval(
-          kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)
+          kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
       )
 
   def test_non_functor_arg(self):
@@ -144,7 +144,7 @@ class IterablesReduceTest(absltest.TestCase):
         re.escape('the first argument of kd.call must be a functor'),
     ):
       _ = expr_eval.eval(
-          kde.functor.reduce(5, kde.iterables.make(2, 3), initial_value=1)
+          kde.functor.reduce(5, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
       )
 
     with self.assertRaisesRegex(
@@ -152,18 +152,18 @@ class IterablesReduceTest(absltest.TestCase):
         re.escape('the first argument of kd.call must be a functor'),
     ):
       _ = expr_eval.eval(
-          kde.functor.reduce(ds(5), kde.iterables.make(2, 3), initial_value=1)
+          kde.functor.reduce(ds(5), kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
       )
 
   def test_non_determinism(self):
     # Evaluating different identical exprs.
-    fn = lambda x, y: kde.lists.appended_list(x, y)
-    items = kde.iterables.make(2, 3)
+    fn = lambda x, y: kde.lists.appended_list(x, y)  # pyrefly: ignore[missing-attribute]
+    items = kde.iterables.make(2, 3)  # pyrefly: ignore[missing-attribute]
     initial_value = fns.list([1])
 
-    expr = kde.tuple(
-        kde.functor.reduce(fn, items, initial_value=initial_value),
-        kde.functor.reduce(fn, items, initial_value=initial_value),
+    expr = kde.tuple(  # pyrefly: ignore[missing-attribute]
+        kde.functor.reduce(fn, items, initial_value=initial_value),  # pyrefly: ignore[missing-attribute]
+        kde.functor.reduce(fn, items, initial_value=initial_value),  # pyrefly: ignore[missing-attribute]
     )
     self.assertNotEqual(
         expr.node_deps[0].fingerprint, expr.node_deps[1].fingerprint
@@ -172,7 +172,7 @@ class IterablesReduceTest(absltest.TestCase):
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
 
     # Evaluating same expr twice.
-    expr = kde.functor.reduce(fn, items, initial_value=initial_value)
+    expr = kde.functor.reduce(fn, items, initial_value=initial_value)  # pyrefly: ignore[missing-attribute]
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -185,19 +185,19 @@ class IterablesReduceTest(absltest.TestCase):
 
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)
+            kde.functor.reduce(fn, kde.iterables.make(2, 3), initial_value=1)  # pyrefly: ignore[missing-attribute]
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.functor.reduce(I.fn, I.iter, I.initial)),
+        repr(kde.functor.reduce(I.fn, I.iter, I.initial)),  # pyrefly: ignore[missing-attribute]
         'kd.functor.reduce(I.fn, I.iter, I.initial)',
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.functor.reduce, kde.iterables.reduce)
+        optools.equiv_to_op(kde.functor.reduce, kde.iterables.reduce)  # pyrefly: ignore[missing-attribute]
     )
 
 

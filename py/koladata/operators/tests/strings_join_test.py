@@ -130,14 +130,14 @@ class StringsJoinTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.join,
+        kde.strings.join,  # pyrefly: ignore[missing-attribute]
         QTYPES,
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.join(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.join(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

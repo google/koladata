@@ -50,44 +50,44 @@ class SlicesInt64Test(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.int64(x))
+    res = expr_eval.eval(kde.slices.int64(x))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(res, expected)
 
   def test_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape("unable to parse INT64: '1.5'")
     ):
-      expr_eval.eval(kde.slices.int64(ds("1.5")))
+      expr_eval.eval(kde.slices.int64(ds("1.5")))  # pyrefly: ignore[missing-attribute]
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.int64(1),
+        kde.slices.int64(1),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.slices.int64,
+            kde.slices.int64,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(1, schema_constants.INT64)),
         ),
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.int64(I.x),
-        arolla.abc.bind_op(kde.slices.int64, I.x),
+        kde.slices.int64(I.x),  # pyrefly: ignore[missing-attribute]
+        arolla.abc.bind_op(kde.slices.int64, I.x),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.int64,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.slices.int64,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.int64(I.x)))
+    self.assertTrue(view.has_koda_view(kde.slices.int64(I.x)))  # pyrefly: ignore[missing-attribute]
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.int64, kde.int64))
+    self.assertTrue(optools.equiv_to_op(kde.slices.int64, kde.int64))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == "__main__":

@@ -167,17 +167,17 @@ class MathFloorTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.floor,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.math.floor,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.floor(I.x)), 'kd.math.floor(I.x)')
+    self.assertEqual(repr(kde.math.floor(I.x)), 'kd.math.floor(I.x)')  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.floor(I.x)))
+    self.assertTrue(view.has_koda_view(kde.math.floor(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

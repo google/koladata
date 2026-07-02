@@ -215,8 +215,8 @@ class SchemaAggCommonSchemaTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.agg_common_schema,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.schema.agg_common_schema,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         (
             (DATA_SLICE, DATA_SLICE),
@@ -226,7 +226,7 @@ class SchemaAggCommonSchemaTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.agg_common_schema(I.x)))
+    self.assertTrue(view.has_koda_view(kde.schema.agg_common_schema(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':

@@ -92,9 +92,9 @@ class StringsDecodeTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.strings.decode(b'foo'),
+        kde.strings.decode(b'foo'),  # pyrefly: ignore[missing-attribute]
         arolla.abc.bind_op(
-            kde.strings.decode,
+            kde.strings.decode,  # pyrefly: ignore[missing-attribute]
             literal_operator.literal(ds(b'foo')),
             literal_operator.literal(ds('strict')),
         ),
@@ -117,8 +117,8 @@ class StringsDecodeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.strings.decode,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            kde.strings.decode,  # pyrefly: ignore[missing-attribute]
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),
          (DATA_SLICE, DATA_SLICE, DATA_SLICE),
@@ -126,7 +126,7 @@ class StringsDecodeTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.decode(I.x)))
+    self.assertTrue(view.has_koda_view(kde.strings.decode(I.x)))  # pyrefly: ignore[missing-attribute]
 
 
 if __name__ == '__main__':
