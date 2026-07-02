@@ -1,0 +1,11 @@
+"""Auto-generated Python code representing a Koda Functor converted to evaluation-equivalent Python.
+
+Do not edit manually.
+"""
+
+from arolla import arolla
+from koladata import kd
+
+
+def top(x, y):
+  return x * 2 + y

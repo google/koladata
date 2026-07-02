@@ -10,6 +10,7 @@ the following module is needed:
 Subcategory | Description
 ----------- | ------------
 [contrib](kd_ext/contrib.md) | Contrib operators.
+[functor](kd_ext/functor.md) | Eager-only functor utilities.
 [ids](kd_ext/ids.md) | Auto-ID and auto-reference operators.
 [kv](kd_ext/kv.md) | Experimental Koda View API.
 [nested_data](kd_ext/nested_data.md) | Utilities for manipulating nested data.

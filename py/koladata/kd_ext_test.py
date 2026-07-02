@@ -30,6 +30,10 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('storage', modules)
     self.assertIn('contrib', modules)
     self.assertIn('kv', modules)
+    self.assertIn('pseudo_random', modules)
+    self.assertIn('tqdm', modules)
+    self.assertIn('vis', modules)
+    self.assertIn('functor', modules)
 
   def test_functor_factories(self):
     testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))  # pyrefly: ignore[missing-attribute]

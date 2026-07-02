@@ -27,6 +27,7 @@ from koladata.ext import pdkd as _pdkd
 from koladata.ext import py_cloudpickle as _py_cloudpickle
 from koladata.ext import vis as _vis
 from koladata.ext.contrib import functions as _contrib_functions
+from koladata.ext.functor import functor as _functor
 from koladata.ext.pseudo_random import pseudo_random as _pseudo_random
 from koladata.ext.storage import storage as _storage
 from koladata.ext.tqdm import kd_ext_tqdm as _kd_ext_tqdm
@@ -96,6 +97,7 @@ _load_functions('contrib', _contrib_functions)
 _load_functions('kv', _kv)
 _load_functions('pseudo_random', _pseudo_random)
 _load_functions('tqdm', _kd_ext_tqdm)
+_load_functions('functor', _functor)
 
 
 lazy = _eager_only(_kde_operators.kde_ext)

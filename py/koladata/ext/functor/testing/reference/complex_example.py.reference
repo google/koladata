@@ -1,0 +1,39 @@
+"""Auto-generated Python code representing a Koda Functor converted to evaluation-equivalent Python.
+
+Do not edit manually.
+"""
+
+from arolla import arolla
+from koladata import kd
+
+
+@kd.trace_as_fn()
+def sub_kw_only(x, *, factor=kd.int64(10)):
+  return x + factor
+
+
+@kd.trace_as_fn()
+def sub_with_default(a, b=kd.float64(2.5)):
+  return a * b
+
+
+def top(x, y):
+  _1 = kd.with_attrs(
+      kd.uu(
+          '',
+          schema=kd.uu_schema('', a=kd.get_schema(x), b=kd.FLOAT64),
+          overwrite_schema=False,
+          a=x,
+          b=3.14,
+      ),
+      overwrite_schema=False,
+      y=y,
+  )
+  return sub_with_default(
+      kd.get_attr(
+          kd.get_attr(_1, 'a', arolla.unspecified()), 'a', arolla.unspecified()
+      )
+  ) + sub_kw_only(
+      kd.get_attr(_1, 'b', arolla.unspecified()),
+      factor=kd.get_attr(_1, 'y', arolla.unspecified()),
+  )

@@ -1,0 +1,21 @@
+"""Auto-generated Python code representing a Koda Functor converted to evaluation-equivalent Python.
+
+Do not edit manually.
+"""
+
+from arolla import arolla
+from koladata import kd
+
+
+@kd.trace_as_fn()
+def g(x):
+  return x * 2
+
+
+@kd.trace_as_fn()
+def h(y):
+  return y + 1
+
+
+def top(*, x, y):
+  return g(x) + h(y)
