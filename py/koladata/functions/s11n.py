@@ -195,4 +195,4 @@ def load(path: str, /, *, fs: Any | None = None) -> arolla.AnyQValue:
     fs = file_io.get_default_file_system_interaction()
   with fs.open(path, 'rb') as f:
     data = f.read()
-  return loads(data)
+  return loads(data)  # pyrefly: ignore[bad-argument-type]

@@ -112,10 +112,10 @@ def sub_inputs(
     **subs: ExprLike,
 ) -> arolla.Expr:
   """Returns an expression with `container` inputs replaced with Expr(s)."""
-  subs = {
+  subs = {  # pyrefly: ignore[bad-assignment]
       container[k].fingerprint: py_boxing.as_expr(v) for k, v in subs.items()
   }
-  return arolla.sub_by_fingerprint(expr, subs)
+  return arolla.sub_by_fingerprint(expr, subs)  # pyrefly: ignore[bad-argument-type]
 
 
 def sub_by_name(expr: arolla.Expr, /, **subs: ExprLike) -> arolla.Expr:
@@ -187,5 +187,5 @@ def sub(
             ' there must be exactly two non-tuple subs representing a single'
             f' substitution, got: {subs}'
         )
-  subs = {f.fingerprint: py_boxing.as_expr(t) for f, t in subs}
-  return arolla.sub_by_fingerprint(expr, subs)
+  subs = {f.fingerprint: py_boxing.as_expr(t) for f, t in subs}  # pyrefly: ignore[bad-assignment, missing-attribute]
+  return arolla.sub_by_fingerprint(expr, subs)  # pyrefly: ignore[bad-argument-type]

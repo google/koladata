@@ -66,7 +66,7 @@ def _wrap_with_from_and_to_kd(
     __tracebackhide__ = True  # pylint: disable=invalid-name, unused-variable
     return py_boxing.as_qvalue_or_expr(fn(*args, **kwargs))
 
-  wrapper.__signature__ = wrapper_sig
+  wrapper.__signature__ = wrapper_sig  # pyrefly: ignore[missing-attribute]
 
   return wrapper
 

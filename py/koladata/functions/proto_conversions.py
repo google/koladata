@@ -255,9 +255,9 @@ def from_proto_any(
   if descriptor_pool is None and message_type is None:
     descriptor_pool = protobuf_descriptor_pool.Default()
 
-  messages_list = _flatten(messages)
+  messages_list = _flatten(messages)  # pyrefly: ignore[bad-argument-type]
   shape = data_slice.DataSlice.from_vals(
-      _to_nested_list_of_none(messages)
+      _to_nested_list_of_none(messages)  # pyrefly: ignore[bad-argument-type]
   ).get_shape()
 
   unpacked_message_items: list[data_slice.DataSlice | None] = []
@@ -265,7 +265,7 @@ def from_proto_any(
     if isinstance(m, any_pb2.Any):
       if message_type is None:
         full_name = protobuf_any.type_name(m).split('/')[-1]
-        descriptor = descriptor_pool.FindMessageTypeByName(full_name)
+        descriptor = descriptor_pool.FindMessageTypeByName(full_name)  # pyrefly: ignore[missing-attribute]
         message_cls = protobuf_message_factory.GetMessageClass(descriptor)
         unpacked_message = message_cls()
       else:
@@ -279,12 +279,12 @@ def from_proto_any(
           schema=schema,
       )
       if schema is None:
-        item = expr_eval.eval(kde_operators.kde.obj(item))
+        item = expr_eval.eval(kde_operators.kde.obj(item))  # pyrefly: ignore[missing-attribute]
       unpacked_message_items.append(item)
     elif m is None:
       item = None
       if schema is None:
-        item = expr_eval.eval(kde_operators.kde.obj(item))
+        item = expr_eval.eval(kde_operators.kde.obj(item))  # pyrefly: ignore[missing-attribute]
       unpacked_message_items.append(item)
     else:
       raise ValueError(
@@ -294,15 +294,15 @@ def from_proto_any(
 
   if not unpacked_message_items:
     return expr_eval.eval(
-        kde_operators.kde.empty_shaped(
+        kde_operators.kde.empty_shaped(  # pyrefly: ignore[missing-attribute]
             shape,
             schema=schema if schema is not None else schema_constants.OBJECT,
         )
     )
 
   return expr_eval.eval(
-      kde_operators.kde.reshape(
-          kde_operators.kde.stack(*unpacked_message_items), shape
+      kde_operators.kde.reshape(  # pyrefly: ignore[missing-attribute]
+          kde_operators.kde.stack(*unpacked_message_items), shape  # pyrefly: ignore[missing-attribute]
       )
   )
 
@@ -410,7 +410,7 @@ def to_proto_any(
   x_shape = (x & mask_constants.missing).to_py()
   x_flat = x.flatten()
   full_names = expr_eval.eval(
-      kde_operators.kde.proto.get_proto_full_name(x_flat)
+      kde_operators.kde.proto.get_proto_full_name(x_flat)  # pyrefly: ignore[missing-attribute]
   ).to_py()
   results = []
   for i, full_name in enumerate(full_names):

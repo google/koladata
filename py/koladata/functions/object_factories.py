@@ -691,7 +691,7 @@ def uu(
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
       mutable_bag()
-      .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)
+      .uu(seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs)  # pyrefly: ignore[bad-argument-type]
       .freeze_bag()
   )
 
@@ -723,7 +723,7 @@ def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
   """
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
-  return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()
+  return mutable_bag().uuobj(seed=seed, **attrs).freeze_bag()  # pyrefly: ignore[bad-argument-type]
 
 
 def implode(

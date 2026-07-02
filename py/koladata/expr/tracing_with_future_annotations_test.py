@@ -38,7 +38,7 @@ class TracingWithFutureAnnotationsTest(absltest.TestCase):
     def fn(c: SimpleClass):
       return c.x + 1
 
-    c = SimpleClass(x=ds(1))
+    c = SimpleClass(x=ds(1))  # pyrefly: ignore[unexpected-keyword]
 
     with self.subTest('direct_eval'):
       testing.assert_equal(fn(c), ds(2))

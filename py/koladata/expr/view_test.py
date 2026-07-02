@@ -121,51 +121,51 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(introspection.unwrap_named(expr), op(1, 2, 3))
 
   def test_get_attr(self):
-    self.assert_exprs_equal(C.x.val, kde.get_attr(C.x, 'val'))
+    self.assert_exprs_equal(C.x.val, kde.get_attr(C.x, 'val'))  # pyrefly: ignore[missing-attribute]
 
   def test_maybe(self):
-    self.assert_exprs_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))
+    self.assert_exprs_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))  # pyrefly: ignore[missing-attribute]
 
   def test_has_attr(self):
-    self.assert_exprs_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))
+    self.assert_exprs_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))  # pyrefly: ignore[missing-attribute]
 
   def test_get_attr_names(self):
     self.assert_exprs_equal(
-        C.x.get_attr_names(), kde.get_attr_names(C.x)
+        C.x.get_attr_names(), kde.get_attr_names(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_empty(self):
-    self.assert_exprs_equal(C.x.is_empty(), kde.is_empty(C.x))
+    self.assert_exprs_equal(C.x.is_empty(), kde.is_empty(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_slicing_helper(self):
     self.assert_exprs_equal(
-        C.x.S[C.s1], kde.slices._subslice_for_slicing_helper(C.x, C.s1)
+        C.x.S[C.s1], kde.slices._subslice_for_slicing_helper(C.x, C.s1)  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
         C.x.S[C.s1, C.s2],
-        kde.slices._subslice_for_slicing_helper(C.x, C.s1, C.s2),
+        kde.slices._subslice_for_slicing_helper(C.x, C.s1, C.s2),  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
         C.x.S[C.s1, 1:2],
-        kde.slices._subslice_for_slicing_helper(
+        kde.slices._subslice_for_slicing_helper(  # pyrefly: ignore[missing-attribute]
             C.x, C.s1, arolla.types.Slice(ds(1), ds(2))
         ),
     )
     self.assert_exprs_equal(
         C.x.S[C.s1, ...],
-        kde.slices._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),
+        kde.slices._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_list_slicing_helper(self):
     _ = C.x.L[C.s1]
-    self.assert_exprs_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))
+    self.assert_exprs_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
         C.x.L[1:2],
-        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), ds(2)), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), ds(2)), ...),  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
         C.x.L[1:],
-        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), None), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), None), ...),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_item(self):
@@ -178,471 +178,471 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_add(self):
     self.assert_exprs_equal(
-        C.x.val + C.y, kde.math.add(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val + C.y, kde.math.add(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) + C.y, kde.math.add(1, C.y))
+    self.assert_exprs_equal(ds(1) + C.y, kde.math.add(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_radd(self):
-    self.assert_exprs_equal(C.x.__radd__(C.y), kde.math.add(C.y, C.x))
+    self.assert_exprs_equal(C.x.__radd__(C.y), kde.math.add(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_sub(self):
     self.assert_exprs_equal(
-        C.x.val - C.y, kde.math.subtract(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val - C.y, kde.math.subtract(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) - C.y, kde.math.subtract(1, C.y))
+    self.assert_exprs_equal(ds(1) - C.y, kde.math.subtract(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rsub(self):
-    self.assert_exprs_equal(C.x.__rsub__(C.y), kde.math.subtract(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rsub__(C.y), kde.math.subtract(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_mul(self):
     self.assert_exprs_equal(
-        C.x.val * C.y, kde.math.multiply(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val * C.y, kde.math.multiply(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) * C.y, kde.math.multiply(1, C.y))
+    self.assert_exprs_equal(ds(1) * C.y, kde.math.multiply(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rmul(self):
-    self.assert_exprs_equal(C.x.__rmul__(C.y), kde.math.multiply(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rmul__(C.y), kde.math.multiply(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_div(self):
     self.assert_exprs_equal(
-        C.x.val / C.y, kde.math.divide(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val / C.y, kde.math.divide(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) / C.y, kde.math.divide(1, C.y))
+    self.assert_exprs_equal(ds(1) / C.y, kde.math.divide(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rdiv(self):
-    self.assert_exprs_equal(C.x.__rtruediv__(C.y), kde.math.divide(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rtruediv__(C.y), kde.math.divide(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_floordiv(self):
     self.assert_exprs_equal(
-        C.x.val // C.y, kde.math.floordiv(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val // C.y, kde.math.floordiv(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) // C.y, kde.math.floordiv(1, C.y))
+    self.assert_exprs_equal(ds(1) // C.y, kde.math.floordiv(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rfloordiv(self):
-    self.assert_exprs_equal(C.x.__rfloordiv__(C.y), kde.math.floordiv(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rfloordiv__(C.y), kde.math.floordiv(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_mod(self):
     self.assert_exprs_equal(
-        C.x.val % C.y, kde.math.mod(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val % C.y, kde.math.mod(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) % C.y, kde.math.mod(1, C.y))
+    self.assert_exprs_equal(ds(1) % C.y, kde.math.mod(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rmod(self):
-    self.assert_exprs_equal(C.x.__rmod__(C.y), kde.math.mod(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rmod__(C.y), kde.math.mod(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_pow(self):
     self.assert_exprs_equal(
-        C.x.val**C.y, kde.math.pow(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val**C.y, kde.math.pow(kde.get_attr(C.x, 'val'), C.y)  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(ds(1) ** C.y, kde.math.pow(1, C.y))
+    self.assert_exprs_equal(ds(1) ** C.y, kde.math.pow(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rpow(self):
-    self.assert_exprs_equal(C.x.__rpow__(C.y), kde.math.pow(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rpow__(C.y), kde.math.pow(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_eq(self):
-    self.assert_exprs_equal(C.x == C.y, kde.equal(C.x, C.y))
-    self.assert_exprs_equal(ds(1) == C.y, kde.equal(C.y, 1))
+    self.assert_exprs_equal(C.x == C.y, kde.equal(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) == C.y, kde.equal(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_ne(self):
-    self.assert_exprs_equal(C.x != C.y, kde.not_equal(C.x, C.y))
-    self.assert_exprs_equal(ds(1) != C.y, kde.not_equal(C.y, 1))
+    self.assert_exprs_equal(C.x != C.y, kde.not_equal(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) != C.y, kde.not_equal(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_gt(self):
-    self.assert_exprs_equal(C.x > C.y, kde.greater(C.x, C.y))
-    self.assert_exprs_equal(ds(1) > C.y, kde.less(C.y, 1))
+    self.assert_exprs_equal(C.x > C.y, kde.greater(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) > C.y, kde.less(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_ge(self):
-    self.assert_exprs_equal(C.x >= C.y, kde.greater_equal(C.x, C.y))
-    self.assert_exprs_equal(ds(1) >= C.y, kde.less_equal(C.y, 1))
+    self.assert_exprs_equal(C.x >= C.y, kde.greater_equal(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) >= C.y, kde.less_equal(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_lt(self):
-    self.assert_exprs_equal(C.x < C.y, kde.less(C.x, C.y))
-    self.assert_exprs_equal(ds(1) < C.y, kde.greater(C.y, 1))
+    self.assert_exprs_equal(C.x < C.y, kde.less(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) < C.y, kde.greater(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_le(self):
-    self.assert_exprs_equal(C.x <= C.y, kde.less_equal(C.x, C.y))
-    self.assert_exprs_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))
+    self.assert_exprs_equal(C.x <= C.y, kde.less_equal(C.x, C.y))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_and(self):
-    self.assert_exprs_equal(C.x & C.y, kde.apply_mask(C.x, C.y))
-    self.assert_exprs_equal(ds(1) & C.y, kde.apply_mask(1, C.y))
+    self.assert_exprs_equal(C.x & C.y, kde.apply_mask(C.x, C.y))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    self.assert_exprs_equal(ds(1) & C.y, kde.apply_mask(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rand(self):
-    self.assert_exprs_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_or(self):
-    self.assert_exprs_equal(C.x | C.y, kde.coalesce(C.x, C.y))
-    self.assert_exprs_equal(ds(1) | C.y, kde.coalesce(1, C.y))
+    self.assert_exprs_equal(C.x | C.y, kde.coalesce(C.x, C.y))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    self.assert_exprs_equal(ds(1) | C.y, kde.coalesce(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_ror(self):
-    self.assert_exprs_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))
+    self.assert_exprs_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_xor(self):
-    self.assert_exprs_equal(C.x ^ C.y, kde.xor(C.x, C.y))
-    self.assert_exprs_equal(ds(1) ^ C.y, kde.xor(1, C.y))
+    self.assert_exprs_equal(C.x ^ C.y, kde.xor(C.x, C.y))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    self.assert_exprs_equal(ds(1) ^ C.y, kde.xor(1, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_rxor(self):
-    self.assert_exprs_equal(C.x.__rxor__(C.y), kde.xor(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rxor__(C.y), kde.xor(C.y, C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_invert(self):
-    self.assert_exprs_equal(~C.x, kde.has_not(C.x))
+    self.assert_exprs_equal(~C.x, kde.has_not(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_neg(self):
-    self.assert_exprs_equal(-C.x, kde.math.neg(C.x))
+    self.assert_exprs_equal(-C.x, kde.math.neg(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_pos(self):
-    self.assert_exprs_equal(+C.x, kde.math.pos(C.x))
+    self.assert_exprs_equal(+C.x, kde.math.pos(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_call(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)
+        C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)  # pyrefly: ignore[missing-attribute, not-callable]
     )
     self.assert_non_deterministic_exprs_equal(
-        C.x(C.y, return_type_as=C.t, foo=C.z),
-        kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
+        C.x(C.y, return_type_as=C.t, foo=C.z),  # pyrefly: ignore[not-callable]
+        kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_reshape(self):
-    self.assert_exprs_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
+    self.assert_exprs_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_reshape_as(self):
-    self.assert_exprs_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))
+    self.assert_exprs_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))  # pyrefly: ignore[missing-attribute]
 
   def test_flatten(self):
-    self.assert_exprs_equal(C.x.flatten(), kde.flatten(C.x))
+    self.assert_exprs_equal(C.x.flatten(), kde.flatten(C.x))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
-        C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim)
+        C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim)  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        C.x.flatten(to_dim=C.to_dim), kde.flatten(C.x, to_dim=C.to_dim)
+        C.x.flatten(to_dim=C.to_dim), kde.flatten(C.x, to_dim=C.to_dim)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_flatten_end(self):
-    self.assert_exprs_equal(C.x.flatten_end(), kde.flatten_end(C.x))
+    self.assert_exprs_equal(C.x.flatten_end(), kde.flatten_end(C.x))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
-        C.x.flatten_end(C.n_times), kde.flatten_end(C.x, C.n_times)
+        C.x.flatten_end(C.n_times), kde.flatten_end(C.x, C.n_times)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_repeat(self):
-    self.assert_exprs_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
+    self.assert_exprs_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))  # pyrefly: ignore[missing-attribute]
 
   def test_select(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.select(C.fltr), kde.select(C.x, C.fltr)
+        C.x.select(C.fltr), kde.select(C.x, C.fltr)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_select_present(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.select_present(), kde.select_present(C.x)
+        C.x.select_present(), kde.select_present(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_select_items(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.select_items(C.fltr), kde.select_items(C.x, C.fltr)
+        C.x.select_items(C.fltr), kde.select_items(C.x, C.fltr)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_select_keys(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr)
+        C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_select_values(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.select_values(C.fltr), kde.select_values(C.x, C.fltr)
+        C.x.select_values(C.fltr), kde.select_values(C.x, C.fltr)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_expand_to(self):
     self.assert_exprs_equal(
-        C.x.expand_to(C.target), kde.expand_to(C.x, C.target)
+        C.x.expand_to(C.target), kde.expand_to(C.x, C.target)  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
         C.x.expand_to(C.target, ndim=C.ndim),
-        kde.expand_to(C.x, C.target, ndim=C.ndim),
+        kde.expand_to(C.x, C.target, ndim=C.ndim),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_extract(self):
-    self.assert_exprs_equal(C.x.extract(), kde.extract(C.x))
+    self.assert_exprs_equal(C.x.extract(), kde.extract(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_extract_update(self):
-    self.assert_exprs_equal(C.x.extract_update(), kde.extract_update(C.x))
+    self.assert_exprs_equal(C.x.extract_update(), kde.extract_update(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_clone(self):
     self.assert_non_deterministic_exprs_equal(
         C.x.clone(schema=C.schema, a=C.a),
-        kde.clone(C.x, schema=C.schema, a=C.a),
+        kde.clone(C.x, schema=C.schema, a=C.a),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_shallow_clone(self):
     self.assert_non_deterministic_exprs_equal(
         C.x.shallow_clone(schema=C.schema, a=C.a),
-        kde.shallow_clone(C.x, schema=C.schema, a=C.a),
+        kde.shallow_clone(C.x, schema=C.schema, a=C.a),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_deep_clone(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.deep_clone(C.schema, a=C.a), kde.deep_clone(C.x, C.schema, a=C.a)
+        C.x.deep_clone(C.schema, a=C.a), kde.deep_clone(C.x, C.schema, a=C.a)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_deep_uuid(self):
     self.assert_exprs_equal(
         C.x.deep_uuid(C.schema, seed=C.a),
-        kde.deep_uuid(C.x, C.schema, seed=C.a),
+        kde.deep_uuid(C.x, C.schema, seed=C.a),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_list_size(self):
-    self.assert_exprs_equal(C.x.list_size(), kde.list_size(C.x))
+    self.assert_exprs_equal(C.x.list_size(), kde.list_size(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_dict_size(self):
-    self.assert_exprs_equal(C.x.dict_size(), kde.dict_size(C.x))
+    self.assert_exprs_equal(C.x.dict_size(), kde.dict_size(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_with_dict_update(self):
     self.assert_exprs_equal(
         C.x.with_dict_update(C.keys, C.values),
-        kde.with_dict_update(C.x, C.keys, C.values),
+        kde.with_dict_update(C.x, C.keys, C.values),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_with_list_append_update(self):
     self.assert_exprs_equal(
         C.x.with_list_append_update(C.append),
-        kde.with_list_append_update(C.x, C.append),
+        kde.with_list_append_update(C.x, C.append),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_follow(self):
-    self.assert_exprs_equal(C.x.follow(), kde.follow(C.x))
+    self.assert_exprs_equal(C.x.follow(), kde.follow(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_freeze(self):
-    self.assert_exprs_equal(C.x.freeze(), kde.freeze(C.x))
+    self.assert_exprs_equal(C.x.freeze(), kde.freeze(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_freeze_bag(self):
-    self.assert_exprs_equal(C.x.freeze_bag(), kde.freeze_bag(C.x))
+    self.assert_exprs_equal(C.x.freeze_bag(), kde.freeze_bag(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_ref(self):
-    self.assert_exprs_equal(C.x.ref(), kde.ref(C.x))
+    self.assert_exprs_equal(C.x.ref(), kde.ref(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_itemid(self):
-    self.assert_exprs_equal(C.x.get_itemid(), kde.get_itemid(C.x))
+    self.assert_exprs_equal(C.x.get_itemid(), kde.get_itemid(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_obj_schema(self):
-    self.assert_exprs_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
+    self.assert_exprs_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_with_schema_from_obj(self):
     self.assert_exprs_equal(
-        C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)
+        C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_with_schema(self):
     self.assert_exprs_equal(
-        C.x.with_schema(C.schema), kde.with_schema(C.x, C.schema)
+        C.x.with_schema(C.schema), kde.with_schema(C.x, C.schema)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_schema(self):
-    self.assert_exprs_equal(C.x.get_schema(), kde.get_schema(C.x))
+    self.assert_exprs_equal(C.x.get_schema(), kde.get_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_item_schema(self):
-    self.assert_exprs_equal(C.x.get_item_schema(), kde.get_item_schema(C.x))
+    self.assert_exprs_equal(C.x.get_item_schema(), kde.get_item_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_key_schema(self):
-    self.assert_exprs_equal(C.x.get_key_schema(), kde.get_key_schema(C.x))
+    self.assert_exprs_equal(C.x.get_key_schema(), kde.get_key_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_value_schema(self):
-    self.assert_exprs_equal(C.x.get_value_schema(), kde.get_value_schema(C.x))
+    self.assert_exprs_equal(C.x.get_value_schema(), kde.get_value_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_shape(self):
-    self.assert_exprs_equal(C.x.get_shape(), kde.get_shape(C.x))
+    self.assert_exprs_equal(C.x.get_shape(), kde.get_shape(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_ndim(self):
-    self.assert_exprs_equal(C.x.get_ndim(), kde.get_ndim(C.x))
+    self.assert_exprs_equal(C.x.get_ndim(), kde.get_ndim(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_dtype(self):
-    self.assert_exprs_equal(C.x.get_dtype(), kde.get_dtype(C.x))
+    self.assert_exprs_equal(C.x.get_dtype(), kde.get_dtype(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_attr_with_default(self):
-    self.assert_exprs_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))
+    self.assert_exprs_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
         C.x.get_attr(C.attr, default=C.default),
-        kde.get_attr(C.x, C.attr, default=C.default),
+        kde.get_attr(C.x, C.attr, default=C.default),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_stub(self):
-    self.assert_exprs_equal(C.x.stub(), kde.stub(C.x))
+    self.assert_exprs_equal(C.x.stub(), kde.stub(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_with_attrs(self):
     self.assert_exprs_equal(
         C.x.with_attrs(a=C.a, overwrite_schema=False),
-        kde.with_attrs(C.x, a=C.a, overwrite_schema=False),
+        kde.with_attrs(C.x, a=C.a, overwrite_schema=False),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_with_attr(self):
     self.assert_exprs_equal(
         C.x.with_attr('a', C.a, overwrite_schema=False),
-        kde.with_attr(C.x, 'a', C.a, overwrite_schema=False),
+        kde.with_attr(C.x, 'a', C.a, overwrite_schema=False),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_new(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.new(a=C.a, b=C.b), kde.new(schema=C.x, a=C.a, b=C.b)
+        C.x.new(a=C.a, b=C.b), kde.new(schema=C.x, a=C.a, b=C.b)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_take(self):
-    self.assert_exprs_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
+    self.assert_exprs_equal(C.x.take(C.indices), kde.take(C.x, C.indices))  # pyrefly: ignore[missing-attribute]
 
   def test_implode(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x.implode(1), kde.implode(C.x, 1)
+        C.x.implode(1), kde.implode(C.x, 1)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_explode(self):
-    self.assert_exprs_equal(C.x.explode(1), kde.explode(C.x, 1))
+    self.assert_exprs_equal(C.x.explode(1), kde.explode(C.x, 1))  # pyrefly: ignore[missing-attribute]
 
   def test_with_bag(self):
     self.assert_exprs_equal(
-        C.x.with_bag(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
+        C.x.with_bag(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_size(self):
-    self.assert_exprs_equal(C.x.get_size(), kde.size(C.x))
+    self.assert_exprs_equal(C.x.get_size(), kde.size(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_sizes(self):
-    self.assert_exprs_equal(C.x.get_sizes(), kde.shapes.get_sizes(C.x))
+    self.assert_exprs_equal(C.x.get_sizes(), kde.shapes.get_sizes(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_keys(self):
-    self.assert_exprs_equal(C.x.get_keys(), kde.get_keys(C.x))
+    self.assert_exprs_equal(C.x.get_keys(), kde.get_keys(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_present_keys(self):
-    self.assert_exprs_equal(C.x.get_present_keys(), kde.get_present_keys(C.x))
+    self.assert_exprs_equal(C.x.get_present_keys(), kde.get_present_keys(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_nofollowed_schema(self):
     self.assert_exprs_equal(
-        C.x.get_nofollowed_schema(), kde.get_nofollowed_schema(C.x)
+        C.x.get_nofollowed_schema(), kde.get_nofollowed_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_values(self):
-    self.assert_exprs_equal(C.x.get_values(), kde.get_values(C.x))
+    self.assert_exprs_equal(C.x.get_values(), kde.get_values(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_get_present_values(self):
     self.assert_exprs_equal(
-        C.x.get_present_values(), kde.get_present_values(C.x)
+        C.x.get_present_values(), kde.get_present_values(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_bag(self):
-    self.assert_exprs_equal(C.x.get_bag(), kde.get_bag(C.x))
+    self.assert_exprs_equal(C.x.get_bag(), kde.get_bag(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_has_bag(self):
-    self.assert_exprs_equal(C.x.has_bag(), kde.has_bag(C.x))
+    self.assert_exprs_equal(C.x.has_bag(), kde.has_bag(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_no_bag(self):
-    self.assert_exprs_equal(C.x.no_bag(), kde.no_bag(C.x))
+    self.assert_exprs_equal(C.x.no_bag(), kde.no_bag(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_with_merged_bag(self):
-    self.assert_exprs_equal(C.x.with_merged_bag(), kde.with_merged_bag(C.x))
+    self.assert_exprs_equal(C.x.with_merged_bag(), kde.with_merged_bag(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_enriched(self):
     self.assert_exprs_equal(
-        C.x.enriched(C.y.get_bag()), kde.enriched(C.x, C.y.get_bag())
+        C.x.enriched(C.y.get_bag()), kde.enriched(C.x, C.y.get_bag())  # pyrefly: ignore[missing-attribute]
     )
 
   def test_updated(self):
     self.assert_exprs_equal(
-        C.x.updated(C.y.get_bag()), kde.updated(C.x, C.y.get_bag())
+        C.x.updated(C.y.get_bag()), kde.updated(C.x, C.y.get_bag())  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_present_count(self):
-    self.assert_exprs_equal(C.x.get_present_count(), kde.count(C.x))
+    self.assert_exprs_equal(C.x.get_present_count(), kde.count(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_is_entity(self):
-    self.assert_exprs_equal(C.x.is_entity(), kde.is_entity(C.x))
+    self.assert_exprs_equal(C.x.is_entity(), kde.is_entity(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_is_list(self):
-    self.assert_exprs_equal(C.x.is_list(), kde.is_list(C.x))
+    self.assert_exprs_equal(C.x.is_list(), kde.is_list(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_is_dict(self):
-    self.assert_exprs_equal(C.x.is_dict(), kde.is_dict(C.x))
+    self.assert_exprs_equal(C.x.is_dict(), kde.is_dict(C.x))  # pyrefly: ignore[missing-attribute]
 
   def test_is_dict_schema(self):
     self.assert_exprs_equal(
-        C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x)
+        C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_entity_schema(self):
     self.assert_exprs_equal(
-        C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
+        C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_struct_schema(self):
     self.assert_exprs_equal(
-        C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)
+        C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_list_schema(self):
     self.assert_exprs_equal(
-        C.x.is_list_schema(), kde.schema.is_list_schema(C.x)
+        C.x.is_list_schema(), kde.schema.is_list_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_primitive_schema(self):
     self.assert_exprs_equal(
-        C.x.is_primitive_schema(), kde.schema.is_primitive_schema(C.x)
+        C.x.is_primitive_schema(), kde.schema.is_primitive_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_lshift(self):
     bag = data_bag.DataBag.empty()
     null_bag = data_bag.null_bag()
     self.assert_exprs_equal(
-        op(C.x) << op(C.y), koda_internal.view.lshift(op(C.x), op(C.y))
+        op(C.x) << op(C.y), koda_internal.view.lshift(op(C.x), op(C.y))  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(1 << op(C.y), koda_internal.view.lshift(1, op(C.y)))
+    self.assert_exprs_equal(1 << op(C.y), koda_internal.view.lshift(1, op(C.y)))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
-        ds(1) << op(C.y), koda_internal.view.lshift(1, op(C.y))
-    )
-    self.assert_exprs_equal(
-        bag << op(C.y), koda_internal.view.lshift(bag, op(C.y))
+        ds(1) << op(C.y), koda_internal.view.lshift(1, op(C.y))  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        null_bag << op(C.y), koda_internal.view.lshift(null_bag, op(C.y))
-    )
-    self.assert_exprs_equal(op(C.x) << 1, koda_internal.view.lshift(op(C.x), 1))
-    self.assert_exprs_equal(
-        op(C.x) << ds(1), koda_internal.view.lshift(op(C.x), 1)
+        bag << op(C.y), koda_internal.view.lshift(bag, op(C.y))  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        op(C.x) << bag, koda_internal.view.lshift(op(C.x), bag)
+        null_bag << op(C.y), koda_internal.view.lshift(null_bag, op(C.y))  # pyrefly: ignore[missing-attribute]
+    )
+    self.assert_exprs_equal(op(C.x) << 1, koda_internal.view.lshift(op(C.x), 1))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(
+        op(C.x) << ds(1), koda_internal.view.lshift(op(C.x), 1)  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        op(C.x) << null_bag, koda_internal.view.lshift(op(C.x), null_bag)
+        op(C.x) << bag, koda_internal.view.lshift(op(C.x), bag)  # pyrefly: ignore[missing-attribute]
+    )
+    self.assert_exprs_equal(
+        op(C.x) << null_bag, koda_internal.view.lshift(op(C.x), null_bag)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_rshift(self):
     bag = data_bag.DataBag.empty()
     null_bag = data_bag.null_bag()
     self.assert_exprs_equal(
-        op(C.x) >> op(C.y), koda_internal.view.rshift(op(C.x), op(C.y))
+        op(C.x) >> op(C.y), koda_internal.view.rshift(op(C.x), op(C.y))  # pyrefly: ignore[missing-attribute]
     )
-    self.assert_exprs_equal(1 >> op(C.y), koda_internal.view.rshift(1, op(C.y)))
+    self.assert_exprs_equal(1 >> op(C.y), koda_internal.view.rshift(1, op(C.y)))  # pyrefly: ignore[missing-attribute]
     self.assert_exprs_equal(
-        ds(1) >> op(C.y), koda_internal.view.rshift(1, op(C.y))
-    )
-    self.assert_exprs_equal(
-        bag >> op(C.y), koda_internal.view.rshift(bag, op(C.y))
+        ds(1) >> op(C.y), koda_internal.view.rshift(1, op(C.y))  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        null_bag >> op(C.y), koda_internal.view.rshift(null_bag, op(C.y))
-    )
-    self.assert_exprs_equal(op(C.x) >> 1, koda_internal.view.rshift(op(C.x), 1))
-    self.assert_exprs_equal(
-        op(C.x) >> ds(1), koda_internal.view.rshift(op(C.x), ds(1))
+        bag >> op(C.y), koda_internal.view.rshift(bag, op(C.y))  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        op(C.x) >> bag, koda_internal.view.rshift(op(C.x), bag)
+        null_bag >> op(C.y), koda_internal.view.rshift(null_bag, op(C.y))  # pyrefly: ignore[missing-attribute]
+    )
+    self.assert_exprs_equal(op(C.x) >> 1, koda_internal.view.rshift(op(C.x), 1))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(
+        op(C.x) >> ds(1), koda_internal.view.rshift(op(C.x), ds(1))  # pyrefly: ignore[missing-attribute]
     )
     self.assert_exprs_equal(
-        op(C.x) >> null_bag, koda_internal.view.rshift(op(C.x), null_bag)
+        op(C.x) >> bag, koda_internal.view.rshift(op(C.x), bag)  # pyrefly: ignore[missing-attribute]
+    )
+    self.assert_exprs_equal(
+        op(C.x) >> null_bag, koda_internal.view.rshift(op(C.x), null_bag)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_bind(self):
     self.assert_non_deterministic_exprs_equal(
-        C.fn.bind(x=17), kde.bind(C.fn, x=17)
+        C.fn.bind(x=17), kde.bind(C.fn, x=17)  # pyrefly: ignore[missing-attribute]
     )
     self.assert_non_deterministic_exprs_equal(
-        C.fn.bind(1, 2, x=17), kde.bind(C.fn, 1, 2, x=17)
+        C.fn.bind(1, 2, x=17), kde.bind(C.fn, 1, 2, x=17)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_unpacking_by_operator(self):
@@ -687,7 +687,7 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   def test_unpacking_not_supported(self):
-    expr = I.x + I.y
+    expr = I.x + I.y  # pyrefly: ignore[unsupported-operation]
 
     with self.assertRaisesRegex(
         NotImplementedError, 'Tuple unpacking is not supported for'
@@ -697,7 +697,7 @@ class KodaViewTest(parameterized.TestCase):
   def test_unpacking_kd_call_with_return_type_as(self):
     # Operators that accept return_type_as= argument should automatically
     # support tuple unpacking when the return_type_as is a tuple.
-    expr = kde.call(I.fn, return_type_as=arolla.tuple(ds(1), ds(2)))
+    expr = kde.call(I.fn, return_type_as=arolla.tuple(ds(1), ds(2)))  # pyrefly: ignore[missing-attribute]
     x, y = expr
     self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
     self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
@@ -728,30 +728,30 @@ class KodaViewTest(parameterized.TestCase):
           'C.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
       ),
       # Add.
-      (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),
-      (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),
+      (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),  # pyrefly: ignore[unsupported-operation]
       # Subtract.
-      (C.x - 1, 'C.x - DataItem(1, schema: INT32)'),
-      (1 - C.x, 'DataItem(1, schema: INT32) - C.x'),
+      (C.x - 1, 'C.x - DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 - C.x, 'DataItem(1, schema: INT32) - C.x'),  # pyrefly: ignore[unsupported-operation]
       # Multiply.
-      (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),
-      (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),
+      (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),  # pyrefly: ignore[unsupported-operation]
       # Divide.
-      (C.x / 1, 'C.x / DataItem(1, schema: INT32)'),
-      (1 / C.x, 'DataItem(1, schema: INT32) / C.x'),
+      (C.x / 1, 'C.x / DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 / C.x, 'DataItem(1, schema: INT32) / C.x'),  # pyrefly: ignore[unsupported-operation]
       # FloorDivide.
-      (C.x // 1, 'C.x // DataItem(1, schema: INT32)'),
-      (1 // C.x, 'DataItem(1, schema: INT32) // C.x'),
+      (C.x // 1, 'C.x // DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 // C.x, 'DataItem(1, schema: INT32) // C.x'),  # pyrefly: ignore[unsupported-operation]
       # Mod.
-      (C.x % 1, 'C.x % DataItem(1, schema: INT32)'),
-      (1 % C.x, 'DataItem(1, schema: INT32) % C.x'),
+      (C.x % 1, 'C.x % DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 % C.x, 'DataItem(1, schema: INT32) % C.x'),  # pyrefly: ignore[unsupported-operation]
       # Pow.
-      (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),
-      (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),
+      (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),  # pyrefly: ignore[unsupported-operation]
       # Getattr.
       (C.x.some_attr, 'C.x.some_attr'),
       (
-          kde.get_attr(C.x, 'some_attr', 1),
+          kde.get_attr(C.x, 'some_attr', 1),  # pyrefly: ignore[missing-attribute]
           (
               "kd.get_attr(C.x, DataItem('some_attr', schema: STRING), "
               'DataItem(1, schema: INT32))'
@@ -776,14 +776,14 @@ class KodaViewTest(parameterized.TestCase):
       (C.x < 1, 'C.x < DataItem(1, schema: INT32)'),
       (1 < C.x, 'C.x > DataItem(1, schema: INT32)'),
       # Apply mask.
-      (C.x & 1, 'C.x & DataItem(1, schema: INT32)'),
-      (1 & C.x, 'DataItem(1, schema: INT32) & C.x'),
+      (C.x & 1, 'C.x & DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 & C.x, 'DataItem(1, schema: INT32) & C.x'),  # pyrefly: ignore[unsupported-operation]
       # Coalesce.
-      (C.x | 1, 'C.x | DataItem(1, schema: INT32)'),
-      (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),
+      (C.x | 1, 'C.x | DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
+      (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),  # pyrefly: ignore[unsupported-operation]
       # Has not.
       (~C.x, '~C.x'),
-      (C.x(C.y, foo=C.z), 'C.x(C.y, foo=C.z)'),
+      (C.x(C.y, foo=C.z), 'C.x(C.y, foo=C.z)'),  # pyrefly: ignore[not-callable]
   )
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)
@@ -894,7 +894,7 @@ class KodaViewTest(parameterized.TestCase):
   def test_annotation_source_location_view(self):
     self.assertTrue(
         view.has_koda_view(
-            arolla.M.annotation.source_location(
+            arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
                 C.x,
                 arolla.namedtuple(
                     function_name='foo',

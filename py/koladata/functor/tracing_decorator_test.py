@@ -72,7 +72,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure tracing actually happened for the contents of f.
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(fn.f.returns), I.x + 1
+        introspection.unpack_expr(fn.f.returns), I.x + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
     )
 
   def test_two_lambdas(self):
@@ -124,7 +124,7 @@ class TracingDecoratorTest(parameterized.TestCase):
   def test_py_fn_mode(self):
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
+        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def f(x):
       if x == 0:
@@ -160,40 +160,40 @@ class TracingDecoratorTest(parameterized.TestCase):
   def test_return_type_as(self):
     @tracing_decorator.TraceAsFnDecorator(return_type_as=data_bag.DataBag)
     def f(x):
-      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()  # pyrefly: ignore[missing-attribute]
 
     fn = functor_factories.trace_py_fn(
-        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(fn().no_bag(), ds(5))
 
   def test_return_type_as_from_type_annotation(self):
     @tracing_decorator.TraceAsFnDecorator()
     def f(x) -> data_bag.DataBag:
-      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()  # pyrefly: ignore[missing-attribute]
 
     fn = functor_factories.trace_py_fn(
-        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(fn().no_bag(), ds(5))
 
   def test_return_type_as_py_fn(self):
 
     @tracing_decorator.TraceAsFnDecorator(
-        return_type_as=data_bag.DataBag, functor_factory=functor_factories.py_fn
+        return_type_as=data_bag.DataBag, functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def f(x):
-      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()  # pyrefly: ignore[missing-attribute]
 
     fn = functor_factories.trace_py_fn(
-        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(fn().no_bag(), ds(5))
 
   def test_return_type_as_errors(self):
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):
-      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesWithLiteralMatch(
         ValueError,
@@ -230,7 +230,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator(return_type_as=empty_bag)
     def f(x):
-      return user_facing_kd.attrs(x, foo=1)
+      return user_facing_kd.attrs(x, foo=1)  # pyrefly: ignore[missing-attribute]
 
     x = fns.new(bar=2)
 
@@ -242,16 +242,16 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, return_type_as=empty_bag),
+        V.f(I.x, return_type_as=empty_bag),  # pyrefly: ignore[not-callable]
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f.returns),
-        kd_lazy.attrs(I.x, foo=1),
+        kd_lazy.attrs(I.x, foo=1),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_custom_wrapper(self):
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=lambda func, return_type_as: functor_factories.py_fn(
+        functor_factory=lambda func, return_type_as: functor_factories.py_fn(  # pyrefly: ignore[bad-argument-type]
             (lambda x: func(x + 5)), return_type_as=return_type_as
         )
     )
@@ -269,16 +269,16 @@ class TracingDecoratorTest(parameterized.TestCase):
         functor_factories.py_fn if py_fn else functor_factories.trace_py_fn
     )
 
-    @tracing_decorator.TraceAsFnDecorator(functor_factory=functor_factory)
+    @tracing_decorator.TraceAsFnDecorator(functor_factory=functor_factory)  # pyrefly: ignore[bad-argument-type]
     def swap(a: ExtensionPair) -> ExtensionPair:
-      return ExtensionPair(x=a.y, y=a.x)
+      return ExtensionPair(x=a.y, y=a.x)  # pyrefly: ignore[unexpected-keyword]
 
     def f(o):
-      p = ExtensionPair(x=o.x, y=o.y)
+      p = ExtensionPair(x=o.x, y=o.y)  # pyrefly: ignore[unexpected-keyword]
       p = swap(p)
-      return user_facing_kd.obj(x=p.x, y=p.y)
+      return user_facing_kd.obj(x=p.x, y=p.y)  # pyrefly: ignore[missing-attribute]
 
-    res = swap(ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6])))
+    res = swap(ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6])))  # pyrefly: ignore[unexpected-keyword]
     testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
 
@@ -290,7 +290,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
 
     fn = functor_factories.trace_py_fn(swap)
-    p = ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6]))
+    p = ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6]))  # pyrefly: ignore[unexpected-keyword]
     res = fn(p, return_type_as=p)
     testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
@@ -299,7 +299,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x, fltr):
-      return user_facing_kd.select(x, fltr)
+      return user_facing_kd.select(x, fltr)  # pyrefly: ignore[missing-attribute]
 
     testing.assert_equal(f(ds([1, 2, 3]), lambda x: x % 2 == 0), ds([2]))
 
@@ -307,7 +307,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):  # pylint: disable=unused-argument
-      return kd_lazy.math.abs(x)
+      return kd_lazy.math.abs(x)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError, 'computation returned an Expr instead'
@@ -330,7 +330,7 @@ class TracingDecoratorTest(parameterized.TestCase):
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
         ).structured_traceback(
-            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable
+            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
         )
     )
     self.assertNotIn('/tracing_decorator.py', formatted_message)
@@ -357,7 +357,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
 
     tb = '\n'.join(
         ultratb.VerboseTB(
@@ -386,7 +386,7 @@ class TracingDecoratorTest(parameterized.TestCase):
   def test_autoboxing_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()
     def foo(x):
-      return user_facing_kd.if_(
+      return user_facing_kd.if_(  # pyrefly: ignore[missing-attribute]
           x > 5,
           lambda a: a + 1,
           lambda a: 1 // a,
@@ -398,7 +398,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
 
     tb = '\n'.join(
         ultratb.VerboseTB(
@@ -421,7 +421,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
   def test_register_py_fn(self):
     fn = tracing_decorator.TraceAsFnDecorator(
-        name='foo', functor_factory=functor_factories.register_py_fn
+        name='foo', functor_factory=functor_factories.register_py_fn  # pyrefly: ignore[bad-argument-type]
     )(test_add_fn)
 
     functor = functor_factories.trace_py_fn(fn)
@@ -443,7 +443,7 @@ class TracingDecoratorTest(parameterized.TestCase):
         ValueError, 'attempt to register an operator with invalid name'
     ):
       tracing_decorator.TraceAsFnDecorator(
-          name='foo', functor_factory=functor_factories.register_py_fn
+          name='foo', functor_factory=functor_factories.register_py_fn  # pyrefly: ignore[bad-argument-type]
       )(fn)
 
   def test_functor_factory_protocol(self):

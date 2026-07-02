@@ -43,7 +43,7 @@ class TracingDecoratorWithFutureAnnotationsTest(absltest.TestCase):
       return c.get_x()
 
     def outer_fn(x):
-      c = SimpleClass(x)
+      c = SimpleClass(x)  # pyrefly: ignore[bad-argument-count]
       return inner_fn(c)
 
     with self.subTest('direct_eval'):

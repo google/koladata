@@ -98,8 +98,8 @@ class TracingModeTest(absltest.TestCase):
   def test_same_when_tracing_with_functions(self):
     configs = {}
     mod = types.ModuleType('mod')
-    mod.__all__ = ['f']
-    mod.f = tracing_mode.same_when_tracing(configs, lambda x: x)
+    mod.__all__ = ['f']  # pyrefly: ignore[missing-attribute]
+    mod.f = tracing_mode.same_when_tracing(configs, lambda x: x)  # pyrefly: ignore[missing-attribute]
     res = tracing_mode.prepare_module_for_tracing(mod, configs)
     self.assertEqual(res.f(1), 1)
 
@@ -113,12 +113,12 @@ class TracingModeTest(absltest.TestCase):
 
   def test_prepare_module_for_tracing(self):
     mod = types.ModuleType('mod')
-    mod.__all__ = ['a', 'b', 'c']
+    mod.__all__ = ['a', 'b', 'c']  # pyrefly: ignore[missing-attribute]
     mod.__doc__ = 'Testing module.'
-    mod.a = {'a': 1}
-    mod.b = {'b': 2}
-    mod.c = {'c': 3}
-    mod.d = {'d': 4}
+    mod.a = {'a': 1}  # pyrefly: ignore[missing-attribute]
+    mod.b = {'b': 2}  # pyrefly: ignore[missing-attribute]
+    mod.c = {'c': 3}  # pyrefly: ignore[missing-attribute]
+    mod.d = {'d': 4}  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape("no tracing config for 'mod.a'"),
@@ -156,9 +156,9 @@ class TracingModeTest(absltest.TestCase):
 
   def test_dispatcher_reduce(self):
     mod = types.ModuleType('mod')
-    mod.__all__ = ['a', 'b']
-    mod.a = {'a': 1}
-    mod.b = {'b': 2}
+    mod.__all__ = ['a', 'b']  # pyrefly: ignore[missing-attribute]
+    mod.a = {'a': 1}  # pyrefly: ignore[missing-attribute]
+    mod.b = {'b': 2}  # pyrefly: ignore[missing-attribute]
     configs = {}
     tracing_mode.configure_tracing(configs, mod.a, 1)
     tracing_mode.same_when_tracing(configs, mod.b)

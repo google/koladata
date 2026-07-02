@@ -24,7 +24,7 @@ from koladata.testing import testing
 kde = kd.lazy
 I = kd.I
 V = kd.V
-kdf = kd.functor
+kdf = kd.functor  # pyrefly: ignore[missing-attribute]
 
 
 class ExprContainerTest(absltest.TestCase):
@@ -138,7 +138,7 @@ class ExprContainerTest(absltest.TestCase):
     c.x = 1
     c.y = 2
     c.z = 3
-    del c.y
+    del c.y  # pyrefly: ignore[missing-attribute]
     self.assertCountEqual(dir(c), ['x', 'z'])
 
   def test_hasattr(self):
@@ -154,7 +154,7 @@ class ExprContainerTest(absltest.TestCase):
     with self.assertRaisesRegex(AttributeError, 'foo'):
       _ = c.foo
     with self.assertRaisesRegex(AttributeError, 'foo'):
-      del c.foo
+      del c.foo  # pyrefly: ignore[missing-attribute]
 
   def test_reserved_keys(self):
     c = expr_container.NamedContainer()
@@ -163,7 +163,7 @@ class ExprContainerTest(absltest.TestCase):
     with self.assertRaisesRegex(AttributeError, 'a_'):
       c.a_ = 1
     with self.assertRaisesRegex(AttributeError, '__setattr__'):
-      c.__setattr__ = 1
+      c.__setattr__ = 1  # pyrefly: ignore[bad-assignment]
 
   def test_vars(self):
     c = expr_container.NamedContainer()

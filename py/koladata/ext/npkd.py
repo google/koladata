@@ -21,7 +21,7 @@ import numpy as np
 
 kdi = kd.eager
 
-_DATA_SLICE_ONE = kd.item(1)
+_DATA_SLICE_ONE = kd.item(1)  # pyrefly: ignore[missing-attribute]
 
 
 # TODO: Use `shape.sizes()` once it's available.
@@ -29,9 +29,9 @@ def _get_uniform_shape(ds: kd.types.DataSlice) -> list[int] | None:
   shape = ds.get_shape()
   shape_py = []
   for d in range(shape.rank()):
-    dim_size = kd.shapes.dim_sizes(shape, d)
+    dim_size = kd.shapes.dim_sizes(shape, d)  # pyrefly: ignore[missing-attribute]
     collapsed_dim_size = (
-        0 if dim_size.get_size() == 0 else kd.collapse(dim_size).to_py()
+        0 if dim_size.get_size() == 0 else kd.collapse(dim_size).to_py()  # pyrefly: ignore[missing-attribute]
     )
     if collapsed_dim_size is None:
       return None
@@ -77,7 +77,7 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
         # NOTE: Values larger than max int64 will be overflown, which is
         # consistent with the rest of Koda (e.g. from_proto).
         arr = arr.astype(np.int64)
-    return kd.slice(arolla.dense_array(arr.flatten())).reshape(arr.shape)
+    return kd.slice(arolla.dense_array(arr.flatten())).reshape(arr.shape)  # pyrefly: ignore[missing-attribute]
 
 
 # Two following functions get_indices_from_ds and reshape_based_on_indices
@@ -182,7 +182,7 @@ def reshape_based_on_indices(
       )
 
   indices = [
-      kd.slice(arolla.dense_array_int64(index_dimension))
+      kd.slice(arolla.dense_array_int64(index_dimension))  # pyrefly: ignore[missing-attribute]
       for index_dimension in indices
   ]
 

@@ -33,9 +33,9 @@ class BoxingTest(absltest.TestCase):
 
   def test_simple(self):
     fn = py_boxing.as_qvalue(lambda x: x + 1)
-    testing.assert_equal(fn(5), ds(6))
+    testing.assert_equal(fn(5), ds(6))  # pyrefly: ignore[not-callable]
     fn = py_boxing.as_qvalue(functools.partial(lambda x, y: x + y, y=1))
-    testing.assert_equal(fn(5), ds(6))
+    testing.assert_equal(fn(5), ds(6))  # pyrefly: ignore[not-callable]
 
   def test_error(self):
     with self.assertRaisesRegex(
@@ -59,7 +59,7 @@ class BoxingTest(absltest.TestCase):
     no_executed = False
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
+        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def yes(x):
       nonlocal yes_executed
@@ -67,7 +67,7 @@ class BoxingTest(absltest.TestCase):
       return x + 1
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
+        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def no(x):
       nonlocal no_executed
@@ -75,7 +75,7 @@ class BoxingTest(absltest.TestCase):
       return x - 1
 
     def short_circuit_fn(x):
-      return user_facing_kd.cond(x > 3, yes, no)(x)
+      return user_facing_kd.cond(x > 3, yes, no)(x)  # pyrefly: ignore[missing-attribute]
 
     fn = functor_factories.trace_py_fn(short_circuit_fn)
 

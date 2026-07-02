@@ -177,10 +177,10 @@ class KodaView(BaseKodaView):
   def __rpow__(self, other) -> arolla.Expr:
     return _aux_bind_op('kd.math.pow', other, self)
 
-  def __eq__(self, other: Any) -> arolla.Expr:
+  def __eq__(self, other: Any) -> arolla.Expr:  # pyrefly: ignore[bad-override]
     return _aux_bind_op('kd.equal', self, other)
 
-  def __ne__(self, other: Any) -> arolla.Expr:
+  def __ne__(self, other: Any) -> arolla.Expr:  # pyrefly: ignore[bad-override]
     return _aux_bind_op('kd.not_equal', self, other)
 
   def __gt__(self, other: Any) -> arolla.Expr:
@@ -542,8 +542,8 @@ class KodaView(BaseKodaView):
     To support unpacking for other cases, override this method in an
     operator-specific view.
     """
-    if self.qtype is not None and arolla.is_tuple_qtype(self.qtype):
-      return len(arolla.abc.get_field_qtypes(self.qtype))
+    if self.qtype is not None and arolla.is_tuple_qtype(self.qtype):  # pyrefly: ignore[bad-argument-type]
+      return len(arolla.abc.get_field_qtypes(self.qtype))  # pyrefly: ignore[bad-argument-type]
     raise NotImplementedError(
         f'Tuple unpacking is not supported for {self.op} operator. If you know '
         'it is a tuple, assign it to a variable and use kd.tuples.get_nth on '

@@ -24,19 +24,19 @@ import numpy as np
 class NpkdTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
-      ('int ds', kd.slice([1, 2, 3])),
-      ('float ds', kd.slice([1.0, 2.0, 3.0])),
-      ('float ds with inf', kd.slice([1.0, float('-inf'), float('inf')])),
-      ('bool ds', kd.slice([True, False, None])),
-      ('text ds', kd.slice(['a', 'b', 'c', None])),
-      ('byte ds', kd.slice([b'a', b'b', b'c', None])),
-      ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),
-      ('mixed primitive ds', kd.slice([1, 'abc'])),
-      ('mixed numeric ds', kd.slice([1, 2.0])),
-      ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
-      ('multi-dim uniform ds', kd.slice([[1, 2, 3], [4, 5, 6]])),
-      ('scalar int ds', kd.slice(123)),
-      ('scalar float ds', kd.slice(3.14)),
+      ('int ds', kd.slice([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      ('float ds', kd.slice([1.0, 2.0, 3.0])),  # pyrefly: ignore[missing-attribute]
+      ('float ds with inf', kd.slice([1.0, float('-inf'), float('inf')])),  # pyrefly: ignore[missing-attribute]
+      ('bool ds', kd.slice([True, False, None])),  # pyrefly: ignore[missing-attribute]
+      ('text ds', kd.slice(['a', 'b', 'c', None])),  # pyrefly: ignore[missing-attribute]
+      ('byte ds', kd.slice([b'a', b'b', b'c', None])),  # pyrefly: ignore[missing-attribute]
+      ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),  # pyrefly: ignore[missing-attribute]
+      ('mixed primitive ds', kd.slice([1, 'abc'])),  # pyrefly: ignore[missing-attribute]
+      ('mixed numeric ds', kd.slice([1, 2.0])),  # pyrefly: ignore[missing-attribute]
+      ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),  # pyrefly: ignore[missing-attribute]
+      ('multi-dim uniform ds', kd.slice([[1, 2, 3], [4, 5, 6]])),  # pyrefly: ignore[missing-attribute]
+      ('scalar int ds', kd.slice(123)),  # pyrefly: ignore[missing-attribute]
+      ('scalar float ds', kd.slice(3.14)),  # pyrefly: ignore[missing-attribute]
   )
   def test_numpy_roundtrip(self, ds, schema=None):
     res_np = npkd.to_array(ds)
@@ -48,10 +48,10 @@ class NpkdTest(parameterized.TestCase):
     kd.testing.assert_equal(res_ds, expected_ds)
 
   @parameterized.named_parameters(
-      ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),
-      ('dict ds', kd.slice([kd.dict(), kd.dict(), kd.dict()])),
-      ('entity ds', kd.new(x=kd.slice([1, 2, 3, None]))),
-      ('text ds', kd.slice(['a', 'b', 'c', None])),
+      ('list ds', kd.slice([kd.list(), kd.list(), kd.list()])),  # pyrefly: ignore[missing-attribute]
+      ('dict ds', kd.slice([kd.dict(), kd.dict(), kd.dict()])),  # pyrefly: ignore[missing-attribute]
+      ('entity ds', kd.new(x=kd.slice([1, 2, 3, None]))),  # pyrefly: ignore[missing-attribute]
+      ('text ds', kd.slice(['a', 'b', 'c', None])),  # pyrefly: ignore[missing-attribute]
   )
   def test_numpy_roundtrip_entity(self, ds):
     res_np = npkd.to_array(ds)
@@ -59,22 +59,22 @@ class NpkdTest(parameterized.TestCase):
     kd.testing.assert_equal(res_ds, ds.with_bag(res_ds.get_bag()))
 
   def test_numpy_multi_dim(self):
-    s = kd.slice([[1, 2], [3, 4], [5, 6]])
+    s = kd.slice([[1, 2], [3, 4], [5, 6]])  # pyrefly: ignore[missing-attribute]
     np_s = npkd.to_array(s)
     self.assertEqual(np_s.shape, (3, 2))
 
-    s = kd.slice([]).reshape((0, 0))
+    s = kd.slice([]).reshape((0, 0))  # pyrefly: ignore[missing-attribute]
     np_s = npkd.to_array(s)
     self.assertEqual(np_s.shape, (0, 0))
 
-    s = kd.slice([[1, 2, 3], [4, 5], [6]])
+    s = kd.slice([[1, 2, 3], [4, 5], [6]])  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'DataSlice has non-uniform shape.'):
       _ = npkd.to_array(s)
 
   # Cases that need special checks rather than equality match.
   def test_numpy_roundtrip_special_cases(self):
     with self.subTest('float ds with nan'):
-      x = kd.slice([1.0, np.nan, 3.0])
+      x = kd.slice([1.0, np.nan, 3.0])  # pyrefly: ignore[missing-attribute]
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
       self.assertSameElements(
@@ -84,7 +84,7 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_ds.internal_as_py()[2], 3.0)
 
     with self.subTest('sparse ds float'):
-      x = kd.slice([1.0, None, 3.0])
+      x = kd.slice([1.0, None, 3.0])  # pyrefly: ignore[missing-attribute]
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
       self.assertSameElements(
@@ -94,14 +94,14 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_ds.internal_as_py()[2], 3.0)
 
     with self.subTest('sparse ds int'):
-      x = kd.slice([1, None, 3])
-      expected_x = kd.slice([1, 0, 3], schema=kd.INT32)
+      x = kd.slice([1, None, 3])  # pyrefly: ignore[missing-attribute]
+      expected_x = kd.slice([1, 0, 3], schema=kd.INT32)  # pyrefly: ignore[missing-attribute]
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
       kd.testing.assert_equal(res_ds, expected_x)
 
     with self.subTest('mixed ds with nan'):
-      x = kd.slice([True, False, np.nan])
+      x = kd.slice([True, False, np.nan])  # pyrefly: ignore[missing-attribute]
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
       self.assertSameElements(
@@ -112,18 +112,18 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_py[1], False)
 
     with self.subTest('int ds object schema'):
-      x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
-      expected_x = kd.slice([1, 2, 3])
+      x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)  # pyrefly: ignore[missing-attribute]
+      expected_x = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
       res_np = npkd.to_array(x)
       res_ds = npkd.from_array(res_np)
       kd.testing.assert_equal(res_ds, expected_x)
 
   @parameterized.named_parameters(
-      ('uint8', np.array([0, 2], np.uint8), kd.int32([0, 2])),
-      ('uint16', np.array([0, 2], np.uint16), kd.int32([0, 2])),
-      ('uint32', np.array([0, 2], np.uint32), kd.int64([0, 2])),
-      ('uint64', np.array([0, 2], np.uint64), kd.int64([0, 2])),
-      ('overflow', np.array([(1 << 64) - 1, 2], np.uint64), kd.int64([-1, 2])),
+      ('uint8', np.array([0, 2], np.uint8), kd.int32([0, 2])),  # pyrefly: ignore[missing-attribute]
+      ('uint16', np.array([0, 2], np.uint16), kd.int32([0, 2])),  # pyrefly: ignore[missing-attribute]
+      ('uint32', np.array([0, 2], np.uint32), kd.int64([0, 2])),  # pyrefly: ignore[missing-attribute]
+      ('uint64', np.array([0, 2], np.uint64), kd.int64([0, 2])),  # pyrefly: ignore[missing-attribute]
+      ('overflow', np.array([(1 << 64) - 1, 2], np.uint64), kd.int64([-1, 2])),  # pyrefly: ignore[missing-attribute]
   )
   def test_numpy_unsigned_int(self, arr, ds):
     kd.testing.assert_equal(npkd.from_array(arr), ds)
@@ -163,24 +163,24 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('Python list'):
       res_ds = npkd.from_array(np.array([[1, 2], [3]], dtype=object))
-      kd.testing.assert_equal(res_ds[:].no_bag(), kd.slice([[1, 2], [3]]))
+      kd.testing.assert_equal(res_ds[:].no_bag(), kd.slice([[1, 2], [3]]))  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('Python dict'):
       res_ds = npkd.from_array(np.array([{1: 2}, {3: 4}], dtype=object))
-      kd.testing.assert_equal(res_ds.get_keys().no_bag(), kd.slice([[1], [3]]))
+      kd.testing.assert_equal(res_ds.get_keys().no_bag(), kd.slice([[1], [3]]))  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equal(
-          res_ds.get_values().no_bag(), kd.slice([[2], [4]])
+          res_ds.get_values().no_bag(), kd.slice([[2], [4]])  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('Python mixed dict'):
       res_ds = npkd.from_array(np.array([{'a': 324, 'b': 42}, {42: 3.14}]))
       kd.testing.assert_equal(
           res_ds.get_keys().no_bag(),
-          kd.slice([['a', 'b'], [42]], schema=kd.OBJECT),
+          kd.slice([['a', 'b'], [42]], schema=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
       )
       kd.testing.assert_equal(
           res_ds.get_values().no_bag(),
-          kd.slice([[324, 42], [3.14]]),
+          kd.slice([[324, 42], [3.14]]),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('Python dataclass'):
@@ -193,32 +193,32 @@ class NpkdTest(parameterized.TestCase):
       res_ds = npkd.from_array(
           np.array([PyCls(1, 'a'), PyCls(2, 'b')], dtype=object)
       )
-      kd.testing.assert_equal(res_ds.a.no_bag(), kd.slice([1, 2]))
-      kd.testing.assert_equal(res_ds.b.no_bag(), kd.slice(['a', 'b']))
+      kd.testing.assert_equal(res_ds.a.no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
+      kd.testing.assert_equal(res_ds.b.no_bag(), kd.slice(['a', 'b']))  # pyrefly: ignore[missing-attribute]
 
   def test_reshape_based_on_indices(self):
     with self.subTest('1d'):
       indices = [np.array([0, 1, 2])]
-      ds = kd.slice([1, 2, 3])
+      ds = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [1, 2, 3])
 
     with self.subTest('2d'):
       indices = [np.array([0, 0, 2, 2]), np.array([0, 1, 0, 1])]
-      ds = kd.slice([1, 2, 3, 4])
+      ds = kd.slice([1, 2, 3, 4])  # pyrefly: ignore[missing-attribute]
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [[1, 2], [], [3, 4]])
 
     with self.subTest('2d non-primitive'):
-      schema = kd.schema.new_schema(x=kd.INT32)
+      schema = kd.schema.new_schema(x=kd.INT32)  # pyrefly: ignore[missing-attribute]
       indices = [np.array([0, 0, 2, 2]), np.array([0, 1, 0, 1])]
       x1, x2, x3, x4 = (
-          kd.new(x=1, schema=schema),
-          kd.new(x=2, schema=schema),
-          kd.new(x=3, schema=schema),
-          kd.new(x=4, schema=schema),
+          kd.new(x=1, schema=schema),  # pyrefly: ignore[missing-attribute]
+          kd.new(x=2, schema=schema),  # pyrefly: ignore[missing-attribute]
+          kd.new(x=3, schema=schema),  # pyrefly: ignore[missing-attribute]
+          kd.new(x=4, schema=schema),  # pyrefly: ignore[missing-attribute]
       )
-      ds = kd.slice([x1, x2, x3, x4])
+      ds = kd.slice([x1, x2, x3, x4])  # pyrefly: ignore[missing-attribute]
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [[x1, x2], [], [x3, x4]])
 
@@ -228,7 +228,7 @@ class NpkdTest(parameterized.TestCase):
           np.array([0, 1, 1, 1]),
           np.array([0, 0, 0, 1]),
       ]
-      ds = kd.slice([1, 2, 3, 4])
+      ds = kd.slice([1, 2, 3, 4])  # pyrefly: ignore[missing-attribute]
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [[[1], [2]], [[], [3, 4]]])
 
@@ -237,19 +237,19 @@ class NpkdTest(parameterized.TestCase):
           np.array([3, 0, 0, 1, 1, 3, 0]),
           np.array([1, 1, 2, 0, 1, 0, 0]),
       ]
-      ds = kd.slice([7, 2, 3, 4, 5, None, 1])
+      ds = kd.slice([7, 2, 3, 4, 5, None, 1])  # pyrefly: ignore[missing-attribute]
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [[1, 2, 3], [4, 5], [], [None, 7]])
 
     with self.subTest('non-1d ds'):
       indices = [np.array([0, 1, 2])]
-      ds = kd.slice([[1, 2, 3], [4, 5, 6]])
+      ds = kd.slice([[1, 2, 3], [4, 5, 6]])  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesRegex(ValueError, 'Only 1D DataSlice is supported'):
         _ = npkd.reshape_based_on_indices(ds, indices)
 
     with self.subTest('non-2d indices'):
       indices = [np.array([[0, 1, 2], [3, 4, 5]])]
-      ds = kd.slice([1, 2, 3])
+      ds = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesRegex(
           ValueError, 'Indices must be a list of one-dimensional arrays.'
       ):
@@ -257,7 +257,7 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('non-2d indices'):
       indices = [np.array([0, 1]), np.array([3, 4, 5, 6])]
-      ds = kd.slice([1, 2, 3])
+      ds = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesRegex(
           ValueError, 'Index rows must have the same length as the DataSlice.'
       ):
@@ -265,23 +265,23 @@ class NpkdTest(parameterized.TestCase):
 
   def test_get_elements_indices_from_ds(self):
     with self.subTest('0d'):
-      res = npkd.get_elements_indices_from_ds(kd.item(1))
+      res = npkd.get_elements_indices_from_ds(kd.item(1))  # pyrefly: ignore[missing-attribute]
       self.assertEmpty(res)
 
     with self.subTest('1d'):
-      res = npkd.get_elements_indices_from_ds(kd.slice([1, 2, 3]))
+      res = npkd.get_elements_indices_from_ds(kd.slice([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
       self.assertLen(res, 1)
       self.assertCountEqual(res[0], [0, 1, 2])
 
     with self.subTest('2d'):
-      res = npkd.get_elements_indices_from_ds(kd.slice([[1, 2], [], [3, 4]]))
+      res = npkd.get_elements_indices_from_ds(kd.slice([[1, 2], [], [3, 4]]))  # pyrefly: ignore[missing-attribute]
       self.assertLen(res, 2)
       self.assertCountEqual(res[0], [0, 0, 2, 2])
       self.assertCountEqual(res[1], [0, 1, 0, 1])
 
     with self.subTest('3d'):
       res = npkd.get_elements_indices_from_ds(
-          kd.slice([[[1], [2]], [[], [3, 4]]])
+          kd.slice([[[1], [2]], [[], [3, 4]]])  # pyrefly: ignore[missing-attribute]
       )
       self.assertLen(res, 3)
       self.assertCountEqual(res[0], [0, 0, 1, 1])
@@ -289,13 +289,13 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(res[2], [0, 0, 0, 1])
 
     with self.subTest('text'):
-      res = npkd.get_elements_indices_from_ds(kd.slice(['a', 'b', 'c']))
+      res = npkd.get_elements_indices_from_ds(kd.slice(['a', 'b', 'c']))  # pyrefly: ignore[missing-attribute]
       self.assertSameElements(res[0], [0, 1, 2])
 
   @parameterized.named_parameters(
-      ('1d', kd.slice([1, 2, 3])),
-      ('2d', kd.slice([[1, 2], [], [3, 4]])),
-      ('3d', kd.slice([[[1], [2]], [[], [3, 4]]])),
+      ('1d', kd.slice([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      ('2d', kd.slice([[1, 2], [], [3, 4]])),  # pyrefly: ignore[missing-attribute]
+      ('3d', kd.slice([[[1], [2]], [[], [3, 4]]])),  # pyrefly: ignore[missing-attribute]
   )
   def test_ds_to_indices_roundtrip(self, ds):
     indices = npkd.get_elements_indices_from_ds(ds)

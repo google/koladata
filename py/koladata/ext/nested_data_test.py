@@ -21,7 +21,7 @@ from arolla import arolla
 from koladata import kd
 from koladata.ext import nested_data
 
-kdf = kd.functor
+kdf = kd.functor  # pyrefly: ignore[missing-attribute]
 kdi = kd.eager
 I = kd.I
 S = kd.S
