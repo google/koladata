@@ -48,6 +48,7 @@
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
+#include "koladata/operators/matrix.h"
 #include "koladata/operators/memory.h"
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/objs.h"
@@ -383,6 +384,8 @@ OPERATOR("kd.math.sign", Sign);
 OPERATOR("kd.math.sqrt", Sqrt);
 OPERATOR("kd.math.subtract", Subtract);
 OPERATOR("kd.math.t_distribution_inverse_cdf", TDistributionInverseCdf);
+//
+OPERATOR("kd.matrix.transpose", MatrixTranspose);
 //
 OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());

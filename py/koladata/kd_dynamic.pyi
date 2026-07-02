@@ -43,6 +43,7 @@ from koladata.operators import koda_internal_parallel as _operators_koda_interna
 from koladata.operators import lists as _operators_lists
 from koladata.operators import masking as _operators_masking
 from koladata.operators import math as _operators_math
+from koladata.operators import matrix as _operators_matrix
 from koladata.operators import objs as _operators_objs
 from koladata.operators import proto as _operators_proto
 from koladata.operators import py as _operators_py
@@ -405,6 +406,11 @@ class math:
   subtract = _operators_math.subtract
   sum = _operators_math.sum
   t_distribution_inverse_cdf = _operators_math.t_distribution_inverse_cdf
+
+
+@_dataclass
+class matrix:
+  transpose = _operators_matrix.transpose
 
 
 @_dataclass

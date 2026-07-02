@@ -46,6 +46,7 @@ kde = arolla.OperatorsContainer(
         'kd.lists',
         'kd.masking',
         'kd.math',
+        'kd.matrix',
         'kd.objs',
         'kd.proto',
         'kd.py',

@@ -48,12 +48,31 @@ operator_list = [
 ]
 
 cc_library(
+    name = "matrix",
+    srcs = ["matrix.cc"],
+    hdrs = ["matrix.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata/internal:data_slice",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = operator_list + [
         ":json",
         ":json_stream",
         ":lib",
+        ":matrix",
         ":proto",
         "//koladata:arolla_utils",
         "//koladata:data_bag",

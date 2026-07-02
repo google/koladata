@@ -34,6 +34,7 @@ py_test(
         "from_to_proto_benchmarks.py",
         "from_to_py_benchmarks.py",
         "map_benchmarks.py",
+        "matrix_benchmarks.py",
         "misc_benchmarks.py",
         "operator_benchmarks.py",
         "set_get_attr_benchmarks.py",
@@ -48,6 +49,7 @@ py_test(
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata/functions/tests:test_py_pb2",
+        requirement("numpy"),
     ],
 )
 
@@ -243,5 +245,20 @@ cc_test(
         "@com_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+py_test(
+    name = "matrix_benchmarks",
+    srcs = ["matrix_benchmarks.py"],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        "//py:python_path",
+        requirement("google-benchmark"),
+        "//py/koladata:kd",
+        requirement("numpy"),
     ],
 )

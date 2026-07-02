@@ -30,6 +30,7 @@ Category  | Subcategory | Description
  | [lists](api/kd/lists.md) | Operators working with lists.
  | [masking](api/kd/masking.md) | Masking operators.
  | [math](api/kd/math.md) | Arithmetic operators.
+ | [matrix](api/kd/matrix.md) | Matrix operations for Koda.
  | [objs](api/kd/objs.md) | Operators that work solely with objects.
  | [optools](api/kd/optools.md) | Operator definition and registration tooling.
  | [parallel](api/kd/parallel.md) | Tools to evaluate functors in parallel.

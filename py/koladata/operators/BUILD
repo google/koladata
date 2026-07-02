@@ -148,6 +148,7 @@ py_library(
         ":lists",
         ":masking",
         ":math",
+        ":matrix",
         ":objs",
         ":proto",
         ":random",
@@ -436,6 +437,17 @@ py_library(
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_library(
+    name = "matrix",
+    srcs = ["matrix.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
