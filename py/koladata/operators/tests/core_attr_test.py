@@ -73,6 +73,12 @@ class CoreAttrTest(parameterized.TestCase):
     db2 = kd.core.attr(o, 'x', '2', overwrite_schema=True)
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
 
+  def test_entity_as_obj_with_vectorized_attr(self):
+    e = kd.new(x=kd.slice([1, 2]))
+    o = kd.obj(e)
+    db = kd.core.attr(o, kd.slice(['x', 'x']), kd.slice([3, 4]))
+    testing.assert_equal(o.updated(db).x.no_bag(), ds([3, 4]))
+
   def test_attr_update_on_objects(self):
     o = kd.obj(x=3.14)
     db = kd.core.attr(o, 'x', '2')

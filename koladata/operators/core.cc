@@ -151,7 +151,7 @@ absl::Status UpdateSchemaForConflictDetection(const DataSlice& obj,
                   DataSlice::Create(schema_item, DataItem(schema::kSchema),
                                     result_db));
               RETURN_IF_ERROR(dst_item_schema.SetAttr(
-                  attr_name, item_schema.WithBag(nullptr)));
+                  attr_name, attr_schema.WithBag(nullptr)));
             }
             return absl::OkStatus();
           }();
