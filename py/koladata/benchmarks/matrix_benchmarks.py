@@ -34,6 +34,7 @@ import random
 
 import google_benchmark
 from koladata import kd
+from koladata import kd_ext
 import numpy as np
 
 BATCH_SIZE = 100
@@ -53,7 +54,7 @@ def _make_jagged_sizes():
 
 
 def _make_uniform_matrices_np():
-  return np.random.randn(BATCH_SIZE, UNIFORM_SIZE, UNIFORM_SIZE)
+  return [np.random.randn(BATCH_SIZE, UNIFORM_SIZE, UNIFORM_SIZE)]
 
 
 def _make_jagged_matrices_np(sizes):
@@ -61,9 +62,20 @@ def _make_jagged_matrices_np(sizes):
 
 
 def _np_to_kd_matrices(mats_np):
-  if isinstance(mats_np, np.ndarray):
-    return kd.slice(mats_np.tolist())
-  return kd.slice([m.tolist() for m in mats_np])
+  if len(mats_np) == 1:
+    return kd_ext.npkd.from_array(mats_np[0])
+  return kd.stack(*[kd_ext.npkd.from_array(m) for m in mats_np], ndim=2)
+
+
+@kd.optools.as_lambda_operator(name='transpose_lambda')
+def transpose_lambda(a):
+  last_size = kd.agg_size(a)
+  m = kd.agg_size(last_size)
+  n = kd.collapse(last_size)
+  return kd.subslice(a, kd.range(m.repeat(n)), kd.range(n))
+
+
+eager_transpose_lambda = kd.optools.eager.EagerOperator(transpose_lambda)
 
 
 # Switch off docstring lint checks for the benchmark functions below.
@@ -84,8 +96,7 @@ def numpy_transpose(state):
     sizes = _make_jagged_sizes()
     a_np = _make_jagged_matrices_np(sizes)
   while state:
-    for i in range(BATCH_SIZE):
-      a_np[i].T.copy()
+    _ = [a.swapaxes(-1, -2).copy() for a in a_np]
 
 
 @google_benchmark.register
@@ -101,12 +112,12 @@ def koda_transpose(state):
     a_np = _make_jagged_matrices_np(sizes)
   a_kd = _np_to_kd_matrices(a_np)
   while state:
-    kd.matrix.transpose(a_kd)
+    _ = kd.matrix.transpose(a_kd)
 
 
 # At the time of writing, implementing kd.matrix.transpose via a lambda
-# with kd.group_by and kd.index as shown below is 6.3x slower on uniform and
-# 6.6x slower on jagged compared to the C++ implementation of
+# with kd.group_by and kd.index as shown below is 7x slower on uniform and
+# 6x slower on jagged compared to the C++ implementation of
 # kd.matrix.transpose. Should these numbers change significantly in the future,
 # we might consider making kd.matrix.transpose a lambda operator, but for the
 # time being we keep it as a C++ backend operator for performance reasons.
@@ -122,11 +133,14 @@ def koda_transpose_lambda(state):
     sizes = _make_jagged_sizes()
     a_np = _make_jagged_matrices_np(sizes)
   a_kd = _np_to_kd_matrices(a_np)
+
+  # Sanity check the lambda implementation.
+  kd.testing.assert_equal(
+      kd.matrix.transpose(a_kd), eager_transpose_lambda(a_kd)
+  )
+
   while state:
-    kd.group_by(
-        a_kd.flatten(-2),
-        kd.index(kd.present_shaped_as(a_kd)).flatten(-2),
-    )
+    _ = eager_transpose_lambda(a_kd)
 
 
 if __name__ == '__main__':
