@@ -94,6 +94,15 @@ PyObject* absl_nullable PyModule_AddFilterSchemaConstants(PyObject* m,
   if (PyModule_AddObjectRef(m, "ANY_SCHEMA_FILTER", py_any_schema.get()) < 0) {
     return nullptr;
   }
+  // Add STUB.
+  auto py_stub = arolla::python::PyObjectPtr::Own(
+      WrapPyDataSlice(DataSlice(StubFilter())));
+  if (py_stub == nullptr) {
+    return nullptr;
+  }
+  if (PyModule_AddObjectRef(m, "STUB_FILTER", py_stub.get()) < 0) {
+    return nullptr;
+  }
   Py_RETURN_NONE;
 }
 

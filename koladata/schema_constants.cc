@@ -62,4 +62,11 @@ const DataSlice& AnySchemaFilter() {
   return *kSchema;
 }
 
+const DataSlice& StubFilter() {
+  static const absl::NoDestructor<DataSlice> kSchema(
+      CreateNamedSchema(DataBag::EmptyMutable(), "__STUB__", {}, {})
+          ->FreezeBag());  // NOLINT
+  return *kSchema;
+}
+
 }  // namespace koladata

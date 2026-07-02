@@ -17,6 +17,10 @@
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A filter that matches any schema.</code></pre>
 
+### `kd.schema_filters.STUB` {#kd.schema_filters.STUB}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">SchemaItem is a DataItem representing a Koda Schema.</code></pre>
+
 ### `kd.schema_filters.apply_filter(x, schema_filter)` {#kd.schema_filters.apply_filter}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a DataSlice with a new DataBag, where only parts of data are kept.

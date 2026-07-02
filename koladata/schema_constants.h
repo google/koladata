@@ -31,6 +31,10 @@ const DataSlice& AnyPrimitiveFilter();
 // This is a named schema used in schema filters to match any schema type.
 const DataSlice& AnySchemaFilter();
 
+// Returns the STUB filter schema constant as a DataSlice.
+// This is a named schema used in schema filters to make a stub of the schema.
+const DataSlice& StubFilter();
+
 }  // namespace koladata
 
 #endif  // KOLADATA_OPERATORS_SCHEMA_CONSTANTS_H_

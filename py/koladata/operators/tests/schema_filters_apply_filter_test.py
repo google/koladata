@@ -387,6 +387,97 @@ class SchemaFiltersApplyFilterTest(parameterized.TestCase):
         view.has_koda_view(kde.schema_filters.apply_filter(I.x, I.y))  # pyrefly: ignore[missing-attribute]
     )
 
+  def test_stub_filter_entity(self):
+    x = kd.new(x=ds([1, 2, 3]), y=ds(['a', 'b', 'c']))
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_object(self):
+    x = kd.obj(x=ds([1, 2, 3]), y=ds(['a', 'b', 'c']))
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_list(self):
+    x = kd.list([1, 2, 3])
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_dict(self):
+    x = kd.dict({1: 'a', 2: 'b'})
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_dict_nested(self):
+    x = kd.dict({1: kd.new(y=1, z=2)})
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_nested_list(self):
+    x = kd.list([[1, 2], [3, 4]])
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_missing_entities(self):
+    schema = kd.schema.new_schema(
+        a=schema_constants.INT32, b=schema_constants.INT32
+    )
+    x = ds([None, None], schema=schema)
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_missing_lists(self):
+    x_schema = kd.schema.list_schema(schema_constants.INT32)
+    x = ds([None, None], schema=x_schema)
+    result = kd.schema_filters.apply_filter(x, schema_constants.STUB_FILTER)
+    expected = x.stub()
+    testing.assert_equivalent(result, expected)
+
+  def test_stub_filter_dict_nested_filter(self):
+    x = kd.dict({1: kd.new(y=1, z=2)})
+    filter_schema = kd.schema.dict_schema(
+        schema_constants.INT32, schema_constants.STUB_FILTER
+    )
+    result = kd.schema_filters.apply_filter(x, filter_schema)
+    expected = kd.dict({1: x[1].stub()})
+    self.assertEqual(result.get_schema().no_bag(), x.get_schema().no_bag())
+    testing.assert_equivalent(result, expected, schemas_equality=False)
+
+  def test_stub_filter_dict_list_value(self):
+    x = kd.dict({1: kd.list([2, 3])})
+    filter_schema = kd.schema.dict_schema(
+        schema_constants.INT32, schema_constants.STUB_FILTER
+    )
+    result = kd.schema_filters.apply_filter(x, filter_schema)
+    expected = kd.dict({1: x[1].stub()})
+    self.assertEqual(result.get_schema().no_bag(), x.get_schema().no_bag())
+    testing.assert_equivalent(result, expected, schemas_equality=False)
+
+  def test_stub_filter_dict_of_lists(self):
+    x = kd.dict({kd.list([0, 1]): kd.list([2, 3])})
+    filter_schema = schema_constants.STUB_FILTER
+    result = kd.schema_filters.apply_filter(x, filter_schema)
+    expected = x.stub()
+    self.assertEqual(result.get_schema().no_bag(), x.get_schema().no_bag())
+    testing.assert_equivalent(result, expected, schemas_equality=False)
+
+  def test_stub_filter_nested(self):
+    x = kd.new(a=kd.new(y=1, z=2), b=3)
+    filter_schema = kd.schema.new_schema(
+        a=schema_constants.STUB_FILTER,
+        b=schema_constants.ANY_PRIMITIVE_FILTER,
+    )
+    result = kd.schema_filters.apply_filter(x, filter_schema)
+    expected = kd.new(a=x.a.stub(), b=3)
+    self.assertEqual(result.get_schema().no_bag(), x.get_schema().no_bag())
+    testing.assert_equivalent(result, expected, schemas_equality=False)
+
 
 if __name__ == '__main__':
   absltest.main()

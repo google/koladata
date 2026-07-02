@@ -38,6 +38,12 @@ inline const DataItem& AnySchemaFilter() {
   return *kSchema;
 }
 
+inline const DataItem& StubFilter() {
+  static const absl::NoDestructor<DataItem> kSchema(
+      CreateSchemaUuidFromFields("__named_schema____STUB__", {}, {}));
+  return *kSchema;
+}
+
 }  // namespace schema_filters
 
 // Adds a new schema to new_databag with the same structure and ObjectIds as

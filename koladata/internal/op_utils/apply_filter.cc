@@ -43,6 +43,7 @@ namespace koladata::internal {
 
 using schema_filters::AnyPrimitiveFilter;
 using schema_filters::AnySchemaFilter;
+using schema_filters::StubFilter;
 
 namespace {
 
@@ -256,7 +257,10 @@ class ApplyFilterTraverser {
                          schema, schema::kListItemsSchemaAttr));
     auto filter_list_item_schema = TraverseHelper::Transition(
         AnySchemaFilter(), DataItem(schema::kSchema));
-    if (filter != AnySchemaFilter()) {
+    if (filter == StubFilter()) {
+      filter_list_item_schema = TraverseHelper::Transition(
+          StubFilter(), DataItem(schema::kSchema));
+    } else if (filter != AnySchemaFilter()) {
       ASSIGN_OR_RETURN(filter_list_item_schema,
                        filter_traverse_helper_.SchemaAttributeTransition(
                            filter, schema::kListItemsSchemaAttr));
@@ -379,6 +383,95 @@ class ApplyFilterTraverser {
                      std::move(transition_or->schema), std::move(filter_attr)});
         });
     return status;
+  }
+
+  absl::Status ProcessSchemaWithStubFilter(const DataItem& item) {
+    ASSIGN_OR_RETURN(
+        auto transitions_set,
+        ds_traverse_helper_.GetTransitions(item, DataItem(schema::kSchema)));
+    if (transitions_set.has_attrs()) {
+      const auto& attr_names = transitions_set.attr_names();
+      bool is_list = false;
+      bool is_dict = false;
+      attr_names.ForEach(
+          [&](int64_t id, bool presence, std::string_view attr_name) {
+            if (attr_name == schema::kListItemsSchemaAttr) {
+              is_list = true;
+            } else if (attr_name == schema::kDictKeysSchemaAttr ||
+                       attr_name == schema::kDictValuesSchemaAttr) {
+              is_dict = true;
+            }
+          });
+      if (is_list) {
+        ASSIGN_OR_RETURN(auto list_item_schema,
+                         ds_traverse_helper_.SchemaAttributeTransition(
+                             item, schema::kListItemsSchemaAttr));
+        RETURN_IF_ERROR(new_databag_.SetSchemaAttr(
+            item, schema::kListItemsSchemaAttr, list_item_schema.item));
+        return Visit({std::move(list_item_schema.item),
+                      DataItem(schema::kSchema), StubFilter()});
+      } else if (is_dict) {
+        ASSIGN_OR_RETURN(auto keys_schema,
+                         ds_traverse_helper_.SchemaAttributeTransition(
+                             item, schema::kDictKeysSchemaAttr));
+        RETURN_IF_ERROR(new_databag_.SetSchemaAttr(
+            item, schema::kDictKeysSchemaAttr, keys_schema.item));
+        RETURN_IF_ERROR(Visit({std::move(keys_schema.item),
+                               DataItem(schema::kSchema), StubFilter()}));
+
+        ASSIGN_OR_RETURN(auto values_schema,
+                         ds_traverse_helper_.SchemaAttributeTransition(
+                             item, schema::kDictValuesSchemaAttr));
+        RETURN_IF_ERROR(new_databag_.SetSchemaAttr(
+            item, schema::kDictValuesSchemaAttr, values_schema.item));
+        return Visit({std::move(values_schema.item), DataItem(schema::kSchema),
+                      StubFilter()});
+      }
+    }
+    return absl::OkStatus();
+  }
+
+  // Process item and schema with a STUB filter.
+  //
+  // Copies the info that contains just enough information to support direct
+  // updates to item (same as kd.stub operator).
+  absl::Status ProcessItemWithStubFilter(const DataItem& item,
+                                         const DataItem& schema) {
+    if (schema.holds_value<ObjectId>()) {
+      RETURN_IF_ERROR(Visit({schema, DataItem(schema::kSchema), StubFilter()}));
+      if (!item.has_value()) {
+        return absl::OkStatus();
+      }
+      ASSIGN_OR_RETURN(auto transitions_set,
+                       ds_traverse_helper_.GetTransitions(item, schema));
+      if (transitions_set.is_list()) {
+        return ProcessListWithTransitions(item, schema, StubFilter(),
+                                          transitions_set);
+      }
+      if (transitions_set.is_dict()) {
+        return absl::OkStatus();
+      }
+      return absl::OkStatus();
+    }
+    if (schema.holds_value<schema::DType>()) {
+      if (schema == schema::kObject) {
+        if (!item.holds_value<ObjectId>()) {
+          return absl::OkStatus();
+        }
+        ASSIGN_OR_RETURN(auto obj_schema,
+                         ds_traverse_helper_.GetObjectSchema(item));
+        RETURN_IF_ERROR(
+            new_databag_.SetAttr(item, schema::kSchemaAttr, obj_schema));
+        return Visit({item, std::move(obj_schema), StubFilter()});
+      }
+      if (schema == schema::kSchema) {
+        return ProcessSchemaWithStubFilter(item);
+      }
+      if (schema.is_primitive_schema()) {
+        return ValidatePrimitiveType(item, schema);
+      }
+    }
+    return absl::OkStatus();
   }
 
   // Processes an arbitrary item and schema with no filter.
@@ -536,6 +629,8 @@ class ApplyFilterTraverser {
         RETURN_IF_ERROR(ProcessItemWithAnyPrimitiveFilter(item, schema));
       } else if (filter == AnySchemaFilter()) {
         RETURN_IF_ERROR(ProcessItem(item, schema));
+      } else if (filter == StubFilter()) {
+        RETURN_IF_ERROR(ProcessItemWithStubFilter(item, schema));
       } else if (filter.holds_value<schema::DType>()) {
         if (filter.is_schema_schema()) {
           RETURN_IF_ERROR(ProcessSchema(item));

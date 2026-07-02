@@ -44,3 +44,4 @@ NONE = _py_misc_py_ext.NONE
 # Filter schema constants.
 ANY_PRIMITIVE_FILTER = _py_misc_py_ext.ANY_PRIMITIVE_FILTER
 ANY_SCHEMA_FILTER = _py_misc_py_ext.ANY_SCHEMA_FILTER
+STUB_FILTER = _py_misc_py_ext.STUB_FILTER

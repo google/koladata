@@ -335,6 +335,9 @@ schema_filters.ANY_PRIMITIVE = _same_when_tracing(  # pylint: disable=undefined-
 schema_filters.ANY_SCHEMA = _same_when_tracing(  # pylint: disable=undefined-variable
     _schema_constants.ANY_SCHEMA_FILTER
 )
+schema_filters.STUB = _same_when_tracing(  # pylint: disable=undefined-variable
+    _schema_constants.STUB_FILTER
+)
 
 ### Public submodules.
 
