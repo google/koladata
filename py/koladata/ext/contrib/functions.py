@@ -32,13 +32,13 @@ def _pearson_correlation_impl(
   Returns:
     A DataSlice containing the correlation.
   """
-  x_mean = kd.math.agg_mean(x)
-  y_mean = kd.math.agg_mean(y)
+  x_mean = kd.math.agg_mean(x)  # pyrefly: ignore[missing-attribute]
+  y_mean = kd.math.agg_mean(y)  # pyrefly: ignore[missing-attribute]
   # Covariance (unbiased/population)
-  cov = kd.math.agg_mean((x - x_mean) * (y - y_mean))
+  cov = kd.math.agg_mean((x - x_mean) * (y - y_mean))  # pyrefly: ignore[missing-attribute]
   # Standard deviation (use unbiased=False to match agg_mean's 1/N)
-  x_std = kd.math.agg_std(x, unbiased=False)
-  y_std = kd.math.agg_std(y, unbiased=False)
+  x_std = kd.math.agg_std(x, unbiased=False)  # pyrefly: ignore[missing-attribute]
+  y_std = kd.math.agg_std(y, unbiased=False)  # pyrefly: ignore[missing-attribute]
   return cov / (x_std * y_std)
 
 
@@ -55,7 +55,7 @@ def pearson_correlation(
   Returns:
     A DataSlice containing the correlation.
   """
-  mask = kd.has(x) & kd.has(y)
+  mask = kd.has(x) & kd.has(y)  # pyrefly: ignore[missing-attribute]
   return _pearson_correlation_impl(x & mask, y & mask)
 
 
@@ -75,14 +75,14 @@ def pearson_correlation_with_ci(
     A DataSlice of objects with 'correlation', 'lower_ci', and 'upper_ci'
     attributes.
   """
-  mask = kd.has(x) & kd.has(y)
+  mask = kd.has(x) & kd.has(y)  # pyrefly: ignore[missing-attribute]
   r = _pearson_correlation_impl(x & mask, y & mask)
-  n = kd.agg_count(mask)
+  n = kd.agg_count(mask)  # pyrefly: ignore[missing-attribute]
 
   # Fisher transform
   # Clip r to [-1 + eps, 1 - eps] to avoid log(0)
-  r_clipped = kd.math.maximum(-0.999999, kd.math.minimum(0.999999, r))
-  z = 0.5 * kd.math.log((1.0 + r_clipped) / (1.0 - r_clipped))
+  r_clipped = kd.math.maximum(-0.999999, kd.math.minimum(0.999999, r))  # pyrefly: ignore[missing-attribute]
+  z = 0.5 * kd.math.log((1.0 + r_clipped) / (1.0 - r_clipped))  # pyrefly: ignore[missing-attribute]
 
   # SE is 1/sqrt(n-3). If n <= 3, we cannot compute a valid CI.
   can_calculate_ci = n > 3
@@ -91,34 +91,34 @@ def pearson_correlation_with_ci(
   # elements, causing division by zero or sqrt of negative numbers where n <= 3.
   # Therefore, we use a safe value (n=4) for the calculation, and then filter
   # out the invalid results using kd.cond later.
-  n_safe = kd.cond(can_calculate_ci, kd.cast_to(n, kd.FLOAT32), 4.0)
-  se = 1.0 / kd.math.sqrt(n_safe - 3.0)
+  n_safe = kd.cond(can_calculate_ci, kd.cast_to(n, kd.FLOAT32), 4.0)  # pyrefly: ignore[missing-attribute]
+  se = 1.0 / kd.math.sqrt(n_safe - 3.0)  # pyrefly: ignore[missing-attribute]
 
   # z_{1-alpha/2} using normal distribution.
-  z_crit = kd.math.normal_distribution_inverse_cdf(
-      kd.item(1.0 - alpha / 2.0, kd.FLOAT32)
+  z_crit = kd.math.normal_distribution_inverse_cdf(  # pyrefly: ignore[missing-attribute]
+      kd.item(1.0 - alpha / 2.0, kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
   )
   lower_z = z - z_crit * se
   upper_z = z + z_crit * se
   # Inverse Fisher transform: tanh(z) = (exp(2z) - 1) / (exp(2z) + 1)
-  lower_ci_val = (kd.math.exp(2.0 * lower_z) - 1.0) / (
-      kd.math.exp(2.0 * lower_z) + 1.0
+  lower_ci_val = (kd.math.exp(2.0 * lower_z) - 1.0) / (  # pyrefly: ignore[missing-attribute]
+      kd.math.exp(2.0 * lower_z) + 1.0  # pyrefly: ignore[missing-attribute]
   )
-  upper_ci_val = (kd.math.exp(2.0 * upper_z) - 1.0) / (
-      kd.math.exp(2.0 * upper_z) + 1.0
+  upper_ci_val = (kd.math.exp(2.0 * upper_z) - 1.0) / (  # pyrefly: ignore[missing-attribute]
+      kd.math.exp(2.0 * upper_z) + 1.0  # pyrefly: ignore[missing-attribute]
   )
 
   lower_ci = lower_ci_val & can_calculate_ci
   upper_ci = upper_ci_val & can_calculate_ci
-  return kd.obj(correlation=r, lower_ci=lower_ci, upper_ci=upper_ci)
+  return kd.obj(correlation=r, lower_ci=lower_ci, upper_ci=upper_ci)  # pyrefly: ignore[missing-attribute]
 
 
 def average_rank(x: kd.types.DataSlice) -> kd.types.DataSlice:
   """Computes average rank natively in koladata."""
-  ord_ranks = kd.cast_to(kd.ordinal_rank(x) + 1, kd.FLOAT32)
-  keys = kd.unique(x, sort=True)
-  means = kd.math.agg_mean(kd.group_by(ord_ranks, x, sort=True))
-  mapping = kd.dict(kd.cast_to(keys, kd.STRING), means)
+  ord_ranks = kd.cast_to(kd.ordinal_rank(x) + 1, kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
+  keys = kd.unique(x, sort=True)  # pyrefly: ignore[missing-attribute]
+  means = kd.math.agg_mean(kd.group_by(ord_ranks, x, sort=True))  # pyrefly: ignore[missing-attribute]
+  mapping = kd.dict(kd.cast_to(keys, kd.STRING), means)  # pyrefly: ignore[missing-attribute]
   return mapping[kd.cast_to(x, kd.STRING)]
 
 
@@ -135,7 +135,7 @@ def spearman_correlation(
   Returns:
     A DataSlice containing the correlation.
   """
-  mask = kd.has(x) & kd.has(y)
+  mask = kd.has(x) & kd.has(y)  # pyrefly: ignore[missing-attribute]
   rank_x = average_rank(x & mask)
   rank_y = average_rank(y & mask)
   return _pearson_correlation_impl(rank_x, rank_y)
@@ -157,7 +157,7 @@ def spearman_correlation_with_ci(
     A DataSlice of objects with 'correlation', 'lower_ci', and 'upper_ci'
     attributes.
   """
-  mask = kd.has(x) & kd.has(y)
+  mask = kd.has(x) & kd.has(y)  # pyrefly: ignore[missing-attribute]
   rank_x = average_rank(x & mask)
   rank_y = average_rank(y & mask)
   # rank_x and rank_y are already aligned because they were computed from

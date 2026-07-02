@@ -135,7 +135,7 @@ def _adapt_koda_op_for_unspecified_args(
     final_args = get_final_args(*args)
     return koda_op(*final_args)
 
-  fn.__signature__ = inspect.signature(koda_op)
+  fn.__signature__ = inspect.signature(koda_op)  # pyrefly: ignore[missing-attribute]
   return fn
 
 
@@ -170,7 +170,7 @@ def _get_eager_koda_op(
 
 def _type_annotate_expr(expr: arolla.Expr, /, **leaf_qvalues: arolla.QValue):
   qtype_annotated_leaves = {
-      k: arolla.M.annotation.qtype(arolla.L[k], arolla.as_qvalue(v).qtype)
+      k: arolla.M.annotation.qtype(arolla.L[k], arolla.as_qvalue(v).qtype)  # pyrefly: ignore[not-callable]
       for k, v in leaf_qvalues.items()
   }
   return arolla.sub_leaves(expr, **qtype_annotated_leaves)
@@ -213,7 +213,7 @@ def eager_eval(expr: Any, /, **leaf_values: Any) -> arolla.QValue:
       except KeyError as e:
         raise ValueError(f'missing input for {node}') from e
     elif node.is_literal:
-      return data_conversion.koda_from_arolla(node.qvalue)
+      return data_conversion.koda_from_arolla(node.qvalue)  # pyrefly: ignore[bad-argument-type]
     elif node.is_placeholder:
       raise ValueError('placeholders are not supported')
     else:

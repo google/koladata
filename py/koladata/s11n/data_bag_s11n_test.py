@@ -54,7 +54,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
 
   def test_single_object(self):
     db = kd.mutable_bag()
-    db.obj(a=1, b='2', c=kd.list([3, 4]), d=kd.dict({'a': 'b', 'c': 'd'}))
+    db.obj(a=1, b='2', c=kd.list([3, 4]), d=kd.dict({'a': 'b', 'c': 'd'}))  # pyrefly: ignore[missing-attribute]
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, db)
@@ -63,7 +63,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db = kd.mutable_bag()
     l1 = db.list(['a, b'])
     l2 = db.list(['c, d'])
-    db.obj(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
+    db.obj(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))  # pyrefly: ignore[missing-attribute]
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, db)
@@ -72,7 +72,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db = kd.mutable_bag()
     d1 = db.dict({'a': 'b'})
     d2 = db.dict({'c': 'd'})
-    db.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([d1, d2]))
+    db.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([d1, d2]))  # pyrefly: ignore[missing-attribute]
     data = arolla.s11n.dumps(db)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, db)
@@ -81,10 +81,10 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     db1 = kd.mutable_bag()
     l1 = db1.list(['a, b'])
     l2 = db1.list(['c, d'])
-    obj = db1.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))
+    obj = db1.new(a=kd.slice([1, 2]), b=kd.slice([3, 4]), c=kd.slice([l1, l2]))  # pyrefly: ignore[missing-attribute]
 
     db2 = kd.mutable_bag()
-    obj.with_bag(db2).set_attr('d', kd.dict({'a': 'b', 'c': kd.obj(l1)}))
+    obj.with_bag(db2).set_attr('d', kd.dict({'a': 'b', 'c': kd.obj(l1)}))  # pyrefly: ignore[missing-attribute]
 
     slice_with_fallback = db2.new(a=5, b=7).freeze_bag().enriched(db1)
 
@@ -98,7 +98,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
   def test_removed_values(self):
     db = kd.mutable_bag()
     obj_single = db.new(a=1, b=None, c=2)
-    obj_dense = db.new(x=kd.slice([1, 2, None, 4, 5, 7, 8, 9, 10] * 10))
+    obj_dense = db.new(x=kd.slice([1, 2, None, 4, 5, 7, 8, 9, 10] * 10))  # pyrefly: ignore[missing-attribute]
     (obj_dense & (obj_dense.x > 2)).y = 17
     (obj_dense & (obj_dense.x > 4)).y = None
     (obj_dense & (obj_dense.x > 8)).z = 37
@@ -111,9 +111,9 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     fb_obj_single.d = 57
 
     fb_obj_dense = obj_dense.with_bag(fb)
-    fb_obj_dense.x = kd.slice([-7] * 90)
-    fb_obj_dense.y = kd.slice([-39, None, -57, -4, -5, -7, None, -9, None] * 10)
-    fb_obj_dense.z = kd.slice(
+    fb_obj_dense.x = kd.slice([-7] * 90)  # pyrefly: ignore[missing-attribute]
+    fb_obj_dense.y = kd.slice([-39, None, -57, -4, -5, -7, None, -9, None] * 10)  # pyrefly: ignore[missing-attribute]
+    fb_obj_dense.z = kd.slice(  # pyrefly: ignore[missing-attribute]
         [-39, None, -57, -43, None, -17, None, -9, -77] * 10
     )
 
@@ -147,7 +147,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
 
     d['a'] = 1
     d['b'] = None
-    self.assertIsNone(d['b'].to_py())
+    self.assertIsNone(d['b'].to_py())  # pyrefly: ignore[missing-attribute]
     d['c'] = 3
     del d['c']
 
@@ -167,7 +167,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     self.assertEqual(actual_d['d'].to_py(), 57)
 
   def test_removed_lists(self):
-    lists = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))
+    lists = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))  # pyrefly: ignore[missing-attribute]
 
     l1, l2, l3 = lists.S[0], lists.S[1], lists.S[2]
 
@@ -199,7 +199,7 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     )
 
   def test_obj_with_databag(self):
-    v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+    v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # pyrefly: ignore[missing-attribute]
     data = arolla.s11n.dumps(v)
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, v)

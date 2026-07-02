@@ -32,9 +32,9 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('kv', modules)
 
   def test_functor_factories(self):
-    testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
+    testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(
-        kd_ext.PyFn(lambda x: 5 if x == 2 else 10)(2), kd.item(5)
+        kd_ext.PyFn(lambda x: 5 if x == 2 else 10)(2), kd.item(5)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_py_fn(self):
@@ -42,12 +42,12 @@ class KdExtTest(absltest.TestCase):
       return x + y + z
 
     testing.assert_equal(
-        kd.call(kd.py_fn(kd_ext.py_cloudpickle(pickled_f)), x=1, y=2),
-        kd.item(6),
+        kd.call(kd.py_fn(kd_ext.py_cloudpickle(pickled_f)), x=1, y=2),  # pyrefly: ignore[missing-attribute]
+        kd.item(6),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_vis(self):
-    self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))
+    self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))  # pyrefly: ignore[missing-attribute]
 
   def test_dir(self):
     for api_name in dir(kd_ext):
@@ -66,9 +66,9 @@ class KdExtTest(absltest.TestCase):
         _ = getattr(kd_ext.eager, bad_name)
 
   def test_lazy_and_eager_ops(self):
-    ds = kd.slice([1, 1, 0, 2, None])
-    expected = kd.dict(kd.slice([0, 1, 2]), kd.int64([1, 2, 1]))
-    res1 = kd_ext.contrib.value_counts(ds)
+    ds = kd.slice([1, 1, 0, 2, None])  # pyrefly: ignore[missing-attribute]
+    expected = kd.dict(kd.slice([0, 1, 2]), kd.int64([1, 2, 1]))  # pyrefly: ignore[missing-attribute]
+    res1 = kd_ext.contrib.value_counts(ds)  # pyrefly: ignore[missing-attribute]
     res2 = kd_ext.eager.contrib.value_counts(ds)
     res3 = kd_ext.lazy.contrib.value_counts(ds).eval()
     kd.testing.assert_equivalent(res1, expected)
@@ -76,22 +76,22 @@ class KdExtTest(absltest.TestCase):
     kd.testing.assert_equivalent(res3, expected)
 
     def f(ds):
-      return kd_ext.contrib.value_counts(ds)
+      return kd_ext.contrib.value_counts(ds)  # pyrefly: ignore[missing-attribute]
 
-    traced_f = kd.functor.trace_py_fn(f)
+    traced_f = kd.functor.trace_py_fn(f)  # pyrefly: ignore[missing-attribute]
     res4 = traced_f(ds)
     kd.testing.assert_equivalent(res4, expected)
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(traced_f.returns).op,
-        arolla.M.annotation.source_location,
+        arolla.M.annotation.source_location,  # pyrefly: ignore[missing-attribute]
     )
 
   def test_ids_package(self):
     self.assertIn('ids', dir(kd_ext))
-    schema = kd_ext.ids.with_auto_attributes(
-        kd.schema.new_schema(a=kd.INT32),
-        foo_id=kd_ext.ids.auto_id('foo'),
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
+        kd.schema.new_schema(a=kd.INT32),  # pyrefly: ignore[missing-attribute]
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equal(
         schema.foo_id,
@@ -99,11 +99,11 @@ class KdExtTest(absltest.TestCase):
     )
 
   def test_function(self):
-    self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
+    self.assertIs(kd_ext.npkd.to_array, npkd.to_array)  # pyrefly: ignore[missing-attribute]
 
   def test_kv(self):
     # More comprehensive tests are in ext/view/.
-    kv = kd_ext.kv
+    kv = kd_ext.kv  # pyrefly: ignore[missing-attribute]
     self.assertEqual(kv.map(lambda x: x + 1, kv.view([1, 2])[:]).get(), (2, 3))
 
 

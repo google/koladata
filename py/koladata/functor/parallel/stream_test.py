@@ -506,7 +506,7 @@ class StreamTest(parameterized.TestCase):
 
     writer_int.write(x_any)
     writer_int.write(x_int)
-    writer_int.write(x_qvalue)
+    writer_int.write(x_qvalue)  # pyrefly: ignore[bad-argument-type]
 
     writer_qvalue.write(x_any)
     writer_qvalue.write(x_int)
@@ -539,7 +539,7 @@ class StreamTest(parameterized.TestCase):
       del res_qvalue
 
     with self.subTest('stream[QValue] <- stream[Int]'):
-      res_qvalue: list[arolla.QValue] = fn_int(stream_int)
+      res_qvalue: list[arolla.QValue] = fn_int(stream_int)  # pyrefly: ignore[bad-assignment]
       del res_qvalue
 
     with self.subTest('stream[QValue] <- stream[QValue]'):

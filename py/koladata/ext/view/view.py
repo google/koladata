@@ -537,7 +537,7 @@ class View:
       raise ValueError(
           'the argument being grouped must have at least one dimension'
       )
-    args = [box(arg) for arg in args]
+    args = [box(arg) for arg in args]  # pyrefly: ignore[bad-assignment]
     for arg in args:
       if arg.get_depth() != self._depth:
         raise ValueError('all arguments must have the same shape')
@@ -640,12 +640,12 @@ class View:
         lambda x, y: y if x is None else x, other, self, include_missing=True
     )
 
-  def __eq__(self, other: ViewOrAutoBoxType) -> View:
+  def __eq__(self, other: ViewOrAutoBoxType) -> View:  # pyrefly: ignore[bad-override]
     return _map2(
         lambda x, y: mask_constants.present if x == y else None, self, other
     )
 
-  def __ne__(self, other: ViewOrAutoBoxType) -> View:
+  def __ne__(self, other: ViewOrAutoBoxType) -> View:  # pyrefly: ignore[bad-override]
     return _map2(
         lambda x, y: mask_constants.present if x != y else None, self, other
     )
@@ -800,7 +800,7 @@ def align(*args: ViewOrAutoBoxType) -> tuple[View, ...]:
     return ()
   if len(args) == 1:
     return (box(args[0]),)
-  args = [box(o) for o in args]
+  args = [box(o) for o in args]  # pyrefly: ignore[bad-assignment]
   ref_view = max(args, key=lambda v: v.get_depth())
   return tuple(v.expand_to(ref_view) for v in args)
 

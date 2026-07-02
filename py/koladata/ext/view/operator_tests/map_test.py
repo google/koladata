@@ -39,7 +39,7 @@ class MapTest(parameterized.TestCase):
         if k != 'schema'
     }
     expected = test_utils.from_ds(expected)
-    res = kv.map(fn, *args, **kwargs)
+    res = kv.map(fn, *args, **kwargs)  # pyrefly: ignore[bad-argument-type]
     test_utils.assert_equal(res, expected)
 
   # We do not share this test case with kd.map_py, since the behavior is

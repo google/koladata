@@ -39,8 +39,8 @@ class NonDeterministicS11NTest(codec_test_case.S11nCodecTestCase):
         output_value_index: 1
       }
     """
-    self.assertDumpsEqual(qtypes.NON_DETERMINISTIC_TOKEN, text)
-    self.assertLoadsEqual(text, qtypes.NON_DETERMINISTIC_TOKEN)
+    self.assertDumpsEqual(qtypes.NON_DETERMINISTIC_TOKEN, text)  # pyrefly: ignore[bad-argument-type]
+    self.assertLoadsEqual(text, qtypes.NON_DETERMINISTIC_TOKEN)  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

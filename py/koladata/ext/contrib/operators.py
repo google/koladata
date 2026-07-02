@@ -18,7 +18,7 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata import kd
 
-M = arolla.M | jagged_shape.M
+M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
 
 P = arolla.P
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
@@ -83,8 +83,8 @@ def value_counts(x):
   Args:
     x: the non-scalar DataSlice to compute occurrences for.
   """
-  grouped = kd.group_by(x)
-  return kd.dict(kd.collapse(grouped), kd.agg_count(grouped))
+  grouped = kd.group_by(x)  # pyrefly: ignore[missing-attribute]
+  return kd.dict(kd.collapse(grouped), kd.agg_count(grouped))  # pyrefly: ignore[missing-attribute]
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)

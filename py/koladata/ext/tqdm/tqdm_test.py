@@ -83,7 +83,7 @@ class TqdmTest(absltest.TestCase):
       bar = kd_tqdm.tqdm(total=10, mininterval=0)
       bar.update(5)  # n=5, total=10 → 0.5
       bar.close()  # _set_progress fires with n=5 → 0.5
-    self.assertAlmostEqual(self._get_fraction(), 0.5)
+    self.assertAlmostEqual(self._get_fraction(), 0.5)  # pyrefly: ignore[no-matching-overload]
 
   def test_progress_state_captured(self):
     """The rich ProgressState is captured by the reporter."""
@@ -111,11 +111,11 @@ class TqdmTest(absltest.TestCase):
       bar.update(3)  # n=3, total=10 → 0.3
       # Force a display refresh so display() (and thus _set_progress) fires.
       bar.refresh()
-      self.assertAlmostEqual(self._get_fraction(), 0.3)
+      self.assertAlmostEqual(self._get_fraction(), 0.3)  # pyrefly: ignore[no-matching-overload]
       bar.update(7)  # n=10 → 1.0
       bar.close()
 
-    self.assertAlmostEqual(self._get_fraction(), 1.0)
+    self.assertAlmostEqual(self._get_fraction(), 1.0)  # pyrefly: ignore[no-matching-overload]
 
   def test_close_reports_final_progress(self):
     """close() reports the final progress even if total is reached."""
@@ -125,7 +125,7 @@ class TqdmTest(absltest.TestCase):
         bar.update(1)
       bar.close()
 
-    self.assertAlmostEqual(self._get_fraction(), 1.0)
+    self.assertAlmostEqual(self._get_fraction(), 1.0)  # pyrefly: ignore[no-matching-overload]
 
   def test_iterator_reports_progress(self):
     """Using tqdm as an iterator reports progress on each step."""
@@ -133,7 +133,7 @@ class TqdmTest(absltest.TestCase):
       for _ in kd_tqdm.tqdm(range(5), mininterval=0):
         pass
 
-    self.assertAlmostEqual(self._get_fraction(), 1.0)
+    self.assertAlmostEqual(self._get_fraction(), 1.0)  # pyrefly: ignore[no-matching-overload]
 
   def test_output_suppressed_by_default(self):
     """With an active reporter, tqdm's fp is /dev/null, not stderr."""
@@ -334,7 +334,7 @@ class TqdmTest(absltest.TestCase):
     self.assertEqual(result, [0, 1, 2])
     self.assertIsNotNone(reporter.last_state)
     assert reporter.last_state is not None  # pytype
-    self.assertAlmostEqual(reporter.last_state.fraction, 1.0)
+    self.assertAlmostEqual(reporter.last_state.fraction, 1.0)  # pyrefly: ignore[no-matching-overload]
 
   def test_reporter_captured_at_construction(self):
     """The reporter is snapshotted at __init__ time, not at update() time."""
@@ -350,7 +350,7 @@ class TqdmTest(absltest.TestCase):
 
     self.assertIsNotNone(reporter.last_state)
     assert reporter.last_state is not None  # pytype
-    self.assertAlmostEqual(reporter.last_state.fraction, 0.5)
+    self.assertAlmostEqual(reporter.last_state.fraction, 0.5)  # pyrefly: ignore[no-matching-overload]
 
 
 if __name__ == '__main__':

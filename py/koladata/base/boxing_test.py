@@ -151,13 +151,13 @@ class BoxingTest(parameterized.TestCase):
       ),
       (
           [
-              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
+              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
               None,
               arolla.quote(arolla.L.y),
           ],
           None,
           [
-              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
+              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
               None,
               arolla.quote(arolla.L.y),
           ],
@@ -200,9 +200,9 @@ class BoxingTest(parameterized.TestCase):
       (arolla.optional_int32(2), None, 2, INT32),
       (arolla.optional_int32(None), None, None, INT32),
       (
-          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
+          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
           None,
-          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
+          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
           EXPR,
       ),
   )
@@ -474,7 +474,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
         ValueError,
         re.escape('object with unsupported type, arolla.abc.expr.Expr'),
     ):
-      ds([arolla.P.x, arolla.P.y + 1])
+      ds([arolla.P.x, arolla.P.y + 1])  # pyrefly: ignore[unsupported-operation]
     with self.assertRaisesRegex(
         ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):

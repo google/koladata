@@ -35,13 +35,13 @@ class ProgressStateProtoTest(absltest.TestCase):
     proto = original.to_proto()
     restored = tqdm_types.ProgressState.from_proto(proto)
 
-    self.assertAlmostEqual(restored.fraction, original.fraction, places=5)
-    self.assertAlmostEqual(restored.n, original.n, places=5)
-    self.assertAlmostEqual(restored.total, original.total, places=5)
+    self.assertAlmostEqual(restored.fraction, original.fraction, places=5)  # pyrefly: ignore[no-matching-overload]
+    self.assertAlmostEqual(restored.n, original.n, places=5)  # pyrefly: ignore[no-matching-overload]
+    self.assertAlmostEqual(restored.total, original.total, places=5)  # pyrefly: ignore[no-matching-overload]
     self.assertAlmostEqual(
         restored.elapsed_secs, original.elapsed_secs, places=5
     )
-    self.assertAlmostEqual(restored.rate, original.rate, places=5)
+    self.assertAlmostEqual(restored.rate, original.rate, places=5)  # pyrefly: ignore[no-matching-overload]
     self.assertAlmostEqual(restored.initial, original.initial, places=5)
     self.assertEqual(restored.unit, original.unit)
     self.assertEqual(restored.desc, original.desc)
@@ -77,7 +77,7 @@ class ProgressStateProtoTest(absltest.TestCase):
   def test_remaining_s(self):
     """remaining_s is computed correctly from rate and progress."""
     state = tqdm_types.ProgressState(n=50.0, total=100.0, rate=10.0)
-    self.assertAlmostEqual(state.remaining_s, 5.0)
+    self.assertAlmostEqual(state.remaining_s, 5.0)  # pyrefly: ignore[no-matching-overload]
 
   def test_remaining_s_none_when_no_rate(self):
     """remaining_s is None when rate is not available."""

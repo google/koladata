@@ -17,19 +17,19 @@ from absl.testing import parameterized
 from koladata import kd
 from koladata import kd_ext
 
-ds = kd.slice
+ds = kd.slice  # pyrefly: ignore[missing-attribute]
 
 
 class AutoIdPointwiseUpdateTest(parameterized.TestCase):
 
   def test_basic_mapped(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x = kd.new(a=ds([1, 2, 3]), schema=schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(update_bag)
     # Each item gets foo_1 independently, since each is processed as if alone.
     kd.testing.assert_equivalent(
@@ -38,13 +38,13 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
     )
 
   def test_scalar_input(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=42, schema=schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x = kd.new(a=42, schema=schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
@@ -52,19 +52,19 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
     )
 
   def test_nested_schema_mapped(self):
-    child_schema = kd.schema.new_schema(val=kd.INT32)
-    child_schema = kd_ext.ids.with_auto_attributes(
+    child_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    child_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         child_schema,
-        child_id=kd_ext.ids.auto_id('child'),
+        child_id=kd_ext.ids.auto_id('child'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(child=child_schema)
-    parent_schema = kd_ext.ids.with_auto_attributes(
+    parent_schema = kd.schema.new_schema(child=child_schema)  # pyrefly: ignore[missing-attribute]
+    parent_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         parent_schema,
-        parent_id=kd_ext.ids.auto_id('parent'),
+        parent_id=kd_ext.ids.auto_id('parent'),  # pyrefly: ignore[missing-attribute]
     )
-    child = kd.new(val=ds([10, 20]), schema=child_schema)
-    parent = kd.new(child=child, schema=parent_schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(parent)
+    child = kd.new(val=ds([10, 20]), schema=child_schema)  # pyrefly: ignore[missing-attribute]
+    parent = kd.new(child=child, schema=parent_schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(parent)  # pyrefly: ignore[missing-attribute]
     parent_with_ids = parent.enriched(update_bag)
     # Each parent item is processed independently:
     # parent_id: each gets 'parent_1'
@@ -79,14 +79,14 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
     )
 
   def test_multiple_auto_id_attributes(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
-        bar_id=kd_ext.ids.auto_id('bar'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        bar_id=kd_ext.ids.auto_id('bar'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([1, 2]), schema=schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x = kd.new(a=ds([1, 2]), schema=schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
@@ -98,13 +98,13 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
     )
 
   def test_empty_input(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([], schema=kd.INT32), schema=schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    x = kd.new(a=ds([], schema=kd.INT32), schema=schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
@@ -112,26 +112,26 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
     )
 
   def test_no_auto_id_attributes(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    x = kd.new(a=ds([1, 2, 3]), schema=schema)
-    update_bag = kd_ext.ids.auto_id_pointwise_update(x)
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    x = kd.new(a=ds([1, 2, 3]), schema=schema)  # pyrefly: ignore[missing-attribute]
+    update_bag = kd_ext.ids.auto_id_pointwise_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(update_bag)
     kd.testing.assert_equivalent(x_with_ids.a, ds([1, 2, 3]))
 
   def test_merge_conflict(self):
-    child_schema = kd.schema.new_schema(val=kd.INT32)
-    child_schema = kd_ext.ids.with_auto_attributes(
+    child_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    child_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         child_schema,
-        child_id=kd_ext.ids.auto_id('child'),
+        child_id=kd_ext.ids.auto_id('child'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
-        items=kd.list_schema(child_schema),
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+        items=kd.list_schema(child_schema),  # pyrefly: ignore[missing-attribute]
     )
     other_child = child_schema.new(val=20)
     child = child_schema.new(val=10)
 
-    list0 = kd.list([child])
-    list1 = kd.list([other_child, child])
+    list0 = kd.list([child])  # pyrefly: ignore[missing-attribute]
+    list1 = kd.list([other_child, child])  # pyrefly: ignore[missing-attribute]
     parent0 = parent_schema.new(items=list0)
     parent1 = parent_schema.new(items=list1)
 
@@ -139,7 +139,7 @@ class AutoIdPointwiseUpdateTest(parameterized.TestCase):
         ValueError,
         "The cause is the values of attribute 'child_id' are different",
     ):
-      _ = kd_ext.ids.auto_id_pointwise_update(ds([parent0, parent1]))
+      _ = kd_ext.ids.auto_id_pointwise_update(ds([parent0, parent1]))  # pyrefly: ignore[missing-attribute]
 
 if __name__ == '__main__':
   absltest.main()

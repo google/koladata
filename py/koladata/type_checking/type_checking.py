@@ -60,8 +60,8 @@ def _signature_uuid(
     sig: data_item.DataItem | arolla.Expr,
 ) -> arolla.Expr:
   """Computes the UUID of a signature."""
-  return lazy.ids.agg_uuid(
-      lazy.ids.uuid(
+  return lazy.ids.agg_uuid(  # pyrefly: ignore[missing-attribute]
+      lazy.ids.uuid(  # pyrefly: ignore[missing-attribute]
           'Parameter',
           default_value=sig.parameters[:]
           # Mixing the default values in a single data slice is not possible
@@ -110,16 +110,16 @@ class _DuckType(object):
     self.__dict__['_fields'] = kwargs
 
   def __iter__(self):
-    return iter(self._fields)
+    return iter(self._fields)  # pyrefly: ignore[no-matching-overload]
 
   def __getattr__(self, key: str) -> TypeConstraint:
     try:
-      return self._fields[key]
+      return self._fields[key]  # pyrefly: ignore[bad-index, bad-return]
     except KeyError as e:
       raise AttributeError(key) from e
 
   def __getitem__(self, key: str):
-    return self._fields[key]
+    return self._fields[key]  # pyrefly: ignore[bad-index]
 
   def __setattr__(self, key: str, value: TypeConstraint):
     raise NotImplementedError(
@@ -379,18 +379,18 @@ def _with_lazy_attrribute_verification(
   )
 
   def attribute_missing_error_fn(actual_schema):
-    return lazy.strings.join(
+    return lazy.strings.join(  # pyrefly: ignore[missing-attribute]
         f'{error_message_prefix} expected {attr_path} to have'
         f' attribute `{attr_name}`; no attribute `{attr_name}` on'
         f' {attr_path}=',
-        lazy.schema.get_repr(actual_schema),
+        lazy.schema.get_repr(actual_schema),  # pyrefly: ignore[missing-attribute]
     )
 
   # First assert that the value is not a primitive, and only then call
   # has_attr, otherwise has_attr will fail.
-  return lazy.assertion.with_assertion(
+  return lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
       result,
-      lazy.assertion.with_assertion(
+      lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
           actual_schema,
           ~actual_schema.is_primitive(),
           attribute_missing_error_fn,
@@ -432,10 +432,10 @@ def _with_lazy_constraint_verification(
       f'parameter {arg_key}{path}' if arg_key is not None else f'output{path}'
   )
   if isinstance(constraint, _DuckType):
-    actual_schema = lazy.schema.get_schema(actual_value)
+    actual_schema = lazy.schema.get_schema(actual_value)  # pyrefly: ignore[missing-attribute]
     for attr_name in constraint:
       result = _with_lazy_attrribute_verification(
-          result, actual_schema, arg_key, attr_name, path
+          result, actual_schema, arg_key, attr_name, path  # pyrefly: ignore[bad-argument-type]
       )
       result = _with_lazy_constraint_verification(
           result,
@@ -450,44 +450,44 @@ def _with_lazy_constraint_verification(
         ' statically during tracing and cannot depend on the inputs'
     ))
   elif isinstance(constraint, _FunctorType):
-    result = lazy.assertion.with_assertion(
+    result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         result,
-        lazy.functor.is_fn(actual_value),
-        lambda actual_value: lazy.strings.join(
+        lazy.functor.is_fn(actual_value),  # pyrefly: ignore[missing-attribute]
+        lambda actual_value: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
             f'{error_message_prefix} expected {attr_path} to be a'
             ' functor, got ',
-            lazy.slices.get_repr(actual_value)
+            lazy.slices.get_repr(actual_value)  # pyrefly: ignore[missing-attribute]
         ),
         actual_value,
     )
     if constraint.signature is not None:
-      result = lazy.assertion.with_assertion(
+      result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
           result,
           (
               _signature_uuid(actual_value.get_attr('__signature__'))
               == _signature_uuid(
-                  signature_utils.from_py_signature(constraint.signature)
+                  signature_utils.from_py_signature(constraint.signature)  # pyrefly: ignore[bad-argument-type]
               ).eval()  # eval it at tracing time since we know it is a literal.
           ),
-          lambda actual_value: lazy.strings.join(
+          lambda actual_value: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
               f'{error_message_prefix} expected {attr_path} to be a functor'
               f' with signature {constraint.signature}, got a functor with'
               ' signature ',
-              lazy.slices.get_repr(actual_value.get_attr('__signature__')),
+              lazy.slices.get_repr(actual_value.get_attr('__signature__')),  # pyrefly: ignore[missing-attribute]
           ),
           actual_value,
       )
   else:
-    actual_schema = lazy.schema.get_schema(actual_value)
-    result = lazy.assertion.with_assertion(
+    actual_schema = lazy.schema.get_schema(actual_value)  # pyrefly: ignore[missing-attribute]
+    result = lazy.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
         result,
         actual_schema == constraint,
-        lambda actual_schema: lazy.strings.join(
+        lambda actual_schema: lazy.strings.join(  # pyrefly: ignore[missing-attribute]
             f'{error_message_prefix} type mismatch for {attr_path};'
             ' expected type ',
-            lazy.schema.get_repr(constraint),
+            lazy.schema.get_repr(constraint),  # pyrefly: ignore[missing-attribute]
             ', got ',
-            lazy.schema.get_repr(actual_schema),
+            lazy.schema.get_repr(actual_schema),  # pyrefly: ignore[missing-attribute]
         ),
         actual_schema,
     )
@@ -506,7 +506,7 @@ def _verify_input_eager(
     # Boxing is needed to support Python arguments.
     arg = py_boxing.as_qvalue(arg)
 
-  _verify_constraint_eager(constraint, arg, key)
+  _verify_constraint_eager(constraint, arg, key)  # pyrefly: ignore[bad-argument-type]
 
 
 def _verify_inputs_eager(
@@ -667,7 +667,7 @@ def check_inputs(**kw_constraints: TypeConstraint):
         _verify_inputs_eager(bound_args, kw_constraints)
         return f(*args, **kwargs)
       else:
-        bound_args = _with_input_expr_assertions(bound_args, kw_constraints)
+        bound_args = _with_input_expr_assertions(bound_args, kw_constraints)  # pyrefly: ignore[bad-argument-type]
         return f(*bound_args.args, **bound_args.kwargs)
 
     return functools.wraps(f)(check_inputs_decorator)
@@ -739,7 +739,7 @@ def check_output(constraint: TypeConstraint):
       if not tracing_mode.is_tracing_enabled():
         _verify_output_eager(res, constraint)
       else:
-        res = _with_output_expr_assertion(res, constraint)
+        res = _with_output_expr_assertion(res, constraint)  # pyrefly: ignore[bad-argument-type]
       return res
 
     return functools.wraps(f)(check_output_decorator)

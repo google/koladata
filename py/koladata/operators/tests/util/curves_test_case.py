@@ -202,7 +202,7 @@ class BaseCurveTestcase(parameterized.TestCase):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
             self.operator,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )

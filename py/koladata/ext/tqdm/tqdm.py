@@ -53,7 +53,7 @@ class _DevNull:
 _DEVNULL = _DevNull()
 
 
-class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name
+class tqdm(_tqdm_auto.tqdm):  # pylint: disable=invalid-name  # pyrefly: ignore[invalid-inheritance]
   """A tqdm subclass that forwards progress to a `ProgressReporter`."""
 
   def __init__(self, *args, **kwargs):

@@ -130,14 +130,14 @@ class DeepMapTest(parameterized.TestCase):
     expected = test_utils.from_ds(expected)
 
     with self.subTest('default_behavior'):
-      res = kv.deep_map(fn, *args, **kwargs)
+      res = kv.deep_map(fn, *args, **kwargs)  # pyrefly: ignore[bad-argument-type]
       test_utils.assert_equal(res, expected)
 
     with self.subTest('optree_map_parity'):
       # Ensures that our concept of "traversal" and "include_missing"
       # corresponds with OpTree's.
       args = [arg.implode(-1) for arg in kv.align(*args)]
-      res = kv.deep_map(fn, *args, **kwargs)
+      res = kv.deep_map(fn, *args, **kwargs)  # pyrefly: ignore[bad-argument-type]
       test_utils.assert_equal(res, expected.implode(-1))
 
   def test_auto_boxing_scalar_value(self):
@@ -182,9 +182,9 @@ class DeepMapTest(parameterized.TestCase):
       kv.deep_map(lambda x: x + 1, kv.view(Cls(1, 2)))
 
     pytree.register_node(
-        Cls,
-        lambda c: ((c.x, c.y), None, None),
-        lambda _, children: Cls(*children),
+        Cls,  # pyrefly: ignore[bad-argument-type]
+        lambda c: ((c.x, c.y), None, None),  # pyrefly: ignore[missing-attribute]
+        lambda _, children: Cls(*children),  # pyrefly: ignore[bad-argument-type]
         namespace='test_custom_handler',
     )
 

@@ -30,7 +30,7 @@ class FlattenTest(parameterized.TestCase):
         None if isinstance(x, arolla.abc.Unspecified) else x.to_py()
         for x in args_and_expected[1:-1]
     ]
-    res = kv.flatten(x, *other_args)
+    res = kv.flatten(x, *other_args)  # pyrefly: ignore[bad-argument-type]
     test_utils.assert_equal(res, expected)
 
   def test_auto_boxing(self):

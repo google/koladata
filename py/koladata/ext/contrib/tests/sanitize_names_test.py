@@ -21,7 +21,7 @@ I = kd.I
 
 kde = kd_ext.lazy
 bag = kd.mutable_bag
-ds = kd.slice
+ds = kd.slice  # pyrefly: ignore[missing-attribute]
 
 
 class CoreSanitizeNamesTest(parameterized.TestCase):
@@ -30,7 +30,7 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     """Attributes that are already valid identifiers stay the same."""
     db = bag()
     o = db.new(x=ds(1), y_z=ds(2))
-    result = kd_ext.contrib.sanitize_names(o)
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     kd.testing.assert_equivalent(result, o, ids_equality=True)
     self.assertEqual(
@@ -39,12 +39,12 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
 
   def test_invalid_chars_on_entity(self):
     """Invalid characters on entities are replaced with _."""
-    o = kd.new(**{'#': 1, '?': 2})
-    result = kd_ext.contrib.sanitize_names(o)
+    o = kd.new(**{'#': 1, '?': 2})  # pyrefly: ignore[missing-attribute]
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     kd.testing.assert_equivalent(
         result,
-        kd.new(**{'san__': 1, 'san___0': 2}, itemid=o.get_itemid()),
+        kd.new(**{'san__': 1, 'san___0': 2}, itemid=o.get_itemid()),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False)
     self.assertEqual(
         o.get_bag().get_approx_byte_size(),
@@ -57,11 +57,11 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     o = db.obj()
     o.set_attr('x$', ds(10))
     o.set_attr('abc', ds(20))
-    result = kd_ext.contrib.sanitize_names(o)
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     kd.testing.assert_equivalent(
         result,
-        kd.new(**{'san_x_': ds(10), 'abc': ds(20)}, itemid=o.get_itemid()),
+        kd.new(**{'san_x_': ds(10), 'abc': ds(20)}, itemid=o.get_itemid()),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False)
 
   def test_collision_precedence(self):
@@ -70,11 +70,11 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     o = db.obj()
     o.set_attr('san_x_', ds(10))
     o.set_attr('x$', ds(20))
-    result = kd_ext.contrib.sanitize_names(o)
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     kd.testing.assert_equivalent(
         result,
-        kd.new(**{'san_x_': ds(10), 'san_x__0': ds(20)}, itemid=o.get_itemid()),
+        kd.new(**{'san_x_': ds(10), 'san_x__0': ds(20)}, itemid=o.get_itemid()),  # pyrefly: ignore[missing-attribute]
         schemas_equality=False)
 
     db = bag()
@@ -82,19 +82,19 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     o.set_attr('san__', ds(10))
     o.set_attr('?', ds(20))
     o.set_attr('#', ds(30))
-    result = kd_ext.contrib.sanitize_names(o)
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     kd.testing.assert_equivalent(
         result,
-        kd.new(**{'san__': ds(10),
+        kd.new(**{'san__': ds(10),  # pyrefly: ignore[missing-attribute]
                   'san___1': ds(20),
                   'san___0': ds(30)}, itemid=o.get_itemid()),
         schemas_equality=False)
 
   def test_leading_digit_prefixed(self):
     """Names starting with a digit are prefixed with _."""
-    o = kd.new(**{'0abc': 42})
-    result = kd_ext.contrib.sanitize_names(o)
+    o = kd.new(**{'0abc': 42})  # pyrefly: ignore[missing-attribute]
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     attr_names = sorted(kd.dir(result, intersection=True))
     self.assertEqual(attr_names, ['san_0abc'])
@@ -108,7 +108,7 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     inner.set_attr('?', ds(2))
     outer = db.obj()
     outer.set_attr('$', inner)
-    result = kd_ext.contrib.sanitize_names(outer)
+    result = kd_ext.contrib.sanitize_names(outer)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
 
     exp_db = bag()
@@ -121,26 +121,26 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
 
   def test_nested_obj_with_list(self):
     """Nested obj with a list attribute, from user example."""
-    o = kd.new(**{'#': 1, '?': 2})
-    u = kd.obj(**{'$': kd.list([o, o])})
-    result = kd_ext.contrib.sanitize_names(u)
+    o = kd.new(**{'#': 1, '?': 2})  # pyrefly: ignore[missing-attribute]
+    u = kd.obj(**{'$': kd.list([o, o])})  # pyrefly: ignore[missing-attribute]
+    result = kd_ext.contrib.sanitize_names(u)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
-    exp_o = kd.new(**{'san__': 1, 'san___0': 2})
-    exp_u = kd.obj(**{'san__': kd.list([exp_o, exp_o])})
+    exp_o = kd.new(**{'san__': 1, 'san___0': 2})  # pyrefly: ignore[missing-attribute]
+    exp_u = kd.obj(**{'san__': kd.list([exp_o, exp_o])})  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(result, exp_u, schemas_equality=False)
 
   def test_dict_sanitization(self):
     """Dict keys are not attr names and should be preserved as-is."""
-    v = kd.dict({'0': kd.new(x=1)})
-    result = kd_ext.contrib.sanitize_names(v)
+    v = kd.dict({'0': kd.new(x=1)})  # pyrefly: ignore[missing-attribute]
+    result = kd_ext.contrib.sanitize_names(v)  # pyrefly: ignore[missing-attribute]
     self.assertFalse(result.get_bag().is_mutable())
     # Dict keys should be preserved (they are data, not attr names).
     kd.testing.assert_equal(result[ds('0')].x.no_bag(), ds(1))
 
   def test_preserves_object_ids(self):
     """Object IDs are preserved after sanitization."""
-    o = kd.new(**{'#': 1})
-    result = kd_ext.contrib.sanitize_names(o)
+    o = kd.new(**{'#': 1})  # pyrefly: ignore[missing-attribute]
+    result = kd_ext.contrib.sanitize_names(o)  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equal(result.no_bag(), o.no_bag())
 
   def test_raises_without_databag(self):
@@ -150,7 +150,7 @@ class CoreSanitizeNamesTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'Cannot sanitize names without a DataBag'
     ):
-      kd_ext.contrib.sanitize_names(o.no_bag())
+      kd_ext.contrib.sanitize_names(o.no_bag())  # pyrefly: ignore[missing-attribute]
 
   def test_view(self):
     expr = kde.contrib.sanitize_names(I.x)

@@ -51,8 +51,8 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
         'serialized_test_functors_ask_about_serving'
     )
     kd.testing.assert_equal(
-        kd.call(ask_about_serving, lambda x: "don't know"),
-        kd.slice("don't know"),
+        kd.call(ask_about_serving, lambda x: "don't know"),  # pyrefly: ignore[missing-attribute]
+        kd.slice("don't know"),  # pyrefly: ignore[missing-attribute]
     )
 
   # Validate all 10 functors to check there is no ordering issue.
@@ -60,8 +60,8 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
   def test_serialized_plus_n(self, n: int):
     plus_n = self.load_functor(f'serialized_test_functors_plus_{n}')
     kd.testing.assert_equal(
-        kd.call(plus_n, kd.slice([1, 2, 3])),
-        kd.slice([1, 2, 3]) + n,
+        kd.call(plus_n, kd.slice([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+        kd.slice([1, 2, 3]) + n,  # pyrefly: ignore[missing-attribute]
     )
 
   def test_serialized_non_deterministic_functor(self):
@@ -88,7 +88,7 @@ class SerializedTestFunctorsTest(parameterized.TestCase):
     )
     # Functor 3 is not equivalent to 1 and 2 due to a different hash seed used.
 
-    expected_result = kd.obj(
+    expected_result = kd.obj(  # pyrefly: ignore[missing-attribute]
         args=test_functors.XYSchema.new(x=1, y=2),
         literal=test_functors.XYSchema.new(x=57, y=7),
     )

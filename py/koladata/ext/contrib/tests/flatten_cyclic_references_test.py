@@ -21,7 +21,7 @@ I = kd.I
 
 kde = kd_ext.lazy
 bag = kd.mutable_bag
-ds = kd.slice
+ds = kd.slice  # pyrefly: ignore[missing-attribute]
 
 
 class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
@@ -31,7 +31,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -51,7 +51,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=3)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=3)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -79,7 +79,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=5)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=5)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -116,7 +116,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', ds([o.S[0], o.S[2], o.S[1]]))
     o.S[1].set_attr('self', o.S[2])
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -149,7 +149,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.new(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=0)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -165,7 +165,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.obj(a=ds([1, None, 2]))
     o = db.obj(b=b_slice, c=ds(['foo', 'bar', 'baz']))
     o.set_attr('self', o)
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -185,7 +185,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     b_slice = db.new(a=ds([1, None, 2]))
     o = db.implode(db.new(b=b_slice, c=ds(['foo', 'bar', 'baz'])))
     o[:].set_attr('self', o[:])
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -209,7 +209,7 @@ class ContribFlattenCyclicReferencesTest(parameterized.TestCase):
     o['b'] = b_slice
     o['c'] = ds(['foo', 'bar', 'baz'])
     o['self'] = o
-    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)
+    result = kd_ext.contrib.flatten_cyclic_references(o, max_recursion_depth=1)  # pyrefly: ignore[missing-attribute]
 
     self.assertFalse(result.get_bag().is_mutable())
 

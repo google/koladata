@@ -53,8 +53,8 @@ class SetAttrTest(absltest.TestCase):
     x = [Obj(a=1), None, Obj(a=2)]
     v = kv.view(x)[:]
     kv.set_attrs(v, a=3)
-    self.assertEqual(x[0].a, 3)
-    self.assertEqual(x[2].a, 3)
+    self.assertEqual(x[0].a, 3)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(x[2].a, 3)  # pyrefly: ignore[missing-attribute]
 
   def test_set_attr_none_in_value(self):
     x = [Obj(a=1), Obj(a=2)]

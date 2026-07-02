@@ -595,7 +595,7 @@ def _remove_source_locations(
     return expr
 
   def _strip_source_location(expr: _arolla.Expr) -> _arolla.Expr:
-    if expr.op == _arolla.M.annotation.source_location:
+    if expr.op == _arolla.M.annotation.source_location:  # pyrefly: ignore[missing-attribute]
       return expr.node_deps[0]
     return expr
 
@@ -607,8 +607,8 @@ def assert_traced_exprs_equal(
 ):
   """Asserts that exprs are equal, skipping annotations added during tracing."""
   _assert_expr_equal_by_fingerprint(
-      _remove_source_locations(actual_expr),
-      _remove_source_locations(expected_expr),
+      _remove_source_locations(actual_expr),  # pyrefly: ignore[bad-argument-type]
+      _remove_source_locations(expected_expr),  # pyrefly: ignore[bad-argument-type]
   )
 
 
@@ -617,10 +617,10 @@ def assert_traced_non_deterministic_exprs_equal(
 ):
   """Asserts that exprs are equal, skipping non-determinism and annotations added during tracing."""
   _assert_expr_equal_by_fingerprint(
-      _remove_source_locations(
+      _remove_source_locations(  # pyrefly: ignore[bad-argument-type]
           _optools.fix_non_deterministic_tokens(actual_expr)
       ),
-      _remove_source_locations(
+      _remove_source_locations(  # pyrefly: ignore[bad-argument-type]
           _optools.fix_non_deterministic_tokens(expected_expr)
       ),
   )

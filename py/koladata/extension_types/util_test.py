@@ -73,11 +73,11 @@ class NullableMixinTest(absltest.TestCase):
   def test_not_null(self):
 
     with self.subTest('eager'):
-      a_not_null = A(x=1)
+      a_not_null = A(x=1)  # pyrefly: ignore[unexpected-keyword]
       testing.assert_equal(a_not_null.is_null(), mask_constants.missing)
 
     with self.subTest('lazy'):
-      a_not_null = A(x=1)
+      a_not_null = A(x=1)  # pyrefly: ignore[unexpected-keyword]
       expr = arolla.literal(a_not_null).is_null()
       testing.assert_equal(expr.eval(), mask_constants.missing)
 
@@ -100,7 +100,7 @@ class NullableMixinTest(absltest.TestCase):
   def test_positional_initialization(self):
     # Sanity check that we're not injecting values into the signature which
     # would affect initialization.
-    testing.assert_equal(A(1).x, ds(1))
+    testing.assert_equal(A(1).x, ds(1))  # pyrefly: ignore[bad-argument-count]
 
 
 if __name__ == '__main__':

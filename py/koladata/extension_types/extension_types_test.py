@@ -39,16 +39,16 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M | objects.M
+M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
-_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
+_EXT_TYPE = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
     extension_type_registry.BASE_QTYPE, '__main__._MyTestExtension'
 ).qvalue
 
-_DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
+_DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
     extension_type_registry.BASE_QTYPE, '__main__._MyDummyExtension'
 ).qvalue
 
@@ -75,7 +75,7 @@ _DUMMY_VALUES = (
     (data_item.DataItem, ds(None)),
     (data_bag.DataBag, data_bag.DataBag.empty().freeze()),
     (jagged_shape.JaggedShape, jagged_shape.create_shape()),
-    (_MyDummyExtension, _MyDummyExtension(ds(None), ds(None))),
+    (_MyDummyExtension, _MyDummyExtension(ds(None), ds(None))),  # pyrefly: ignore[bad-argument-count]
     (arolla.INT32, arolla.int32(0)),
 )
 
@@ -99,8 +99,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     self.assertEqual(value.y, 2)
 
     expr = ext_type(
-        x=arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
-        y=arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
+        x=arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),  # pyrefly: ignore[not-callable]
+        y=arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),  # pyrefly: ignore[not-callable]
     )
     self.assertIsInstance(expr, arolla.Expr)
     testing.assert_equal(
@@ -120,7 +120,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       def fn(self, v):
         return self.x + v
 
-    e = MyExtension(x=1, y=2)
+    e = MyExtension(x=1, y=2)  # pyrefly: ignore[unexpected-keyword]
 
     def fn(x: MyExtension):
       return x.fn(2)
@@ -135,22 +135,22 @@ class ExtensionTypesTest(parameterized.TestCase):
       y: schema_constants.INT32 = 2
 
     with self.subTest('default_value'):
-      e = MyExtensionWithDefaults(x=1)
+      e = MyExtensionWithDefaults(x=1)  # pyrefly: ignore[unexpected-keyword]
       self.assertEqual(e.x, 1)
       self.assertEqual(e.y, 2)
 
     with self.subTest('override_default_value'):
-      e = MyExtensionWithDefaults(x=1, y=3)
+      e = MyExtensionWithDefaults(x=1, y=3)  # pyrefly: ignore[unexpected-keyword]
       self.assertEqual(e.x, 1)
       self.assertEqual(e.y, 3)
 
     with self.subTest('positional_args'):
-      e = MyExtensionWithDefaults(1)
+      e = MyExtensionWithDefaults(1)  # pyrefly: ignore[bad-argument-count]
       self.assertEqual(e.x, 1)
       self.assertEqual(e.y, 2)
 
     with self.subTest('positional_args_override_default'):
-      e = MyExtensionWithDefaults(1, 3)
+      e = MyExtensionWithDefaults(1, 3)  # pyrefly: ignore[bad-argument-count]
       self.assertEqual(e.x, 1)
       self.assertEqual(e.y, 3)
 
@@ -158,13 +158,13 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           TypeError, "got an unexpected keyword argument 'z'"
       ):
-        _ = MyExtensionWithDefaults(x=1, z=3)
+        _ = MyExtensionWithDefaults(x=1, z=3)  # pyrefly: ignore[unexpected-keyword]
 
     with self.subTest('missing_field'):
       with self.assertRaisesRegex(
           TypeError, "missing a required argument: 'x'"
       ):
-        _ = MyExtensionWithDefaults(y=2)
+        _ = MyExtensionWithDefaults(y=2)  # pyrefly: ignore[unexpected-keyword]
 
   def test_signature(self):
 
@@ -188,12 +188,12 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     # Does implicit casting _and_ narrowing.
     with self.subTest('eager'):
-      x = MyExtensionWithInt64Field(x=ds(1), y=ds(2, schema_constants.OBJECT))
+      x = MyExtensionWithInt64Field(x=ds(1), y=ds(2, schema_constants.OBJECT))  # pyrefly: ignore[unexpected-keyword]
       self.assertEqual(x.x.get_schema(), schema_constants.INT64)
       self.assertEqual(x.y.get_schema(), schema_constants.INT64)
 
     with self.subTest('lazy'):
-      x = MyExtensionWithInt64Field(x=I.x, y=I.y)
+      x = MyExtensionWithInt64Field(x=I.x, y=I.y)  # pyrefly: ignore[unexpected-keyword]
       self.assertEqual(
           x.x.get_schema().eval(x=ds(1), y=ds(2, schema_constants.OBJECT)),
           schema_constants.INT64,
@@ -209,7 +209,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           ValueError,
           'unsupported narrowing cast to INT64 for the given FLOAT32 DataSlice',
       ):
-        _ = MyExtensionWithInt64Field(x=ds(1.0), y=ds(2))
+        _ = MyExtensionWithInt64Field(x=ds(1.0), y=ds(2))  # pyrefly: ignore[unexpected-keyword]
 
   def test_extension_type_upcasting(self):
     @ext_types.extension_type()
@@ -229,29 +229,29 @@ class ExtensionTypesTest(parameterized.TestCase):
     b_qtype = extension_type_registry.get_extension_qtype(B)
 
     with self.subTest('eager'):
-      b = B(1, 2)
-      c = C(b, b)
+      b = B(1, 2)  # pyrefly: ignore[bad-argument-count]
+      c = C(b, b)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(
-          c.a, extension_type_registry.dynamic_cast(b, a_qtype)
+          c.a, extension_type_registry.dynamic_cast(b, a_qtype)  # pyrefly: ignore[bad-argument-type]
       )
-      testing.assert_equal(c.b, b)
+      testing.assert_equal(c.b, b)  # pyrefly: ignore[bad-argument-type]
 
     with self.subTest('lazy'):
-      b = B(I.x, I.y)
-      c = C(b, b)
+      b = B(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
+      c = C(b, b)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(
-          c.a.eval(x=1, y=2),
-          extension_type_registry.dynamic_cast(b.eval(x=1, y=2), a_qtype),
+          c.a.eval(x=1, y=2),  # pyrefly: ignore[missing-attribute]
+          extension_type_registry.dynamic_cast(b.eval(x=1, y=2), a_qtype),  # pyrefly: ignore[missing-attribute]
       )
-      testing.assert_equal(c.b.eval(x=1, y=2), b.eval(x=1, y=2))
+      testing.assert_equal(c.b.eval(x=1, y=2), b.eval(x=1, y=2))  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('error'):
       # TODO: Only support upcasting and fail early.
-      a = A(1)
-      c = C(a, a)
-      testing.assert_equal(c.a, a)
+      a = A(1)  # pyrefly: ignore[bad-argument-count]
+      c = C(a, a)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(c.a, a)  # pyrefly: ignore[bad-argument-type]
       testing.assert_equal(
-          c.b, extension_type_registry.dynamic_cast(a, b_qtype)
+          c.b, extension_type_registry.dynamic_cast(a, b_qtype)  # pyrefly: ignore[bad-argument-type]
       )
       with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
         _ = c.b.y
@@ -263,12 +263,12 @@ class ExtensionTypesTest(parameterized.TestCase):
       y: data_slice.DataSlice
 
     with self.subTest('eager'):
-      ext = MyExtensionType(1, 2)
+      ext = MyExtensionType(1, 2)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(ext.x, ds(1))
       testing.assert_equal(ext.y, ds(2))
 
     with self.subTest('lazy'):
-      ext = MyExtensionType(1, I.y)
+      ext = MyExtensionType(1, I.y)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(ext.x.eval(y=2), ds(1))
       testing.assert_equal(ext.y.eval(y=2), ds(2))
 
@@ -300,14 +300,14 @@ class ExtensionTypesTest(parameterized.TestCase):
     ext_types.extension_type()(C.B)
     testing.assert_equal(
         extension_type_registry.get_extension_qtype(A.B),
-        M.derived_qtype.get_labeled_qtype(
+        M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
             extension_type_registry.BASE_QTYPE,
             '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.A.B',
         ).qvalue,
     )
     testing.assert_equal(
         extension_type_registry.get_extension_qtype(C.B),
-        M.derived_qtype.get_labeled_qtype(
+        M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
             extension_type_registry.BASE_QTYPE,
             '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.C.B',
         ).qvalue,
@@ -321,7 +321,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       def foo(self, y):
         return self.x + y
 
-    x = MyExtensionType(I.x)
+    x = MyExtensionType(I.x)  # pyrefly: ignore[bad-argument-count]
     expr = x.foo(I.y)
     testing.assert_equal(expr.eval(x=1, y=2), ds(3))
 
@@ -330,17 +330,17 @@ class ExtensionTypesTest(parameterized.TestCase):
     class MyExtensionType:
       x: schema_constants.INT32
 
-    x = MyExtensionType(I.x)
-    self.assertTrue(view.has_base_koda_view(x))
-    self.assertFalse(view.has_koda_view(x))
+    x = MyExtensionType(I.x)  # pyrefly: ignore[bad-argument-count]
+    self.assertTrue(view.has_base_koda_view(x))  # pyrefly: ignore[bad-argument-type]
+    self.assertFalse(view.has_koda_view(x))  # pyrefly: ignore[bad-argument-type]
 
   def test_expr_view_eval_method(self):
     @ext_types.extension_type()
     class MyExtensionType:
       x: schema_constants.INT32
 
-    testing.assert_equal(MyExtensionType(I.x).eval(x=1), MyExtensionType(1))
-    testing.assert_equal(MyExtensionType(I.self).eval(1), MyExtensionType(1))
+    testing.assert_equal(MyExtensionType(I.x).eval(x=1), MyExtensionType(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type, missing-attribute]
+    testing.assert_equal(MyExtensionType(I.self).eval(1), MyExtensionType(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type, missing-attribute]
 
   def test_inputs(self):
     C = input_container.InputContainer('C')  # pylint: disable=invalid-name
@@ -351,16 +351,16 @@ class ExtensionTypesTest(parameterized.TestCase):
       y: schema_constants.INT32
       z: schema_constants.INT32
 
-    self.assertListEqual(MyExtensionType(I.x, C.y, I.z).inputs(), ['x', 'z'])
+    self.assertListEqual(MyExtensionType(I.x, C.y, I.z).inputs(), ['x', 'z'])  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
   def test_with_name(self):
     @ext_types.extension_type()
     class MyExtensionType:
       x: schema_constants.INT32
 
-    expr = MyExtensionType(I.x).with_name('my_ext_type')
+    expr = MyExtensionType(I.x).with_name('my_ext_type')  # pyrefly: ignore[bad-argument-count, missing-attribute]
     self.assertEqual(introspection.get_name(expr), 'my_ext_type')
-    testing.assert_equal(introspection.unwrap_named(expr), MyExtensionType(I.x))
+    testing.assert_equal(introspection.unwrap_named(expr), MyExtensionType(I.x))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
     testing.assert_equal(expr.x.eval(x=1), ds(1))
 
   def test_no_broadcasting_or_adoption(self):
@@ -372,7 +372,7 @@ class ExtensionTypesTest(parameterized.TestCase):
     # Different bags, different shape.
     x = ds(1).with_bag(data_bag.DataBag.empty_mutable())
     y = ds([1, 2, 3]).with_bag(data_bag.DataBag.empty_mutable())
-    ext = MyExtensionType(x, y)
+    ext = MyExtensionType(x, y)  # pyrefly: ignore[bad-argument-count]
     testing.assert_equal(ext.x, x)
     testing.assert_equal(ext.y, y)
 
@@ -387,11 +387,11 @@ class ExtensionTypesTest(parameterized.TestCase):
       x: annotation  # pytype: disable=invalid-annotation
 
     with self.subTest('eager'):
-      ext = MyExtensionType(value)
+      ext = MyExtensionType(value)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(ext.x, value)
 
     with self.subTest('lazy'):
-      ext = MyExtensionType(I.x)
+      ext = MyExtensionType(I.x)  # pyrefly: ignore[bad-argument-count]
       # NOTE: We use `expr_eval.eval` since for e.g. arolla.INT32, the output
       # doesn't have a Koda-like view with `.eval`.
       testing.assert_equal(expr_eval.eval(ext.x, x=value), value)
@@ -419,7 +419,7 @@ class ExtensionTypesTest(parameterized.TestCase):
     class MyExtensionType:
       x: data_slice.DataSlice
 
-    ext = MyExtensionType(jagged_shape.create_shape())
+    ext = MyExtensionType(jagged_shape.create_shape())  # pyrefly: ignore[bad-argument-count]
     with self.assertRaisesRegex(
         ValueError,
         "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
@@ -455,15 +455,15 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self.y.inner_fn() + 1
 
     with self.subTest('eager'):
-      ext = MyOuterExtensionType(MyInnerExtensionType(1))
-      testing.assert_equal(ext.y, MyInnerExtensionType(1))
+      ext = MyOuterExtensionType(MyInnerExtensionType(1))  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(ext.y, MyInnerExtensionType(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       testing.assert_equal(ext.y.x, ds(1, schema_constants.INT64))
       testing.assert_equal(ext.outer_fn(), ds(3, schema_constants.INT64))
       testing.assert_equal(ext.y.inner_fn(), ds(2, schema_constants.INT64))
 
     with self.subTest('lazy'):
-      ext = MyOuterExtensionType(MyInnerExtensionType(I.x))
-      testing.assert_equal(ext.y.eval(x=1), MyInnerExtensionType(1))
+      ext = MyOuterExtensionType(MyInnerExtensionType(I.x))  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(ext.y.eval(x=1), MyInnerExtensionType(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type, missing-attribute]
       testing.assert_equal(ext.y.x.eval(x=1), ds(1, schema_constants.INT64))
       testing.assert_equal(
           ext.outer_fn().eval(x=1), ds(3, schema_constants.INT64)
@@ -491,14 +491,14 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self.y
 
     with self.subTest('eager'):
-      ext = MyChildExtension(1, 3)
+      ext = MyChildExtension(1, 3)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(ext.x, ds(1))
       testing.assert_equal(ext.y, ds(3))
       testing.assert_equal(ext.foo(), ds(2))
       testing.assert_equal(ext.bar(), ds(3))
 
     with self.subTest('lazy'):
-      ext = MyChildExtension(I.x, I.y)
+      ext = MyChildExtension(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(ext.x.eval(x=1, y=3), ds(1))
       testing.assert_equal(ext.y.eval(x=1, y=3), ds(3))
       testing.assert_equal(ext.foo().eval(x=1, y=3), ds(2))
@@ -518,16 +518,16 @@ class ExtensionTypesTest(parameterized.TestCase):
       def __hash__(self):
         return hash(self.x)
 
-    ext1 = MyExtensionType(1)
-    ext2 = MyExtensionType(2)
-    ext3 = MyExtensionType(1)
+    ext1 = MyExtensionType(1)  # pyrefly: ignore[bad-argument-count]
+    ext2 = MyExtensionType(2)  # pyrefly: ignore[bad-argument-count]
+    ext3 = MyExtensionType(1)  # pyrefly: ignore[bad-argument-count]
 
     # Uses redefined __eq__.
     self.assertEqual(ext1, ext2)
     self.assertNotEqual(ext1, ext3)
 
     # Doesn't fail despite __hash__ being prohibited for ExprView.
-    expr = MyExtensionType(I.x)
+    expr = MyExtensionType(I.x)  # pyrefly: ignore[bad-argument-count]
 
     with self.assertRaisesRegex(TypeError, 'unhashable type'):
       _ = hash(expr)
@@ -554,21 +554,21 @@ class ExtensionTypesTest(parameterized.TestCase):
         MyChildExtension
     )
     with self.subTest('cast_to_self'):
-      expr = kde.extension_types.dynamic_cast(
-          MyExtension(I.x), my_extension_qtype
+      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+          MyExtension(I.x), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
       self.assertIsInstance(expr, arolla.Expr)
-      testing.assert_equal(expr.eval(x=1), MyExtension(1))
+      testing.assert_equal(expr.eval(x=1), MyExtension(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       testing.assert_equal(
           extension_type_registry.dynamic_cast(
-              MyExtension(1), my_extension_qtype
+              MyExtension(1), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
           ),
-          MyExtension(1),
+          MyExtension(1),  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       )
 
     with self.subTest('cast_to_parent'):
-      expr = kde.extension_types.dynamic_cast(
-          MyChildExtension(I.x, I.y), my_extension_qtype
+      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+          MyChildExtension(I.x, I.y), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
       self.assertIsInstance(expr, arolla.Expr)
       res = expr.eval(x=1, y=3)
@@ -578,19 +578,19 @@ class ExtensionTypesTest(parameterized.TestCase):
       testing.assert_equal(expr.foo().eval(x=1, y=3), ds(2))
       # Eager.
       res = extension_type_registry.dynamic_cast(
-          MyChildExtension(1, 3), my_extension_qtype
+          MyChildExtension(1, 3), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
       testing.assert_equal(res.qtype, my_extension_qtype)
       testing.assert_equal(res.x, ds(1))
 
     with self.subTest('cast_to_child'):
       # We can cast back to the child type again.
-      expr = kde.extension_types.dynamic_cast(
-          MyChildExtension(I.x, I.y), my_extension_qtype
+      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+          MyChildExtension(I.x, I.y), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
-      expr = kde.extension_types.dynamic_cast(expr, my_child_extension_qtype)
+      expr = kde.extension_types.dynamic_cast(expr, my_child_extension_qtype)  # pyrefly: ignore[missing-attribute]
       self.assertIsInstance(expr, arolla.Expr)
-      testing.assert_equal(expr.eval(x=1, y=3), MyChildExtension(1, 3))
+      testing.assert_equal(expr.eval(x=1, y=3), MyChildExtension(1, 3))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       # By default, we then also call the child impl.
       testing.assert_equal(expr.foo().eval(x=1, y=3), ds(3))
 
@@ -607,7 +607,7 @@ class ExtensionTypesTest(parameterized.TestCase):
         MyExtension
     )
     casted = extension_type_registry.dynamic_cast(
-        MyChildExtension(data_bag.DataBag.empty()), my_extension_qtype
+        MyChildExtension(data_bag.DataBag.empty()), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -629,7 +629,7 @@ class ExtensionTypesTest(parameterized.TestCase):
         MyChildExtension
     )
     casted = extension_type_registry.dynamic_cast(
-        MyExtension(1), my_child_extension_qtype
+        MyExtension(1), my_child_extension_qtype  # pyrefly: ignore[bad-argument-count]
     )
     with self.assertRaisesRegex(ValueError, "attribute not found: 'y'"):
       _ = casted.y
@@ -666,37 +666,37 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self.y - v
 
     with self.subTest('eager_no_casting'):
-      b = B(1, 2)
+      b = B(1, 2)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(b.fn1(3), ds(18.0))
 
     with self.subTest('lazy_no_casting'):
-      b = B(I.x, I.y)
+      b = B(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(b.fn1(3).eval(x=1, y=2), ds(18.0))
 
     with self.subTest('eager_with_cast_to_parent'):
-      b = B(1, 2)
+      b = B(1, 2)  # pyrefly: ignore[bad-argument-count]
       a = extension_type_registry.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3), ds(18.0))
 
     with self.subTest('lazy_with_cast_to_parent'):
-      b = B(I.x, I.y)
-      a = kde.extension_types.dynamic_cast(
+      b = B(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
+      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(18.0))
 
     with self.subTest('eager_with_cast_chained_override'):
-      c = C(1, 2)
+      c = C(1, 2)  # pyrefly: ignore[bad-argument-count]
       a = extension_type_registry.dynamic_cast(
           c, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3), ds(-1.0))
 
     with self.subTest('lazy_with_cast_chained_override'):
-      c = C(I.x, I.y)
-      a = kde.extension_types.dynamic_cast(
+      c = C(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
+      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
           c, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(-1.0))
@@ -734,30 +734,30 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self.with_attrs(x=new_x, y=self.x)  # pytype: disable=attribute-error
 
     with self.subTest('eager'):
-      a = A(1, 2)
-      testing.assert_equal(a.with_attrs(x=3).x, ds(3))
-      testing.assert_equal(a.with_attrs(x=3).y, ds(2))
+      a = A(1, 2)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(a.with_attrs(x=3).x, ds(3))  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(a.with_attrs(x=3).y, ds(2))  # pyrefly: ignore[missing-attribute]
       # Can also call the eager version with lazy inputs.
-      testing.assert_equal(a.with_attrs(x=I.z).x.eval(z=3), ds(3))
-      testing.assert_equal(a.with_attrs(x=I.z).y.eval(z=3), ds(2))
+      testing.assert_equal(a.with_attrs(x=I.z).x.eval(z=3), ds(3))  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(a.with_attrs(x=I.z).y.eval(z=3), ds(2))  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('lazy'):
-      a = A(I.x, I.y)
-      testing.assert_equal(a.with_attrs(x=I.z).x.eval(x=1, y=2, z=3), ds(3))
-      testing.assert_equal(a.with_attrs(x=I.z).y.eval(x=1, y=2, z=3), ds(2))
+      a = A(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(a.with_attrs(x=I.z).x.eval(x=1, y=2, z=3), ds(3))  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(a.with_attrs(x=I.z).y.eval(x=1, y=2, z=3), ds(2))  # pyrefly: ignore[missing-attribute]
       # Can also call the lazy version with eager inputs.
-      testing.assert_equal(a.with_attrs(x=3).x.eval(x=1, y=2), ds(3))
-      testing.assert_equal(a.with_attrs(x=3).y.eval(x=1, y=2), ds(2))
+      testing.assert_equal(a.with_attrs(x=3).x.eval(x=1, y=2), ds(3))  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(a.with_attrs(x=3).y.eval(x=1, y=2), ds(2))  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('eager_fn'):
-      a = A(1, 2)
+      a = A(1, 2)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(a.fn(3).x, ds(3))
       testing.assert_equal(a.fn(3).y, ds(1))
       testing.assert_equal(a.virtual_fn(3).x, ds(3))
       testing.assert_equal(a.virtual_fn(3).y, ds(1))
 
     with self.subTest('lazy_fn'):
-      a = A(I.x, I.y)
+      a = A(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(a.fn(3).x.eval(x=1, y=2), ds(3))
       testing.assert_equal(a.fn(3).y.eval(x=1, y=2), ds(1))
       testing.assert_equal(a.virtual_fn(3).x.eval(x=1, y=2), ds(3))
@@ -769,8 +769,8 @@ class ExtensionTypesTest(parameterized.TestCase):
       x: data_slice.DataSlice
 
     with self.subTest('eager'):
-      a = A(1)
-      a_updated = a.with_attrs(x=data_bag.DataBag.empty())
+      a = A(1)  # pyrefly: ignore[bad-argument-count]
+      a_updated = a.with_attrs(x=data_bag.DataBag.empty())  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesRegex(
           ValueError,
           "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
@@ -779,8 +779,8 @@ class ExtensionTypesTest(parameterized.TestCase):
         _ = a_updated.x
 
     with self.subTest('lazy'):
-      a = A(I.x)
-      a_updated = a.with_attrs(x=I.z)
+      a = A(I.x)  # pyrefly: ignore[bad-argument-count]
+      a_updated = a.with_attrs(x=I.z)  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesRegex(
           ValueError,
           "looked for attribute 'x' with type DATA_SLICE, but the attribute has"
@@ -794,14 +794,14 @@ class ExtensionTypesTest(parameterized.TestCase):
       x: data_slice.DataSlice
 
     with self.subTest('eager'):
-      a = A(1)
+      a = A(1)  # pyrefly: ignore[bad-argument-count]
       with self.assertRaisesRegex(KeyError, 'y'):
-        _ = a.with_attrs(y=2)
+        _ = a.with_attrs(y=2)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('lazy'):
-      a = A(I.x)
+      a = A(I.x)  # pyrefly: ignore[bad-argument-count]
       with self.assertRaisesRegex(KeyError, 'y'):
-        _ = a.with_attrs(y=I.y)
+        _ = a.with_attrs(y=I.y)  # pyrefly: ignore[missing-attribute]
 
   def test_virtual_method_self_return(self):
 
@@ -823,15 +823,15 @@ class ExtensionTypesTest(parameterized.TestCase):
         return self
 
     with self.subTest('eager'):
-      b = B(1, 2, 3)
-      testing.assert_equal(b.fn(), B(1, 2, 3))
+      b = B(1, 2, 3)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(b.fn(), B(1, 2, 3))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.subTest('lazy'):
-      b = B(I.x, I.y, I.z)
-      testing.assert_equal(b.fn().eval(x=1, y=2, z=3), B(1, 2, 3))
+      b = B(I.x, I.y, I.z)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(b.fn().eval(x=1, y=2, z=3), B(1, 2, 3))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.subTest('eager_with_casting'):
-      b = B(1, 2, 3)
+      b = B(1, 2, 3)  # pyrefly: ignore[bad-argument-count]
       a = extension_type_registry.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
@@ -843,12 +843,12 @@ class ExtensionTypesTest(parameterized.TestCase):
           extension_type_registry.dynamic_cast(
               res, extension_type_registry.get_extension_qtype(B)
           ),
-          B(1, 2, 3),
+          B(1, 2, 3),  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       )
 
     with self.subTest('lazy_with_casting'):
-      b = B(I.x, I.y, I.z)
-      a = kde.extension_types.dynamic_cast(
+      b = B(I.x, I.y, I.z)  # pyrefly: ignore[bad-argument-count]
+      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(
@@ -856,10 +856,10 @@ class ExtensionTypesTest(parameterized.TestCase):
           extension_type_registry.get_extension_qtype(A),
       )
       testing.assert_equal(
-          kde.extension_types.dynamic_cast(
+          kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
               a.fn(), extension_type_registry.get_extension_qtype(B)
           ).eval(x=1, y=2, z=3),
-          B(1, 2, 3),
+          B(1, 2, 3),  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       )
 
   def test_virtual_method_extension_type_return(self):
@@ -876,15 +876,15 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       @ext_types.virtual()
       def fn(self) -> A:
-        return A(self.y, self.x)
+        return A(self.y, self.x)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('eager'):
-      b = B(1, 2)
-      testing.assert_equal(b.fn(), A(2, 1))
+      b = B(1, 2)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(b.fn(), A(2, 1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     with self.subTest('lazy'):
-      b = B(I.x, I.y)
-      testing.assert_equal(b.fn().eval(x=1, y=2), A(2, 1))
+      b = B(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(b.fn().eval(x=1, y=2), A(2, 1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
   def test_virtual_method_other_return(self):
 
@@ -898,12 +898,12 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('eager'):
       db = data_bag.DataBag.empty()
-      a = A(db)
+      a = A(db)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(a.fn(), db)
 
     with self.subTest('lazy'):
       db = data_bag.DataBag.empty()
-      a = A(I.db)
+      a = A(I.db)  # pyrefly: ignore[bad-argument-count]
       testing.assert_equal(a.fn().eval(db=db), db)
 
   def test_virtual_method_qvalue_return_annotation(self):
@@ -912,8 +912,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     class A:
 
       @ext_types.virtual()
-      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):
-        return kde.tuple(x, x)
+      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):  # pyrefly: ignore[invalid-annotation]
+        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('eager'):
       a = A()
@@ -930,7 +930,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       @ext_types.virtual()
       def fn(self, x):
-        return kde.tuple(x, x)
+        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('eager'):
       a = A()
@@ -952,8 +952,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     class A:
 
       @ext_types.virtual()
-      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):
-        return kde.tuple(x, x)
+      def fn(self, x) -> arolla.tuple(ds(1), ds(1)):  # pyrefly: ignore[invalid-annotation]
+        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('eager'):
       a = A()
@@ -1111,10 +1111,10 @@ class ExtensionTypesTest(parameterized.TestCase):
       with_attrs: data_slice.DataSlice
 
     with self.subTest('eager'):
-      testing.assert_equal(A(ds(1)).with_attrs, ds(1))
+      testing.assert_equal(A(ds(1)).with_attrs, ds(1))  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
-      testing.assert_equal(A(I.x).with_attrs.eval(x=ds(1)), ds(1))
+      testing.assert_equal(A(I.x).with_attrs.eval(x=ds(1)), ds(1))  # pyrefly: ignore[bad-argument-count]
 
   def test_custom_with_attrs_method(self):
 
@@ -1126,10 +1126,10 @@ class ExtensionTypesTest(parameterized.TestCase):
         return kwargs['x'] + self.x
 
     with self.subTest('eager'):
-      testing.assert_equal(A(1).with_attrs(x=2), ds(3))
+      testing.assert_equal(A(1).with_attrs(x=2), ds(3))  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
-      testing.assert_equal(A(I.x).with_attrs(x=2).eval(x=1), ds(3))
+      testing.assert_equal(A(I.x).with_attrs(x=2).eval(x=1), ds(3))  # pyrefly: ignore[bad-argument-count]
 
   def test_default_repr(self):
     @ext_types.extension_type()
@@ -1147,14 +1147,14 @@ class ExtensionTypesTest(parameterized.TestCase):
     with self.subTest('eager'):
       # NOTE: the functor representing the virtual method is _not_ included.
       self.assertEqual(
-          repr(A(1, 2)),
+          repr(A(1, 2)),  # pyrefly: ignore[bad-argument-count]
           'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))',
       )
 
     with self.subTest('lazy_literal'):
       # NOTE: the functor representing the virtual method is _not_ included.
       self.assertEqual(
-          repr(literal_operator.literal(A(1, 2))),
+          repr(literal_operator.literal(A(1, 2))),  # pyrefly: ignore[bad-argument-count]
           'A(x=DataItem(2, schema: INT32), y=DataItem(1, schema: INT32))',
       )
 
@@ -1170,7 +1170,7 @@ class ExtensionTypesTest(parameterized.TestCase):
               """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
           )
       )
-      self.assertRegex(repr(A(I.x, I.y)), expected_repr)
+      self.assertRegex(repr(A(I.x, I.y)), expected_repr)  # pyrefly: ignore[bad-argument-count]
 
   def test_default_repr_with_unknown_attr(self):
     @ext_types.extension_type()
@@ -1185,7 +1185,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy'):
       a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
-      expr = M.core.identity(a)
+      expr = M.core.identity(a)  # pyrefly: ignore[missing-attribute]
       expected_repr = (
           'M.core.identity(A(x=DataItem(1, schema: INT32), y=<unknown>))'
       )
@@ -1212,7 +1212,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           'CustomReprOfA(x=DataItem(2, schema: INT32), y=DataItem(1, schema:'
           ' INT32))'
       )
-      self.assertEqual(repr(A(1, 2)), expected_repr)
+      self.assertEqual(repr(A(1, 2)), expected_repr)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
       expected_repr = (
@@ -1226,7 +1226,7 @@ class ExtensionTypesTest(parameterized.TestCase):
               """)}}, y=kd.schema.cast_to_narrow(I.x, DataItem(INT32, schema: SCHEMA)), x=kd.schema.cast_to_narrow(I.y, DataItem(INT32, schema: SCHEMA)))"""
           )
       )
-      self.assertRegex(repr(A(I.x, I.y)), expected_repr)
+      self.assertRegex(repr(A(I.x, I.y)), expected_repr)  # pyrefly: ignore[bad-argument-count]
 
   def test_post_init(self):
     @ext_types.extension_type()
@@ -1235,7 +1235,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       def _extension_post_init(self):
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(
+          return kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
               self, self.x > 0, 'x must be positive'
           )
         else:
@@ -1244,18 +1244,18 @@ class ExtensionTypesTest(parameterized.TestCase):
           return self
 
     with self.subTest('eager'):
-      testing.assert_equal(A(2).x, ds(2))
+      testing.assert_equal(A(2).x, ds(2))  # pyrefly: ignore[bad-argument-count]
       with self.assertRaisesRegex(ValueError, 'x must be positive'):
-        _ = A(0)
+        _ = A(0)  # pyrefly: ignore[bad-argument-count]
       # with_attrs does not call the post init method.
-      testing.assert_equal(A(2).with_attrs(x=0).x, ds(0))
+      testing.assert_equal(A(2).with_attrs(x=0).x, ds(0))  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
     with self.subTest('lazy'):
-      testing.assert_equal(A(I.x).eval(x=2).x, ds(2))
+      testing.assert_equal(A(I.x).eval(x=2).x, ds(2))  # pyrefly: ignore[bad-argument-count, missing-attribute]
       with self.assertRaisesRegex(ValueError, 'x must be positive'):
-        _ = A(I.x).eval(x=0)
+        _ = A(I.x).eval(x=0)  # pyrefly: ignore[bad-argument-count, missing-attribute]
       # with_attrs does not call the post init method.
-      testing.assert_equal(A(I.x).with_attrs(x=0).eval(x=2).x, ds(0))
+      testing.assert_equal(A(I.x).with_attrs(x=0).eval(x=2).x, ds(0))  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
   def test_post_init_no_return(self):
     @ext_types.extension_type()
@@ -1264,7 +1264,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       def _extension_post_init(self):
         if isinstance(self, arolla.Expr):
-          kde.assertion.with_assertion(self, self.x > 0, 'x must be positive')
+          kde.assertion.with_assertion(self, self.x > 0, 'x must be positive')  # pyrefly: ignore[missing-attribute]
         else:
           if self.x <= 0:
             raise ValueError('x must be positive')
@@ -1273,13 +1273,13 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError, '_extension_post_init must return an instance'
       ):
-        _ = A(2)
+        _ = A(2)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
       with self.assertRaisesRegex(
           ValueError, '_extension_post_init must return an instance'
       ):
-        _ = A(I.x)
+        _ = A(I.x)  # pyrefly: ignore[bad-argument-count]
 
   def test_post_init_virtual(self):
     @ext_types.extension_type()
@@ -1289,7 +1289,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       @ext_types.virtual()
       def _extension_post_init(self) -> Self:
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(self, None, 'not implemented')
+          return kde.assertion.with_assertion(self, None, 'not implemented')  # pyrefly: ignore[missing-attribute]
         else:
           raise ValueError('not implemented')
 
@@ -1299,7 +1299,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       @ext_types.override()
       def _extension_post_init(self) -> Self:
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(
+          return kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
               self, self.x > 0, 'x must be positive'
           )
         else:
@@ -1309,21 +1309,21 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('eager_a'):
       with self.assertRaisesRegex(ValueError, 'not implemented'):
-        _ = A(2)
+        _ = A(2)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy_a'):
       with self.assertRaisesRegex(ValueError, 'not implemented'):
-        _ = A(2)
+        _ = A(2)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('eager_b'):
-      testing.assert_equal(B(2).x, ds(2))
+      testing.assert_equal(B(2).x, ds(2))  # pyrefly: ignore[bad-argument-count]
       with self.assertRaisesRegex(ValueError, 'x must be positive'):
-        _ = B(0)
+        _ = B(0)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy_b'):
-      testing.assert_equal(B(I.x).eval(x=2).x, ds(2))
+      testing.assert_equal(B(I.x).eval(x=2).x, ds(2))  # pyrefly: ignore[bad-argument-count, missing-attribute]
       with self.assertRaisesRegex(ValueError, 'x must be positive'):
-        _ = B(I.x).eval(x=0)
+        _ = B(I.x).eval(x=0)  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
   def test_overwriting_child(self):
     @ext_types.extension_type()
@@ -1355,7 +1355,7 @@ class ExtensionTypesTest(parameterized.TestCase):
     class B:
       a: A = A()  # pytype: disable=invalid-annotation
 
-    testing.assert_equal(B().a, A())
+    testing.assert_equal(B().a, A())  # pyrefly: ignore[bad-argument-type]
 
   def test_custom_boxing(self):
     @ext_types.extension_type()
@@ -1369,12 +1369,12 @@ class ExtensionTypesTest(parameterized.TestCase):
         return value + 1
 
     with self.subTest('eager'):
-      testing.assert_equal(A(1).x, ds(2))
-      testing.assert_equal(A(1).y, ds(3))
+      testing.assert_equal(A(1).x, ds(2))  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(A(1).y, ds(3))  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
-      testing.assert_equal(A(I.x).x.eval(x=1), ds(2))
-      testing.assert_equal(A(I.x).y.eval(x=1), ds(3))
+      testing.assert_equal(A(I.x).x.eval(x=1), ds(2))  # pyrefly: ignore[bad-argument-count]
+      testing.assert_equal(A(I.x).y.eval(x=1), ds(3))  # pyrefly: ignore[bad-argument-count]
 
   def test_custom_boxing_bad_output(self):
     @ext_types.extension_type()
@@ -1390,13 +1390,13 @@ class ExtensionTypesTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           ValueError, 'object with unsupported type: object'
       ):
-        _ = A(1)
+        _ = A(1)  # pyrefly: ignore[bad-argument-count]
 
     with self.subTest('lazy'):
       with self.assertRaisesRegex(
           ValueError, 'object with unsupported type: object'
       ):
-        _ = A(I.x)
+        _ = A(I.x)  # pyrefly: ignore[bad-argument-count]
 
   def test_get_annotations(self):
     @ext_types.extension_type()
@@ -1507,8 +1507,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     class A:
       x: schema_constants.INT32
 
-    a = A(1)
-    testing.assert_equal(a, type(a)(1))
+    a = A(1)  # pyrefly: ignore[bad-argument-count]
+    testing.assert_equal(a, type(a)(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
 
 if __name__ == '__main__':

@@ -49,29 +49,29 @@ class TestUtilsTest(absltest.TestCase):
       test_utils.assert_equal(view_lib.view(1), view_lib.view(2))
 
   def test_from_ds(self):
-    kd_item = kd.item(None)
+    kd_item = kd.item(None)  # pyrefly: ignore[missing-attribute]
     view_item = test_utils.from_ds(kd_item)
     test_utils.assert_equal(view_item, view_lib.view(None))
 
-    kd_slice = kd.slice([1, 2, 3])
+    kd_slice = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]
     view = test_utils.from_ds(kd_slice)
     test_utils.assert_equal(view, view_lib.view([1, 2, 3])[:])
 
-    kd_slice_2d = kd.slice([[1, 2], [3]])
+    kd_slice_2d = kd.slice([[1, 2], [3]])  # pyrefly: ignore[missing-attribute]
     view_2d = test_utils.from_ds(kd_slice_2d)
     test_utils.assert_equal(view_2d, view_lib.view([[1, 2], [3]])[:][:])
 
-    kd_slice_of_objects = kd.obj(x=kd.slice([1, 2, 3]))
+    kd_slice_of_objects = kd.obj(x=kd.slice([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
     view_of_objects = test_utils.from_ds(kd_slice_of_objects)
     test_utils.assert_equal(view_of_objects.x, view_lib.view([1, 2, 3])[:])
 
-    kd_slice_of_mask = kd.slice([kd.present, None, None])
+    kd_slice_of_mask = kd.slice([kd.present, None, None])  # pyrefly: ignore[missing-attribute]
     view_of_mask = test_utils.from_ds(kd_slice_of_mask)
     test_utils.assert_equal(
         view_of_mask, view_lib.view([mask_constants.present, None, None])[:]
     )
 
-    kd_slice_of_mask_as_obj = kd.slice([kd.present, None, None]).with_schema(
+    kd_slice_of_mask_as_obj = kd.slice([kd.present, None, None]).with_schema(  # pyrefly: ignore[missing-attribute]
         kd.OBJECT
     )
     view_of_mask_as_obj = test_utils.from_ds(kd_slice_of_mask_as_obj)

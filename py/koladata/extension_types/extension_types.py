@@ -34,7 +34,7 @@ from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
-M = arolla.M | derived_qtype.M | objects.M
+M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
 
 _VIRTUAL_METHOD_ATTR = '_kd_extension_type_virtual_method'
 _OVERRIDE_METHOD_ATTR = '_kd_extension_type_override_method'
@@ -102,7 +102,7 @@ def _make_virtual_method(
     else:
       return_type_as = py_boxing.get_dummy_qvalue(sig.return_annotation)
     if extension_type_registry.is_koda_extension(return_type_as):
-      output_qtype = return_type_as.qtype
+      output_qtype = return_type_as.qtype  # pyrefly: ignore[missing-attribute]
       return_type_as = arolla.abc.aux_eval_op(
           'kd.extension_types.unwrap', return_type_as
       )
@@ -306,7 +306,7 @@ def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
         extension_type_registry.get_extension_qtype(annotation),
     )
   else:
-    return py_boxing.as_qvalue_or_expr(value)
+    return py_boxing.as_qvalue_or_expr(value)  # pyrefly: ignore[bad-return]
 
 
 def _cast_input(value: Any, annotation: Any) -> arolla.AnyQValue | arolla.Expr:
@@ -508,7 +508,7 @@ def _make_dispatch_fn(
       p.replace(annotation=inspect.Parameter.empty)
       for p in class_meta.signature.parameters.values()
   ]
-  dispatching_new.__signature__ = class_meta.signature.replace(
+  dispatching_new.__signature__ = class_meta.signature.replace(  # pyrefly: ignore[missing-attribute]
       parameters=parameters, return_annotation=inspect.Parameter.empty
   )
   return dispatching_new
@@ -637,7 +637,7 @@ def extension_type(
     class_meta = _get_class_meta(original_class)
 
     # QType definitions.
-    extension_qtype = M.derived_qtype.get_labeled_qtype(
+    extension_qtype = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
         extension_type_registry.BASE_QTYPE, class_meta.fully_qualified_name
     ).qvalue
     extension_type_registry.register_extension_type(

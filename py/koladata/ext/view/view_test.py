@@ -145,9 +145,9 @@ class ViewTest(absltest.TestCase):
         self.y = y
 
     pytree.register_node(
-        Cls,
-        lambda c: ((c.x, c.y), None, None),
-        lambda _, children: Cls(*children),
+        Cls,  # pyrefly: ignore[bad-argument-type]
+        lambda c: ((c.x, c.y), None, None),  # pyrefly: ignore[missing-attribute]
+        lambda _, children: Cls(*children),  # pyrefly: ignore[bad-argument-type]
         namespace='test_custom_handler',
     )
     res = view_lib.view(Cls(1, 2)).deep_map(

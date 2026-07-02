@@ -38,7 +38,7 @@ def make_dataclass(attr_names):
       ],
       eq=False,
   )
-  obj_class.__eq__ = _eq
+  obj_class.__eq__ = _eq  # pyrefly: ignore[bad-assignment]
   return obj_class
 
 

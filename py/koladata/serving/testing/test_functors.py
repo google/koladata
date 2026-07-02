@@ -35,15 +35,15 @@ def ask_about_serving(
   return call_external_fn("How to serve Koda functors?")
 
 
-XYSchema = kd.schema.uu_schema(x=kd.INT32, y=kd.INT32)
+XYSchema = kd.schema.uu_schema(x=kd.INT32, y=kd.INT32)  # pyrefly: ignore[missing-attribute]
 
 
 def non_deterministic_functor(x, y) -> kd.types.DataSlice:
   literal = kd.eager.new(x=57, y=7, schema=XYSchema)
-  return kd.obj(args=XYSchema.new(x=x, y=y), literal=literal)
+  return kd.obj(args=XYSchema.new(x=x, y=y), literal=literal)  # pyrefly: ignore[missing-attribute]
 
 
 non_deterministic_functor_with_different_name = non_deterministic_functor
 
 
-TEST_DS = kd.slice([1, 2, 3])
+TEST_DS = kd.slice([1, 2, 3])  # pyrefly: ignore[missing-attribute]

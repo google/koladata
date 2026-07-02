@@ -56,7 +56,7 @@ class _FunctorVisitor:
     for var_name in py_functors_py_ext.get_variable_evaluation_order(functor):
       var = functor.get_attr(var_name)
       if functor_factories.is_fn(var):
-        subfunctors[var_name] = self._visit_functor(var)
+        subfunctors[var_name] = self._visit_functor(var)  # pyrefly: ignore[bad-argument-type]
     self._on_stack.remove(itemid)
 
     result = self._user_callback_fn(functor, subfunctors)
@@ -131,7 +131,7 @@ def visit_variables(
   vars_: dict[str, Any] = {}
   for var_name in py_functors_py_ext.get_variable_evaluation_order(functor):
     vars_[var_name] = callback_fn(
-        var_name, functor.get_attr(var_name), vars_
+        var_name, functor.get_attr(var_name), vars_  # pyrefly: ignore[bad-argument-type]
     )
 
   var_name, var = vars_.popitem()

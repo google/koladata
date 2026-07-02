@@ -20,20 +20,20 @@ from koladata import kd_ext
 I = kd.I
 
 bag = kd.mutable_bag
-ds = kd.slice
+ds = kd.slice  # pyrefly: ignore[missing-attribute]
 
 
 class IdsAutoIdUpdateTest(parameterized.TestCase):
 
   def test_auto_id_update_attribute(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([1, 2, 2, 4, 5]), schema=schema)
+    x = kd.new(a=ds([1, 2, 2, 4, 5]), schema=schema)  # pyrefly: ignore[missing-attribute]
     x_part = x.S[2:]
-    auto_id_bag = kd_ext.ids.auto_id_update(x_part)
+    auto_id_bag = kd_ext.ids.auto_id_update(x_part)  # pyrefly: ignore[missing-attribute]
     x_part_with_ids = x_part.enriched(auto_id_bag)
     kd.testing.assert_equivalent(
         x_part_with_ids.foo_id,
@@ -45,18 +45,18 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
         ValueError,
         'AUTO_ID attribute foo_id with name foo already assigned to value',
     ):
-      _ = kd_ext.ids.auto_id_update(x)
+      _ = kd_ext.ids.auto_id_update(x)  # pyrefly: ignore[missing-attribute]
 
   def test_auto_id_update_multiple_attributes(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
-        bar_id=kd_ext.ids.auto_id('bar'),
-        also_foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
+        bar_id=kd_ext.ids.auto_id('bar'),  # pyrefly: ignore[missing-attribute]
+        also_foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([1, 2, None, 2]), schema=schema)
-    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))
+    x = kd.new(a=ds([1, 2, None, 2]), schema=schema)  # pyrefly: ignore[missing-attribute]
+    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
         ds(['foo_1', 'foo_2', 'foo_3', 'foo_4']),
@@ -71,25 +71,25 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_nested_schema(self):
-    leaf_schema = kd.schema.new_schema(val=kd.INT32)
-    leaf_schema = kd_ext.ids.with_auto_attributes(
+    leaf_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    leaf_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         leaf_schema,
-        leaf_id=kd_ext.ids.auto_id('leaf'),
+        leaf_id=kd_ext.ids.auto_id('leaf'),  # pyrefly: ignore[missing-attribute]
     )
-    mid_schema = kd.schema.new_schema(leaf=leaf_schema, x=kd.FLOAT32)
-    mid_schema = kd_ext.ids.with_auto_attributes(
+    mid_schema = kd.schema.new_schema(leaf=leaf_schema, x=kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
+    mid_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         mid_schema,
-        mid_id=kd_ext.ids.auto_id('mid'),
+        mid_id=kd_ext.ids.auto_id('mid'),  # pyrefly: ignore[missing-attribute]
     )
-    root_schema = kd.schema.new_schema(mid=mid_schema)
-    root_schema = kd_ext.ids.with_auto_attributes(
+    root_schema = kd.schema.new_schema(mid=mid_schema)  # pyrefly: ignore[missing-attribute]
+    root_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         root_schema,
-        root_id=kd_ext.ids.auto_id('root'),
+        root_id=kd_ext.ids.auto_id('root'),  # pyrefly: ignore[missing-attribute]
     )
-    leaf = kd.new(val=ds([1, 2]), schema=leaf_schema)
-    mid = kd.new(leaf=leaf, x=ds([1.0, 2.0]), schema=mid_schema)
-    root = kd.new(mid=mid, schema=root_schema)
-    root_with_ids = root.enriched(kd_ext.ids.auto_id_update(root))
+    leaf = kd.new(val=ds([1, 2]), schema=leaf_schema)  # pyrefly: ignore[missing-attribute]
+    mid = kd.new(leaf=leaf, x=ds([1.0, 2.0]), schema=mid_schema)  # pyrefly: ignore[missing-attribute]
+    root = kd.new(mid=mid, schema=root_schema)  # pyrefly: ignore[missing-attribute]
+    root_with_ids = root.enriched(kd_ext.ids.auto_id_update(root))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         root_with_ids.root_id,
         ds(['root_1', 'root_2']),
@@ -104,27 +104,27 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_shared_child_via_multiple_paths(self):
-    child_schema = kd.schema.new_schema(val=kd.INT32)
-    child_schema = kd_ext.ids.with_auto_attributes(
+    child_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    child_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         child_schema,
-        child_id=kd_ext.ids.auto_id('child'),
+        child_id=kd_ext.ids.auto_id('child'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         left=child_schema,
         right=child_schema,
     )
-    parent_schema = kd_ext.ids.with_auto_attributes(
+    parent_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         parent_schema,
-        parent_id=kd_ext.ids.auto_id('parent'),
+        parent_id=kd_ext.ids.auto_id('parent'),  # pyrefly: ignore[missing-attribute]
     )
-    child = kd.new(val=ds([1, 2, 3, 4, 5]), schema=child_schema)
+    child = kd.new(val=ds([1, 2, 3, 4, 5]), schema=child_schema)  # pyrefly: ignore[missing-attribute]
     # Both `left` and `right` point to the same child objects.
-    parent = kd.new(
-        left=(child & kd.mask([True, True, False, True, True])),
-        right=(child & kd.mask([True, False, True, False, True])),
+    parent = kd.new(  # pyrefly: ignore[missing-attribute]
+        left=(child & kd.mask([True, True, False, True, True])),  # pyrefly: ignore[missing-attribute]
+        right=(child & kd.mask([True, False, True, False, True])),  # pyrefly: ignore[missing-attribute]
         schema=parent_schema,
     )
-    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))
+    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         parent_with_ids.parent_id,
         ds(['parent_1', 'parent_2', 'parent_3', 'parent_4', 'parent_5']),
@@ -140,31 +140,31 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_shared_child_via_multiple_paths_conflict(self):
-    left_schema = kd.schema.new_schema(val=kd.INT32)
-    left_schema = kd_ext.ids.with_auto_attributes(
+    left_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    left_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         left_schema,
-        child_id=kd_ext.ids.auto_id('left'),
+        child_id=kd_ext.ids.auto_id('left'),  # pyrefly: ignore[missing-attribute]
     )
-    right_schema = kd.schema.new_schema(val=kd.INT32)
-    right_schema = kd_ext.ids.with_auto_attributes(
+    right_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    right_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         right_schema,
-        child_id=kd_ext.ids.auto_id('right'),
+        child_id=kd_ext.ids.auto_id('right'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         left=left_schema,
         right=right_schema,
     )
-    parent_schema = kd_ext.ids.with_auto_attributes(
+    parent_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         parent_schema,
-        parent_id=kd_ext.ids.auto_id('parent'),
+        parent_id=kd_ext.ids.auto_id('parent'),  # pyrefly: ignore[missing-attribute]
     )
-    child = kd.new(val=ds([1, 2, 3, 4, 5]))
+    child = kd.new(val=ds([1, 2, 3, 4, 5]))  # pyrefly: ignore[missing-attribute]
     # Both `left` and `right` point to the same child objects.
-    parent = kd.new(
-        left=(child & kd.mask([True, True, False, True, True])).with_schema(
+    parent = kd.new(  # pyrefly: ignore[missing-attribute]
+        left=(child & kd.mask([True, True, False, True, True])).with_schema(  # pyrefly: ignore[missing-attribute]
             left_schema
         ),
-        right=(child & kd.mask([True, False, True, False, True])).with_schema(
+        right=(child & kd.mask([True, False, True, False, True])).with_schema(  # pyrefly: ignore[missing-attribute]
             right_schema
         ),
         schema=parent_schema,
@@ -174,28 +174,28 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
         'kd_ext.ids.auto_id_update: object Entity:.* has AUTO_ID attribute'
         " child_id with name right already assigned to value 'left_1'",
     ):
-      _ = parent.enriched(kd_ext.ids.auto_id_update(parent))
+      _ = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
 
   def test_sparse_nested_input(self):
-    child_schema = kd.schema.new_schema(val=kd.INT32)
-    child_schema = kd_ext.ids.with_auto_attributes(
+    child_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    child_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         child_schema,
-        child_id=kd_ext.ids.auto_id('child'),
+        child_id=kd_ext.ids.auto_id('child'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         child=child_schema,
     )
-    parent_schema = kd_ext.ids.with_auto_attributes(
+    parent_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         parent_schema,
-        parent_id=kd_ext.ids.auto_id('parent'),
+        parent_id=kd_ext.ids.auto_id('parent'),  # pyrefly: ignore[missing-attribute]
     )
-    child = kd.new(val=ds([10, 20, 30]), schema=child_schema)
+    child = kd.new(val=ds([10, 20, 30]), schema=child_schema)  # pyrefly: ignore[missing-attribute]
     # Parent has a missing child at index 1.
-    parent = kd.new(
+    parent = kd.new(  # pyrefly: ignore[missing-attribute]
         child=ds([child.S[0], None, child.S[2]], schema=child_schema),
         schema=parent_schema,
     )
-    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))
+    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         parent_with_ids.parent_id,
         ds(['parent_1', 'parent_2', 'parent_3']),
@@ -207,34 +207,34 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_scalar_input(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=42, schema=schema)
-    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))
+    x = kd.new(a=42, schema=schema)  # pyrefly: ignore[missing-attribute]
+    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
         ds('foo_1'),
     )
 
   def test_no_auto_id_attributes(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    x = kd.new(a=ds([1, 2, 3]), schema=schema)
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    x = kd.new(a=ds([1, 2, 3]), schema=schema)  # pyrefly: ignore[missing-attribute]
     # auto_id_update on a schema without auto attributes should be a no-op.
-    auto_id_bag = kd_ext.ids.auto_id_update(x)
+    auto_id_bag = kd_ext.ids.auto_id_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(auto_id_bag)
     kd.testing.assert_equivalent(x_with_ids.a, ds([1, 2, 3]))
 
   def test_empty_input(self):
-    schema = kd.schema.new_schema(a=kd.INT32)
-    schema = kd_ext.ids.with_auto_attributes(
+    schema = kd.schema.new_schema(a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         schema,
-        foo_id=kd_ext.ids.auto_id('foo'),
+        foo_id=kd_ext.ids.auto_id('foo'),  # pyrefly: ignore[missing-attribute]
     )
-    x = kd.new(a=ds([], schema=kd.INT32), schema=schema)
-    auto_id_bag = kd_ext.ids.auto_id_update(x)
+    x = kd.new(a=ds([], schema=kd.INT32), schema=schema)  # pyrefly: ignore[missing-attribute]
+    auto_id_bag = kd_ext.ids.auto_id_update(x)  # pyrefly: ignore[missing-attribute]
     x_with_ids = x.enriched(auto_id_bag)
     kd.testing.assert_equivalent(
         x_with_ids.foo_id,
@@ -242,65 +242,65 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_list_items_auto_id(self):
-    item_schema = kd.schema.new_schema(val=kd.INT32)
-    item_schema = kd_ext.ids.with_auto_attributes(
+    item_schema = kd.schema.new_schema(val=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    item_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         item_schema,
-        item_id=kd_ext.ids.auto_id('item'),
+        item_id=kd_ext.ids.auto_id('item'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
-        items=kd.list_schema(item_schema),
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+        items=kd.list_schema(item_schema),  # pyrefly: ignore[missing-attribute]
     )
-    items = kd.list([
+    items = kd.list([  # pyrefly: ignore[missing-attribute]
         item_schema.new(val=10),
         item_schema.new(val=20),
         item_schema.new(val=30),
     ])
-    parent = kd.new(items=items, schema=parent_schema)
-    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))
+    parent = kd.new(items=items, schema=parent_schema)  # pyrefly: ignore[missing-attribute]
+    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         parent_with_ids.items[:].item_id,
         ds(['item_1', 'item_2', 'item_3']),
     )
 
   def test_dict_keys_auto_id(self):
-    key_schema = kd.schema.new_schema(name=kd.STRING)
-    key_schema = kd_ext.ids.with_auto_attributes(
+    key_schema = kd.schema.new_schema(name=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    key_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         key_schema,
-        key_id=kd_ext.ids.auto_id('key'),
+        key_id=kd_ext.ids.auto_id('key'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
-        mapping=kd.dict_schema(key_schema, kd.INT32),
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+        mapping=kd.dict_schema(key_schema, kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     ks = key_schema.new(name=ds(['a', 'b']))
-    mapping = kd.dict(
+    mapping = kd.dict(  # pyrefly: ignore[missing-attribute]
         {ks.S[0]: 1, ks.S[1]: 2},
         key_schema=key_schema,
         value_schema=kd.INT32,
     )
-    parent = kd.new(mapping=mapping, schema=parent_schema)
-    keys_with_ids = ks.enriched(kd_ext.ids.auto_id_update(parent))
+    parent = kd.new(mapping=mapping, schema=parent_schema)  # pyrefly: ignore[missing-attribute]
+    keys_with_ids = ks.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         keys_with_ids.key_id,
         ds(['key_1', 'key_2']),
     )
 
   def test_dict_values_auto_id(self):
-    value_schema = kd.schema.new_schema(data=kd.FLOAT32)
-    value_schema = kd_ext.ids.with_auto_attributes(
+    value_schema = kd.schema.new_schema(data=kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
+    value_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         value_schema,
-        val_id=kd_ext.ids.auto_id('val'),
+        val_id=kd_ext.ids.auto_id('val'),  # pyrefly: ignore[missing-attribute]
     )
-    parent_schema = kd.schema.new_schema(
-        mapping=kd.dict_schema(kd.STRING, value_schema),
+    parent_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+        mapping=kd.dict_schema(kd.STRING, value_schema),  # pyrefly: ignore[missing-attribute]
     )
     vs = value_schema.new(data=ds([1.0, 2.0, 3.0]))
-    mapping = kd.dict(
+    mapping = kd.dict(  # pyrefly: ignore[missing-attribute]
         {'x': vs.S[0], 'y': vs.S[1], 'z': vs.S[2]},
         key_schema=kd.STRING,
         value_schema=value_schema,
     )
-    parent = kd.new(mapping=mapping, schema=parent_schema)
-    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))
+    parent = kd.new(mapping=mapping, schema=parent_schema)  # pyrefly: ignore[missing-attribute]
+    parent_with_ids = parent.enriched(kd_ext.ids.auto_id_update(parent))  # pyrefly: ignore[missing-attribute]
     assigned_ids = ds(
         [parent_with_ids.mapping[k].val_id for k in ['x', 'y', 'z']]
     )
@@ -310,22 +310,22 @@ class IdsAutoIdUpdateTest(parameterized.TestCase):
     )
 
   def test_named_schema_attr_auto_id(self):
-    inner_schema = kd.schema.new_schema(x=kd.INT32)
-    inner_schema = kd_ext.ids.with_auto_attributes(
+    inner_schema = kd.schema.new_schema(x=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    inner_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         inner_schema,
-        inner_id=kd_ext.ids.auto_id('inner'),
+        inner_id=kd_ext.ids.auto_id('inner'),  # pyrefly: ignore[missing-attribute]
     )
-    outer_schema = kd.schema.named_schema('outer', child=inner_schema)
-    outer_schema = kd_ext.ids.with_auto_attributes(
+    outer_schema = kd.schema.named_schema('outer', child=inner_schema)  # pyrefly: ignore[missing-attribute]
+    outer_schema = kd_ext.ids.with_auto_attributes(  # pyrefly: ignore[missing-attribute]
         outer_schema,
-        outer_id=kd_ext.ids.auto_id('outer'),
+        outer_id=kd_ext.ids.auto_id('outer'),  # pyrefly: ignore[missing-attribute]
     )
-    children = kd.new(x=ds([10, 20, 30]), schema=inner_schema)
-    x = kd.new(
+    children = kd.new(x=ds([10, 20, 30]), schema=inner_schema)  # pyrefly: ignore[missing-attribute]
+    x = kd.new(  # pyrefly: ignore[missing-attribute]
         child=children,
         schema=outer_schema,
     )
-    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))
+    x_with_ids = x.enriched(kd_ext.ids.auto_id_update(x))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         x_with_ids.outer_id,
         ds(['outer_1', 'outer_2', 'outer_3']),
