@@ -843,6 +843,24 @@ class ToPyTest(parameterized.TestCase):
     converted = py_conversions.to_py(root, output_class=Obj2)
     self.assertEqual(converted, root_obj)
 
+  def test_to_py_untyped_cache_pollution(self):
+    @dataclasses.dataclass
+    class TargetClass:
+      list_of_any: list[Any]
+      direct_obj: Obj1
+
+    koda_obj = fns.obj(a=1, b='x')
+    koda_list = fns.list([koda_obj, koda_obj])
+    root = fns.new(
+        list_of_any=koda_list,
+        direct_obj=koda_obj,
+    )
+
+    o1 = Obj1(a=1, b='x')
+    expected = TargetClass(list_of_any=[o1, o1], direct_obj=o1)
+    converted = py_conversions.to_py(root, output_class=TargetClass)
+    self.assertEqual(converted, expected)
+
   @parameterized.named_parameters(
       dict(testcase_name='_Any', output_class=Any),
       dict(testcase_name='dict[Any, Any]', output_class=dict[Any, Any]),

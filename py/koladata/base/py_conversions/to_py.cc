@@ -157,8 +157,11 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (class_cached_by_path_it != classes_by_path_.end()) {
       // We have already computed the class for this path.
       auto& class_cached_by_path = class_cached_by_path_it->second;
-      class_cache_by_object_id_[object_id] = class_cached_by_path;
-      return DescribesPresentFieldType(class_cached_by_path);
+      if (DescribesPresentFieldType(class_cached_by_path)) {
+        class_cache_by_object_id_[object_id] = class_cached_by_path;
+        return true;
+      }
+      return false;
     }
 
     // In this case we are going to get class field type for an object, so
