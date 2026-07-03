@@ -54,7 +54,7 @@ def _call(
     )
 
 
-_bind_method_impl: Callable[..., DataItem] = None
+_bind_method_impl: Callable[..., DataItem] = None  # pyrefly: ignore[bad-assignment]
 
 
 # As soon as this pattern is used >=3 times, please create a general

@@ -66,12 +66,12 @@ def schema_stub(schema: kd.types.DataItem) -> kd.types.DataItem:
     A stub for the given schema with the additional info (if any).
   """
   _check_no_non_primitive_metadata_attributes(schema)
-  schema_stub_bag = kd.bag()
+  schema_stub_bag = kd.bag()  # pyrefly: ignore[missing-attribute]
   for attr_name in ['__schema_name__', '__schema_metadata__']:
     try:
-      schema_stub_bag = kd.bags.updated(
+      schema_stub_bag = kd.bags.updated(  # pyrefly: ignore[missing-attribute]
           schema_stub_bag,
-          kd.attrs(schema, **{attr_name: schema.get_attr(attr_name)}),
+          kd.attrs(schema, **{attr_name: schema.get_attr(attr_name)}),  # pyrefly: ignore[missing-attribute]
       )
     except ValueError:
       pass
@@ -97,7 +97,7 @@ def _check_is_acceptable_schema_slice(schema_ds: kd.types.DataSlice) -> None:
       itemid = schema_item.get_itemid()
     except ValueError:
       return
-    if not kd.has(itemid):
+    if not kd.has(itemid):  # pyrefly: ignore[missing-attribute]
       return
     if seen_items[itemid] == kd.present:
       return
@@ -165,7 +165,7 @@ def minimal_bag_associating_list_with_its_items(
   # items_stub.implode(itemid=...) below won't complain about duplicate itemids.
   # Since kd.unique() operates only on the last dimension, we need to flatten
   # the itemids before calling kd.unique().
-  list_ds = kd.unique(list_ds.flatten())
+  list_ds = kd.unique(list_ds.flatten())  # pyrefly: ignore[missing-attribute]
   mask = value_presence_util.has_info_about_list_items(list_ds)
   if mask.is_empty():
     return None
@@ -190,14 +190,14 @@ def minimal_bag_associating_dict_with_its_keys_and_values(
   # kd.dict(..., itemid=...) below won't complain about duplicate itemids.
   # Since kd.unique() operates only on the last dimension, we need to flatten
   # the itemids before calling kd.unique().
-  dict_ds = kd.unique(dict_ds.flatten())
+  dict_ds = kd.unique(dict_ds.flatten())  # pyrefly: ignore[missing-attribute]
   keys = dict_ds.get_keys()
   if keys.is_empty():
     return None  # No keys means there is no key-value data.
   keys_stub = _stubby(keys)
   values_stub = _stubby(dict_ds.get_values())
   itemids = dict_ds.get_itemid()
-  return kd.dict(keys_stub, values_stub, itemid=itemids).extract_update()
+  return kd.dict(keys_stub, values_stub, itemid=itemids).extract_update()  # pyrefly: ignore[missing-attribute]
 
 
 def minimal_bag_associating_entity_with_its_attr_value(
@@ -215,11 +215,11 @@ def minimal_bag_associating_entity_with_its_attr_value(
     or None if entity_ds has no entity with a present or removed value for the
     given attribute.
   """
-  non_missing_values_mask = kd.has(
+  non_missing_values_mask = kd.has(  # pyrefly: ignore[missing-attribute]
       entity_ds
   ) & ~value_presence_util.get_missing_mask(entity_ds, attr_name)
   entity_ds_to_update = entity_ds & non_missing_values_mask
   if entity_ds_to_update.is_empty():
     return None
   values_stub = _stubby(entity_ds_to_update.get_attr(attr_name))
-  return kd.attrs(entity_ds_to_update, **{attr_name: values_stub})
+  return kd.attrs(entity_ds_to_update, **{attr_name: values_stub})  # pyrefly: ignore[missing-attribute]

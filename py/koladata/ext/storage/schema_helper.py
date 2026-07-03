@@ -232,7 +232,7 @@ def get_schema_node_name_from_schema_having_an_item_id(
 ) -> str:
   item_id = _get_item_id(schema_item)
   assert item_id is not None
-  return kd.encode_itemid(item_id).to_py()
+  return kd.encode_itemid(item_id).to_py()  # pyrefly: ignore[missing-attribute]
 
 
 def get_schema_node_name(
@@ -290,7 +290,7 @@ def get_schema_node_name(
   """
   child_schema_itemid = _get_item_id(child_schema_item)
   if child_schema_itemid is not None:
-    return kd.encode_itemid(child_schema_itemid).to_py()
+    return kd.encode_itemid(child_schema_itemid).to_py()  # pyrefly: ignore[missing-attribute]
 
   if child_schema_item.is_primitive_schema() or child_schema_item in [
       kd.ITEMID,
@@ -481,7 +481,7 @@ def _analyze_schema(
             (parent_name, child_name)
         )
         if existing_relationship_bag is not None:
-          new_relationship_bag = kd.bags.updated(
+          new_relationship_bag = kd.bags.updated(  # pyrefly: ignore[missing-attribute]
               new_relationship_bag, existing_relationship_bag
           ).merge_fallbacks()
         parent_and_child_to_schema_bag[(parent_name, child_name)] = (
@@ -579,7 +579,7 @@ def _get_converse_relation(
   for x, ys in relation.items():
     for y in ys:
       result[y].add(x)
-  return result
+  return result  # pyrefly: ignore[bad-return]
 
 
 def _get_transitive_closure_image(
@@ -631,7 +631,7 @@ class SchemaHelper:
     self._parent_and_child_to_schema_bag = (
         artifacts.parent_and_child_to_schema_bag
     )
-    self._child_to_parent_graph = _get_converse_relation(artifacts.schema_graph)
+    self._child_to_parent_graph = _get_converse_relation(artifacts.schema_graph)  # pyrefly: ignore[bad-argument-type]
 
   def get_schema(self) -> kd.types.SchemaItem:
     return self._schema
@@ -672,7 +672,7 @@ class SchemaHelper:
     for sp in schema_node_names:
       self._check_is_valid_schema_node_name(sp)
     return _get_transitive_closure_image(
-        self._parent_to_child_graph, schema_node_names
+        self._parent_to_child_graph, schema_node_names  # pyrefly: ignore[bad-argument-type]
     )
 
   def is_valid_schema_node_name(self, schema_node_name: str) -> bool:
@@ -852,7 +852,7 @@ class SchemaHelper:
         if c in schema_node_names
         and (p == _NO_PARENT_MARKER or p in schema_node_names)
     ]
-    return kd.bags.updated(
+    return kd.bags.updated(  # pyrefly: ignore[missing-attribute]
         *(augmented_stub_bags + minimal_bags_capturing_relationships)
     ).merge_fallbacks()
 

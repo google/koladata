@@ -43,7 +43,7 @@ class BareRootInitialDataManager(
   @classmethod
   def create_new(cls, root_item: kd.types.DataItem | None = None) -> Self:
     if root_item is None:
-      root_item = kd.new()
+      root_item = kd.new()  # pyrefly: ignore[missing-attribute]
 
     # Get rid of data that happens to be inside the DataBag of root_item, but
     # that is not referenced (transitively) by the root_item.
@@ -58,7 +58,7 @@ class BareRootInitialDataManager(
       raise ValueError(
           f'the root must be a scalar, i.e. a DataItem. Got: {root_item}'
       )
-    if not kd.has(root_item):
+    if not kd.has(root_item):  # pyrefly: ignore[missing-attribute]
       raise ValueError(f'the root must be present. Got: {root_item}')
     root_schema = root_item.get_schema()
     if not root_schema.is_entity_schema():
@@ -70,7 +70,7 @@ class BareRootInitialDataManager(
     # Checks that the root schema is acceptable, e.g. that it does not contain
     # non-primitive metadata attributes:
     schema_helper = schema_helper_lib.SchemaHelper(root_schema)
-    return BareRootInitialDataManager(
+    return BareRootInitialDataManager(  # pyrefly: ignore[bad-return]
         internal_call=_INTERNAL_CALL,
         root_item=root_item,
         schema_helper=schema_helper,
@@ -143,7 +143,7 @@ class BareRootInitialDataManager(
       self, schema_node_names: Collection[str]
   ) -> kd.types.DataBag:
     if not schema_node_names:
-      return kd.bag()
+      return kd.bag()  # pyrefly: ignore[missing-attribute]
 
     invalid_schema_node_names = (
         set(schema_node_names) - self.get_all_schema_node_names()

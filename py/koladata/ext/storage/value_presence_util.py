@@ -32,16 +32,16 @@ from koladata import kd
 # checking for presence, so it is important that the sentinel values are all
 # present. Presence is tested in value_presence_util_test.py.
 _PRESENT_SENTINELS_LIST = [
-    (kd.INT32, kd.int32(1)),
-    (kd.INT64, kd.int64(1)),
-    (kd.FLOAT32, kd.float32(1)),
-    (kd.FLOAT64, kd.float64(1)),
-    (kd.STRING, kd.item('')),
-    (kd.BYTES, kd.item(b'')),
-    (kd.BOOLEAN, kd.item(True, schema=kd.BOOLEAN)),
+    (kd.INT32, kd.int32(1)),  # pyrefly: ignore[missing-attribute]
+    (kd.INT64, kd.int64(1)),  # pyrefly: ignore[missing-attribute]
+    (kd.FLOAT32, kd.float32(1)),  # pyrefly: ignore[missing-attribute]
+    (kd.FLOAT64, kd.float64(1)),  # pyrefly: ignore[missing-attribute]
+    (kd.STRING, kd.item('')),  # pyrefly: ignore[missing-attribute]
+    (kd.BYTES, kd.item(b'')),  # pyrefly: ignore[missing-attribute]
+    (kd.BOOLEAN, kd.item(True, schema=kd.BOOLEAN)),  # pyrefly: ignore[missing-attribute]
     (kd.MASK, kd.present),
     (kd.EXPR, kd.expr.pack_expr(kd.I.x)),
-    (kd.ITEMID, kd.new_itemid()),
+    (kd.ITEMID, kd.new_itemid()),  # pyrefly: ignore[missing-attribute]
     (kd.SCHEMA, kd.INT32),
 ]
 # Unfortunately Python dicts cannot use DataItems as keys and work properly.
@@ -61,9 +61,9 @@ def _get_present_sentinel_value(
   if schema.is_entity_schema():
     return cast(kd.types.DataItem, schema.new())
   if schema.is_list_schema():
-    return cast(kd.types.DataItem, kd.list(schema=schema))
+    return cast(kd.types.DataItem, kd.list(schema=schema))  # pyrefly: ignore[missing-attribute]
   if schema.is_dict_schema():
-    return cast(kd.types.DataItem, kd.dict(schema=schema))
+    return cast(kd.types.DataItem, kd.dict(schema=schema))  # pyrefly: ignore[missing-attribute]
   return _PRESENT_SENTINELS[str(schema)]
 
 
@@ -96,7 +96,7 @@ def get_present_mask(
     A mask with the same shape as entity_ds.
   """
   _check_has_entity_schema_with_attr(entity_ds, attr_name)
-  return kd.has(kd.maybe(entity_ds, attr_name))
+  return kd.has(kd.maybe(entity_ds, attr_name))  # pyrefly: ignore[missing-attribute]
 
 
 def get_missing_mask(
@@ -119,15 +119,15 @@ def get_missing_mask(
   if attr_schema == kd.NONE:
     # The sentinel values used below are defined only for non-NONE schemas. So
     # we return early with the result when the schema is NONE.
-    return kd.expand_to_shape(
-        kd.slice([], schema=kd.MASK), entity_ds.get_shape()
+    return kd.expand_to_shape(  # pyrefly: ignore[missing-attribute]
+        kd.slice([], schema=kd.MASK), entity_ds.get_shape()  # pyrefly: ignore[missing-attribute]
     )
   present_mask = get_present_mask(entity_ds, attr_name)
   ds_with_missing_or_removed_attr = entity_ds & ~present_mask
   # ds_with_missing_or_removed_attr.get_attr(attr_name) returns only missing and
   # removed values.
   sentinel_value = _get_present_sentinel_value(attr_schema)
-  fallback_bag = kd.attrs(
+  fallback_bag = kd.attrs(  # pyrefly: ignore[missing-attribute]
       ds_with_missing_or_removed_attr, **{attr_name: sentinel_value}
   )
   return get_present_mask(
@@ -151,7 +151,7 @@ def get_removed_mask(
     A mask with the same shape as entity_ds.
   """
   return (
-      kd.has(entity_ds)
+      kd.has(entity_ds)  # pyrefly: ignore[missing-attribute]
       & ~get_present_mask(entity_ds, attr_name)
       & ~get_missing_mask(entity_ds, attr_name)
   )
@@ -186,10 +186,10 @@ def has_info_about_list_items(
     # append sentinel_value to the existing list items in a fallback bag, and we
     # will be able to observe a difference in the length of the list items (when
     # there is info about them) even when we append a missing value.
-    sentinel_value = kd.item(None, schema=kd.NONE)
+    sentinel_value = kd.item(None, schema=kd.NONE)  # pyrefly: ignore[missing-attribute]
   else:
     sentinel_value = _get_present_sentinel_value(item_schema)
-  fallback_bag = kd.list_append_update(list_ds, sentinel_value)
-  return kd.has(list_ds) & (
-      kd.lists.size(list_ds) == kd.lists.size(list_ds.enriched(fallback_bag))
+  fallback_bag = kd.list_append_update(list_ds, sentinel_value)  # pyrefly: ignore[missing-attribute]
+  return kd.has(list_ds) & (  # pyrefly: ignore[missing-attribute]
+      kd.lists.size(list_ds) == kd.lists.size(list_ds.enriched(fallback_bag))  # pyrefly: ignore[missing-attribute]
   )

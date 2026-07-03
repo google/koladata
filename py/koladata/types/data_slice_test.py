@@ -514,7 +514,7 @@ class DataSliceTest(parameterized.TestCase):
     )
 
   def test_debug_repr_with_large_expr_quote(self):
-    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))
+    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))  # pyrefly: ignore[no-matching-overload]
     self.assertEqual(
         expr_slice._debug_repr(),
         'DataItem('
@@ -757,7 +757,7 @@ class DataSliceTest(parameterized.TestCase):
   def test_repr_large_schema(self):
     db = bag()
     attrs = {f'x{i:02d}': 1 for i in range(25)}
-    x = db.new(**attrs)
+    x = db.new(**attrs)  # pyrefly: ignore[bad-argument-type]
     schema = x.get_schema()
     bag_id = '$' + str(db.fingerprint)[-4:]
 
@@ -789,7 +789,7 @@ class DataSliceTest(parameterized.TestCase):
   def test_repr_entity_with_large_schema(self):
     db = bag()
     attrs = {f'x{i:02d}': i for i in range(25)}
-    x = db.new(**attrs)
+    x = db.new(**attrs)  # pyrefly: ignore[bad-argument-type]
     bag_id = '$' + str(db.fingerprint)[-4:]
 
     expected = f"""DataItem(Entity(
@@ -1072,7 +1072,7 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equivalent(x.a, ds(1))
 
   def test_updated(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
 
     db1 = bag()
     db1.merge_inplace(schema.get_bag())
@@ -1660,7 +1660,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             r'object schema is missing for the DataItem'
         ),
     ):
-      del obj.with_bag(bag()).a
+      del obj.with_bag(bag()).a  # pyrefly: ignore[missing-attribute]
 
   def test_set_get_attr_slice_of_objects_missing_schema_attr(self):
     db = bag()
@@ -1687,13 +1687,13 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             re.escape('object schema(s) are missing')
         ),
     ):
-      del obj.a
+      del obj.a  # pyrefly: ignore[missing-attribute]
 
   def test_repr_with_removed(self):
     o = bag().obj(x=1, y=2)
     o.z = 3
     self.assertEqual(str(o), 'Obj(x=1, y=2, z=3)')
-    del o.z
+    del o.z  # pyrefly: ignore[missing-attribute]
     self.assertEqual(str(o), 'Obj(x=1, y=2)')
 
   def test_set_get_attr_object_wrong_schema_attr(self):
@@ -1722,7 +1722,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
             )
         ),
     ):
-      del obj.a
+      del obj.a  # pyrefly: ignore[missing-attribute]
 
   def test_set_attr_merging(self):
     db1 = bag()
@@ -1745,7 +1745,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     with self.assertRaisesRegex(
         AttributeError, r'attribute \'qtype\'.*is not writable'
     ):
-      x.qtype = 42
+      x.qtype = 42  # pyrefly: ignore[read-only]
     # fingerprint.
     x.set_attr('fingerprint', 42)
     testing.assert_equal(
@@ -1754,7 +1754,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     with self.assertRaisesRegex(
         AttributeError, r'attribute \'fingerprint\'.*is not writable'
     ):
-      x.fingerprint = 42
+      x.fingerprint = 42  # pyrefly: ignore[read-only]
     # DataSlice's specific property `db`.
     x.db = 42
     testing.assert_equal(x.db, ds(42).with_bag(x.get_bag()))
@@ -1825,7 +1825,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_clone_schema_with_removed_attr(self):
     sc1 = bag().new_schema(x=schema_constants.INT32, y=schema_constants.INT32)
     sc2 = sc1.fork_bag()
-    del sc2.x
+    del sc2.x  # pyrefly: ignore[missing-attribute]
     sc3 = sc2.clone()
     testing.assert_equal(sc3.y.no_bag(), schema_constants.INT32)
 
@@ -1939,12 +1939,12 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
     with self.subTest('entity'):
       e = db.new(a=1, b=2)
-      del e.a
+      del e.a  # pyrefly: ignore[missing-attribute]
       testing.assert_equal(e.a, ds(None, schema_constants.INT32).with_bag(db))
       testing.assert_equal(
           e.a.get_schema(), schema_constants.INT32.with_bag(db)
       )
-      del e.get_schema().b
+      del e.get_schema().b  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesWithPredicateMatch(
           AttributeError,
           arolla.testing.any_cause_message_regex(
@@ -1966,7 +1966,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del e.get_schema().c
+        del e.get_schema().c  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -1977,11 +1977,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del e.c
+        del e.c  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('object'):
       o = db.obj(a=1, b=2)
-      del o.a
+      del o.a  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesWithPredicateMatch(
           AttributeError,
           arolla.testing.any_cause_message_regex(
@@ -1993,7 +1993,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
           ),
       ):
         _ = o.a
-      del o.get_attr('__schema__').b
+      del o.get_attr('__schema__').b  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -2004,7 +2004,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del o.b
+        del o.b  # pyrefly: ignore[missing-attribute]
       with self.assertRaisesWithPredicateMatch(
           ValueError,
           arolla.testing.any_cause_message_regex(
@@ -2015,7 +2015,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
               )
           ),
       ):
-        del o.c
+        del o.c  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesWithPredicateMatch(
         AttributeError,
@@ -2974,7 +2974,7 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
       del l[0:2]
 
   def test_list_pop(self):
-    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()
+    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()  # pyrefly: ignore[missing-attribute]
     testing.assert_equal(l.pop(1), ds([2, 5]).with_bag(l.get_bag()))
     testing.assert_equal(l.pop(ds([1, -1])), ds([3, 4]).with_bag(l.get_bag()))
     testing.assert_equal(l[:], ds([[1], []]).with_bag(l.get_bag()))
@@ -3515,7 +3515,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       # With auto-boxing
       testing.assert_equal(x == 2, ds([None, arolla.present(), None]))
       testing.assert_equal(  # pytype: disable=wrong-arg-types
-          2 == x, ds([None, arolla.present(), None])
+          2 == x, ds([None, arolla.present(), None])  # pyrefly: ignore[bad-argument-type]
       )
     with self.subTest('ne'):
       testing.assert_equal(
@@ -3526,7 +3526,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
           x != 2, ds([arolla.present(), None, arolla.present()])
       )
       testing.assert_equal(  # pytype: disable=wrong-arg-types
-          2 != x, ds([arolla.present(), None, arolla.present()])
+          2 != x, ds([arolla.present(), None, arolla.present()])  # pyrefly: ignore[bad-argument-type]
       )
     with self.subTest('gt'):
       testing.assert_equal(
@@ -3591,7 +3591,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       testing.assert_equal(~mask, ds([None, arolla.present(), None]))
     with self.subTest('lshift'):
       o = fns.new(x=1, y=2)
-      db = kde.attrs(o, x=3, z=4).eval()
+      db = kde.attrs(o, x=3, z=4).eval()  # pyrefly: ignore[missing-attribute]
       testing.assert_equal((o << db).no_bag(), o.no_bag())
       testing.assert_equivalent(
           o << db, fns.new(x=3, y=2, z=4), schemas_equality=False
@@ -3608,7 +3608,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
         _ = o << o
     with self.subTest('rshift'):
       o = fns.new(x=1, y=2)
-      db = kde.attrs(o, x=3, z=4).eval()
+      db = kde.attrs(o, x=3, z=4).eval()  # pyrefly: ignore[missing-attribute]
       testing.assert_equal((o >> db).no_bag(), o.no_bag())
       testing.assert_equivalent(
           o >> db, fns.new(x=1, y=2, z=4), schemas_equality=False
@@ -3688,8 +3688,8 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
       bag().obj(x=1).with_schema_from_obj()
 
   def test_follow(self):
-    x = kde.new().eval()
-    testing.assert_equal(kde.nofollow(x).eval().follow(), x)
+    x = kde.new().eval()  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(kde.nofollow(x).eval().follow(), x)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()
 
@@ -3855,7 +3855,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     with self.assertRaisesRegex(
         TypeError, "data_slice.DataSlice' object is not callable"
     ):
-      _ = ds([1, 2, 3])()
+      _ = ds([1, 2, 3])()  # pyrefly: ignore[not-callable]
 
   def test_with_name(self):
     x = ds([1, 2, 3])
@@ -4263,11 +4263,11 @@ class DataSliceFallbackTest(parameterized.TestCase):
         TypeError,
         'slice indices must be integers or None or have an __index__ method',
     ):
-      _ = [4, 5, 6][ds([4]) : 7]
+      _ = [4, 5, 6][ds([4]) : 7]  # pyrefly: ignore[bad-index]
     with self.assertRaisesRegex(
         TypeError, 'argument must be a string or a real number'
     ):
-      float(ds([3.14]))
+      float(ds([3.14]))  # pyrefly: ignore[bad-argument-type]
 
   def test_get_present_count(self):
     testing.assert_equal(ds(57).get_present_count(), ds(1, INT64))
@@ -4406,7 +4406,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(imploded.explode(ndim).no_bag(), x)
 
   def test_implode_itemid(self):
-    itemid = kde.allocation.new_listid_shaped_as(ds([1, 2])).eval()
+    itemid = kde.allocation.new_listid_shaped_as(ds([1, 2])).eval()  # pyrefly: ignore[missing-attribute]
     x = ds([[1, 2], [3]])
     imploded = x.implode(1, itemid=itemid)
     testing.assert_equal(imploded.get_itemid().no_bag(), itemid)
@@ -4462,12 +4462,12 @@ class DataSliceSlicingTest(parameterized.TestCase):
 
   def test_iter(self):
     d = ds([1, 2, 3])
-    for idx, el in enumerate(d.S):
+    for idx, el in enumerate(d.S):  # pyrefly: ignore[bad-argument-type]
       self.assertEqual(el, d.S[idx])
 
   def test_no_infinite_loop_in_iter(self):
     x = ds([[1, 2], [3]])
-    for i, _ in enumerate(x.S):
+    for i, _ in enumerate(x.S):  # pyrefly: ignore[bad-argument-type]
       if i > 30:
         raise RuntimeError('infinite loop when iterating over x.S')
 
@@ -4701,7 +4701,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     d = db.dict({1: 2}).freeze_bag()
 
     testing.assert_equal(
-        d[I.x].eval(x=1),
+        d[I.x].eval(x=1),  # pyrefly: ignore[bad-index]
         ds(2).with_bag(d.get_bag())
     )
 
@@ -4710,7 +4710,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     l = db.list([1, 2]).freeze_bag()
 
     testing.assert_equal(
-        l[I.x].eval(x=1),
+        l[I.x].eval(x=1),  # pyrefly: ignore[bad-index]
         ds(2).with_bag(l.get_bag())
     )
 

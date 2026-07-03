@@ -60,21 +60,21 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     return manager
 
   def test_simple_glueing(self):
-    ds1 = kd.new(
-        u=kd.uu(seed='fixed_seed').with_attrs(d=1),
-        x=kd.list([1, 2, 3]),
+    ds1 = kd.new(  # pyrefly: ignore[missing-attribute]
+        u=kd.uu(seed='fixed_seed').with_attrs(d=1),  # pyrefly: ignore[missing-attribute]
+        x=kd.list([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
         y='Hello World!',
-        z=kd.list([kd.new(a=1, schema='foo'), kd.new(a=2, schema='foo')]),
+        z=kd.list([kd.new(a=1, schema='foo'), kd.new(a=2, schema='foo')]),  # pyrefly: ignore[missing-attribute]
     )
 
-    ds2 = kd.new(
-        v=kd.uu(seed='fixed_seed').with_attrs(d=2),
+    ds2 = kd.new(  # pyrefly: ignore[missing-attribute]
+        v=kd.uu(seed='fixed_seed').with_attrs(d=2),  # pyrefly: ignore[missing-attribute]
         x='foo bar baz',
         y=2,
-        z=kd.list([kd.new(a=3, schema='foo'), kd.new(a=4, schema='foo')]),
+        z=kd.list([kd.new(a=3, schema='foo'), kd.new(a=4, schema='foo')]),  # pyrefly: ignore[missing-attribute]
     )
 
-    glue_ds = kd.new(left=ds1.no_bag(), right=ds2.no_bag())
+    glue_ds = kd.new(left=ds1.no_bag(), right=ds2.no_bag())  # pyrefly: ignore[missing-attribute]
 
     manager1 = self.create_manager(ds1)
     manager2 = self.create_manager(ds2)
@@ -98,8 +98,8 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     )
 
     # We can access data from the composite in the usual way with views.
-    kd.testing.assert_equivalent(root.left.z[:].a.get(), kd.slice([1, 2]))
-    kd.testing.assert_equivalent(root.right.z[:].a.get(), kd.slice([3, 4]))
+    kd.testing.assert_equivalent(root.left.z[:].a.get(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equivalent(root.right.z[:].a.get(), kd.slice([3, 4]))  # pyrefly: ignore[missing-attribute]
 
     # Data indexing and retrieval is based on the schema. If we ask for a root
     # in which root.left.z is populated, we will also get root.right.z
@@ -112,15 +112,15 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     kd.testing.assert_equivalent(
         root.get(populate_including_descendants={root.left.z}),
         glue_ds.enriched(
-            kd.attrs(glue_ds.left, z=ds1.z), kd.attrs(glue_ds.right, z=ds2.z)
+            kd.attrs(glue_ds.left, z=ds1.z), kd.attrs(glue_ds.right, z=ds2.z)  # pyrefly: ignore[missing-attribute]
         ),
         ids_equality=True,
     )
 
     # When itemids are the same across the component managers, the data of the
     # earlier managers in the list take precedence. Aliasing is taken care of.
-    kd.testing.assert_equivalent(root.left.u.d.get(), kd.item(1))
-    kd.testing.assert_equivalent(root.right.v.d.get(), kd.item(1))
+    kd.testing.assert_equivalent(root.left.u.d.get(), kd.item(1))  # pyrefly: ignore[missing-attribute]
+    kd.testing.assert_equivalent(root.right.v.d.get(), kd.item(1))  # pyrefly: ignore[missing-attribute]
 
     # The composite manager is isolated from updates to the component managers.
     manager1_root = DataSliceManagerView(manager1)
@@ -130,7 +130,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         ids_equality=True,
     )
     # Update the manager1 by adding a new attribute f to its root:
-    manager1_root.f = kd.item(1)
+    manager1_root.f = kd.item(1)  # pyrefly: ignore[missing-attribute]
     with self.assertRaises(AssertionError):
       kd.testing.assert_equivalent(
           manager1_root.get(populate_including_descendants={manager1_root}),
@@ -155,11 +155,11 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     )
 
     # The composite manager can be updated as usual.
-    root.g = kd.item(77), 'Set scalar attribute g to 77'
+    root.g = kd.item(77), 'Set scalar attribute g to 77'  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         root.get(populate_including_descendants={root}),
         glue_ds.enriched(ds1.get_bag(), ds2.get_bag()).updated(
-            kd.attrs(glue_ds, g=77)
+            kd.attrs(glue_ds, g=77)  # pyrefly: ignore[missing-attribute]
         ),
         ids_equality=True,
     )
@@ -193,7 +193,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
             composite_manager.get_persistence_directory(),
         ).get_data_slice(populate_including_descendants={parse_dsp('')}),
         glue_ds.enriched(ds1.get_bag(), ds2.get_bag()).updated(
-            kd.attrs(glue_ds, g=77)
+            kd.attrs(glue_ds, g=77)  # pyrefly: ignore[missing-attribute]
         ),
         ids_equality=True,
     )
@@ -219,34 +219,34 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
 
     # It can also be filtered as usual. Here, we filter inside the branch.
     branch_left_z_a = branch_root.left.z[:].a
-    kd.testing.assert_equivalent(branch_left_z_a.get(), kd.slice([1, 2]))
+    kd.testing.assert_equivalent(branch_left_z_a.get(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
     branch_left_z_a.filter(branch_left_z_a.get() % 2 == 0)
-    kd.testing.assert_equivalent(branch_left_z_a.get(), kd.slice([2]))
+    kd.testing.assert_equivalent(branch_left_z_a.get(), kd.slice([2]))  # pyrefly: ignore[missing-attribute]
 
     # The filtering does not affect the trunk - branches are isolated as usual.
-    kd.testing.assert_equivalent(root.left.z[:].a.get(), kd.slice([1, 2]))
+    kd.testing.assert_equivalent(root.left.z[:].a.get(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
 
   def test_join_operations(self):
-    query1_schema = kd.schema.new_schema()
-    doc1_schema = kd.schema.new_schema()
+    query1_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    doc1_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
     new_query1 = query1_schema.new
     new_doc1 = doc1_schema.new
-    ds1 = kd.new(
-        query=kd.list([
+    ds1 = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.list([  # pyrefly: ignore[missing-attribute]
             new_query1(
                 id=1,
                 text='text1',
                 doc=new_doc1(
-                    id=kd.slice([10, 11, 12, 13]),
-                    title=kd.slice(['d10', 'd11', 'd12', 'd13']),
+                    id=kd.slice([10, 11, 12, 13]),  # pyrefly: ignore[missing-attribute]
+                    title=kd.slice(['d10', 'd11', 'd12', 'd13']),  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
             new_query1(
                 id=2,
                 text='text2',
                 doc=new_doc1(
-                    id=kd.slice([20, 21, 22, 23]),
-                    title=kd.slice(['d20', 'd21', 'd22', 'd23']),
+                    id=kd.slice([20, 21, 22, 23]),  # pyrefly: ignore[missing-attribute]
+                    title=kd.slice(['d20', 'd21', 'd22', 'd23']),  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
         ])
@@ -256,34 +256,34 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
 
     # To illustrate that we can join DataSlices with different schemas, we use
     # different schemas for the queries and docs here.
-    query2_schema = kd.schema.new_schema()
-    doc2_schema = kd.schema.new_schema()
+    query2_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
+    doc2_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
     new_query2 = query2_schema.new
     new_doc2 = doc2_schema.new
-    ds2 = kd.new(
-        query=kd.list([
+    ds2 = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.list([  # pyrefly: ignore[missing-attribute]
             new_query2(
                 id=3,
                 text='text2',
                 doc=new_doc2(
-                    id=kd.slice([30, 32, 31, 20, 11]),
-                    x=kd.slice([130, 132, 131, 120, 111]),
+                    id=kd.slice([30, 32, 31, 20, 11]),  # pyrefly: ignore[missing-attribute]
+                    x=kd.slice([130, 132, 131, 120, 111]),  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
             new_query2(
                 id=4,
                 text='text4',
                 doc=new_doc2(
-                    id=kd.slice([20, 21, 32, 12]),
-                    x=kd.slice([120, 121, 132, 112]),
+                    id=kd.slice([20, 21, 32, 12]),  # pyrefly: ignore[missing-attribute]
+                    x=kd.slice([120, 121, 132, 112]),  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
             new_query2(
                 id=5,
                 text='text2',
                 doc=new_doc2(
-                    id=kd.slice([30, 20, 23]),
-                    x=kd.slice([130, 120, 123]),
+                    id=kd.slice([30, 20, 23]),  # pyrefly: ignore[missing-attribute]
+                    x=kd.slice([130, 120, 123]),  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
         ])
@@ -314,14 +314,14 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # Step 2. Join the skeletons using standard Koda operations. The result is
     # a "join skeleton" - an ordinary non-incremental Koda DataSlice.
     left_join_skeleton = skeleton1.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             skeleton1.query[:].doc[:],
-            joined_docs=kd.translate_group(
-                keys_to=kd.uuid(
+            joined_docs=kd.translate_group(  # pyrefly: ignore[missing-attribute]
+                keys_to=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton1.query[:].text,
                     key_part2=skeleton1.query[:].doc[:].id,
                 ),
-                keys_from=kd.uuid(
+                keys_from=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton2.query[:].text,
                     key_part2=skeleton2.query[:].doc[:].id,
                 ).flatten(),
@@ -349,11 +349,11 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # full data of the join incrementally and on demand.
     kd.testing.assert_equivalent(
         root.query[:].doc[:].joined_docs[:].x.get(),
-        kd.slice([[[], [], [], []], [[120, 120], [], [], [123]]]),
+        kd.slice([[[], [], [], []], [[120, 120], [], [], [123]]]),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         root.query[:].doc[:].joined_docs[:].query.id.get(),
-        kd.slice([[[], [], [], []], [[3, 5], [], [], [5]]]),
+        kd.slice([[[], [], [], []], [[3, 5], [], [], [5]]]),  # pyrefly: ignore[missing-attribute]
     )
 
     # We saw the left join above. It's easy to use filtering to obtain the inner
@@ -365,7 +365,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         # `joined_docs.get()`. The reason is that `joined_docs.get()` returns
         # only the list itemids, and they don't have any information about the
         # sizes of the lists.
-        kd.lists.size(
+        kd.lists.size(  # pyrefly: ignore[missing-attribute]
             branch_root.query[:].doc[:].joined_docs[:].get().implode()
         )
         > 0
@@ -373,21 +373,21 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # Now it represents the inner join, from the perspective of the left side:
     kd.testing.assert_equivalent(
         branch_root.query[:].doc[:].joined_docs[:].x.get(),
-        kd.slice([[[120, 120], [123]]]),
+        kd.slice([[[120, 120], [123]]]),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         branch_root.query[:].doc[:].joined_docs[:].query.id.get(),
-        kd.slice([[[3, 5], [5]]]),
+        kd.slice([[[3, 5], [5]]]),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         branch_root.query[:].id.get(),
-        kd.slice([2]),
+        kd.slice([2]),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         branch_root.query[:].doc[:].id.get(),
-        kd.slice([[20, 23]]),
+        kd.slice([[20, 23]]),  # pyrefly: ignore[missing-attribute]
     )
-    left_join_row_schema = kd.schema.new_schema()
+    left_join_row_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         left_join_row_schema.new(
             left_query_id=branch_root.query[:].id.get(),
@@ -396,7 +396,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
                 branch_root.query[:].doc[:].joined_docs[:].query.id.get()
             ),
         ).flatten(),
-        kd.slice([
+        kd.slice([  # pyrefly: ignore[missing-attribute]
             left_join_row_schema.new(
                 left_query_id=2,
                 doc_id=20,
@@ -428,14 +428,14 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # that the operation here is the same as for the left join but it switches
     # the roles of skeleton1 and skeleton2.
     right_join_skeleton = skeleton2.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             skeleton2.query[:].doc[:],
-            joined_docs=kd.translate_group(
-                keys_to=kd.uuid(
+            joined_docs=kd.translate_group(  # pyrefly: ignore[missing-attribute]
+                keys_to=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton2.query[:].text,
                     key_part2=skeleton2.query[:].doc[:].id,
                 ),
-                keys_from=kd.uuid(
+                keys_from=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton1.query[:].text,
                     key_part2=skeleton1.query[:].doc[:].id,
                 ).flatten(),
@@ -462,7 +462,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # full data of the join incrementally and on demand.
     kd.testing.assert_equivalent(
         root.query[:].doc[:].joined_docs[:].title.get(),
-        kd.slice([
+        kd.slice([  # pyrefly: ignore[missing-attribute]
             [[], [], [], ['d20'], []],
             [[], [], [], []],
             [[], ['d20'], ['d23']],
@@ -470,7 +470,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     )
     kd.testing.assert_equivalent(
         root.query[:].doc[:].joined_docs[:].query.id.get(),
-        kd.slice([[[], [], [], [2], []], [[], [], [], []], [[], [2], [2]]]),
+        kd.slice([[[], [], [], [2], []], [[], [], [], []], [[], [2], [2]]]),  # pyrefly: ignore[missing-attribute]
     )
 
     # We can again user filtering to obtain the inner join, this time from the
@@ -478,7 +478,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     manager_branch = right_join_manager.branch(self.create_tempdir().full_path)
     branch_root = DataSliceManagerView(manager_branch)
     branch_root.query[:].doc[:].filter(
-        kd.lists.size(
+        kd.lists.size(  # pyrefly: ignore[missing-attribute]
             branch_root.query[:].doc[:].joined_docs[:].get().implode()
         )
         > 0
@@ -486,9 +486,9 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     # Now it represents the inner join, from the perspective of the right side:
     kd.testing.assert_equivalent(
         branch_root.query[:].doc[:].x.get(),
-        kd.slice([[120], [120, 123]]),
+        kd.slice([[120], [120, 123]]),  # pyrefly: ignore[missing-attribute]
     )
-    right_join_row_schema = kd.schema.new_schema()
+    right_join_row_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         right_join_row_schema.new(
             left_query_id=(
@@ -497,7 +497,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
             doc_id=branch_root.query[:].doc[:].id.get(),
             right_query_id=branch_root.query[:].id.get(),
         ).flatten(),
-        kd.slice([
+        kd.slice([  # pyrefly: ignore[missing-attribute]
             right_join_row_schema.new(
                 left_query_id=2,
                 doc_id=20,
@@ -518,22 +518,22 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
 
     # It is also easy to have an inner join that is not from the perspective of
     # any particular side. Here is an example:
-    inner_join_skeleton = kd.new(
-        doc_pair=kd.new(
+    inner_join_skeleton = kd.new(  # pyrefly: ignore[missing-attribute]
+        doc_pair=kd.new(  # pyrefly: ignore[missing-attribute]
             left=skeleton1.query[:].doc[:],
-            right=kd.translate_group(
-                keys_to=kd.uuid(
+            right=kd.translate_group(  # pyrefly: ignore[missing-attribute]
+                keys_to=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton1.query[:].text,
                     key_part2=skeleton1.query[:].doc[:].id,
                 ),
-                keys_from=kd.uuid(
+                keys_from=kd.uuid(  # pyrefly: ignore[missing-attribute]
                     key_part1=skeleton2.query[:].text,
                     key_part2=skeleton2.query[:].doc[:].id,
                 ).flatten(),
                 values_from=skeleton2.query[:].doc[:].no_bag().flatten(),
             ),
         )
-        .select(lambda doc_pair: kd.has(doc_pair.left) & kd.has(doc_pair.right))
+        .select(lambda doc_pair: kd.has(doc_pair.left) & kd.has(doc_pair.right))  # pyrefly: ignore[missing-attribute]
         .flatten()
         .implode()
     )
@@ -553,14 +553,14 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         inner_join_doc_pair.left.id.get(),
         inner_join_doc_pair.right.id.get(),
     )
-    inner_join_row_schema = kd.schema.new_schema()
+    inner_join_row_schema = kd.schema.new_schema()  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         inner_join_row_schema.new(
             left_query_id=inner_join_doc_pair.left.query.id.get(),
             doc_id=inner_join_doc_pair.left.id.get(),
             right_query_id=inner_join_doc_pair.right.query.id.get(),
         ),
-        kd.slice([
+        kd.slice([  # pyrefly: ignore[missing-attribute]
             inner_join_row_schema.new(
                 left_query_id=2,
                 doc_id=20,
@@ -596,12 +596,12 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
         ),
     ):
       CompositeInitialDataManager(
-          internal_call=object(), managers=[self.create_manager(kd.new())]
+          internal_call=object(), managers=[self.create_manager(kd.new())]  # pyrefly: ignore[missing-attribute]
       )
 
   def test_serialization_to_non_empty_dir_raises(self):
     manager = CompositeInitialDataManager.create_new(
-        managers=[self.create_manager(kd.new())]
+        managers=[self.create_manager(kd.new())]  # pyrefly: ignore[missing-attribute]
     )
 
     persistence_dir = self.create_tempdir().full_path
@@ -618,7 +618,7 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
 
   def test_get_data_bag_for_invalid_schema_node_names_raises(self):
     manager = CompositeInitialDataManager.create_new(
-        managers=[self.create_manager(kd.new())]
+        managers=[self.create_manager(kd.new())]  # pyrefly: ignore[missing-attribute]
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -629,8 +629,8 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
       manager.get_data_bag_for_schema_node_names(['hohoho!'])
 
   def test_get_description(self):
-    manager1 = self.create_manager(kd.new())
-    manager2 = self.create_manager(kd.new())
+    manager1 = self.create_manager(kd.new())  # pyrefly: ignore[missing-attribute]
+    manager2 = self.create_manager(kd.new())  # pyrefly: ignore[missing-attribute]
     manager = CompositeInitialDataManager.create_new(
         managers=[manager1, manager2]
     )
@@ -643,8 +643,8 @@ class CompositeInitialDataManagerTest(absltest.TestCase):
     )
 
   def test_internal_managers_are_read_only(self):
-    manager1 = self.create_manager(kd.new())
-    manager2 = self.create_manager(kd.new())
+    manager1 = self.create_manager(kd.new())  # pyrefly: ignore[missing-attribute]
+    manager2 = self.create_manager(kd.new())  # pyrefly: ignore[missing-attribute]
     manager = CompositeInitialDataManager.create_new(
         managers=[manager1, manager2]
     )

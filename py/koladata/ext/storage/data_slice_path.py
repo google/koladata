@@ -149,7 +149,7 @@ class DictGetKeys(DataSliceAction):
     return '.get_key_schema()'
 
   def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
-    return kd.attrs(
+    return kd.attrs(  # pyrefly: ignore[missing-attribute]
         schema,
         **{
             '__keys__': stubs_and_minimal_bags_lib.schema_stub(
@@ -186,7 +186,7 @@ class DictGetValues(DataSliceAction):
     return '.get_value_schema()'
 
   def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
-    return kd.attrs(
+    return kd.attrs(  # pyrefly: ignore[missing-attribute]
         schema,
         **{
             '__values__': stubs_and_minimal_bags_lib.schema_stub(
@@ -223,7 +223,7 @@ class ListExplode(DataSliceAction):
     return '.get_item_schema()'
 
   def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
-    return kd.attrs(
+    return kd.attrs(  # pyrefly: ignore[missing-attribute]
         schema,
         **{
             '__items__': stubs_and_minimal_bags_lib.schema_stub(
@@ -242,13 +242,13 @@ def can_be_used_with_dot_syntax_in_data_slice_path_string(
 
 def base64_encoded_attr_name(attr_name: str) -> str:
   """Returns the base64-encoded version of the given attr_name."""
-  return kd.strings.encode_base64(kd.strings.encode(attr_name)).to_py()
+  return kd.strings.encode_base64(kd.strings.encode(attr_name)).to_py()  # pyrefly: ignore[missing-attribute]
 
 
 def decode_base64_encoded_attr_name(b64_encoded_attr_name: str) -> str:
   """Returns the decoded version of the given base64-encoded attr_name."""
-  return kd.strings.decode(
-      kd.strings.decode_base64(b64_encoded_attr_name)
+  return kd.strings.decode(  # pyrefly: ignore[missing-attribute]
+      kd.strings.decode_base64(b64_encoded_attr_name)  # pyrefly: ignore[missing-attribute]
   ).to_py()
 
 
@@ -330,7 +330,7 @@ class GetAttr(DataSliceAction):
       raise IncompatibleSchemaError(
           'getting attributes requires an ENTITY schema'
       )
-    if not kd.any(kd.has_attr(schema, self.attr_name)):
+    if not kd.any(kd.has_attr(schema, self.attr_name)):  # pyrefly: ignore[missing-attribute]
       raise IncompatibleSchemaError(
           f'the schema does not have an attribute named "{self.attr_name}"'
       )
@@ -340,7 +340,7 @@ class GetAttr(DataSliceAction):
     return str(self)
 
   def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
-    return kd.attrs(
+    return kd.attrs(  # pyrefly: ignore[missing-attribute]
         schema,
         **{
             self.attr_name: stubs_and_minimal_bags_lib.schema_stub(

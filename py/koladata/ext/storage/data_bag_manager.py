@@ -567,7 +567,7 @@ class DataBagManager:
         bag_name_to_bag[bn]
         for bn in self.canonical_topological_sorting(bag_name_to_bag.keys())
     ]
-    return kd.bags.updated(*bags)
+    return kd.bags.updated(*bags)  # pyrefly: ignore[missing-attribute]
 
   def _get_dependency_closure(
       self, bag_names: Collection[str], *, with_all_dependents: bool
@@ -600,11 +600,11 @@ class DataBagManager:
     if with_all_dependents:
       bags_to_consider.update(
           self._get_reflexive_and_transitive_closure_image(
-              self._get_reverse_dependency_relation(), bags_to_consider
+              self._get_reverse_dependency_relation(), bags_to_consider  # pyrefly: ignore[bad-argument-type]
           )
       )
     return self._get_reflexive_and_transitive_closure_image(
-        self._get_dependency_relation(), bags_to_consider
+        self._get_dependency_relation(), bags_to_consider  # pyrefly: ignore[bad-argument-type]
     )
 
   def _get_dependency_relation(self) -> dict[str, Collection[str]]:
@@ -617,7 +617,7 @@ class DataBagManager:
     for bag_name, dependencies in self._get_dependency_relation().items():
       for dependency in dependencies:
         result[dependency].add(bag_name)
-    return result
+    return result  # pyrefly: ignore[bad-return]
 
   def _get_reflexive_and_transitive_closure_image(
       self,

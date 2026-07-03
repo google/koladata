@@ -94,7 +94,7 @@ class DataSliceManagerTest(parameterized.TestCase):
         len(actual_available_data_slice_paths),
         len(expected_available_data_slice_paths),
     )
-    expected_available_data_slice_paths = set(
+    expected_available_data_slice_paths = set(  # pyrefly: ignore[bad-assignment]
         data_slice_path_lib.DataSlicePath.parse_from_string(s)
         for s in expected_available_data_slice_paths
     )
@@ -158,11 +158,11 @@ class DataSliceManagerTest(parameterized.TestCase):
         expected_root_dataslice_pytree={},
     )
     # Add some queries with only query_id populated.
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
@@ -191,13 +191,13 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
 
     # Add some docs with only doc_id populated.
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
     )
     self.assert_manager_state(
@@ -247,7 +247,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
@@ -301,7 +301,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.query[:].doc[:]'),
         attr_name='doc_title',
-        attr_value=kd.slice([
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
             ['title0', 'title1', 'title2', None],
             ['title4', 'title5', 'title6'],
         ]),
@@ -603,7 +603,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_update_at_path_can_trigger_loading_from_disk(self, dsm_class):
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'Query',
         query_id=kd.INT32,
         query_text=kd.STRING,
@@ -613,17 +613,17 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([query_schema.new(), query_schema.new()]),
+        attr_value=kd.list([query_schema.new(), query_schema.new()]),  # pyrefly: ignore[missing-attribute]
     )
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_id',
-        attr_value=kd.slice([1, 2]),
+        attr_value=kd.slice([1, 2]),  # pyrefly: ignore[missing-attribute]
     )
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
@@ -650,12 +650,12 @@ class DataSliceManagerTest(parameterized.TestCase):
     global_cache_lib.get_global_cache().clear()
 
     # We can still update attributes of query[:], which triggers its loading.
-    doc_schema = kd.named_schema('Doc', doc_id=kd.INT32, doc_title=kd.STRING)
+    doc_schema = kd.named_schema('Doc', doc_id=kd.INT32, doc_title=kd.STRING)  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            kd.list([
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            kd.list([  # pyrefly: ignore[missing-attribute]
                 doc_schema.new(doc_id=0, doc_title='title0'),
                 doc_schema.new(doc_id=1, doc_title='title1'),
                 doc_schema.new(doc_id=2, doc_title='title2'),
@@ -705,10 +705,10 @@ class DataSliceManagerTest(parameterized.TestCase):
     if isinstance(manager, SimpleInMemoryDataSliceManager):
       # In this case query_id and query_text are also populated.
       query = expected_populated_root_dataslice_pytree['query']
-      query[0]['query_id'] = 1
-      query[0]['query_text'] = 'How tall is Obama'
-      query[1]['query_id'] = 2
-      query[1]['query_text'] = 'How high is the Eiffel tower'
+      query[0]['query_id'] = 1  # pyrefly: ignore[unsupported-operation]
+      query[0]['query_text'] = 'How tall is Obama'  # pyrefly: ignore[unsupported-operation]
+      query[1]['query_id'] = 2  # pyrefly: ignore[unsupported-operation]
+      query[1]['query_text'] = 'How high is the Eiffel tower'  # pyrefly: ignore[unsupported-operation]
     self.assert_manager_state(
         manager,
         available_data_slice_paths=available_data_slice_paths,
@@ -725,14 +725,14 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_add_update_whose_schema_is_recursive_and_data_has_no_cycles(
       self, dsm_class
   ):
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
     tree_root = tree_node_schema.new(
         value='tree_root',
-        children=kd.list([
+        children=kd.list([  # pyrefly: ignore[missing-attribute]
             tree_node_schema.new(value='child1'),
             tree_node_schema.new(value='child2'),
         ]),
@@ -784,7 +784,7 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_recursive_schema_across_two_calls_to_update_with_no_cycles_in_data(
       self, dsm_class
   ):
-    tree_node_schema = kd.named_schema('TreeNode')
+    tree_node_schema = kd.named_schema('TreeNode')  # pyrefly: ignore[missing-attribute]
     tree_root = tree_node_schema.new(value='tree_root')
     child1 = tree_node_schema.new(value='child1')
     child2 = tree_node_schema.new(value='child2')
@@ -823,7 +823,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.tree_root'),
         attr_name='children',
-        attr_value=kd.list([child1, child2]),
+        attr_value=kd.list([child1, child2]),  # pyrefly: ignore[missing-attribute]
     )
     manager_schema = manager.get_schema()
     self.assert_manager_schema_node_names_to_num_bags(
@@ -879,27 +879,27 @@ class DataSliceManagerTest(parameterized.TestCase):
     # But we can continue to add grandchildren. There are currently no
     # grandchildren:
     if isinstance(manager, DataSliceManager):
-      grandchildren_schema = kd.list_schema(
-          kd.named_schema(
+      grandchildren_schema = kd.list_schema(  # pyrefly: ignore[missing-attribute]
+          kd.named_schema(  # pyrefly: ignore[missing-attribute]
               'TreeNode',
               # Note that "value" is not included here, because the user
               # did not request it.
-              children=kd.list_schema(kd.named_schema('TreeNode')),
+              children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
           )
       )
     else:
-      grandchildren_schema = kd.list_schema(
-          kd.named_schema(
+      grandchildren_schema = kd.list_schema(  # pyrefly: ignore[missing-attribute]
+          kd.named_schema(  # pyrefly: ignore[missing-attribute]
               'TreeNode',
               # Note that "value" is included here, because everything is always
               # populated in the SimpleInMemoryDataSliceManager.
               value=kd.STRING,
-              children=kd.list_schema(kd.named_schema('TreeNode')),
+              children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
           )
       )
     kd.testing.assert_equivalent(
         manager.get_data_slice_at(parse_dsp('.tree_root.children[:].children')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             [None, None],
             schema=grandchildren_schema,
         ),
@@ -908,9 +908,9 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.tree_root.children[:]'),
         attr_name='children',
-        attr_value=kd.slice([
-            kd.list([tree_node_schema.new(value='grandchild1')]),
-            kd.list([tree_node_schema.new(value='grandchild2')]),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            kd.list([tree_node_schema.new(value='grandchild1')]),  # pyrefly: ignore[missing-attribute]
+            kd.list([tree_node_schema.new(value='grandchild2')]),  # pyrefly: ignore[missing-attribute]
         ]),
     )
     manager_schema = manager.get_schema()
@@ -936,16 +936,16 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_add_update_whose_schema_is_recursive_and_data_has_cycles(
       self, dsm_class
   ):
-    graph_node_schema = kd.named_schema(
+    graph_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'GraphNode',
         label=kd.STRING,
-        outgoing_edges=kd.list_schema(kd.named_schema('GraphNode')),
+        outgoing_edges=kd.list_schema(kd.named_schema('GraphNode')),  # pyrefly: ignore[missing-attribute]
     )
     node1 = graph_node_schema.new(label='node1')
     node2 = graph_node_schema.new(
-        label='node2', outgoing_edges=kd.list([node1])
+        label='node2', outgoing_edges=kd.list([node1])  # pyrefly: ignore[missing-attribute]
     )
-    node1 = node1.updated(kd.attrs(node1, outgoing_edges=kd.list([node2])))
+    node1 = node1.updated(kd.attrs(node1, outgoing_edges=kd.list([node2])))  # pyrefly: ignore[missing-attribute]
 
     # We have successfully created a cycle in the data:
     self.assertEqual(
@@ -953,7 +953,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     kd.testing.assert_equivalent(
         node1.outgoing_edges[:].outgoing_edges[:].flatten(),
-        kd.slice([node1]),
+        kd.slice([node1]),  # pyrefly: ignore[missing-attribute]
         ids_equality=True,
     )
 
@@ -961,7 +961,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='graph_nodes',
-        attr_value=kd.list([node1, node2]),
+        attr_value=kd.list([node1, node2]),  # pyrefly: ignore[missing-attribute]
     )
 
     max_depth_of_data_slice_paths = 5
@@ -1008,7 +1008,7 @@ class DataSliceManagerTest(parameterized.TestCase):
   ):
     manager = self.new_manager(dsm_class)
 
-    graph_node_schema = kd.named_schema(
+    graph_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'GraphNode',
         label=kd.STRING,
     )
@@ -1016,12 +1016,12 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(at_path=parse_dsp(''), attr_name='node', attr_value=node1)
 
     node2 = graph_node_schema.new(
-        label='node2', outgoing_edges=kd.list([node1])
+        label='node2', outgoing_edges=kd.list([node1])  # pyrefly: ignore[missing-attribute]
     )
     manager.update(
         at_path=parse_dsp('.node'),
         attr_name='outgoing_edges',
-        attr_value=kd.list([node2]),
+        attr_value=kd.list([node2]),  # pyrefly: ignore[missing-attribute]
     )
 
     # We have successfully created a cycle in the data:
@@ -1089,8 +1089,8 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.node'),
         attr_name='incoming_edges',
-        attr_value=kd.list(
-            [node2.stub().with_attrs(incoming_edges=kd.list([node1.stub()]))]
+        attr_value=kd.list(  # pyrefly: ignore[missing-attribute]
+            [node2.stub().with_attrs(incoming_edges=kd.list([node1.stub()]))]  # pyrefly: ignore[missing-attribute]
         ),
     )
     # We have successfully created two cycles in the data:
@@ -1160,7 +1160,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.node'),
         attr_name='another_label',
-        attr_value=kd.item('foo'),
+        attr_value=kd.item('foo'),  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         manager.get_data_slice_at(parse_dsp('.node.another_label')).to_py(),
@@ -1206,18 +1206,18 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_another_recursive_tree_schema_add_parent_node_pointers(
       self, dsm_class
   ):
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
     tree_root = tree_node_schema.new(
         value='tree_root',
-        children=kd.list([
+        children=kd.list([  # pyrefly: ignore[missing-attribute]
             tree_node_schema.new(value='child1'),
             tree_node_schema.new(
                 value='child2',
-                children=kd.list([tree_node_schema.new(value='grandchild1')]),
+                children=kd.list([tree_node_schema.new(value='grandchild1')]),  # pyrefly: ignore[missing-attribute]
             ),
         ]),
     )
@@ -1324,7 +1324,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_aliasing_interaction_with_all_descendants(self, dsm_class):
-    o = kd.new(x=1)
+    o = kd.new(x=1)  # pyrefly: ignore[missing-attribute]
     manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
@@ -1336,7 +1336,7 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     # Next, we add a new feature to ".foo". It is implicitly added to  ".bar"
     # as well because of the aliasing.
-    manager.update(at_path=foo_path, attr_name='y', attr_value=kd.item(2))
+    manager.update(at_path=foo_path, attr_name='y', attr_value=kd.item(2))  # pyrefly: ignore[missing-attribute]
     # Both ".foo" and ".bar" now have the same value for "y", as expected.
     self.assertEqual(
         manager.get_data_slice_at(
@@ -1391,7 +1391,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_deeper_aliasing(self, dsm_class):
-    o = kd.new(x=kd.new(z=1))
+    o = kd.new(x=kd.new(z=1))  # pyrefly: ignore[missing-attribute]
     manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
@@ -1404,7 +1404,7 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     # Next, we add a new feature to ".foo". It is implicitly added to  ".bar"
     # as well because of the aliasing.
-    manager.update(at_path=foo_path, attr_name='y', attr_value=kd.item(2))
+    manager.update(at_path=foo_path, attr_name='y', attr_value=kd.item(2))  # pyrefly: ignore[missing-attribute]
     # Both ".foo" and ".bar" now have the same value for "y", as expected.
     self.assertEqual(
         manager.get_data_slice_at(
@@ -1460,11 +1460,11 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_schema_overriding(self, dsm_class):
-    x = kd.item(1)
+    x = kd.item(1)  # pyrefly: ignore[missing-attribute]
     manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=x)
 
-    new_x = kd.item('foo')
+    new_x = kd.item('foo')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''),
         attr_name='x',
@@ -1484,12 +1484,12 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_deeper_schema_overriding(self, dsm_class):
     manager = self.new_manager(dsm_class)
     manager.update(
-        at_path=parse_dsp(''), attr_name='x', attr_value=kd.list([1, 2])
+        at_path=parse_dsp(''), attr_name='x', attr_value=kd.list([1, 2])  # pyrefly: ignore[missing-attribute]
     )
     manager.update(
         at_path=parse_dsp(''),
         attr_name='x',
-        attr_value=kd.list(['a', 'b', 'c']),
+        attr_value=kd.list(['a', 'b', 'c']),  # pyrefly: ignore[missing-attribute]
     )
 
     self.assertEqual(
@@ -1509,7 +1509,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     # In contrast to OBJECT and SCHEMA above, values of primitive schemas are
     # not aliased even if we create stubs. In this test we use a value with
     # schema kd.INT32 to illustrate the point:
-    value = kd.item(1)
+    value = kd.item(1)  # pyrefly: ignore[missing-attribute]
     manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
@@ -1548,7 +1548,7 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_values_with_schema_itemid_are_not_aliased(self, dsm_class):
     # Similar to values of primitive schemas, ITEMID values are not aliased when
     # we create stubs.
-    value = kd.new_itemid()
+    value = kd.new_itemid()  # pyrefly: ignore[missing-attribute]
     manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
@@ -1585,22 +1585,22 @@ class DataSliceManagerTest(parameterized.TestCase):
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
     manager = DataSliceManager.create_new(persistence_dir)
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
     )
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
     )
 
@@ -1621,7 +1621,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
@@ -1645,7 +1645,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager = DataSliceManager.create_new(persistence_dir)
     # Starting from an empty persistence directory, the version should be 1.0.0.
     self.assertEqual(manager._metadata.version, '1.0.0')
-    manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=kd.item(1))
+    manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=kd.item(1))  # pyrefly: ignore[missing-attribute]
     # The version should still be 1.0.0 after adding an update.
     self.assertEqual(manager._metadata.version, '1.0.0')
 
@@ -1665,7 +1665,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='foo',
-        attr_value=kd.new(x=1),
+        attr_value=kd.new(x=1),  # pyrefly: ignore[missing-attribute]
     )
     for dsp_string in ['', '.foo', '.foo.x']:
       dsp = parse_dsp(dsp_string)
@@ -1676,7 +1676,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.foo'),
         attr_name='y',
-        attr_value=kd.new(z=2),
+        attr_value=kd.new(z=2),  # pyrefly: ignore[missing-attribute]
     )
     for dsp_string in ['', '.foo', '.foo.x', '.foo.y', '.foo.y.z']:
       dsp = parse_dsp(dsp_string)
@@ -1717,13 +1717,13 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.foo.x'),
           attr_name='y',
-          attr_value=kd.new(z=2),
+          attr_value=kd.new(z=2),  # pyrefly: ignore[missing-attribute]
       )
 
     manager.update(
         at_path=parse_dsp(''),
         attr_name='foo',
-        attr_value=kd.list([1, 2, 3]),
+        attr_value=kd.list([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -1736,7 +1736,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.foo'),
           attr_name='x',
-          attr_value=kd.new(z=2),
+          attr_value=kd.new(z=2),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_koda_behavior_of_object_schema(self):
@@ -1744,26 +1744,26 @@ class DataSliceManagerTest(parameterized.TestCase):
     # It demonstrates the behaviors that make it difficult to accept the use
     # of OBJECT in the schema of an incremental data slice.
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_doc = doc_schema.new
 
-    root_v0 = kd.new(
-        query=kd.slice([
+    root_v0 = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.slice([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
-                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
             new_query(
-                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()  # pyrefly: ignore[missing-attribute]
             ),
         ]).implode()
     )
 
     # We add an alias to the doc sub-slice. The alias has an OBJECT schema:
     root_v1 = root_v0.updated(
-        kd.attrs(root_v0.query[:], doc_obj=kd.obj(root_v0.query[:].doc))
+        kd.attrs(root_v0.query[:], doc_obj=kd.obj(root_v0.query[:].doc))  # pyrefly: ignore[missing-attribute]
     )
     # Check that it's indeed an alias, i.e. that the itemids agree:
     kd.testing.assert_equivalent(
@@ -1774,7 +1774,7 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     # Next, we add a new attribute to the doc sub-slice.
     root_v2 = root_v1.updated(
-        kd.attrs(root_v1.query[:].doc[:], new_doc_feature='foo')
+        kd.attrs(root_v1.query[:].doc[:], new_doc_feature='foo')  # pyrefly: ignore[missing-attribute]
     )
     # The new attribute is automatically visible in the doc_obj alias:
     kd.testing.assert_equivalent(
@@ -1802,10 +1802,10 @@ class DataSliceManagerTest(parameterized.TestCase):
     # it can also affect OBJECTs at other locations in the overall schema.
     doc_obj = root_v2.query[:].doc_obj
     another_doc_obj = doc_obj.updated(
-        kd.attrs(doc_obj[:], another_doc_feature='bar')
+        kd.attrs(doc_obj[:], another_doc_feature='bar')  # pyrefly: ignore[missing-attribute]
     )
     root_v3 = root_v2.updated(
-        kd.attrs(root_v2.query[:], another_doc_obj=another_doc_obj)
+        kd.attrs(root_v2.query[:], another_doc_obj=another_doc_obj)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         root_v3.query[:].another_doc_obj.get_schema(),
@@ -1833,21 +1833,21 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     manager = self.new_manager(dsm_class)
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_doc = doc_schema.new
 
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.slice([
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
-                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
             new_query(
-                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()  # pyrefly: ignore[missing-attribute]
             ),
         ]).implode(),
     )
@@ -1860,7 +1860,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='doc_obj',
-          attr_value=kd.obj(
+          attr_value=kd.obj(  # pyrefly: ignore[missing-attribute]
               manager.get_data_slice_at(parse_dsp('.query[:].doc'))
           ),
       )
@@ -1872,7 +1872,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:].doc[:]'),
           attr_name='one',
-          attr_value=kd.obj(1),
+          attr_value=kd.obj(1),  # pyrefly: ignore[missing-attribute]
       )
 
   @parameterized.named_parameters(
@@ -1888,9 +1888,9 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     manager = self.new_manager(dsm_class)
 
-    e_foo = kd.new(a=1, schema='foo')
-    e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
-    foo_wrapper = kd.new(schema='foo_wrapper')
+    e_foo = kd.new(a=1, schema='foo')  # pyrefly: ignore[missing-attribute]
+    e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))  # pyrefly: ignore[missing-attribute]
+    foo_wrapper = kd.new(schema='foo_wrapper')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''), attr_name='foo', attr_value=foo_wrapper
     )
@@ -1899,14 +1899,14 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(at_path=parse_dsp(''), attr_name='y', attr_value=e_bar)
 
     manager.update(
-        at_path=parse_dsp('.foo.x'), attr_name='b', attr_value=kd.item(2)
+        at_path=parse_dsp('.foo.x'), attr_name='b', attr_value=kd.item(2)  # pyrefly: ignore[missing-attribute]
     )
     manager.update(
-        at_path=parse_dsp('.y'), attr_name='c', attr_value=kd.item(3)
+        at_path=parse_dsp('.y'), attr_name='c', attr_value=kd.item(3)  # pyrefly: ignore[missing-attribute]
     )
 
     manager.update(
-        at_path=parse_dsp('.foo.x'), attr_name='a', attr_value=kd.item(4)
+        at_path=parse_dsp('.foo.x'), attr_name='a', attr_value=kd.item(4)  # pyrefly: ignore[missing-attribute]
     )
 
     new_manager = self.copy_manager(manager)
@@ -1951,10 +1951,10 @@ class DataSliceManagerTest(parameterized.TestCase):
     # behavior is undefined if an itemid of a schema metadata object is also
     # associated with a structured schema in the main dataslice.
 
-    foo_schema = kd.named_schema('foo', a=kd.INT32)
-    foo_schema = kd.with_metadata(foo_schema, proto_name='my.proto.Message')
-    schema_metadata_object = kd.get_metadata(foo_schema)
-    explicit_metadata_schema = kd.named_schema(
+    foo_schema = kd.named_schema('foo', a=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    foo_schema = kd.with_metadata(foo_schema, proto_name='my.proto.Message')  # pyrefly: ignore[missing-attribute]
+    schema_metadata_object = kd.get_metadata(foo_schema)  # pyrefly: ignore[missing-attribute]
+    explicit_metadata_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'my_metadata', proto_name=kd.STRING
     )
     schema_metadata_entity = schema_metadata_object.with_schema(
@@ -1965,7 +1965,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='my_data',
-        attr_value=kd.new(
+        attr_value=kd.new(  # pyrefly: ignore[missing-attribute]
             # This line associates the itemid of schema_metadata_object with
             # the schema kd.OBJECT:
             foo=foo_schema.new(a=1),
@@ -1980,17 +1980,17 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     # The same itemid can be observed in two ways:
     self.assertEqual(
-        kd.get_metadata(my_data.foo.get_schema()).get_itemid(),
+        kd.get_metadata(my_data.foo.get_schema()).get_itemid(),  # pyrefly: ignore[missing-attribute]
         my_data.metadata.get_itemid(),
     )
     # But they report different schemas:
     self.assertEqual(
-        kd.get_metadata(my_data.foo.get_schema()).get_schema(), kd.OBJECT
+        kd.get_metadata(my_data.foo.get_schema()).get_schema(), kd.OBJECT  # pyrefly: ignore[missing-attribute]
     )
     self.assertTrue(my_data.metadata.get_schema().is_struct_schema())
 
     # We augment the schema metadata object with a new attribute.
-    augmented_foo_schema = kd.with_metadata(foo_schema, version=123)
+    augmented_foo_schema = kd.with_metadata(foo_schema, version=123)  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp('.my_data'),
         attr_name='bar',
@@ -1999,7 +1999,7 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     # The new metadata attribute is also visible on the foo sub-slice:
     self.assertEqual(
-        kd.get_metadata(
+        kd.get_metadata(  # pyrefly: ignore[missing-attribute]
             manager.get_data_slice_at(parse_dsp('.my_data.foo')).get_schema()
         ).version,
         123,
@@ -2014,9 +2014,9 @@ class DataSliceManagerTest(parameterized.TestCase):
         .version
     )
     if dsm_class == SimpleInMemoryDataSliceManager:
-      expected_version = kd.item(123)
+      expected_version = kd.item(123)  # pyrefly: ignore[missing-attribute]
     else:
-      expected_version = kd.item(None, schema=kd.INT32)
+      expected_version = kd.item(None, schema=kd.INT32)  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         explicit_metadata_version,
         expected_version,
@@ -2027,8 +2027,8 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_updates_preserve_schema_metadata(self, dsm_class):
-    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
-    query_schema = kd.with_metadata(
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.with_metadata(  # pyrefly: ignore[missing-attribute]
         query_schema, proto='my.proto.Message', version=123
     )
 
@@ -2036,7 +2036,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id=0, text='How tall is Obama'),
             query_schema.new(query_id=1, text='How high is the Eiffel tower'),
         ]),
@@ -2048,8 +2048,8 @@ class DataSliceManagerTest(parameterized.TestCase):
         parse_dsp('.query[:]')
     ).get_schema()
     kd.testing.assert_equivalent(
-        kd.get_metadata(actual_schema),
-        kd.get_metadata(query_schema),
+        kd.get_metadata(actual_schema),  # pyrefly: ignore[missing-attribute]
+        kd.get_metadata(query_schema),  # pyrefly: ignore[missing-attribute]
         ids_equality=True,
     )
 
@@ -2057,23 +2057,23 @@ class DataSliceManagerTest(parameterized.TestCase):
     # This test demonstrates the behavior of vanilla Koda and why it is
     # problematic for the DataSliceManager.
 
-    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
 
-    query_data = kd.list([
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
         query_schema.new(query_id=0, text='How tall is Obama'),
         query_schema.new(query_id=1, text='How high is the Eiffel tower'),
     ])
-    root = kd.new(query=query_data)
+    root = kd.new(query=query_data)  # pyrefly: ignore[missing-attribute]
 
     # On the surface, this schema is totally unrelated to the query schema.
-    unrelated_schema = kd.named_schema('unrelated', x=kd.INT32)
+    unrelated_schema = kd.named_schema('unrelated', x=kd.INT32)  # pyrefly: ignore[missing-attribute]
     # However, if the schema metadata objects can have non-primitive attributes,
     # then there is a covert channel through which we can update pretty much
     # anything in the main dataslice.
-    unrelated_schema = kd.with_metadata(
+    unrelated_schema = kd.with_metadata(  # pyrefly: ignore[missing-attribute]
         unrelated_schema,
         covert_query_data_update=query_data[:]
-        .with_attrs(query_id=kd.slice([100, 200]))
+        .with_attrs(query_id=kd.slice([100, 200]))  # pyrefly: ignore[missing-attribute]
         .implode(),
     )
 
@@ -2084,7 +2084,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     # be able to tell that the update affects the query data.
     root = root.with_attrs(unrelated=unrelated_schema.new(x=42))
     # Yet the covert update takes place in vanilla Koda.
-    kd.testing.assert_equivalent(root.query[:].query_id, kd.slice([100, 200]))
+    kd.testing.assert_equivalent(root.query[:].query_id, kd.slice([100, 200]))  # pyrefly: ignore[missing-attribute]
 
   @parameterized.named_parameters(
       ('dsm', DataSliceManager),
@@ -2096,8 +2096,8 @@ class DataSliceManagerTest(parameterized.TestCase):
     # The reasons for why it raises are discussed in
     # test_issue_with_non_primitive_schema_metadata_attributes.
 
-    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
-    metadata_update = kd.metadata(query_schema, foo=1, bar=kd.new(zoo='gotcha'))
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    metadata_update = kd.metadata(query_schema, foo=1, bar=kd.new(zoo='gotcha'))  # pyrefly: ignore[missing-attribute]
     query_schema = query_schema.updated(metadata_update)
 
     manager = self.new_manager(dsm_class)
@@ -2107,7 +2107,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp(''),
           attr_name='query',
-          attr_value=kd.list([
+          attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
               query_schema.new(query_id=0, text='How tall is Obama'),
               query_schema.new(query_id=1, text='How high is the Eiffel tower'),
           ]),
@@ -2118,18 +2118,18 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_latest_schema_metadata_is_used(self, dsm_class):
-    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
-    doc_schema = kd.named_schema('doc', doc_id=kd.INT32, title=kd.STRING)
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc', doc_id=kd.INT32, title=kd.STRING)  # pyrefly: ignore[missing-attribute]
 
     manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
-                doc=kd.list([
+                doc=kd.list([  # pyrefly: ignore[missing-attribute]
                     doc_schema.new(doc_id=0, title='Barack Obama'),
                     doc_schema.new(doc_id=1, title='Michelle Obama'),
                 ]),
@@ -2139,7 +2139,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
 
     # Update the doc schema with metadata.
-    updated_doc_schema = kd.with_metadata(
+    updated_doc_schema = kd.with_metadata(  # pyrefly: ignore[missing-attribute]
         doc_schema, proto='my.proto.Message', version=123
     )
     manager.update(
@@ -2156,8 +2156,8 @@ class DataSliceManagerTest(parameterized.TestCase):
         parse_dsp('.query[:].doc[:]')
     ).get_schema()
     kd.testing.assert_equivalent(
-        kd.get_metadata(actual_schema),
-        kd.get_metadata(updated_doc_schema),
+        kd.get_metadata(actual_schema),  # pyrefly: ignore[missing-attribute]
+        kd.get_metadata(updated_doc_schema),  # pyrefly: ignore[missing-attribute]
         ids_equality=True,
     )
 
@@ -2166,7 +2166,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_complex_dict_keys(self, dsm_class):
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
@@ -2175,7 +2175,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.dict({
+        attr_value=kd.dict({  # pyrefly: ignore[missing-attribute]
             query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
@@ -2204,19 +2204,19 @@ class DataSliceManagerTest(parameterized.TestCase):
     persistence_dir = self.create_tempdir().full_path
     original_manager = DataSliceManager.create_new(persistence_dir)
 
-    doc_schema = kd.named_schema(
+    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'doc',
         doc_id=kd.INT32,
         title=kd.STRING,
     )
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),
+        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
     )
 
-    query_data = kd.list([
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
         query_schema.new(
             query_id=0,
             text='How tall is Obama',
@@ -2226,8 +2226,8 @@ class DataSliceManagerTest(parameterized.TestCase):
             text='How high is the Eiffel tower',
         ),
     ])
-    doc_data = kd.slice([
-        kd.list([
+    doc_data = kd.slice([  # pyrefly: ignore[missing-attribute]
+        kd.list([  # pyrefly: ignore[missing-attribute]
             doc_schema.new(doc_id=0, title='Barack Obama'),
             doc_schema.new(doc_id=1, title='Michelle Obama'),
         ]),
@@ -2268,12 +2268,12 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_subslice_with_list_schema_where_multiple_lists_are_missing(
       self, dsm_class
   ):
-    query_token = kd.named_schema('query_token', text=kd.STRING)
-    query_schema = kd.named_schema(
+    query_token = kd.named_schema('query_token', text=kd.STRING)  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        noun_tokens=kd.list_schema(query_token),
+        noun_tokens=kd.list_schema(query_token),  # pyrefly: ignore[missing-attribute]
     )
 
     manager = self.new_manager(dsm_class)
@@ -2281,11 +2281,11 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
-                noun_tokens=kd.list(
+                noun_tokens=kd.list(  # pyrefly: ignore[missing-attribute]
                     [None, None, None, query_token.new(text='Obama')]
                 ),
             ),
@@ -2293,7 +2293,7 @@ class DataSliceManagerTest(parameterized.TestCase):
             query_schema.new(
                 query_id=1,
                 text='How high is the Eiffel tower',
-                noun_tokens=kd.list([
+                noun_tokens=kd.list([  # pyrefly: ignore[missing-attribute]
                     None,
                     None,
                     None,
@@ -2334,20 +2334,20 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_subslice_with_dict_schema_where_multiple_dicts_are_missing(
       self, dsm_class
   ):
-    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
-    query_schema = kd.named_schema(
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        token_info=kd.dict_schema(kd.STRING, token_info_schema),
+        token_info=kd.dict_schema(kd.STRING, token_info_schema),  # pyrefly: ignore[missing-attribute]
     )
 
-    query_data = kd.list([
-        kd.dict({
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
+        kd.dict({  # pyrefly: ignore[missing-attribute]
             0: query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
-                token_info=kd.dict({
+                token_info=kd.dict({  # pyrefly: ignore[missing-attribute]
                     'How': token_info_schema.new(is_noun=False),
                     'Obama': token_info_schema.new(is_noun=True),
                 }),
@@ -2355,11 +2355,11 @@ class DataSliceManagerTest(parameterized.TestCase):
             1: query_schema.new(query_id=1, text='How high is Table Mountain'),
         }),
         None,
-        kd.dict({
+        kd.dict({  # pyrefly: ignore[missing-attribute]
             2: query_schema.new(
                 query_id=2,
                 text='How high is the Eiffel tower',
-                token_info=kd.dict({
+                token_info=kd.dict({  # pyrefly: ignore[missing-attribute]
                     'How': token_info_schema.new(is_noun=False),
                     'high': token_info_schema.new(is_noun=False),
                     'Eiffel tower': token_info_schema.new(is_noun=True),
@@ -2367,8 +2367,8 @@ class DataSliceManagerTest(parameterized.TestCase):
             )
         }),
         None,
-        kd.dict({
-            3: kd.item(None, schema=query_schema),
+        kd.dict({  # pyrefly: ignore[missing-attribute]
+            3: kd.item(None, schema=query_schema),  # pyrefly: ignore[missing-attribute]
             4: None,
         }),
     ])
@@ -2407,22 +2407,22 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_removal_and_updates_of_selected_items(self, dsm_class):
-    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
-    doc_schema = kd.named_schema(
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'doc',
         doc_id=kd.INT32,
         title=kd.STRING,
-        tokens=kd.dict_schema(kd.STRING, token_info_schema),
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),  # pyrefly: ignore[missing-attribute]
     )
-    query_metadata_schema = kd.named_schema(
+    query_metadata_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query_metadata',
         locale=kd.STRING,
     )
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),
+        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
         metadata=query_metadata_schema,
     )
 
@@ -2430,11 +2430,11 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
-                doc=kd.list([
+                doc=kd.list([  # pyrefly: ignore[missing-attribute]
                     doc_schema.new(doc_id=0, title='Barack Obama'),
                     doc_schema.new(doc_id=1, title='Michelle Obama'),
                     doc_schema.new(doc_id=2, title='George W. Bush'),
@@ -2443,11 +2443,11 @@ class DataSliceManagerTest(parameterized.TestCase):
             query_schema.new(
                 query_id=1,
                 text='How high is the Eiffel tower',
-                doc=kd.list([
+                doc=kd.list([  # pyrefly: ignore[missing-attribute]
                     doc_schema.new(
                         doc_id=3,
                         title='Eiffel tower',
-                        tokens=kd.dict({
+                        tokens=kd.dict({  # pyrefly: ignore[missing-attribute]
                             'Eiffel tower': token_info_schema.new(is_noun=True)
                         }),
                     ),
@@ -2465,11 +2465,11 @@ class DataSliceManagerTest(parameterized.TestCase):
       new_manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='text',
-          attr_value=kd.slice(['How tall is Barack Obama', None]),
+          attr_value=kd.slice(['How tall is Barack Obama', None]),  # pyrefly: ignore[missing-attribute]
       )
       kd.testing.assert_equivalent(
           new_manager.get_data_slice_at(parse_dsp('.query[:].text')),
-          kd.slice([
+          kd.slice([  # pyrefly: ignore[missing-attribute]
               'How tall is Barack Obama',  # It's now updated!
               None,  # It's now removed!
           ]),
@@ -2483,13 +2483,13 @@ class DataSliceManagerTest(parameterized.TestCase):
           at_path=parse_dsp('.query[:]'),
           attr_name='text',
           attr_value=(
-              kd.slice(['How tall is Barack Obama', None])
+              kd.slice(['How tall is Barack Obama', None])  # pyrefly: ignore[missing-attribute]
               | manager.get_data_slice_at(parse_dsp('.query[:].text'))
           ),
       )
       kd.testing.assert_equivalent(
           manager.get_data_slice_at(parse_dsp('.query[:].text')),
-          kd.slice([
+          kd.slice([  # pyrefly: ignore[missing-attribute]
               'How tall is Barack Obama',
               'How high is the Eiffel tower',
           ]),
@@ -2501,9 +2501,9 @@ class DataSliceManagerTest(parameterized.TestCase):
       new_manager.update(
           at_path=parse_dsp('.query[:].doc[:]'),
           attr_name='tokens',
-          attr_value=kd.slice([
+          attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
               [
-                  kd.dict({
+                  kd.dict({  # pyrefly: ignore[missing-attribute]
                       'Barack Obama': token_info_schema.new(is_noun=True),
                   }),
                   None,
@@ -2544,9 +2544,9 @@ class DataSliceManagerTest(parameterized.TestCase):
           at_path=parse_dsp('.query[:].doc[:]'),
           attr_name='tokens',
           attr_value=(
-              kd.slice([
+              kd.slice([  # pyrefly: ignore[missing-attribute]
                   [
-                      kd.dict({
+                      kd.dict({  # pyrefly: ignore[missing-attribute]
                           'Barack Obama': token_info_schema.new(is_noun=True),
                       }),
                       None,
@@ -2594,7 +2594,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       new_manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='metadata',
-          attr_value=kd.slice([
+          attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
               query_metadata_schema.new(locale='en-US'),
               None,
           ]),
@@ -2618,7 +2618,7 @@ class DataSliceManagerTest(parameterized.TestCase):
           at_path=parse_dsp('.query[:]'),
           attr_name='metadata',
           attr_value=(
-              kd.slice([
+              kd.slice([  # pyrefly: ignore[missing-attribute]
                   query_metadata_schema.new(locale='en-US'),
                   None,
               ])
@@ -2644,8 +2644,8 @@ class DataSliceManagerTest(parameterized.TestCase):
       new_manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='doc',
-          attr_value=kd.slice([
-              kd.list([
+          attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+              kd.list([  # pyrefly: ignore[missing-attribute]
                   doc_schema.new(doc_id=5, title='Barack Obama'),
               ]),
               None,
@@ -2669,8 +2669,8 @@ class DataSliceManagerTest(parameterized.TestCase):
           at_path=parse_dsp('.query[:]'),
           attr_name='doc',
           attr_value=(
-              kd.slice([
-                  kd.list([
+              kd.slice([  # pyrefly: ignore[missing-attribute]
+                  kd.list([  # pyrefly: ignore[missing-attribute]
                       doc_schema.new(doc_id=5, title='Barack Obama'),
                   ]),
                   None,
@@ -2694,22 +2694,22 @@ class DataSliceManagerTest(parameterized.TestCase):
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
   def test_slices_where_all_values_are_missing(self, dsm_class):
-    doc_schema = kd.named_schema(
+    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'doc',
         doc_id=kd.INT32,
         title=kd.STRING,
     )
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),
+        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
     )
     manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(
                 query_id=0,
                 text='How tall is Obama',
@@ -2722,7 +2722,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     kd.testing.assert_equivalent(
         manager.get_data_slice_at(parse_dsp('.query[:].doc[:].title')),
-        kd.slice([[], []], schema=kd.STRING),
+        kd.slice([[], []], schema=kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_issues_with_allowing_kd_schema_as_a_subschema(self):
@@ -2752,28 +2752,28 @@ class DataSliceManagerTest(parameterized.TestCase):
     #    must be primitives. Hence no aliasing is possible - an update to
     #    the schema cannot update data in the main dataslice.
 
-    doc_schema = kd.named_schema(
+    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'doc',
         doc_id=kd.INT32,
         title=kd.STRING,
         some_schema=kd.SCHEMA,
     )
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'query',
         query_id=kd.INT32,
         text=kd.STRING,
-        doc=kd.list_schema(doc_schema),
+        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
     )
 
-    root = kd.new()
+    root = kd.new()  # pyrefly: ignore[missing-attribute]
     root = root.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             root,
-            query=kd.list([
+            query=kd.list([  # pyrefly: ignore[missing-attribute]
                 query_schema.new(
                     query_id=0,
                     text='How tall is Obama',
-                    doc=kd.list([
+                    doc=kd.list([  # pyrefly: ignore[missing-attribute]
                         doc_schema.new(doc_id=5, title='Barack Obama'),
                     ]),
                 ),
@@ -2786,7 +2786,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     # Store the query schema as a scalar in the root.
     root = root.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             root,
             stored_query_schema=query_schema,
         )
@@ -2796,17 +2796,17 @@ class DataSliceManagerTest(parameterized.TestCase):
     # schema to be updated.
     #
     # Add a new attribute to the query schema.
-    token_schema = kd.named_schema('token', text=kd.STRING)
+    token_schema = kd.named_schema('token', text=kd.STRING)  # pyrefly: ignore[missing-attribute]
     new_query_schema = query_schema.with_attr(
         'tokens',
-        kd.list_schema(token_schema),
+        kd.list_schema(token_schema),  # pyrefly: ignore[missing-attribute]
     )
     # Update the query schema by passing the new schema as a dataslice with
     # schema kd.SCHEMA. This is sneaky but it's allowed by vanilla Koda.
     root = root.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             root.query[:].doc[:],
-            some_schema=kd.slice([[new_query_schema], []]),
+            some_schema=kd.slice([[new_query_schema], []]),  # pyrefly: ignore[missing-attribute]
         )
     )
     # The schema of the main dataslice managed by the manager is updated.
@@ -2818,7 +2818,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     # There is a new valid DataSlicePath for the new tokens attribute.
     kd.testing.assert_equivalent(
         root.query[:].tokens,
-        kd.slice([None, None], schema=kd.list_schema(token_schema)),
+        kd.slice([None, None], schema=kd.list_schema(token_schema)),  # pyrefly: ignore[missing-attribute]
     )
     # The stored query schema is also updated.
     kd.testing.assert_equivalent(
@@ -2832,9 +2832,9 @@ class DataSliceManagerTest(parameterized.TestCase):
     #
     # Add another attribute to the query schema via a data update.
     root = root.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             root.query[:],
-            locale=kd.item('en-US'),
+            locale=kd.item('en-US'),  # pyrefly: ignore[missing-attribute]
         )
     )
     expected_query_schema = new_query_schema.with_attr('locale', kd.STRING)
@@ -2863,21 +2863,21 @@ class DataSliceManagerTest(parameterized.TestCase):
 
     manager = self.new_manager(dsm_class)
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_doc = doc_schema.new
 
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.slice([
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
-                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
             new_query(
-                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()  # pyrefly: ignore[missing-attribute]
             ),
         ]).implode(),
     )
@@ -2909,7 +2909,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='doc_schema',
-          attr_value=kd.new(title=kd.STRING),
+          attr_value=kd.new(title=kd.STRING),  # pyrefly: ignore[missing-attribute]
       )
 
   @parameterized.named_parameters(
@@ -2919,21 +2919,21 @@ class DataSliceManagerTest(parameterized.TestCase):
   def test_generate_paths_with_various_max_depth_values(self, dsm_class):
     manager = self.new_manager(dsm_class)
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_doc = doc_schema.new
 
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.slice([
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
-                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
             new_query(
-                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()  # pyrefly: ignore[missing-attribute]
             ),
         ]).implode(),
     )
@@ -3007,18 +3007,18 @@ class DataSliceManagerTest(parameterized.TestCase):
     # when both populate and populate_including_descendants are passed, or when
     # their values are not singleton sets.
 
-    doc_schema = kd.named_schema('doc')
-    token_info_schema = kd.named_schema('token_info')
-    query_schema = kd.named_schema('query')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
+    token_info_schema = kd.named_schema('token_info')  # pyrefly: ignore[missing-attribute]
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
     new_doc = doc_schema.new
     new_token_info = token_info_schema.new
 
-    query_data = kd.list([
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
         new_query(
             query_id=1,
             text='How tall is Obama',
-            tokens=kd.list([
+            tokens=kd.list([  # pyrefly: ignore[missing-attribute]
                 new_token_info(
                     token_text='How',
                     part_of_speech='PRON',
@@ -3036,7 +3036,7 @@ class DataSliceManagerTest(parameterized.TestCase):
                     part_of_speech='NOUN',
                 ),
             ]),
-            doc=kd.list([
+            doc=kd.list([  # pyrefly: ignore[missing-attribute]
                 new_doc(doc_id=1, title='Barack Obama'),
                 new_doc(doc_id=2, title='Michelle Obama'),
             ]),
@@ -3044,7 +3044,7 @@ class DataSliceManagerTest(parameterized.TestCase):
         new_query(
             query_id=2,
             text='How high is the Eiffel tower',
-            tokens=kd.list([
+            tokens=kd.list([  # pyrefly: ignore[missing-attribute]
                 new_token_info(
                     token_text='How',
                     part_of_speech='PRON',
@@ -3070,7 +3070,7 @@ class DataSliceManagerTest(parameterized.TestCase):
                     part_of_speech='NOUN',
                 ),
             ]),
-            doc=kd.list([
+            doc=kd.list([  # pyrefly: ignore[missing-attribute]
                 new_doc(doc_id=3, title='Eiffel tower'),
                 new_doc(doc_id=4, title='Louvre Museum'),
                 None,
@@ -3084,20 +3084,20 @@ class DataSliceManagerTest(parameterized.TestCase):
     # attributes from it.
     kd.testing.assert_equivalent(
         query_data.get_schema(),
-        kd.list_schema(
-            kd.named_schema(
+        kd.list_schema(  # pyrefly: ignore[missing-attribute]
+            kd.named_schema(  # pyrefly: ignore[missing-attribute]
                 'query',
                 query_id=kd.INT32,
                 text=kd.STRING,
-                tokens=kd.list_schema(
-                    kd.named_schema(
+                tokens=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                    kd.named_schema(  # pyrefly: ignore[missing-attribute]
                         'token_info',
                         token_text=kd.STRING,
                         part_of_speech=kd.STRING,
                     )
                 ),
-                doc=kd.list_schema(
-                    kd.named_schema(
+                doc=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                    kd.named_schema(  # pyrefly: ignore[missing-attribute]
                         'doc',
                         doc_id=kd.INT32,
                         title=kd.STRING,
@@ -3139,13 +3139,13 @@ class DataSliceManagerTest(parameterized.TestCase):
             },
         ),
         get_new_root_data(
-            kd.list_schema(
-                kd.named_schema(
+            kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                kd.named_schema(  # pyrefly: ignore[missing-attribute]
                     'query',
                     query_id=kd.INT32,
                     text=kd.STRING,
-                    doc=kd.list_schema(
-                        kd.named_schema(
+                    doc=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                        kd.named_schema(  # pyrefly: ignore[missing-attribute]
                             'doc',
                             doc_id=kd.INT32,
                             title=kd.STRING,
@@ -3169,19 +3169,19 @@ class DataSliceManagerTest(parameterized.TestCase):
             },
         ),
         get_new_root_data(
-            kd.list_schema(
-                kd.named_schema(
+            kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                kd.named_schema(  # pyrefly: ignore[missing-attribute]
                     'query',
                     text=kd.STRING,
-                    tokens=kd.list_schema(
-                        kd.named_schema(
+                    tokens=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                        kd.named_schema(  # pyrefly: ignore[missing-attribute]
                             'token_info',
                             token_text=kd.STRING,
                             part_of_speech=kd.STRING,
                         )
                     ),
-                    doc=kd.list_schema(
-                        kd.named_schema(
+                    doc=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                        kd.named_schema(  # pyrefly: ignore[missing-attribute]
                             'doc',
                             doc_id=kd.INT32,
                             title=kd.STRING,
@@ -3202,12 +3202,12 @@ class DataSliceManagerTest(parameterized.TestCase):
             },
         ),
         get_new_root_data(
-            kd.list_schema(
-                kd.named_schema(
+            kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                kd.named_schema(  # pyrefly: ignore[missing-attribute]
                     'query',
                     text=kd.STRING,
-                    tokens=kd.list_schema(
-                        kd.named_schema(
+                    tokens=kd.list_schema(  # pyrefly: ignore[missing-attribute]
+                        kd.named_schema(  # pyrefly: ignore[missing-attribute]
                             'token_info',
                             token_text=kd.STRING,
                         )
@@ -3235,23 +3235,23 @@ class DataSliceManagerTest(parameterized.TestCase):
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = DataSliceManager.create_new(trunk_dir)
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
     )
 
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
     )
 
@@ -3290,13 +3290,13 @@ class DataSliceManagerTest(parameterized.TestCase):
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
     kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
     # The branch does not see the update to the trunk.
     with self.assertRaisesRegex(
@@ -3323,27 +3323,27 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     # The trunk does not see the update.
     kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
     # New instances for trunk_dir also don't see the update.
     kd.testing.assert_equivalent(
         DataSliceManager.create_from_dir(trunk_dir).get_data_slice_at(
             parse_dsp('.query[:].query_text')
         ),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
 
     # Branches can be re-branched.
@@ -3353,7 +3353,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     # The twig is based on the current state of the branch. It has query_text.
     kd.testing.assert_equivalent(
         twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
@@ -3362,35 +3362,35 @@ class DataSliceManagerTest(parameterized.TestCase):
     twig_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is a rainforest giant', 'How high can humans jump']
         ),
     )
     kd.testing.assert_equivalent(
         twig_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is a rainforest giant', 'How high can humans jump']
         ),
     )
     kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_branch_with_various_states_of_output_dir(self):
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = DataSliceManager.create_new(trunk_dir)
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
@@ -3438,7 +3438,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     trunk_manager.update(
         at_path=parse_dsp(''),
         attr_name='foo',
-        attr_value=kd.list([1, 2, 3]),
+        attr_value=kd.list([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
     )
 
     branch_manager = trunk_manager.branch()
@@ -3461,7 +3461,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp(''),
         attr_name='bar',
-        attr_value=kd.list([4, 5, 6]),
+        attr_value=kd.list([4, 5, 6]),  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         branch_manager.get_data_slice_at(parse_dsp('.bar[:]')).to_pytree(),
@@ -3541,11 +3541,11 @@ class DataSliceManagerTest(parameterized.TestCase):
     trunk_dir = self.create_tempdir().full_path
     trunk_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
     trunk_manager = DataSliceManager.create_new(trunk_dir, fs=trunk_fs)
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
@@ -3624,9 +3624,9 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
-            kd.named_schema('query').new(query_id='q1'),
-            kd.named_schema('query').new(query_id='q2'),
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
+            kd.named_schema('query').new(query_id='q1'),  # pyrefly: ignore[missing-attribute]
+            kd.named_schema('query').new(query_id='q2'),  # pyrefly: ignore[missing-attribute]
         ]),
         description='Added queries with only query_id populated',
     )
@@ -3720,7 +3720,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
         description='Added query_text to queries',
@@ -3827,8 +3827,8 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     trunk_manager_root = trunk_manager.get_data_slice()
 
-    query_schema = kd.named_schema('query')
-    query_data = kd.list([
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
         query_schema.new(query_id='q1'),
         query_schema.new(query_id='q2'),
     ])
@@ -3848,13 +3848,13 @@ class DataSliceManagerTest(parameterized.TestCase):
     )
     trunk_manager_schema_with_query_data = trunk_manager.get_schema()
 
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
         description='Added docs to queries',
     )
@@ -3920,13 +3920,13 @@ class DataSliceManagerTest(parameterized.TestCase):
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
     )
     kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
     # The branch does not see the update to the trunk.
     with self.assertRaisesRegex(
@@ -3953,35 +3953,35 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(
+        kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How high is the statue of Liberty', 'How low is the dead sea']
         ),
     )
     # The trunk does not see the update.
     kd.testing.assert_equivalent(
         trunk_manager.get_data_slice_at(parse_dsp('.query[:].query_text')),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
     # New instances for trunk_dir also don't see the update.
     kd.testing.assert_equivalent(
         DataSliceManager.create_from_dir(trunk_dir).get_data_slice_at(
             parse_dsp('.query[:].query_text')
         ),
-        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),
+        kd.slice(['How tall is Obama', 'How high is the Eiffel tower']),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_branch_with_invalid_and_valid_revision_history_index(self):
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = DataSliceManager.create_new(trunk_dir)
 
-    query_schema = kd.named_schema('query')
-    query_data = kd.list([
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    query_data = kd.list([  # pyrefly: ignore[missing-attribute]
         query_schema.new(query_id='q1'),
         query_schema.new(query_id='q2'),
     ])
@@ -3992,13 +3992,13 @@ class DataSliceManagerTest(parameterized.TestCase):
         description='Added queries with only query_id populated',
     )
 
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
         description='Added docs to queries',
     )
@@ -4057,12 +4057,12 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager = DataSliceManager.create_new(persistence_dir)
     self.assertEqual(manager.get_persistence_directory(), persistence_dir)
 
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list(
+        attr_value=kd.list(  # pyrefly: ignore[missing-attribute]
             [new_query(query_id='q1'), new_query(query_id='q2')]
         ),
         description='Added queries with only query_id populated',
@@ -4077,7 +4077,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='query_text',
-        attr_value=kd.slice(
+        attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
             ['How tall is Obama', 'How high is the Eiffel tower']
         ),
         description='Added query_text to queries',
@@ -4092,7 +4092,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([kd.new(query_id='q1')]),
+        attr_value=kd.list([kd.new(query_id='q1')]),  # pyrefly: ignore[missing-attribute]
         description='Added queries with only query_id populated',
     )
     manager_schema = manager.get_schema()
@@ -4101,7 +4101,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     another_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),
+        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),  # pyrefly: ignore[missing-attribute]
         description='Added docs to queries',
     )
 
@@ -4130,7 +4130,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='query_text',
-          attr_value=kd.slice(['How tall is Obama']),
+          attr_value=kd.slice(['How tall is Obama']),  # pyrefly: ignore[missing-attribute]
           description='Added query_text to queries',
       )
 
@@ -4175,7 +4175,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([kd.new(query_id='q1')]),
+        attr_value=kd.list([kd.new(query_id='q1')]),  # pyrefly: ignore[missing-attribute]
         description='Added queries with only query_id populated',
     )
     num_successful_actions = len(manager.get_revision_history())
@@ -4186,7 +4186,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='query_text',
-          attr_value=kd.slice(['How tall is Obama']),
+          attr_value=kd.slice(['How tall is Obama']),  # pyrefly: ignore[missing-attribute]
           description='Added query_text to queries',
       )
     # The state of the manager is not changed. Updates are transactional, so
@@ -4202,8 +4202,8 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp('.query[:]'),
           attr_name='doc',
-          attr_value=kd.slice(
-              [kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]
+          attr_value=kd.slice(  # pyrefly: ignore[missing-attribute]
+              [kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]  # pyrefly: ignore[missing-attribute]
           ),
           description='Added docs to queries',
       )
@@ -4226,14 +4226,14 @@ class DataSliceManagerTest(parameterized.TestCase):
         ),
     ):
       manager.update(
-          at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)
+          at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)  # pyrefly: ignore[missing-attribute]
       )
 
     # But the manager can still perform reads, albeit not at the latest
     # revision.
     kd.testing.assert_equivalent(
         manager.get_data_slice_at(parse_dsp('.query[:].query_id')),
-        kd.slice(['q1']),
+        kd.slice(['q1']),  # pyrefly: ignore[missing-attribute]
     )
 
     # And the manager can be branched, and the update can be applied to the
@@ -4242,18 +4242,18 @@ class DataSliceManagerTest(parameterized.TestCase):
     branch_dir = self.create_tempdir().full_path
     branch_manager = manager.branch(branch_dir)
     branch_manager.update(
-        at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)
+        at_path=parse_dsp(''), attr_name='foo', attr_value=kd.item(1)  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         branch_manager.get_data_slice_at(parse_dsp('.foo')),
-        kd.item(1),
+        kd.item(1),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_user_provided_initial_data_manager(self):
     # If the user wants the to use a particular itemid and schema for the root,
     # then they can do so by providing an initial data manager.
 
-    for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
+    for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:  # pyrefly: ignore[missing-attribute]
       persistence_dir = self.create_tempdir().full_path
       manager = DataSliceManager.create_new(
           persistence_dir,
@@ -4301,7 +4301,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       )
       DataSliceManager(  # pytype: disable=wrong-arg-types
           internal_call=object(),
-          **unused_args,
+          **unused_args,  # pyrefly: ignore[bad-argument-type]
       )
 
   def test_create_new_error_messages(self):
@@ -4404,22 +4404,22 @@ class DataSliceManagerTest(parameterized.TestCase):
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
     manager = DataSliceManager.create_new(persistence_dir)
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
     )
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
     )
 
@@ -4460,7 +4460,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([kd.new(query_id='q1')]),
+        attr_value=kd.list([kd.new(query_id='q1')]),  # pyrefly: ignore[missing-attribute]
         description='Added queries with only query_id populated',
     )
     ds_at_revision_1 = manager.get_data_slice(
@@ -4470,7 +4470,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+        attr_value=kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
         description='Added docs to queries',
     )
     ds_at_revision_2 = manager.get_data_slice(
@@ -4540,7 +4540,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([kd.new(query_id='q1')]),
+        attr_value=kd.list([kd.new(query_id='q1')]),  # pyrefly: ignore[missing-attribute]
         description='Added queries with only query_id populated',
     )
 
@@ -4572,7 +4572,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager_copy.update(
           at_path=parse_dsp(''),
           attr_name='foo',
-          attr_value=kd.item(1),
+          attr_value=kd.item(1),  # pyrefly: ignore[missing-attribute]
       )
 
     # Update the original manager.
@@ -4582,7 +4582,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),
+        attr_value=kd.slice([kd.new(doc_id=kd.slice([0, 1, 2, 3])).implode()]),  # pyrefly: ignore[missing-attribute]
         description='Added docs to queries',
     )
 
@@ -4638,7 +4638,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='foo',
-        attr_value=kd.item(1),
+        attr_value=kd.item(1),  # pyrefly: ignore[missing-attribute]
     )
     manager.set_read_only()
     self.assertTrue(manager.is_read_only)
@@ -4649,7 +4649,7 @@ class DataSliceManagerTest(parameterized.TestCase):
       manager.update(
           at_path=parse_dsp(''),
           attr_name='bar',
-          attr_value=kd.item(1),
+          attr_value=kd.item(1),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_create_from_dir_with_read_only_mode(self):
@@ -4658,7 +4658,7 @@ class DataSliceManagerTest(parameterized.TestCase):
     manager.update(
         at_path=parse_dsp(''),
         attr_name='foo',
-        attr_value=kd.item(1),
+        attr_value=kd.item(1),  # pyrefly: ignore[missing-attribute]
     )
 
     # Create a new instance that uses the same persistence directory and that
@@ -4681,29 +4681,29 @@ class DataSliceManagerTest(parameterized.TestCase):
       read_only_manager.update(
           at_path=parse_dsp(''),
           attr_name='bar',
-          attr_value=kd.item(1),
+          attr_value=kd.item(1),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_bags_are_shared_between_trunk_and_branch(self):
     mock_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
     persistence_dir = self.create_tempdir().full_path
     trunk_manager = DataSliceManager.create_new(persistence_dir, fs=mock_fs)
-    query_schema = kd.named_schema('query')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
-        attr_value=kd.list([
+        attr_value=kd.list([  # pyrefly: ignore[missing-attribute]
             query_schema.new(query_id='q1'),
             query_schema.new(query_id='q2'),
         ]),
     )
-    doc_schema = kd.named_schema('doc')
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     trunk_manager.update(
         at_path=parse_dsp('.query[:]'),
         attr_name='doc',
-        attr_value=kd.slice([
-            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),
-            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),
+        attr_value=kd.slice([  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
+            doc_schema.new(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
         ]),
     )
 

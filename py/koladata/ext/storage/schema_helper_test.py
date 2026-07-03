@@ -34,7 +34,7 @@ to_same_len_set = test_only_schema_node_name_helper.to_same_len_set
 class SchemaHelperTest(absltest.TestCase):
 
   def test_list_schema(self):
-    list_schema = kd.list_schema(kd.STRING)
+    list_schema = kd.list_schema(kd.STRING)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(list_schema)
 
     self.assertEqual(
@@ -75,7 +75,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_dict_schema(self):
-    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)
+    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(dict_schema)
 
     self.assertEqual(
@@ -134,7 +134,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_entity_schema(self):
-    entity_schema = kd.schema.new_schema(x=kd.STRING, y=kd.INT32)
+    entity_schema = kd.schema.new_schema(x=kd.STRING, y=kd.INT32)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(entity_schema)
 
     self.assertEqual(
@@ -194,10 +194,10 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_basic_recursive_schema(self):
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
 
     helper = schema_helper.SchemaHelper(tree_node_schema)
@@ -292,12 +292,12 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_aliased_recursive_schema(self):
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
-    root_schema = kd.schema.new_schema(
+    root_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         some_tree=tree_node_schema,
         another_tree=tree_node_schema,
     )
@@ -373,19 +373,19 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_entity_and_list_interactions(self):
-    query_schema = kd.named_schema('query')
-    doc_schema = kd.named_schema('doc')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
     new_doc = doc_schema.new
-    root = kd.new(
-        query=kd.list([
+    root = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.list([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
-                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
             new_query(
                 query_id='q2',
-                doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode(),
+                doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
         ])
     )
@@ -457,7 +457,7 @@ class SchemaHelperTest(absltest.TestCase):
 
     # And indeed, the two might be aliased in actual objects:
     o2 = bag.new(x=bag.list([1, 2, 3]), schema=o_schema)
-    o2.y = kd.stub(o2.x)
+    o2.y = kd.stub(o2.x)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(o2.x, o2.y)
     kd.testing.assert_equal(o2.get_schema(), o.get_schema())
     self.assertEqual(o2.to_py(obj_as_dict=True), dict(x=[1, 2, 3], y=[1, 2, 3]))
@@ -468,21 +468,21 @@ class SchemaHelperTest(absltest.TestCase):
     self.assertEqual(o2.to_py(obj_as_dict=True), dict(x=[7, 2, 3], y=[7, 2, 3]))
 
   def test_not_all_string_features_have_the_same_schema_node_name(self):
-    query_schema = kd.named_schema('query')
-    doc_schema = kd.named_schema('doc')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
     new_doc = doc_schema.new
-    root = kd.new(
-        query=kd.list([
+    root = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.list([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
                 doc=new_doc(
-                    doc_id=kd.slice(['d0', 'd1', 'd2', 'd3'])
+                    doc_id=kd.slice(['d0', 'd1', 'd2', 'd3'])  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
             new_query(
                 query_id='q2',
-                doc=new_doc(doc_id=kd.slice(['d4', 'd5', 'd6'])).implode(),
+                doc=new_doc(doc_id=kd.slice(['d4', 'd5', 'd6'])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
         ])
     )
@@ -575,12 +575,12 @@ class SchemaHelperTest(absltest.TestCase):
 
   def test_generate_available_data_paths(self):
     self.maxDiff = None
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
-    initial_root_schema = kd.schema.new_schema(
+    initial_root_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         some_tree=tree_node_schema,
     )
     helper = schema_helper.SchemaHelper(initial_root_schema)
@@ -688,7 +688,7 @@ class SchemaHelperTest(absltest.TestCase):
       self.assertTrue(helper.exists(data_path))
 
   def test_generate_available_data_paths_for_dict_schema(self):
-    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)
+    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(dict_schema)
     self.assertEqual(
         list(helper.generate_available_data_slice_paths(max_depth=5)),
@@ -703,10 +703,10 @@ class SchemaHelperTest(absltest.TestCase):
       self.assertTrue(helper.exists(data_path))
 
   def test_get_affected_schema_node_names(self):
-    root = kd.new()
+    root = kd.new()  # pyrefly: ignore[missing-attribute]
     helper1 = schema_helper.SchemaHelper(root.get_schema())
 
-    o = kd.new(x=kd.new(z=1))
+    o = kd.new(x=kd.new(z=1))  # pyrefly: ignore[missing-attribute]
     actual_affected_schema_node_names = helper1.get_affected_schema_node_names(
         at_schema_node_name=schema_node_name(root.get_schema()),
         attr_name='foo',
@@ -734,7 +734,7 @@ class SchemaHelperTest(absltest.TestCase):
         get_expected_affected_schema_node_names(),
     )
 
-    updated_root = root.updated(kd.attrs(root, foo=o))
+    updated_root = root.updated(kd.attrs(root, foo=o))  # pyrefly: ignore[missing-attribute]
     helper2 = schema_helper.SchemaHelper(updated_root.get_schema())
     h2_schema = helper2.get_schema()
 
@@ -773,7 +773,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_get_affected_schema_node_names_when_pointing_back_to_root(self):
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
     )
@@ -782,12 +782,12 @@ class SchemaHelperTest(absltest.TestCase):
     actual_affected_schema_node_names = helper.get_affected_schema_node_names(
         at_schema_node_name=schema_node_name(tree_node_schema),
         attr_name='children',
-        attr_value_schema=kd.list_schema(tree_node_schema),
+        attr_value_schema=kd.list_schema(tree_node_schema),  # pyrefly: ignore[missing-attribute]
     )
 
     def get_expected_affected_schema_node_names():
       h = schema_helper.SchemaHelper(
-          tree_node_schema.with_attrs(children=kd.list_schema(tree_node_schema))
+          tree_node_schema.with_attrs(children=kd.list_schema(tree_node_schema))  # pyrefly: ignore[missing-attribute]
       )
       h_schema = h.get_schema()
       result = h.get_all_schema_node_names()
@@ -811,7 +811,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_get_schema_node_name(self):
-    foo_schema = kd.named_schema('foo')
+    foo_schema = kd.named_schema('foo')  # pyrefly: ignore[missing-attribute]
     foo_schema_node_name = schema_node_name(foo_schema)
     self.assertEqual(
         schema_helper.get_schema_node_name(
@@ -826,34 +826,34 @@ class SchemaHelperTest(absltest.TestCase):
             parent_schema_item=foo_schema,
             action=GetAttr('bar'),
             # kd.named_schema will use a fixed item id:
-            child_schema_item=kd.named_schema('whatever'),
+            child_schema_item=kd.named_schema('whatever'),  # pyrefly: ignore[missing-attribute]
         ),
-        kd.ids.encode_itemid(kd.named_schema('whatever').get_itemid()).to_py(),
+        kd.ids.encode_itemid(kd.named_schema('whatever').get_itemid()).to_py(),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_schema_node_name_for_leaf_schemas_that_cannot_be_aliased(self):
-    foo_schema = kd.named_schema('foo')
+    foo_schema = kd.named_schema('foo')  # pyrefly: ignore[missing-attribute]
     foo_schema_node_name = schema_node_name(foo_schema)
     # See koladata/internal/dtype.h for leaf schemas.
     for value in [
-        kd.int32(1),
-        kd.float32(2.0),
-        kd.int64(3),
-        kd.float64(4),
+        kd.int32(1),  # pyrefly: ignore[missing-attribute]
+        kd.float32(2.0),  # pyrefly: ignore[missing-attribute]
+        kd.int64(3),  # pyrefly: ignore[missing-attribute]
+        kd.float64(4),  # pyrefly: ignore[missing-attribute]
         kd.present,
         kd.missing,
-        kd.schema.to_bool(True),
-        kd.bytes(b'foo'),
-        kd.item('bar'),
+        kd.schema.to_bool(True),  # pyrefly: ignore[missing-attribute]
+        kd.bytes(b'foo'),  # pyrefly: ignore[missing-attribute]
+        kd.item('bar'),  # pyrefly: ignore[missing-attribute]
         kd.expr.pack_expr(kd.I.x + kd.I.y),
-        kd.new_itemid(),
-        kd.item(None, schema=kd.NONE),
+        kd.new_itemid(),  # pyrefly: ignore[missing-attribute]
+        kd.item(None, schema=kd.NONE),  # pyrefly: ignore[missing-attribute]
     ]:
       # Make sure the schema of value is a leaf schema:
       self.assertIsNone(schema_helper._get_item_id(value.get_schema()))
-      root = kd.new()
+      root = kd.new()  # pyrefly: ignore[missing-attribute]
       root_with_value = root.with_attrs(value=value)
-      root_with_aliased_value = root.with_attrs(value=kd.stub(value))
+      root_with_aliased_value = root.with_attrs(value=kd.stub(value))  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equivalent(
           root_with_value.value.get_schema(),
           root_with_aliased_value.value.get_schema(),
@@ -868,11 +868,11 @@ class SchemaHelperTest(absltest.TestCase):
       )
 
     for value in [
-        kd.slice(None, schema=kd.NONE),
-        kd.slice([[]], schema=kd.NONE),
-        kd.slice([None, None], schema=kd.NONE),
+        kd.slice(None, schema=kd.NONE),  # pyrefly: ignore[missing-attribute]
+        kd.slice([[]], schema=kd.NONE),  # pyrefly: ignore[missing-attribute]
+        kd.slice([None, None], schema=kd.NONE),  # pyrefly: ignore[missing-attribute]
     ]:
-      stub_value = kd.stub(value).no_bag()  # Drop the empty bag.
+      stub_value = kd.stub(value).no_bag()  # Drop the empty bag.  # pyrefly: ignore[missing-attribute]
       kd.testing.assert_equivalent(
           value.get_schema(),
           stub_value.get_schema(),
@@ -881,8 +881,8 @@ class SchemaHelperTest(absltest.TestCase):
   def test_schema_schema_is_not_supported(self):
     for schema in [
         kd.SCHEMA,
-        kd.schema.new_schema(x=kd.SCHEMA),
-        kd.dict_schema(kd.INT32, kd.SCHEMA),
+        kd.schema.new_schema(x=kd.SCHEMA),  # pyrefly: ignore[missing-attribute]
+        kd.dict_schema(kd.INT32, kd.SCHEMA),  # pyrefly: ignore[missing-attribute]
     ]:
       with self.assertRaisesRegex(
           ValueError, re.escape('SCHEMA schemas are not supported')
@@ -892,8 +892,8 @@ class SchemaHelperTest(absltest.TestCase):
   def test_object_schema_is_not_supported(self):
     for schema in [
         kd.OBJECT,
-        kd.schema.new_schema(x=kd.OBJECT),
-        kd.dict_schema(kd.INT32, kd.OBJECT),
+        kd.schema.new_schema(x=kd.OBJECT),  # pyrefly: ignore[missing-attribute]
+        kd.dict_schema(kd.INT32, kd.OBJECT),  # pyrefly: ignore[missing-attribute]
     ]:
       with self.assertRaisesRegex(
           ValueError, re.escape('OBJECT schemas are not supported')
@@ -904,22 +904,22 @@ class SchemaHelperTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a SCHEMA item. Got: 1')
     ):
-      schema_helper.SchemaHelper(kd.int32(1))
+      schema_helper.SchemaHelper(kd.int32(1))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a SCHEMA item. Got: [1, 2, 3]')
     ):
-      schema_helper.SchemaHelper(kd.slice([1, 2, 3]))
+      schema_helper.SchemaHelper(kd.slice([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
 
   def test_schema_helper_get_schema(self):
-    schema = kd.dict_schema(key_schema=kd.INT32, value_schema=kd.INT64)
+    schema = kd.dict_schema(key_schema=kd.INT32, value_schema=kd.INT64)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(schema)
     kd.testing.assert_equivalent(helper.get_schema(), schema)
 
   def test_schema_helper_is_valid_schema_node_name(self):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
     self.assertFalse(helper.is_valid_schema_node_name('.foo'))
@@ -940,9 +940,9 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_schema_helper_is_valid_data_path(self):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
 
@@ -980,9 +980,9 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_generate_all_available_data_paths(self):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
     self.assertEqual(
@@ -998,9 +998,9 @@ class SchemaHelperTest(absltest.TestCase):
   def test_generate_available_data_paths_for_negative_but_not_minus_one_max_depth(
       self,
   ):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
     self.assertEmpty(
@@ -1017,7 +1017,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_get_schema_node_name_for_invalid_data_slice_path(self):
-    schema = kd.schema.named_schema('SomeSchema', foo=kd.INT32)
+    schema = kd.schema.named_schema('SomeSchema', foo=kd.INT32)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(schema)
 
     with self.assertRaisesRegex(
@@ -1035,7 +1035,7 @@ class SchemaHelperTest(absltest.TestCase):
       )
 
   def test_use_invalid_schema_node_name(self):
-    schema = kd.schema.named_schema('SomeSchema', foo=kd.INT32)
+    schema = kd.schema.named_schema('SomeSchema', foo=kd.INT32)  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(schema)
 
     with self.assertRaisesRegex(
@@ -1063,10 +1063,10 @@ class SchemaHelperTest(absltest.TestCase):
       helper.get_subschema_at('bar')
 
   def test_is_leaf_and_non_leaf_schema_node_name(self):
-    schema = kd.schema.named_schema(
+    schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
-        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
 
@@ -1107,10 +1107,10 @@ class SchemaHelperTest(absltest.TestCase):
         helper.is_non_leaf_schema_node_name(invalid_schema_node_name)
 
   def test_get_schema_bag(self):
-    schema = kd.named_schema(
+    schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
-        bar=kd.named_schema('InnerSchema', zoo=kd.INT32),
+        bar=kd.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
 
@@ -1119,7 +1119,7 @@ class SchemaHelperTest(absltest.TestCase):
         schema_no_bag.with_bag(
             helper.get_schema_bag({schema_node_name(schema)})
         ),
-        kd.named_schema('SomeSchema'),
+        kd.named_schema('SomeSchema'),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         schema_no_bag.with_bag(
@@ -1130,7 +1130,7 @@ class SchemaHelperTest(absltest.TestCase):
                 ])
             )
         ),
-        kd.named_schema('SomeSchema', foo=kd.INT32),
+        kd.named_schema('SomeSchema', foo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         schema_no_bag.with_bag(
@@ -1141,9 +1141,9 @@ class SchemaHelperTest(absltest.TestCase):
                 ])
             )
         ),
-        kd.named_schema(
+        kd.named_schema(  # pyrefly: ignore[missing-attribute]
             'SomeSchema',
-            bar=kd.named_schema('InnerSchema'),
+            bar=kd.named_schema('InnerSchema'),  # pyrefly: ignore[missing-attribute]
         ),
     )
     kd.testing.assert_equivalent(
@@ -1156,10 +1156,10 @@ class SchemaHelperTest(absltest.TestCase):
                 ])
             )
         ),
-        kd.named_schema(
+        kd.named_schema(  # pyrefly: ignore[missing-attribute]
             'SomeSchema',
             foo=kd.INT32,
-            bar=kd.named_schema('InnerSchema'),
+            bar=kd.named_schema('InnerSchema'),  # pyrefly: ignore[missing-attribute]
         ),
     )
     kd.testing.assert_equivalent(
@@ -1172,9 +1172,9 @@ class SchemaHelperTest(absltest.TestCase):
                 ])
             )
         ),
-        kd.named_schema(
+        kd.named_schema(  # pyrefly: ignore[missing-attribute]
             'SomeSchema',
-            bar=kd.named_schema('InnerSchema', zoo=kd.INT32),
+            bar=kd.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
         ),
     )
     kd.testing.assert_equivalent(
@@ -1197,15 +1197,15 @@ class SchemaHelperTest(absltest.TestCase):
       helper.get_schema_bag({'abcde'})
 
   def test_same_list_schema_in_several_places(self):
-    doc_schema = kd.named_schema(
+    doc_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'Doc',
-        salient_terms=kd.list_schema(kd.STRING),
+        salient_terms=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
-    query_schema = kd.named_schema(
+    query_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'Query',
         # This has the same schema as the salient_terms list in the doc_schema:
-        a=kd.list_schema(kd.STRING),
-        doc=kd.list_schema(doc_schema),
+        a=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
+        doc=kd.list_schema(doc_schema),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(query_schema)
     kd.testing.assert_equivalent(
@@ -1214,10 +1214,10 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
   def test_get_parent_schema_node_names(self):
-    schema = kd.schema.named_schema(
+    schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
-        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
     self.assertEmpty(
@@ -1225,7 +1225,7 @@ class SchemaHelperTest(absltest.TestCase):
     )
 
     schema = schema.with_attrs(loop=schema)
-    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))
+    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(schema)
     self.assertEqual(
         helper.get_parent_schema_node_names(
@@ -1260,13 +1260,13 @@ class SchemaHelperTest(absltest.TestCase):
       helper.get_parent_schema_node_names('abcde')
 
   def test_get_child_schema_node_names(self):
-    schema = kd.schema.named_schema(
+    schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
-        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     schema = schema.with_attrs(loop=schema)
-    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))
+    schema = schema.with_attrs(loop_via_list=kd.list_schema(schema))  # pyrefly: ignore[missing-attribute]
     helper = schema_helper.SchemaHelper(schema)
     self.assertEmpty(
         helper.get_child_schema_node_names(
@@ -1303,10 +1303,10 @@ class SchemaHelperTest(absltest.TestCase):
       helper.get_child_schema_node_names('abcde')
 
   def test_get_minimal_schema_bag_for_parent_child_relationship(self):
-    schema = kd.schema.named_schema(
+    schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
-        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     helper = schema_helper.SchemaHelper(schema)
 
@@ -1318,7 +1318,7 @@ class SchemaHelperTest(absltest.TestCase):
             ),
         ),
         # The bag does not mention 'bar' or 'zoo':
-        kd.attrs(kd.schema.named_schema('SomeSchema'), foo=kd.INT32),
+        kd.attrs(kd.schema.named_schema('SomeSchema'), foo=kd.INT32),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         helper.get_minimal_schema_bag_for_parent_child_relationship(
@@ -1326,9 +1326,9 @@ class SchemaHelperTest(absltest.TestCase):
             child_schema_node_name=schema_node_name(schema.bar),
         ),
         # Note that the inner schema is minimal: it does not mention 'zoo':
-        kd.attrs(
-            kd.schema.named_schema('SomeSchema'),
-            bar=kd.schema.named_schema('InnerSchema'),
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
+            kd.schema.named_schema('SomeSchema'),  # pyrefly: ignore[missing-attribute]
+            bar=kd.schema.named_schema('InnerSchema'),  # pyrefly: ignore[missing-attribute]
         ),
     )
 
@@ -1340,10 +1340,10 @@ class SchemaHelperTest(absltest.TestCase):
             child_schema_node_name=schema_node_name(schema.bar),
         ),
         # Similar to the previous case, but now the bag also contains 'bar2':
-        kd.attrs(
-            kd.schema.named_schema('SomeSchema'),
-            bar=kd.schema.named_schema('InnerSchema'),
-            bar2=kd.schema.named_schema('InnerSchema'),
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
+            kd.schema.named_schema('SomeSchema'),  # pyrefly: ignore[missing-attribute]
+            bar=kd.schema.named_schema('InnerSchema'),  # pyrefly: ignore[missing-attribute]
+            bar2=kd.schema.named_schema('InnerSchema'),  # pyrefly: ignore[missing-attribute]
         ),
     )
 
@@ -1354,9 +1354,9 @@ class SchemaHelperTest(absltest.TestCase):
             parent_schema_node_name=schema_node_name(schema),
             child_schema_node_name=schema_node_name(schema),
         ),
-        kd.attrs(
-            kd.schema.named_schema('SomeSchema'),
-            loop=kd.schema.named_schema('SomeSchema'),
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
+            kd.schema.named_schema('SomeSchema'),  # pyrefly: ignore[missing-attribute]
+            loop=kd.schema.named_schema('SomeSchema'),  # pyrefly: ignore[missing-attribute]
         ),
     )
 
@@ -1377,15 +1377,15 @@ class SchemaHelperTest(absltest.TestCase):
       )
 
   def test_get_schema_node_names_needed_to_populate(self):
-    inner_schema = kd.schema.named_schema('InnerSchema', zoo=kd.INT32)
-    schema = kd.schema.named_schema(
+    inner_schema = kd.schema.named_schema('InnerSchema', zoo=kd.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kd.schema.named_schema(  # pyrefly: ignore[missing-attribute]
         'SomeSchema',
         foo=kd.INT32,
         bar=inner_schema,
-        baz=kd.list_schema(inner_schema),
-        jazz=kd.schema.new_schema(
+        baz=kd.list_schema(inner_schema),  # pyrefly: ignore[missing-attribute]
+        jazz=kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
             sax=kd.INT32,
-            jax=kd.list_schema(kd.INT32),
+            jax=kd.list_schema(kd.INT32),  # pyrefly: ignore[missing-attribute]
         ),
     )
     helper = schema_helper.SchemaHelper(schema)

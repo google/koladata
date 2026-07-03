@@ -161,7 +161,7 @@ class LruSizeTrackingCache(Generic[K, V]):
     with self._rlock:
       existing_value = self.get(key, _NOT_FOUND)
       if existing_value is not _NOT_FOUND:
-        return existing_value
+        return existing_value  # pyrefly: ignore[bad-return]
       if (
           metadata.num_bytes_estimate
           > self._max_total_bytes_of_entries_in_cache

@@ -38,11 +38,11 @@ class DataBagManagerTest(parameterized.TestCase):
 
   def test_typical_usage(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
-    o = kd.new(a=1, b=2, c=3)
+    o = kd.new(a=1, b=2, c=3)  # pyrefly: ignore[missing-attribute]
 
     manager = DataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), set())
-    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())
+    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())  # pyrefly: ignore[missing-attribute]
     self.assertEqual(manager._metadata.version, '1.0.0')
 
     bag0 = o.get_bag()
@@ -51,35 +51,35 @@ class DataBagManagerTest(parameterized.TestCase):
     self.assert_equivalent_bags(manager.get_minimal_bag({'bag0'}), bag0)
     self.assertEqual(manager._metadata.version, '1.0.0')
 
-    bag1 = kd.attrs(o, c=4, d=5, e=6)
+    bag1 = kd.attrs(o, c=4, d=5, e=6)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag1', bag1, dependencies=('bag0',))])
     self.assertEqual(manager.get_available_bag_names(), {'bag0', 'bag1'})
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag0', 'bag1'}),
-        kd.bags.updated(bag0, bag1),
+        kd.bags.updated(bag0, bag1),  # pyrefly: ignore[missing-attribute]
     )
 
-    bag2 = kd.attrs(o, e=7, f=8)
+    bag2 = kd.attrs(o, e=7, f=8)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag2', bag2, dependencies=('bag1',))])
     self.assertEqual(
         manager.get_available_bag_names(), {'bag0', 'bag1', 'bag2'}
     )
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag0', 'bag1', 'bag2'}),
-        kd.bags.updated(bag0, bag1, bag2),
+        kd.bags.updated(bag0, bag1, bag2),  # pyrefly: ignore[missing-attribute]
     )
 
-    bag3 = kd.attrs(o, d=9, g=10, h=11)
+    bag3 = kd.attrs(o, d=9, g=10, h=11)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag3', bag3, dependencies=('bag1',))])
     self.assertEqual(
         manager.get_available_bag_names(), {'bag0', 'bag1', 'bag2', 'bag3'}
     )
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag0', 'bag1', 'bag2', 'bag3'}),
-        kd.bags.updated(bag0, bag1, bag2, bag3),
+        kd.bags.updated(bag0, bag1, bag2, bag3),  # pyrefly: ignore[missing-attribute]
     )
 
-    bag4 = kd.attrs(o, i=12, j=13)
+    bag4 = kd.attrs(o, i=12, j=13)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag4', bag4, dependencies=('bag0',))])
     self.assertEqual(
         manager.get_available_bag_names(),
@@ -87,7 +87,7 @@ class DataBagManagerTest(parameterized.TestCase):
     )
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag0', 'bag1', 'bag2', 'bag3', 'bag4'}),
-        kd.bags.updated(bag0, bag1, bag2, bag3, bag4),
+        kd.bags.updated(bag0, bag1, bag2, bag3, bag4),  # pyrefly: ignore[missing-attribute]
     )
 
     # Each of the following subtests will initialize a new manager from the same
@@ -99,36 +99,36 @@ class DataBagManagerTest(parameterized.TestCase):
           manager.get_available_bag_names(),
           {'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
       )
-      self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())
+      self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())  # pyrefly: ignore[missing-attribute]
       self.assertEqual(manager._metadata.version, '1.0.0')
 
     with self.subTest('LoadAllBags'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag(manager.get_available_bag_names()),
-          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),
+          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadsAllTransitiveDependencies'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag3'}),
-          kd.bags.updated(bag0, bag1, bag3),
+          kd.bags.updated(bag0, bag1, bag3),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadsAllTransitiveDependents'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag1'}, with_all_dependents=True),
-          kd.bags.updated(bag0, bag1, bag2, bag3),  # bag4 is not loaded
+          kd.bags.updated(bag0, bag1, bag2, bag3),  # bag4 is not loaded  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadEmptySetOfBagNames'):
       manager = DataBagManager.create_from_dir(persistence_dir)
-      self.assert_equivalent_bags(manager.get_minimal_bag({}), kd.bag())
+      self.assert_equivalent_bags(manager.get_minimal_bag({}), kd.bag())  # pyrefly: ignore[missing-attribute]
       self.assert_equivalent_bags(
           manager.get_minimal_bag({}, with_all_dependents=True),
-          kd.bag(),
+          kd.bag(),  # pyrefly: ignore[missing-attribute]
       )
 
     # Next, we test that the persistence_dir is hermetic by moving it to a
@@ -145,7 +145,7 @@ class DataBagManagerTest(parameterized.TestCase):
     )
     self.assert_equivalent_bags(manager.get_minimal_bag({'bag0'}), bag0)
     self.assert_equivalent_bags(
-        manager.get_minimal_bag({'bag3'}), kd.bags.updated(bag0, bag1, bag3)
+        manager.get_minimal_bag({'bag3'}), kd.bags.updated(bag0, bag1, bag3)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(manager._metadata.version, '1.0.0')
 
@@ -153,7 +153,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # persistence_dir that was already populated.
 
     manager = DataBagManager.create_from_dir(persistence_dir)
-    bag5 = kd.attrs(o, h=14, k=15, l=16)
+    bag5 = kd.attrs(o, h=14, k=15, l=16)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag5', bag5, dependencies=('bag3',))])
     self.assertEqual(
         manager.get_available_bag_names(),
@@ -161,7 +161,7 @@ class DataBagManagerTest(parameterized.TestCase):
     )
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag0', 'bag1', 'bag3', 'bag5'}),
-        kd.bags.updated(bag0, bag1, bag3, bag5),
+        kd.bags.updated(bag0, bag1, bag3, bag5),  # pyrefly: ignore[missing-attribute]
     )
 
     # These additional bags are also persisted, and can be picked up by new
@@ -174,7 +174,7 @@ class DataBagManagerTest(parameterized.TestCase):
     )
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag5'}),
-        kd.bags.updated(bag0, bag1, bag3, bag5),
+        kd.bags.updated(bag0, bag1, bag3, bag5),  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(manager._metadata.version, '1.0.0')
 
@@ -184,7 +184,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # in the transitive dependencies of bag5, but which must be loaded when we
     # ask to load bag5 and all its dependents.
     manager = DataBagManager.create_from_dir(persistence_dir)
-    bag6 = kd.attrs(o, j=17, l=18, m=19)
+    bag6 = kd.attrs(o, j=17, l=18, m=19)  # pyrefly: ignore[missing-attribute]
     manager.add_bags(
         [
             BagToAdd(
@@ -201,7 +201,7 @@ class DataBagManagerTest(parameterized.TestCase):
     manager = DataBagManager.create_from_dir(persistence_dir)
     self.assert_equivalent_bags(
         manager.get_minimal_bag({'bag5'}, with_all_dependents=True),
-        kd.bags.updated(bag0, bag1, bag3, bag4, bag5, bag6),
+        kd.bags.updated(bag0, bag1, bag3, bag4, bag5, bag6),  # pyrefly: ignore[missing-attribute]
     )
 
     # We can get a minimal bag that includes only the requested bags and their
@@ -211,25 +211,25 @@ class DataBagManagerTest(parameterized.TestCase):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}),
-          kd.bags.updated(bag0, bag1, bag3, bag5),
+          kd.bags.updated(bag0, bag1, bag3, bag5),  # pyrefly: ignore[missing-attribute]
       )
 
       # Loading more bags should not affect the minimal bag:
       manager.get_minimal_bag(set(), with_all_dependents=True)  # Load all bags.
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}),
-          kd.bags.updated(bag0, bag1, bag3, bag5),  # Still the same.
+          kd.bags.updated(bag0, bag1, bag3, bag5),  # Still the same.  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('GetMinimalBagWithAllDependents'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}, with_all_dependents=True),
-          kd.bags.updated(bag0, bag1, bag3, bag4, bag5, bag6),
+          kd.bags.updated(bag0, bag1, bag3, bag4, bag5, bag6),  # pyrefly: ignore[missing-attribute]
       )
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag5'}, with_all_dependents=False),
-          kd.bags.updated(bag0, bag1, bag3, bag5),
+          kd.bags.updated(bag0, bag1, bag3, bag5),  # pyrefly: ignore[missing-attribute]
       )
 
     # We can also extract the bags from the manager, as the following subtests
@@ -248,7 +248,7 @@ class DataBagManagerTest(parameterized.TestCase):
       )
       self.assert_equivalent_bags(
           extracted_manager.get_minimal_bag({'bag3'}),
-          kd.bags.updated(bag0, bag1, bag3),
+          kd.bags.updated(bag0, bag1, bag3),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('ExtractBagsWithAllDependents'):
@@ -265,21 +265,21 @@ class DataBagManagerTest(parameterized.TestCase):
       )
       self.assert_equivalent_bags(
           extracted_manager.get_minimal_bag({'bag5'}),
-          kd.bags.updated(bag0, bag1, bag3, bag5),
+          kd.bags.updated(bag0, bag1, bag3, bag5),  # pyrefly: ignore[missing-attribute]
       )
 
   def test_non_existing_persistence_dir_with_initial_bag(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
     manager = DataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), set())
-    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())
+    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())  # pyrefly: ignore[missing-attribute]
     self.assertEqual(manager._metadata.version, '1.0.0')
 
   def test_empty_persistence_dir_initialization(self):
     persistence_dir = self.create_tempdir().full_path  # Exists and empty.
     manager = DataBagManager.create_new(persistence_dir)
     self.assertEqual(manager.get_available_bag_names(), set())
-    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())
+    self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())  # pyrefly: ignore[missing-attribute]
     self.assertEqual(manager._metadata.version, '1.0.0')
 
   def test_canonical_topological_sorting(self):
@@ -287,9 +287,9 @@ class DataBagManagerTest(parameterized.TestCase):
     for name0, name1, name2 in itertools.permutations(bag_names):
       persistence_dir = self.create_tempdir().full_path
       manager = DataBagManager.create_new(persistence_dir)
-      manager.add_bags([BagToAdd(name0, kd.bag(), dependencies=())])
-      manager.add_bags([BagToAdd(name1, kd.bag(), dependencies=())])
-      manager.add_bags([BagToAdd(name2, kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd(name0, kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
+      manager.add_bags([BagToAdd(name1, kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
+      manager.add_bags([BagToAdd(name2, kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
       # The above 3 bags have no inter-dependencies, so any permutation of them
       # is a valid topological sorting wrt the dependency relation. However, the
       # *canonical* topological sorting reflects the order in which the bags
@@ -305,9 +305,9 @@ class DataBagManagerTest(parameterized.TestCase):
       persistence_dir = self.create_tempdir().full_path
       manager = DataBagManager.create_new(persistence_dir)
       manager.add_bags([
-          dbm.BagToAdd(name0, kd.bag(), dependencies=()),
-          dbm.BagToAdd(name1, kd.bag(), dependencies=()),
-          dbm.BagToAdd(name2, kd.bag(), dependencies=()),
+          dbm.BagToAdd(name0, kd.bag(), dependencies=()),  # pyrefly: ignore[missing-attribute]
+          dbm.BagToAdd(name1, kd.bag(), dependencies=()),  # pyrefly: ignore[missing-attribute]
+          dbm.BagToAdd(name2, kd.bag(), dependencies=()),  # pyrefly: ignore[missing-attribute]
       ])
       expected_canonical_sorting = [name0, name1, name2]
       self.assertEqual(
@@ -325,13 +325,13 @@ class DataBagManagerTest(parameterized.TestCase):
     custom_metadata.Pack(metadata_val)
 
     # Add bag with custom metadata
-    bag0 = kd.bag()
+    bag0 = kd.bag()  # pyrefly: ignore[missing-attribute]
     manager.add_bags([
         BagToAdd('bag0', bag0, dependencies=(), custom_metadata=custom_metadata)
     ])
 
     # Add bag without custom metadata
-    bag1 = kd.bag()
+    bag1 = kd.bag()  # pyrefly: ignore[missing-attribute]
     manager.add_bags([BagToAdd('bag1', bag1, dependencies=('bag0',))])
 
     # Verify get_custom_metadata
@@ -424,7 +424,7 @@ class DataBagManagerTest(parameterized.TestCase):
       manager = DataBagManager.create_new(persistence_dir, fs=mocked_fs)
 
       mocked_fs.reset_mock()
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
       method_names_called = [c[0] for c in mocked_fs.method_calls]
       self.assertEqual(
           method_names_called,
@@ -444,8 +444,8 @@ class DataBagManagerTest(parameterized.TestCase):
     with self.subTest('get_minimal_bag'):
       persistence_dir = self.create_tempdir().full_path
       manager = DataBagManager.create_new(persistence_dir, fs=mocked_fs)
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
-      manager.add_bags([BagToAdd('bag2', kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
+      manager.add_bags([BagToAdd('bag2', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
 
       mocked_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = DataBagManager.create_from_dir(persistence_dir, fs=mocked_fs)
@@ -466,7 +466,7 @@ class DataBagManagerTest(parameterized.TestCase):
       manager = DataBagManager.create_new(
           persistence_dir,
       )
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
 
       original_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = DataBagManager.create_from_dir(persistence_dir, fs=original_fs)
@@ -527,7 +527,7 @@ class DataBagManagerTest(parameterized.TestCase):
       manager = DataBagManager.create_new(
           persistence_dir,
       )
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
 
       original_fs = mock.Mock(wraps=kd.file_io.FileSystemInteraction())
       manager = DataBagManager.create_from_dir(persistence_dir, fs=original_fs)
@@ -577,19 +577,19 @@ class DataBagManagerTest(parameterized.TestCase):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
 
-    manager.add_bags([BagToAdd('', kd.bag(), dependencies=tuple())])
+    manager.add_bags([BagToAdd('', kd.bag(), dependencies=tuple())])  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         "A bag with name '' was already added.",
     ):
-      manager.add_bags([BagToAdd('', kd.bag(), dependencies=tuple())])
+      manager.add_bags([BagToAdd('', kd.bag(), dependencies=tuple())])  # pyrefly: ignore[missing-attribute]
 
-    manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
+    manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         "A bag with name 'bag1' was already added.",
     ):
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=())])  # pyrefly: ignore[missing-attribute]
 
   def test_add_bag_with_invalid_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
@@ -600,7 +600,7 @@ class DataBagManagerTest(parameterized.TestCase):
         ' such a bag was not added before.',
     ):
       manager.add_bags(
-          [BagToAdd('bag1', kd.bag(), dependencies=('non_existent_bag',))]
+          [BagToAdd('bag1', kd.bag(), dependencies=('non_existent_bag',))]  # pyrefly: ignore[missing-attribute]
       )
 
     # The dependency graph is a DAG, so self-cycles are not allowed:
@@ -609,14 +609,14 @@ class DataBagManagerTest(parameterized.TestCase):
         "A dependency on a bag with name 'bag1' is invalid, because such a bag"
         ' was not added before.',
     ):
-      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('bag1',))])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('bag1',))])  # pyrefly: ignore[missing-attribute]
 
   def test_get_minimal_bag_with_empty_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
 
     kd.testing.assert_equivalent(
-        manager.get_minimal_bag(bag_names=[]), kd.bag()
+        manager.get_minimal_bag(bag_names=[]), kd.bag()  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_minimal_bag_with_unknown_bag_names(self):
@@ -641,7 +641,7 @@ class DataBagManagerTest(parameterized.TestCase):
     extracted_manager = DataBagManager.create_from_dir(output_dir)
     self.assertEqual(extracted_manager.get_available_bag_names(), set())
     self.assert_equivalent_bags(
-        extracted_manager.get_minimal_bag(set()), kd.bag()
+        extracted_manager.get_minimal_bag(set()), kd.bag()  # pyrefly: ignore[missing-attribute]
     )
 
   def test_extract_bags_with_unknown_bag_names(self):
@@ -677,12 +677,12 @@ class DataBagManagerTest(parameterized.TestCase):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
     manager = DataBagManager.create_new(persistence_dir)
 
-    o = kd.new(a=1, b=2, c=3)
+    o = kd.new(a=1, b=2, c=3)  # pyrefly: ignore[missing-attribute]
     bag0 = o.get_bag()
-    bag1 = kd.attrs(o, c=4, d=5, e=6)
-    bag2 = kd.attrs(o, e=7, f=8)
-    bag3 = kd.attrs(o, d=9, g=10, h=11)
-    bag4 = kd.attrs(o, i=12, j=13)
+    bag1 = kd.attrs(o, c=4, d=5, e=6)  # pyrefly: ignore[missing-attribute]
+    bag2 = kd.attrs(o, e=7, f=8)  # pyrefly: ignore[missing-attribute]
+    bag3 = kd.attrs(o, d=9, g=10, h=11)  # pyrefly: ignore[missing-attribute]
+    bag4 = kd.attrs(o, i=12, j=13)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([
         dbm.BagToAdd(bag_name='bag0', bag=bag0, dependencies=()),
         dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=('bag0',)),
@@ -700,47 +700,47 @@ class DataBagManagerTest(parameterized.TestCase):
           manager.get_available_bag_names(),
           {'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
       )
-      self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())
+      self.assert_equivalent_bags(manager.get_minimal_bag(set()), kd.bag())  # pyrefly: ignore[missing-attribute]
       self.assertEqual(manager._metadata.version, '1.0.0')
 
     with self.subTest('LoadAllBags'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag(manager.get_available_bag_names()),
-          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),
+          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadsAllTransitiveDependencies'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag3'}),
-          kd.bags.updated(bag0, bag1, bag3),
+          kd.bags.updated(bag0, bag1, bag3),  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadsAllTransitiveDependents'):
       manager = DataBagManager.create_from_dir(persistence_dir)
       self.assert_equivalent_bags(
           manager.get_minimal_bag({'bag1'}, with_all_dependents=True),
-          kd.bags.updated(bag0, bag1, bag2, bag3),  # bag4 is not loaded
+          kd.bags.updated(bag0, bag1, bag2, bag3),  # bag4 is not loaded  # pyrefly: ignore[missing-attribute]
       )
 
     with self.subTest('LoadEmptySetOfBagNames'):
       manager = DataBagManager.create_from_dir(persistence_dir)
-      self.assert_equivalent_bags(manager.get_minimal_bag({}), kd.bag())
+      self.assert_equivalent_bags(manager.get_minimal_bag({}), kd.bag())  # pyrefly: ignore[missing-attribute]
       self.assert_equivalent_bags(
-          manager.get_minimal_bag({}, with_all_dependents=True), kd.bag()
+          manager.get_minimal_bag({}, with_all_dependents=True), kd.bag()  # pyrefly: ignore[missing-attribute]
       )
 
   def test_add_bags_with_wrong_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
     manager = DataBagManager.create_new(persistence_dir)
 
-    o = kd.new(a=1, b=2, c=3)
+    o = kd.new(a=1, b=2, c=3)  # pyrefly: ignore[missing-attribute]
     bag0 = o.get_bag()
-    bag1 = kd.attrs(o, c=4, d=5, e=6)
-    bag2 = kd.attrs(o, e=7, f=8)
-    bag3 = kd.attrs(o, d=9, g=10, h=11)
-    bag4 = kd.attrs(o, i=12, j=13)
+    bag1 = kd.attrs(o, c=4, d=5, e=6)  # pyrefly: ignore[missing-attribute]
+    bag2 = kd.attrs(o, e=7, f=8)  # pyrefly: ignore[missing-attribute]
+    bag3 = kd.attrs(o, d=9, g=10, h=11)  # pyrefly: ignore[missing-attribute]
+    bag4 = kd.attrs(o, i=12, j=13)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
@@ -759,22 +759,22 @@ class DataBagManagerTest(parameterized.TestCase):
       ])
 
   def test_create_branch(self):
-    entity = kd.new()
+    entity = kd.new()  # pyrefly: ignore[missing-attribute]
 
     trunk_dir = self.create_tempdir().full_path
     trunk_manager = DataBagManager.create_new(trunk_dir)
     trunk_manager.add_bags([
         dbm.BagToAdd(
-            bag_name='trunk1', bag=kd.attrs(entity, a=1), dependencies=()
+            bag_name='trunk1', bag=kd.attrs(entity, a=1), dependencies=()  # pyrefly: ignore[missing-attribute]
         ),
         dbm.BagToAdd(
             bag_name='trunk2',
-            bag=kd.attrs(entity, a=2),
+            bag=kd.attrs(entity, a=2),  # pyrefly: ignore[missing-attribute]
             dependencies=('trunk1',),
         ),
         dbm.BagToAdd(
             bag_name='trunk3',
-            bag=kd.attrs(entity, a=3),
+            bag=kd.attrs(entity, a=3),  # pyrefly: ignore[missing-attribute]
             dependencies=('trunk2',),
         ),
     ])
@@ -802,7 +802,7 @@ class DataBagManagerTest(parameterized.TestCase):
     branch_manager.add_bags([
         dbm.BagToAdd(
             bag_name='branch1',
-            bag=kd.attrs(entity, a=4),
+            bag=kd.attrs(entity, a=4),  # pyrefly: ignore[missing-attribute]
             dependencies=('trunk2',),
         ),
     ])
@@ -825,7 +825,7 @@ class DataBagManagerTest(parameterized.TestCase):
     trunk_manager.add_bags([
         dbm.BagToAdd(
             bag_name='trunk4',
-            bag=kd.attrs(entity, a=5),
+            bag=kd.attrs(entity, a=5),  # pyrefly: ignore[missing-attribute]
             dependencies=('trunk3',),
         ),
     ])
@@ -868,12 +868,12 @@ class DataBagManagerTest(parameterized.TestCase):
         twig_manager.get_minimal_bag(
             twig_manager.get_available_bag_names()
         ).merge_fallbacks(),
-        kd.attrs(entity, a=4),
+        kd.attrs(entity, a=4),  # pyrefly: ignore[missing-attribute]
     )
     twig_manager.add_bags([
         dbm.BagToAdd(
             bag_name='twig1',
-            bag=kd.attrs(entity, a=6),
+            bag=kd.attrs(entity, a=6),  # pyrefly: ignore[missing-attribute]
             dependencies=('trunk2',),
         ),
     ])
@@ -910,8 +910,8 @@ class DataBagManagerTest(parameterized.TestCase):
       )
 
     manager.add_bags([
-        dbm.BagToAdd(bag_name='foo', bag=kd.bag(), dependencies=()),
-        dbm.BagToAdd(bag_name='bar', bag=kd.bag(), dependencies=('foo',)),
+        dbm.BagToAdd(bag_name='foo', bag=kd.bag(), dependencies=()),  # pyrefly: ignore[missing-attribute]
+        dbm.BagToAdd(bag_name='bar', bag=kd.bag(), dependencies=('foo',)),  # pyrefly: ignore[missing-attribute]
     ])
     with self.assertRaisesRegex(
         ValueError,
@@ -941,14 +941,14 @@ class DataBagManagerTest(parameterized.TestCase):
     manager = DataBagManager.create_new(persistence_dir)
     manager.add_bags([
         dbm.BagToAdd(
-            bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=()
+            bag_name='bag1', bag=kd.attrs(kd.new(), a=1), dependencies=()  # pyrefly: ignore[missing-attribute]
         ),
     ])
 
     another_manager = DataBagManager.create_from_dir(persistence_dir)
     another_manager.add_bags([
         dbm.BagToAdd(
-            bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('bag1',)
+            bag_name='bag2', bag=kd.attrs(kd.new(), a=2), dependencies=('bag1',)  # pyrefly: ignore[missing-attribute]
         ),
     ])
 
@@ -968,7 +968,7 @@ class DataBagManagerTest(parameterized.TestCase):
     ):
       manager.add_bags([
           dbm.BagToAdd(
-              bag_name='bag3', bag=kd.attrs(kd.new(), a=3), dependencies=()
+              bag_name='bag3', bag=kd.attrs(kd.new(), a=3), dependencies=()  # pyrefly: ignore[missing-attribute]
           ),
       ])
 
@@ -1005,7 +1005,7 @@ class DataBagManagerTest(parameterized.TestCase):
 
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir, fs=fs_factory())
-    bag1 = kd.attrs(kd.new(), a=1)
+    bag1 = kd.attrs(kd.new(), a=1)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([
         dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=()),
     ])
@@ -1015,7 +1015,7 @@ class DataBagManagerTest(parameterized.TestCase):
     with self.assertRaises(KeyboardInterrupt):
       manager.add_bags([
           dbm.BagToAdd(
-              bag_name='bag2', bag=kd.attrs(kd.new(), a=3), dependencies=()
+              bag_name='bag2', bag=kd.attrs(kd.new(), a=3), dependencies=()  # pyrefly: ignore[missing-attribute]
           ),
       ])
     # The state of the manager is not changed. Adding bags is transactional, so
@@ -1028,12 +1028,12 @@ class DataBagManagerTest(parameterized.TestCase):
       manager.add_bags([
           dbm.BagToAdd(
               bag_name='bag3',
-              bag=kd.attrs(kd.new(), a=4),
+              bag=kd.attrs(kd.new(), a=4),  # pyrefly: ignore[missing-attribute]
               dependencies=('bag1',),
           ),
           dbm.BagToAdd(
               bag_name='bag4',
-              bag=kd.attrs(kd.new(), a=5),
+              bag=kd.attrs(kd.new(), a=5),  # pyrefly: ignore[missing-attribute]
               dependencies=('bag3',),
           ),
       ])
@@ -1043,7 +1043,7 @@ class DataBagManagerTest(parameterized.TestCase):
     with self.assertRaises(KeyboardInterrupt):
       manager.add_bags([
           dbm.BagToAdd(
-              bag_name='bag5', bag=kd.attrs(kd.new(), a=2), dependencies=()
+              bag_name='bag5', bag=kd.attrs(kd.new(), a=2), dependencies=()  # pyrefly: ignore[missing-attribute]
           ),
       ])
     # The update was successfully committed to disk, but the manager's state
@@ -1053,7 +1053,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # Because the update was successfully committed to disk, but the manager's
     # state was not updated to the new revision, the manager cannot perform
     # further write operations.
-    bag6 = kd.attrs(kd.new(), a=6)
+    bag6 = kd.attrs(kd.new(), a=6)  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -1092,10 +1092,10 @@ class DataBagManagerTest(parameterized.TestCase):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
 
-    o = kd.new(a=1, b=2)
+    o = kd.new(a=1, b=2)  # pyrefly: ignore[missing-attribute]
     bag0 = o.get_bag()
-    bag1 = kd.attrs(o, b=3, c=4)
-    bag2 = kd.attrs(o, c=5, d=6)
+    bag1 = kd.attrs(o, b=3, c=4)  # pyrefly: ignore[missing-attribute]
+    bag2 = kd.attrs(o, c=5, d=6)  # pyrefly: ignore[missing-attribute]
 
     # bag1 depends on bag0
     # bag2 depends on bag1
@@ -1172,7 +1172,7 @@ class DataBagManagerTest(parameterized.TestCase):
     # Clear the global cache to start with a clean slate.
     global_cache.clear()
 
-    bag1 = kd.attrs(kd.new(), a=1, b='hello world!')
+    bag1 = kd.attrs(kd.new(), a=1, b='hello world!')  # pyrefly: ignore[missing-attribute]
 
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
@@ -1210,7 +1210,7 @@ class DataBagManagerTest(parameterized.TestCase):
   def test_parallelism_passed_to_thread_pool_executor_writing(self):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
-    bag1 = kd.attrs(kd.new(), a=1)
+    bag1 = kd.attrs(kd.new(), a=1)  # pyrefly: ignore[missing-attribute]
     with mock.patch.object(
         concurrent.futures,
         'ThreadPoolExecutor',
@@ -1224,7 +1224,7 @@ class DataBagManagerTest(parameterized.TestCase):
   def test_parallelism_passed_to_thread_pool_executor_reading(self):
     persistence_dir = self.create_tempdir().full_path
     manager = DataBagManager.create_new(persistence_dir)
-    bag1 = kd.attrs(kd.new(), a=1)
+    bag1 = kd.attrs(kd.new(), a=1)  # pyrefly: ignore[missing-attribute]
     manager.add_bags([dbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=())])
 
     # Clear the global cache to force loading from disk.

@@ -36,7 +36,7 @@ class SchemaItem(data_item.DataItem):
   def get_nofollowed_schema(self) -> data_item.DataItem:
     return _eval_op('kd.get_nofollowed_schema', self)
 
-  def new(self, **attrs) -> data_slice.DataSlice | arolla.Expr:
+  def new(self, **attrs) -> data_slice.DataSlice | arolla.Expr:  # pyrefly: ignore[bad-override]
     """Returns a new Entity with this Schema."""
     if not self.has_bag():
       raise ValueError(
@@ -77,4 +77,4 @@ arolla.abc.register_qvalue_specialization(
 )
 
 if typing.TYPE_CHECKING:
-  SchemaItem = type_defs.SchemaItem
+  SchemaItem = type_defs.SchemaItem  # pyrefly: ignore[bad-assignment]

@@ -50,7 +50,7 @@ class QTypesTest(absltest.TestCase):
     )
 
   def test_executor_qtype(self):
-    testing.assert_equal(qtypes.EXECUTOR.qtype, arolla.QTYPE)
+    testing.assert_equal(qtypes.EXECUTOR.qtype, arolla.QTYPE)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(str(qtypes.EXECUTOR), 'EXECUTOR')
 
 

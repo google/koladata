@@ -292,21 +292,21 @@ class DataSlicePathTest(parameterized.TestCase):
         )
 
   def test_evaluate_paths_on_entities_and_lists(self):
-    query_schema = kd.named_schema('query')
-    doc_schema = kd.named_schema('doc')
+    query_schema = kd.named_schema('query')  # pyrefly: ignore[missing-attribute]
+    doc_schema = kd.named_schema('doc')  # pyrefly: ignore[missing-attribute]
     new_query = query_schema.new
     new_doc = doc_schema.new
-    root = kd.new(
-        query=kd.list([
+    root = kd.new(  # pyrefly: ignore[missing-attribute]
+        query=kd.list([  # pyrefly: ignore[missing-attribute]
             new_query(
                 query_id='q1',
                 doc=new_doc(
-                    doc_id=kd.slice(['d0', 'd1', 'd2', 'd3'])
+                    doc_id=kd.slice(['d0', 'd1', 'd2', 'd3'])  # pyrefly: ignore[missing-attribute]
                 ).implode(),
             ),
             new_query(
                 query_id='q2',
-                doc=new_doc(doc_id=kd.slice(['d4', 'd5', 'd6'])).implode(),
+                doc=new_doc(doc_id=kd.slice(['d4', 'd5', 'd6'])).implode(),  # pyrefly: ignore[missing-attribute]
             ),
         ])
     )
@@ -329,7 +329,7 @@ class DataSlicePathTest(parameterized.TestCase):
     )
 
   def test_evaluate_paths_on_dict(self):
-    ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})
+    ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})  # pyrefly: ignore[missing-attribute]
 
     kd.testing.assert_equivalent(
         DataSlicePath.from_actions([]).evaluate(ds),
@@ -345,7 +345,7 @@ class DataSlicePathTest(parameterized.TestCase):
     )
 
   def test_evaluate_paths_on_incompatible_data_slices(self):
-    ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})
+    ds = kd.dict({1: 'a', 2: 'b', 3: 'c'})  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         re.escape('cannot get or set attributes on schema: INT32'),
@@ -374,12 +374,12 @@ class DataSlicePathTest(parameterized.TestCase):
 
   def test_generate_available_data_paths(self):
     self.maxDiff = None
-    tree_node_schema = kd.named_schema(
+    tree_node_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
         'TreeNode',
         value=kd.STRING,
-        children=kd.list_schema(kd.named_schema('TreeNode')),
+        children=kd.list_schema(kd.named_schema('TreeNode')),  # pyrefly: ignore[missing-attribute]
     )
-    initial_root_schema = kd.schema.new_schema(
+    initial_root_schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         some_tree=tree_node_schema,
     )
 
@@ -491,7 +491,7 @@ class DataSlicePathTest(parameterized.TestCase):
     )
 
   def test_generate_available_data_paths_for_dict_schema(self):
-    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)
+    dict_schema = kd.dict_schema(kd.STRING, kd.STRING)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         list(
             data_slice_path_lib.generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
@@ -508,9 +508,9 @@ class DataSlicePathTest(parameterized.TestCase):
   def test_generate_all_available_data_paths(
       self,
   ):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         set(
@@ -529,9 +529,9 @@ class DataSlicePathTest(parameterized.TestCase):
   def test_generate_available_data_paths_for_negative_but_not_minus_one_max_depth(
       self,
   ):
-    schema = kd.schema.new_schema(
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         foo=kd.INT32,
-        bar=kd.list_schema(kd.STRING),
+        bar=kd.list_schema(kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
     self.assertEmpty(
         set(
@@ -542,8 +542,8 @@ class DataSlicePathTest(parameterized.TestCase):
     )
 
   def test_get_subschema_bag(self):
-    dict_schema = kd.dict_schema(
-        kd.INT32, kd.named_schema('MyDictValue', x=kd.INT32)
+    dict_schema = kd.dict_schema(  # pyrefly: ignore[missing-attribute]
+        kd.INT32, kd.named_schema('MyDictValue', x=kd.INT32)  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         DictGetKeys().get_subschema_bag(dict_schema),
@@ -551,7 +551,7 @@ class DataSlicePathTest(parameterized.TestCase):
         # * entity = dict_schema.get_itemid()
         # * attribute = '__keys__'
         # * value = kd.INT32.
-        kd.attrs(dict_schema, **{'__keys__': kd.INT32}),
+        kd.attrs(dict_schema, **{'__keys__': kd.INT32}),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         DictGetValues().get_subschema_bag(dict_schema),
@@ -563,30 +563,30 @@ class DataSlicePathTest(parameterized.TestCase):
         #   value schema. However, it captures nothing else about the value
         #   schema, in particular it does not capture its attribute 'x' or its
         #   schema kd.INT32. In this sense it is minimal.
-        kd.attrs(dict_schema, **{'__values__': kd.named_schema('MyDictValue')}),
+        kd.attrs(dict_schema, **{'__values__': kd.named_schema('MyDictValue')}),  # pyrefly: ignore[missing-attribute]
     )
 
-    list_schema = kd.list_schema(kd.named_schema('MyListItem', x=kd.INT32))
+    list_schema = kd.list_schema(kd.named_schema('MyListItem', x=kd.INT32))  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         ListExplode().get_subschema_bag(list_schema),
         # Again, the subschema bag is minimal for the action - it does not
         # mention 'x' or its schema kd.INT32:
-        kd.attrs(list_schema, **{'__items__': kd.named_schema('MyListItem')}),
+        kd.attrs(list_schema, **{'__items__': kd.named_schema('MyListItem')}),  # pyrefly: ignore[missing-attribute]
     )
 
-    entity_schema = kd.named_schema(
-        'MyEntity', x=kd.INT32, y=kd.named_schema('MyInnerEntity', z=kd.STRING)
+    entity_schema = kd.named_schema(  # pyrefly: ignore[missing-attribute]
+        'MyEntity', x=kd.INT32, y=kd.named_schema('MyInnerEntity', z=kd.STRING)  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         GetAttr('x').get_subschema_bag(entity_schema),
         # The subschema bag mentions only attribute 'x' and not 'y':
-        kd.attrs(entity_schema, **{'x': kd.INT32}),
+        kd.attrs(entity_schema, **{'x': kd.INT32}),  # pyrefly: ignore[missing-attribute]
     )
     kd.testing.assert_equivalent(
         GetAttr('y').get_subschema_bag(entity_schema),
         # The subschema bag mentions only attribute 'y' and not 'x'. Moreover,
         # it does not mention 'z' or its schema:
-        kd.attrs(entity_schema, **{'y': kd.named_schema('MyInnerEntity')}),
+        kd.attrs(entity_schema, **{'y': kd.named_schema('MyInnerEntity')}),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_subschema_bags_are_complete_for_primitive_subschemas(self):
@@ -594,16 +594,16 @@ class DataSlicePathTest(parameterized.TestCase):
     # to construct Koda items when the subschemas are schemas of primitives.
 
     with self.subTest('dict'):
-      dict_schema = kd.dict_schema(kd.STRING, kd.INT32)
+      dict_schema = kd.dict_schema(kd.STRING, kd.INT32)  # pyrefly: ignore[missing-attribute]
       reconstructed_dict_schema = dict_schema.no_bag().with_bag(
           # Note that we need to combine the two minimal bags in order to
           # reconstruct the original dict schema.
-          kd.bags.updated(
+          kd.bags.updated(  # pyrefly: ignore[missing-attribute]
               DictGetKeys().get_subschema_bag(dict_schema),
               DictGetValues().get_subschema_bag(dict_schema),
           )
       )
-      d = kd.dict({'foo': 123}, schema=reconstructed_dict_schema)
+      d = kd.dict({'foo': 123}, schema=reconstructed_dict_schema)  # pyrefly: ignore[missing-attribute]
       self.assertEqual(
           d.to_pytree(),
           {'foo': 123},
@@ -611,11 +611,11 @@ class DataSlicePathTest(parameterized.TestCase):
       self.assertEqual(d.get_schema().get_itemid(), dict_schema.get_itemid())
 
     with self.subTest('list'):
-      list_schema = kd.list_schema(kd.INT32)
+      list_schema = kd.list_schema(kd.INT32)  # pyrefly: ignore[missing-attribute]
       reconstructed_list_schema = list_schema.no_bag().with_bag(
           ListExplode().get_subschema_bag(list_schema)
       )
-      l = kd.list([123, 456], schema=reconstructed_list_schema)
+      l = kd.list([123, 456], schema=reconstructed_list_schema)  # pyrefly: ignore[missing-attribute]
       self.assertEqual(
           l.to_pytree(),
           [123, 456],
@@ -623,7 +623,7 @@ class DataSlicePathTest(parameterized.TestCase):
       self.assertEqual(l.get_schema().get_itemid(), list_schema.get_itemid())
 
     with self.subTest('entity'):
-      entity_schema = kd.named_schema('MyEntity', x=kd.INT32)
+      entity_schema = kd.named_schema('MyEntity', x=kd.INT32)  # pyrefly: ignore[missing-attribute]
       reconstructed_entity_schema = entity_schema.no_bag().with_bag(
           GetAttr('x').get_subschema_bag(entity_schema)
       )

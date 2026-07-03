@@ -463,23 +463,23 @@ def _schema_triples_repr(
   )
 
 
-DataBag.__getitem__ = _getitem
-DataBag.dict = _dict
+DataBag.__getitem__ = _getitem  # pyrefly: ignore[bad-assignment]
+DataBag.dict = _dict  # pyrefly: ignore[bad-assignment]
 DataBag.dict_like = _dict_like
 DataBag.dict_shaped = _dict_shaped
 DataBag.list = _list
 DataBag.list_shaped = _list_shaped
 DataBag.list_like = _list_like
 DataBag.implode = _implode
-DataBag.concat_lists = _concat_lists
+DataBag.concat_lists = _concat_lists  # pyrefly: ignore[bad-assignment]
 DataBag.freeze = _freeze
 DataBag.merge_inplace = _merge_inplace
-DataBag.with_name = _general_eager_ops.with_name
-DataBag.__lshift__ = _lshift
-DataBag.__rshift__ = _rshift
-DataBag.contents_repr = _contents_repr
-DataBag.data_triples_repr = _data_triples_repr
-DataBag.schema_triples_repr = _schema_triples_repr
+DataBag.with_name = _general_eager_ops.with_name  # pyrefly: ignore[bad-assignment]
+DataBag.__lshift__ = _lshift  # pyrefly: ignore[bad-assignment]
+DataBag.__rshift__ = _rshift  # pyrefly: ignore[bad-assignment]
+DataBag.contents_repr = _contents_repr  # pyrefly: ignore[bad-assignment]
+DataBag.data_triples_repr = _data_triples_repr  # pyrefly: ignore[bad-assignment]
+DataBag.schema_triples_repr = _schema_triples_repr  # pyrefly: ignore[bad-assignment]
 
 
 class NullDataBag(arolla.abc.QValue):

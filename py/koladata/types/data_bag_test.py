@@ -358,8 +358,8 @@ $""",
     self.assertNotIn('list<list<INT32>>', db_repr)
 
   def test_contents_repr_schema_metadata(self):
-    e = kde.new(a=kde.new(b=1)).eval()
-    e = e.updated(kde.metadata(e.get_schema(), foo='bar', obj=e).eval())
+    e = kde.new(a=kde.new(b=1)).eval()  # pyrefly: ignore[missing-attribute]
+    e = e.updated(kde.metadata(e.get_schema(), foo='bar', obj=e).eval())  # pyrefly: ignore[missing-attribute]
 
     self.assertRegex(
         repr(e.get_bag().contents_repr()),
@@ -1227,7 +1227,7 @@ Assigned schema for keys: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.new_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has(I.x).eval(x=x).with_bag(None),
+        kde.has(I.x).eval(x=x).with_bag(None),  # pyrefly: ignore[missing-attribute]
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     self.assertIsInstance(x, data_slice.DataSlice)
@@ -1301,7 +1301,7 @@ Assigned schema for keys: INT32""",
     shape_and_mask_from = ds([[1, None, 1], [None, 2]])
     x = db.obj_like(shape_and_mask_from)
     testing.assert_equal(
-        kde.has(I.x).eval(x=x).no_bag(),
+        kde.has(I.x).eval(x=x).no_bag(),  # pyrefly: ignore[missing-attribute]
         ds([[arolla.unit(), None, arolla.unit()], [None, arolla.unit()]]),
     )
     x.a = ds([[1, 2, 3], [4, 5]])
@@ -1378,7 +1378,7 @@ Assigned schema for keys: INT32""",
       )
 
     with self.subTest('itemid'):
-      itemid = kde.allocation.new_dictid_shaped_as(ds([1, 2])).eval()
+      itemid = kde.allocation.new_dictid_shaped_as(ds([1, 2])).eval()  # pyrefly: ignore[missing-attribute]
 
       x = db.dict(ds(['a', 'b']), 1, itemid=itemid)
       self.assertEqual(x.get_shape().rank(), 1)
@@ -1673,7 +1673,7 @@ Assigned schema for keys: INT32""",
     entity1_in_db2 = db2.adopt(obj1.stub())
 
     entity1_in_db2.x = 2
-    del entity0_in_db2.x
+    del entity0_in_db2.x  # pyrefly: ignore[missing-attribute]
 
     testing.assert_equal(obj0.x.no_bag(), ds(1))
     db1.merge_inplace(db2, overwrite=True)
@@ -1796,7 +1796,7 @@ The cause is the schema for attribute 'a' is incompatible: ENTITY\(x=INT32\) vs 
       db1.merge_inplace(db2)
 
   def test_merge_inplace_dict_conflict(self):
-    itemid = kde.allocation.new_dictid().eval()
+    itemid = kde.allocation.new_dictid().eval()  # pyrefly: ignore[missing-attribute]
     db1 = bag()
     db1.dict({1: db1.obj(x=1)}, itemid=itemid)
     db2 = bag()
@@ -1815,7 +1815,7 @@ The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
   def test_merge_inplace_list_item_conflict(self):
-    itemid = kde.allocation.new_listid().eval()
+    itemid = kde.allocation.new_listid().eval()  # pyrefly: ignore[missing-attribute]
     db1 = bag()
     db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
     db2 = bag()
@@ -1834,7 +1834,7 @@ The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} 
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
   def test_merge_inplace_list_size_conflict(self):
-    itemid = kde.allocation.new_listid().eval()
+    itemid = kde.allocation.new_listid().eval()  # pyrefly: ignore[missing-attribute]
     db1 = bag()
     db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
     db2 = bag()
@@ -2053,7 +2053,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     o2.x = 2
     o2.y = 3
     db3 = bag()
-    o3 = db3.obj(itemid=kde.uuid(x=1).eval())
+    o3 = db3.obj(itemid=kde.uuid(x=1).eval())  # pyrefly: ignore[missing-attribute]
     o3.y = 4
     o1 = o1.freeze_bag()
     db1 = db1.freeze()
@@ -2103,9 +2103,9 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     o4 = o1 >> db2 >> db3
     testing.assert_equal(o4.x.no_bag(), ds(1))
     self.assertEqual(o4.y.no_bag(), ds(3))
-    o5 = db2 >> db3 >> o1
-    testing.assert_equal(o5.x.no_bag(), ds(2))
-    self.assertEqual(o5.y.no_bag(), ds(3))
+    o5 = db2 >> db3 >> o1  # pyrefly: ignore[unsupported-operation]
+    testing.assert_equal(o5.x.no_bag(), ds(2))  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(o5.y.no_bag(), ds(3))  # pyrefly: ignore[missing-attribute]
 
   def test_ilshift(self):
     db1 = bag()
@@ -2368,7 +2368,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     objs.with_bag(db_fallback).x = 99
 
     # Creates SparseSource with REMOVED value
-    del objs.S[0].x
+    del objs.S[0].x  # pyrefly: ignore[missing-attribute]
 
     # Verify that objs.S[0] is REMOVED and we don't get values from the fallback
     testing.assert_equal(

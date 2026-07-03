@@ -26,13 +26,13 @@ class GeneralEagerOpsTest(absltest.TestCase):
     self.assertEqual(general_eager_ops.with_name(1, 'foo'), 1)
     self.assertEqual(general_eager_ops.with_name(1, arolla.text('foo')), 1)
     with self.assertRaisesRegex(ValueError, 'Name must be a string'):
-      _ = general_eager_ops.with_name(1, 1)
+      _ = general_eager_ops.with_name(1, 1)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(ValueError, 'Name must be a string'):
-      _ = general_eager_ops.with_name(1, None)
+      _ = general_eager_ops.with_name(1, None)  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(ValueError, 'Name must be a string'):
-      _ = general_eager_ops.with_name(1, b'foo')
+      _ = general_eager_ops.with_name(1, b'foo')  # pyrefly: ignore[bad-argument-type]
     with self.assertRaisesRegex(ValueError, 'Name must be a string'):
-      _ = general_eager_ops.with_name(1, data_slice.DataSlice.from_vals('foo'))
+      _ = general_eager_ops.with_name(1, data_slice.DataSlice.from_vals('foo'))  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

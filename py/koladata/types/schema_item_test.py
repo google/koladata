@@ -65,7 +65,7 @@ class SchemaItemTest(absltest.TestCase):
     )
 
   def test_new_schema_self_ref(self):
-    s = kde.schema.new_schema(value=schema_constants.INT32).eval()
+    s = kde.schema.new_schema(value=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
     s = s.with_attrs(child=s, parent=s)
     child = s.new(value=42).fork_bag()
     entity = s.new(value=42, child=child)
@@ -80,7 +80,7 @@ class SchemaItemTest(absltest.TestCase):
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):
-    s = kde.schema.new_schema(
+    s = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     ).eval()
     self.assertTrue(s.is_entity_schema())
@@ -90,13 +90,13 @@ class SchemaItemTest(absltest.TestCase):
     self.assertNotEqual(entity.get_bag().fingerprint, s.get_bag().fingerprint)
 
   def test_creating_entity_with_expr_args(self):
-    s = kde.schema.new_schema(
+    s = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     ).eval()
     self.assertTrue(s.is_entity_schema())
-    entity_expr = s.new(a=42, b=kde.item('xyz'))
+    entity_expr = s.new(a=42, b=kde.item('xyz'))  # pyrefly: ignore[missing-attribute]
     testing.assert_non_deterministic_exprs_equal(
-        entity_expr, kde.new(schema=s, a=42, b=kde.item('xyz'))
+        entity_expr, kde.new(schema=s, a=42, b=kde.item('xyz'))  # pyrefly: ignore[missing-attribute]
     )
 
   def test_creating_entities_no_bag_error(self):
@@ -104,12 +104,12 @@ class SchemaItemTest(absltest.TestCase):
         ValueError,
         'only SchemaItems with DataBags can be used for creating Entities',
     ):
-      kde.schema.new_schema(
+      kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
           a=schema_constants.INT32, b=schema_constants.STRING
       ).eval().with_bag(None).new()
 
   def test_creating_entities_with_unknown_attr_error(self):
-    s = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    s = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
     _ = s.new(a=1, b=42)  # No error.
     with self.assertRaisesRegex(
         ValueError,

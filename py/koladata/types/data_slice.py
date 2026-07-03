@@ -895,9 +895,9 @@ class ListSlicingHelper:
 # NOTE: we can create a decorator for adding property similar to add_method, if
 # we need it for more properties.
 _data_slice_py_ext.internal_register_reserved_class_method_name('S')
-DataSlice.S = property(SlicingHelper)
+DataSlice.S = property(SlicingHelper)  # pyrefly: ignore[bad-assignment]
 _data_slice_py_ext.internal_register_reserved_class_method_name('L')
-DataSlice.L = property(ListSlicingHelper)
+DataSlice.L = property(ListSlicingHelper)  # pyrefly: ignore[bad-assignment]
 
 
 @functools.cache

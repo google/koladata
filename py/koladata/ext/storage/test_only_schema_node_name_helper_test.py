@@ -39,10 +39,10 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
 
   def test_schema_node_name_second_argument_is_none(self):
     for schema in [
-        kd.list_schema(kd.INT32),
-        kd.dict_schema(kd.INT32, kd.INT32),
-        kd.named_schema('foo', x=kd.INT32),
-        kd.new(a=1, b=2).get_schema(),
+        kd.list_schema(kd.INT32),  # pyrefly: ignore[missing-attribute]
+        kd.dict_schema(kd.INT32, kd.INT32),  # pyrefly: ignore[missing-attribute]
+        kd.named_schema('foo', x=kd.INT32),  # pyrefly: ignore[missing-attribute]
+        kd.new(a=1, b=2).get_schema(),  # pyrefly: ignore[missing-attribute]
     ]:
       self.assertEqual(
           schema_node_name(schema),
@@ -52,7 +52,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
       )
 
   def test_schema_node_name_second_argument_is_not_none(self):
-    list_schema = kd.list_schema(kd.INT32)
+    list_schema = kd.list_schema(kd.INT32)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         schema_node_name(
             list_schema,
@@ -65,7 +65,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
         ),
     )
 
-    dict_schema = kd.dict_schema(key_schema=kd.STRING, value_schema=kd.FLOAT32)
+    dict_schema = kd.dict_schema(key_schema=kd.STRING, value_schema=kd.FLOAT32)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         schema_node_name(
             dict_schema,
@@ -89,7 +89,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
         ),
     )
 
-    named_schema = kd.named_schema('foo', x=kd.INT32)
+    named_schema = kd.named_schema('foo', x=kd.INT32)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         schema_node_name(
             named_schema,
@@ -102,7 +102,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
         ),
     )
 
-    schema = kd.new(a=1.0, b=2).get_schema()
+    schema = kd.new(a=1.0, b=2).get_schema()  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
         schema_node_name(
             schema,
@@ -136,7 +136,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
         ),
     ):
       schema_node_name(
-          kd.new(a=kd.new(b=1)).get_schema(),
+          kd.new(a=kd.new(b=1)).get_schema(),  # pyrefly: ignore[missing-attribute]
           action=GetAttr('a'),
       )
 
@@ -149,7 +149,7 @@ class TestOnlySchemaNodeNameHelperTest(absltest.TestCase):
         ),
     ):
       schema_node_name(
-          kd.list_schema(item_schema=kd.list_schema(kd.INT32)),
+          kd.list_schema(item_schema=kd.list_schema(kd.INT32)),  # pyrefly: ignore[missing-attribute]
           action=ListExplode(),
       )
 

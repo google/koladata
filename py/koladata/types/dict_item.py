@@ -26,7 +26,7 @@ from koladata.types import data_slice
 class DictItem(data_item.DataItem):
   """DictItem is a DataItem representing a Koda Dict."""
 
-  def pop(self, key: Any) -> data_item.DataItem:
+  def pop(self, key: Any) -> data_item.DataItem:  # pyrefly: ignore[bad-override]
     """Removes an item from the DictItem."""
     if key not in self:
       raise KeyError(key)

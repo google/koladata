@@ -69,7 +69,7 @@ class CompositeInitialDataManager(
     # pinned to the current revision.
     managers = [m.get_readonly_copy() for m in managers]
 
-    return CompositeInitialDataManager(
+    return CompositeInitialDataManager(  # pyrefly: ignore[bad-return]
         internal_call=_INTERNAL_CALL,
         managers=managers,
     )
@@ -170,7 +170,7 @@ class CompositeInitialDataManager(
           f' {invalid_schema_node_names}'
       )
 
-    return kd.bags.enriched(*[
+    return kd.bags.enriched(*[  # pyrefly: ignore[missing-attribute]
         m.internal_get_data_bag_for_schema_node_names(
             schema_node_names & m.get_all_schema_node_names()
         )

@@ -35,7 +35,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     )
 
   def test_serialization_and_deserialization_roundtrip(self):
-    for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
+    for root_item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:  # pyrefly: ignore[missing-attribute]
       manager = BareRootInitialDataManager.create_new(root_item)
       kd.testing.assert_equivalent(
           manager.get_schema(), root_item.get_schema(), ids_equality=True
@@ -73,8 +73,8 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
       )
 
   def test_superfluous_data_is_removed_from_provided_root_item(self):
-    superfluous_data = kd.new(x=1, y=2).get_bag()
-    for item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:
+    superfluous_data = kd.new(x=1, y=2).get_bag()  # pyrefly: ignore[missing-attribute]
+    for item in [kd.new(), kd.uu(), kd.new(schema='root_schema')]:  # pyrefly: ignore[missing-attribute]
       manager = BareRootInitialDataManager.create_new(
           item.enriched(superfluous_data)
       )
@@ -97,30 +97,30 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         ValueError,
         re.escape('the root must be a scalar, i.e. a DataItem. Got: [1, 2, 3]'),
     ):
-      BareRootInitialDataManager.create_new(kd.slice([1, 2, 3]))
+      BareRootInitialDataManager.create_new(kd.slice([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must be present. Got: None'),
     ):
       BareRootInitialDataManager.create_new(
-          kd.item(None, schema=kd.schema.new_schema())
+          kd.item(None, schema=kd.schema.new_schema())  # pyrefly: ignore[missing-attribute]
       )
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must have an entity schema. Got: List[1, 2, 3]'),
     ):
-      BareRootInitialDataManager.create_new(kd.list([1, 2, 3]))
+      BareRootInitialDataManager.create_new(kd.list([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the root must not have any attributes. Got: Entity(x=2)'),
     ):
-      BareRootInitialDataManager.create_new(kd.new(x=2))
+      BareRootInitialDataManager.create_new(kd.new(x=2))  # pyrefly: ignore[missing-attribute]
 
-    root = kd.new()
-    root_schema = kd.with_metadata(root.get_schema(), foo=kd.list([1, 2, 3]))
+    root = kd.new()  # pyrefly: ignore[missing-attribute]
+    root_schema = kd.with_metadata(root.get_schema(), foo=kd.list([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
     root = root.with_schema(root_schema)
     with self.assertRaisesRegex(
         ValueError,
@@ -177,8 +177,8 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     # because it is not a core feature of the BareRootInitialDataManager, i.e.
     # the vast majority of users will never do something like this.
 
-    s0 = kd.list([1, 2, 3])
-    s2 = kd.dict({1: 2})
+    s0 = kd.list([1, 2, 3])  # pyrefly: ignore[missing-attribute]
+    s2 = kd.dict({1: 2})  # pyrefly: ignore[missing-attribute]
     s3 = s0.no_bag().with_bag(s2.get_bag())
 
     # s3's bag is not empty, but it has no data associated with s3's itemid.
@@ -195,7 +195,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     # The BareRootInitialDataManager should call s3.extract() to remove the
     # unreferenced data from the bag. The resulting bag is empty, because there
     # is no data associated with s3's itemid:
-    expected_root = s3.with_bag(kd.bag())
+    expected_root = s3.with_bag(kd.bag())  # pyrefly: ignore[missing-attribute]
     kd.testing.assert_equivalent(
         manager.get_data_slice_for_schema_node_names(schema_node_names=set()),
         expected_root,
@@ -208,7 +208,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     s4 = expected_root.with_attrs(x='foo')
     kd.testing.assert_equivalent(
         s4.get_schema(),
-        kd.schema.new_schema(x=kd.STRING),
+        kd.schema.new_schema(x=kd.STRING),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_description(self):
@@ -236,7 +236,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
             data_slice_path_lib.DataSlicePath.parse_from_string(''),
         ],
     )
-    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('with_invalid_path_to_populate'):
       with self.assertRaisesRegex(
@@ -277,13 +277,13 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     root = manager.get_data_slice_at(
         data_slice_path_lib.DataSlicePath.parse_from_string(''),
     )
-    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)  # pyrefly: ignore[missing-attribute]
 
     root = manager.get_data_slice_at(
         data_slice_path_lib.DataSlicePath.parse_from_string(''),
         with_all_descendants=True,
     )
-    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)
+    kd.testing.assert_equivalent(root, kd.new(), schemas_equality=False)  # pyrefly: ignore[missing-attribute]
 
     with self.subTest('with_invalid_path'):
       with self.assertRaisesRegex(
@@ -318,7 +318,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
     self.assertIs(copy._schema_helper, manager._schema_helper)
 
   def test_get_schema_at(self):
-    root_schema = kd.named_schema('root_schema')
+    root_schema = kd.named_schema('root_schema')  # pyrefly: ignore[missing-attribute]
     manager = BareRootInitialDataManager.create_new(root_schema.new())
     kd.testing.assert_equivalent(
         manager.get_schema_at(
@@ -333,7 +333,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
         manager.get_schema_at(
             data_slice_path_lib.DataSlicePath.parse_from_string('')
         ),
-        kd.schema.new_schema(),
+        kd.schema.new_schema(),  # pyrefly: ignore[missing-attribute]
     )
 
   def test_get_data_bag_for_schema_node_names(self):
@@ -341,7 +341,7 @@ class BareRootInitialDataManagerTest(absltest.TestCase):
 
     kd.testing.assert_equivalent(
         manager.get_data_bag_for_schema_node_names([]),
-        kd.bag(),
+        kd.bag(),  # pyrefly: ignore[missing-attribute]
     )
 
     all_snns = manager.get_all_schema_node_names()

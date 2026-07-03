@@ -108,7 +108,7 @@ class DataSliceManagerView:
     The view path must be valid, i.e. self.is_view_valid() must be True.
     """
     self._check_path_from_root_is_valid()
-    return self._data_slice_manager.get_schema_at(self._path_from_root)
+    return self._data_slice_manager.get_schema_at(self._path_from_root)  # pyrefly: ignore[not-callable]
 
   def get_data_slice(
       self,
@@ -130,16 +130,16 @@ class DataSliceManagerView:
         all their descendants will be populated.
     """
     self._check_path_from_root_is_valid()
-    populate = {v.get_path_from_root() for v in populate or []}
+    populate = {v.get_path_from_root() for v in populate or []}  # pyrefly: ignore[bad-assignment]
     populate.add(self._path_from_root)
-    populate_including_descendants = {
+    populate_including_descendants = {  # pyrefly: ignore[bad-assignment]
         v.get_path_from_root() for v in populate_including_descendants or []
     }
     ds = self._data_slice_manager.get_data_slice(
         populate=populate,
         populate_including_descendants=populate_including_descendants,
     )
-    return self._path_from_root.evaluate(ds)
+    return self._path_from_root.evaluate(ds)  # pyrefly: ignore[not-callable]
 
   def get(
       self,
@@ -186,7 +186,7 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     self._data_slice_manager.update(
-        at_path=self._path_from_root,
+        at_path=self._path_from_root,  # pyrefly: ignore[unexpected-keyword]
         attr_name=attr_name,
         attr_value=attr_value,
         description=description,
@@ -218,7 +218,7 @@ class DataSliceManagerView:
       attr_value, description = attr_value_possibly_with_description, None
     del attr_value_possibly_with_description
 
-    if kd.slices.internal_is_compliant_attr_name(attr_name):
+    if kd.slices.internal_is_compliant_attr_name(attr_name):  # pyrefly: ignore[missing-attribute]
       self.update(
           attr_name=attr_name, attr_value=attr_value, description=description
       )
@@ -263,26 +263,26 @@ class DataSliceManagerView:
     if isinstance(selection_mask, py_types.FunctionType):
       selection_mask = selection_mask(self)
     current_child_path = self._path_from_root
-    current_child_ds = self._data_slice_manager.get_data_slice_at(
+    current_child_ds = self._data_slice_manager.get_data_slice_at(  # pyrefly: ignore[not-callable]
         current_child_path
     )
     current_child_selection_mask = selection_mask.expand_to(current_child_ds)
-    if kd.all(kd.has(current_child_selection_mask)):
+    if kd.all(kd.has(current_child_selection_mask)):  # pyrefly: ignore[missing-attribute]
       # Nothing to filter out, i.e. keep everything.
       return
-    for action in reversed(self._path_from_root.actions):
+    for action in reversed(self._path_from_root.actions):  # pyrefly: ignore[no-matching-overload]
       parent_path = data_slice_path_lib.DataSlicePath(
-          current_child_path.actions[:-1]
+          current_child_path.actions[:-1]  # pyrefly: ignore[bad-argument-type]
       )
       if not parent_path.actions:  # The parent_path is for the root.
         assert isinstance(action, data_slice_path_lib.GetAttr)
         attr_value = (
             current_child_ds
             if current_child_selection_mask
-            else kd.item(None, schema=current_child_ds.get_schema())
+            else kd.item(None, schema=current_child_ds.get_schema())  # pyrefly: ignore[missing-attribute]
         )
         self._data_slice_manager.update(
-            at_path=parent_path,
+            at_path=parent_path,  # pyrefly: ignore[unexpected-keyword]
             attr_name=action.attr_name,
             attr_value=attr_value,
             description=description,
@@ -296,26 +296,26 @@ class DataSliceManagerView:
             current_child_selection_mask
         )
         # Set the variables for the next iteration:
-        current_child_selection_mask = kd.agg_any(kd.has(filtered_child_ds))
+        current_child_selection_mask = kd.agg_any(kd.has(filtered_child_ds))  # pyrefly: ignore[missing-attribute]
         current_child_ds = filtered_child_ds.implode()
       elif isinstance(action, data_slice_path_lib.DictGetKeys):
         new_keys_ds = current_child_ds.select(current_child_selection_mask)
-        new_values_ds = self._data_slice_manager.get_data_slice_at(
+        new_values_ds = self._data_slice_manager.get_data_slice_at(  # pyrefly: ignore[not-callable]
             parent_path.extended_with_action(
                 data_slice_path_lib.DictGetValues()
             )
         ).select(current_child_selection_mask)
-        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))
-        current_child_ds = kd.dict(new_keys_ds, new_values_ds)
+        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))  # pyrefly: ignore[missing-attribute]
+        current_child_ds = kd.dict(new_keys_ds, new_values_ds)  # pyrefly: ignore[missing-attribute]
       elif isinstance(action, data_slice_path_lib.DictGetValues):
         new_values_ds = current_child_ds.select(current_child_selection_mask)
-        new_keys_ds = self._data_slice_manager.get_data_slice_at(
+        new_keys_ds = self._data_slice_manager.get_data_slice_at(  # pyrefly: ignore[not-callable]
             parent_path.extended_with_action(data_slice_path_lib.DictGetKeys())
         ).select(current_child_selection_mask)
-        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))
-        current_child_ds = kd.dict(new_keys_ds, new_values_ds)
+        current_child_selection_mask = kd.agg_any(kd.has(new_keys_ds))  # pyrefly: ignore[missing-attribute]
+        current_child_ds = kd.dict(new_keys_ds, new_values_ds)  # pyrefly: ignore[missing-attribute]
       elif isinstance(action, data_slice_path_lib.GetAttr):
-        parent_ds = self._data_slice_manager.get_data_slice_at(parent_path)
+        parent_ds = self._data_slice_manager.get_data_slice_at(parent_path)  # pyrefly: ignore[not-callable]
         # Set the variables for the next iteration:
         current_child_ds = (parent_ds & current_child_selection_mask).with_attr(
             action.attr_name, current_child_ds
@@ -355,8 +355,8 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     return DataSliceManagerView(
-        self._data_slice_manager.branch(description=description),
-        self._path_from_root,
+        self._data_slice_manager.branch(description=description),  # pyrefly: ignore[bad-argument-type]
+        self._path_from_root,  # pyrefly: ignore[bad-argument-type]
     )
 
   def select(
@@ -398,7 +398,7 @@ class DataSliceManagerView:
     DataSliceManager. This method always returns the path, even if the view is
     currently invalid, i.e. even if self.is_view_valid() is False.
     """
-    return self._path_from_root
+    return self._path_from_root  # pyrefly: ignore[bad-return]
 
   def get_manager(
       self,
@@ -408,11 +408,11 @@ class DataSliceManagerView:
     Always succeeds, even if the view is currently invalid, i.e. even if
     self.is_view_valid() is False.
     """
-    return self._data_slice_manager
+    return self._data_slice_manager  # pyrefly: ignore[bad-return]
 
   def is_view_valid(self) -> bool:
     """Returns True iff the view path is valid. Never raises an error."""
-    return self._data_slice_manager.exists(self._path_from_root)
+    return self._data_slice_manager.exists(self._path_from_root)  # pyrefly: ignore[not-callable]
 
   # Generic methods for navigation.
 
@@ -422,7 +422,7 @@ class DataSliceManagerView:
     Always succeeds, even if the view is currently invalid, i.e. even if
     self.is_view_valid() is False.
     """
-    return DataSliceManagerView(self._data_slice_manager)
+    return DataSliceManagerView(self._data_slice_manager)  # pyrefly: ignore[bad-argument-type]
 
   def get_parent(self) -> DataSliceManagerView:
     """Returns a view of the parent of the view path.
@@ -446,7 +446,7 @@ class DataSliceManagerView:
     The view path does not need to be valid, but the grandparent path must be
     valid for this method to succeed.
     """
-    if len(self._path_from_root.actions) < 2:
+    if len(self._path_from_root.actions) < 2:  # pyrefly: ignore[bad-argument-type]
       raise ValueError(f"the path '{self._path_from_root}' has no grandparent")
     return self.get_ancestor(num_levels_up=2)
 
@@ -462,8 +462,9 @@ class DataSliceManagerView:
     """
     if num_levels_up < 0:
       raise ValueError(f'num_levels_up must be >= 0, but got {num_levels_up}')
-    if num_levels_up > len(self._path_from_root.actions):
+    if num_levels_up > len(self._path_from_root.actions):  # pyrefly: ignore[bad-argument-type]
       raise ValueError(
+          # pyrefly: ignore[bad-argument-type]
           f"the path '{self._path_from_root}' does not support"
           f' num_levels_up={num_levels_up}. The maximum valid value is'
           f' {len(self._path_from_root.actions)}'
@@ -472,7 +473,7 @@ class DataSliceManagerView:
       return self
     actions = self._path_from_root.actions[:-num_levels_up]
     return DataSliceManagerView(
-        self._data_slice_manager, data_slice_path_lib.DataSlicePath(actions)
+        self._data_slice_manager, data_slice_path_lib.DataSlicePath(actions)  # pyrefly: ignore[bad-argument-type]
     )
 
   def get_children(self) -> list[DataSliceManagerView]:
@@ -525,8 +526,8 @@ class DataSliceManagerView:
       if not descendant_path.actions:
         continue
       view = DataSliceManagerView(
-          self._data_slice_manager,
-          self._path_from_root.concat(descendant_path),
+          self._data_slice_manager,  # pyrefly: ignore[bad-argument-type]
+          self._path_from_root.concat(descendant_path),  # pyrefly: ignore[not-callable]
       )
       if view_predicate(view):
         yield view
@@ -576,8 +577,8 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     return DataSliceManagerView(
-        self._data_slice_manager,
-        self._path_from_root.extended_with_action(
+        self._data_slice_manager,  # pyrefly: ignore[bad-argument-type]
+        self._path_from_root.extended_with_action(  # pyrefly: ignore[not-callable]
             data_slice_path_lib.ListExplode()
         ),
     )
@@ -601,8 +602,8 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     return DataSliceManagerView(
-        self._data_slice_manager,
-        self._path_from_root.extended_with_action(
+        self._data_slice_manager,  # pyrefly: ignore[bad-argument-type]
+        self._path_from_root.extended_with_action(  # pyrefly: ignore[not-callable]
             data_slice_path_lib.DictGetKeys()
         ),
     )
@@ -618,8 +619,8 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     return DataSliceManagerView(
-        self._data_slice_manager,
-        self._path_from_root.extended_with_action(
+        self._data_slice_manager,  # pyrefly: ignore[bad-argument-type]
+        self._path_from_root.extended_with_action(  # pyrefly: ignore[not-callable]
             data_slice_path_lib.DictGetValues()
         ),
     )
@@ -639,8 +640,8 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     return DataSliceManagerView(
-        self._data_slice_manager,
-        self._path_from_root.extended_with_action(
+        self._data_slice_manager,  # pyrefly: ignore[bad-argument-type]
+        self._path_from_root.extended_with_action(  # pyrefly: ignore[not-callable]
             data_slice_path_lib.GetAttr(attr_name)
         ),
     )
@@ -670,7 +671,7 @@ class DataSliceManagerView:
     """
     if attr_name == '__all__':
       return self._get_currently_available_attributes()  # pytype: disable=bad-return-type
-    if kd.slices.internal_is_compliant_attr_name(attr_name):
+    if kd.slices.internal_is_compliant_attr_name(attr_name):  # pyrefly: ignore[missing-attribute]
       return self.get_attr(attr_name)
     raise AttributeError(
         f"attribute '{attr_name}' cannot be used with the dot syntax. Use"
@@ -705,13 +706,13 @@ class DataSliceManagerView:
         'get_ancestor',
     ]
 
-    path_length = len(self._path_from_root.actions)
-    if path_length >= 1 and self._data_slice_manager.exists(
-        data_slice_path_lib.DataSlicePath(self._path_from_root.actions[:-1])
+    path_length = len(self._path_from_root.actions)  # pyrefly: ignore[bad-argument-type]
+    if path_length >= 1 and self._data_slice_manager.exists(  # pyrefly: ignore[not-callable]
+        data_slice_path_lib.DataSlicePath(self._path_from_root.actions[:-1])  # pyrefly: ignore[bad-argument-type]
     ):
       attributes.append('get_parent')
-    if path_length >= 2 and self._data_slice_manager.exists(
-        data_slice_path_lib.DataSlicePath(self._path_from_root.actions[:-2])
+    if path_length >= 2 and self._data_slice_manager.exists(  # pyrefly: ignore[not-callable]
+        data_slice_path_lib.DataSlicePath(self._path_from_root.actions[:-2])  # pyrefly: ignore[bad-argument-type]
     ):
       attributes.append('get_grandparent')
 
@@ -737,7 +738,7 @@ class DataSliceManagerView:
       attributes.extend([
           a
           for a in attr_names
-          if a.isidentifier() and kd.slices.internal_is_compliant_attr_name(a)
+          if a.isidentifier() and kd.slices.internal_is_compliant_attr_name(a)  # pyrefly: ignore[missing-attribute]
       ])
     if schema.is_list_schema():
       attributes.append('get_list_items')

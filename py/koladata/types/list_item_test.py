@@ -109,10 +109,10 @@ class ListItemTest(parameterized.TestCase):
 
   def test_contains(self):
     db = bag()
-    self.assertIn(1, db.list([1, 2, 3]))
-    self.assertIn(ds(1), db.list([1, 2, 3]))
-    self.assertNotIn(1, db.list([None, 2, 3]))
-    self.assertNotIn(ds(1), db.list([None, 2, 3]))
+    self.assertIn(1, db.list([1, 2, 3]))  # pyrefly: ignore[bad-argument-type]
+    self.assertIn(ds(1), db.list([1, 2, 3]))  # pyrefly: ignore[bad-argument-type]
+    self.assertNotIn(1, db.list([None, 2, 3]))  # pyrefly: ignore[bad-argument-type]
+    self.assertNotIn(ds(1), db.list([None, 2, 3]))  # pyrefly: ignore[bad-argument-type]
 
   @parameterized.named_parameters(
       (

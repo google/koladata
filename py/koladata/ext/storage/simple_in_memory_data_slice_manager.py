@@ -39,7 +39,7 @@ class SimpleInMemoryDataSliceManager(
   """
 
   def __init__(self):
-    self._ds = kd.new()
+    self._ds = kd.new()  # pyrefly: ignore[missing-attribute]
     self._is_read_only = False
 
   def generate_paths(
@@ -103,7 +103,7 @@ class SimpleInMemoryDataSliceManager(
       extracted_attr_value = attr_value
     del attr_value  # To avoid accidental misuse.
     ds = self._ds.updated(
-        kd.attrs(
+        kd.attrs(  # pyrefly: ignore[missing-attribute]
             at_path.evaluate(self._ds),
             **{attr_name: extracted_attr_value},
             overwrite_schema=True,

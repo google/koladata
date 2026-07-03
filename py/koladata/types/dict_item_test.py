@@ -112,24 +112,24 @@ class DictItemTest(parameterized.TestCase):
   def test_iter(self):
     db = bag()
     d = db.dict({1: 2, 3: 4})
-    self.assertCountEqual(list(d), [ds(1), ds(3)])
-    self.assertIn(1, d)
-    self.assertIn(3, d)
-    self.assertNotIn(2, d)
+    self.assertCountEqual(list(d), [ds(1), ds(3)])  # pyrefly: ignore[bad-argument-type]
+    self.assertIn(1, d)  # pyrefly: ignore[bad-argument-type]
+    self.assertIn(3, d)  # pyrefly: ignore[bad-argument-type]
+    self.assertNotIn(2, d)  # pyrefly: ignore[bad-argument-type]
 
   def test_contains(self):
     db = bag()
-    self.assertIn(1, db.dict({1: 2, 3: 42}))
-    self.assertIn(ds(1), db.dict({1: 2, 3: 42}))
-    self.assertNotIn(1, db.dict({42: 2, 3: 42}))
-    self.assertNotIn(ds(1), db.dict({42: 2, 3: 42}))
+    self.assertIn(1, db.dict({1: 2, 3: 42}))  # pyrefly: ignore[bad-argument-type]
+    self.assertIn(ds(1), db.dict({1: 2, 3: 42}))  # pyrefly: ignore[bad-argument-type]
+    self.assertNotIn(1, db.dict({42: 2, 3: 42}))  # pyrefly: ignore[bad-argument-type]
+    self.assertNotIn(ds(1), db.dict({42: 2, 3: 42}))  # pyrefly: ignore[bad-argument-type]
 
   def test_pop(self):
     db = bag()
     d = db.dict({1: 2, 3: 4})
     self.assertLen(d, 2)
     d.pop(1)
-    self.assertNotIn(1, d)
+    self.assertNotIn(1, d)  # pyrefly: ignore[bad-argument-type]
     self.assertIsNone(d[1].to_py())
     self.assertLen(d, 2)
 
@@ -142,12 +142,12 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d, 2)
 
     del d[1]
-    self.assertNotIn(1, d)
+    self.assertNotIn(1, d)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(d, 2)
 
-    self.assertNotIn(2, d)
+    self.assertNotIn(2, d)  # pyrefly: ignore[bad-argument-type]
     del d[2]
-    self.assertNotIn(2, d)
+    self.assertNotIn(2, d)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(d, 3)
 
   def test_assign_none(self):
@@ -156,12 +156,12 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d, 2)
 
     d[1] = None
-    self.assertNotIn(1, d)
+    self.assertNotIn(1, d)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(d, 2)
 
-    self.assertNotIn(2, d)
+    self.assertNotIn(2, d)  # pyrefly: ignore[bad-argument-type]
     d[2] = None
-    self.assertNotIn(2, d)
+    self.assertNotIn(2, d)  # pyrefly: ignore[bad-argument-type]
     self.assertLen(d, 3)
 
   def test_empty_dict(self):

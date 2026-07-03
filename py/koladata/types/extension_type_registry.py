@@ -22,7 +22,7 @@ import bidict
 from koladata.types import py_boxing
 
 
-M = arolla.M | derived_qtype.M
+M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
 
 BASE_QTYPE = objects.OBJECT
 _EXTENSION_TYPE_REGISTRY = bidict.bidict()  # cls -> QType.
