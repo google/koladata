@@ -151,7 +151,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(message, expected_message)
 
   def test_oneof(self):
-    s = kde.schema.new_schema(
+    s = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
     ).eval()
@@ -206,7 +206,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_repeated_oneof(self):
-    s = kde.schema.new_schema(
+    s = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
     ).eval()

@@ -95,8 +95,8 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dict_schema = kde.dict_schema(
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
     ).eval()
     dct = fns.dict_shaped(shape, schema=dict_schema)
 
@@ -158,7 +158,7 @@ class DictShapedTest(parameterized.TestCase):
           values=None,
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(
+          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
               key_schema=schema_constants.INT32,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -171,7 +171,7 @@ class DictShapedTest(parameterized.TestCase):
           values=ds([[1, 2], [3]]),
           key_schema=None,
           value_schema=None,
-          schema=kde.dict_schema(
+          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
               key_schema=schema_constants.INT64,
               value_schema=schema_constants.OBJECT,
           ).eval(),
@@ -209,7 +209,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dict_schema = kde.dict_schema(
+    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
         key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
     ).eval()
     with self.assertRaisesRegex(
@@ -238,7 +238,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
     )
     x = fns.dict_shaped(itemid.get_shape(), 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))

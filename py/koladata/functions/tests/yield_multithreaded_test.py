@@ -45,8 +45,8 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_yield_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(I.x, V.foo),
-        foo=I.y * I.x,
+        returns=kde.iterables.make(I.x, V.foo),  # pyrefly: ignore[missing-attribute]
+        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
     )
     res_iter = parallel.yield_multithreaded(fn, x=2, y=3)
     self.assertIsInstance(res_iter, Iterator)
@@ -98,7 +98,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_default_value(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(I.x),
+        returns=kde.iterables.make(I.x),  # pyrefly: ignore[missing-attribute]
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_ONLY, 57
@@ -118,7 +118,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_eval_error(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(I.x.foo),
+        returns=kde.iterables.make(I.x.foo),  # pyrefly: ignore[missing-attribute]
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -140,7 +140,7 @@ class YieldMultithreadedTest(absltest.TestCase):
 
   def test_non_dataslice_inputs(self):
     fn = functor_factories.expr_fn(
-        kde.iterables.make(kde.tuples.get_nth(I.x, 1))
+        kde.iterables.make(kde.tuples.get_nth(I.x, 1))  # pyrefly: ignore[missing-attribute]
     )
     testing.assert_equal(
         arolla.tuple(
@@ -152,7 +152,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
 
   def test_yields_non_dataslice(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x))  # pyrefly: ignore[missing-attribute]
     res = parallel.yield_multithreaded(
         fn,
         x=arolla.tuple(1, 2),
@@ -161,7 +161,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(arolla.tuple(1, 2)))
 
   def test_yields_returns_databag(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x.get_bag()))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x.get_bag()))  # pyrefly: ignore[missing-attribute]
     obj = fns.obj(x=1)
     res = parallel.yield_multithreaded(
         fn,
@@ -171,16 +171,16 @@ class YieldMultithreadedTest(absltest.TestCase):
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(obj.get_bag()))
 
   def test_functor_as_input(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))  # pyrefly: ignore[missing-attribute, unsupported-operation]
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
                 functor_factories.expr_fn(
-                    kde.functor.call(
+                    kde.functor.call(  # pyrefly: ignore[missing-attribute]
                         I.func,
                         x=I.u,
                         y=I.v,
-                        return_type_as=kde.iterables.make(),
+                        return_type_as=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
                     )
                 ),
                 func=fn,
@@ -192,16 +192,16 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
 
   def test_computed_functor(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))  # pyrefly: ignore[missing-attribute, unsupported-operation]
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
                 functor_factories.expr_fn(
-                    kde.functor.call(
+                    kde.functor.call(  # pyrefly: ignore[missing-attribute]
                         I.my_functors.fn,
                         x=I.u,
                         y=I.v,
-                        return_type_as=kde.iterables.make(),
+                        return_type_as=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
                     )
                 ),
                 my_functors=fns.new(fn=fn),
@@ -232,47 +232,47 @@ class YieldMultithreadedTest(absltest.TestCase):
         return_type_as=iterable_qvalue.Iterable()
     )
     def f1(x):
-      x = user_facing_kd.apply_py(
+      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
           functools.partial(wait_for_barrier_and_return_x, second_barrier), x
       ).with_name('wait')
-      return user_facing_kd.iterables.make(x * 10 + 1)
+      return user_facing_kd.iterables.make(x * 10 + 1)  # pyrefly: ignore[missing-attribute]
 
     @tracing_decorator.TraceAsFnDecorator(
         return_type_as=iterable_qvalue.Iterable()
     )
     def f2(x):
-      x = user_facing_kd.apply_py(
+      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
           functools.partial(wait_for_barrier_and_return_x, second_barrier), x
       ).with_name('wait')
-      return user_facing_kd.iterables.make(x * 10 + 2)
+      return user_facing_kd.iterables.make(x * 10 + 2)  # pyrefly: ignore[missing-attribute]
 
     @tracing_decorator.TraceAsFnDecorator(
         return_type_as=iterable_qvalue.Iterable()
     )
     def f3(x):
-      x = user_facing_kd.apply_py(
+      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
           functools.partial(wait_for_barrier_and_return_x, first_barrier), x
       ).with_name('wait')
       y = f1(x)
       z = f2(x)
-      return user_facing_kd.iterables.chain(
-          user_facing_kd.iterables.make(x * 10 + 3), y, z
+      return user_facing_kd.iterables.chain(  # pyrefly: ignore[missing-attribute]
+          user_facing_kd.iterables.make(x * 10 + 3), y, z  # pyrefly: ignore[missing-attribute]
       )
 
     @tracing_decorator.TraceAsFnDecorator(
         return_type_as=iterable_qvalue.Iterable()
     )
     def f4(x):
-      x = user_facing_kd.apply_py(
+      x = user_facing_kd.apply_py(  # pyrefly: ignore[missing-attribute]
           functools.partial(wait_for_barrier_and_return_x, first_barrier), x
       ).with_name('wait')
-      return user_facing_kd.iterables.make(x * 10 + 4)
+      return user_facing_kd.iterables.make(x * 10 + 4)  # pyrefly: ignore[missing-attribute]
 
     @tracing_decorator.TraceAsFnDecorator(
         return_type_as=iterable_qvalue.Iterable()
     )
     def f5(x):
-      return user_facing_kd.iterables.chain(f3(x), f4(x))
+      return user_facing_kd.iterables.chain(f3(x), f4(x))  # pyrefly: ignore[missing-attribute]
 
     res = parallel.yield_multithreaded(
         functor_factories.trace_py_fn(f5), x=ds(1), max_threads=2
@@ -291,7 +291,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     second_barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
+        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def wait_for_cancellation(_: Any):
       first_barrier.wait(timeout=5.0)
@@ -306,7 +306,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     def fn(x):
       y = wait_for_cancellation(x + 1)
       z = wait_for_cancellation(x + 2)
-      return user_facing_kd.iterables.make(y, z)
+      return user_facing_kd.iterables.make(y, z)  # pyrefly: ignore[missing-attribute]
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,
@@ -339,7 +339,7 @@ class YieldMultithreadedTest(absltest.TestCase):
       )
 
   def test_structured_return_value(self):
-    fn = functor_factories.expr_fn(kde.tuples.tuple(kde.iterables.make(I.x)))
+    fn = functor_factories.expr_fn(kde.tuples.tuple(kde.iterables.make(I.x)))  # pyrefly: ignore[missing-attribute]
     # TODO: Make this error say that structured return values
     # with a stream inside are not supported yet.
     with self.assertRaisesRegex(
@@ -361,7 +361,7 @@ class YieldMultithreadedTest(absltest.TestCase):
   def test_timeout_respected(self):
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
+        functor_factory=functor_factories.py_fn  # pyrefly: ignore[bad-argument-type]
     )
     def wait_and_return_x(x):
       time.sleep(0.1)
@@ -370,18 +370,18 @@ class YieldMultithreadedTest(absltest.TestCase):
     def body(i, n, s):
       del n  # Unused.
       i = wait_and_return_x(i)
-      return user_facing_kd.namedtuple(
-          i=i + 1, s=s + i, yields=user_facing_kd.iterables.make(s)
+      return user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
+          i=i + 1, s=s + i, yields=user_facing_kd.iterables.make(s)  # pyrefly: ignore[missing-attribute]
       )
 
     fn = functor_factories.expr_fn(
-        kde.functor.while_(
+        kde.functor.while_(  # pyrefly: ignore[missing-attribute]
             lambda i, n, s: i <= n,
             body,
             s=I.s,
             n=I.n,
             i=1,
-            yields=kde.iterables.make(),
+            yields=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
     testing.assert_equal(

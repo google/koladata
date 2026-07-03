@@ -1191,7 +1191,7 @@ class ToPyTest(parameterized.TestCase):
     )
 
   def test_include_missing_attrs(self):
-    p = kde.schema.new_schema(
+    p = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         x=schema_constants.INT32, y=schema_constants.INT32
     ).eval()
     x = ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)])
@@ -1304,7 +1304,7 @@ class ToPyTest(parameterized.TestCase):
       self.assertEqual(py_conversions.to_py(x), [a, b])
 
   def test_schema_itemid(self):
-    a = kde.schema.new_schema(
+    a = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         value=schema_constants.OBJECT,
         name=schema_constants.STRING,
         score=schema_constants.FLOAT32,
@@ -1351,7 +1351,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertIsNone(py_conversions.to_py(x), None)
 
   def test_schema_not_supported(self):
-    schema = kde.schema.new_schema(a=schema_constants.STRING).eval()
+    schema = kde.schema.new_schema(a=schema_constants.STRING).eval()  # pyrefly: ignore[missing-attribute]
     with self.assertRaisesRegex(
         ValueError,
         'schema is not supported',
@@ -1407,7 +1407,7 @@ class ToPytreeTest(absltest.TestCase):
     # Check that the attribute order is alphabetical.
     self.assertEqual(list(py_conversions.to_pytree(x).keys()), ['a', 'b', 'c'])
 
-    p = kde.schema.new_schema(
+    p = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
         x=schema_constants.INT32, y=schema_constants.INT32
     ).eval()
     self.assertEqual(

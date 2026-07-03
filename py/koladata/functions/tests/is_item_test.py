@@ -38,7 +38,7 @@ class IsItemTest(parameterized.TestCase):
       (fns.list(),),
       (fns.dict(),),
       (ds(schema_constants.ITEMID),),
-      (ds(arolla.quote(arolla.M.math.add(arolla.L.L1, arolla.L.L2))),),
+      (ds(arolla.quote(arolla.M.math.add(arolla.L.L1, arolla.L.L2))),),  # pyrefly: ignore[missing-attribute]
       (mask_constants.present,),
       (mask_constants.missing,),
   )

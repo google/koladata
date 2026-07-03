@@ -95,11 +95,11 @@ class SchemaToPyTest(parameterized.TestCase):
 
   def _get_entity_test_data(self):
     """Returns schema and expected types for entity schema tests."""
-    schema = kd.schema.new_schema(
-        x=kd.schema.list_schema(kd.INT64),
-        y=kd.schema.dict_schema(kd.INT64, kd.STRING),
-        z=kd.schema.new_schema(x=kd.INT64),
-        a=kd.schema.new_schema(a=kd.INT64),
+    schema = kd.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+        x=kd.schema.list_schema(kd.INT64),  # pyrefly: ignore[missing-attribute]
+        y=kd.schema.dict_schema(kd.INT64, kd.STRING),  # pyrefly: ignore[missing-attribute]
+        z=kd.schema.new_schema(x=kd.INT64),  # pyrefly: ignore[missing-attribute]
+        a=kd.schema.new_schema(a=kd.INT64),  # pyrefly: ignore[missing-attribute]
     )
 
     expected_inner_type1 = dataclasses.make_dataclass(
@@ -191,16 +191,16 @@ class SchemaToPyTest(parameterized.TestCase):
 
   @parameterized.parameters(
       dict(
-          schema=kd.schema.list_schema(kd.INT64),
+          schema=kd.schema.list_schema(kd.INT64),  # pyrefly: ignore[missing-attribute]
           expected_tpe=list[int | None] | None,
       ),
       dict(
-          schema=kd.schema.dict_schema(kd.INT64, kd.STRING),
+          schema=kd.schema.dict_schema(kd.INT64, kd.STRING),  # pyrefly: ignore[missing-attribute]
           expected_tpe=dict[int | None, str | None] | None,
       ),
       dict(
-          schema=kd.schema.list_schema(
-              kd.schema.dict_schema(kd.INT64, kd.STRING)
+          schema=kd.schema.list_schema(  # pyrefly: ignore[missing-attribute]
+              kd.schema.dict_schema(kd.INT64, kd.STRING)  # pyrefly: ignore[missing-attribute]
           ),
           expected_tpe=list[dict[int | None, str | None] | None] | None,
       ),
@@ -220,7 +220,7 @@ class SchemaToPyTest(parameterized.TestCase):
     converted_type = kd_schema.schema_to_py(schema)
 
     converted_obj = kd.to_py(
-        kd.new(x=[1, 2], y={1: 'a', 2: 'b'}, z=kd.new(x=1), a=kd.new(a=1)),
+        kd.new(x=[1, 2], y={1: 'a', 2: 'b'}, z=kd.new(x=1), a=kd.new(a=1)),  # pyrefly: ignore[missing-attribute]
         output_class=converted_type,
     )
     self.assertEqual(
@@ -249,7 +249,7 @@ class SchemaToPyTest(parameterized.TestCase):
     converted_type = kd_schema.schema_to_py(schema)
 
     converted_obj = kd.to_py(
-        kd.new(x=[1, 2], y={1: 'a', 2: 'b'}, z=kd.new(x=1), a=kd.new(a=1)),
+        kd.new(x=[1, 2], y={1: 'a', 2: 'b'}, z=kd.new(x=1), a=kd.new(a=1)),  # pyrefly: ignore[missing-attribute]
         output_class=converted_type,
     )
     converted_type = self._get_underlying_optional_type(converted_type)
@@ -266,14 +266,14 @@ class SchemaToPyTest(parameterized.TestCase):
     )
 
   def test_recursive_schema(self):
-    tree_node_schema = kd.schema.named_schema('TreeNode', value=kd.INT64)
+    tree_node_schema = kd.schema.named_schema('TreeNode', value=kd.INT64)  # pyrefly: ignore[missing-attribute]
     tree_node_schema = tree_node_schema.with_attr('child1', tree_node_schema)
     tree_node_schema = tree_node_schema.with_attr('child2', tree_node_schema)
     tree_node_schema = tree_node_schema.with_attr(
-        'child_list', kd.schema.list_schema(tree_node_schema)
+        'child_list', kd.schema.list_schema(tree_node_schema)  # pyrefly: ignore[missing-attribute]
     )
     tree_node_schema = tree_node_schema.with_attr(
-        'child_dict', kd.schema.dict_schema(kd.INT32, tree_node_schema)
+        'child_dict', kd.schema.dict_schema(kd.INT32, tree_node_schema)  # pyrefly: ignore[missing-attribute]
     )
 
     converted_type = kd_schema.schema_to_py(tree_node_schema)
@@ -307,7 +307,7 @@ class SchemaToPyTest(parameterized.TestCase):
 
   def test_recursive_list(self):
     x = kd.mutable_bag().new()
-    x.a = kd.list([x])
+    x.a = kd.list([x])  # pyrefly: ignore[missing-attribute]
 
     expected_dataclass = dataclasses.make_dataclass(
         'Entity',
@@ -331,7 +331,7 @@ class SchemaToPyTest(parameterized.TestCase):
     self.assertIs(list_item_type, res_item)
 
   def test_schema_to_py_with_default_values(self):
-    schema = kd.schema.new_schema(x=kd.INT64, y=kd.STRING)
+    schema = kd.schema.new_schema(x=kd.INT64, y=kd.STRING)  # pyrefly: ignore[missing-attribute]
     converted_type = kd_schema.schema_to_py(schema)
     converted_type = self._get_underlying_optional_type(converted_type)
     converted_obj = converted_type()

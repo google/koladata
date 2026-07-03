@@ -103,7 +103,7 @@ class ToProtoAnyTest(absltest.TestCase):
 
     x = proto_conversions.from_proto_any([[any_m1, None, any_m2], [], [any_m3]])
     res = proto_conversions.to_proto_any(x)
-    testing.assert_equivalent(proto_conversions.from_proto_any(res), x)
+    testing.assert_equivalent(proto_conversions.from_proto_any(res), x)  # pyrefly: ignore[bad-argument-type]
 
   def test_not_from_proto(self):
     x = ds([1, 2, 3]).implode()

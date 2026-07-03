@@ -83,7 +83,7 @@ class DictShapedAsTest(parameterized.TestCase):
   def test_schema(self):
     x = fns.dict_shaped_as(
         ds([[0, 0], [0]]),
-        schema=kde.dict_schema(
+        schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
             schema_constants.INT32, schema_constants.OBJECT
         ).eval(),
     )
@@ -98,7 +98,7 @@ class DictShapedAsTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = expr_eval.eval(
-        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))
+        kde.allocation.new_dictid_shaped_as(ds([[1, 1], [1]]))  # pyrefly: ignore[missing-attribute]
     )
     x = fns.dict_shaped_as(itemid, 'a', 42, itemid=itemid)
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
@@ -114,8 +114,8 @@ class DictShapedAsTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = kde.dict_schema(
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
     ).eval()
     dct = fns.dict_shaped_as(ds([[0, 0], [0]]), schema=dict_schema)
 

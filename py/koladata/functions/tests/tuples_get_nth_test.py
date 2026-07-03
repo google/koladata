@@ -31,9 +31,9 @@ class TuplesGetNthTest(parameterized.TestCase):
       (('a', 'b', 'c'), 0, ds('a')),
       (('a', 'b', 'c'), 1, ds('b')),
       (('a', 'b', 'c'), 2, ds('c')),
-      (kde.tuple('a', 'b', 'c').eval(), ds(2), ds('c')),
-      (kde.tuple(ds([1, 2, 3]), 'b', 'c').eval(), ds(0), ds([1, 2, 3])),
-      (kde.tuple('a', 'b', arolla.text('c')).eval(), ds(2), arolla.text('c')),
+      (kde.tuple('a', 'b', 'c').eval(), ds(2), ds('c')),  # pyrefly: ignore[missing-attribute]
+      (kde.tuple(ds([1, 2, 3]), 'b', 'c').eval(), ds(0), ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+      (kde.tuple('a', 'b', arolla.text('c')).eval(), ds(2), arolla.text('c')),  # pyrefly: ignore[missing-attribute]
       (slice('a', 'b', 'c'), 0, ds('a')),
       (slice('a', 'b', 'c'), 1, ds('b')),
       (slice('a', 'b', 'c'), 2, ds('c')),
