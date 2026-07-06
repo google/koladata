@@ -29,6 +29,7 @@
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/refcount_ptr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
@@ -110,37 +111,39 @@ DataSliceImpl SliceBuilder::Build() && {
     if (!present) {
       return DataSliceImpl::CreateEmptyAndUnknownType(std::move(types_buffer_));
     }
-    DataSliceImpl res;
-    res.internal_->allocation_ids = std::move(allocation_ids_);
-    res.internal_->size = size();
-    res.internal_->values.push_back(std::move(array_variant));
-    res.internal_->dtype = ScalarTypeIdToQType(types_buffer_.types[0]);
-    res.internal_->types_buffer = std::move(types_buffer_);
+    auto impl = arolla::RefcountPtr<DataSliceImpl::Internal>::Make();
+    impl->allocation_ids = std::move(allocation_ids_);
+    impl->size = size();
+    impl->values.push_back(std::move(array_variant));
+    impl->dtype = ScalarTypeIdToQType(types_buffer_.types[0]);
+    impl->types_buffer = std::move(types_buffer_);
+    DataSliceImpl res(std::move(impl));
     DCHECK(res.VerifyAllocIdsConsistency());
     return res;
   }
-  DataSliceImpl res;
-  res.internal_->allocation_ids = std::move(allocation_ids_);
-  res.internal_->size = size();
+  auto impl = arolla::RefcountPtr<DataSliceImpl::Internal>::Make();
+  impl->allocation_ids = std::move(allocation_ids_);
+  impl->size = size();
   KodaTypeId last_present_type_id = 0;
-  res.internal_->values.resize(storage_.size());
+  impl->values.resize(storage_.size());
   absl::InlinedVector<uint8_t, 8> idx_to_remove;
   for (auto& [tid, storage] : storage_) {
     auto [present, idx, array_variant] = BuildDataSliceVariant(storage);
     if (present) {
-      res.internal_->values[idx] = std::move(array_variant);
+      impl->values[idx] = std::move(array_variant);
       last_present_type_id = tid;
     } else {
       idx_to_remove.emplace_back(idx);
     }
   }
-  res.internal_->types_buffer = std::move(types_buffer_);
+  impl->types_buffer = std::move(types_buffer_);
   if (!idx_to_remove.empty()) {
-    RemoveEmptyTypes(*res.internal_, absl::Span<uint8_t>(idx_to_remove));
+    RemoveEmptyTypes(*impl, absl::Span<uint8_t>(idx_to_remove));
   }
-  if (res.internal_->values.size() == 1) {
-    res.internal_->dtype = ScalarTypeIdToQType(last_present_type_id);
+  if (impl->values.size() == 1) {
+    impl->dtype = ScalarTypeIdToQType(last_present_type_id);
   }
+  DataSliceImpl res(std::move(impl));
   DCHECK(res.VerifyAllocIdsConsistency());
   return res;
 }

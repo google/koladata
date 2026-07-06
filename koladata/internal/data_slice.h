@@ -63,9 +63,7 @@ class SliceBuilder;
 class DataSliceImpl {
  public:
   // Creates empty DataSliceImpl with `size` equal to zero and unknown type.
-  // TODO: avoid allocation in default constructor and create a
-  // private constructor for Builder and factory methods.
-  DataSliceImpl() = default;
+  DataSliceImpl() : internal_(GetEmptyInternal()) {}
 
   // Returns DataSliceImpl with `size` newly allocated objects
   // in a single AllocationId.
@@ -87,7 +85,7 @@ class DataSliceImpl {
   // AllocationId's.
   static DataSliceImpl CreateObjectsDataSlice(ObjectIdArray objects,
                                               AllocationIdSet allocation_ids) {
-    return CreateWithAllocIds(allocation_ids, std::move(objects));
+    return CreateWithAllocIds(std::move(allocation_ids), std::move(objects));
   }
 
   // Returns DataSliceImpl with specified values and allocation ids.
@@ -306,11 +304,22 @@ class DataSliceImpl {
 
  private:
   friend class SliceBuilder;
+  friend struct DataSliceImplTestFriend;
+
+  struct Internal;
+
+  explicit DataSliceImpl(arolla::RefcountPtr<const Internal> internal)
+      : internal_(std::move(internal)) {}
+  explicit DataSliceImpl(arolla::RefcountPtr<Internal> internal)
+      : internal_(
+            arolla::RefcountPtr<const Internal>::NewRef(internal.get())) {}
+
+  static const arolla::RefcountPtr<const Internal>& GetEmptyInternal();
 
   template <class T>
-  void AddAllocIds(const arolla::DenseArray<T>& array) {
+  static void AddAllocIds(Internal& impl, const arolla::DenseArray<T>& array) {
     if constexpr (std::is_same_v<T, ObjectId>) {
-      AllocationIdSet& id_set = internal_->allocation_ids;
+      AllocationIdSet& id_set = impl.allocation_ids;
       array.ForEachPresent(
           [&](int64_t id, ObjectId obj) { id_set.Insert(AllocationId(obj)); });
     }
@@ -350,7 +359,7 @@ class DataSliceImpl {
 
   // Removes all values with all non present items.
   // Sets dtype to dtype of single value or GetNothingQType otherwise.
-  void RemoveEmptyValues();
+  static void RemoveEmptyValues(Internal& impl);
 
   static void InitTypesBuffer(Internal& impl);
 
@@ -359,11 +368,10 @@ class DataSliceImpl {
   bool VerifyAllocIdsConsistency() const;
 
   template <class T, class... Ts>
-  static void CreateImpl(DataSliceImpl& res, arolla::DenseArray<T> main_values,
+  static void CreateImpl(Internal& impl, arolla::DenseArray<T> main_values,
                          arolla::DenseArray<Ts>... values);
 
-  arolla::RefcountPtr<Internal> internal_ =
-      arolla::RefcountPtr<Internal>::Make();
+  arolla::RefcountPtr<const Internal> internal_;
 };
 
 namespace data_slice_impl {
@@ -436,14 +444,15 @@ template <class DenseArrayTransformer>
 absl::StatusOr<DataSliceImpl> DataSliceImpl::TransformValues(
     size_t result_size, std::optional<AllocationIdSet> allocation_ids,
     DenseArrayTransformer&& transform) const {
+  if (result_size == 0) {
+    return DataSliceImpl();
+  }
   const auto& values = internal_->values;
-  DataSliceImpl res;
-
-  auto& res_impl = *res.internal_;
-  res_impl.size = result_size;
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = result_size;
 
   if (allocation_ids.has_value()) {
-    res_impl.allocation_ids = std::move(*allocation_ids);
+    impl->allocation_ids = std::move(*allocation_ids);
   }
 
 #ifndef NDEBUG
@@ -461,16 +470,16 @@ absl::StatusOr<DataSliceImpl> DataSliceImpl::TransformValues(
     DCHECK(checker.Verify(transformed_array)) << "ids are intersecting";
 #endif
     if (!allocation_ids.has_value()) {
-      res.AddAllocIds(transformed_array);
+      AddAllocIds(*impl, transformed_array);
     }
     if (!transformed_array.IsAllMissing()) {
-      res_impl.dtype = res_impl.values.empty() ? arolla::GetQType<T>()
-                                               : arolla::GetNothingQType();
-      res_impl.values.push_back(std::move(transformed_array));
+      impl->dtype = impl->values.empty() ? arolla::GetQType<T>()
+                                         : arolla::GetNothingQType();
+      impl->values.push_back(std::move(transformed_array));
     }
   };
 
-  res_impl.values.reserve(values.size());
+  impl->values.reserve(values.size());
 
   for (const Variant& vals : values) {
     RETURN_IF_ERROR(std::visit(
@@ -489,15 +498,16 @@ absl::StatusOr<DataSliceImpl> DataSliceImpl::TransformValues(
         vals));
   }
 
-  if (res_impl.values.size() > 1) {
-    InitTypesBuffer(res_impl);
+  if (impl->values.size() > 1) {
+    InitTypesBuffer(*impl);
   }
+  DataSliceImpl res(std::move(impl));
   DCHECK(res.VerifyAllocIdsConsistency());
   return res;
 }
 
 template <class T, class... Ts>
-void DataSliceImpl::CreateImpl(DataSliceImpl& res,
+void DataSliceImpl::CreateImpl(Internal& impl,
                                arolla::DenseArray<T> main_values,
                                arolla::DenseArray<Ts>... values) {
   static_assert(data_slice_impl::AreAllTypesDistinct(
@@ -509,7 +519,6 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
     DCHECK((values.bitmap_bit_offset == 0) && ...);
     DCHECK(data_slice_impl::VerifyNonIntersectingIds(main_values, values...));
   }
-  auto& impl = *res.internal_;
   impl.size = main_values.size();
 
   if constexpr (sizeof...(values) > 0) {
@@ -524,7 +533,7 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
   }
   if constexpr (sizeof...(values) > 0) {
     (impl.values.emplace_back(std::move(values)), ...);
-    res.RemoveEmptyValues();
+    RemoveEmptyValues(impl);
     if (impl.values.size() > 1) {
       InitTypesBuffer(impl);
     }
@@ -534,43 +543,52 @@ void DataSliceImpl::CreateImpl(DataSliceImpl& res,
 template <class T, class... Ts>
 DataSliceImpl DataSliceImpl::Create(arolla::DenseArray<T> main_values,
                                     arolla::DenseArray<Ts>... values) {
-  DataSliceImpl res;
-  res.AddAllocIds(main_values);
-  (res.AddAllocIds(values), ...);
-  CreateImpl(res, std::move(main_values), std::move(values)...);
-  return res;
+  if (main_values.empty()) {
+    return DataSliceImpl();
+  }
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  AddAllocIds(*impl, main_values);
+  (AddAllocIds(*impl, values), ...);
+  CreateImpl(*impl, std::move(main_values), std::move(values)...);
+  return DataSliceImpl(std::move(impl));
 }
 
 template <class T, class... Ts>
 DataSliceImpl DataSliceImpl::CreateWithAllocIds(
     AllocationIdSet allocation_ids, arolla::DenseArray<T> main_values,
     arolla::DenseArray<Ts>... values) {
-  DataSliceImpl res;
+  if (main_values.empty()) {
+    return DataSliceImpl();
+  }
+  auto impl = arolla::RefcountPtr<Internal>::Make();
   if constexpr ((std::is_same_v<T, ObjectId> || ... ||
                  std::is_same_v<Ts, ObjectId>)) {
     DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, main_values));
     DCHECK((data_slice_impl::VerifyAllocIds(allocation_ids, values) && ...));
-    res.internal_->allocation_ids = std::move(allocation_ids);
+    impl->allocation_ids = std::move(allocation_ids);
   } else {
     (void)allocation_ids;
   }
-  CreateImpl(res, std::move(main_values), std::move(values)...);
-  return res;
+  CreateImpl(*impl, std::move(main_values), std::move(values)...);
+  return DataSliceImpl(std::move(impl));
 }
 
 template <class T>
 DataSliceImpl DataSliceImpl::CreateWithTypesBuffer(TypesBuffer types_buffer,
     AllocationIdSet allocation_ids, arolla::DenseArray<T> values) {
-  DataSliceImpl res;
-  res.internal_->types_buffer = std::move(types_buffer);
+  if (values.empty()) {
+    return DataSliceImpl();
+  }
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->types_buffer = std::move(types_buffer);
   if constexpr (std::is_same_v<T, ObjectId>) {
     DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, values));
-    res.internal_->allocation_ids = std::move(allocation_ids);
+    impl->allocation_ids = std::move(allocation_ids);
   } else {
     (void)allocation_ids;
   }
-  CreateImpl(res, std::move(values));
-  return res;
+  CreateImpl(*impl, std::move(values));
+  return DataSliceImpl(std::move(impl));
 }
 
 

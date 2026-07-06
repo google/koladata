@@ -23,6 +23,7 @@
 #include <utility>
 #include <variant>
 
+#include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -40,6 +41,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -84,18 +86,17 @@ DataSliceImpl DataSliceImpl::ObjectsFromAllocation(AllocationId alloc_id,
   if (size == 0) {
     return DataSliceImpl();
   }
-  DataSliceImpl result;
-  auto& impl = *result.internal_;
-  impl.size = size;
-  impl.dtype = GetQType<ObjectId>();
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = size;
+  impl->dtype = GetQType<ObjectId>();
 
   Buffer<ObjectId>::Builder values_builder(size);
-  impl.allocation_ids = AllocationIdSet(alloc_id);
+  impl->allocation_ids = AllocationIdSet(alloc_id);
   for (int64_t i = 0; i < size; ++i) {
     values_builder.Set(i, alloc_id.ObjectByOffset(i));
   }
-  impl.values.emplace_back(ObjectIdArray{std::move(values_builder).Build()});
-  return result;
+  impl->values.emplace_back(ObjectIdArray{std::move(values_builder).Build()});
+  return DataSliceImpl(std::move(impl));
 }
 
 DataSliceImpl DataSliceImpl::AllocateEmptyObjects(size_t size) {
@@ -109,9 +110,9 @@ DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(size_t size) {
   if (size == 0) {
     return DataSliceImpl();
   }
-  DataSliceImpl result;
-  result.internal_->size = size;
-  return result;
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = size;
+  return DataSliceImpl(std::move(impl));
 }
 
 DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(
@@ -124,10 +125,10 @@ DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(
   if (types_buffer.size() == 0) {
     return DataSliceImpl();
   }
-  DataSliceImpl result;
-  result.internal_->size = types_buffer.size();
-  result.internal_->types_buffer = std::move(types_buffer);
-  return result;
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = types_buffer.size();
+  impl->types_buffer = std::move(types_buffer);
+  return DataSliceImpl(std::move(impl));
 }
 
 DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
@@ -160,9 +161,9 @@ DataSliceImpl DataSliceImpl::Create(size_t size, const DataItem& item) {
       auto arr = arolla::CreateConstDenseArray<T>(size, val);
       if constexpr (std::is_same_v<T, ObjectId>) {
         return DataSliceImpl::CreateObjectsDataSlice(
-            arr, AllocationIdSet(AllocationId(val)));
+            std::move(arr), AllocationIdSet(AllocationId(val)));
       } else {
-        return DataSliceImpl::Create(arr);
+        return DataSliceImpl::Create(std::move(arr));
       }
     }
   });
@@ -197,20 +198,20 @@ DataSliceImpl DataSliceImpl::SubSlice(int64_t offset, int64_t size) const {
   DCHECK_GT(size, 0);
   DCHECK_GE(offset, 0);
   DCHECK_LE(offset + size, internal_->size);
-  DataSliceImpl res;
-  res.internal_->size = size;
-  res.internal_->dtype = internal_->dtype;
-  res.internal_->allocation_ids = internal_->allocation_ids;
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = size;
+  impl->dtype = internal_->dtype;
+  impl->allocation_ids = internal_->allocation_ids;
   if (has_types_buffer()) {
-    res.internal_->types_buffer.types = internal_->types_buffer.types;
+    impl->types_buffer.types = internal_->types_buffer.types;
     auto tb_it = internal_->types_buffer.id_to_typeidx.begin() + offset;
-    res.internal_->types_buffer.id_to_typeidx.assign(tb_it, tb_it + size);
+    impl->types_buffer.id_to_typeidx.assign(tb_it, tb_it + size);
   }
   VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
-    res.internal_->values.emplace_back(
+    impl->values.emplace_back(
         array.Slice(offset, size).ForceNoBitmapBitOffset());
   });
-  return res;
+  return DataSliceImpl(std::move(impl));
 }
 
 DataSliceImpl DataSliceImpl::UnsetToRemoved() const {
@@ -221,22 +222,22 @@ DataSliceImpl DataSliceImpl::UnsetToRemoved() const {
   if (internal_->values.empty()) {
     return CreateEmptyAndUnknownType(size);
   }
-  DataSliceImpl res;
-  res.internal_->size = size;
-  res.internal_->dtype = internal_->dtype;
-  res.internal_->allocation_ids = internal_->allocation_ids;
-  res.internal_->values = internal_->values;
+  auto impl = arolla::RefcountPtr<Internal>::Make();
+  impl->size = size;
+  impl->dtype = internal_->dtype;
+  impl->allocation_ids = internal_->allocation_ids;
+  impl->values = internal_->values;
   if (internal_->values.size() > 1) {
-    res.internal_->types_buffer.types = internal_->types_buffer.types;
+    impl->types_buffer.types = internal_->types_buffer.types;
     const unsigned char* src = internal_->types_buffer.id_to_typeidx.data();
-    auto& dst = res.internal_->types_buffer.id_to_typeidx;
+    auto& dst = impl->types_buffer.id_to_typeidx;
     dst.reserve(size);
     for (size_t i = 0; i < size; ++i) {
       dst.push_back(src[i] == TypesBuffer::kUnset ? TypesBuffer::kRemoved
                                                   : src[i]);
     }
   }
-  return res;
+  return DataSliceImpl(std::move(impl));
 }
 
 size_t DataSliceImpl::present_count() const {
@@ -451,22 +452,21 @@ void DataSliceImpl::ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
   }
 }
 
-void DataSliceImpl::RemoveEmptyValues() {
+void DataSliceImpl::RemoveEmptyValues(Internal& impl) {
   auto end = std::remove_if(
-      internal_->values.begin(), internal_->values.end(),
-      [](const auto& variant) {
+      impl.values.begin(), impl.values.end(), [](const auto& variant) {
         return std::visit(
             [](const auto& array) { return array.IsAllMissing(); }, variant);
       });
-  internal_->values.erase(end, internal_->values.end());
-  if (internal_->values.size() != 1) {
-    internal_->dtype = arolla::GetNothingQType();
+  impl.values.erase(end, impl.values.end());
+  if (impl.values.size() != 1) {
+    impl.dtype = arolla::GetNothingQType();
   } else {
-    internal_->dtype = std::visit(
+    impl.dtype = std::visit(
         [](const auto& array) {
           return GetQType<typename std::decay_t<decltype(array)>::base_type>();
         },
-        internal_->values[0]);
+        impl.values[0]);
   }
 }
 
@@ -537,6 +537,13 @@ MemoryStatsEntry DataSliceImpl::GetMemoryStats() const {
         variant);
   }
   return {"DataSliceImpl", shallow_size, strings_size};
+}
+
+const arolla::RefcountPtr<const DataSliceImpl::Internal>&
+DataSliceImpl::GetEmptyInternal() {
+  static const absl::NoDestructor<arolla::RefcountPtr<const Internal>>
+      kEmptyInternal(arolla::RefcountPtr<const Internal>::Make());
+  return *kEmptyInternal;
 }
 
 }  // namespace koladata::internal

@@ -45,6 +45,12 @@
 #include "koladata/internal/types_buffer.h"
 
 namespace koladata::internal {
+struct DataSliceImplTestFriend {
+  static const void* GetInternalPointer(const DataSliceImpl& ds) {
+    return ds.internal_.get();
+  }
+};
+
 namespace {
 
 using ::absl_testing::StatusIs;
@@ -1445,6 +1451,17 @@ TEST(DataSliceImplTest, GetMemoryStats) {
                                       float_dense_array_size);
     EXPECT_EQ(stats.strings_size, 0);
   }
+}
+
+TEST(DataSliceImpl, DefaultConstructorSharedEmptyInternal) {
+  DataSliceImpl ds1;
+  DataSliceImpl ds2;
+  EXPECT_EQ(ds1.size(), 0);
+  EXPECT_TRUE(ds1.is_empty_and_unknown());
+  EXPECT_EQ(ds1.dtype(), arolla::GetNothingQType());
+  EXPECT_EQ(DataSliceImplTestFriend::GetInternalPointer(ds1),
+            DataSliceImplTestFriend::GetInternalPointer(ds2));
+  EXPECT_NE(DataSliceImplTestFriend::GetInternalPointer(ds1), nullptr);
 }
 
 }  // namespace
