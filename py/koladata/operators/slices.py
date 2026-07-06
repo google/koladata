@@ -371,7 +371,7 @@ def _concat_or_stack(stack, ndim, *args):  # pylint: disable=unused-argument,red
 @optools.add_to_registry(aliases=['kd.concat'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.concat',
-    qtype_constraints=[
+    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
         qtype_utils.expect_data_slice_args(P.args),
         [
             M.qtype.get_field_count(P.args) > 0,
@@ -1481,7 +1481,7 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
 @optools.add_to_registry(aliases=['kd.stack'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.stack',
-    qtype_constraints=[
+    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
         qtype_utils.expect_data_slice_args(P.args),
         [
             M.qtype.get_field_count(P.args) > 0,
@@ -1882,7 +1882,7 @@ def unique(x, sort=False):  # pylint: disable=redefined-outer-name,unused-argume
 @optools.add_to_registry(aliases=['kd.zip'], via_cc_operator_package=True)
 @optools.as_lambda_operator(
     'kd.slices.zip',
-    qtype_constraints=[
+    qtype_constraints=[  # pyrefly: ignore[bad-argument-type]
         qtype_utils.expect_data_slice_args(P.args),
         [
             M.qtype.get_field_count(P.args) > 0,

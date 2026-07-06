@@ -193,20 +193,20 @@ def _new_bind_args(
     keys = items_or_keys
 
   if not _is_unspecified(schema):
-    if not isinstance(schema, arolla.Expr) and not schema.is_dict_schema():
+    if not isinstance(schema, arolla.Expr) and not schema.is_dict_schema():  # pyrefly: ignore[missing-attribute]
       raise ValueError('schema must be a dict schema, but got %s' % schema)
 
   key_schema_for_boxing = arolla.unspecified()
   if not _is_unspecified(key_schema):
     key_schema_for_boxing = key_schema
   elif not _is_unspecified(schema):
-    key_schema_for_boxing = schema.get_key_schema()
+    key_schema_for_boxing = schema.get_key_schema()  # pyrefly: ignore[missing-attribute]
 
   value_schema_for_boxing = arolla.unspecified()
   if not _is_unspecified(value_schema):
     value_schema_for_boxing = value_schema
   elif not _is_unspecified(schema):
-    value_schema_for_boxing = schema.get_value_schema()
+    value_schema_for_boxing = schema.get_value_schema()  # pyrefly: ignore[missing-attribute]
 
   if not _is_unspecified(keys):
     keys, _ = slices_ops.slice_bind_args(keys, key_schema_for_boxing)

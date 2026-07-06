@@ -170,8 +170,8 @@ class ListTest(parameterized.TestCase):
       (
           [[[1, 2], [3]], [[4, 5], [6]]],
           None,
-          kd.list_schema(kd.list_schema(kd.list_schema(kd.FLOAT32))),
-          kd.list_schema(kd.list_schema(kd.FLOAT32)).no_bag(),
+          kd.list_schema(kd.list_schema(kd.list_schema(kd.FLOAT32))),  # pyrefly: ignore[missing-attribute]
+          kd.list_schema(kd.list_schema(kd.FLOAT32)).no_bag(),  # pyrefly: ignore[missing-attribute]
       ),
   )
   def test_schema(self, items, item_schema, schema, expected_item_schema):
@@ -184,15 +184,15 @@ class ListTest(parameterized.TestCase):
     )
 
   def test_nested_list_schema_from_lists(self):
-    lsts = kd.list(
-        [kd.list([1, 2]), kd.list([3])], item_schema=kd.list_schema(kd.INT32)
+    lsts = kd.list(  # pyrefly: ignore[missing-attribute]
+        [kd.list([1, 2]), kd.list([3])], item_schema=kd.list_schema(kd.INT32)  # pyrefly: ignore[missing-attribute]
     )
     self.assertEqual(
         lsts.get_schema().no_bag(),
-        kd.list_schema(kd.list_schema(kd.INT32)).no_bag(),
+        kd.list_schema(kd.list_schema(kd.INT32)).no_bag(),  # pyrefly: ignore[missing-attribute]
     )
-    testing.assert_equal(lsts[:].S[0][:].no_bag(), kd.slice([1, 2]))
-    testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))
+    testing.assert_equal(lsts[:].S[0][:].no_bag(), kd.slice([1, 2]))  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))  # pyrefly: ignore[missing-attribute]
 
   def test_schema_arg_error(self):
     list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()

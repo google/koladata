@@ -38,7 +38,7 @@ _reshape = arolla_bridge._reshape  # pylint: disable=protected-access
 def _expect_data_slice_or_edge_args(param):
   """Constrains `param` to be a tuple of DataSlices or Edges."""
   is_data_slice_or_edge = arolla.LambdaOperator(
-      'x', (P.x == qtypes.DATA_SLICE) | (P.x == arolla.DENSE_ARRAY_EDGE)
+      'x', (P.x == qtypes.DATA_SLICE) | (P.x == arolla.DENSE_ARRAY_EDGE)  # pyrefly: ignore[unsupported-operation]
   )
   return (
       M.qtype.is_tuple_qtype(param)

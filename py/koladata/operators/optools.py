@@ -141,7 +141,7 @@ class _DefaultOpRepr:
 
   __slots__ = ()
   __call__ = staticmethod(op_repr.default_op_repr)
-  __repr__ = staticmethod(lambda: '<default_op_repr>')
+  __repr__ = staticmethod(lambda: '<default_op_repr>')  # pyrefly: ignore[bad-override]
 
 
 _default_op_repr = _DefaultOpRepr()

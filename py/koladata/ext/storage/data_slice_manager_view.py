@@ -131,7 +131,7 @@ class DataSliceManagerView:
     """
     self._check_path_from_root_is_valid()
     populate = {v.get_path_from_root() for v in populate or []}  # pyrefly: ignore[bad-assignment]
-    populate.add(self._path_from_root)
+    populate.add(self._path_from_root)  # pyrefly: ignore[missing-attribute]
     populate_including_descendants = {  # pyrefly: ignore[bad-assignment]
         v.get_path_from_root() for v in populate_including_descendants or []
     }
@@ -464,6 +464,7 @@ class DataSliceManagerView:
       raise ValueError(f'num_levels_up must be >= 0, but got {num_levels_up}')
     if num_levels_up > len(self._path_from_root.actions):  # pyrefly: ignore[bad-argument-type]
       raise ValueError(
+          # pyrefly: ignore[bad-argument-type]
           f"the path '{self._path_from_root}' does not support"
           f' num_levels_up={num_levels_up}. The maximum valid value is'
           f' {len(self._path_from_root.actions)}'

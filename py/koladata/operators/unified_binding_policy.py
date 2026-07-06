@@ -229,7 +229,7 @@ def _unified_op_repr_var_keyword(
 ) -> list[str]:
   """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
   if _is_namedtuple_op(var_keyword_node.op):
-    keys = var_keyword_node.node_deps[0].qvalue.py_value().split(',')
+    keys = var_keyword_node.node_deps[0].qvalue.py_value().split(',')  # pyrefly: ignore[missing-attribute]
     values = (tokens[dep] for dep in var_keyword_node.node_deps[1:])
     return [f'{k.strip()}={v.text}' for k, v in zip(keys, values)]
   if isinstance(var_keyword_node.qvalue, arolla.types.NamedTuple):

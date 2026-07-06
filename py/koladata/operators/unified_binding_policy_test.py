@@ -55,7 +55,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     self.assertEqual(sig.parameters[1].name, 'y')
     self.assertEqual(sig.parameters[1].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[1].default, arolla.unit()
+        sig.parameters[1].default, arolla.unit()  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_positional_or_keyword_parameters(self):
@@ -79,13 +79,13 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     self.assertEqual(sig.parameters[1].name, 'y')
     self.assertEqual(sig.parameters[1].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[1].default, arolla.unit()
+        sig.parameters[1].default, arolla.unit()  # pyrefly: ignore[bad-argument-type]
     )
 
     self.assertEqual(sig.parameters[2].name, 'z')
     self.assertEqual(sig.parameters[2].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[2].default, arolla.tuple()
+        sig.parameters[2].default, arolla.tuple()  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_keyword_parameters(self):
@@ -105,19 +105,19 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     self.assertEqual(sig.parameters[0].name, 'x')
     self.assertEqual(sig.parameters[0].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[0].default, arolla.unit()
+        sig.parameters[0].default, arolla.unit()  # pyrefly: ignore[bad-argument-type]
     )
 
     self.assertEqual(sig.parameters[1].name, 'y')
     self.assertEqual(sig.parameters[1].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[1].default, arolla.unspecified()
+        sig.parameters[1].default, arolla.unspecified()  # pyrefly: ignore[bad-argument-type]
     )
 
     self.assertEqual(sig.parameters[2].name, 'z')
     self.assertEqual(sig.parameters[2].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[2].default, arolla.namedtuple()
+        sig.parameters[2].default, arolla.namedtuple()  # pyrefly: ignore[bad-argument-type]
     )
 
     self.assertEqual(
@@ -126,7 +126,7 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     )
     self.assertEqual(sig.parameters[3].kind, 'positional-or-keyword')
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[3].default, arolla.unspecified()
+        sig.parameters[3].default, arolla.unspecified()  # pyrefly: ignore[bad-argument-type]
     )
 
   @mock.patch.object(py_boxing, 'custom_as_qvalue_or_expr', create=True)
@@ -152,10 +152,10 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     )
     self.assertLen(sig.parameters, 5)
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[1].default, arolla.int32(0)
+        sig.parameters[1].default, arolla.int32(0)  # pyrefly: ignore[bad-argument-type]
     )
     arolla.testing.assert_qvalue_equal_by_fingerprint(
-        sig.parameters[2].default, arolla.int32(1)
+        sig.parameters[2].default, arolla.int32(1)  # pyrefly: ignore[bad-argument-type]
     )
 
     with self.assertRaisesWithLiteralMatch(
@@ -703,8 +703,8 @@ class BindArgumentsTest(parameterized.TestCase):
       x, y = arolla.abc.aux_bind_arguments(sig, 1, y=2)
       mock_fn_1.assert_called_with(1)
       mock_fn_2.assert_called_with(2)
-      arolla.testing.assert_qvalue_equal_by_fingerprint(x, arolla.int32(1))
-      arolla.testing.assert_expr_equal_by_fingerprint(y, arolla.L._2)
+      arolla.testing.assert_qvalue_equal_by_fingerprint(x, arolla.int32(1))  # pyrefly: ignore[bad-argument-type]
+      arolla.testing.assert_expr_equal_by_fingerprint(y, arolla.L._2)  # pyrefly: ignore[bad-argument-type]
 
   def test_error_invalid_boxing_options(self):
     with self.subTest('illegal boxing_option'):

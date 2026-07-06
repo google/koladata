@@ -88,7 +88,7 @@ def is_input(expr: arolla.Expr) -> bool:
   """Returns True if `expr` is an input `I`."""
   return (
       expr.op == _KODA_INPUT_OP and
-      expr.node_deps[0].qvalue.py_value() == 'I'
+      expr.node_deps[0].qvalue.py_value() == 'I'  # pyrefly: ignore[missing-attribute]
   )
 
 
@@ -96,7 +96,7 @@ def is_variable(expr: arolla.Expr) -> bool:
   """Returns True if `expr` is a variable `V`."""
   return (
       expr.op == _KODA_INPUT_OP and
-      expr.node_deps[0].qvalue.py_value() == 'V'
+      expr.node_deps[0].qvalue.py_value() == 'V'  # pyrefly: ignore[missing-attribute]
   )
 
 

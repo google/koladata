@@ -539,12 +539,12 @@ class View:
       )
     args = [box(arg) for arg in args]  # pyrefly: ignore[bad-assignment]
     for arg in args:
-      if arg.get_depth() != self._depth:
+      if arg.get_depth() != self._depth:  # pyrefly: ignore[missing-attribute]
         raise ValueError('all arguments must have the same shape')
     res = map_(
         functools.partial(_group_by_impl, sort),
         self.implode(),
-        *[arg.implode() for arg in args],
+        *[arg.implode() for arg in args],  # pyrefly: ignore[missing-attribute]
     )
     # We already have tuples so we can just increase the depth.
     return View(res.get(), res.get_depth() + 2, _INTERNAL_CALL)
@@ -802,7 +802,7 @@ def align(*args: ViewOrAutoBoxType) -> tuple[View, ...]:
     return (box(args[0]),)
   args = [box(o) for o in args]  # pyrefly: ignore[bad-assignment]
   ref_view = max(args, key=lambda v: v.get_depth())
-  return tuple(v.expand_to(ref_view) for v in args)
+  return tuple(v.expand_to(ref_view) for v in args)  # pyrefly: ignore[missing-attribute]
 
 
 def _map1(

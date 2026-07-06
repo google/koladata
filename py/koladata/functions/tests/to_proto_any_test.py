@@ -64,10 +64,10 @@ class ToProtoAnyTest(absltest.TestCase):
     self.assertIsInstance(res, list)
     self.assertLen(res, 2)
     unpacked_m1 = test_pb2.MessageA()
-    res[0].Unpack(unpacked_m1)
+    res[0].Unpack(unpacked_m1)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(unpacked_m1, m1)
     unpacked_m2 = test_pb2.MessageA()
-    res[1].Unpack(unpacked_m2)
+    res[1].Unpack(unpacked_m2)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(unpacked_m2, m2)
 
   def test_multiple_messages_different_types(self):
@@ -84,10 +84,10 @@ class ToProtoAnyTest(absltest.TestCase):
     self.assertIsInstance(res, list)
     self.assertLen(res, 2)
     unpacked_m1 = test_pb2.MessageA()
-    res[0].Unpack(unpacked_m1)
+    res[0].Unpack(unpacked_m1)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(unpacked_m1, m1)
     unpacked_m2 = test_pb2.MessageB()
-    res[1].Unpack(unpacked_m2)
+    res[1].Unpack(unpacked_m2)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(unpacked_m2, m2)
 
   def test_nested_list_input(self):

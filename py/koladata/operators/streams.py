@@ -59,7 +59,7 @@ def make_executor(*, thread_limit=0):
       that the number of threads is selected automatically.
   """
   return koda_internal_parallel.make_executor(
-      arolla.abc.bind_op('koda_internal.to_arolla_int64', thread_limit)
+      arolla.abc.bind_op('koda_internal.to_arolla_int64', thread_limit)  # pyrefly: ignore[bad-argument-type]
   )
 
 
@@ -738,7 +738,7 @@ def call(
       M.core.default_if_unspecified(executor, current_executor()),
       fn,
       args=args,
-      return_type_as=return_type_as,
+      return_type_as=return_type_as,  # pyrefly: ignore[bad-argument-type]
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
   )

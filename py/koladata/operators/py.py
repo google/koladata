@@ -322,12 +322,12 @@ def _parallel_map(
     A list containing the results of the function calls.
   """
   if not item_completed_callback:
-    item_completed_callback = type  # use a cheap callable as a stub
+    item_completed_callback = type  # use a cheap callable as a stub  # pyrefly: ignore[bad-assignment]
   if max_threads <= 1:  # Single-thread mode
     result = []
     for item in map(fn, *iterables):
       result.append(item)
-      item_completed_callback(item)
+      item_completed_callback(item)  # pyrefly: ignore[not-callable]
     return result
 
   # Multi-thread mode
@@ -343,7 +343,7 @@ def _parallel_map(
       idx = future_to_idx[future]
       item = future.result()
       result[idx] = item
-      item_completed_callback(item)
+      item_completed_callback(item)  # pyrefly: ignore[not-callable]
     return result
   finally:
     # we do not use `with` syntax to pass non default arguments
@@ -398,7 +398,7 @@ def _basic_map_py(
     raise ValueError('ndim must be 0 if `cond` is specified')
   # Flatten the inputs and `cond` (if specified).
   arg0 = arg0.flatten(0, shape_rank - ndim)
-  args = (arg.flatten(0, shape_rank - ndim) for arg in args)
+  args = (arg.flatten(0, shape_rank - ndim) for arg in args)  # pyrefly: ignore[bad-assignment]
   if cond is not None:
     if eval_op('kd.masking.all', cond):
       # Skip applying the condition mask if it's full as it won't affect
@@ -409,7 +409,7 @@ def _basic_map_py(
       cond = cond.flatten()
       # Apply `cond` to the inputs so that masked values don't need unboxing.
       arg0 = eval_op('kd.slices.select', arg0, cond)
-      args = map(lambda x: eval_op('kd.slices.select', x, cond), args)
+      args = map(lambda x: eval_op('kd.slices.select', x, cond), args)  # pyrefly: ignore[bad-assignment]
   result = _parallel_map(
       fn,
       arg0.internal_as_py(),
@@ -544,21 +544,21 @@ def map_py(
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
   try:
-    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
-    schema = _unwrap_optional_schema(schema, param_name='schema')
-    ndim = _unwrap_scalar_integer(ndim, param_name='ndim')
+    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')  # pyrefly: ignore[bad-argument-type]
+    schema = _unwrap_optional_schema(schema, param_name='schema')  # pyrefly: ignore[bad-argument-type]
+    ndim = _unwrap_scalar_integer(ndim, param_name='ndim')  # pyrefly: ignore[bad-argument-type]
     include_missing = _unwrap_optional_boolean(
-        include_missing, param_name='include_missing'
+        include_missing, param_name='include_missing'  # pyrefly: ignore[bad-argument-type]
     )
     if include_missing is None:
       include_missing = ndim != 0
     elif not include_missing and ndim != 0:
       raise ValueError('`include_missing=False` can only be used with `ndim=0`')
     dict_as_obj = _unwrap_optional_boolean(
-        dict_as_obj, param_name='dict_as_obj'
+        dict_as_obj, param_name='dict_as_obj'  # pyrefly: ignore[bad-argument-type]
     )
     item_completed_callback = _unwrap_optional_py_callable(
-        item_completed_callback, param_name='item_completed_callback'
+        item_completed_callback, param_name='item_completed_callback'  # pyrefly: ignore[bad-argument-type]
     )
     if not args and not kwargs:
       raise TypeError('expected at least one input DataSlice, got none')
@@ -655,13 +655,13 @@ def map_py_on_cond(
   true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
   false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
   try:
-    schema = _unwrap_optional_schema(schema, param_name='schema')
-    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+    schema = _unwrap_optional_schema(schema, param_name='schema')  # pyrefly: ignore[bad-argument-type]
+    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')  # pyrefly: ignore[bad-argument-type]
     dict_as_obj = _unwrap_optional_boolean(
-        dict_as_obj, param_name='dict_as_obj'
+        dict_as_obj, param_name='dict_as_obj'  # pyrefly: ignore[bad-argument-type]
     )
     item_completed_callback = _unwrap_optional_py_callable(
-        item_completed_callback, param_name='item_completed_callback'
+        item_completed_callback, param_name='item_completed_callback'  # pyrefly: ignore[bad-argument-type]
     )
     if not args and not kwargs:
       raise TypeError('expected at least one input DataSlice, got none')
@@ -773,9 +773,9 @@ def map_py_on_selected(
       false_fn=data_slice.DataSlice.from_vals(None),
       cond=cond,
       args=args,
-      schema=schema,
-      max_threads=max_threads,
-      dict_as_obj=dict_as_obj,
-      item_completed_callback=item_completed_callback,
+      schema=schema,  # pyrefly: ignore[bad-argument-type]
+      max_threads=max_threads,  # pyrefly: ignore[bad-argument-type]
+      dict_as_obj=dict_as_obj,  # pyrefly: ignore[bad-argument-type]
+      item_completed_callback=item_completed_callback,  # pyrefly: ignore[bad-argument-type]
       kwargs=kwargs,
   )

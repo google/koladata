@@ -143,7 +143,7 @@ def call_fn_normally_when_parallel(
       call,
       fn,
       args=args,
-      return_type_as=return_type_as,
+      return_type_as=return_type_as,  # pyrefly: ignore[bad-argument-type]
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
   )
@@ -383,7 +383,7 @@ def if_(
       call,
       masking.cond(cond, yes_fn, no_fn),
       args=args,
-      return_type_as=return_type_as,
+      return_type_as=return_type_as,  # pyrefly: ignore[bad-argument-type]
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
   )
@@ -1138,7 +1138,7 @@ def _create_for_iteration_body_fn():
   returns = arolla.M.namedtuple.union(
       new_variables,
       arolla.M.namedtuple.make(
-          _koda_internal_step=I['_koda_internal_step'] + 1,
+          _koda_internal_step=I['_koda_internal_step'] + 1,  # pyrefly: ignore[unsupported-operation]
       ),
   )
   return py_functors_base_py_ext.create_functor(

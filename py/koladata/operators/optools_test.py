@@ -112,7 +112,7 @@ class OptoolsTest(parameterized.TestCase):
       # Set these rather than assert to ensure that the lambda has been traced.
       nonlocal x_has_view, y_has_view, args_has_view
       x_has_view = view.has_koda_view(x)
-      y_has_view = view.has_koda_view(y)
+      y_has_view = view.has_koda_view(y)  # pyrefly: ignore[bad-argument-type]
       args_has_view = view.has_koda_view(args)
       return fake_add(x, y)
 
@@ -659,7 +659,7 @@ class OptoolsTest(parameterized.TestCase):
         arolla.M.annotation.source_location(
             py_boxing.as_expr(1)
             + arolla.M.annotation.source_location(
-                py_boxing.as_expr(2) * py_boxing.as_expr(3),
+                py_boxing.as_expr(2) * py_boxing.as_expr(3),  # pyrefly: ignore[unsupported-operation]
                 arolla.namedtuple(
                     function_name='op',
                     file_name=
@@ -827,11 +827,11 @@ class OptoolsTest(parameterized.TestCase):
 
     loaded_op = arolla.s11n.loads(arolla.s11n.dumps(op))
     testing.assert_equal(
-        arolla.eval(loaded_op(arolla.int32(1), arolla.int32(2))),
+        arolla.eval(loaded_op(arolla.int32(1), arolla.int32(2))),  # pyrefly: ignore[not-callable]
         arolla.text('foo'),
     )
     with self.assertRaisesRegex(ValueError, 'expected INT32'):
-      arolla.eval(loaded_op(arolla.int64(1), arolla.int32(2)))
+      arolla.eval(loaded_op(arolla.int64(1), arolla.int32(2)))  # pyrefly: ignore[not-callable]
 
   def test_as_py_function_operator_sig_positional_only(self):
     @optools.as_py_function_operator(
@@ -908,10 +908,10 @@ class OptoolsTest(parameterized.TestCase):
   def test_as_py_function_operator_sig_default_values(self):
     @optools.as_py_function_operator('op', qtype_inference_expr=arolla.UNIT)
     def op(a=1, /, b=2, *c, d=3, **e):
-      testing.assert_equal(a, ds(1))
-      testing.assert_equal(b, ds(2))
+      testing.assert_equal(a, ds(1))  # pyrefly: ignore[bad-argument-type]
+      testing.assert_equal(b, ds(2))  # pyrefly: ignore[bad-argument-type]
       assert not c
-      testing.assert_equal(d, ds(3))
+      testing.assert_equal(d, ds(3))  # pyrefly: ignore[bad-argument-type]
       assert not e
       return arolla.unit()
 
@@ -1004,7 +1004,7 @@ class OptoolsTest(parameterized.TestCase):
     except ValueError as e:
       ex = e
 
-    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))  # pyrefly: ignore[unbound-name]
     self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*inner_lambda')
     self.assertRegex(tb, 'optools_test.py.*line [0-9]+.*outer_lambda')
 

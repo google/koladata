@@ -2661,7 +2661,7 @@ def _create_as_parallel_wrapping_fn():
   I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          V.fn(V.executor, as_parallel(I.x), return_type_as=V.return_type_as)
+          V.fn(V.executor, as_parallel(I.x), return_type_as=V.return_type_as)  # pyrefly: ignore[not-callable]
       ),
       signature_utils.signature([
           signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
@@ -2744,7 +2744,7 @@ def _create_second_argument_as_parallel_wrapping_fn():
   I = input_container.InputContainer('I')  # pylint: disable=invalid-name
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(
-          V.fn(
+          V.fn(  # pyrefly: ignore[not-callable]
               V.executor, I.x, as_parallel(I.y), return_type_as=V.return_type_as
           )
       ),

@@ -543,7 +543,7 @@ def with_attrs(x, /, *, overwrite_schema=False, **attrs):  # pylint: disable=red
   return updated(
       x,
       arolla.abc.bind_op(
-          _attrs, x, overwrite_schema=overwrite_schema, attrs=attrs
+          _attrs, x, overwrite_schema=overwrite_schema, attrs=attrs  # pyrefly: ignore[bad-argument-type]
       ),
   )
 
@@ -1276,7 +1276,7 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_or_data_bag(P.x),
         qtype_utils.expect_data_slice_or_data_bag(P.y),
         (
-            (P.x == qtypes.DATA_BAG) | (P.y == qtypes.DATA_BAG),
+            (P.x == qtypes.DATA_BAG) | (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
             (
                 'at least one argument must be a DATA_BAG, this operation is'
                 ' not supported on two DATA_SLICEs'
@@ -1290,15 +1290,15 @@ def lshift(x, y):
       'x, y',
       x_is_slice_case=arolla.types.DispatchCase(
           updated(P.x, P.y),
-          condition=(P.x == qtypes.DATA_SLICE) & (P.y == qtypes.DATA_BAG),
+          condition=(P.x == qtypes.DATA_SLICE) & (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
       ),
       y_is_slice_case=arolla.types.DispatchCase(
           enriched(P.y, P.x),
-          condition=(P.y == qtypes.DATA_SLICE) & (P.x == qtypes.DATA_BAG),
+          condition=(P.y == qtypes.DATA_SLICE) & (P.x == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
       ),
       databag_case=arolla.types.DispatchCase(
           bags.updated(P.x, P.y),
-          condition=(P.x == qtypes.DATA_BAG) & (P.y == qtypes.DATA_BAG),
+          condition=(P.x == qtypes.DATA_BAG) & (P.y == qtypes.DATA_BAG),  # pyrefly: ignore[unsupported-operation]
       ),
   )(x, y)
 

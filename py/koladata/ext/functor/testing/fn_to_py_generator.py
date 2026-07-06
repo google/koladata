@@ -73,7 +73,7 @@ def main(argv):
   functor = model_module.MODEL
 
   # Generate AST
-  module_ast = kd_ext.functor.to_py(functor, name='top')
+  module_ast = kd_ext.functor.to_py(functor, name='top')  # pyrefly: ignore[missing-attribute]
   generated_code = ast.unparse(module_ast) + '\n'
   generated_code = _format_code(generated_code)
 

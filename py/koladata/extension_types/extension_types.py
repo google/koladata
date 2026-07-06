@@ -674,7 +674,7 @@ def extension_type(
     functors_obj = _make_functor_prototype(virtual_methods)
 
     # Attach the dispatching functor.
-    original_class.__new__ = _make_dispatch_fn(
+    original_class.__new__ = _make_dispatch_fn(  # pyrefly: ignore[bad-assignment]
         class_meta, extension_qtype, functors_obj
     )
     return original_class
