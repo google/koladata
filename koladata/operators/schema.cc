@@ -312,6 +312,16 @@ absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
   return schema_ds.GetNoFollowedSchema();
 }
 
+absl::StatusOr<DataSlice> GetSchemaName(const DataSlice& schema) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  if (schema.IsNamedSchema()) {
+    ASSIGN_OR_RETURN(auto name, schema.GetAttr(schema::kSchemaNameAttr));
+    return name.WithBag(nullptr);
+  }
+  return DataSlice::Create(internal::DataItem(),
+                           internal::DataItem(schema::kString));
+}
+
 absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   auto lookup_status = ValidateAttrLookupAllowed(schema);

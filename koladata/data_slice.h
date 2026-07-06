@@ -234,6 +234,9 @@ class DataSlice {
   // Returns true, if this DataSlice represents an ITEMID schema.
   bool IsItemIdSchema() const;
 
+  // Returns true, if this DataSlice represents a named schema.
+  bool IsNamedSchema() const;
+
   // Return true, if this DataSlice is empty (has all missing values).
   bool IsEmpty() const { return impl_empty_and_unknown(); }
 

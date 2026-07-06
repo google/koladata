@@ -483,6 +483,26 @@ def get_value_schema(dict_schema):  # pylint: disable=unused-argument,redefined-
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(
+    aliases=['kd.get_schema_name'], via_cc_operator_package=True
+)
+@optools.as_backend_operator(
+    'kd.schema.get_schema_name',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def get_schema_name(schema):  # pylint: disable=unused-argument
+  """Returns the name of a named schema, or missing string otherwise.
+
+  Args:
+    schema: The schema to get the name from.
+
+  Returns:
+    The name of the schema as a string DataSlice, or a missing string.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(via_cc_operator_package=True)
 @optools.as_backend_operator(
     'kd.schema.is_dict_schema',
@@ -520,6 +540,23 @@ def is_struct_schema(x):  # pylint: disable=unused-argument
 )
 def is_list_schema(x):  # pylint: disable=unused-argument
   """Returns true iff `x` is a List schema DataItem."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(via_cc_operator_package=True)
+@optools.as_backend_operator(
+    'kd.schema.is_named_schema',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
+)
+def is_named_schema(schema):  # pylint: disable=unused-argument
+  """Returns true iff `schema` is a named schema.
+
+  Args:
+    schema: The schema to check.
+
+  Returns:
+    A mask DataItem indicating if the schema is a named schema.
+  """
   raise NotImplementedError('implemented in the backend')
 
 

@@ -1283,6 +1283,15 @@ bool DataSlice::IsItemIdSchema() const {
          item().is_itemid_schema();
 }
 
+bool DataSlice::IsNamedSchema() const {
+  if (!IsStructSchema() || GetBag() == nullptr) {
+    return false;
+  }
+  FlattenFallbackFinder fb_finder(*GetBag());
+  return HasSchemaAttr(item(), schema::kSchemaNameAttr, GetBag()->GetImpl(),
+                       fb_finder);
+}
+
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   DataBagPtr res_db = GetBag();

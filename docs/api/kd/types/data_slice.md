@@ -473,6 +473,10 @@ Args:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a schema DataItem with type information about this DataSlice.</code></pre>
 
+### `DataSlice.get_schema_name()` {#kd.types.DataSlice.get_schema_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of the named Schema, or missing string otherwise.</code></pre>
+
 ### `DataSlice.get_shape()` {#kd.types.DataSlice.get_shape}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the shape of the DataSlice.</code></pre>
@@ -600,6 +604,10 @@ structure will contain DataItems.</code></pre>
 ### `DataSlice.is_mutable()` {#kd.types.DataSlice.is_mutable}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff the attached DataBag is mutable.</code></pre>
+
+### `DataSlice.is_named_schema()` {#kd.types.DataSlice.is_named_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns present iff this DataSlice is a named Schema.</code></pre>
 
 ### `DataSlice.is_primitive(self) -> DataSlice` {#kd.types.DataSlice.is_primitive}
 

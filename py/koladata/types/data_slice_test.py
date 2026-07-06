@@ -3261,6 +3261,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     dict_schema = db.dict_schema(
         schema_constants.STRING, schema_constants.INT32
     )
+    named_schema = db.named_schema('foo', a=schema_constants.INT32)
 
     self.assertTrue(entity_schema.is_struct_schema())
     self.assertTrue(list_schema.is_struct_schema())
@@ -3278,6 +3279,27 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     self.assertFalse(entity_schema.is_dict_schema())
     self.assertFalse(list_schema.is_dict_schema())
     self.assertTrue(dict_schema.is_dict_schema())
+
+    self.assertTrue(named_schema.is_named_schema())
+    self.assertFalse(entity_schema.is_named_schema())
+    self.assertFalse(list_schema.is_named_schema())
+    self.assertFalse(dict_schema.is_named_schema())
+    self.assertFalse(named_schema.no_bag().is_named_schema())
+
+    testing.assert_equal(named_schema.get_schema_name(), ds('foo'))
+    testing.assert_equal(
+        named_schema.no_bag().get_schema_name(),
+        ds(None, schema_constants.STRING),
+    )
+    testing.assert_equal(
+        entity_schema.get_schema_name(), ds(None, schema_constants.STRING)
+    )
+    testing.assert_equal(
+        list_schema.get_schema_name(), ds(None, schema_constants.STRING)
+    )
+    testing.assert_equal(
+        dict_schema.get_schema_name(), ds(None, schema_constants.STRING)
+    )
 
   def test_empty_subscript_method_slice(self):
     db = bag()

@@ -741,6 +741,10 @@ Alias for [kd.slices.get_repr](kd/slices.md#kd.slices.get_repr)
 
 Alias for [kd.schema.get_schema](kd/schema.md#kd.schema.get_schema)
 
+### `kd.get_schema_name(schema)` {#kd.get_schema_name}
+
+Alias for [kd.schema.get_schema_name](kd/schema.md#kd.schema.get_schema_name)
+
 ### `kd.get_shape(x)` {#kd.get_shape}
 
 Alias for [kd.shapes.get_shape](kd/shapes.md#kd.shapes.get_shape)

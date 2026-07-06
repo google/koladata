@@ -158,9 +158,8 @@ def _get_dataclass_name(schema: schema_item.SchemaItem) -> str:
     the name. Otherwise (e.g., if the schema was created via `kd.new_schema`
     without an explicit name), it returns 'Entity'.
   """
-  # TODO(b/510247584) Once the public API for schema_name is implemented, use
-  # that instead.
-  dataclass_name = schema.get_attr('__schema_name__', 'Entity').to_py()
+  name = schema.get_schema_name().to_py()
+  dataclass_name = name if name is not None else 'Entity'
   return dataclass_name.split('.')[-1]
 
 

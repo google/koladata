@@ -59,6 +59,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/masking.h"
+#include "koladata/operators/schema.h"
 #include "koladata/operators/slices.h"
 #include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
@@ -837,6 +838,22 @@ PyObject* absl_nullable PyDataSlice_is_dict_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(AsMask(ds.IsDictSchema()));
 }
 
+PyObject* absl_nullable PyDataSlice_is_named_schema(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsNamedSchema()));
+}
+
+PyObject* absl_nullable PyDataSlice_get_schema_name(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const auto& ds = UnsafeDataSliceRef(self);
+  ASSIGN_OR_RETURN(auto res, koladata::ops::GetSchemaName(ds),
+                   arolla::python::SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(res));
+}
+
 PyObject* absl_nullable PyDataSlice_is_dict(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
@@ -1126,6 +1143,14 @@ Args:
      "is_dict_schema()\n"
      "--\n\n"
      "Returns present iff this DataSlice is a Dict Schema."},
+    {"is_named_schema", PyDataSlice_is_named_schema, METH_NOARGS,
+     "is_named_schema()\n"
+     "--\n\n"
+     "Returns present iff this DataSlice is a named Schema."},
+    {"get_schema_name", PyDataSlice_get_schema_name, METH_NOARGS,
+     "get_schema_name()\n"
+     "--\n\n"
+     "Returns the name of the named Schema, or missing string otherwise."},
     {"is_primitive_schema", PyDataSlice_is_primitive_schema, METH_NOARGS,
      "is_primitive_schema()\n"
      "--\n\n"

@@ -708,6 +708,24 @@ TEST(DataSliceTest, IsDictSchema) {
   EXPECT_FALSE(test::DataItem(42).IsDictSchema());
 }
 
+TEST(DataSliceTest, IsNamedSchema) {
+  auto db = DataBag::EmptyMutable();
+  auto int_s = test::Schema(schema::kInt32);
+  ASSERT_OK_AND_ASSIGN(auto named_schema,
+                       CreateNamedSchema(db, "foo", {"a"}, {int_s}));
+  EXPECT_TRUE(named_schema.IsNamedSchema());
+  EXPECT_FALSE(named_schema.WithBag(nullptr).IsNamedSchema());
+  ASSERT_OK_AND_ASSIGN(auto entity_schema,
+                       CreateEntitySchema(db, {"a"}, {int_s}));
+  EXPECT_FALSE(entity_schema.IsNamedSchema());
+  ASSERT_OK_AND_ASSIGN(auto dict_schema, CreateDictSchema(db, int_s, int_s));
+  EXPECT_FALSE(dict_schema.IsNamedSchema());
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kObject, schema::kInt32})
+                   .IsNamedSchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsNamedSchema());
+  EXPECT_FALSE(test::DataItem(42).IsNamedSchema());
+}
+
 TEST(DataSliceTest, IsPrimitiveSchema) {
   auto db = DataBag::EmptyMutable();
   auto int_s = test::Schema(schema::kInt32);

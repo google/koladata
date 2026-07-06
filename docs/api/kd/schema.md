@@ -217,6 +217,19 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the schema of `x`.</code></pre>
 
+### `kd.schema.get_schema_name(schema)` {#kd.schema.get_schema_name}
+Aliases:
+
+- [kd.get_schema_name](../kd.md#kd.get_schema_name)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the name of a named schema, or missing string otherwise.
+
+Args:
+  schema: The schema to get the name from.
+
+Returns:
+  The name of the schema as a string DataSlice, or a missing string.</code></pre>
+
 ### `kd.schema.get_value_schema(dict_schema)` {#kd.schema.get_value_schema}
 Aliases:
 
@@ -250,6 +263,16 @@ Returns:
 ### `kd.schema.is_list_schema(x)` {#kd.schema.is_list_schema}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true iff `x` is a List schema DataItem.</code></pre>
+
+### `kd.schema.is_named_schema(schema)` {#kd.schema.is_named_schema}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true iff `schema` is a named schema.
+
+Args:
+  schema: The schema to check.
+
+Returns:
+  A mask DataItem indicating if the schema is a named schema.</code></pre>
 
 ### `kd.schema.is_primitive_schema(x)` {#kd.schema.is_primitive_schema}
 

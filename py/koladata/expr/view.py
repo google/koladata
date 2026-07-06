@@ -366,6 +366,9 @@ class KodaView(BaseKodaView):
   def get_value_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_value_schema', self)
 
+  def get_schema_name(self) -> arolla.Expr:
+    return _aux_bind_op('kd.get_schema_name', self)
+
   def get_obj_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.get_obj_schema', self)
 
@@ -529,6 +532,9 @@ class KodaView(BaseKodaView):
 
   def is_list_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.schema.is_list_schema', self)
+
+  def is_named_schema(self) -> arolla.Expr:
+    return _aux_bind_op('kd.schema.is_named_schema', self)
 
   def is_primitive_schema(self) -> arolla.Expr:
     return _aux_bind_op('kd.schema.is_primitive_schema', self)

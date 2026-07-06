@@ -425,6 +425,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_obj_schema(self):
     self.assert_exprs_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))  # pyrefly: ignore[missing-attribute]
 
+  def test_get_schema_name(self):
+    self.assert_exprs_equal(C.x.get_schema_name(), kde.get_schema_name(C.x))  # pyrefly: ignore[missing-attribute]
+
   def test_with_schema_from_obj(self):
     self.assert_exprs_equal(
         C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)  # pyrefly: ignore[missing-attribute]
@@ -571,6 +574,11 @@ class KodaViewTest(parameterized.TestCase):
   def test_is_struct_schema(self):
     self.assert_exprs_equal(
         C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)  # pyrefly: ignore[missing-attribute]
+    )
+
+  def test_is_named_schema(self):
+    self.assert_exprs_equal(
+        C.x.is_named_schema(), kde.schema.is_named_schema(C.x)  # pyrefly: ignore[missing-attribute]
     )
 
   def test_is_list_schema(self):
