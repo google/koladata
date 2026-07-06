@@ -1360,13 +1360,17 @@ def metadata(x, /, **attrs):  # pylint: disable=unused-argument,redefined-outer-
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def get_metadata(x):  # pylint: disable=unused-argument
-  """Gets a metadata from a DataSlice.
+  """Returns a metadata for each schema item in DataSlice `x`.
+
+  Semantically equivalent to `kd.maybe(x, _metadata_attr_name)`,
+  where `_metadata_attr_name` is the special attribute name reserved for the
+  metadata.
 
   Args:
-    x: DataSlice to get metadata from.
+    x: DataSlice to get metadata from. Should contain schema items.
 
   Returns:
-    Metadata DataSlice.
+    DataSlice with metadata items for each item in `x`.
   """
   raise NotImplementedError('implemented in the backend')
 

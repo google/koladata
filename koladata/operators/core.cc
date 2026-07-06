@@ -757,7 +757,13 @@ DataSlice Freeze<DataSlice>(const DataSlice& x) {
 absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds) {
   auto schema = ds.GetSchemaImpl();
   if (schema == schema::kSchema) {
-    return ds.GetAttr(schema::kSchemaMetadataAttr);
+    ASSIGN_OR_RETURN(
+        auto empty_object_item,
+        DataSlice::Create(DataItem(), /*schema=*/DataItem(schema::kObject)));
+    ASSIGN_OR_RETURN(auto metadata, ds.GetAttrWithDefault(
+                                        schema::kSchemaMetadataAttr,
+                                        /*default_value=*/empty_object_item));
+    return metadata;
   }
   return absl::InvalidArgumentError(
       absl::StrCat("failed to get metadata; cannot get for a DataSlice with ",

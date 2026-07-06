@@ -304,8 +304,10 @@ class CoreCloneTest(parameterized.TestCase):
     schema = kd.with_metadata(schema, attrs='xy')
     x = kd.new(x=1, y=2, schema=schema)
     res_schema = kd.clone(x.get_schema())
-    with self.assertRaisesRegex(ValueError, 'failed to get attribute'):
-      _ = kd.get_metadata(res_schema)
+    testing.assert_equivalent(
+        kd.get_metadata(res_schema),
+        ds(None, schema=schema_constants.OBJECT),
+    )
 
   def test_named_schema(self):
     db = data_bag.DataBag.empty_mutable()

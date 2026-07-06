@@ -49,6 +49,29 @@ class CoreGetMetadataTest(absltest.TestCase):
     values = kd.core.get_metadata(updated_x)
     testing.assert_equal(values.get_attr('text').no_bag(), ds(['foo', 1]))
 
+  def test_missing(self):
+    db = object_factories.mutable_bag()
+    s1 = db.new_schema(x=schema_constants.INT32)
+    s2 = db.new_schema(x=schema_constants.OBJECT)
+
+    # One has metadata, one does not.
+    s1_with_meta = kd.core.with_metadata(s1.freeze_bag(), text=ds('foo'))
+    x = ds([s1_with_meta, s2])
+
+    res = kd.core.get_metadata(x)
+    testing.assert_equivalent(res, ds([kd.obj(text=ds('foo')), None]))
+
+  def test_all_missing(self):
+    db = object_factories.mutable_bag()
+    s1 = db.new_schema(x=schema_constants.INT32)
+    s2 = db.new_schema(x=schema_constants.OBJECT)
+    x = ds([s1, s2])
+
+    res = kd.core.get_metadata(x)
+    testing.assert_equivalent(
+        res, ds([None, None], schema=schema_constants.OBJECT)
+    )
+
   def test_error(self):
     with self.assertRaisesRegex(
         ValueError,

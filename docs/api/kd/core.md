@@ -332,13 +332,17 @@ Aliases:
 
 - [kd.get_metadata](../kd.md#kd.get_metadata)
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Gets a metadata from a DataSlice.
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a metadata for each schema item in DataSlice `x`.
+
+Semantically equivalent to `kd.maybe(x, _metadata_attr_name)`,
+where `_metadata_attr_name` is the special attribute name reserved for the
+metadata.
 
 Args:
-  x: DataSlice to get metadata from.
+  x: DataSlice to get metadata from. Should contain schema items.
 
 Returns:
-  Metadata DataSlice.</code></pre>
+  DataSlice with metadata items for each item in `x`.</code></pre>
 
 ### `kd.core.has_attr(x, attr_name)` {#kd.core.has_attr}
 Aliases:
