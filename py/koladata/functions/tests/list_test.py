@@ -67,7 +67,7 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(
         fns.list(
             [1, 2.0],
-            schema=kde.list_schema(schema_constants.OBJECT).eval(),  # pyrefly: ignore[missing-attribute]
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(  # pyrefly: ignore[missing-attribute]
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
@@ -94,7 +94,7 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(nested_l_1[:], ds([3]).with_bag(l.get_bag()))
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid())  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_listid())
     x = fns.list([['a', 'b'], ['c']], itemid=itemid)
     testing.assert_equal(x[:][:].no_bag(), ds([['a', 'b'], ['c']]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
@@ -128,8 +128,8 @@ class ListTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-        kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     lst = fns.list(schema=list_schema)
 
@@ -158,13 +158,13 @@ class ListTest(parameterized.TestCase):
       (
           None,
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
       (
           [1, 2, 3],
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
       (
@@ -195,7 +195,7 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(lsts[:].S[1][:].no_bag(), kd.slice([3]))
 
   def test_schema_arg_error(self):
-    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):
@@ -251,7 +251,7 @@ Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"
       _ = fns.list([1, 2, 3], schema=schema_constants.INT32)
 
   def test_merge_conflict_list_item(self):
-    itemid = kde.allocation.new_listid().eval()  # pyrefly: ignore[missing-attribute]
+    itemid = kde.allocation.new_listid().eval()
     lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
     lst2 = fns.list([fns.obj(x=1), fns.obj(y=3)], itemid=itemid)
     with self.assertRaisesWithPredicateMatch(
@@ -268,7 +268,7 @@ The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} 
       fns.obj(lst1=lst1, lst2=lst2)
 
   def test_merge_conflict_list_size(self):
-    itemid = kde.allocation.new_listid().eval()  # pyrefly: ignore[missing-attribute]
+    itemid = kde.allocation.new_listid().eval()
     lst1 = fns.list([fns.obj(x=1), fns.obj(y=2)], itemid=itemid)
     lst2 = fns.list([fns.obj(x=1)], itemid=itemid)
     with self.assertRaisesWithPredicateMatch(

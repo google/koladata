@@ -99,7 +99,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_non_determinism(self):
     items = ds([1, None, 2]).freeze_bag()
-    expr = kde.lists.implode(items)  # pyrefly: ignore[missing-attribute]
+    expr = kde.lists.implode(items)
     res_1 = expr.eval()
     res_2 = expr.eval()
     self.assertNotEqual(
@@ -110,16 +110,16 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.lists.implode,  # pyrefly: ignore[missing-attribute]
+        kde.lists.implode,
         QTYPE_SIGNATURES,  # pyrefly: ignore[bad-argument-type]
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.implode(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.lists.implode(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.lists.implode, kde.lists.implode))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.lists.implode, kde.lists.implode))
 
 
 if __name__ == '__main__':

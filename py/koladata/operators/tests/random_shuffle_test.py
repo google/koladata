@@ -177,7 +177,7 @@ class RandomShuffleTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.shuffle,  # pyrefly: ignore[missing-attribute]
+            kde.random.shuffle,
             possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -189,10 +189,10 @@ class RandomShuffleTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.shuffle(I.x, I.seed)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.random.shuffle(I.x, I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.random.shuffle, kde.shuffle))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.random.shuffle, kde.shuffle))
 
 
 if __name__ == '__main__':

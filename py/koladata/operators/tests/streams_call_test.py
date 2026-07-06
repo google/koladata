@@ -39,11 +39,11 @@ M = arolla.M
 kde = kde_operators.kde
 py_fn = functor_factories.py_fn
 kde_internal = kde_operators.internal
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
-eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
 
-STREAM_OF_DATA_SLICE = kde.streams.make(value_type_as=ds(0)).qtype  # pyrefly: ignore[missing-attribute]
-STREAM_OF_FLOAT64 = kde.streams.make(value_type_as=f64(0)).qtype  # pyrefly: ignore[missing-attribute]
+STREAM_OF_DATA_SLICE = kde.streams.make(value_type_as=ds(0)).qtype
+STREAM_OF_FLOAT64 = kde.streams.make(value_type_as=f64(0)).qtype
 
 
 class StreamsCallTest(parameterized.TestCase):
@@ -54,12 +54,12 @@ class StreamsCallTest(parameterized.TestCase):
       self.assertEqual(kwargs, {'x': 4, 'y': 5})
       return ds('result')
 
-    res = kde.streams.call(  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(
         py_fn(fn),
         1,
-        kde.streams.await_(kde.streams.make(2)),  # pyrefly: ignore[missing-attribute]
+        kde.streams.await_(kde.streams.make(2)),
         3,
-        x=kde.streams.await_(kde.streams.make(4)),  # pyrefly: ignore[missing-attribute]
+        x=kde.streams.await_(kde.streams.make(4)),
         y=5,
     ).eval()
     self.assertIsInstance(res, Stream)
@@ -71,10 +71,10 @@ class StreamsCallTest(parameterized.TestCase):
       return 1
 
     def gn():
-      return kde.streams.call(fn)  # pyrefly: ignore[missing-attribute]
+      return kde.streams.call(fn)
 
     def hn():
-      return kde.streams.call(gn)  # pyrefly: ignore[missing-attribute]
+      return kde.streams.call(gn)
 
     res = hn().eval()
     self.assertIsInstance(res, Stream)
@@ -83,13 +83,13 @@ class StreamsCallTest(parameterized.TestCase):
 
   def test_mixed_types(self):
     def fn(x, y, z):
-      return M.math.add(M.math.multiply(x, y), z)  # pyrefly: ignore[missing-attribute]
+      return M.math.add(M.math.multiply(x, y), z)
 
-    res = kde.streams.call(  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(
         fn,
         f32(2),
-        y=kde.streams.await_(kde.streams.make(f64(3))),  # pyrefly: ignore[missing-attribute]
-        z=kde.streams.await_(kde.streams.make(i32(4))),  # pyrefly: ignore[missing-attribute]
+        y=kde.streams.await_(kde.streams.make(f64(3))),
+        z=kde.streams.await_(kde.streams.make(i32(4))),
         return_type_as=f64(-1),
     ).eval()
     self.assertIsInstance(res, Stream)
@@ -101,7 +101,7 @@ class StreamsCallTest(parameterized.TestCase):
       time.sleep(0.5)
       return ds(1)
 
-    res = kde.streams.call(py_fn(fn)).eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(py_fn(fn)).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     with self.assertRaises(TimeoutError):
@@ -110,10 +110,10 @@ class StreamsCallTest(parameterized.TestCase):
 
   def test_eager_executor(self):
     def fn():
-      return kde.streams.make(1, 2, 3, 4, 5)  # pyrefly: ignore[missing-attribute]
+      return kde.streams.make(1, 2, 3, 4, 5)
 
-    res = kde.streams.call(  # pyrefly: ignore[missing-attribute]
-        fn, executor=eager_executor, return_type_as=kde.streams.make()  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(
+        fn, executor=eager_executor, return_type_as=kde.streams.make()
     ).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
@@ -121,9 +121,9 @@ class StreamsCallTest(parameterized.TestCase):
 
   def test_functor_returns_stream(self):
     def fn():
-      return kde.streams.make(1, 2, 3)  # pyrefly: ignore[missing-attribute]
+      return kde.streams.make(1, 2, 3)
 
-    res = kde.streams.call(fn).eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(fn).eval()
     self.assertIsInstance(res, Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     self.assertEqual(res.read_all(timeout=1), [1, 2, 3])
@@ -132,12 +132,12 @@ class StreamsCallTest(parameterized.TestCase):
     def fn():
       raise RuntimeError('Boom!')
 
-    res = kde.streams.call(py_fn(fn)).eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(py_fn(fn)).eval()
     with self.assertRaisesRegex(RuntimeError, 'Boom!'):
       res.read_all(timeout=1)
 
   def test_error_fn_returns_non_stream(self):
-    res = kde.streams.call(lambda: 1, return_type_as=kde.streams.make()).eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.streams.call(lambda: 1, return_type_as=kde.streams.make()).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -150,11 +150,11 @@ class StreamsCallTest(parameterized.TestCase):
       res.read_all(timeout=1)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.streams.call(I.fn, I.arg)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.streams.call(I.fn, I.arg)))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.streams.call(I.fn, I.arg, kwarg=I.kwarg)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.streams.call(I.fn, I.arg, kwarg=I.kwarg)),
         'kd.streams.call(I.fn, I.arg, executor=unspecified,'
         ' return_type_as=DataItem(None, schema: NONE), kwarg=I.kwarg)',
     )

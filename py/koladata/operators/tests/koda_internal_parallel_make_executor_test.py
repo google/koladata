@@ -24,7 +24,7 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = kde_internal.parallel.make_executor().eval()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.make_executor().eval()
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -32,7 +32,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
     )
 
   def test_simple_n(self):
-    executor = kde_internal.parallel.make_executor(5).eval()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.make_executor(5).eval()
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
     self.assertEqual(
         repr(executor),
@@ -41,7 +41,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.make_executor,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.make_executor,
         [  # pyrefly: ignore[bad-argument-type]
             (arolla.INT32, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
             (arolla.INT64, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
@@ -50,7 +50,7 @@ class KodaInternalParallelMakeExecutorTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.parallel.make_executor()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.make_executor()))
 
 
 if __name__ == '__main__':

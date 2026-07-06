@@ -87,7 +87,7 @@ class SchemaGetNameTest(parameterized.TestCase):
       eval_op('kd.schema.get_repr', ds(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.get_repr(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.get_repr(I.x)))
 
 
 if __name__ == '__main__':

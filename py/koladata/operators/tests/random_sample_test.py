@@ -79,57 +79,57 @@ class RandomSampleTest(parameterized.TestCase):
       (ds([]),),
   )
   def test_eval_all_missing_or_empty(self, x):
-    sampled_1 = expr_eval.eval(kde.random.sample(x, 0.5, 123))  # pyrefly: ignore[missing-attribute]
-    sampled_2 = expr_eval.eval(kde.random.sample(x, 0.5, 123))  # pyrefly: ignore[missing-attribute]
+    sampled_1 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
+    sampled_2 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
     testing.assert_equal(sampled_1, sampled_2)
 
   def test_eval_with_key(self):
     x_1 = ds([[1, 2, 3], [3, 4, 6, 7]])
     key_1 = ds([['a', 'b', 'd'], ['c', 'd', 'e', 'f']])
     sampled_1 = expr_eval.eval(
-        kde.sort(kde.random.sample(x_1, 0.5, 123, key_1))  # pyrefly: ignore[missing-attribute]
+        kde.sort(kde.random.sample(x_1, 0.5, 123, key_1))
     )
     x_2 = ds([[2, 3, 1], [6, 3, 7, 4]])
     key_2 = ds([['b', 'd', 'a'], ['e', 'c', 'f', 'd']])
     sampled_2 = expr_eval.eval(
-        kde.sort(kde.random.sample(x_2, 0.5, 123, key_2))  # pyrefly: ignore[missing-attribute]
+        kde.sort(kde.random.sample(x_2, 0.5, 123, key_2))
     )
     testing.assert_equal(sampled_1, sampled_2)
     self.assertLess(sampled_1.get_size(), x_1.get_size())
 
     # Missing keys result in missing values in the result.
     key_3 = ds([['a', 'b', 'd'], [None, None, None, None]])
-    sampled_3 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_3))  # pyrefly: ignore[missing-attribute]
-    sampled_3_part_1 = expr_eval.eval(kde.slices.subslice(sampled_3, 0, ...))  # pyrefly: ignore[missing-attribute]
-    sampled_3_part_2 = expr_eval.eval(kde.slices.subslice(sampled_3, 1, ...))  # pyrefly: ignore[missing-attribute]
-    sampled_1_part_1 = expr_eval.eval(kde.slices.subslice(sampled_1, 0, ...))  # pyrefly: ignore[missing-attribute]
+    sampled_3 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_3))
+    sampled_3_part_1 = expr_eval.eval(kde.slices.subslice(sampled_3, 0, ...))
+    sampled_3_part_2 = expr_eval.eval(kde.slices.subslice(sampled_3, 1, ...))
+    sampled_1_part_1 = expr_eval.eval(kde.slices.subslice(sampled_1, 0, ...))
     testing.assert_equal(sampled_1_part_1, sampled_3_part_1)
     self.assertEqual(sampled_3_part_2.get_size(), 0)
 
     # All missing keys
     key_4 = ds([[None, None, None], [None, None, None, None]])
-    sampled_4 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_4))  # pyrefly: ignore[missing-attribute]
+    sampled_4 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_4))
     self.assertEqual(sampled_4.get_size(), 0)
 
   def test_ratio_great_than_one(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
-    sampled = expr_eval.eval(kde.sort(kde.random.sample(x, 1.5, 123)))  # pyrefly: ignore[missing-attribute]
+    sampled = expr_eval.eval(kde.sort(kde.random.sample(x, 1.5, 123)))
     self.assertEqual(sampled.get_size(), x.get_size())
 
   def test_incompatible_shapes(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, 123, ds(['2', '1'])))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, 0.5, 123, ds(['2', '1'])))
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
       _ = expr_eval.eval(
-          kde.random.sample(x, 0.5, 123, ds([['1', '2', '3'], ['3', '4']]))  # pyrefly: ignore[missing-attribute]
+          kde.random.sample(x, 0.5, 123, ds([['1', '2', '3'], ['3', '4']]))
       )
 
   def test_x_as_data_item(self):
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.random.sample(ds(1), 0.5, 123))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.random.sample(ds(1), 0.5, 123))
 
   def test_wrong_ratio_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -141,7 +141,7 @@ class RandomSampleTest(parameterized.TestCase):
             'STRING'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 'a', 123))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, 'a', 123))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -150,7 +150,7 @@ class RandomSampleTest(parameterized.TestCase):
             'rank 1 > 0'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, ds([0.5, 0.6]), 123))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, ds([0.5, 0.6]), 123))
 
   def test_wrong_seed_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -162,7 +162,7 @@ class RandomSampleTest(parameterized.TestCase):
             'STRING'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, 'a'))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, 0.5, 'a'))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -171,7 +171,7 @@ class RandomSampleTest(parameterized.TestCase):
             'rank 1 > 0'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, ds([123, 456])))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, 0.5, ds([123, 456])))
 
   def test_wrong_key_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -182,13 +182,13 @@ class RandomSampleTest(parameterized.TestCase):
             'argument `key` must be a slice of STRING, got a slice of INT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 'a', 123, key=x))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.random.sample(x, 'a', 123, key=x))
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.sample,  # pyrefly: ignore[missing-attribute]
+            kde.random.sample,
             possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -200,10 +200,10 @@ class RandomSampleTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.sample(I.x, I.ratio, I.seed)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.random.sample(I.x, I.ratio, I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.random.sample, kde.sample))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.random.sample, kde.sample))
 
 
 if __name__ == '__main__':

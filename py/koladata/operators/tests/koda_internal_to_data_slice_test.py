@@ -74,7 +74,7 @@ class KodaToDataSliceTest(parameterized.TestCase):
 
   @parameterized.parameters(*TEST_CASES)
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde_internal.to_data_slice(x))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde_internal.to_data_slice(x))
     testing.assert_equal(res, expected)
 
   def test_unsupported_value(self):
@@ -82,26 +82,26 @@ class KodaToDataSliceTest(parameterized.TestCase):
         ValueError,
         r'expected the scalar qtype to be one of \[BOOLEAN,.*\], got x: UINT64',
     ):
-      kde_internal.to_data_slice(arolla.types.uint64(1))  # pyrefly: ignore[missing-attribute]
+      kde_internal.to_data_slice(arolla.types.uint64(1))
 
   def test_boxing_qvalue(self):
     arolla.testing.assert_expr_equal_by_fingerprint(
-        kde_internal.to_data_slice(arolla.int64(1)),  # pyrefly: ignore[missing-attribute]
+        kde_internal.to_data_slice(arolla.int64(1)),
         arolla.abc.bind_op(
-            kde_internal.to_data_slice,  # pyrefly: ignore[missing-attribute]
+            kde_internal.to_data_slice,
             literal_operator.literal(arolla.int64(1)),
         ),
     )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.to_data_slice,  # pyrefly: ignore[missing-attribute]
+        kde_internal.to_data_slice,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.to_data_slice(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde_internal.to_data_slice(I.x)))
 
 
 if __name__ == '__main__':

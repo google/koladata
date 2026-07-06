@@ -185,7 +185,7 @@ class LogicalCondTest(parameterized.TestCase):
   def test_extraction(self):
     # Regression test for b/408434629.
     db = data_bag.DataBag.empty_mutable()
-    expr = kde.masking.cond(  # pyrefly: ignore[missing-attribute]
+    expr = kde.masking.cond(
         I.mask,
         I.list.with_list_append_update(8),
         I.list.with_list_append_update(9),
@@ -213,7 +213,7 @@ Schema for `y`: ENTITY()"""
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.masking.cond,  # pyrefly: ignore[missing-attribute]
+            kde.masking.cond,
             possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -221,15 +221,15 @@ Schema for `y`: ENTITY()"""
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.masking.cond(I.x, I.y, I.z)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.masking.cond(I.x, I.y, I.z)),
         'kd.masking.cond(I.x, I.y, I.z)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.cond(I.x, I.y, I.z)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.cond(I.x, I.y, I.z)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.cond, kde.cond))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.masking.cond, kde.cond))
 
 
 if __name__ == '__main__':

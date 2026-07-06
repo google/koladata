@@ -86,17 +86,17 @@ class CoreUpdatedTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.updated,  # pyrefly: ignore[missing-attribute]
+        kde.core.updated,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         max_arity=3,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.updated(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.updated(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.updated, kde.updated))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.updated, kde.updated))
 
 
 if __name__ == '__main__':

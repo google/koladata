@@ -184,7 +184,7 @@ class RandomMaskTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.mask,  # pyrefly: ignore[missing-attribute]
+            kde.random.mask,
             possible_qtypes=(  # pyrefly: ignore[bad-argument-type]
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -196,7 +196,7 @@ class RandomMaskTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.mask(I.x, I.ratio, I.seed)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.random.mask(I.x, I.ratio, I.seed)))
 
 
 if __name__ == '__main__':

@@ -327,11 +327,11 @@ class SchemaDeepCastToTest(parameterized.TestCase):
       _ = kd.schema.deep_cast_to(e1, e2_schema)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.deep_cast_to(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.deep_cast_to(I.x, I.y)))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.schema.deep_cast_to(I.x, I.schema)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.schema.deep_cast_to(I.x, I.schema)),
         'kd.schema.deep_cast_to(I.x, I.schema, DataItem(False, schema:'
         ' BOOLEAN), DataItem(False, schema: BOOLEAN))',
     )

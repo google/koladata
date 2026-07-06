@@ -67,7 +67,7 @@ class EvalOrBindOpTest(parameterized.TestCase):
   def test_keyword_arguments(self):
     @optools.as_lambda_operator('swap')
     def op_swap(x, y):
-      return arolla.M.core.make_tuple(y, x)  # pyrefly: ignore[missing-attribute]
+      return arolla.M.core.make_tuple(y, x)
 
     testing.assert_equal(
         eval_or_bind_op(op_swap, y=1, x=2), op_swap(y=1, x=2).eval()
@@ -177,7 +177,7 @@ class EvalOrBindOpTest(parameterized.TestCase):
       eval_or_bind_op(op, arolla.unspecified())
 
   def test_cancellation(self):
-    op = arolla.LambdaOperator(arolla.M.core._identity_with_cancel(arolla.P.x))  # pyrefly: ignore[missing-attribute]
+    op = arolla.LambdaOperator(arolla.M.core._identity_with_cancel(arolla.P.x))
     x = arolla.int32(1)
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED]'):
       eval_or_bind_op(op, x)

@@ -30,7 +30,7 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
+    top_level_arolla_container=kde_internal
 )
 
 
@@ -155,13 +155,13 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
 
   def test_non_determinism(self):
     res = expr_eval.eval((
-        kde_internal.parallel.stream_chain(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_chain(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_chain(),
+        kde_internal.parallel.stream_chain(),
     ))
     self.assertNotEqual(res[0].fingerprint, res[1].fingerprint)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde_internal.parallel.stream_chain()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde_internal.parallel.stream_chain()))
 
 
 if __name__ == '__main__':

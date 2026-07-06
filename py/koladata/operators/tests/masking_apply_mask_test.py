@@ -51,7 +51,7 @@ class LogicalApplyMaskTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.masking.apply_mask,  # pyrefly: ignore[missing-attribute]
+            kde.masking.apply_mask,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -68,14 +68,14 @@ class LogicalApplyMaskTest(parameterized.TestCase):
       kd.masking.apply_mask(ds([1, 2, 3]), ds([1, None, 3]))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.masking.apply_mask(I.x, I.y)), 'I.x & I.y')  # pyrefly: ignore[missing-attribute]
-    self.assertEqual(repr(kde.apply_mask(I.x, I.y)), 'I.x & I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.masking.apply_mask(I.x, I.y)), 'I.x & I.y')
+    self.assertEqual(repr(kde.apply_mask(I.x, I.y)), 'I.x & I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.apply_mask(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.apply_mask(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.apply_mask, kde.apply_mask))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.masking.apply_mask, kde.apply_mask))
 
 
 if __name__ == '__main__':

@@ -41,7 +41,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
         'a': schema_constants.INT32,
         'b': schema_constants.FLOAT32,
     }
-    schema = expr_eval.eval(kde.schema.new_schema(**kwargs))  # pyrefly: ignore[missing-attribute]
+    schema = expr_eval.eval(kde.schema.new_schema(**kwargs))
     self.assertFalse(schema.is_mutable())
     for attr_name, val in kwargs.items():
       testing.assert_equal(
@@ -53,7 +53,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
         'a': schema_constants.INT32,
         'b': schema_constants.FLOAT32,
     }
-    expr = kde.schema.new_schema(**kwargs)  # pyrefly: ignore[missing-attribute]
+    expr = kde.schema.new_schema(**kwargs)
     with self.subTest('multiple eval'):
       schema_first_eval = expr_eval.eval(expr)
       schema_second_eval = expr_eval.eval(expr)
@@ -63,17 +63,17 @@ class KodaNewSchemaTest(parameterized.TestCase):
           schema_second_eval.get_bag().fingerprint,
       )
     with self.subTest('same expr within larger expr'):
-      res = expr_eval.eval(kde.schema.new_schema(x=expr, y=expr))  # pyrefly: ignore[missing-attribute]
+      res = expr_eval.eval(kde.schema.new_schema(x=expr, y=expr))
       testing.assert_equal(res.x, res.y)
 
     with self.subTest('new expr new fingerprint'):
-      expr_1 = kde.schema.new_schema(**kwargs)  # pyrefly: ignore[missing-attribute]
-      expr_2 = kde.schema.new_schema(**kwargs)  # pyrefly: ignore[missing-attribute]
+      expr_1 = kde.schema.new_schema(**kwargs)
+      expr_2 = kde.schema.new_schema(**kwargs)
       self.assertNotEqual(expr_1.fingerprint, expr_2.fingerprint)
 
   def test_bag_adoption(self):
-    a = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))  # pyrefly: ignore[missing-attribute]
-    b = expr_eval.eval(kde.schema.new_schema(a=a))  # pyrefly: ignore[missing-attribute]
+    a = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))
+    b = expr_eval.eval(kde.schema.new_schema(a=a))
     testing.assert_equal(
         b.a.a, ds(schema_constants.INT32).with_bag(b.get_bag())
     )
@@ -84,7 +84,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
         "kd.schema.new_schema: schema's schema must be SCHEMA, got: INT32",
     ):
       _ = expr_eval.eval(
-          kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+          kde.schema.new_schema(
               a=schema_constants.INT32,
               b=ds(1),
           )
@@ -99,18 +99,18 @@ class KodaNewSchemaTest(parameterized.TestCase):
         ),
     ):
       _ = expr_eval.eval(
-          kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+          kde.schema.new_schema(
               a=schema_constants.INT32, b=arolla.unspecified()
           )
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.new_schema()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.new_schema()))
 
   def test_repr(self):
     # This has a hidden seed which is stripped...
     self.assertEqual(
-        repr(kde.schema.new_schema(a=I.a, b=I.b)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.schema.new_schema(a=I.a, b=I.b)),
         'kd.schema.new_schema(a=I.a, b=I.b)',
     )
 

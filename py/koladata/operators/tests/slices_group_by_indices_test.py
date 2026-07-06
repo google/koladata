@@ -247,13 +247,13 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
       )
 
   def test_qtype_signatures(self):
-    signature = arolla.abc.get_operator_signature(kde.slices.group_by_indices)  # pyrefly: ignore[missing-attribute]
+    signature = arolla.abc.get_operator_signature(kde.slices.group_by_indices)
     self.assertLen(signature.parameters, 2)
     self.assertEqual(signature.parameters[0].name, 'keys')
     self.assertEqual(signature.parameters[1].name, 'sort')
 
     arolla.testing.assert_qtype_signatures(
-        kde.slices.concat,  # pyrefly: ignore[missing-attribute]
+        kde.slices.concat,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
@@ -265,11 +265,11 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.group_by_indices(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.group_by_indices(I.x)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.group_by_indices, kde.group_by_indices)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.slices.group_by_indices, kde.group_by_indices)
     )
 
 

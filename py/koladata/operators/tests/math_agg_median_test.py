@@ -167,13 +167,13 @@ class MathAggMedianTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.agg_median,  # pyrefly: ignore[missing-attribute]
+        kde.math.agg_median,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.agg_median(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.math.agg_median(I.x)))
 
 
 if __name__ == '__main__':

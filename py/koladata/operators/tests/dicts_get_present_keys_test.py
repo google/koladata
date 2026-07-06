@@ -89,7 +89,7 @@ class DictsGetPresentKeysTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.dicts.get_present_keys,  # pyrefly: ignore[missing-attribute]
+            kde.dicts.get_present_keys,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -97,16 +97,16 @@ class DictsGetPresentKeysTest(parameterized.TestCase):
 
   def test_determinism(self):
     testing.assert_equal(
-        kde.dicts.get_present_keys(I.dict_ds),  # pyrefly: ignore[missing-attribute]
-        kde.dicts.get_present_keys(I.dict_ds),  # pyrefly: ignore[missing-attribute]
+        kde.dicts.get_present_keys(I.dict_ds),
+        kde.dicts.get_present_keys(I.dict_ds),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.get_present_keys(I.dict_ds)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.get_present_keys(I.dict_ds)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.dicts.get_present_keys, kde.get_present_keys)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.dicts.get_present_keys, kde.get_present_keys)
     )
 
 

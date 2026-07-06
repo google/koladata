@@ -199,19 +199,19 @@ class FunctorFactoriesTest(parameterized.TestCase):
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
     testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, -2, 3, -4]))
 
-    fn2 = functor_factories.expr_fn(kde.call(fn, x=I.y), auto_variables=True)  # pyrefly: ignore[missing-attribute]
+    fn2 = functor_factories.expr_fn(kde.call(fn, x=I.y), auto_variables=True)
     testing.assert_equal(fn2(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn2.get_attr('_aux_0'), fn)
 
     fn3 = functor_factories.expr_fn(
-        kde.with_name(fn, 'foo')(x=I.y), auto_variables=True  # pyrefly: ignore[missing-attribute]
+        kde.with_name(fn, 'foo')(x=I.y), auto_variables=True
     )
     testing.assert_equal(fn3(y=x), ds([1, 4, 9, 16]))
     self.assertEqual(fn3.foo, fn)
 
     fn4 = functor_factories.expr_fn(
-        kde.with_name(py_boxing.as_expr(fn), 'foo')(x=I.y)  # pyrefly: ignore[missing-attribute]
-        + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        kde.with_name(py_boxing.as_expr(fn), 'foo')(x=I.y)
+        + kde.with_name(py_boxing.as_expr(1) + py_boxing.as_expr(2), 'bar'),  # pyrefly: ignore[unsupported-operation]
         auto_variables=True,
     )
     testing.assert_equal(fn4(y=x), ds([4, 7, 12, 19]))
@@ -221,7 +221,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
 
     fn5 = functor_factories.expr_fn(
-        kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),  # pyrefly: ignore[missing-attribute]
+        kde.with_name(py_boxing.as_expr(ds([[1, 2], [3]])), 'foo'),
         auto_variables=True,
     )
     testing.assert_equal(fn5().no_bag(), ds([[1, 2], [3]]))
@@ -229,7 +229,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     self.assertNotIn('_aux_0', kdi.dir(fn5))
 
     fn6 = functor_factories.expr_fn(
-        kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True  # pyrefly: ignore[missing-attribute]
+        kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
     )
     testing.assert_equal(fn6().no_bag(), ds([1, 2, 3]))
     testing.assert_equal(fn6.foo[:].no_bag(), ds([1, 2, 3]))
@@ -692,7 +692,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_fstr_fn_expr(self):
     testing.assert_equal(
         kd.call(
-            functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),  # pyrefly: ignore[missing-attribute]
+            functor_factories.fstr_fn(f'{kde.select(I.x, kdi.present):s}'),
             x=ds([1, None]),
         ),
         ds(['1', None]),
@@ -781,8 +781,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
   def test_bind_fn_variable(self):
     # Note the usage of kde.bind when we need to bind a function variable.
     f = functor_factories.expr_fn(
-        kde.call(V.bound_fn, y=I.y),  # pyrefly: ignore[missing-attribute]
-        bound_fn=kde.bind(V.z.extract(), x=0),  # pyrefly: ignore[missing-attribute]
+        kde.call(V.bound_fn, y=I.y),
+        bound_fn=kde.bind(V.z.extract(), x=0),
         z=functor_factories.expr_fn(I.x + I.y),  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(kd.call(f, y=1), ds(1))
@@ -910,7 +910,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
     testing.assert_equal(
         kd.call(
-            functor_factories.fn(I.x + kde.explode(V.y), y=fns.list([3, 4])),  # pyrefly: ignore[missing-attribute]
+            functor_factories.fn(I.x + kde.explode(V.y), y=fns.list([3, 4])),
             x=ds([1, 2]),
         ),
         ds([4, 6]),
@@ -1298,8 +1298,8 @@ class FunctorFactoriesTest(parameterized.TestCase):
     sig1 = inspect.signature(f1)
     args1, kwargs1 = functor_factories.build_forwarding_args_kwargs_exprs(sig1)
 
-    testing.assert_equal(args1, arolla.M.core.make_tuple(I.x, I.y))  # pyrefly: ignore[missing-attribute]
-    testing.assert_equal(kwargs1, arolla.M.namedtuple.make())  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(args1, arolla.M.core.make_tuple(I.x, I.y))
+    testing.assert_equal(kwargs1, arolla.M.namedtuple.make())
 
     def f2(x, *args, y, **kwargs):
       return x, args, y, kwargs
@@ -1309,11 +1309,11 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     testing.assert_equal(
         args2,
-        arolla.M.core.concat_tuples(arolla.M.core.make_tuple(I.x), I.args),  # pyrefly: ignore[missing-attribute]
+        arolla.M.core.concat_tuples(arolla.M.core.make_tuple(I.x), I.args),
     )
     testing.assert_equal(
         kwargs2,
-        arolla.M.namedtuple.union(arolla.M.namedtuple.make(y=I.y), I.kwargs),  # pyrefly: ignore[missing-attribute]
+        arolla.M.namedtuple.union(arolla.M.namedtuple.make(y=I.y), I.kwargs),
     )
 
   def test_allow_arbitrary_unused_inputs(self):
@@ -1346,7 +1346,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
 
     fn1 = functor_factories.expr_fn(
         V.y + 1,  # pyrefly: ignore[unsupported-operation]
-        y=arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        y=arolla.M.annotation.source_location(
             1 // I.x,  # pyrefly: ignore[unsupported-operation]
             arolla.namedtuple(
                 function_name='fn1',
@@ -1359,7 +1359,7 @@ class FunctorFactoriesTest(parameterized.TestCase):
     )
     fn2 = functor_factories.expr_fn(
         V.z + 1,  # pyrefly: ignore[unsupported-operation]
-        z=arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        z=arolla.M.annotation.source_location(
             fn1(x=V.y),
             arolla.namedtuple(
                 function_name='fn2',

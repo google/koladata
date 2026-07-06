@@ -86,18 +86,18 @@ class ShapesFlattenTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.flatten_end,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.flatten_end,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.flatten_end(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.shapes.flatten_end(I.x)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.shapes.flatten_end, kde.flatten_end)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.shapes.flatten_end, kde.flatten_end)
     )
 
 

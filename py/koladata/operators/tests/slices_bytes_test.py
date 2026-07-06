@@ -47,7 +47,7 @@ class SlicesBytesTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.bytes(x))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.bytes(x))
     testing.assert_equal(res, expected)
 
   def test_error(self):
@@ -55,36 +55,36 @@ class SlicesBytesTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'casting data of type INT32 to BYTES is not supported'
     ):
-      expr_eval.eval(kde.slices.bytes(x))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.bytes(x))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.bytes(b'foo'),  # pyrefly: ignore[missing-attribute]
+        kde.slices.bytes(b'foo'),
         arolla.abc.bind_op(
-            kde.slices.bytes, literal_operator.literal(ds(b'foo'))  # pyrefly: ignore[missing-attribute]
+            kde.slices.bytes, literal_operator.literal(ds(b'foo'))
         ),
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.bytes(I.x),  # pyrefly: ignore[missing-attribute]
-        arolla.abc.bind_op(kde.slices.bytes, I.x),  # pyrefly: ignore[missing-attribute]
+        kde.slices.bytes(I.x),
+        arolla.abc.bind_op(kde.slices.bytes, I.x),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.bytes,  # pyrefly: ignore[missing-attribute]
+            kde.slices.bytes,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.bytes(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.bytes(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.bytes, kde.bytes))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.bytes, kde.bytes))
 
 
 if __name__ == '__main__':

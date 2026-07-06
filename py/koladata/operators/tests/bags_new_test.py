@@ -45,7 +45,7 @@ class BagsNewTest(absltest.TestCase):
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
     testing.assert_equivalent(res_1, res_2)
 
-    expr = kde.bags.new()  # pyrefly: ignore[missing-attribute]
+    expr = kde.bags.new()
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.fingerprint, res_2.fingerprint)
@@ -53,19 +53,19 @@ class BagsNewTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.bags.new,  # pyrefly: ignore[missing-attribute]
+        kde.bags.new,
         frozenset([(qtypes.NON_DETERMINISTIC_TOKEN, qtypes.DATA_BAG)]),  # pyrefly: ignore[bad-argument-type]
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.bags.new()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.bags.new()))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.bags.new, kde.bag))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.bags.new, kde.bag))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.bags.new()), 'kd.bags.new()')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.bags.new()), 'kd.bags.new()')
 
 
 if __name__ == '__main__':

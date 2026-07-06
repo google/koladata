@@ -18,7 +18,7 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata import kd
 
-M = arolla.M | jagged_shape.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | jagged_shape.M
 
 P = arolla.P
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')

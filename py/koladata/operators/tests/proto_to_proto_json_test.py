@@ -100,7 +100,7 @@ class ProtoToProtoJsonTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.proto.to_proto_json,  # pyrefly: ignore[missing-attribute]
+            kde.proto.to_proto_json,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -108,19 +108,19 @@ class ProtoToProtoJsonTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.proto.to_proto_json(I.x, I.proto_path))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.proto.to_proto_json(I.x, I.proto_path))
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.proto.to_proto_json, kde.to_proto_json  # pyrefly: ignore[missing-attribute]
+            kde.proto.to_proto_json, kde.to_proto_json
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.proto.to_proto_json(I.x, I.proto_path)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.proto.to_proto_json(I.x, I.proto_path)),
         'kd.proto.to_proto_json(I.x, I.proto_path)',
     )
 

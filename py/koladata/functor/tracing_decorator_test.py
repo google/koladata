@@ -246,7 +246,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f.returns),
-        kd_lazy.attrs(I.x, foo=1),  # pyrefly: ignore[missing-attribute]
+        kd_lazy.attrs(I.x, foo=1),
     )
 
   def test_custom_wrapper(self):
@@ -307,7 +307,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x):  # pylint: disable=unused-argument
-      return kd_lazy.math.abs(x)  # pyrefly: ignore[missing-attribute]
+      return kd_lazy.math.abs(x)
 
     with self.assertRaisesRegex(
         ValueError, 'computation returned an Expr instead'

@@ -51,17 +51,17 @@ class ShapesRankTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.rank,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.rank,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.rank(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.shapes.rank(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.shapes.rank, kde.shapes.ndim))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.shapes.rank, kde.shapes.ndim))
 
 
 if __name__ == '__main__':

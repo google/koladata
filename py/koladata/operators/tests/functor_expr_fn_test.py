@@ -34,40 +34,40 @@ kd = eager_op_utils.operators_container('kd')
 class FunctorExprFnTest(absltest.TestCase):
 
   def test_no_variables(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(fn(x=5, y=7), ds(12))
 
   def test_alias_variable(self):
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.x + I.y)), x=ds(arolla.quote(I.y))  # pyrefly: ignore[unsupported-operation]
     ).eval()
     testing.assert_equal(fn(y=7), ds(14))
 
   def test_sub_functor(self):
-    square_fn = kde.functor.expr_fn(ds(arolla.quote(I.z * I.z)))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    square_fn = kde.functor.expr_fn(ds(arolla.quote(I.z * I.z)))  # pyrefly: ignore[unsupported-operation]
     ret_fn = ds(arolla.quote(V.square(z=I.y) + I.y))  # pyrefly: ignore[not-callable]
-    fn = kde.functor.expr_fn(ret_fn, square=square_fn).eval()  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(ret_fn, square=square_fn).eval()
     testing.assert_equal(fn(y=7), ds(7 * 7 + 7))
 
   def test_scalar_returns(self):
     ret_fn = ds(57)
-    fn = kde.functor.expr_fn(ret_fn).eval()  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(ret_fn).eval()
     testing.assert_equal(fn().with_bag(None), ds(57))
 
   def test_scalar_primitive_returns(self):
     ret_fn = 57
-    fn = kde.functor.expr_fn(ret_fn)  # pyrefly: ignore[missing-attribute]
-    res = kde.call(fn).eval()  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(ret_fn)
+    res = kde.call(fn).eval()
     testing.assert_equal(res.with_bag(None), ds(57))
 
   def test_primitive_args(self):
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.x * V.z + I.y)), x=14, z=4  # pyrefly: ignore[unsupported-operation]
     ).eval()
     testing.assert_equal(fn(y=1), ds(57))
 
   def test_missing_item_arg(self):
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.x + I.y)), x=ds(None, schema=schema_constants.INT32)  # pyrefly: ignore[unsupported-operation]
     ).eval()
     testing.assert_equal(fn(y=1), ds(None, schema=schema_constants.INT32))
@@ -78,7 +78,7 @@ class FunctorExprFnTest(absltest.TestCase):
             'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
         ),
     ])
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.x + I.y)),  # pyrefly: ignore[unsupported-operation]
         signature=signature,
         x=ds(None, schema=schema_constants.INT32),
@@ -86,7 +86,7 @@ class FunctorExprFnTest(absltest.TestCase):
     testing.assert_equal(fn(y=1), ds(None, schema=schema_constants.INT32))
 
   def test_many_variables(self):
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.z + I.a)),  # pyrefly: ignore[unsupported-operation]
         x=ds(arolla.quote(I.a)),
         y=ds(arolla.quote(V.x * V.x)),  # pyrefly: ignore[unsupported-operation]
@@ -103,7 +103,7 @@ class FunctorExprFnTest(absltest.TestCase):
             'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
         ),
     ])
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(I.x + I.y)), signature=signature  # pyrefly: ignore[unsupported-operation]
     ).eval()
     # with signature we can use positional arguments
@@ -114,7 +114,7 @@ class FunctorExprFnTest(absltest.TestCase):
   def test_auto_variables(self):
     base = I.x * I.x  # pyrefly: ignore[unsupported-operation]
     expr = (base + 1) + (base + 2)
-    fn = kde.functor.expr_fn(  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(
         ds(arolla.quote(V.a + V.b)),  # pyrefly: ignore[unsupported-operation]
         a=ds(arolla.quote(expr * 2)),
         b=ds(arolla.quote(expr * expr)),
@@ -132,7 +132,7 @@ class FunctorExprFnTest(absltest.TestCase):
     base = I.x * I.x  # pyrefly: ignore[unsupported-operation]
     expr = (base + 1) + (base + 2)
     res = ds(arolla.quote(expr))
-    fn = kde.functor.expr_fn(res, auto_variables=True).eval()  # pyrefly: ignore[missing-attribute]
+    fn = kde.functor.expr_fn(res, auto_variables=True).eval()
     testing.assert_equal(fn(x=1), ds(5))
     # Even though "base" is repeated twice, it should not be extracted as a
     # variable.
@@ -141,25 +141,25 @@ class FunctorExprFnTest(absltest.TestCase):
   def test_errors(self):
     expr = arolla.quote(I.x)
     with self.assertRaisesRegex(ValueError, 'returns must be a data item'):
-      kde.functor.expr_fn(ds([expr])).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.expr_fn(ds([expr])).eval()
     with self.assertRaisesRegex(ValueError, 'returns must be present'):
-      kde.functor.expr_fn(ds(None)).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.expr_fn(ds(None)).eval()
 
     with self.assertRaisesRegex(
         ValueError, r'variable \[x\] must be a data item'
     ):
-      kde.functor.expr_fn(ds(expr), x=ds([None])).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.expr_fn(ds(expr), x=ds([None])).eval()
     with self.assertRaisesRegex(
         ValueError, r'variable \[signature\] must be a data item'
     ):
-      kde.functor.expr_fn(ds(expr), signature=ds([]), x=ds(1)).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.expr_fn(ds(expr), signature=ds([]), x=ds(1)).eval()
 
   def test_variables_data_bag_conflict(self):
     x = kd.new(x=1)
     y = x.with_attrs(x=2)
     ret_fn = ds(arolla.quote(V.x.x + V.y.x))
     with self.assertRaisesRegex(ValueError, 'conflict'):
-      kde.functor.expr_fn(ret_fn, x=x, y=y).eval()  # pyrefly: ignore[missing-attribute]
+      kde.functor.expr_fn(ret_fn, x=x, y=y).eval()
 
 
 if __name__ == '__main__':

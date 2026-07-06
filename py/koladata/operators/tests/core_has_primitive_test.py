@@ -49,7 +49,7 @@ class KodaHasPrimitiveTest(parameterized.TestCase):
       (ds(schema_constants.INT32), present),
       # DataSlice
       (ds(['hello', None, 'world']), ds([present, missing, present])),
-      (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))), present),  # pyrefly: ignore[missing-attribute]
+      (ds(arolla.quote(kde.math.subtract(arolla.L.L1, arolla.L.L2))), present),
       # Mixed types.
       (ds(['hello', 1, 'world']), ds([present, present, present])),
       (bag().list([1, 2, 3]), missing),
@@ -69,11 +69,11 @@ class KodaHasPrimitiveTest(parameterized.TestCase):
     testing.assert_equal(kd.core.has_primitive(x), expected)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.has_primitive(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.has_primitive(I.x)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.has_primitive, kde.has_primitive)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.core.has_primitive, kde.has_primitive)
     )
 
 

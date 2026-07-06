@@ -41,7 +41,7 @@ class CoreWithTimestampTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.with_timestamp,  # pyrefly: ignore[missing-attribute]
+        kde.core.with_timestamp,
         [  # pyrefly: ignore[bad-argument-type]
             (
                 DATA_SLICE,
@@ -63,7 +63,7 @@ class CoreWithTimestampTest(parameterized.TestCase):
     )
 
   def test_eval(self):
-    expr = kde.core.with_timestamp(ds([1, 2, 3]))  # pyrefly: ignore[missing-attribute]
+    expr = kde.core.with_timestamp(ds([1, 2, 3]))
     res, timestamp = expr.eval()
     testing.assert_equal(res, ds([1, 2, 3]))
     self.assertIsInstance(timestamp, data_slice.DataSlice)
@@ -74,7 +74,7 @@ class CoreWithTimestampTest(parameterized.TestCase):
     self.assertGreater(timestamp.to_py(), later_timestamp - 5)
 
   def test_view(self):
-    expr = kde.core.with_timestamp(I.x)  # pyrefly: ignore[missing-attribute]
+    expr = kde.core.with_timestamp(I.x)
     self.assertTrue(view.has_koda_view(expr))
 
     # Tuple unpacking is supported.
@@ -86,7 +86,7 @@ class CoreWithTimestampTest(parameterized.TestCase):
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.with_timestamp, kde.with_timestamp)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.core.with_timestamp, kde.with_timestamp)
     )
 
 

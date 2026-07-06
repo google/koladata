@@ -156,23 +156,23 @@ class StringsFormatTest(parameterized.TestCase):
       (ds([None, None]), dict(f=ds(1), z=ds(b'abc')), ds([None, None])),
   )
   def test_eval(self, fmt, kwargs, expected):
-    result = expr_eval.eval(kde.strings.format(fmt, **kwargs))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.strings.format(fmt, **kwargs))
     testing.assert_equal(result, expected)
 
   def test_examples_from_docstring(self):
     testing.assert_equal(
         expr_eval.eval(
-            kde.strings.format(ds(['Hello {n}!', 'Goodbye {n}!']), n='World')  # pyrefly: ignore[missing-attribute]
+            kde.strings.format(ds(['Hello {n}!', 'Goodbye {n}!']), n='World')
         ),
         ds(['Hello World!', 'Goodbye World!']),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.strings.format('{a} + {b} = {c}', a=1, b=2, c=3)),  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde.strings.format('{a} + {b} = {c}', a=1, b=2, c=3)),
         ds('1 + 2 = 3'),
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde.strings.format(  # pyrefly: ignore[missing-attribute]
+            kde.strings.format(
                 '{a} + {b} = {c}', a=ds([1, 2]), b=ds([2, 3]), c=ds([3, 5])
             )
         ),
@@ -180,7 +180,7 @@ class StringsFormatTest(parameterized.TestCase):
     )
     testing.assert_equal(
         expr_eval.eval(
-            kde.strings.format(  # pyrefly: ignore[missing-attribute]
+            kde.strings.format(
                 '({a:03} + {b:e}) * {c:.2f} ='
                 ' {a:02d} * {c:3d} + {b:07.3f} * {c:08.4f}',
                 a=5,
@@ -199,36 +199,36 @@ class StringsFormatTest(parameterized.TestCase):
             ' got *args: (BYTES)'
         ),
     ):
-      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(b'foo')))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(b'foo')))
 
   def test_unsupported_types_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.strings.format: cannot format argument `v` of type ITEMID',
     ):
-      expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))
     with self.assertRaisesRegex(
         ValueError,
         'kd.strings.format: cannot format argument `v` of type OBJECT'
         ' containing non-primitive values',
     ):
       expr_eval.eval(
-          kde.strings.format(  # pyrefly: ignore[missing-attribute]
-              ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.OBJECT)  # pyrefly: ignore[missing-attribute]
+          kde.strings.format(
+              ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.OBJECT)
           )
       )
     with self.assertRaisesRegex(
         ValueError,
         'kd.strings.format: cannot format argument `v` of type MASK',
     ):
-      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))
 
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
         ValueError,
         "kd.strings.format: argument name 'v' is not found",
     ):
-      expr_eval.eval(kde.strings.format(ds('{v}')))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds('{v}')))
 
   def test_wrong_schema_empty_format_input_error(self):
     with self.assertRaisesRegex(
@@ -236,7 +236,7 @@ class StringsFormatTest(parameterized.TestCase):
         'kd.strings.format: argument `fmt` must be a slice of either STRING or'
         ' BYTES, got a slice of INT64',
     ):
-      expr_eval.eval(kde.strings.format(ds(None, schema_constants.INT64)))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds(None, schema_constants.INT64)))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
@@ -244,19 +244,19 @@ class StringsFormatTest(parameterized.TestCase):
         'kd.strings.format: cannot format argument `v` of type OBJECT'
         ' containing INT32 and STRING values',
     ):
-      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.format('{x}', x=I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.format('{x}', x=I.x)))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.strings.format(I.fmt, a=I.a)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.strings.format(I.fmt, a=I.a)),
         'kd.strings.format(I.fmt, a=I.a)',
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.strings.format, kde.format))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.strings.format, kde.format))
 
 
 if __name__ == '__main__':

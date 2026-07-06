@@ -61,7 +61,7 @@ class BitwiseCountTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.bitwise.count,  # pyrefly: ignore[missing-attribute]
+            kde.bitwise.count,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -69,15 +69,15 @@ class BitwiseCountTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.bitwise.count(I.x)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.bitwise.count(I.x)),
         'kd.bitwise.count(I.x)',
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.bitwise.count, kde.bitwise_count))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.bitwise.count, kde.bitwise_count))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.bitwise.count(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.bitwise.count(I.x)))
 
 
 if __name__ == '__main__':

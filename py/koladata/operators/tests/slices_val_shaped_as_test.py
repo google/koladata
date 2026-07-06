@@ -77,14 +77,14 @@ class SlicesValShapedAsTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.val_shaped_as,  # pyrefly: ignore[missing-attribute]
+            kde.slices.val_shaped_as,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.val_shaped_as(I.x, I.val)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.val_shaped_as(I.x, I.val)))
 
 
 if __name__ == '__main__':

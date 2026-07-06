@@ -29,14 +29,14 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
-        kde_internal.parallel.as_future,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.as_future,
         I.x,
     )
-    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)  # pyrefly: ignore[missing-attribute]
-    expr = kde_internal.parallel.get_future_value_for_testing(expr)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
+    expr = kde_internal.parallel.get_future_value_for_testing(expr)
     testing.assert_equal(
         expr_eval.eval(expr, x=arolla.int32(10)), arolla.int32(10)
     )
@@ -44,58 +44,58 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
   def test_error_in_future(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')  # pyrefly: ignore[missing-attribute]
+      return kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
 
     @optools.as_lambda_operator('my_outer_op')
     def my_outer_op(executor, x):
-      return kde_internal.parallel.async_eval(executor, my_op, x)  # pyrefly: ignore[missing-attribute]
+      return kde_internal.parallel.async_eval(executor, my_op, x)
 
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
         my_outer_op,
         executor,
         I.x,
     )
-    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
     res = expr_eval.eval(expr, x=10)
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
 
   def test_error_making_future(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return kde_internal.parallel.as_future(  # pyrefly: ignore[missing-attribute]
-          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')  # pyrefly: ignore[missing-attribute]
+      return kde_internal.parallel.as_future(
+          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
       )
 
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_future = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_future = kde_internal.parallel.async_eval(
         executor,
         my_op,
         I.x,
     )
-    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_future(future_to_future)
     res = expr_eval.eval(expr, x=10)
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res)
       )
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     future_future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(future_int32_qtype)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_future_qtype(future_int32_qtype)
     )
     future_future_future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(future_future_int32_qtype)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_future_qtype(future_future_int32_qtype)
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.unwrap_future_to_future,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.unwrap_future_to_future,
         [
             (future_future_int32_qtype, future_int32_qtype),
             (future_future_future_int32_qtype, future_future_int32_qtype),
@@ -110,7 +110,7 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.unwrap_future_to_future(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.unwrap_future_to_future(I.x))
     )
 
 

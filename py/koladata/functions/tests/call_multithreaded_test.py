@@ -110,7 +110,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
-        returns=kde.tuples.get_nth(I.x, 1),  # pyrefly: ignore[missing-attribute]
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -121,7 +121,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_var_keyword(self):
     fn = functor_factories.expr_fn(
-        returns=arolla.M.namedtuple.get_field(I.x, 'y'),  # pyrefly: ignore[missing-attribute]
+        returns=arolla.M.namedtuple.get_field(I.x, 'y'),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_KEYWORD
@@ -177,7 +177,7 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(fn, fns.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
         parallel.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))),
         ds(2),
@@ -206,7 +206,7 @@ class CallMultithreadedTest(absltest.TestCase):
     fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
     testing.assert_equal(
         parallel.call_multithreaded(
-            functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),  # pyrefly: ignore[missing-attribute]
+            functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),
             func=fn,
             u=2,
             v=3,
@@ -219,7 +219,7 @@ class CallMultithreadedTest(absltest.TestCase):
     testing.assert_equal(
         parallel.call_multithreaded(
             functor_factories.expr_fn(
-                kde.functor.call(I.my_functors.fn, x=I.u, y=I.v)  # pyrefly: ignore[missing-attribute]
+                kde.functor.call(I.my_functors.fn, x=I.u, y=I.v)
             ),
             my_functors=fns.new(fn=fn),
             u=2,
@@ -314,7 +314,7 @@ class CallMultithreadedTest(absltest.TestCase):
       )
 
   def test_iterable_return_value(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x))  # pyrefly: ignore[missing-attribute]
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x))
     # TODO: Make this error mention yield_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
@@ -324,12 +324,12 @@ class CallMultithreadedTest(absltest.TestCase):
       _ = parallel.call_multithreaded(
           fn,
           x=1,
-          return_type_as=kde.iterables.make().eval(),  # pyrefly: ignore[missing-attribute]
+          return_type_as=kde.iterables.make().eval(),
       )
 
   def test_structured_return_value(self):
     fn = functor_factories.expr_fn(
-        kde.tuples.tuple(I.x, kde.tuples.namedtuple(y=I.y, z=I.z))  # pyrefly: ignore[missing-attribute]
+        kde.tuples.tuple(I.x, kde.tuples.namedtuple(y=I.y, z=I.z))
     )
     res = parallel.call_multithreaded(
         fn,

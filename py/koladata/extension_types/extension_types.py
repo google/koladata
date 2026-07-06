@@ -34,7 +34,7 @@ from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
-M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M | objects.M
 
 _VIRTUAL_METHOD_ATTR = '_kd_extension_type_virtual_method'
 _OVERRIDE_METHOD_ATTR = '_kd_extension_type_override_method'
@@ -637,7 +637,7 @@ def extension_type(
     class_meta = _get_class_meta(original_class)
 
     # QType definitions.
-    extension_qtype = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
+    extension_qtype = M.derived_qtype.get_labeled_qtype(
         extension_type_registry.BASE_QTYPE, class_meta.fully_qualified_name
     ).qvalue
     extension_type_registry.register_extension_type(

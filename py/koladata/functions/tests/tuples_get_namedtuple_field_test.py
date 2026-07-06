@@ -28,11 +28,11 @@ ds = data_slice.DataSlice.from_vals
 class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (kde.namedtuple(a=0, b=1).eval(), 'a', ds(0)),  # pyrefly: ignore[missing-attribute]
-      (kde.namedtuple(a=0, b=1).eval(), 'b', ds(1)),  # pyrefly: ignore[missing-attribute]
-      (kde.namedtuple(a=0, b=1).eval(), ds('a'), ds(0)),  # pyrefly: ignore[missing-attribute]
+      (kde.namedtuple(a=0, b=1).eval(), 'a', ds(0)),
+      (kde.namedtuple(a=0, b=1).eval(), 'b', ds(1)),
+      (kde.namedtuple(a=0, b=1).eval(), ds('a'), ds(0)),
       (
-          kde.namedtuple(a=0, b=arolla.text('a')).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.namedtuple(a=0, b=arolla.text('a')).eval(),
           ds('b'),
           arolla.text('a'),
       ),
@@ -48,7 +48,7 @@ class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
         TypeError,
         re.escape(f'expected a value convertible to a str, got: {field_name}'),
     ):
-      fns.tuples.get_namedtuple_field(kde.namedtuple(a=0).eval(), field_name)  # pyrefly: ignore[missing-attribute]
+      fns.tuples.get_namedtuple_field(kde.namedtuple(a=0).eval(), field_name)
 
   def test_not_namedtuple_error(self):
     with self.assertRaisesRegex(
@@ -60,7 +60,7 @@ class TuplesGetNamedtupleFieldTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         KeyError, re.escape('`b` is not found in `namedtuple<a=DATA_SLICE>')
     ):
-      fns.tuples.get_namedtuple_field(kde.namedtuple(a=0).eval(), 'b')  # pyrefly: ignore[missing-attribute]
+      fns.tuples.get_namedtuple_field(kde.namedtuple(a=0).eval(), 'b')
 
 
 if __name__ == '__main__':

@@ -202,7 +202,7 @@ class MathCumMinTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.cum_min,  # pyrefly: ignore[missing-attribute]
+            kde.math.cum_min,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -210,14 +210,14 @@ class MathCumMinTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.cum_min(I.x)), 'kd.math.cum_min(I.x, unspecified)'  # pyrefly: ignore[missing-attribute]
+        repr(kde.math.cum_min(I.x)), 'kd.math.cum_min(I.x, unspecified)'
     )
     self.assertEqual(
-        repr(kde.math.cum_min(I.x, I.ndim)), 'kd.math.cum_min(I.x, I.ndim)'  # pyrefly: ignore[missing-attribute]
+        repr(kde.math.cum_min(I.x, I.ndim)), 'kd.math.cum_min(I.x, I.ndim)'
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.cum_min(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.math.cum_min(I.x)))
 
 
 if __name__ == '__main__':

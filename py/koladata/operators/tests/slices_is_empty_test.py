@@ -55,20 +55,20 @@ class SlicesIsEmptyTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.has_attr,  # pyrefly: ignore[missing-attribute]
+            kde.core.has_attr,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.slices.is_empty(I.x)), 'kd.slices.is_empty(I.x)')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.slices.is_empty(I.x)), 'kd.slices.is_empty(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.is_empty(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.is_empty(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.is_empty, kde.is_empty))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.is_empty, kde.is_empty))
 
 if __name__ == '__main__':
   absltest.main()

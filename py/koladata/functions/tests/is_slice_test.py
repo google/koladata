@@ -36,7 +36,7 @@ class IsSliceTest(parameterized.TestCase):
       (fns.list(),),
       (fns.dict(),),
       (ds(schema_constants.ITEMID),),
-      (ds(arolla.quote(arolla.M.math.add(arolla.L.L1, arolla.L.L2))),),  # pyrefly: ignore[missing-attribute]
+      (ds(arolla.quote(arolla.M.math.add(arolla.L.L1, arolla.L.L2))),),
       (ds([1]),),
       (ds([1, 2, 3]),),
       (ds([fns.obj(), fns.obj(), 1]),),

@@ -65,31 +65,31 @@ from_py = py_conversions.from_py
 
 
 def _get_child_list_item_id(parent_itemid, **kwargs):
-  child_itemid = kde.uuid(  # pyrefly: ignore[missing-attribute]
+  child_itemid = kde.uuid(
       '__from_py_child__',
       parent=parent_itemid,
       **kwargs,
   ).eval()
-  return kde.uuid_for_list(  # pyrefly: ignore[missing-attribute]
+  return kde.uuid_for_list(
       '',
       base_itemid=child_itemid,
   ).eval()
 
 
 def _get_child_dict_item_id(parent_itemid, **kwargs):
-  child_itemid = kde.uuid(  # pyrefly: ignore[missing-attribute]
+  child_itemid = kde.uuid(
       '__from_py_child__',
       parent=parent_itemid,
       **kwargs,
   ).eval()
-  return kde.uuid_for_dict(  # pyrefly: ignore[missing-attribute]
+  return kde.uuid_for_dict(
       '',
       base_itemid=child_itemid,
   ).eval()
 
 
 def _get_child_entity_item_id(parent_itemid, **kwargs):
-  return kde.uuid(  # pyrefly: ignore[missing-attribute]
+  return kde.uuid(
       '__from_py_child__',
       parent=parent_itemid,
       **kwargs,
@@ -111,15 +111,15 @@ def _get_recursive_list(exponential=True):
 
 
 def _get_deep_list_schema():
-  schema = kde.list_schema(schema_constants.OBJECT).eval()  # pyrefly: ignore[missing-attribute]
+  schema = kde.list_schema(schema_constants.OBJECT).eval()
   for _ in range(3):
-    schema = kde.list_schema(schema).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(schema).eval()
   return schema
 
 
 def _get_recursive_list_schema():
-  list_schema = kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
-  top_list_schema = kde.list_schema(list_schema).eval()  # pyrefly: ignore[missing-attribute]
+  list_schema = kde.list_schema(schema_constants.INT32).eval()
+  top_list_schema = kde.list_schema(list_schema).eval()
   top_list_schema = top_list_schema.with_attrs(
       __items__=list_schema.with_attrs(__items__=top_list_schema)
   )
@@ -157,19 +157,19 @@ def _get_recursive_obj():
 
 
 def _get_deep_dict_schema():
-  schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+  schema = kde.dict_schema(
       schema_constants.STRING, schema_constants.OBJECT
   ).eval()
   for _ in range(3):
-    schema = kde.dict_schema(schema_constants.STRING, schema).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.dict_schema(schema_constants.STRING, schema).eval()
   return schema
 
 
 def _get_recursive_dict_schema():
-  dict_schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+  dict_schema = kde.dict_schema(
       schema_constants.STRING, schema_constants.INT32
   ).eval()
-  top_dict_schema = kde.dict_schema(schema_constants.STRING, dict_schema).eval()  # pyrefly: ignore[missing-attribute]
+  top_dict_schema = kde.dict_schema(schema_constants.STRING, dict_schema).eval()
   top_dict_schema = top_dict_schema.with_attrs(
       __values__=dict_schema.with_attrs(__values__=top_dict_schema)
   )
@@ -177,20 +177,20 @@ def _get_recursive_dict_schema():
 
 
 def _get_deep_obj_schema():
-  schema = kde.uu_schema(  # pyrefly: ignore[missing-attribute]
+  schema = kde.uu_schema(
       a=schema_constants.INT32, cycle=schema_constants.OBJECT
   ).eval()
   for i in range(3):
-    schema = kde.uu_schema(**{f'd{i}': schema}).eval()  # pyrefly: ignore[missing-attribute]
-  schema = kde.uu_schema(top=schema).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.uu_schema(**{f'd{i}': schema}).eval()
+  schema = kde.uu_schema(top=schema).eval()
   return schema
 
 
 def _get_recursive_obj_schema():
-  return kde.named_schema(  # pyrefly: ignore[missing-attribute]
+  return kde.named_schema(
       'TreeNode',
       value=schema_constants.STRING,
-      children=kde.list_schema(kde.named_schema('TreeNode').eval()).eval(),  # pyrefly: ignore[missing-attribute]
+      children=kde.list_schema(kde.named_schema('TreeNode').eval()).eval(),
   ).eval()
 
 
@@ -222,17 +222,17 @@ def _get_sparse_py_object():
 
 
 def get_sparse_kd_object():
-  schema_a = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+  schema_a = kde.schema.new_schema(
       x=schema_constants.FLOAT32,
-      y=kde.list_schema(schema_constants.STRING).eval(),  # pyrefly: ignore[missing-attribute]
+      y=kde.list_schema(schema_constants.STRING).eval(),
   ).eval()
-  schema_b = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-      a_list=kde.list_schema(schema_a).eval(),  # pyrefly: ignore[missing-attribute]
-      a_dict=kde.dict_schema(schema_constants.STRING, schema_a).eval(),  # pyrefly: ignore[missing-attribute]
+  schema_b = kde.schema.new_schema(
+      a_list=kde.list_schema(schema_a).eval(),
+      a_dict=kde.dict_schema(schema_constants.STRING, schema_a).eval(),
       a_obj=schema_a,
   ).eval()
-  schema_c = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-      b=kde.list_schema(schema_b).eval(),  # pyrefly: ignore[missing-attribute]
+  schema_c = kde.schema.new_schema(
+      b=kde.list_schema(schema_b).eval(),
   ).eval()
   kd_a1 = schema_a.new(x=1.0, y=fns.list(['a', 'b', None]))
   kd_a2 = schema_a.new(x=2.0)
@@ -280,11 +280,11 @@ def _create_obj_like_proto():
 
 
 def _get_schema_like_proto():
-  return kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+  return kde.schema.new_schema(
       some_text=schema_constants.STRING,
       some_float=schema_constants.FLOAT32,
-      message_b_list=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-          kde.schema.new_schema(text=schema_constants.STRING)  # pyrefly: ignore[missing-attribute]
+      message_b_list=kde.list_schema(
+          kde.schema.new_schema(text=schema_constants.STRING)
       ).eval(),
   ).eval()
 
@@ -488,14 +488,14 @@ class FromPyTest(parameterized.TestCase):
     # Python list items can be various Python / Koda objects that are normalized
     # to Koda Items.
     l = from_py(
-        [1, 2, 3], schema=kde.list_schema(schema_constants.FLOAT32).eval()  # pyrefly: ignore[missing-attribute]
+        [1, 2, 3], schema=kde.list_schema(schema_constants.FLOAT32).eval()
     )
     testing.assert_allclose(l[:].no_bag(), ds([1.0, 2.0, 3.0]))
 
     l = from_py(
         [[1, 2], [ds(42, schema_constants.INT64)]],
-        schema=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-            kde.list_schema(schema_constants.FLOAT64)  # pyrefly: ignore[missing-attribute]
+        schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT64)
         ).eval(),
     )
     testing.assert_allclose(
@@ -503,14 +503,14 @@ class FromPyTest(parameterized.TestCase):
     )
 
     l = from_py(
-        [1, 3.14], schema=kde.list_schema(schema_constants.OBJECT).eval()  # pyrefly: ignore[missing-attribute]
+        [1, 3.14], schema=kde.list_schema(schema_constants.OBJECT).eval()
     )
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
     l = from_py(
         [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}],
-        schema=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-            kde.dict_schema(schema_constants.STRING, schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+        schema=kde.list_schema(
+            kde.dict_schema(schema_constants.STRING, schema_constants.INT32)
         ).eval(),
     )
     testing.assert_equal(
@@ -530,7 +530,7 @@ class FromPyTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'schema mismatch'):
       from_py(
           [[1], 2, 3],
-          schema=kde.list_schema(schema_constants.INT32).eval(),  # pyrefly: ignore[missing-attribute]
+          schema=kde.list_schema(schema_constants.INT32).eval(),
           from_dim=1,
       )
 
@@ -538,7 +538,7 @@ class FromPyTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'schema mismatch'):
       from_py(
           [{'a': 1}, 2, 3],
-          schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          schema=kde.dict_schema(
               schema_constants.INT32, schema_constants.INT32
           ).eval(),
           from_dim=1,
@@ -578,7 +578,7 @@ class FromPyTest(parameterized.TestCase):
 
     d = from_py(
         {ds('a'): {2: 3}, 'b': 3.14},
-        schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+        schema=kde.dict_schema(
             schema_constants.OBJECT, schema_constants.OBJECT
         ).eval(),
     )
@@ -600,8 +600,8 @@ class FromPyTest(parameterized.TestCase):
     # that are normalized to Koda Items.
     d = from_py(
         {ds('a'): [1, 2], 'b': [42]},
-        schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
-            schema_constants.STRING, kde.list_schema(schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+        schema=kde.dict_schema(
+            schema_constants.STRING, kde.list_schema(schema_constants.INT32)
         ).eval(),
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
@@ -609,7 +609,7 @@ class FromPyTest(parameterized.TestCase):
 
     d = from_py(
         {ds('a'): 1, 'b': 3.14},
-        schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+        schema=kde.dict_schema(
             schema_constants.STRING, schema_constants.OBJECT
         ).eval(),
     )
@@ -636,7 +636,7 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(item, fns.float64(0.1))
 
     float_list = from_py(
-        [0.1], schema=kde.list_schema(schema_constants.FLOAT64).eval()  # pyrefly: ignore[missing-attribute]
+        [0.1], schema=kde.list_schema(schema_constants.FLOAT64).eval()
     )
     testing.assert_equal(float_list[:].no_bag(), fns.float64([0.1]))
 
@@ -748,8 +748,8 @@ assigned schema: INT32"""),
     )
 
   def test_empty_list_of_lists_with_schema(self):
-    schema1 = kde.list_schema(schema_constants.FLOAT64).eval()  # pyrefly: ignore[missing-attribute]
-    schema2 = kde.list_schema(schema1).eval()  # pyrefly: ignore[missing-attribute]
+    schema1 = kde.list_schema(schema_constants.FLOAT64).eval()
+    schema2 = kde.list_schema(schema1).eval()
     l0 = from_py([], schema=schema2)
     testing.assert_equal(
         l0[:],
@@ -757,11 +757,11 @@ assigned schema: INT32"""),
     )
 
   def test_empty_dict_of_dicts_with_schema(self):
-    schema1 = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+    schema1 = kde.dict_schema(
         key_schema=schema_constants.STRING,
         value_schema=schema_constants.FLOAT64,
     ).eval()
-    schema2 = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+    schema2 = kde.dict_schema(
         key_schema=schema_constants.STRING, value_schema=schema1
     ).eval()
     d = from_py({}, schema=schema2)
@@ -775,8 +775,8 @@ assigned schema: INT32"""),
 
     l0 = from_py(
         input_list,
-        schema=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-            kde.list_schema(schema_constants.FLOAT64)  # pyrefly: ignore[missing-attribute]
+        schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT64)
         ).eval(),
         from_dim=0,
     )
@@ -799,7 +799,7 @@ assigned schema: INT32"""),
 
     l1 = from_py(
         input_list,
-        schema=kde.list_schema(schema_constants.FLOAT32).eval(),  # pyrefly: ignore[missing-attribute]
+        schema=kde.list_schema(schema_constants.FLOAT32).eval(),
         from_dim=1,
     )
     self.assertEqual(l1.get_ndim(), 1)
@@ -865,8 +865,8 @@ assigned schema: INT32"""),
     ):
       _ = from_py([], from_dim=2)
 
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
     ).eval()
     with self.assertRaisesRegex(
         ValueError,
@@ -886,8 +886,8 @@ assigned schema: INT32"""),
     item = from_py(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
 
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
     ).eval()
     item = from_py(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
@@ -896,8 +896,8 @@ assigned schema: INT32"""),
   def test_empty_slice(self):
     res = from_py([], from_dim=1, schema=schema_constants.FLOAT32)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
     ).eval()
     res = from_py([], from_dim=1, schema=schema)
     testing.assert_equal(res.no_bag(), ds([], schema.no_bag()))
@@ -934,14 +934,14 @@ assigned schema: INT32"""),
     testing.assert_equal(item, entity)
 
   def test_dict_as_obj_if_schema_provided(self):
-    schema = kde.named_schema('foo', a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
     d = from_py({'a': 2}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
     testing.assert_equal(d.a, ds(2).with_bag(d.get_bag()))
 
   def test_dict_as_obj_if_schema_provided_with_nested_object(self):
-    schema = kde.named_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.named_schema(
         'foo', a=schema_constants.INT32, b=schema_constants.OBJECT
     ).eval()
     d = from_py({'a': 2, 'b': {'x': 'abc'}}, schema=schema)
@@ -954,8 +954,8 @@ assigned schema: INT32"""),
       a: int
 
     with self.subTest('list of dicts as objects'):
-      schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-          kde.named_schema('foo', a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+      schema = kde.list_schema(
+          kde.named_schema('foo', a=schema_constants.INT32)
       ).eval()
       d = from_py(
           [None, {'a': 2}, None, {'a': 3}], schema=schema, dict_as_obj=True
@@ -984,8 +984,8 @@ assigned schema: INT32"""),
     with self.subTest('list of dataclasses'):
       ds1 = TestClass(a=2)
       ds2 = TestClass(a=3)
-      schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-          kde.named_schema('foo', a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+      schema = kde.list_schema(
+          kde.named_schema('foo', a=schema_constants.INT32)
       ).eval()
       d = from_py([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
@@ -993,8 +993,8 @@ assigned schema: INT32"""),
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
 
     with self.subTest('entities mixed with dataclasses'):
-      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
-      schema = kde.list_schema(entity_schema).eval()  # pyrefly: ignore[missing-attribute]
+      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
+      schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       obj = TestClass(a=3)
       # This works because we can get attributes of both obj and entity.
@@ -1011,8 +1011,8 @@ assigned schema: INT32"""),
         _ = from_py([entity, obj], schema=schema, dict_as_obj=True)
 
     with self.subTest('entities mixed with dicts'):
-      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
-      schema = kde.list_schema(entity_schema).eval()  # pyrefly: ignore[missing-attribute]
+      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
+      schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       d = {'a': 3}
       with self.assertRaisesRegex(
@@ -1048,8 +1048,8 @@ assigned schema: INT32"""),
         schema=None,
     )
 
-    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()  # pyrefly: ignore[missing-attribute]
-    expected_schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()
+    expected_schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=expected_b_schema,
         c=schema_constants.BYTES,
@@ -1108,13 +1108,13 @@ assigned schema: INT32"""),
         dict_as_obj=True,
         schema=None,
     )
-    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()  # pyrefly: ignore[missing-attribute]
-    expected_schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()
+    expected_schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=expected_b_schema,
         c=schema_constants.BYTES,
     ).eval()
-    expected_schema = kde.schema.list_schema(expected_schema).eval()  # pyrefly: ignore[missing-attribute]
+    expected_schema = kde.schema.list_schema(expected_schema).eval()
 
     # Becomes not an OBJECT schema in case of None schema.
     testing.assert_equivalent(obj.get_schema(), expected_schema)
@@ -1134,9 +1134,9 @@ assigned schema: INT32"""),
     testing.assert_equal(second_obj.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_schema(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=kde.schema.new_schema(x=schema_constants.STRING),  # pyrefly: ignore[missing-attribute]
+        b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     ).eval()
     entity = from_py(
@@ -1153,12 +1153,12 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_schema_and_different_keys_values(self):
-    entity_schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    entity_schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=kde.schema.new_schema(x=schema_constants.STRING),  # pyrefly: ignore[missing-attribute]
+        b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
     ).eval()
-    schema = kde.schema.list_schema(entity_schema).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.list_schema(entity_schema).eval()
     entity = from_py(
         [
             {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
@@ -1187,7 +1187,7 @@ assigned schema: INT32"""),
     testing.assert_equal(second_entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_nested_object(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.INT64,
         b=schema_constants.OBJECT,
         c=schema_constants.BYTES,
@@ -1206,7 +1206,7 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_incomplete_schema(self):
-    schema = kde.schema.new_schema(b=schema_constants.OBJECT).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(b=schema_constants.OBJECT).eval()
     entity = from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
         dict_as_obj=True,
@@ -1222,7 +1222,7 @@ assigned schema: INT32"""),
     )
 
   def test_dict_as_obj_entity_empty_schema(self):
-    schema = kde.schema.new_schema().eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema().eval()
     entity = from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')},
         dict_as_obj=True,
@@ -1239,9 +1239,9 @@ assigned schema: INT32"""),
     )
 
   def test_dict_as_obj_entity_incompatible_schema(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.INT64,
-        b=kde.schema.new_schema(x=schema_constants.FLOAT32),  # pyrefly: ignore[missing-attribute]
+        b=kde.schema.new_schema(x=schema_constants.FLOAT32),
         c=schema_constants.FLOAT32,
     ).eval()
     error_msg = "schema for attribute 'x' is incompatible"
@@ -1261,7 +1261,7 @@ assigned schema: INT32"""),
     entity = from_py(
         {ds('a', schema_constants.OBJECT): 42},
         dict_as_obj=True,
-        schema=kde.schema.new_schema(a=schema_constants.INT32).eval(),  # pyrefly: ignore[missing-attribute]
+        schema=kde.schema.new_schema(a=schema_constants.INT32).eval(),
     )
     self.assertCountEqual(attrs.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
@@ -1284,8 +1284,8 @@ assigned schema: INT32"""),
   def test_dict_as_obj_with_dict_schema(self):
     # Python dictionary keys and values can be various Python / Koda objects
     # that are normalized to Koda Items.
-    schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
-        schema_constants.STRING, kde.list_schema(schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kde.dict_schema(
+        schema_constants.STRING, kde.list_schema(schema_constants.INT32)
     ).eval()
     d = from_py(
         {ds('a'): [1, 2], 'b': [42]},
@@ -1299,7 +1299,7 @@ assigned schema: INT32"""),
 
   def test_incompatible_schema(self):
     entity = fns.new(x=1)
-    schema = kde.schema.new_schema(x=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(x=schema_constants.INT32).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""the schema is incompatible:
@@ -1311,8 +1311,8 @@ assigned schema: ENTITY(x=INT32)"""),
   def test_dataclasses_auto_schema(self):
     obj = from_py(TestKlass(42, NestedKlass('abc'), b'xyz'), schema=None)
 
-    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()  # pyrefly: ignore[missing-attribute]
-    expected_schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    expected_b_schema = kde.schema.new_schema(x=schema_constants.STRING).eval()
+    expected_schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=expected_b_schema,
         c=schema_constants.BYTES,
@@ -1360,8 +1360,8 @@ assigned schema: ENTITY(x=INT32)"""),
       ),
       (
           'with_schema',
-          kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-              a=kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+          kde.schema.new_schema(
+              a=kde.schema.new_schema(
                   x=schema_constants.INT32, y=schema_constants.FLOAT32
               ),
               b=schema_constants.INT32,
@@ -1387,12 +1387,12 @@ assigned schema: ENTITY(x=INT32)"""),
       c: bytes
       d: list[int]
 
-    list_schema1 = kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
-    list_schema2 = kde.list_schema(list_schema1).eval()  # pyrefly: ignore[missing-attribute]
+    list_schema1 = kde.list_schema(schema_constants.INT32).eval()
+    list_schema2 = kde.list_schema(list_schema1).eval()
 
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=kde.schema.new_schema(x=schema_constants.STRING),  # pyrefly: ignore[missing-attribute]
+        b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
         d=list_schema2,
     ).eval()
@@ -1411,7 +1411,7 @@ assigned schema: ENTITY(x=INT32)"""),
     )
 
   def test_dataclasses_with_incomplete_schema(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
     ).eval()
     entity = from_py(TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema)
@@ -1420,7 +1420,7 @@ assigned schema: ENTITY(x=INT32)"""),
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
 
   def test_dataclasses_with_incomplete_schema_wrong_type(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
     ).eval()
     with self.assertRaisesRegex(
@@ -1444,8 +1444,8 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
     obj = from_py(Test([1, 2, 3]), schema=None)
 
-    expected_schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-        l=kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    expected_schema = kde.schema.new_schema(
+        l=kde.list_schema(schema_constants.INT32).eval()
     ).eval()
     testing.assert_equivalent(obj.get_schema(), expected_schema)
     testing.assert_equal(obj.l[:].no_bag(), ds([1, 2, 3]))
@@ -1455,8 +1455,8 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     class Test:
       koda: data_slice.DataSlice
 
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
-        koda=kde.schema.new_schema(x=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
+        koda=kde.schema.new_schema(x=schema_constants.INT32)
     ).eval()
     entity = from_py(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
@@ -1606,11 +1606,11 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       ('object_schema', schema_constants.OBJECT),
       (
           'with_schema',
-          kde.list_schema(_get_schema_like_proto()).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(_get_schema_like_proto()).eval(),
       ),
       (
           'with_schema_from_proto',
-          kde.list_schema(  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(
               proto_conversions.schema_from_proto(test_pb2.MessageA)
           ).eval(),
       ),
@@ -1650,7 +1650,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     )
 
   def test_list_of_different_protos_with_superset_schema(self):
-    schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(
         proto_conversions.schema_from_proto(test_pb2.MessageA2)
     ).eval()
 
@@ -1673,7 +1673,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       _ = from_py([proto1, proto2], schema=schema)
 
   def test_sparse_list_of_protos_with_schema(self):
-    schema = kde.list_schema(_get_schema_like_proto()).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(_get_schema_like_proto()).eval()
     x = from_py([_create_test_proto(), None], schema=schema)
     testing.assert_equivalent(x[:].some_text, ds(['thing 1', None]))
     x = from_py([None, _create_test_proto()], schema=schema)
@@ -1701,14 +1701,14 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       ('object_schema', schema_constants.OBJECT),
       (
           'with_schema',
-          kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          kde.dict_schema(
               schema_constants.STRING,
               _get_schema_like_proto(),
           ).eval(),
       ),
       (
           'with_schema_from_proto',
-          kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          kde.dict_schema(
               schema_constants.STRING,
               proto_conversions.schema_from_proto(test_pb2.MessageA),
           ).eval(),
@@ -1741,14 +1741,14 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       ('object_schema', schema_constants.OBJECT),
       (
           'with_schema',
-          kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+          kde.schema.new_schema(
               a=_get_schema_like_proto(),
               b=_get_schema_like_proto(),
           ).eval(),
       ),
       (
           'with_schema_from_proto',
-          kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+          kde.schema.new_schema(
               a=proto_conversions.schema_from_proto(test_pb2.MessageA),
               b=proto_conversions.schema_from_proto(test_pb2.MessageA),
           ).eval(),
@@ -1772,7 +1772,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     )
 
   def test_protos_cannot_be_mixed_with_other_types_with_schema(self):
-    schema = kde.list_schema(_get_schema_like_proto()).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(_get_schema_like_proto()).eval()
     with self.assertRaisesRegex(
         ValueError,
         r'message cast from python to C.. failed, got type LikeProtoClass',
@@ -1791,38 +1791,38 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
   def test_item_id(self):
     with self.subTest('list'):
-      l1 = from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())  # pyrefly: ignore[missing-attribute]
-      l2 = from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())  # pyrefly: ignore[missing-attribute]
+      l1 = from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
+      l2 = from_py([1, 2, 3], itemid=kde.uuid_for_list('1').eval())
       testing.assert_equivalent(l1, l2)
       testing.assert_equal(
-          l1.no_bag().get_itemid(), kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+          l1.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
       l3 = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       l4 = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       testing.assert_equivalent(l3, l4)
       testing.assert_equal(
-          l3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+          l3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
       self.assertNotEqual(l3[:].S[0].fingerprint, l3[:].S[1].fingerprint)
 
       l5 = from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
-          itemid=kde.uuid_for_list(a=ds('1')).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
       l6 = from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
-          itemid=kde.uuid_for_list(a=ds('1')).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
       )
       testing.assert_equivalent(l5, l6)
       testing.assert_equal(
-          l5.no_bag().get_itemid(), kde.uuid_for_list(a=ds('1')).eval()  # pyrefly: ignore[missing-attribute]
+          l5.no_bag().get_itemid(), kde.uuid_for_list(a=ds('1')).eval()
       )
       self.assertNotEqual(l5[:].S[0].fingerprint, l5[:].S[1].fingerprint)
 
@@ -1830,39 +1830,39 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       l = [1, 2, 3]
       for _ in range(2):
         l = [copy.deepcopy(l), copy.deepcopy(l), copy.deepcopy(l)]
-      from_py(l, itemid=kde.uuid_for_list('itemid').eval(), schema=None)  # pyrefly: ignore[missing-attribute]
+      from_py(l, itemid=kde.uuid_for_list('itemid').eval(), schema=None)
 
     with self.subTest('dict'):
-      d1 = from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())  # pyrefly: ignore[missing-attribute]
-      d2 = from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())  # pyrefly: ignore[missing-attribute]
+      d1 = from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
+      d2 = from_py({'a': 1, 'b': 2}, itemid=kde.uuid_for_dict('1').eval())
       testing.assert_equivalent(d1, d2)
       testing.assert_equal(
-          d1.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()  # pyrefly: ignore[missing-attribute]
+          d1.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
       )
 
       d3 = from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       d4 = from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       testing.assert_equivalent(d3, d4)
       testing.assert_equal(
           d3[1][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
       )
       testing.assert_equal(
-          d3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+          d3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
       d5 = from_py(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
-          itemid=kde.uuid_for_dict('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_dict('1').eval(),
       )
       d6 = from_py(
           {'a': [1, 2, 3], 'b': {'x': 'abc'}},
-          itemid=kde.uuid_for_dict('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_dict('1').eval(),
       )
       testing.assert_equivalent(d5, d6)
       testing.assert_equal(
@@ -1872,48 +1872,48 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           d5['b']['x'].no_bag(), ds('abc', schema_constants.OBJECT)
       )
       testing.assert_equal(
-          d5.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()  # pyrefly: ignore[missing-attribute]
+          d5.no_bag().get_itemid(), kde.uuid_for_dict('1').eval()
       )
 
     with self.subTest('dict_auto_schema'):
       d = {'a': 1, 'b': 2}
       for _ in range(2):
         d = {'a': copy.deepcopy(d), 'b': copy.deepcopy(d)}
-      from_py(d, itemid=kde.uuid_for_dict('itemid').eval(), schema=None)  # pyrefly: ignore[missing-attribute]
+      from_py(d, itemid=kde.uuid_for_dict('itemid').eval(), schema=None)
 
     with self.subTest('obj'):
       o1 = from_py(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
-          itemid=kde.uuid('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid('1').eval(),
       )
       o2 = from_py(
           TestKlass(a=42, b=NestedKlass('abc'), c=b'xyz', x='123'),
-          itemid=kde.uuid('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid('1').eval(),
       )
       testing.assert_equivalent(o1, o2)
       self.assertNotEqual(o1.x.fingerprint, o1.b.x.fingerprint)
-      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
     with self.subTest('dict_as_obj'):
       o1 = from_py(
-          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()  # pyrefly: ignore[missing-attribute]
+          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
       o2 = from_py(
-          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()  # pyrefly: ignore[missing-attribute]
+          {'a': 1, 'b': 2}, dict_as_obj=True, itemid=kde.uuid('1').eval()
       )
       testing.assert_equivalent(o1, o2)
       self.assertNotEqual(o1.a.fingerprint, o1.b.fingerprint)
-      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
 
       o3 = from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       o4 = from_py(
           [{'a': 1, 'b': 2}, [1, 2, 3]],
           dict_as_obj=True,
-          itemid=kde.uuid_for_list('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list('1').eval(),
       )
       testing.assert_equivalent(o3, o4)
       self.assertNotEqual(o3[:].S[0].fingerprint, o3[:].S[1].fingerprint)
@@ -1922,34 +1922,34 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           o3[1][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
       )
       testing.assert_equal(
-          o3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+          o3.no_bag().get_itemid(), kde.uuid_for_list('1').eval()
       )
 
     with self.subTest('nested obj'):
       o1 = from_py(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
-          itemid=kde.uuid('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid('1').eval(),
       )
       o2 = from_py(
           {'a': 1, 'b': {'a': 'abc'}},
           dict_as_obj=True,
-          itemid=kde.uuid('1').eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid('1').eval(),
       )
       testing.assert_equivalent(o1, o2)
       self.assertNotEqual(o1.a.fingerprint, o1.b.a.fingerprint)
-      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())  # pyrefly: ignore[missing-attribute]
+      testing.assert_equal(o1.no_bag().get_itemid(), kde.uuid('1').eval())
       self.assertFalse(o1.b.is_dict())
 
     with self.subTest('attr_name child itemid'):
-      parent_itemid = kde.uuid('1').eval()  # pyrefly: ignore[missing-attribute]
+      parent_itemid = kde.uuid('1').eval()
       child_itemid = _get_child_entity_item_id(
           parent_itemid, a=ds(0, schema_constants.INT64)
       )
       obj = from_py(
           {'a': {'b': '1'}},
-          schema=kde.uu_schema(  # pyrefly: ignore[missing-attribute]
-              a=kde.uu_schema(b=schema_constants.STRING)  # pyrefly: ignore[missing-attribute]
+          schema=kde.uu_schema(
+              a=kde.uu_schema(b=schema_constants.STRING)
           ).eval(),
           itemid=parent_itemid,
       )
@@ -1957,7 +1957,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       testing.assert_equal(obj.a.no_bag().get_itemid(), child_itemid)
 
     with self.subTest('dict_value_index child itemid'):
-      parent_itemid = kde.uuid('1').eval()  # pyrefly: ignore[missing-attribute]
+      parent_itemid = kde.uuid('1').eval()
       child_itemid = _get_child_entity_item_id(
           parent_itemid, a=ds(0, schema_constants.INT64)
       )
@@ -1973,11 +1973,11 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       )
       obj = from_py(
           {'a': {'b': {'1': [1, 2, 3], '2': [4, 5]}}},
-          schema=kde.uu_schema(  # pyrefly: ignore[missing-attribute]
-              a=kde.uu_schema(  # pyrefly: ignore[missing-attribute]
-                  b=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+          schema=kde.uu_schema(
+              a=kde.uu_schema(
+                  b=kde.dict_schema(
                       schema_constants.STRING,
-                      kde.list_schema(schema_constants.INT32),  # pyrefly: ignore[missing-attribute]
+                      kde.list_schema(schema_constants.INT32),
                   )
               )
           ).eval(),
@@ -1990,9 +1990,9 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       )
 
     with self.subTest('dict_key_index child itemid'):
-      parent_itemid = kde.uuid_for_dict('1').eval()  # pyrefly: ignore[missing-attribute]
+      parent_itemid = kde.uuid_for_dict('1').eval()
 
-      child_keys_itemid = kde.uuid(  # pyrefly: ignore[missing-attribute]
+      child_keys_itemid = kde.uuid(
           '__from_py_child__',
           parent=parent_itemid,
           dict_key_index=ds([0, 1], schema_constants.INT64),
@@ -2009,7 +2009,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       )
 
     with self.subTest('list_item_index child itemid'):
-      parent_itemid = kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+      parent_itemid = kde.uuid_for_list('1').eval()
       child_list_itemid = _get_child_list_item_id(
           parent_itemid,
           list_item_index=ds([0, 1], schema_constants.INT64),
@@ -2026,45 +2026,45 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     with self.subTest('list_with_from_dim'):
       l1 = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
       l2 = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
       testing.assert_equivalent(l1, l2)
       testing.assert_equal(
-          l1.no_bag().get_itemid(), kde.uuid_for_list(a=ds(['1', '2'])).eval()  # pyrefly: ignore[missing-attribute]
+          l1.no_bag().get_itemid(), kde.uuid_for_list(a=ds(['1', '2'])).eval()
       )
 
     with self.subTest('dict_with_from_dim'):
       d1 = from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
-          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
       d2 = from_py(
           [{'a': 1, 'b': 2}, {'c': 3, 'd': 4}],
-          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_dict(a=ds(['1', '2'])).eval(),
           from_dim=1,
       )
       testing.assert_equivalent(d1, d2)
       testing.assert_equal(
-          d1.no_bag().get_itemid(), kde.uuid_for_dict(a=ds(['1', '2'])).eval()  # pyrefly: ignore[missing-attribute]
+          d1.no_bag().get_itemid(), kde.uuid_for_dict(a=ds(['1', '2'])).eval()
       )
 
     with self.subTest('itemid caching'):
       d = {'a': 42}
-      l1 = from_py([d, d], itemid=kde.uuid_for_list('1').eval())  # pyrefly: ignore[missing-attribute]
+      l1 = from_py([d, d], itemid=kde.uuid_for_list('1').eval())
       self.assertNotEqual(l1[:].S[0].fingerprint, l1[:].S[1].fingerprint)
 
-      d1 = from_py({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())  # pyrefly: ignore[missing-attribute]
+      d1 = from_py({'a': d, 'b': d}, itemid=kde.uuid_for_dict('1').eval())
       self.assertNotEqual(d1['a'].fingerprint, d1['b'].fingerprint)
 
     with self.subTest('proto'):
-      parent_itemid = kde.uuid_for_list('1').eval()  # pyrefly: ignore[missing-attribute]
+      parent_itemid = kde.uuid_for_list('1').eval()
       child_entity_itemid = _get_child_entity_item_id(
           parent_itemid,
           list_item_index=ds(0, schema_constants.INT64),
@@ -2089,7 +2089,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     ):
       _ = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list(a=ds(['1'])).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds(['1'])).eval(),
           from_dim=1,
       )
 
@@ -2099,7 +2099,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     ):
       _ = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_list(a=ds('1')).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_list(a=ds('1')).eval(),
           from_dim=1,
       )
     with self.assertRaisesRegex(
@@ -2107,7 +2107,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     ):
       _ = from_py(
           [[1, 2], [3]],
-          itemid=kde.uuid_for_dict(a=ds('1')).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid_for_dict(a=ds('1')).eval(),
       )
 
     with self.assertRaisesRegex(
@@ -2115,17 +2115,17 @@ assigned schema: ENTITY(a=FLOAT32)"""),
     ):
       _ = from_py(
           {'a': 1, 'b': 2},
-          itemid=kde.uuid(a=ds('1')).eval(),  # pyrefly: ignore[missing-attribute]
+          itemid=kde.uuid(a=ds('1')).eval(),
       )
 
   def test_deep_dict_with_repetitions(self):
     py_d = {'abc': 42, 'def': 64}
-    schema = kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.dict_schema(
         schema_constants.STRING, schema_constants.INT32
     ).eval()
     for _ in range(2):
       py_d = {12: py_d, 42: py_d}
-      schema = kde.dict_schema(schema_constants.INT32, schema).eval()  # pyrefly: ignore[missing-attribute]
+      schema = kde.dict_schema(schema_constants.INT32, schema).eval()
 
     with self.subTest('no schema'):
       d = from_py(py_d)
@@ -2173,7 +2173,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           {
               'input_obj': _get_recursive_dict(),
               'schema': _get_deep_dict_schema(),
-              'itemid': kde.uuid_for_dict('dict').eval(),  # pyrefly: ignore[missing-attribute]
+              'itemid': kde.uuid_for_dict('dict').eval(),
           },
       ),
       (
@@ -2181,7 +2181,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           {
               'input_obj': _get_recursive_list(),
               'schema': _get_deep_list_schema(),
-              'itemid': kde.uuid_for_list('list').eval(),  # pyrefly: ignore[missing-attribute]
+              'itemid': kde.uuid_for_list('list').eval(),
           },
       ),
       (
@@ -2189,7 +2189,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           {
               'input_obj': _get_recursive_dict(),
               'schema': _get_deep_obj_schema(),
-              'itemid': kde.uuid('obj').eval(),  # pyrefly: ignore[missing-attribute]
+              'itemid': kde.uuid('obj').eval(),
           },
       ),
   ])
@@ -2206,10 +2206,10 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
   def test_deep_list_with_repetitions(self):
     py_l = [1, 2, 3]
-    schema = kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(schema_constants.INT32).eval()
     for _ in range(2):
       py_l = [py_l, py_l]
-      schema = kde.list_schema(schema).eval()  # pyrefly: ignore[missing-attribute]
+      schema = kde.list_schema(schema).eval()
 
     testing.assert_equal(
         from_py(py_l)[:][:][:].no_bag(),
@@ -2226,10 +2226,10 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
   def test_deep_object_repetitions(self):
     py_d = {'abc': 42}
-    schema = kde.uu_schema(abc=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.uu_schema(abc=schema_constants.INT32).eval()
     for _ in range(2):
       py_d = {'x': py_d, 'y': py_d}
-      schema = kde.uu_schema(x=schema, y=schema).eval()  # pyrefly: ignore[missing-attribute]
+      schema = kde.uu_schema(x=schema, y=schema).eval()
 
     obj = from_py(py_d, dict_as_obj=True)
     testing.assert_equal(obj.x.x.abc.no_bag(), ds(42, schema_constants.OBJECT))
@@ -2270,11 +2270,11 @@ assigned schema: ENTITY(a=FLOAT32)"""),
 
   def test_recursive_error_with_schema(self):
     py_l = [1, 2, 3]
-    schema = kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.list_schema(schema_constants.INT32).eval()
     bottom_l = py_l
     for _ in range(3):
       py_l = [py_l, py_l]
-      schema = kde.list_schema(schema).eval()  # pyrefly: ignore[missing-attribute]
+      schema = kde.list_schema(schema).eval()
     level_1_l = py_l
     py_l = [level_1_l]
     bottom_l.append(level_1_l)  # pyrefly: ignore[bad-argument-type]
@@ -2336,14 +2336,14 @@ assigned schema: ENTITY(a=FLOAT32)"""),
       x = [1]
       _ = from_py(
           [x, [x], x],
-          schema=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-              kde.list_schema(schema_constants.OBJECT)  # pyrefly: ignore[missing-attribute]
+          schema=kde.list_schema(
+              kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
       _ = from_py(
           [(), [()]],
-          schema=kde.list_schema(  # pyrefly: ignore[missing-attribute]
-              kde.list_schema(schema_constants.OBJECT)  # pyrefly: ignore[missing-attribute]
+          schema=kde.list_schema(
+              kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
 
@@ -2370,7 +2370,7 @@ assigned schema: ENTITY(a=FLOAT32)"""),
           [1, 2],
           dict_as_obj=False,
           itemid=42,  # pyrefly: ignore[bad-argument-type]
-          schema=kde.schema.new_schema().eval(),  # pyrefly: ignore[missing-attribute]
+          schema=kde.schema.new_schema().eval(),
           from_dim=0,
       )
 

@@ -39,42 +39,42 @@ class TracingTest(absltest.TestCase):
 
   def test_simple(self):
     e = tracing.trace(lambda x, y: x + y)
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_several_operators(self):
     e = tracing.trace(lambda x, y, z: x + y + z)
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], e.node_deps[0].node_deps[0] + I.z)
     testing.assert_equal(
-        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location  # pyrefly: ignore[missing-attribute]
+        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location
     )
     testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
 
   def test_explicit_lazy_operator_usage(self):
     e = tracing.trace(lambda x, y, z: kde.math.add(x + y, z))
     # The topmost `math.add` is annotated with source location.
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], e.node_deps[0].node_deps[0] + I.z)
     # The inner `+` is annotated as well.
     testing.assert_equal(
-        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location  # pyrefly: ignore[missing-attribute]
+        e.node_deps[0].node_deps[0].op, arolla.M.annotation.source_location
     )
     testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
 
   def test_ops(self):
     e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.sum(I.x))
 
   def test_ops_in_namespace(self):
     e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], kde.math.abs(I.x))
 
   def test_keyword_only(self):
     e = tracing.trace(lambda x, *, y: x + y)
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_kd_constants(self):
@@ -100,12 +100,12 @@ class TracingTest(absltest.TestCase):
 
   def test_defaults_ignored(self):
     e = tracing.trace(lambda x=1, *, y=2: x + y)
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_positional_only(self):
     e = tracing.trace(lambda x, /, y: x + y)
-    testing.assert_equal(e.op, arolla.M.annotation.source_location)  # pyrefly: ignore[missing-attribute]
+    testing.assert_equal(e.op, arolla.M.annotation.source_location)
     testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_other_types_not_allowed(self):
@@ -406,18 +406,18 @@ class TracingTest(absltest.TestCase):
 
     res = tracing.trace_function(
         fn,
-        gen_tracer=lambda name: arolla.M.annotation.qtype(  # pyrefly: ignore[not-callable]
+        gen_tracer=lambda name: arolla.M.annotation.qtype(
             arolla.abc.placeholder(name), arolla.types.INT32
         ),
     )
     arolla.testing.assert_expr_equal_by_fingerprint(
         res,
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-            arolla.M.math.add(  # pyrefly: ignore[missing-attribute]
-                arolla.M.annotation.qtype(  # pyrefly: ignore[not-callable]
+        arolla.M.annotation.source_location(
+            arolla.M.math.add(
+                arolla.M.annotation.qtype(
                     arolla.abc.placeholder('a'), arolla.types.INT32
                 ),
-                arolla.M.annotation.qtype(  # pyrefly: ignore[not-callable]
+                arolla.M.annotation.qtype(
                     arolla.abc.placeholder('b'), arolla.types.INT32
                 ),
             ),

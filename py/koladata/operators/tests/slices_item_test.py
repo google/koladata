@@ -45,7 +45,7 @@ class SlicesItemTest(parameterized.TestCase):
       (literal_operator.literal(ds(1)) + 5, ds(6)),
   )
   def test_eval_single_arg(self, x, expected):
-    res = expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(x))
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -64,9 +64,9 @@ class SlicesItemTest(parameterized.TestCase):
       ),
   )
   def test_eval_two_args(self, x, schema, expected):
-    res = expr_eval.eval(kde.slices.item(x, schema))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(x, schema))
     testing.assert_equal(res, expected)
-    res = expr_eval.eval(kde.slices.item(x, schema=schema))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(x, schema=schema))
     testing.assert_equal(res, expected)
 
   def test_cast_error(self):
@@ -75,50 +75,50 @@ class SlicesItemTest(parameterized.TestCase):
         ValueError,
         'casting a DataSlice with schema MASK to INT32 is not supported',
     ):
-      expr_eval.eval(kde.slices.item(x, schema_constants.INT32))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.item(x, schema_constants.INT32))
 
   def test_expr_argument(self):
-    x = kde.uu(a=1)  # pyrefly: ignore[missing-attribute]
-    res = expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+    x = kde.uu(a=1)
+    res = expr_eval.eval(kde.slices.item(x))
     testing.assert_equal(res.no_bag(), expr_eval.eval(x).no_bag())
     testing.assert_equal(res.a.no_bag(), ds(1).no_bag())
 
     x = literal_operator.literal(ds(1)) + 5
-    res = expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(x))
     testing.assert_equal(res, ds(6))
 
   def test_must_be_scalar(self):
     x = [1]
     with self.assertRaisesRegex(TypeError, 'cannot create multi-dim DataSlice'):
-      expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.item(x))
 
   def test_must_be_scalar_slice_argument(self):
     x = ds([1])
     with self.assertRaisesRegex(ValueError, 'cannot be a multi-dim DataSlice'):
-      expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.item(x))
 
   def test_must_be_scalar_expr_argument(self):
     x = literal_operator.literal(ds([1, 2, 3])) + 5
     with self.assertRaisesRegex(ValueError, 'cannot be a multi-dim DataSlice'):
-      expr_eval.eval(kde.slices.item(x))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.item(x))
 
   def test_does_not_go_through_float32(self):
     x = 1 + 1e-14
     testing.assert_equal(
-        expr_eval.eval(kde.slices.item(x, schema_constants.FLOAT64)),  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde.slices.item(x, schema_constants.FLOAT64)),
         ds(x, schema_constants.FLOAT64),
     )
 
   def test_schema_as_expr(self):
     res = expr_eval.eval(
-        kde.slices.item(I.data, I.schema),  # pyrefly: ignore[missing-attribute]
+        kde.slices.item(I.data, I.schema),
         data=1,
         schema=schema_constants.INT64,
     )
     testing.assert_equal(res, ds(1, schema_constants.INT64))
 
     res = expr_eval.eval(
-        kde.slices.item(ds(1), I.schema), schema=schema_constants.INT64  # pyrefly: ignore[missing-attribute]
+        kde.slices.item(ds(1), I.schema), schema=schema_constants.INT64
     )
     testing.assert_equal(res, ds(1, schema_constants.INT64))
 
@@ -126,42 +126,42 @@ class SlicesItemTest(parameterized.TestCase):
         ValueError,
         '`schema` cannot be an expression when `x` is a Python value',
     ):
-      _ = kde.slices.item(1, I.schema)  # pyrefly: ignore[missing-attribute]
+      _ = kde.slices.item(1, I.schema)
 
   def test_schema_adoption(self):
-    schema = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))  # pyrefly: ignore[missing-attribute]
-    res = expr_eval.eval(kde.slices.item(ds(None), schema))  # pyrefly: ignore[missing-attribute]
+    schema = expr_eval.eval(kde.schema.new_schema(a=schema_constants.INT32))
+    res = expr_eval.eval(kde.slices.item(ds(None), schema))
     testing.assert_equal(res.get_schema().a.no_bag(), schema_constants.INT32)
-    res = expr_eval.eval(kde.slices.item(I.x, schema), x=None)  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(I.x, schema), x=None)
     testing.assert_equal(res.get_schema().a.no_bag(), schema_constants.INT32)
-    res = expr_eval.eval(kde.slices.item(I.x, I.schema), x=None, schema=schema)  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(I.x, I.schema), x=None, schema=schema)
     testing.assert_equal(res.get_schema().a.no_bag(), schema_constants.INT32)
-    res = expr_eval.eval(kde.slices.item(ds(None), I.schema), schema=schema)  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.item(ds(None), I.schema), schema=schema)
     testing.assert_equal(res.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.item(1),  # pyrefly: ignore[missing-attribute]
+        kde.slices.item(1),
         arolla.abc.bind_op(
-            kde.slices.item,  # pyrefly: ignore[missing-attribute]
+            kde.slices.item,
             literal_operator.literal(ds(1)),
             literal_operator.literal(arolla.unspecified()),
         ),
     )
 
     testing.assert_equal(
-        kde.slices.item(1, schema_constants.INT64),  # pyrefly: ignore[missing-attribute]
+        kde.slices.item(1, schema_constants.INT64),
         arolla.abc.bind_op(
-            kde.slices.item,  # pyrefly: ignore[missing-attribute]
+            kde.slices.item,
             literal_operator.literal(ds(1, schema_constants.INT64)),
             literal_operator.literal(arolla.unspecified()),
         ),
     )
 
     testing.assert_equal(
-        kde.slices.item(ds(1), schema_constants.INT64),  # pyrefly: ignore[missing-attribute]
+        kde.slices.item(ds(1), schema_constants.INT64),
         arolla.abc.bind_op(
-            kde.slices.item,  # pyrefly: ignore[missing-attribute]
+            kde.slices.item,
             literal_operator.literal(ds(1)),
             literal_operator.literal(schema_constants.INT64),
         ),
@@ -174,7 +174,7 @@ class SlicesItemTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.item,  # pyrefly: ignore[missing-attribute]
+            kde.slices.item,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         (
@@ -185,10 +185,10 @@ class SlicesItemTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.item(1)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.item(1)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.item, kde.item))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.item, kde.item))
 
 
 if __name__ == '__main__':

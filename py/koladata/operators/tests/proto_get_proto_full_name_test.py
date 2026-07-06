@@ -124,18 +124,18 @@ class ProtoGetProtoFullNameTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.proto.get_proto_full_name,  # pyrefly: ignore[missing-attribute]
+            kde.proto.get_proto_full_name,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.proto.get_proto_full_name(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.proto.get_proto_full_name(I.x)))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.proto.get_proto_full_name(I.x)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.proto.get_proto_full_name(I.x)),
         'kd.proto.get_proto_full_name(I.x)',
     )
 

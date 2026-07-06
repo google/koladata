@@ -82,7 +82,7 @@ class CoreGetMetadataTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.get_metadata,  # pyrefly: ignore[missing-attribute]
+            kde.core.get_metadata,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -90,16 +90,16 @@ class CoreGetMetadataTest(absltest.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.metadata(I.x, a=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.core.metadata(I.x, a=I.y)),
         'kd.core.metadata(I.x, a=I.y)',
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.get_metadata(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.get_metadata(I.x)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.get_metadata, kde.get_metadata)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.core.get_metadata, kde.get_metadata)
     )
 
 

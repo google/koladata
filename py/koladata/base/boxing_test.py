@@ -151,13 +151,13 @@ class BoxingTest(parameterized.TestCase):
       ),
       (
           [
-              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
+              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
               None,
               arolla.quote(arolla.L.y),
           ],
           None,
           [
-              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
+              arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
               None,
               arolla.quote(arolla.L.y),
           ],
@@ -200,9 +200,9 @@ class BoxingTest(parameterized.TestCase):
       (arolla.optional_int32(2), None, 2, INT32),
       (arolla.optional_int32(None), None, None, INT32),
       (
-          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
+          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
           None,
-          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),  # pyrefly: ignore[missing-attribute]
+          arolla.quote(arolla.M.math.add(arolla.L.x, arolla.L.y)),
           EXPR,
       ),
   )

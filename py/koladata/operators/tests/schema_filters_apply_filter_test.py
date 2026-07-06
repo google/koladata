@@ -384,7 +384,7 @@ class SchemaFiltersApplyFilterTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.schema_filters.apply_filter(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.schema_filters.apply_filter(I.x, I.y))
     )
 
   def test_stub_filter_entity(self):

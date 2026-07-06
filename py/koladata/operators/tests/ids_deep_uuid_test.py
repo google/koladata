@@ -119,14 +119,14 @@ class IdsDeepUuidTest(parameterized.TestCase):
     _ = kd.ids.deep_uuid(x, schema=s, seed='seed')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.deep_uuid(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.deep_uuid(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.ids.deep_uuid, kde.deep_uuid))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.ids.deep_uuid, kde.deep_uuid))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.ids.deep_uuid(I.x, schema=I.schema, seed=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.ids.deep_uuid(I.x, schema=I.schema, seed=I.y)),
         'kd.ids.deep_uuid(I.x, I.schema, seed=I.y)',
     )
 

@@ -32,7 +32,7 @@ bag = data_bag.DataBag.empty_mutable
 ds = data_slice.DataSlice.from_vals
 kde_internal = kde_operators.internal
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_internal  # pyrefly: ignore[bad-argument-type]
+    top_level_arolla_container=kde_internal
 )
 
 
@@ -51,15 +51,15 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde_internal.to_arolla_text('abc'),  # pyrefly: ignore[missing-attribute]
+        kde_internal.to_arolla_text('abc'),
         arolla.abc.bind_op(
-            kde_internal.to_arolla_text, literal_operator.literal(ds('abc'))  # pyrefly: ignore[missing-attribute]
+            kde_internal.to_arolla_text, literal_operator.literal(ds('abc'))
         ),
     )
 
   def test_bind_time_evaluation(self):
     # Allows it to be used in operators that require literal inputs.
-    expr = kde_internal.to_arolla_text(ds('abc'))  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.to_arolla_text(ds('abc'))
     testing.assert_equal(expr.qvalue, arolla.text('abc'))
 
   def test_unsupported_schema_error(self):
@@ -94,13 +94,13 @@ class KodaToArollaTextTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde_internal.to_arolla_text,  # pyrefly: ignore[missing-attribute]
+        kde_internal.to_arolla_text,
         [(qtypes.DATA_SLICE, arolla.TEXT)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_text(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde_internal.to_arolla_text(I.x)))
 
 
 if __name__ == '__main__':

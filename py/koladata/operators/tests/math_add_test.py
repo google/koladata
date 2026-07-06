@@ -248,7 +248,7 @@ Schema for `y`: STRING"""
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.math.add, QTYPES, possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type, missing-attribute]
+        kde.math.add, QTYPES, possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_entity_slice_error(self):
@@ -264,10 +264,10 @@ Schema for `y`: STRING"""
       kd.math.add(x, x)
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.add(I.x, I.y)), 'I.x + I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.math.add(I.x, I.y)), 'I.x + I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.add(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.math.add(I.x, I.y)))
 
 
 if __name__ == '__main__':

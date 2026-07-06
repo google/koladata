@@ -60,19 +60,19 @@ class LogicalHasTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.masking.has,  # pyrefly: ignore[missing-attribute]
+        kde.masking.has,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.masking.has(I.x)), 'kd.masking.has(I.x)')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.masking.has(I.x)), 'kd.masking.has(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.has(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.has(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.has, kde.has))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.masking.has, kde.has))
 
 
 if __name__ == '__main__':

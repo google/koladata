@@ -93,16 +93,16 @@ class DictsIsEntityTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.is_entity,  # pyrefly: ignore[missing-attribute]
+        kde.core.is_entity,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.is_entity(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.is_entity(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.is_entity, kde.is_entity))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.is_entity, kde.is_entity))
 
 
 if __name__ == '__main__':

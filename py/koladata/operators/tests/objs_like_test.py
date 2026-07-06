@@ -226,7 +226,7 @@ class ObjsLikeTest(absltest.TestCase):
     )
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
-    expr = kde.objs.like(x, a=5)  # pyrefly: ignore[missing-attribute]
+    expr = kde.objs.like(x, a=5)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -236,21 +236,21 @@ class ObjsLikeTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.objs.like,  # pyrefly: ignore[missing-attribute]
+        kde.objs.like,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.objs.like(I.x)))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(view.has_koda_view(kde.objs.like(I.x, a=I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.objs.like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.objs.like(I.x, a=I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.objs.like, kde.obj_like))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.objs.like, kde.obj_like))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.objs.like(I.x, a=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.objs.like(I.x, a=I.y)),
         'kd.objs.like(I.x, itemid=unspecified, a=I.y)',
     )
 

@@ -73,22 +73,22 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
 
   def test_qtype_deduction_without_fn(self):
     testing.assert_equal(
-        kde.call(I.fn, x=I.u, y=I.v).qtype,  # pyrefly: ignore[missing-attribute]
+        kde.call(I.fn, x=I.u, y=I.v).qtype,
         qtypes.DATA_SLICE,
     )
     testing.assert_equal(
-        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,  # pyrefly: ignore[missing-attribute]
+        kde.call(I.fn, x=I.u, y=I.v, return_type_as=kde.tuple(5, 7)).qtype,
         arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.functor.call_fn_normally_when_parallel(I.fn))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.functor.call_fn_normally_when_parallel(I.fn))
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.functor.call_fn_normally_when_parallel(I.fn, I.x, I.y, a=I.z)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.functor.call_fn_normally_when_parallel(I.fn, I.x, I.y, a=I.z)),
         'kd.functor.call_fn_normally_when_parallel(I.fn, I.x, I.y,'
         ' return_type_as=DataItem(None, schema: NONE),'
         ' a=I.z)',

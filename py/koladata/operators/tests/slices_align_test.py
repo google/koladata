@@ -61,7 +61,7 @@ class SlicesAlignTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.align,  # pyrefly: ignore[missing-attribute]
+            kde.slices.align,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
             max_arity=3,
         ),
@@ -69,23 +69,23 @@ class SlicesAlignTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    ix = arolla.M.annotation.qtype(I.x, DATA_SLICE)  # pyrefly: ignore[not-callable]
-    iy = arolla.M.annotation.qtype(I.x, DATA_SLICE)  # pyrefly: ignore[not-callable]
-    x_tuple = kde.slices.align(ix, iy)  # pyrefly: ignore[missing-attribute]
+    ix = arolla.M.annotation.qtype(I.x, DATA_SLICE)
+    iy = arolla.M.annotation.qtype(I.x, DATA_SLICE)
+    x_tuple = kde.slices.align(ix, iy)
     self.assertTrue(view.has_koda_view(x_tuple))
     x, y = x_tuple
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
 
     # Also test alias.
-    x_tuple = kde.align(ix, iy)  # pyrefly: ignore[missing-attribute]
+    x_tuple = kde.align(ix, iy)
     self.assertTrue(view.has_koda_view(x_tuple))
     x, y = x_tuple
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.align, kde.align))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.align, kde.align))
 
 
 if __name__ == '__main__':

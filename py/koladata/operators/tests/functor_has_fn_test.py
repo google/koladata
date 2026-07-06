@@ -113,16 +113,16 @@ class FunctorIsFnTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.functor.has_fn,  # pyrefly: ignore[missing-attribute]
+        kde.functor.has_fn,
         [(qtypes.DATA_SLICE, qtypes.DATA_SLICE)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.has_fn, kde.has_fn))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.functor.has_fn, kde.has_fn))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.functor.has_fn(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.functor.has_fn(I.x)))
 
 
 if __name__ == '__main__':

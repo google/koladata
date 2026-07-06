@@ -26,8 +26,8 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
 
   def test_interleave(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_interleave(
+            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -39,8 +39,8 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
     self.assertLess(pos_in_list[1], pos_in_list[2])
 
   def test_possible_orders(self):
-    expr = kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-        arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3, 4, 5))  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.iterables.sequence_interleave(
+        arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3, 4, 5))
     )
     seen = set()
     # Assuming that each permutation has probability 1/10, then
@@ -67,9 +67,9 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
     )
 
   def test_possible_orders_three_iterables(self):
-    expr = kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-        arolla.M.seq.make(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.make(1), arolla.M.seq.make(2), arolla.M.seq.make(3, 4)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.iterables.sequence_interleave(
+        arolla.M.seq.make(
+            arolla.M.seq.make(1), arolla.M.seq.make(2), arolla.M.seq.make(3, 4)
         )
     )
     seen = set()
@@ -100,8 +100,8 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
 
   def test_interleave_empty(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_interleave(
+            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -110,8 +110,8 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
 
   def test_interleave_with_only_empty_iterable(self):
     res = expr_eval.eval(
-        kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))  # pyrefly: ignore[missing-attribute]
+        kde_internal.iterables.sequence_interleave(
+            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -123,7 +123,7 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
         ValueError,
         'expected a sequence type, got sequences: DATA_SLICE',
     ):
-      _ = expr_eval.eval(kde_internal.iterables.sequence_interleave(1))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde_internal.iterables.sequence_interleave(1))
 
   def test_non_sequence_of_sequences_arg(self):
     with self.assertRaisesRegex(
@@ -131,14 +131,14 @@ class IterablesInternalSequenceInterleaveTest(absltest.TestCase):
         'expected a sequence of sequences',
     ):
       _ = expr_eval.eval(
-          kde_internal.iterables.sequence_interleave(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
+          kde_internal.iterables.sequence_interleave(arolla.M.seq.make(1))
       )
 
   def test_view(self):
     self.assertFalse(
         view.has_koda_view(
-            kde_internal.iterables.sequence_interleave(  # pyrefly: ignore[missing-attribute]
-                arolla.M.seq.make(arolla.M.seq.make(1))  # pyrefly: ignore[missing-attribute]
+            kde_internal.iterables.sequence_interleave(
+                arolla.M.seq.make(arolla.M.seq.make(1))
             )
         )
     )

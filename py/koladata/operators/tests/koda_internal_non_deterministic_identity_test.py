@@ -45,7 +45,7 @@ class NonDeterministicIdentityOpTest(absltest.TestCase):
     fn = arolla.abc.PyObject(fn)
 
     with self.subTest('without_non_deterministic_identity'):
-      expr = M.py.call(fn, arolla.UNIT)  # pyrefly: ignore[missing-attribute]
+      expr = M.py.call(fn, arolla.UNIT)
       counter = 0
       _ = expr_eval.eval(expr)
       self.assertEqual(counter, 1)
@@ -53,7 +53,7 @@ class NonDeterministicIdentityOpTest(absltest.TestCase):
       self.assertEqual(counter, 1)
 
     with self.subTest('with_non_deterministic_identity'):
-      expr = M.py.call(non_deterministic_identity_op(fn), arolla.UNIT)  # pyrefly: ignore[missing-attribute]
+      expr = M.py.call(non_deterministic_identity_op(fn), arolla.UNIT)
       counter = 0
       _ = expr_eval.eval(expr)
       self.assertEqual(counter, 1)

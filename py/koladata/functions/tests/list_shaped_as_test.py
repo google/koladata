@@ -60,7 +60,7 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
     x = fns.list_shaped_as(itemid, ds([['a', 'b'], ['c']]), itemid=itemid)
     testing.assert_equal(x[:].no_bag(), ds([['a', 'b'], ['c']]))
 
@@ -82,7 +82,7 @@ class ListShapedAsTest(parameterized.TestCase):
         fns.list_shaped_as(
             ds([['a', 'b'], ['c']]),
             items=[[1, 2], [3]],
-            schema=kde.list_schema(item_schema=schema_constants.FLOAT32).eval(),  # pyrefly: ignore[missing-attribute]
+            schema=kde.list_schema(item_schema=schema_constants.FLOAT32).eval(),
         )
         .get_schema()
         .get_attr('__items__')
@@ -105,7 +105,7 @@ class ListShapedAsTest(parameterized.TestCase):
         fns.list_shaped_as(
             ds([1, 2.0]),
             [1, 2.0],
-            schema=kde.list_schema(schema_constants.OBJECT).eval(),  # pyrefly: ignore[missing-attribute]
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(  # pyrefly: ignore[missing-attribute]
             data_slice.DataSlice.from_vals(
@@ -124,8 +124,8 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-        kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     lst = fns.list_shaped_as(ds([0, 0]), schema=list_schema)
 

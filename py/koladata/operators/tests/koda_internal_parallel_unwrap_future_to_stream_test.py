@@ -35,47 +35,47 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_stream = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_stream = kde_internal.parallel.async_eval(
         executor,
-        kde_internal.parallel.stream_make,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_make,
         I.x,
         arolla.unspecified(),
     )
-    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)
     res = expr_eval.eval(expr, x=arolla.tuple(10, 20))
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=0)), arolla.tuple(10, 20)
     )
 
   def test_empty_stream(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_stream = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_stream = kde_internal.parallel.async_eval(
         executor,
-        kde_internal.parallel.stream_make,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_make,
         I.x,
         arolla.unspecified(),
     )
-    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)
     res = expr_eval.eval(expr, x=arolla.tuple())
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
     testing.assert_equal(arolla.tuple(*res.read_all(timeout=0)), arolla.tuple())
 
   def test_error_in_stream(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_stream = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_stream = kde_internal.parallel.async_eval(
         executor,
-        kde_internal.parallel.stream_map,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_map,
         executor,
         I.stream,
         I.body,
         I.value_type_as,
         optools.unified_non_deterministic_arg(),
     )
-    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)
     res = expr_eval.eval(
         expr,
-        stream=expr_eval.eval(kde_internal.parallel.stream_make(1, 2, 3)),  # pyrefly: ignore[missing-attribute]
+        stream=expr_eval.eval(kde_internal.parallel.stream_make(1, 2, 3)),
         body=lambda x: user_facing_kd.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
             x, x % 2 == 1, 'Must be odd'
         ),
@@ -91,17 +91,17 @@ class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
   def test_error_making_stream(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
-          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')  # pyrefly: ignore[missing-attribute]
+      return kde_internal.parallel.stream_make(
+          kde.assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
       )
 
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
-    future_to_stream = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
+    future_to_stream = kde_internal.parallel.async_eval(
         executor,
         my_op,
         I.x,
     )
-    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.unwrap_future_to_stream(future_to_stream)
     res = expr_eval.eval(expr, x=10)
     reader = res.make_reader()
     with self.assertRaisesRegex(ValueError, 'Must be odd'):
@@ -109,16 +109,16 @@ class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_future_qtype(arolla.INT32)
     )
     stream_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_stream_qtype(arolla.INT32)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_stream_qtype(arolla.INT32)
     )
     future_stream_int32_qtype = expr_eval.eval(
-        kde_internal.parallel.get_future_qtype(stream_int32_qtype)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_future_qtype(stream_int32_qtype)
     )
     arolla.testing.assert_qtype_signatures(
-        kde_internal.parallel.unwrap_future_to_stream,  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.unwrap_future_to_stream,
         [
             (future_stream_int32_qtype, stream_int32_qtype),
         ],
@@ -131,7 +131,7 @@ class KodaInternalParallelUnwrapFutureToStreamTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.unwrap_future_to_stream(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.unwrap_future_to_stream(I.x))
     )
 
 

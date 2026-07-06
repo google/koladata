@@ -91,7 +91,7 @@ class FromProtoJsonTest(parameterized.TestCase):
     )
     self.assertEqual(result.to_pytree(), {})
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
-    self.assertEqual(kde.to_itemid(result).eval(), itemid)  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(kde.to_itemid(result).eval(), itemid)
 
   def test_schema_with_bag(self):
     # Needs some field to ensure there is a DataBag attached to schema.
@@ -162,7 +162,7 @@ class FromProtoJsonTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.proto.from_proto_json,  # pyrefly: ignore[missing-attribute]
+            kde.proto.from_proto_json,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -170,18 +170,18 @@ class FromProtoJsonTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.proto.from_proto_json(I.x, I.proto_path))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.proto.from_proto_json(I.x, I.proto_path))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.proto.from_proto_json, kde.from_proto_json)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.proto.from_proto_json, kde.from_proto_json)
     )
 
   def test_repr(self):
     self.assertEqual(
         repr(
-            kde.proto.from_proto_json(  # pyrefly: ignore[missing-attribute]
+            kde.proto.from_proto_json(
                 I.x,
                 I.proto_path,
                 extensions=I.extensions,

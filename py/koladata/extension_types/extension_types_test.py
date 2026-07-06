@@ -39,16 +39,16 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M | objects.M
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
-_EXT_TYPE = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
+_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     extension_type_registry.BASE_QTYPE, '__main__._MyTestExtension'
 ).qvalue
 
-_DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
+_DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     extension_type_registry.BASE_QTYPE, '__main__._MyDummyExtension'
 ).qvalue
 
@@ -99,8 +99,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     self.assertEqual(value.y, 2)
 
     expr = ext_type(
-        x=arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),  # pyrefly: ignore[not-callable]
-        y=arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),  # pyrefly: ignore[not-callable]
+        x=arolla.M.annotation.qtype(I.x, qtypes.DATA_SLICE),
+        y=arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
     )
     self.assertIsInstance(expr, arolla.Expr)
     testing.assert_equal(
@@ -300,14 +300,14 @@ class ExtensionTypesTest(parameterized.TestCase):
     ext_types.extension_type()(C.B)
     testing.assert_equal(
         extension_type_registry.get_extension_qtype(A.B),
-        M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
+        M.derived_qtype.get_labeled_qtype(
             extension_type_registry.BASE_QTYPE,
             '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.A.B',
         ).qvalue,
     )
     testing.assert_equal(
         extension_type_registry.get_extension_qtype(C.B),
-        M.derived_qtype.get_labeled_qtype(  # pyrefly: ignore[missing-attribute]
+        M.derived_qtype.get_labeled_qtype(
             extension_type_registry.BASE_QTYPE,
             '__main__.ExtensionTypesTest.test_registered_with_fully_qualified_name.<locals>.C.B',
         ).qvalue,
@@ -554,7 +554,7 @@ class ExtensionTypesTest(parameterized.TestCase):
         MyChildExtension
     )
     with self.subTest('cast_to_self'):
-      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      expr = kde.extension_types.dynamic_cast(
           MyExtension(I.x), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
       self.assertIsInstance(expr, arolla.Expr)
@@ -567,7 +567,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       )
 
     with self.subTest('cast_to_parent'):
-      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      expr = kde.extension_types.dynamic_cast(
           MyChildExtension(I.x, I.y), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
       self.assertIsInstance(expr, arolla.Expr)
@@ -585,10 +585,10 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('cast_to_child'):
       # We can cast back to the child type again.
-      expr = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      expr = kde.extension_types.dynamic_cast(
           MyChildExtension(I.x, I.y), my_extension_qtype  # pyrefly: ignore[bad-argument-count]
       )
-      expr = kde.extension_types.dynamic_cast(expr, my_child_extension_qtype)  # pyrefly: ignore[missing-attribute]
+      expr = kde.extension_types.dynamic_cast(expr, my_child_extension_qtype)
       self.assertIsInstance(expr, arolla.Expr)
       testing.assert_equal(expr.eval(x=1, y=3), MyChildExtension(1, 3))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       # By default, we then also call the child impl.
@@ -682,7 +682,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_cast_to_parent'):
       b = B(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
-      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      a = kde.extension_types.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(18.0))
@@ -696,7 +696,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_cast_chained_override'):
       c = C(I.x, I.y)  # pyrefly: ignore[bad-argument-count]
-      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      a = kde.extension_types.dynamic_cast(
           c, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(a.fn1(3).eval(x=1, y=2), ds(-1.0))
@@ -848,7 +848,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy_with_casting'):
       b = B(I.x, I.y, I.z)  # pyrefly: ignore[bad-argument-count]
-      a = kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+      a = kde.extension_types.dynamic_cast(
           b, extension_type_registry.get_extension_qtype(A)
       )
       testing.assert_equal(
@@ -856,7 +856,7 @@ class ExtensionTypesTest(parameterized.TestCase):
           extension_type_registry.get_extension_qtype(A),
       )
       testing.assert_equal(
-          kde.extension_types.dynamic_cast(  # pyrefly: ignore[missing-attribute]
+          kde.extension_types.dynamic_cast(
               a.fn(), extension_type_registry.get_extension_qtype(B)
           ).eval(x=1, y=2, z=3),
           B(1, 2, 3),  # pyrefly: ignore[bad-argument-count, bad-argument-type]
@@ -913,7 +913,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       @ext_types.virtual()
       def fn(self, x) -> arolla.tuple(ds(1), ds(1)):  # pyrefly: ignore[invalid-annotation]
-        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
+        return kde.tuple(x, x)
 
     with self.subTest('eager'):
       a = A()
@@ -930,7 +930,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       @ext_types.virtual()
       def fn(self, x):
-        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
+        return kde.tuple(x, x)
 
     with self.subTest('eager'):
       a = A()
@@ -953,7 +953,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       @ext_types.virtual()
       def fn(self, x) -> arolla.tuple(ds(1), ds(1)):  # pyrefly: ignore[invalid-annotation]
-        return kde.tuple(x, x)  # pyrefly: ignore[missing-attribute]
+        return kde.tuple(x, x)
 
     with self.subTest('eager'):
       a = A()
@@ -1185,7 +1185,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
     with self.subTest('lazy'):
       a = extension_type_registry.wrap(objects.Object(x=ds(1)), a_qtype)
-      expr = M.core.identity(a)  # pyrefly: ignore[missing-attribute]
+      expr = M.core.identity(a)
       expected_repr = (
           'M.core.identity(A(x=DataItem(1, schema: INT32), y=<unknown>))'
       )
@@ -1235,7 +1235,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       def _extension_post_init(self):
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+          return kde.assertion.with_assertion(
               self, self.x > 0, 'x must be positive'
           )
         else:
@@ -1264,7 +1264,7 @@ class ExtensionTypesTest(parameterized.TestCase):
 
       def _extension_post_init(self):
         if isinstance(self, arolla.Expr):
-          kde.assertion.with_assertion(self, self.x > 0, 'x must be positive')  # pyrefly: ignore[missing-attribute]
+          kde.assertion.with_assertion(self, self.x > 0, 'x must be positive')
         else:
           if self.x <= 0:
             raise ValueError('x must be positive')
@@ -1289,7 +1289,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       @ext_types.virtual()
       def _extension_post_init(self) -> Self:
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(self, None, 'not implemented')  # pyrefly: ignore[missing-attribute]
+          return kde.assertion.with_assertion(self, None, 'not implemented')
         else:
           raise ValueError('not implemented')
 
@@ -1299,7 +1299,7 @@ class ExtensionTypesTest(parameterized.TestCase):
       @ext_types.override()
       def _extension_post_init(self) -> Self:
         if isinstance(self, arolla.Expr):
-          return kde.assertion.with_assertion(  # pyrefly: ignore[missing-attribute]
+          return kde.assertion.with_assertion(
               self, self.x > 0, 'x must be positive'
           )
         else:

@@ -34,7 +34,7 @@ class UpdateSchemaTest(absltest.TestCase):
     self.assertEqual(o.get_schema().y, schema_constants.FLOAT32)
 
     attrs.update_schema_fn(
-        o, x=kde.schema.new_schema(z=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+        o, x=kde.schema.new_schema(z=schema_constants.INT32).eval()
     )
     self.assertEqual(o.get_schema().x.z, schema_constants.INT32)
 

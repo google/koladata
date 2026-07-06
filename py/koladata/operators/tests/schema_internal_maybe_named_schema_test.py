@@ -33,38 +33,38 @@ kde = kde_operators.kde
 class KodaInternalMaybeNamedSchemaTest(absltest.TestCase):
 
   def test_passthrough(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     testing.assert_equal(
-        kde.schema.internal_maybe_named_schema(schema).eval(), schema  # pyrefly: ignore[missing-attribute]
+        kde.schema.internal_maybe_named_schema(schema).eval(), schema
     )
     testing.assert_equal(
-        kde.schema.internal_maybe_named_schema(schema_constants.INT32).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.schema.internal_maybe_named_schema(schema_constants.INT32).eval(),
         schema_constants.INT32,
     )
     testing.assert_equal(
-        kde.schema.internal_maybe_named_schema(arolla.unspecified()).eval(),  # pyrefly: ignore[missing-attribute]
+        kde.schema.internal_maybe_named_schema(arolla.unspecified()).eval(),
         arolla.unspecified(),
     )
 
   def test_named_schema(self):
-    res = kde.schema.internal_maybe_named_schema('name').eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.schema.internal_maybe_named_schema('name').eval()
     testing.assert_equal(
-        res.no_bag(), kde.named_schema('name').eval().no_bag()  # pyrefly: ignore[missing-attribute]
+        res.no_bag(), kde.named_schema('name').eval().no_bag()
     )
-    res = kde.schema.internal_maybe_named_schema(ds('name')).eval()  # pyrefly: ignore[missing-attribute]
+    res = kde.schema.internal_maybe_named_schema(ds('name')).eval()
     testing.assert_equal(
-        res.no_bag(), kde.named_schema('name').eval().no_bag()  # pyrefly: ignore[missing-attribute]
+        res.no_bag(), kde.named_schema('name').eval().no_bag()
     )
 
   def test_errors(self):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      kde.schema.internal_maybe_named_schema(42).eval()  # pyrefly: ignore[missing-attribute]
+      kde.schema.internal_maybe_named_schema(42).eval()
     with self.assertRaisesRegex(
         ValueError, 'schema can only be 0-rank schema slice'
     ):
-      kde.schema.internal_maybe_named_schema(  # pyrefly: ignore[missing-attribute]
+      kde.schema.internal_maybe_named_schema(
           data_slice.DataSlice.from_vals(
               [schema_constants.INT32, schema_constants.INT32]
           )
@@ -73,14 +73,14 @@ class KodaInternalMaybeNamedSchemaTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.internal_maybe_named_schema,  # pyrefly: ignore[missing-attribute]
+            kde.schema.internal_maybe_named_schema,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE), (arolla.UNSPECIFIED, arolla.UNSPECIFIED)),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.named_schema(I.name)))
 
 
 if __name__ == '__main__':

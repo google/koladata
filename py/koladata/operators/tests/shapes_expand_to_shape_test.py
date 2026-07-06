@@ -161,9 +161,9 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.expand_to_shape(1, js([2]), 0),  # pyrefly: ignore[missing-attribute]
+        kde.expand_to_shape(1, js([2]), 0),
         arolla.abc.bind_op(
-            kde.expand_to_shape,  # pyrefly: ignore[missing-attribute]
+            kde.expand_to_shape,
             literal_operator.literal(ds(1)),
             literal_operator.literal(js([2])),
             literal_operator.literal(ds(0)),
@@ -173,7 +173,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.expand_to_shape,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.expand_to_shape,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -181,12 +181,12 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.shapes.expand_to_shape(I.x, I.shape))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.shapes.expand_to_shape(I.x, I.shape))
     )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.shapes.expand_to_shape, kde.expand_to_shape)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.shapes.expand_to_shape, kde.expand_to_shape)
     )
 
 

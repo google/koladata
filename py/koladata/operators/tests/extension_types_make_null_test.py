@@ -32,7 +32,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
-M = arolla.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | objects.M
 
 
 @extension_types.extension_type()
@@ -46,20 +46,20 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesMakeNullTest(parameterized.TestCase):
 
   def test_make_null(self):
-    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))
     testing.assert_equal(result.qtype, A_qtype)
-    unwrapped = expr_eval.eval(kde.extension_types.unwrap(result))  # pyrefly: ignore[missing-attribute]
+    unwrapped = expr_eval.eval(kde.extension_types.unwrap(result))
     testing.assert_equal(
         unwrapped, objects.Object(_is_null_marker=arolla.present())
     )
 
   def test_get_attr_on_null(self):
-    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))
     with self.assertRaisesRegex(ValueError, "attribute not found: 'x'"):
       _ = result.x
 
   def test_with_attrs_on_null(self):
-    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.make_null(A_qtype))
     with self.assertRaisesRegex(
         ValueError, "expected a non-null extension type"
     ):
@@ -69,13 +69,13 @@ class ExtensionTypesMakeNullTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, "expected QTYPE, got qtype: DATA_SLICE"
     ):
-      kde.extension_types.make_null(ds(1))  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.make_null(ds(1))
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.make_null(A_qtype)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde.extension_types.make_null(A_qtype)))
     # Has the view of the ext QType.
-    self.assertTrue(hasattr(kde.extension_types.make_null(A_qtype), "x"))  # pyrefly: ignore[missing-attribute]
-    self.assertFalse(hasattr(kde.extension_types.make_null(A_qtype), "z"))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(hasattr(kde.extension_types.make_null(A_qtype), "x"))
+    self.assertFalse(hasattr(kde.extension_types.make_null(A_qtype), "z"))
 
 
 if __name__ == "__main__":

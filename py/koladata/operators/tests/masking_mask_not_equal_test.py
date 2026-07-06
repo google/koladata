@@ -90,18 +90,18 @@ class LogicalMaskNotEqualTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.masking.mask_not_equal,  # pyrefly: ignore[missing-attribute]
+            kde.masking.mask_not_equal,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.mask_not_equal(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.mask_not_equal(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.masking.mask_not_equal, kde.mask_not_equal)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.masking.mask_not_equal, kde.mask_not_equal)
     )
 
 

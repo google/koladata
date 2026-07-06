@@ -94,7 +94,7 @@ class ListShapedTest(parameterized.TestCase):
     )
 
   def test_itemid(self):
-    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
     x = fns.list_shaped(
         itemid.get_shape(), ds([['a', 'b'], ['c']]), itemid=itemid
     )
@@ -128,8 +128,8 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     shape = jagged_shape.create_shape([2])
-    list_schema = kde.list_schema(  # pyrefly: ignore[missing-attribute]
-        kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     lst = fns.list_shaped(shape, schema=list_schema)
 
@@ -154,7 +154,7 @@ class ListShapedTest(parameterized.TestCase):
         fns.list_shaped(
             shape,
             [1, 2.0],
-            schema=kde.list_schema(schema_constants.OBJECT).eval(),  # pyrefly: ignore[missing-attribute]
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(  # pyrefly: ignore[missing-attribute]
             data_slice.DataSlice.from_vals(
@@ -195,13 +195,13 @@ class ListShapedTest(parameterized.TestCase):
       (
           None,
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
       (
           [[1, 2], [3]],
           None,
-          kde.list_schema(item_schema=schema_constants.INT64).eval(),  # pyrefly: ignore[missing-attribute]
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
   )
@@ -222,7 +222,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     shape = jagged_shape.create_shape([2], [2, 1])
-    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()  # pyrefly: ignore[missing-attribute]
+    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):

@@ -56,13 +56,13 @@ class KolaInputTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected container_name to be a literal')
     ):
-      _KOLA_INPUT_OP(arolla.M.annotation.qtype(arolla.L.x, arolla.TEXT), 'x')  # pyrefly: ignore[not-callable]
+      _KOLA_INPUT_OP(arolla.M.annotation.qtype(arolla.L.x, arolla.TEXT), 'x')
 
   def test_non_literal_input_key_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected input_key to be a literal')
     ):
-      _KOLA_INPUT_OP('V', arolla.M.annotation.qtype(arolla.L.x, arolla.TEXT))  # pyrefly: ignore[not-callable]
+      _KOLA_INPUT_OP('V', arolla.M.annotation.qtype(arolla.L.x, arolla.TEXT))
 
   def test_non_text_container_name_error(self):
     with self.assertRaisesRegex(

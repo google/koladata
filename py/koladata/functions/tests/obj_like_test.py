@@ -55,7 +55,7 @@ class ObjLikeTest(absltest.TestCase):
     x = fns.obj_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)  # pyrefly: ignore[missing-attribute]
+        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(x.a, ds(None).with_bag(x.get_bag()))
 
@@ -98,7 +98,7 @@ class ObjLikeTest(absltest.TestCase):
     x = fns.obj_like(ds([None, None]), a=42)
     testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)  # pyrefly: ignore[missing-attribute]
+        kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(x.a, ds([None, None]).with_bag(x.get_bag()))
 
@@ -112,7 +112,7 @@ class ObjLikeTest(absltest.TestCase):
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_itemid())
 
     with self.subTest('present DataItem and present itemid'):
       x = fns.obj_like(ds(1), a=42, itemid=itemid)
@@ -139,9 +139,9 @@ class ObjLikeTest(absltest.TestCase):
         _ = fns.obj_like(ds(1), a=42, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
-    id2 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
-    id3 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
+    id1 = expr_eval.eval(kde.allocation.new_itemid())
+    id2 = expr_eval.eval(kde.allocation.new_itemid())
+    id3 = expr_eval.eval(kde.allocation.new_itemid())
 
     with self.subTest('full DataSlice and full itemid'):
       x = fns.obj_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))

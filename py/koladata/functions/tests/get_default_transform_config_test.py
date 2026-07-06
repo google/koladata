@@ -56,13 +56,13 @@ def _parallel_eval(
       allow_runtime_transforms=allow_runtime_transforms
   )
 
-  transformed_fn = kde_internal.parallel.transform(config, f)  # pyrefly: ignore[missing-attribute]
-  res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+  transformed_fn = kde_internal.parallel.transform(config, f)
+  res = kde_internal.parallel.stream_from_future(
       transformed_fn(
-          kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-          *[kde_internal.parallel.as_future(arg) for arg in args],  # pyrefly: ignore[missing-attribute]
-          return_type_as=kde_internal.parallel.as_future(return_type_as),  # pyrefly: ignore[missing-attribute]
-          **{k: kde_internal.parallel.as_future(v) for k, v in kwargs.items()},  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_default_executor(),
+          *[kde_internal.parallel.as_future(arg) for arg in args],
+          return_type_as=kde_internal.parallel.as_future(return_type_as),
+          **{k: kde_internal.parallel.as_future(v) for k, v in kwargs.items()},
       )
   ).eval()
   return res.read_all(timeout=5.0)[0]
@@ -72,7 +72,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def _wait_until_n_items(self, stream, n):
     """Waits until at least n items, end-of-stream is counted as 1 item."""
-    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
+    executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
     reader = stream.make_reader()
     found = 0
     while True:
@@ -92,15 +92,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   def test_basic(self):
     testing.assert_equal(
         parallel_fns.get_default_transform_config().qtype,
-        arolla.eval(kde_internal.parallel.get_transform_config_qtype()),  # pyrefly: ignore[missing-attribute]
+        arolla.eval(kde_internal.parallel.get_transform_config_qtype()),
     )
 
   @parameterized.named_parameters(
       (
           'arolla_tuple',
-          arolla.M.core.make_tuple,  # pyrefly: ignore[missing-attribute]
-          lambda x: arolla.M.core.get_nth(x, 0),  # pyrefly: ignore[missing-attribute]
-          lambda x: arolla.M.core.get_nth(x, 1),  # pyrefly: ignore[missing-attribute]
+          arolla.M.core.make_tuple,
+          lambda x: arolla.M.core.get_nth(x, 0),
+          lambda x: arolla.M.core.get_nth(x, 1),
       ),
       (
           'koda_tuple',
@@ -111,9 +111,9 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       ('python_tuple', lambda x, y: (x, y), lambda x: x[0], lambda x: x[1]),
       (
           'arolla_namedtuple',
-          lambda x, y: arolla.M.namedtuple.make(a=x, b=y),  # pyrefly: ignore[missing-attribute]
-          lambda x: arolla.M.namedtuple.get_field(x, 'a'),  # pyrefly: ignore[missing-attribute]
-          lambda x: arolla.M.namedtuple.get_field(x, 'b'),  # pyrefly: ignore[missing-attribute]
+          lambda x, y: arolla.M.namedtuple.make(a=x, b=y),
+          lambda x: arolla.M.namedtuple.get_field(x, 'a'),
+          lambda x: arolla.M.namedtuple.get_field(x, 'b'),
       ),
       (
           'koda_namedtuple',
@@ -160,17 +160,17 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     fn = functor_factories.trace_py_fn(g)
     config = parallel_fns.get_default_transform_config()
-    executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
+    executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     future_1 = expr_eval.eval(
-        kde_internal.parallel.async_eval(executor, wait_and_return_1)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.async_eval(executor, wait_and_return_1)
     )
     future_2 = expr_eval.eval(
-        kde_internal.parallel.async_eval(executor, wait_and_return_2)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.async_eval(executor, wait_and_return_2)
     )
-    future_none = expr_eval.eval(kde_internal.parallel.as_future(None))  # pyrefly: ignore[missing-attribute]
+    future_none = expr_eval.eval(kde_internal.parallel.as_future(None))
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
         x=future_1,
         y=future_2,
         return_type_as=make_tuple_fn(future_none, future_none),
@@ -178,10 +178,10 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     # Make sure the tuple elements can be evaluated independently, with
     # no barrier to sync.
-    first_as_stream = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    first_as_stream = kde_internal.parallel.stream_from_future(
         get_first_fn(res)
     ).eval()
-    second_as_stream = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    second_as_stream = kde_internal.parallel.stream_from_future(
         get_second_fn(res)
     ).eval()
     # unlock get_second_fn while get_first_fn is still waiting.
@@ -193,16 +193,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   def test_non_deterministic_token_handling(self):
     fn = functor_factories.expr_fn(optools.unified_non_deterministic_arg())
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
         return_type_as=optools.unified_non_deterministic_arg(),
     ).eval()
     self.assertEqual(res.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
     self.assertNotIn('async_eval', str(res))
     # To make sure the assert above is meaningful.
-    res_no_replacements = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
-        expr_eval.eval(kde_internal.parallel.create_transform_config(None)),  # pyrefly: ignore[missing-attribute]
+    res_no_replacements = kde_internal.parallel.transform(
+        expr_eval.eval(kde_internal.parallel.create_transform_config(None)),
         fn,
     ).eval()
     self.assertIn('async_eval', str(res_no_replacements))
@@ -217,15 +217,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     fn = functor_factories.trace_py_fn(f)
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(x),  # pyrefly: ignore[missing-attribute]
-        y=kde_internal.parallel.as_future(y),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(x),
+        y=kde_internal.parallel.as_future(y),
+        return_type_as=kde_internal.parallel.as_future(None),
     ).eval()
 
-    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()  # pyrefly: ignore[missing-attribute]
+    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()
     testing.assert_equal(
         res_as_stream.read_all(timeout=5.0)[0],
         ds([2, None, 4]).with_bag(x.get_bag()),
@@ -240,14 +240,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     fn = functor_factories.trace_py_fn(f)
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(x),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(x),
+        return_type_as=kde_internal.parallel.as_future(None),
     ).eval()
 
-    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()  # pyrefly: ignore[missing-attribute]
+    res_as_stream = kde_internal.parallel.stream_from_future(res).eval()
     testing.assert_equal(
         res_as_stream.read_all(timeout=5.0)[0],
         ds(4).with_bag(x.get_bag()),
@@ -278,12 +278,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         )
     )
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(ds(1)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds(1)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     if branch_to_use:
@@ -302,25 +302,25 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         )
     )
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
     y = fns.new()
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(mask_constants.present),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(y),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(mask_constants.present),
+            kde_internal.parallel.as_future(y),
+            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),
         )
     ).eval()
     new_y = y.updated(res.read_all(timeout=5.0)[0])
     testing.assert_equal(new_y.foo.no_bag(), ds(1))
 
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(mask_constants.missing),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(y),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(mask_constants.missing),
+            kde_internal.parallel.as_future(y),
+            return_type_as=kde_internal.parallel.as_future(data_bag.DataBag),
         )
     ).eval()
     new_y = y.updated(res.read_all(timeout=5.0)[0])
@@ -359,12 +359,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       )
 
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, fn)  # pyrefly: ignore[missing-attribute]
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, fn)
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(ds(1)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds(1)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(expected_result))
@@ -396,16 +396,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return 3
 
     def f():
-      return kde.iterables.make(  # pyrefly: ignore[missing-attribute]
+      return kde.iterables.make(
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -452,16 +452,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return 3
 
     def f():
-      return kde.iterables.make_unordered(  # pyrefly: ignore[missing-attribute]
+      return kde.iterables.make_unordered(
           wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -484,63 +484,63 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     self.assertIsNone(reader.read_available())
 
   @parameterized.parameters(
-      kde.iterables.make,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.make_unordered,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.chain,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.interleave,  # pyrefly: ignore[missing-attribute]
+      kde.iterables.make,
+      kde.iterables.make_unordered,
+      kde.iterables.chain,
+      kde.iterables.interleave,
   )
   def test_iterables_make_empty(self, op):
 
     def f():
       return op()
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEqual(res.read_all(timeout=5.0), [])
 
   @parameterized.parameters(
-      kde.iterables.make,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.make_unordered,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.chain,  # pyrefly: ignore[missing-attribute]
-      kde.iterables.interleave,  # pyrefly: ignore[missing-attribute]
+      kde.iterables.make,
+      kde.iterables.make_unordered,
+      kde.iterables.chain,
+      kde.iterables.interleave,
   )
   def test_iterables_make_empty_bags(self, op):
 
     def f():
       return op(value_type_as=data_bag.DataBag)
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEqual(res.read_all(timeout=5.0), [])
 
-  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)  # pyrefly: ignore[missing-attribute]
+  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)
   def test_iterables_make_bags(self, op):
 
     def f(x):
       return op(x, value_type_as=data_bag.DataBag)
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(db),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(db),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
@@ -548,21 +548,21 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
         arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(db)
     )
 
-  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)  # pyrefly: ignore[missing-attribute]
+  @parameterized.parameters(kde.iterables.make, kde.iterables.make_unordered)
   def test_iterables_make_tuples(self, op):
 
     def f(x, y):
-      return op(kde.tuple(x, y))  # pyrefly: ignore[missing-attribute]
+      return op(kde.tuple(x, y))
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(1),  # pyrefly: ignore[missing-attribute]
-        y=kde_internal.parallel.as_future(2),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
-            value_type_as=kde.tuple(None, None)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(1),
+        y=kde_internal.parallel.as_future(2),
+        return_type_as=kde_internal.parallel.stream_make(
+            value_type_as=kde.tuple(None, None)
         ),
     ).eval()
     self.assertEqual(
@@ -609,19 +609,19 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return 4
 
     def f():
-      return kde.iterables.chain(  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_3()),  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_4()),  # pyrefly: ignore[missing-attribute]
+      return kde.iterables.chain(
+          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),
+          kde.iterables.make(wait_and_return_3()),
+          kde.iterables.make(wait_and_return_4()),
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         f,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -678,18 +678,18 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return 4
 
     def f():
-      return kde.iterables.interleave(  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_3()),  # pyrefly: ignore[missing-attribute]
-          kde.iterables.make(wait_and_return_4()),  # pyrefly: ignore[missing-attribute]
+      return kde.iterables.interleave(
+          kde.iterables.make(wait_and_return_1(), wait_and_return_2()),
+          kde.iterables.make(wait_and_return_3()),
+          kde.iterables.make(wait_and_return_4()),
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
     time.sleep(0.01)
@@ -716,20 +716,20 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
     self.assertIsNone(reader.read_available())
 
-  @parameterized.parameters(kde.iterables.chain, kde.iterables.interleave)  # pyrefly: ignore[missing-attribute]
+  @parameterized.parameters(kde.iterables.chain, kde.iterables.interleave)
   def test_iterables_concat_bags(self, op):
 
     def f(x):
-      return op(kde.iterables.make(x), value_type_as=data_bag.DataBag)  # pyrefly: ignore[missing-attribute]
+      return op(kde.iterables.make(x), value_type_as=data_bag.DataBag)
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     db = data_bag.DataBag.empty_mutable().freeze()
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(db),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        x=kde_internal.parallel.as_future(db),
+        return_type_as=kde_internal.parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
     ).eval()
@@ -776,14 +776,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x):
       return user_facing_kd.functor.flat_map_chain(x, f)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
         x=stream,
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -852,14 +852,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x):
       return user_facing_kd.functor.flat_map_interleaved(x, f)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
         x=stream,
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -900,15 +900,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.functor.reduce(f, x, initial)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            x=kde_internal.parallel.stream_make(1, 2, 3, 4),  # pyrefly: ignore[missing-attribute]
-            initial=kde_internal.parallel.as_future(5),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(1, 2, 3, 4),
+            initial=kde_internal.parallel.as_future(5),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -922,15 +922,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return user_facing_kd.functor.reduce(f, x, initial)  # pyrefly: ignore[missing-attribute]
 
     config = parallel_fns.get_default_transform_config()
-    transformed_fn = kde_internal.parallel.transform(config, g)  # pyrefly: ignore[missing-attribute]
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.future_from_parallel(  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(config, g)
+    res = kde_internal.parallel.stream_from_future(
+        kde_internal.parallel.future_from_parallel(
+            kde_internal.parallel.get_default_executor(),
             transformed_fn(
-                kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-                x=kde_internal.parallel.stream_make(1, 2, 3, 4),  # pyrefly: ignore[missing-attribute]
-                initial=kde_internal.parallel.as_parallel((5, 6)),  # pyrefly: ignore[missing-attribute]
-                return_type_as=kde_internal.parallel.as_parallel((None, None)),  # pyrefly: ignore[missing-attribute]
+                kde_internal.parallel.get_default_executor(),
+                x=kde_internal.parallel.stream_make(1, 2, 3, 4),
+                initial=kde_internal.parallel.as_parallel((5, 6)),
+                return_type_as=kde_internal.parallel.as_parallel((None, None)),
             ),
         )
     ).eval()
@@ -943,15 +943,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.iterables.reduce_concat(x, initial)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            x=kde_internal.parallel.stream_make(ds([1]), ds([2])),  # pyrefly: ignore[missing-attribute]
-            initial=kde_internal.parallel.as_future(ds([5])),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(ds([1]), ds([2])),
+            initial=kde_internal.parallel.as_future(ds([5])),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -961,16 +961,16 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial, ndim):
       return user_facing_kd.iterables.reduce_concat(x, initial, ndim=ndim)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            x=kde_internal.parallel.stream_make(ds([[1]]), ds([[2]])),  # pyrefly: ignore[missing-attribute]
-            initial=kde_internal.parallel.as_future(ds([[5]])),  # pyrefly: ignore[missing-attribute]
-            ndim=kde_internal.parallel.as_future(ds(2)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(ds([[1]]), ds([[2]])),
+            initial=kde_internal.parallel.as_future(ds([[5]])),
+            ndim=kde_internal.parallel.as_future(ds(2)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
 
@@ -980,19 +980,19 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     def g(x, initial):
       return user_facing_kd.iterables.reduce_updated_bag(x, initial)  # pyrefly: ignore[missing-attribute]
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     o = fns.new()
     b1 = kd.attrs(o, a=1, b=5)
     b2 = kd.attrs(o, b=2)
     b3 = kd.attrs(o, c=3, a=4)
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            x=kde_internal.parallel.stream_make(b1, b2),  # pyrefly: ignore[missing-attribute]
-            initial=kde_internal.parallel.as_future(b3),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(b1),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            x=kde_internal.parallel.stream_make(b1, b2),
+            initial=kde_internal.parallel.as_future(b3),
+            return_type_as=kde_internal.parallel.as_future(b1),
         )
     ).eval()
 
@@ -1013,15 +1013,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             returns=1,
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            n=kde_internal.parallel.as_future(5),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            n=kde_internal.parallel.as_future(5),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(120))
@@ -1040,14 +1040,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        n=kde_internal.parallel.as_future(5),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        n=kde_internal.parallel.as_future(5),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1068,14 +1068,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        n=kde_internal.parallel.as_future(5),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        n=kde_internal.parallel.as_future(5),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertCountEqual(
         [x.to_py() for x in res.read_all(timeout=5.0)],
@@ -1129,12 +1129,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1204,12 +1204,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1246,15 +1246,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             returns=1,
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(120))
@@ -1271,14 +1271,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1297,14 +1297,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     self.assertCountEqual(
         [x.to_py() for x in res.read_all(timeout=5.0)],
@@ -1356,12 +1356,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           yields=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1429,12 +1429,12 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           yields_interleaved=user_facing_kd.iterables.make(),  # pyrefly: ignore[missing-attribute]
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), g
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
 
     reader = res.make_reader()
@@ -1473,14 +1473,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make(2, 3)},  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1500,15 +1500,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             returns=0,
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(-15))
@@ -1525,14 +1525,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make()},  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1550,15 +1550,15 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             returns=0,
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            vals=kde_internal.parallel.stream_make(*range(1, 6)),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(res.read_all(timeout=5.0)[0], ds(6))
@@ -1577,14 +1577,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
             **{yield_mode: user_facing_kd.iterables.make()},  # pyrefly: ignore[missing-attribute]
         )
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(),
         factorial,
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        vals=kde_internal.parallel.stream_make(*range(1, 6)),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        vals=kde_internal.parallel.stream_make(*range(1, 6)),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1897,7 +1897,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
   def test_map_cancellable(self):
     expr = lambda x: user_facing_kd.functor.map(  # pyrefly: ignore[missing-attribute]
         functor_factories.expr_fn(
-            arolla.M.core._identity_with_cancel(I.self, 'cancelled')  # pyrefly: ignore[missing-attribute]
+            arolla.M.core._identity_with_cancel(I.self, 'cancelled')
         ),
         x,
     )
@@ -1959,13 +1959,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     f = functor_factories.trace_py_fn(
         lambda seq: user_facing_kd.functor.flat_map_chain(seq, tokenize)  # pyrefly: ignore[missing-attribute]
     )
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_make('a b c', 'foo bar'),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        kde_internal.parallel.stream_make('a b c', 'foo bar'),
+        return_type_as=kde_internal.parallel.stream_make(),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1974,13 +1974,13 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
   def test_iterable_from_1d_slice(self):
     f = functor_factories.fn(lambda x: user_facing_kd.iterables.from_1d_slice(x))  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
-        x=kde_internal.parallel.as_future(ds([1, 2, 3])),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
+        x=kde_internal.parallel.as_future(ds([1, 2, 3])),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -1998,14 +1998,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
       return add(a, b)
 
     f = functor_factories.fn(add_fixed, auto_variables=False)
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
-    res = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(ds([4, 5, 6])),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            kde_internal.parallel.as_future(ds([4, 5, 6])),
+            return_type_as=kde_internal.parallel.as_future(None),
         )
     ).eval()
     testing.assert_equal(
@@ -2022,14 +2022,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           'Test assertion triggered',
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
     res = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
-        value=kde_internal.parallel.stream_make(1, 2),  # pyrefly: ignore[missing-attribute]
-        cond=kde_internal.parallel.as_future(mask_constants.present),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
+        value=kde_internal.parallel.stream_make(1, 2),
+        cond=kde_internal.parallel.as_future(mask_constants.present),
     ).eval()
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
@@ -2038,10 +2038,10 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
 
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res_error = transformed_fn(
-        kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-        return_type_as=kde_internal.parallel.stream_make(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.get_default_executor(),
+        return_type_as=kde_internal.parallel.stream_make(),
         value=stream,
-        cond=kde_internal.parallel.as_future(mask_constants.missing),  # pyrefly: ignore[missing-attribute]
+        cond=kde_internal.parallel.as_future(mask_constants.missing),
     ).eval()
     # Note that we don't close the writer here, since we want to make sure
     # the assertion does not wait for the stream to be computed.
@@ -2066,14 +2066,14 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           'Test assertion triggered',
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
-    res_error = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res_error = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
-            cond=kde_internal.parallel.as_future(mask_constants.missing),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            return_type_as=kde_internal.parallel.as_future(None),
+            cond=kde_internal.parallel.as_future(mask_constants.missing),
         )
     ).eval()
     # Note that we don't trigger e1 here, since we want to make sure
@@ -2096,17 +2096,17 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
           y,
       )
 
-    transformed_fn = kde_internal.parallel.transform(  # pyrefly: ignore[missing-attribute]
+    transformed_fn = kde_internal.parallel.transform(
         parallel_fns.get_default_transform_config(), f
     )
-    res_error = kde_internal.parallel.stream_from_future(  # pyrefly: ignore[missing-attribute]
+    res_error = kde_internal.parallel.stream_from_future(
         transformed_fn(
-            kde_internal.parallel.get_default_executor(),  # pyrefly: ignore[missing-attribute]
-            return_type_as=kde_internal.parallel.as_future(None),  # pyrefly: ignore[missing-attribute]
-            value=kde_internal.parallel.as_future(ds(1)),  # pyrefly: ignore[missing-attribute]
-            cond=kde_internal.parallel.as_future(mask_constants.missing),  # pyrefly: ignore[missing-attribute]
-            x=kde_internal.parallel.as_future(ds(2)),  # pyrefly: ignore[missing-attribute]
-            y=kde_internal.parallel.as_future(ds(3)),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.get_default_executor(),
+            return_type_as=kde_internal.parallel.as_future(None),
+            value=kde_internal.parallel.as_future(ds(1)),
+            cond=kde_internal.parallel.as_future(mask_constants.missing),
+            x=kde_internal.parallel.as_future(ds(2)),
+            y=kde_internal.parallel.as_future(ds(3)),
         )
     ).eval()
     with self.assertRaisesRegex(

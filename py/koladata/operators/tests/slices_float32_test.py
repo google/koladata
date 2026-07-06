@@ -46,44 +46,44 @@ class SlicesFloat32Test(parameterized.TestCase):
       ([1, literal_operator.literal(ds(2)), 3], ds([1.0, 2.0, 3.0])),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.slices.float32(x))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde.slices.float32(x))
     testing.assert_equal(res, expected)
 
   def test_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape("unable to parse FLOAT32: 'foo'")
     ):
-      expr_eval.eval(kde.slices.float32(ds("foo")))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.slices.float32(ds("foo")))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.slices.float32(1),  # pyrefly: ignore[missing-attribute]
+        kde.slices.float32(1),
         arolla.abc.bind_op(
-            kde.slices.float32,  # pyrefly: ignore[missing-attribute]
+            kde.slices.float32,
             literal_operator.literal(ds(1, schema_constants.FLOAT32)),
         ),
     )
 
   def test_binding_args(self):
     testing.assert_equal(
-        kde.slices.float32(I.x),  # pyrefly: ignore[missing-attribute]
-        arolla.abc.bind_op(kde.slices.float32, I.x),  # pyrefly: ignore[missing-attribute]
+        kde.slices.float32(I.x),
+        arolla.abc.bind_op(kde.slices.float32, I.x),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.float32,  # pyrefly: ignore[missing-attribute]
+            kde.slices.float32,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.float32(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.float32(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.float32, kde.float32))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.float32, kde.float32))
 
 
 if __name__ == "__main__":

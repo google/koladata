@@ -113,7 +113,7 @@ class SlicesZipTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.zip,  # pyrefly: ignore[missing-attribute]
+        kde.slices.zip,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES  # pyrefly: ignore[bad-argument-type]
         + (
@@ -125,14 +125,14 @@ class SlicesZipTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.zip(I.x, I.y, I.z)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.zip(I.x, I.y, I.z)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.zip, kde.zip))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.zip, kde.zip))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.slices.zip(I.x, I.y, I.z)), 'kd.slices.zip(I.x, I.y, I.z)'  # pyrefly: ignore[missing-attribute]
+        repr(kde.slices.zip(I.x, I.y, I.z)), 'kd.slices.zip(I.x, I.y, I.z)'
     )
 
 

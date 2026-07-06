@@ -57,17 +57,17 @@ class LogicalAnyTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.masking.any,  # pyrefly: ignore[missing-attribute]
+            kde.masking.any,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.any(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.any(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.any, kde.any))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.masking.any, kde.any))
 
 
 if __name__ == '__main__':

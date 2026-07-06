@@ -88,7 +88,7 @@ class KdExtTest(absltest.TestCase):
 
     kd.testing.assert_equal(
         kd.expr.unpack_expr(traced_f.returns).op,
-        arolla.M.annotation.source_location,  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location,
     )
 
   def test_ids_package(self):

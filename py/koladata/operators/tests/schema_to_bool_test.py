@@ -100,23 +100,23 @@ class SchemaToBoolTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.to_bool(True),  # pyrefly: ignore[missing-attribute]
+        kde.schema.to_bool(True),
         arolla.abc.bind_op(
-            kde.schema.to_bool, literal_operator.literal(ds(True))  # pyrefly: ignore[missing-attribute]
+            kde.schema.to_bool, literal_operator.literal(ds(True))
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.to_bool,  # pyrefly: ignore[missing-attribute]
+            kde.schema.to_bool,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.to_bool(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.to_bool(I.x)))
 
 
 if __name__ == "__main__":

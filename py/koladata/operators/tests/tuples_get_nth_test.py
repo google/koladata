@@ -50,33 +50,33 @@ class TuplesGetNthTest(parameterized.TestCase):
       (arolla.types.Slice(ds(0), ds(1)), ds(1), ds(1)),
   )
   def test_eval(self, tpl, n, expected):
-    result = expr_eval.eval(kde.tuples.get_nth(tpl, n))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.tuples.get_nth(tpl, n))
     view_result = expr_eval.eval(view_overloads.get_item(tpl, n))
     testing.assert_equal(result, expected)
     testing.assert_equal(view_result, expected)
 
   def test_eval_non_literal_x(self):
-    result = expr_eval.eval(kde.tuples.get_nth(I.tpl, 0), tpl=(1, 2, 3))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.tuples.get_nth(I.tpl, 0), tpl=(1, 2, 3))
     testing.assert_equal(result, ds(1))
 
   def test_non_literal_n_error(self):
     with self.assertRaisesRegex(ValueError, '`n` must be literal'):
-      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), I.n), n=ds(1))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), I.n), n=ds(1))
 
   def test_negative_n_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a non-negative integer, got n=-1')
     ):
-      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), -1))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), -1))
 
   def test_oob_n_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('index out of range: n=3')
     ):
-      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), 3))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), 3))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.tuples.get_nth(I.x, 0)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.tuples.get_nth(I.x, 0)))
 
 
 if __name__ == '__main__':

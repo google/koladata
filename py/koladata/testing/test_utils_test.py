@@ -57,10 +57,10 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_equal_expr(self):
     # Success.
-    test_utils.assert_equal(kde.math.add(1, 3), kde.math.add(1, 3))  # pyrefly: ignore[missing-attribute]
+    test_utils.assert_equal(kde.math.add(1, 3), kde.math.add(1, 3))
     # Failure.
-    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)  # pyrefly: ignore[missing-attribute]
-    rhs = kde.math.subtract(1, 3)  # pyrefly: ignore[missing-attribute]
+    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)
+    rhs = kde.math.subtract(1, 3)
     with self.assertRaisesWithLiteralMatch(
         AssertionError,
         f"""Exprs not equal by fingerprint:
@@ -141,12 +141,12 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_not_equal_expr(self):
     # Success.
-    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)  # pyrefly: ignore[missing-attribute]
-    rhs = kde.math.subtract(1, 3)  # pyrefly: ignore[missing-attribute]
+    lhs = kde.math.add(kde.with_name(kde.math.add(1, 3), 'x'), 4)
+    rhs = kde.math.subtract(1, 3)
     test_utils.assert_not_equal(lhs, rhs)
     # Failure.
-    lhs = kde.math.subtract(1, 3)  # pyrefly: ignore[missing-attribute]
-    rhs = kde.math.subtract(1, 3)  # pyrefly: ignore[missing-attribute]
+    lhs = kde.math.subtract(1, 3)
+    rhs = kde.math.subtract(1, 3)
     with self.assertRaisesWithLiteralMatch(
         AssertionError,
         f"""Exprs equal by fingerprint:
@@ -466,18 +466,18 @@ class TestUtilsTest(parameterized.TestCase):
       )
 
   @parameterized.parameters(
-      (kde.new(), kde.new()),  # pyrefly: ignore[missing-attribute]
-      (kde.new(a=42, b='xyz'), kde.new(a=42, b='xyz')),  # pyrefly: ignore[missing-attribute]
-      (kde.implode(ds([1, 2, 3])), kde.implode(ds([1, 2, 3]))),  # pyrefly: ignore[missing-attribute]
+      (kde.new(), kde.new()),
+      (kde.new(a=42, b='xyz'), kde.new(a=42, b='xyz')),
+      (kde.implode(ds([1, 2, 3])), kde.implode(ds([1, 2, 3]))),
       (
-          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),  # pyrefly: ignore[missing-attribute]
-          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),  # pyrefly: ignore[missing-attribute]
+          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
+          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
       ),
       (
-          kde.explode(kde.implode(ds([1, 2, 3])))  # pyrefly: ignore[missing-attribute]
-          + kde.explode(kde.implode(ds([4, 5, 6]))),  # pyrefly: ignore[missing-attribute]
-          kde.explode(kde.implode(ds([1, 2, 3])))  # pyrefly: ignore[missing-attribute]
-          + kde.explode(kde.implode(ds([4, 5, 6]))),  # pyrefly: ignore[missing-attribute]
+          kde.explode(kde.implode(ds([1, 2, 3])))
+          + kde.explode(kde.implode(ds([4, 5, 6]))),
+          kde.explode(kde.implode(ds([1, 2, 3])))
+          + kde.explode(kde.implode(ds([4, 5, 6]))),
       ),
   )
   def test_assert_non_deterministic_exprs_equal(
@@ -494,12 +494,12 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_non_deterministic_exprs_equal(
-          kde.new(a=12), kde.new(a=42)  # pyrefly: ignore[missing-attribute]
+          kde.new(a=12), kde.new(a=42)
       )
 
   def test_assert_traced_exprs_equal(self):
     test_utils.assert_traced_exprs_equal(
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
             I.x // I.y,  # pyrefly: ignore[unsupported-operation]
             arolla.namedtuple(
                 function_name='foo',
@@ -513,7 +513,7 @@ class TestUtilsTest(parameterized.TestCase):
         I.x // I.y + 1,  # pyrefly: ignore[unsupported-operation]
     )
     test_utils.assert_traced_exprs_equal(
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
             I.x // I.y,  # pyrefly: ignore[unsupported-operation]
             arolla.namedtuple(
                 function_name='foo',
@@ -524,7 +524,7 @@ class TestUtilsTest(parameterized.TestCase):
             ),
         )
         + 1,
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
             I.x // I.y,  # pyrefly: ignore[unsupported-operation]
             arolla.namedtuple(
                 function_name='bar',
@@ -540,7 +540,7 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_exprs_equal(
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
               I.x // I.y,  # pyrefly: ignore[unsupported-operation]
               arolla.namedtuple(
                   function_name='foo',
@@ -551,7 +551,7 @@ class TestUtilsTest(parameterized.TestCase):
               ),
           )
           + 1,
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
               I.y // I.x,  # pyrefly: ignore[unsupported-operation]
               arolla.namedtuple(
                   function_name='bar',
@@ -570,8 +570,8 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_exprs_equal(
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-              kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
+              kde.new(a=12),
               arolla.namedtuple(
                   function_name='foo',
                   file_name='file.py',
@@ -581,8 +581,8 @@ class TestUtilsTest(parameterized.TestCase):
               ),
           )
           + 1,
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-              kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
+              kde.new(a=12),
               arolla.namedtuple(
                   function_name='bar',
                   file_name='file.py',
@@ -595,10 +595,10 @@ class TestUtilsTest(parameterized.TestCase):
       )
 
   def test_assert_non_deterministic_exprs_equal_repeated_expr(self):
-    expr = kde.explode(kde.implode(ds([1])))  # pyrefly: ignore[missing-attribute]
+    expr = kde.explode(kde.implode(ds([1])))
     expr_1 = expr + expr
-    expr_2 = kde.explode(kde.implode(ds([1]))) + kde.explode(  # pyrefly: ignore[missing-attribute]
-        kde.implode(ds([1]))  # pyrefly: ignore[missing-attribute]
+    expr_2 = kde.explode(kde.implode(ds([1]))) + kde.explode(
+        kde.implode(ds([1]))
     )
     with self.assertRaisesRegex(
         AssertionError, 'Exprs not equal by fingerprint'
@@ -607,8 +607,8 @@ class TestUtilsTest(parameterized.TestCase):
 
   def test_assert_traced_non_deterministic_exprs_equal(self):
     test_utils.assert_traced_non_deterministic_exprs_equal(
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-            kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
+            kde.new(a=12),
             arolla.namedtuple(
                 function_name='foo',
                 file_name='file.py',
@@ -618,11 +618,11 @@ class TestUtilsTest(parameterized.TestCase):
             ),
         )
         + 1,
-        kde.new(a=12) + 1,  # pyrefly: ignore[missing-attribute]
+        kde.new(a=12) + 1,
     )
     test_utils.assert_traced_non_deterministic_exprs_equal(
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-            kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
+            kde.new(a=12),
             arolla.namedtuple(
                 function_name='foo',
                 file_name='file.py',
@@ -632,8 +632,8 @@ class TestUtilsTest(parameterized.TestCase):
             ),
         )
         + 1,
-        arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-            kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+        arolla.M.annotation.source_location(
+            kde.new(a=12),
             arolla.namedtuple(
                 function_name='bar',
                 file_name='file.py',
@@ -648,8 +648,8 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_traced_non_deterministic_exprs_equal(
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-              kde.new(a=12),  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
+              kde.new(a=12),
               arolla.namedtuple(
                   function_name='foo',
                   file_name='file.py',
@@ -659,8 +659,8 @@ class TestUtilsTest(parameterized.TestCase):
               ),
           )
           + 1,
-          arolla.M.annotation.source_location(  # pyrefly: ignore[missing-attribute]
-              kde.new(a=42),  # pyrefly: ignore[missing-attribute]
+          arolla.M.annotation.source_location(
+              kde.new(a=42),
               arolla.namedtuple(
                   function_name='bar',
                   file_name='file.py',

@@ -309,7 +309,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.find,  # pyrefly: ignore[missing-attribute]
+        kde.strings.find,
         QTYPES,
         # Limit the allowed qtypes to speed up the test.
         possible_qtypes=(
@@ -321,7 +321,7 @@ class StringsFindTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.find(I.a, I.b)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.find(I.a, I.b)))
 
 
 if __name__ == '__main__':

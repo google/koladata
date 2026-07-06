@@ -153,9 +153,9 @@ class StringsSplitTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.strings.split('hello'),  # pyrefly: ignore[missing-attribute]
+        kde.strings.split('hello'),
         arolla.abc.bind_op(
-            kde.strings.split,  # pyrefly: ignore[missing-attribute]
+            kde.strings.split,
             literal_operator.literal(data_slice.DataSlice.from_vals('hello')),
             literal_operator.literal(data_slice.DataSlice.from_vals(None)),
         ),
@@ -164,7 +164,7 @@ class StringsSplitTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.strings.split,  # pyrefly: ignore[missing-attribute]
+            kde.strings.split,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -172,13 +172,13 @@ class StringsSplitTest(parameterized.TestCase):
 
   def test_repr_without_separator(self):
     self.assertEqual(
-        repr(kde.strings.split(I.x)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.strings.split(I.x)),
         'kd.strings.split(I.x, DataItem(None, schema: NONE))',
     )
 
   def test_repr_with_separator(self):
     self.assertEqual(
-        repr(kde.strings.split(I.x, I.sep)), 'kd.strings.split(I.x, I.sep)'  # pyrefly: ignore[missing-attribute]
+        repr(kde.strings.split(I.x, I.sep)), 'kd.strings.split(I.x, I.sep)'
     )
 
   def test_data_slice_sep_error(self):
@@ -188,7 +188,7 @@ class StringsSplitTest(parameterized.TestCase):
       kd.strings.split(ds(['foo', 'bar']), sep=ds(['', '']))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.split(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.split(I.x)))
 
 
 if __name__ == '__main__':

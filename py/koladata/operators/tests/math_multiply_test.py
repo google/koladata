@@ -127,17 +127,17 @@ class MathMultiplyTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.multiply,  # pyrefly: ignore[missing-attribute]
+            kde.math.multiply,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.multiply(I.x, I.y)), 'I.x * I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.math.multiply(I.x, I.y)), 'I.x * I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.multiply(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.math.multiply(I.x, I.y)))
 
 
 if __name__ == '__main__':

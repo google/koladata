@@ -76,14 +76,14 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
   def test_self_cast(self):
     ext = A(1)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
     testing.assert_equal(result, ext)  # pyrefly: ignore[bad-argument-type]
 
   def test_upcast(self):
     ext = B(1, 2)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
     testing.assert_equal(result.qtype, A_qtype)
     testing.assert_equal(result.a, ds(1))
@@ -94,7 +94,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
   def test_upcast_to_grandparent(self):
     ext = C(1, 2, 3)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.dynamic_cast(I.ext, A_qtype), ext=ext
     )
     testing.assert_equal(result.qtype, A_qtype)
     testing.assert_equal(result.a, ds(1))
@@ -105,7 +105,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
   def test_downcast(self):
     ext = A(1)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext
     )
     testing.assert_equal(result.qtype, B_qtype)
     testing.assert_equal(result.a, ds(1))
@@ -116,7 +116,7 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
   def test_sidecast(self):
     ext = B2(1, 2)  # pyrefly: ignore[bad-argument-count]
     result = expr_eval.eval(
-        kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.dynamic_cast(I.ext, B_qtype), ext=ext
     )
     testing.assert_equal(result.qtype, B_qtype)
     testing.assert_equal(result.a, ds(1))
@@ -128,14 +128,14 @@ class ExtensionTypesDynamicCastTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde.extension_types.dynamic_cast(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.extension_types.dynamic_cast(I.x, I.y))
     )
     # Has the view of the QType.
     self.assertTrue(
-        hasattr(kde.extension_types.dynamic_cast(I.x, A_qtype), "a")  # pyrefly: ignore[missing-attribute]
+        hasattr(kde.extension_types.dynamic_cast(I.x, A_qtype), "a")
     )
     self.assertFalse(
-        hasattr(kde.extension_types.dynamic_cast(I.x, A_qtype), "b")  # pyrefly: ignore[missing-attribute]
+        hasattr(kde.extension_types.dynamic_cast(I.x, A_qtype), "b")
     )
 
 

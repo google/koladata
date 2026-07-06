@@ -139,7 +139,7 @@ class SlicesInverseMappingTest(parameterized.TestCase):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.inverse_mapping,  # pyrefly: ignore[missing-attribute]
+            kde.slices.inverse_mapping,
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -150,11 +150,11 @@ class SlicesInverseMappingTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.inverse_mapping(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.inverse_mapping(I.x)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.inverse_mapping, kde.inverse_mapping)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.slices.inverse_mapping, kde.inverse_mapping)
     )
 
 

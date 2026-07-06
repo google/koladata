@@ -34,7 +34,7 @@ kde = kde_operators.kde
 kd = eager_op_utils.operators_container("kd")
 ds = data_slice.DataSlice.from_vals
 
-M = arolla.M | derived_qtype.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M | objects.M
 
 
 @extension_types.extension_type()
@@ -56,7 +56,7 @@ class ExtensionTypesUnwrapTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.extension_types.unwrap,  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.unwrap,
         ((A_qtype, objects.OBJECT),),
         possible_qtypes=arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES
         + (A_qtype, objects.OBJECT),
@@ -67,22 +67,22 @@ class ExtensionTypesUnwrapTest(parameterized.TestCase):
         ValueError,
         re.escape("expected an extension type qtype, got ext: OBJECT"),
     ):
-      kde.extension_types.unwrap(objects.Object(x=ds(1)))  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.unwrap(objects.Object(x=ds(1)))
 
   def test_unwrap_an_extension(self):
     foo_qtype = arolla.eval(
-        M.derived_qtype.get_labeled_qtype(qtypes.DATA_SLICE, "foo")  # pyrefly: ignore[missing-attribute]
+        M.derived_qtype.get_labeled_qtype(qtypes.DATA_SLICE, "foo")
     )
-    ext = arolla.eval(M.derived_qtype.downcast(foo_qtype, ds(1)))  # pyrefly: ignore[missing-attribute]
+    ext = arolla.eval(M.derived_qtype.downcast(foo_qtype, ds(1)))
     with self.assertRaisesRegex(
         ValueError,
         re.escape("expected an extension type qtype, got ext: LABEL[foo]"),
     ):
-      kde.extension_types.unwrap(ext)  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.unwrap(ext)
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.unwrap(I.x)))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(view.has_base_koda_view(kde.extension_types.unwrap(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde.extension_types.unwrap(I.x)))
+    self.assertTrue(view.has_base_koda_view(kde.extension_types.unwrap(I.x)))
 
 
 if __name__ == "__main__":

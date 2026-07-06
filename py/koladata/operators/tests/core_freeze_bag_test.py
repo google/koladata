@@ -48,12 +48,12 @@ class CoreFreezeBagTest(parameterized.TestCase):
 
   def test_unsupported_input(self):
     with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
-      kde.core.freeze_bag(arolla.int32(42))  # pyrefly: ignore[missing-attribute]
+      kde.core.freeze_bag(arolla.int32(42))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.freeze_bag,  # pyrefly: ignore[missing-attribute]
+            kde.core.freeze_bag,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([
@@ -62,10 +62,10 @@ class CoreFreezeBagTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.freeze_bag(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.core.freeze_bag(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.freeze_bag, kde.freeze_bag))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.core.freeze_bag, kde.freeze_bag))
 
 
 if __name__ == '__main__':

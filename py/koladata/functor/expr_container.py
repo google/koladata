@@ -80,5 +80,5 @@ class NamedContainer:
     elif isinstance(value, py_types.FunctionType):
       value = tracing_decorator.TraceAsFnDecorator(name=key)(value)
     elif tracing_mode.is_tracing_enabled():
-      value = kde.with_name(value, key)  # pyrefly: ignore[missing-attribute]
+      value = kde.with_name(value, key)
     self.__dict__[key] = value

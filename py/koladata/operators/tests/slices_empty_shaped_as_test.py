@@ -117,7 +117,7 @@ class SlicesEmptyShapedAsTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.slices.empty_shaped_as,  # pyrefly: ignore[missing-attribute]
+        kde.slices.empty_shaped_as,
         [
             (qtypes.DATA_SLICE, qtypes.DATA_SLICE),
             (qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
@@ -126,11 +126,11 @@ class SlicesEmptyShapedAsTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped_as(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped_as(I.x, I.y)))
 
   def test_aliases(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.empty_shaped_as, kde.empty_shaped_as)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.slices.empty_shaped_as, kde.empty_shaped_as)
     )
 
 

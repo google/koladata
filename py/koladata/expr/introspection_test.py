@@ -37,27 +37,27 @@ class IntrospectionTest(absltest.TestCase):
 
   def test_get_name(self):
     self.assertEqual(
-        introspection.get_name(kde.with_name(I.x + I.y, 'foo')), 'foo'  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        introspection.get_name(kde.with_name(I.x + I.y, 'foo')), 'foo'  # pyrefly: ignore[unsupported-operation]
     )
     self.assertEqual(
-        introspection.get_name(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        introspection.get_name(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[unsupported-operation]
         'foo',
     )
     self.assertIsNone(
-        introspection.get_name(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        introspection.get_name(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[unsupported-operation]
     )
     self.assertIsNone(introspection.get_name(py_boxing.as_expr(1)))
 
   def test_unwrap_named(self):
     testing.assert_equal(
-        introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo')), I.x + I.y  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo')), I.x + I.y  # pyrefly: ignore[unsupported-operation]
     )
     testing.assert_equal(
-        introspection.unwrap_named(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[missing-attribute, unsupported-operation]
+        introspection.unwrap_named(kde.annotation.with_name(I.x + I.y, 'foo')),  # pyrefly: ignore[unsupported-operation]
         I.x + I.y,  # pyrefly: ignore[unsupported-operation]
     )
     with self.assertRaisesRegex(ValueError, 'non-named'):
-      introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[missing-attribute, unsupported-operation]
+      introspection.unwrap_named(kde.with_name(I.x + I.y, 'foo') + I.z)  # pyrefly: ignore[unsupported-operation]
 
   def test_pack_expr(self):
     x = introspection.pack_expr(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
@@ -183,8 +183,8 @@ class IntrospectionTest(absltest.TestCase):
     )
 
   def test_sub_by_name(self):
-    foo = kde.with_name(I.x, 'foo')  # pyrefly: ignore[missing-attribute]
-    bar = kde.with_name(I.y, 'bar')  # pyrefly: ignore[missing-attribute]
+    foo = kde.with_name(I.x, 'foo')
+    bar = kde.with_name(I.y, 'bar')
     expr = foo + bar
     testing.assert_equal(
         introspection.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar

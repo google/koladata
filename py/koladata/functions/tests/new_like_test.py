@@ -57,7 +57,7 @@ class NewLikeTest(absltest.TestCase):
     x = fns.new_like(ds(None), a=42)
     self.assertIsInstance(x, data_item.DataItem)
     testing.assert_equal(
-        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)  # pyrefly: ignore[missing-attribute]
+        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
     testing.assert_equal(
         x.a, ds(None, schema_constants.INT32).with_bag(x.get_bag())
@@ -114,7 +114,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid_dataitem(self):
-    itemid = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
+    itemid = expr_eval.eval(kde.allocation.new_itemid())
 
     with self.subTest('present DataItem and present itemid'):
       x = fns.new_like(ds(1), a=42, itemid=itemid)
@@ -141,9 +141,9 @@ class NewLikeTest(absltest.TestCase):
         _ = fns.new_like(ds(1), a=42, itemid=(itemid & None))
 
   def test_itemid_dataslice(self):
-    id1 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
-    id2 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
-    id3 = expr_eval.eval(kde.allocation.new_itemid())  # pyrefly: ignore[missing-attribute]
+    id1 = expr_eval.eval(kde.allocation.new_itemid())
+    id2 = expr_eval.eval(kde.allocation.new_itemid())
+    id3 = expr_eval.eval(kde.allocation.new_itemid())
 
     with self.subTest('full DataSlice and full itemid'):
       x = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
@@ -234,7 +234,7 @@ class NewLikeTest(absltest.TestCase):
       _ = x.non_existent
 
   def test_schema_arg(self):
-    schema = kde.schema.new_schema(  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     ).eval()
     x = fns.new_like(ds([1, None]), a=42, b='xyz', schema=schema)
@@ -245,7 +245,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_like(ds([1, 1]), a=42, schema=schema)
     self.assertEqual(attrs.dir(x), ['a'])
     testing.assert_equal(
@@ -254,7 +254,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_overwrite_schema(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_like(
         ds([1, 1]), a=42, b='xyz', schema=schema, overwrite_schema=True
     )
@@ -269,14 +269,14 @@ class NewLikeTest(absltest.TestCase):
       fns.new_like(ds(1), schema=schema_constants.INT32, overwrite_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_overwrite_schema_error_overwriting(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new_like(ds(1), a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_str_as_schema_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
     x = fns.new_like(shape_and_mask_from, schema='name', a=42)
-    expected_schema = kde.named_schema('name').eval()  # pyrefly: ignore[missing-attribute]
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -284,7 +284,7 @@ class NewLikeTest(absltest.TestCase):
   def test_str_slice_as_schema_arg(self):
     shape_and_mask_from = ds([[6, 7], [8]])
     x = fns.new_like(shape_and_mask_from, schema=ds('name'), a=42)
-    expected_schema = kde.named_schema('name').eval()  # pyrefly: ignore[missing-attribute]
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.get_schema().no_bag(), expected_schema.no_bag())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
@@ -329,11 +329,11 @@ class NewLikeTest(absltest.TestCase):
         ),
     ):
       fns.new_like(
-          ds(1), a=1, schema=kde.list_schema(schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+          ds(1), a=1, schema=kde.list_schema(schema_constants.INT32).eval()
       )
 
   def test_schema_error_message(self):
-    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()  # pyrefly: ignore[missing-attribute]
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(

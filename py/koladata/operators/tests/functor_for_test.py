@@ -32,7 +32,7 @@ I = input_container.InputContainer('I')
 class FunctorForTest(absltest.TestCase):
 
   def test_for_simple(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, other, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -45,7 +45,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_early_stop(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -58,7 +58,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_finalize(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -71,7 +71,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_finalize_empty_iterable(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -84,7 +84,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_early_stop_before_first_iteration(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -97,7 +97,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_early_stop_after_last_iteration_finalize_not_called(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=returns * item,
@@ -111,7 +111,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_no_return_statement(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, other, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             other=other * item,
@@ -124,14 +124,14 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_yields(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             yields=user_facing_kd.iterables.make(res * item),  # pyrefly: ignore[missing-attribute]
             res=res * item,
         ),
         res=1,
-        yields=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
+        yields=kde.iterables.make(),
     )
     testing.assert_equal(
         product.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6))),
@@ -139,14 +139,14 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_yields_interleaved(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             yields_interleaved=user_facing_kd.iterables.make(res * item),  # pyrefly: ignore[missing-attribute]
             res=res * item,
         ),
         res=1,
-        yields_interleaved=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
+        yields_interleaved=kde.iterables.make(),
     )
     self.assertCountEqual(
         [
@@ -159,13 +159,13 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_yields_no_yield_statement(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             res=res * item,
         ),
         res=1,
-        yields=kde.iterables.make(5),  # pyrefly: ignore[missing-attribute]
+        yields=kde.iterables.make(5),
     )
     testing.assert_equal(
         product.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6))),
@@ -173,13 +173,13 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_yields_interleaved_no_yield_statement(self):
-    product = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    product = kde.functor.for_(
         I.input_seq,
         lambda item, res: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             res=res * item,
         ),
         res=1,
-        yields_interleaved=kde.iterables.make(5, 7),  # pyrefly: ignore[missing-attribute]
+        yields_interleaved=kde.iterables.make(5, 7),
     )
     testing.assert_equal(
         product.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6))),
@@ -187,7 +187,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_returns_bag(self):
-    many_attrs = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    many_attrs = kde.functor.for_(
         I.input_seq,
         lambda item, root, returns: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=user_facing_kd.enriched_bag(  # pyrefly: ignore[missing-attribute]
@@ -197,10 +197,10 @@ class FunctorForTest(absltest.TestCase):
                 ),
             ),
         ),
-        returns=kde.bag(),  # pyrefly: ignore[missing-attribute]
+        returns=kde.bag(),
         root=I.root,
     )
-    root = kde.new().eval()  # pyrefly: ignore[missing-attribute]
+    root = kde.new().eval()
     self.assertEqual(
         root.updated(
             many_attrs.eval(
@@ -211,7 +211,7 @@ class FunctorForTest(absltest.TestCase):
     )
 
   def test_for_yields_bag(self):
-    many_attrs = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    many_attrs = kde.functor.for_(
         I.input_seq,
         lambda item, root: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             yields=user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
@@ -220,10 +220,10 @@ class FunctorForTest(absltest.TestCase):
                 ),
             ),
         ),
-        yields=kde.iterables.make(value_type_as=kde.bag()),  # pyrefly: ignore[missing-attribute]
+        yields=kde.iterables.make(value_type_as=kde.bag()),
         root=I.root,
     )
-    root = kde.new().eval()  # pyrefly: ignore[missing-attribute]
+    root = kde.new().eval()
     self.assertEqual(
         root.updated(
             *many_attrs.eval(
@@ -239,7 +239,7 @@ class FunctorForTest(absltest.TestCase):
         'exactly one of `returns`, `yields`, or `yields_interleaved` must be'
         ' specified',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
           I.input_seq,
           lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
       )
@@ -250,18 +250,18 @@ class FunctorForTest(absltest.TestCase):
         'exactly one of `returns`, `yields`, or `yields_interleaved` must be'
         ' specified',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
           I.input_seq,
           lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
           returns=1,
-          yields=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
+          yields=kde.iterables.make(),
       )
 
   def test_return_outside_yield_inside_body(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
-            yields=kde.iterables.make()  # pyrefly: ignore[missing-attribute]
+            yields=kde.iterables.make()
         ),
         returns=1,
     )
@@ -273,7 +273,7 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6)))
 
   def test_unknown_variable_inside_finalize(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(foo=1),  # pyrefly: ignore[missing-attribute]
@@ -287,7 +287,7 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6)))
 
   def test_wrong_type_for_variable(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             returns=user_facing_kd.tuple(1, 2)  # pyrefly: ignore[missing-attribute]
@@ -303,14 +303,14 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 2)))
 
   def test_wrong_type_for_yields_interleaved(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(  # pyrefly: ignore[missing-attribute]
             yields_interleaved=user_facing_kd.iterables.make(  # pyrefly: ignore[missing-attribute]
                 user_facing_kd.bag()  # pyrefly: ignore[missing-attribute]
             )
         ),
-        yields_interleaved=kde.iterables.make(),  # pyrefly: ignore[missing-attribute]
+        yields_interleaved=kde.iterables.make(),
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -323,7 +323,7 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 2)))
 
   def test_return_dataslice(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: 2,
         returns=1,
@@ -335,7 +335,7 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6)))
 
   def test_non_mask_condition(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         condition_fn=lambda **unused_kwargs: 1,
@@ -351,7 +351,7 @@ class FunctorForTest(absltest.TestCase):
       _ = loop_expr.eval(input_seq=iterable_qvalue.Iterable(*range(1, 6)))
 
   def test_non_scalar_condition(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         condition_fn=lambda **unused_kwargs: user_facing_kd.slice(  # pyrefly: ignore[missing-attribute]
@@ -372,8 +372,8 @@ class FunctorForTest(absltest.TestCase):
         ValueError,
         'expected an iterable type, got iterable: DATA_SLICE',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
-          kde.slice([1, 2, 3]),  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
+          kde.slice([1, 2, 3]),
           lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
           returns=1,
       )
@@ -383,14 +383,14 @@ class FunctorForTest(absltest.TestCase):
         ValueError,
         'expected DATA_SLICE, got body_fn: namedtuple<>',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
           I.input_seq,
-          kde.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_body(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         57,
         returns=1,
@@ -406,15 +406,15 @@ class FunctorForTest(absltest.TestCase):
         ValueError,
         'expected DATA_SLICE, got condition_fn: namedtuple<>',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
           I.input_seq,
           lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
-          condition_fn=kde.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          condition_fn=kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_condition(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         condition_fn=mask_constants.present,
@@ -431,15 +431,15 @@ class FunctorForTest(absltest.TestCase):
         ValueError,
         'expected DATA_SLICE, got finalize_fn: namedtuple<>',
     ):
-      _ = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+      _ = kde.functor.for_(
           I.input_seq,
           lambda item: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
-          finalize_fn=kde.namedtuple(),  # pyrefly: ignore[missing-attribute]
+          finalize_fn=kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_finalize(self):
-    loop_expr = kde.functor.for_(  # pyrefly: ignore[missing-attribute]
+    loop_expr = kde.functor.for_(
         I.input_seq,
         lambda item, **unused_kwargs: user_facing_kd.namedtuple(),  # pyrefly: ignore[missing-attribute]
         finalize_fn=mask_constants.present,
@@ -454,13 +454,13 @@ class FunctorForTest(absltest.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.functor.for_(I.input_seq, I.body_fn, returns=I.returns)  # pyrefly: ignore[missing-attribute]
+            kde.functor.for_(I.input_seq, I.body_fn, returns=I.returns)
         )
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.for_))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.iterables.for_))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.for_))
+    self.assertTrue(optools.equiv_to_op(kde.functor.for_, kde.iterables.for_))
 
 
 if __name__ == '__main__':

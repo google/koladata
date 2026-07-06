@@ -63,7 +63,7 @@ class DictLikeTest(parameterized.TestCase):
       (
           ds([5, 6]),
           dict(
-              schema=kde.dict_schema(  # pyrefly: ignore[missing-attribute]
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ).eval()
           ),
@@ -99,8 +99,8 @@ class DictLikeTest(parameterized.TestCase):
     self.assertFalse(d.is_mutable())
 
   def test_adopt_values(self):
-    dct = kde.dicts.new('a', 7).eval()  # pyrefly: ignore[missing-attribute]
-    dct2 = kde.dicts.like(ds([None, 0]), 'obj', dct).eval()  # pyrefly: ignore[missing-attribute]
+    dct = kde.dicts.new('a', 7).eval()
+    dct2 = kde.dicts.like(ds([None, 0]), 'obj', dct).eval()
 
     testing.assert_equal(
         dct2['obj']['a'],
@@ -108,10 +108,10 @@ class DictLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = kde.schema.dict_schema(  # pyrefly: ignore[missing-attribute]
-        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)  # pyrefly: ignore[missing-attribute]
+    dict_schema = kde.schema.dict_schema(
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
-    dct = kde.dicts.like(ds([None, 0]), schema=dict_schema).eval()  # pyrefly: ignore[missing-attribute]
+    dct = kde.dicts.like(ds([None, 0]), schema=dict_schema).eval()
 
     testing.assert_equal(
         dct[ds(None)].a.no_bag(), ds([None, None], schema_constants.INT32)
@@ -355,7 +355,7 @@ Assigned schema for keys: STRING""",
     )
     testing.assert_equivalent(res_1, res_2)
 
-    expr = kde.dicts.like(shape_and_mask_from, keys=keys, values=values)  # pyrefly: ignore[missing-attribute]
+    expr = kde.dicts.like(shape_and_mask_from, keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -365,21 +365,21 @@ Assigned schema for keys: STRING""",
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.dicts.like,  # pyrefly: ignore[missing-attribute]
+        kde.dicts.like,
         QTYPE_SIGNATURES,  # pyrefly: ignore[bad-argument-type]
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x)))  # pyrefly: ignore[missing-attribute]
-    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x, keys=I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.dicts.like(I.x, keys=I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.dicts.like, kde.dict_like))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.dicts.like, kde.dict_like))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.dicts.like(I.x, keys=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.dicts.like(I.x, keys=I.y)),
         'kd.dicts.like(I.x, I.y, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )

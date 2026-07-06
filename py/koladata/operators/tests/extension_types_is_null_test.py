@@ -33,7 +33,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 bag = data_bag.DataBag.empty
 
-M = arolla.M | objects.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | objects.M
 
 
 @extension_types.extension_type()
@@ -47,23 +47,23 @@ A_qtype = extension_type_registry.get_extension_qtype(A)
 class ExtensionTypesIsNullTest(parameterized.TestCase):
 
   def test_is_null_present(self):
-    a = expr_eval.eval(kde.extension_types.make_null(A_qtype))  # pyrefly: ignore[missing-attribute]
-    result = expr_eval.eval(kde.extension_types.is_null(a))  # pyrefly: ignore[missing-attribute]
+    a = expr_eval.eval(kde.extension_types.make_null(A_qtype))
+    result = expr_eval.eval(kde.extension_types.is_null(a))
     testing.assert_equal(result, mask_constants.present)
 
   def test_is_null_missing(self):
     a = A(ds(1))  # pyrefly: ignore[bad-argument-count]
-    result = expr_eval.eval(kde.extension_types.is_null(a))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.is_null(a))
     testing.assert_equal(result, mask_constants.missing)
 
   def test_not_an_extension_type(self):
     with self.assertRaisesRegex(
         ValueError, "expected an extension type qtype, got ext: DATA_SLICE"
     ):
-      kde.extension_types.is_null(ds(1))  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.is_null(ds(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.extension_types.is_null(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.extension_types.is_null(I.x)))
 
 
 if __name__ == "__main__":

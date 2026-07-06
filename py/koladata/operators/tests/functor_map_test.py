@@ -178,7 +178,7 @@ class MapTest(parameterized.TestCase):
       _ = kd.functor.map(fn, unused_x=x)
 
   def test_adoption(self):
-    fn = kdf.fn(kde.obj(x=I.x + 1))  # pyrefly: ignore[missing-attribute, unsupported-operation]
+    fn = kdf.fn(kde.obj(x=I.x + 1))  # pyrefly: ignore[unsupported-operation]
     x = ds([1, 2, 3])
     testing.assert_equal(
         kd.functor.map(fn, x=x).x.no_bag(),
@@ -212,8 +212,8 @@ class MapTest(parameterized.TestCase):
       _ = kd.functor.map(fn, x=y)
 
   def test_cancellable(self):
-    expr = kde.functor.map(  # pyrefly: ignore[missing-attribute]
-        kdf.expr_fn(arolla.M.core._identity_with_cancel(I.self, 'cancelled')),  # pyrefly: ignore[missing-attribute]
+    expr = kde.functor.map(
+        kdf.expr_fn(arolla.M.core._identity_with_cancel(I.self, 'cancelled')),
         I.x,
     )
     x = ds([1, 2, 3])
@@ -224,17 +224,17 @@ class MapTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a functor DATA_SLICE, got fn: INT32')
     ):
-      kde.functor.map(arolla.int32(1))  # pyrefly: ignore[missing-attribute]
+      kde.functor.map(arolla.int32(1))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.functor.map(I.fn, I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.functor.map(I.fn, I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.functor.map, kde.map))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.functor.map, kde.map))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.functor.map(I.fn, x=I.x, y=I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.functor.map(I.fn, x=I.x, y=I.y)),
         'kd.functor.map(I.fn, include_missing=DataItem(False, schema: BOOLEAN),'
         ' x=I.x, y=I.y)',
     )

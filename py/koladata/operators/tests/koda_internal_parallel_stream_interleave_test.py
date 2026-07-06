@@ -32,14 +32,14 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
 
   def test_no_input_streams(self):
-    res = expr_eval.eval(kde_internal.parallel.stream_interleave())  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde_internal.parallel.stream_interleave())
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertIsNone(res.make_reader().read_available())
 
   def test_no_input_streams_with_explicit_value_type_as(self):
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave(value_type_as=arolla.int32(0))  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_interleave(value_type_as=arolla.int32(0))
     )
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
@@ -53,7 +53,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
       stream, writer = clib.Stream.new(arolla.INT32)
       streams.append(stream)
       writers.append(writer)
-    res = expr_eval.eval(kde_internal.parallel.stream_interleave(*streams))  # pyrefly: ignore[missing-attribute]
+    res = expr_eval.eval(kde_internal.parallel.stream_interleave(*streams))
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
     reader = res.make_reader()
@@ -68,7 +68,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
   def test_with_explicit_value_type_as(self):
     stream, writer = clib.Stream.new(arolla.INT32)
     res = expr_eval.eval(
-        kde_internal.parallel.stream_interleave(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_interleave(
             stream, value_type_as=arolla.int32(0)
         )
     )
@@ -86,7 +86,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
         re.escape('input streams must be compatible with value_type_as'),
     ):
       _ = expr_eval.eval(
-          kde_internal.parallel.stream_interleave(  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_interleave(
               stream, value_type_as=arolla.FLOAT32
           )
       )
@@ -100,7 +100,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
         ValueError, re.escape('must have the same value type')
     ):
       _ = expr_eval.eval(
-          kde_internal.parallel.stream_interleave(stream_1, stream_2)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_interleave(stream_1, stream_2)
       )
 
   def test_error_non_iterable_arg(self):
@@ -108,7 +108,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
         ValueError, re.escape('all inputs must be streams')
     ):
       _ = expr_eval.eval(
-          kde_internal.parallel.stream_interleave(arolla.int32(1))  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.stream_interleave(arolla.int32(1))
       )
 
   def test_empty_input_streams(self):
@@ -119,7 +119,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
       streams.append(stream)
       writers.append(writer)
     reader = expr_eval.eval(
-        kde_internal.parallel.stream_interleave(*streams)  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_interleave(*streams)
     ).make_reader()
     for writer in writers:
       self.assertEqual(reader.read_available(), [])
@@ -128,19 +128,19 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval((
-        kde_internal.parallel.stream_interleave(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_interleave(),  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_interleave(),
+        kde_internal.parallel.stream_interleave(),
     ))
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.stream_interleave())  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.stream_interleave())
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.stream_interleave(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
+        repr(kde_internal.parallel.stream_interleave(I.a, I.b)),
         'koda_internal.parallel.stream_interleave(I.a, I.b,'
         ' value_type_as=unspecified)',
     )

@@ -787,7 +787,7 @@ class _Expr2PyAst:
       return [self._convert_literal(kd.expr.literal(arg)) for arg in args]
 
     # Positional arguments that are not literals.
-    assert node.op == arolla.M.core.make_tuple, node.op.display_name  # pyrefly: ignore[missing-attribute]
+    assert node.op == arolla.M.core.make_tuple, node.op.display_name
     return [self._convert_node(dep) for dep in node.node_deps]
 
   def _convert_unified_var_kwargs(
@@ -807,7 +807,7 @@ class _Expr2PyAst:
       ]
 
     # Keyword arguments that are not literals.
-    assert node.op == arolla.M.namedtuple.make, node.op.display_name  # pyrefly: ignore[missing-attribute]
+    assert node.op == arolla.M.namedtuple.make, node.op.display_name
     assert node.node_deps[0].qtype == arolla.TEXT
     keys = node.node_deps[0].qvalue.py_value().split(',')
     return [

@@ -26,22 +26,22 @@ py_fn = functor_factories.py_fn
 
 kde = kde_operators.kde
 kde_internal = kde_operators.internal
-eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())  # pyrefly: ignore[missing-attribute]
-default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())  # pyrefly: ignore[missing-attribute]
+eager_executor = expr_eval.eval(kde_internal.parallel.get_eager_executor())
+default_executor = expr_eval.eval(kde_internal.parallel.get_default_executor())
 
 
 class KodaInternalParallelCurrentExecutorTest(absltest.TestCase):
 
   def test_default(self):
-    result = kde_internal.parallel.current_executor().eval()  # pyrefly: ignore[missing-attribute]
+    result = kde_internal.parallel.current_executor().eval()
     arolla.testing.assert_qvalue_equal_by_fingerprint(result, default_executor)
 
   def test_nested_py_fn(self):
     [result] = (
-        kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.stream_call(
             eager_executor,
             py_fn(
-                lambda: kde_internal.parallel.current_executor().eval(),  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+                lambda: kde_internal.parallel.current_executor().eval(),  # pylint: disable=unnecessary-lambda
                 return_type_as=default_executor,
             ),
             return_type_as=default_executor,
@@ -53,10 +53,10 @@ class KodaInternalParallelCurrentExecutorTest(absltest.TestCase):
 
   def test_non_determinism(self):
     [result_1, async_result_2] = expr_eval.eval((
-        kde_internal.parallel.current_executor(),  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.stream_call(  # pyrefly: ignore[missing-attribute]
+        kde_internal.parallel.current_executor(),
+        kde_internal.parallel.stream_call(
             eager_executor,
-            lambda: kde_internal.parallel.current_executor(),  # pylint: disable=unnecessary-lambda  # pyrefly: ignore[missing-attribute]
+            lambda: kde_internal.parallel.current_executor(),  # pylint: disable=unnecessary-lambda
             return_type_as=default_executor,
         ),
     ))
@@ -69,24 +69,24 @@ class KodaInternalParallelCurrentExecutorTest(absltest.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.parallel.current_executor())  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.current_executor())
     )
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde_internal.parallel.current_executor,  # pyrefly: ignore[missing-attribute]
-            kde.streams.current_executor,  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.current_executor,
+            kde.streams.current_executor,
         )
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.parallel.current_executor()),  # pyrefly: ignore[missing-attribute]
+        repr(kde_internal.parallel.current_executor()),
         'koda_internal.parallel.current_executor()',
     )
     self.assertEqual(
-        repr(kde.streams.current_executor()),  # pyrefly: ignore[missing-attribute]
+        repr(kde.streams.current_executor()),
         'kd.streams.current_executor()',
     )
 

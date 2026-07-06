@@ -32,9 +32,9 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
-kd = eager_op_utils.operators_container(top_level_arolla_container=kde)  # pyrefly: ignore[bad-argument-type]
+kd = eager_op_utils.operators_container(top_level_arolla_container=kde)
 kd_internal = eager_op_utils.operators_container(
-    top_level_arolla_container=kde_operators.internal  # pyrefly: ignore[bad-argument-type]
+    top_level_arolla_container=kde_operators.internal
 )
 DATA_SLICE = qtypes.DATA_SLICE
 
@@ -62,7 +62,7 @@ class JsonStreamPrettifyTest(parameterized.TestCase):
   def test_parallel_transform(self):
     executor = kd_internal.parallel.get_default_executor()
     result = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.prettify(I.x)),  # pyrefly: ignore[missing-attribute]
+        functor_factories.expr_fn(returns=kde.json_stream.prettify(I.x)),
     )(
         executor,
         x=kd.streams.make('[1,2]'),
@@ -124,7 +124,7 @@ class JsonStreamPrettifyTest(parameterized.TestCase):
   def test_cancellation(self):
     stream, _ = stream_clib.Stream.new(DATA_SLICE)
     result_stream = parallel_fns.transform(
-        functor_factories.expr_fn(returns=kde.json_stream.prettify(I.x)),  # pyrefly: ignore[missing-attribute]
+        functor_factories.expr_fn(returns=kde.json_stream.prettify(I.x)),
     )(
         kd_internal.parallel.get_default_executor(),
         x=stream,
@@ -138,7 +138,7 @@ class JsonStreamPrettifyTest(parameterized.TestCase):
       result_stream.read_all(timeout=1)
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.json_stream.prettify(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.json_stream.prettify(I.x)))
 
 
 if __name__ == '__main__':

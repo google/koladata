@@ -78,7 +78,7 @@ class PyExprEvalTest(absltest.TestCase):
     expr = I.x
     x = ds(1)
     for _ in range(10000):
-      expr = arolla.M.annotation.qtype(expr, x.qtype)  # pyrefly: ignore[not-callable]
+      expr = arolla.M.annotation.qtype(expr, x.qtype)
     for _ in range(10000):
       py_expr_eval.eval_expr(expr, x=x)
 
@@ -261,7 +261,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     )
 
   def test_cancellation(self):
-    expr = arolla.M.core._identity_with_cancel(I.x, 'cancelled')  # pyrefly: ignore[missing-attribute]
+    expr = arolla.M.core._identity_with_cancel(I.x, 'cancelled')
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
       expr_eval.eval(expr, x=x)

@@ -81,22 +81,22 @@ Schema for `x`: INT32"""
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.comparison.greater_equal,  # pyrefly: ignore[missing-attribute]
+            kde.comparison.greater_equal,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.comparison.greater_equal(I.x, I.y)), 'I.x >= I.y')  # pyrefly: ignore[missing-attribute]
-    self.assertEqual(repr(kde.greater_equal(I.x, I.y)), 'I.x >= I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.comparison.greater_equal(I.x, I.y)), 'I.x >= I.y')
+    self.assertEqual(repr(kde.greater_equal(I.x, I.y)), 'I.x >= I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.comparison.greater_equal(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.comparison.greater_equal(I.x, I.y)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.comparison.greater_equal, kde.greater_equal)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.comparison.greater_equal, kde.greater_equal)
     )
 
 

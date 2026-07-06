@@ -126,17 +126,17 @@ class ShapesReshapeTest(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.shapes.reshape(ds(1), jagged_shape.create_shape([1])),  # pyrefly: ignore[missing-attribute]
+        kde.shapes.reshape(ds(1), jagged_shape.create_shape([1])),
         arolla.abc.bind_op(
-            kde.shapes.reshape,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.reshape,
             literal_operator.literal(ds(1)),
             literal_operator.literal(jagged_shape.create_shape([1])),
         ),
     )
     testing.assert_equal(
-        kde.shapes.reshape(ds([1, 2, 3]), (1, 3)),  # pyrefly: ignore[missing-attribute]
+        kde.shapes.reshape(ds([1, 2, 3]), (1, 3)),
         arolla.abc.bind_op(
-            kde.shapes.reshape,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.reshape,
             literal_operator.literal(ds([1, 2, 3])),
             literal_operator.literal(arolla.tuple(ds(1), ds(3))),
         ),
@@ -151,11 +151,11 @@ class ShapesReshapeTest(parameterized.TestCase):
             ' *dimensions: (DATA_SLICE, tuple<DATA_SLICE,DATA_SLICE>)'
         ),
     ):
-      kde.shapes.reshape(ds([1, 2, 3]), (2, (1, 2)))  # pyrefly: ignore[missing-attribute]
+      kde.shapes.reshape(ds([1, 2, 3]), (2, (1, 2)))
 
     # List -> DataSlice boxing is not supported.
     with self.assertRaises(ValueError):
-      kde.shapes.reshape(ds([1, 2, 3]), (2, [1, 2]))  # pyrefly: ignore[missing-attribute]
+      kde.shapes.reshape(ds([1, 2, 3]), (2, [1, 2]))
 
   def test_qtype_signatures(self):
     expected_qtype_signatures = [
@@ -166,16 +166,16 @@ class ShapesReshapeTest(parameterized.TestCase):
         ),
     ]
     arolla.testing.assert_qtype_signatures(
-        kde.shapes.reshape,  # pyrefly: ignore[missing-attribute]
+        kde.shapes.reshape,
         expected_qtype_signatures,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.reshape(I.x, I.shape)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.shapes.reshape(I.x, I.shape)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.shapes.reshape, kde.reshape))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.shapes.reshape, kde.reshape))
 
 
 class ShapesReshapeAsTest(absltest.TestCase):
@@ -183,17 +183,17 @@ class ShapesReshapeAsTest(absltest.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.reshape_as,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.reshape_as,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(DATA_SLICE, DATA_SLICE, DATA_SLICE)]),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.shapes.reshape_as(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.shapes.reshape_as(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.shapes.reshape_as, kde.reshape_as))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.shapes.reshape_as, kde.reshape_as))
 
 
 if __name__ == '__main__':

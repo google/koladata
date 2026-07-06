@@ -98,9 +98,9 @@ class SlicesRepeatPresentTest(parameterized.TestCase):
 
   def test_boxing_scalars(self):
     testing.assert_equal(
-        kde.slices.repeat_present(1, 2),  # pyrefly: ignore[missing-attribute]
+        kde.slices.repeat_present(1, 2),
         arolla.abc.bind_op(
-            kde.slices.repeat_present,  # pyrefly: ignore[missing-attribute]
+            kde.slices.repeat_present,
             literal_operator.literal(ds(1)),
             literal_operator.literal(ds(2)),
         ),
@@ -139,18 +139,18 @@ class SlicesRepeatPresentTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.repeat_present,  # pyrefly: ignore[missing-attribute]
+            kde.slices.repeat_present,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.repeat_present(I.x, I.sizes)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.repeat_present(I.x, I.sizes)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.slices.repeat_present, kde.repeat_present))  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.slices.repeat_present, kde.repeat_present))
 
 
 if __name__ == '__main__':

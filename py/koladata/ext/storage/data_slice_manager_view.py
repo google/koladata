@@ -464,7 +464,6 @@ class DataSliceManagerView:
       raise ValueError(f'num_levels_up must be >= 0, but got {num_levels_up}')
     if num_levels_up > len(self._path_from_root.actions):  # pyrefly: ignore[bad-argument-type]
       raise ValueError(
-          # pyrefly: ignore[bad-argument-type]
           f"the path '{self._path_from_root}' does not support"
           f' num_levels_up={num_levels_up}. The maximum valid value is'
           f' {len(self._path_from_root.actions)}'

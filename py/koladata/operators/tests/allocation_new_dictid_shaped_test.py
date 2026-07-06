@@ -55,7 +55,7 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
 
   def test_new_alloc_ids(self):
     shape = jagged_shape.create_shape([2])
-    expr = kde.allocation.new_dictid_shaped(shape)  # pyrefly: ignore[missing-attribute]
+    expr = kde.allocation.new_dictid_shaped(shape)
     res1 = expr_eval.eval(expr)
     res2 = expr_eval.eval(expr)
     res3 = kd.allocation.new_dictid_shaped(shape)
@@ -65,7 +65,7 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.allocation.new_dictid_shaped,  # pyrefly: ignore[missing-attribute]
+            kde.allocation.new_dictid_shaped,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         frozenset([(
@@ -77,12 +77,12 @@ class AllocationNewDictIdShapedTest(parameterized.TestCase):
 
   def test_view(self):
     shape = jagged_shape.create_shape([2])
-    self.assertTrue(view.has_koda_view(kde.allocation.new_dictid_shaped(shape)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.allocation.new_dictid_shaped(shape)))
 
   def test_alias(self):
     self.assertTrue(
         optools.equiv_to_op(
-            kde.allocation.new_dictid_shaped, kde.new_dictid_shaped  # pyrefly: ignore[missing-attribute]
+            kde.allocation.new_dictid_shaped, kde.new_dictid_shaped
         )
     )
 

@@ -83,21 +83,21 @@ class SchemaToItemidTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.to_itemid,  # pyrefly: ignore[missing-attribute]
+            kde.schema.to_itemid,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.to_itemid(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.to_itemid(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.to_itemid))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.to_itemid))
     self.assertTrue(
-        optools.equiv_to_op(kde.schema.to_itemid, kde.schema.get_itemid)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.schema.to_itemid, kde.schema.get_itemid)
     )
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.get_itemid))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.schema.to_itemid, kde.get_itemid))
 
 
 if __name__ == "__main__":

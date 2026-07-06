@@ -35,17 +35,17 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),  # pyrefly: ignore[missing-attribute]
+        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),
         arolla.missing_unit(),
     )
 
   @parameterized.parameters(
-      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)),  # pyrefly: ignore[missing-attribute]
-      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)),  # pyrefly: ignore[missing-attribute]
+      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_SLICE)),
+      arolla.eval(kde_internal.iterables.get_iterable_qtype(qtypes.DATA_BAG)),
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),  # pyrefly: ignore[missing-attribute]
+        arolla.eval(kde_internal.iterables.is_iterable_qtype(value_qtype)),
         arolla.present_unit(),
     )
 
@@ -53,7 +53,7 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
     self.assertEqual(
         frozenset(
             arolla.testing.detect_qtype_signatures(
-                kde_internal.iterables.is_iterable_qtype  # pyrefly: ignore[missing-attribute]
+                kde_internal.iterables.is_iterable_qtype
             )
         ),
         frozenset([(arolla.QTYPE, arolla.OPTIONAL_UNIT)]),
@@ -61,7 +61,7 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.iterables.is_iterable_qtype(I.x))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.iterables.is_iterable_qtype(I.x))
     )
 
 

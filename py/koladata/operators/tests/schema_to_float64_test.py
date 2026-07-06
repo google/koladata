@@ -94,23 +94,23 @@ class SchemaToFloat64Test(parameterized.TestCase):
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.schema.to_float64(1),  # pyrefly: ignore[missing-attribute]
+        kde.schema.to_float64(1),
         arolla.abc.bind_op(
-            kde.schema.to_float64, literal_operator.literal(ds(1))  # pyrefly: ignore[missing-attribute]
+            kde.schema.to_float64, literal_operator.literal(ds(1))
         ),
     )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.schema.to_float64,  # pyrefly: ignore[missing-attribute]
+            kde.schema.to_float64,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         ((DATA_SLICE, DATA_SLICE),),
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.to_float64(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.to_float64(I.x)))
 
 
 if __name__ == "__main__":

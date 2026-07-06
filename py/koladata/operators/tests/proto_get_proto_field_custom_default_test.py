@@ -146,7 +146,7 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.proto.get_proto_field_custom_default,  # pyrefly: ignore[missing-attribute]
+            kde.proto.get_proto_field_custom_default,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -154,12 +154,12 @@ class ProtoGetProtoFieldCustomDefaultTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.proto.get_proto_field_custom_default(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.proto.get_proto_field_custom_default(I.x, I.y))
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.proto.get_proto_field_custom_default(I.x, I.y)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.proto.get_proto_field_custom_default(I.x, I.y)),
         'kd.proto.get_proto_field_custom_default(I.x, I.y)',
     )
 

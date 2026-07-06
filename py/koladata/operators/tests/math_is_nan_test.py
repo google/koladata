@@ -155,17 +155,17 @@ class MathIsNanTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.math.is_nan,  # pyrefly: ignore[missing-attribute]
+            kde.math.is_nan,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.is_nan(I.x)), 'kd.math.is_nan(I.x)')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.math.is_nan(I.x)), 'kd.math.is_nan(I.x)')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.math.is_nan(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.math.is_nan(I.x)))
 
 
 if __name__ == '__main__':

@@ -40,7 +40,7 @@ class KodaInternalRemoveLastNdimTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde_internal.remove_last_ndim,  # pyrefly: ignore[missing-attribute]
+            kde_internal.remove_last_ndim,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         [
@@ -72,29 +72,29 @@ class KodaInternalRemoveLastNdimTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, shape, ndim, expected):
-    actual_value = expr_eval.eval(kde_internal.remove_last_ndim(shape, ndim))  # pyrefly: ignore[missing-attribute]
+    actual_value = expr_eval.eval(kde_internal.remove_last_ndim(shape, ndim))
     testing.assert_equal(actual_value, expected)
 
   def test_multidim_ndim_error(self):
     with self.assertRaisesRegex(ValueError, 'expected rank 0, but got rank=2'):
-      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ds([[1]])))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ds([[1]])))
 
   def test_non_int_ndim_error(self):
     with self.assertRaisesRegex(
         ValueError, 'unsupported narrowing cast to INT64'
     ):
-      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ds(1.0)))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ds(1.0)))
 
   @parameterized.parameters(-1, 2)
   def test_out_of_bounds_ndim_error(self, ndim):
     with self.assertRaisesRegex(ValueError, 'expected 0 <= ndim <= rank'):
-      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ndim))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde_internal.remove_last_ndim(create_shape(2), ndim))
 
   def test_boxing(self):
     testing.assert_equal(
-        kde_internal.remove_last_ndim(create_shape(), 1),  # pyrefly: ignore[missing-attribute]
+        kde_internal.remove_last_ndim(create_shape(), 1),
         arolla.abc.bind_op(
-            kde_internal.remove_last_ndim,  # pyrefly: ignore[missing-attribute]
+            kde_internal.remove_last_ndim,
             literal_operator.literal(create_shape()),
             literal_operator.literal(ds(1)),
         ),
@@ -102,7 +102,7 @@ class KodaInternalRemoveLastNdimTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.remove_last_ndim(I.x, I.ndim))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.remove_last_ndim(I.x, I.ndim))
     )
 
 

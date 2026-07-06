@@ -51,7 +51,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
   def test_with_attrs(self):
     db = bag()
     a = A(ds(1), db)  # pyrefly: ignore[bad-argument-count]
-    result = expr_eval.eval(kde.extension_types.with_attrs(a, x=ds(2)))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.with_attrs(a, x=ds(2)))
     testing.assert_equal(result.x, ds(2))
     testing.assert_equal(result.y, db)
 
@@ -67,7 +67,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
         non_empty_nt,
     )
     arolla.testing.assert_qtype_signatures(
-        kde.extension_types.with_attrs,  # pyrefly: ignore[missing-attribute]
+        kde.extension_types.with_attrs,
         (
             (A_qtype, A_qtype),
             (A_qtype, empty_nt, A_qtype),
@@ -79,7 +79,7 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
   def test_with_attrs_wrong_type(self):
     a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
     new_bag = bag()
-    res = arolla.eval(kde.extension_types.with_attrs(a, x=new_bag))  # pyrefly: ignore[missing-attribute]
+    res = arolla.eval(kde.extension_types.with_attrs(a, x=new_bag))
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -88,39 +88,39 @@ class ExtensionTypesWithAttrsTest(parameterized.TestCase):
         ),
     ):
       _ = res.x
-    unwrapped_res = arolla.eval(kde.extension_types.unwrap(res))  # pyrefly: ignore[missing-attribute]
+    unwrapped_res = arolla.eval(kde.extension_types.unwrap(res))
     x = unwrapped_res.get_attr("x", qtypes.DATA_BAG)
     testing.assert_equal(x, new_bag)
 
   def test_with_attrs_non_existent_attr(self):
     a = A(ds(1), bag())  # pyrefly: ignore[bad-argument-count]
-    res = arolla.eval(kde.extension_types.with_attrs(a, z=ds(2)))  # pyrefly: ignore[missing-attribute]
+    res = arolla.eval(kde.extension_types.with_attrs(a, z=ds(2)))
     with self.assertRaisesRegex(AttributeError, "no attribute 'z'"):
       _ = res.z
-    unwrapped_res = arolla.eval(kde.extension_types.unwrap(res))  # pyrefly: ignore[missing-attribute]
+    unwrapped_res = arolla.eval(kde.extension_types.unwrap(res))
     z = unwrapped_res.get_attr("z", qtypes.DATA_SLICE)
     testing.assert_equal(z, ds(2))
 
   def test_with_attrs_on_null(self):
-    a_null = expr_eval.eval(kde.extension_types.make_null(A_qtype))  # pyrefly: ignore[missing-attribute]
+    a_null = expr_eval.eval(kde.extension_types.make_null(A_qtype))
     with self.assertRaisesRegex(
         ValueError, "expected a non-null extension type"
     ):
-      _ = expr_eval.eval(kde.extension_types.with_attrs(a_null, x=ds(1)))  # pyrefly: ignore[missing-attribute]
+      _ = expr_eval.eval(kde.extension_types.with_attrs(a_null, x=ds(1)))
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.with_attrs(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde.extension_types.with_attrs(I.x)))
     # Has the view of the ext QType.
-    self.assertFalse(hasattr(kde.extension_types.with_attrs(I.x), "a"))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(hasattr(kde.extension_types.with_attrs(I.x), "a"))
     self.assertTrue(
         hasattr(
-            kde.extension_types.with_attrs(M.annotation.qtype(I.x, A_qtype)),  # pyrefly: ignore[missing-attribute, not-callable]
+            kde.extension_types.with_attrs(M.annotation.qtype(I.x, A_qtype)),
             "x",
         )
     )
     self.assertFalse(
         hasattr(
-            kde.extension_types.with_attrs(M.annotation.qtype(I.x, A_qtype)),  # pyrefly: ignore[missing-attribute, not-callable]
+            kde.extension_types.with_attrs(M.annotation.qtype(I.x, A_qtype)),
             "z",
         )
     )

@@ -44,7 +44,7 @@ class ExtensionTypesWrapTest(parameterized.TestCase):
 
   def test_wrap(self):
     obj = objects.Object(a=ds(1))
-    result = expr_eval.eval(kde.extension_types.wrap(obj, A_qtype))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.extension_types.wrap(obj, A_qtype))
     testing.assert_equal(result.qtype, A_qtype)
     testing.assert_equal(result.a, ds(1))
     testing.assert_equal(result, A(1))  # pyrefly: ignore[bad-argument-count, bad-argument-type]
@@ -54,16 +54,16 @@ class ExtensionTypesWrapTest(parameterized.TestCase):
         ValueError,
         re.escape("expected one of [OBJECT], got obj: LABEL[__main__.A]"),
     ):
-      kde.extension_types.wrap(A(1), A_qtype)  # pyrefly: ignore[bad-argument-count, missing-attribute]
+      kde.extension_types.wrap(A(1), A_qtype)  # pyrefly: ignore[bad-argument-count]
 
   def test_wrap_not_a_qtype(self):
     with self.assertRaisesRegex(
         ValueError, re.escape("expected QTYPE, got qtype: DATA_SLICE")
     ):
-      kde.extension_types.wrap(objects.Object(a=ds(1)), ds(1))  # pyrefly: ignore[missing-attribute]
+      kde.extension_types.wrap(objects.Object(a=ds(1)), ds(1))
 
   def test_wrap_not_a_literal(self):
-    expr = kde.extension_types.wrap(objects.Object(a=ds(1)), I.qtype)  # pyrefly: ignore[missing-attribute]
+    expr = kde.extension_types.wrap(objects.Object(a=ds(1)), I.qtype)
     with self.assertRaisesRegex(
         ValueError, re.escape("`derived_qtype` must be a literal")
     ):
@@ -74,14 +74,14 @@ class ExtensionTypesWrapTest(parameterized.TestCase):
         ValueError, re.escape("expected DATA_SLICE, got value: OBJECT")
     ):
       expr_eval.eval(
-          kde.extension_types.wrap(objects.Object(a=ds(1)), qtypes.DATA_SLICE)  # pyrefly: ignore[missing-attribute]
+          kde.extension_types.wrap(objects.Object(a=ds(1)), qtypes.DATA_SLICE)
       )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(kde.extension_types.wrap(I.x, A_qtype)))  # pyrefly: ignore[missing-attribute]
+    self.assertFalse(view.has_koda_view(kde.extension_types.wrap(I.x, A_qtype)))
     # Has the view of the QType.
-    self.assertTrue(hasattr(kde.extension_types.wrap(I.x, A_qtype), "a"))  # pyrefly: ignore[missing-attribute]
-    self.assertFalse(hasattr(kde.extension_types.wrap(I.x, A_qtype), "b"))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(hasattr(kde.extension_types.wrap(I.x, A_qtype), "a"))
+    self.assertFalse(hasattr(kde.extension_types.wrap(I.x, A_qtype), "b"))
 
 
 if __name__ == "__main__":

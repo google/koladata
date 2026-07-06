@@ -39,7 +39,7 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
 
   def test_eval(self):
     testing.assert_equal(
-        expr_eval.eval(kde_internal.view.get_item(arolla.unspecified(), 1)),  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde_internal.view.get_item(arolla.unspecified(), 1)),
         ds(1),
     )
 
@@ -47,7 +47,7 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('no suitable overload operator')
     ) as cm:
-      kde_internal.view.get_item(arolla.int32(1), 1)  # pyrefly: ignore[missing-attribute]
+      kde_internal.view.get_item(arolla.int32(1), 1)
     self.assertTrue(
         arolla.testing.any_note_regex(
             re.escape('Input qtypes: x: INT32, key: DATA_SLICE.')
@@ -61,13 +61,13 @@ class KodaInternalViewGetItemTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde_internal.view.get_item(arolla.unspecified(), 1)),  # pyrefly: ignore[missing-attribute]
+        repr(kde_internal.view.get_item(arolla.unspecified(), 1)),
         'unspecified[DataItem(1, schema: INT32)]',
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde_internal.view.get_item(arolla.unspecified(), 1))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.view.get_item(arolla.unspecified(), 1))
     )
 
 

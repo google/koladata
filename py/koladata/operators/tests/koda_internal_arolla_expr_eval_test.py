@@ -49,7 +49,7 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
 
   def test_strings(self):
     res = kde_internal.arolla_expr_eval(
-        ds(arolla.quote(M.strings.join(L.x, M.strings.decode(L.y)))),  # pyrefly: ignore[missing-attribute]
+        ds(arolla.quote(M.strings.join(L.x, M.strings.decode(L.y)))),
         kd.tuples.namedtuple(x=ds(['1', None, '3']), y=ds([b'a', b'b', b'c'])),
     )
     testing.assert_equal(res, ds(['1a', None, '3c']))
@@ -88,7 +88,7 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
       )
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       kde_internal.arolla_expr_eval(
-          ds(arolla.quote(M.math.floordiv(L.x, L.y))),  # pyrefly: ignore[missing-attribute]
+          ds(arolla.quote(M.math.floordiv(L.x, L.y))),
           kd.tuples.namedtuple(x=ds(1), y=ds(0)),
       )
 

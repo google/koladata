@@ -98,17 +98,17 @@ class SlicesAggSizeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.slices.agg_size,  # pyrefly: ignore[missing-attribute]
+            kde.slices.agg_size,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.agg_size(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.agg_size(I.x)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.slices.agg_size, kde.agg_size))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.slices.agg_size, kde.agg_size))
 
 
 if __name__ == '__main__':

@@ -81,18 +81,18 @@ class StringsFstrTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, fmt, kwargs, expected):
-    result = expr_eval.eval(kde.strings.fstr(fmt), **kwargs)  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.strings.fstr(fmt), **kwargs)
     testing.assert_equal(result, expected)
 
   def test_eval_float(self):
     testing.assert_equal(
         expr_eval.eval(
-            kde.strings.fstr(f'{ds(3.5):0.2} + {ds(2.2):0.3f} = {ds(5.7):s}')  # pyrefly: ignore[missing-attribute]
+            kde.strings.fstr(f'{ds(3.5):0.2} + {ds(2.2):0.3f} = {ds(5.7):s}')
         ),
         ds('3.50 + 2.200 = 5.7'),
     )
     testing.assert_equal(
-        expr_eval.eval(kde.strings.fstr(f'{ds(57.0):017} != {ds(57):017}')),  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde.strings.fstr(f'{ds(57.0):017} != {ds(57):017}')),
         ds('0000000057.000000 != 00000000000000057'),
     )
 
@@ -129,11 +129,11 @@ class StringsFstrTest(parameterized.TestCase):
       ),
   )
   def test_eval_single_arg_default_spec(self, arg, expected):
-    result = expr_eval.eval(kde.strings.fstr(f'{arg:s}'))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.strings.fstr(f'{arg:s}'))
     testing.assert_equal(result, expected)
 
   def test_examples_from_docstring(self):
-    greeting_expr = kde.fstr(f'Hello, {I.countries:s}!')  # pyrefly: ignore[missing-attribute]
+    greeting_expr = kde.fstr(f'Hello, {I.countries:s}!')
 
     countries = ds(['USA', 'Schweiz'])
     testing.assert_equal(
@@ -142,13 +142,13 @@ class StringsFstrTest(parameterized.TestCase):
     )
     local_greetings = ds(['Hello', 'Gruezi'])
     # Data slice is interpreted as literal.
-    local_greeting_expr = kde.fstr(f'{local_greetings:s}, {I.countries:s}!')  # pyrefly: ignore[missing-attribute]
+    local_greeting_expr = kde.fstr(f'{local_greetings:s}, {I.countries:s}!')
     testing.assert_equal(
         expr_eval.eval(local_greeting_expr, countries=countries),
         ds(['Hello, USA!', 'Gruezi, Schweiz!']),
     )
 
-    price_expr = kde.fstr(  # pyrefly: ignore[missing-attribute]
+    price_expr = kde.fstr(
         f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.'
     )
     testing.assert_equal(
@@ -172,29 +172,29 @@ class StringsFstrTest(parameterized.TestCase):
             ' got *args: (BYTES)'
         ),
     ):
-      expr_eval.eval(kde.strings.fstr(f'{ds(b"foo"):s}'))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.fstr(f'{ds(b"foo"):s}'))
 
   def test_unsupported_types_error(self):
     with self.assertRaisesRegex(
         ValueError,
         'cannot format argument `x` of type ITEMID',
     ):
-      expr_eval.eval(kde.strings.fstr(f'{kde.uuid():s}'))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.fstr(f'{kde.uuid():s}'))
     with self.assertRaisesRegex(
         ValueError,
         'cannot format argument `x` of type OBJECT containing non-primitive'
         ' values',
     ):
       expr_eval.eval(
-          kde.strings.fstr(  # pyrefly: ignore[missing-attribute]
-              f'{kde.with_schema(kde.uuid(), schema_constants.OBJECT):s}'  # pyrefly: ignore[missing-attribute]
+          kde.strings.fstr(
+              f'{kde.with_schema(kde.uuid(), schema_constants.OBJECT):s}'
           )
       )
     with self.assertRaisesRegex(
         ValueError,
         'cannot format argument `x` of type MASK',
     ):
-      expr_eval.eval(kde.strings.fstr(f'{ds(arolla.present()):s}'))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.fstr(f'{ds(arolla.present()):s}'))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
@@ -202,15 +202,15 @@ class StringsFstrTest(parameterized.TestCase):
         'cannot format argument `x` of type OBJECT containing INT32 and STRING'
         ' values',
     ):
-      expr_eval.eval(kde.strings.fstr(f'{ds([1, "foo"]):s}'))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.strings.fstr(f'{ds([1, "foo"]):s}'))
 
   def test_binding_policy(self):
     self.assertEqual(
-        inspect.signature(kde.strings.fstr),  # pyrefly: ignore[missing-attribute]
+        inspect.signature(kde.strings.fstr),
         inspect.signature(lambda fstr, /: None),
     )
     with self.assertRaisesRegex(TypeError, 'expected a string'):
-      kde.strings.fstr(b'a')  # pyrefly: ignore[missing-attribute]
+      kde.strings.fstr(b'a')
 
   def test_not_serializable(self):
     f = functor_factories.py_fn(lambda x: x)
@@ -220,20 +220,20 @@ class StringsFstrTest(parameterized.TestCase):
             r'If you are using kd\.py_fn, try switching to kd\.register_py_fn'
         ),
     ):
-      kde.strings.fstr(f'{f(I.x):s}')  # pyrefly: ignore[missing-attribute]
+      kde.strings.fstr(f'{f(I.x):s}')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.fstr,  # pyrefly: ignore[missing-attribute]
+        kde.strings.fstr,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.strings.fstr(f'{I.x:s}')))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.strings.fstr(f'{I.x:s}')))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.strings.fstr, kde.fstr))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.strings.fstr, kde.fstr))
 
 
 if __name__ == '__main__':

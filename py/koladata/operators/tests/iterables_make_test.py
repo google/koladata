@@ -86,11 +86,11 @@ class IterablesMakeTest(absltest.TestCase):
     self.assertEmpty(list(res))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.iterables.make()))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.iterables.make()))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.iterables.make(I.a, I.b)),  # pyrefly: ignore[missing-attribute]
+        repr(kde.iterables.make(I.a, I.b)),
         'kd.iterables.make(I.a, I.b, value_type_as=unspecified)',
     )
 

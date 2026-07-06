@@ -52,7 +52,7 @@ class ComparisonEqualTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.comparison.equal,  # pyrefly: ignore[missing-attribute]
+            kde.comparison.equal,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
@@ -106,14 +106,14 @@ Schema for `y`: ITEMID"""
       )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.comparison.equal(I.x, I.y)), 'I.x == I.y')  # pyrefly: ignore[missing-attribute]
-    self.assertEqual(repr(kde.equal(I.x, I.y)), 'I.x == I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.comparison.equal(I.x, I.y)), 'I.x == I.y')
+    self.assertEqual(repr(kde.equal(I.x, I.y)), 'I.x == I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.comparison.equal(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.comparison.equal(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.comparison.equal, kde.equal))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.comparison.equal, kde.equal))
 
 
 if __name__ == '__main__':

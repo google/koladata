@@ -31,70 +31,70 @@ kde_internal = kde_operators.internal
 class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
 
   def test_simple(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    expr = kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)
     )
     testing.assert_equal(expr_eval.eval(expr, foo=1, bar=2), ds(3))
 
   def test_future_inputs(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    expr = kde_internal.parallel.get_future_value_for_testing(  # pyrefly: ignore[missing-attribute]
-        kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.get_future_value_for_testing(
+        kde_internal.parallel.async_eval(
             executor,
             inner_op,
-            kde_internal.parallel.as_future(I.foo),  # pyrefly: ignore[missing-attribute]
-            kde_internal.parallel.as_future(I.bar),  # pyrefly: ignore[missing-attribute]
+            kde_internal.parallel.as_future(I.foo),
+            kde_internal.parallel.as_future(I.bar),
         )
     )
     testing.assert_equal(expr_eval.eval(expr, foo=1, bar=2), ds(3))
 
   def test_nested(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    inner_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    inner_expr = kde_internal.parallel.async_eval(
         executor, inner_op, I.foo, I.bar
     )
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, inner_op, inner_expr, I.baz
     )
-    expr = kde_internal.parallel.get_future_value_for_testing(outer_expr)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.get_future_value_for_testing(outer_expr)
     testing.assert_equal(expr_eval.eval(expr, foo=1, bar=2, baz=3), ds(6))
 
   def test_error_propagation(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_py_function_operator('aux')(lambda x, y: x // y)
-    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)
     # Note that the async eval does not raise, just stores the error in the
     # future.
     res_future = expr_eval.eval(expr, foo=1, bar=0)
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
 
   def test_nested_error_propagation(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_py_function_operator('aux')(lambda x, y: x // y)
-    inner_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    inner_expr = kde_internal.parallel.async_eval(
         executor, inner_op, I.foo, I.bar
     )
     outer_op = optools.as_lambda_operator('aux')(lambda x: x * 2)
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, outer_op, inner_expr
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
 
   def test_two_errors(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op1 = optools.as_py_function_operator('aux')(lambda x, y: x // y)
-    inner_expr1 = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    inner_expr1 = kde_internal.parallel.async_eval(
         executor, inner_op1, I.foo, I.bar
     )
 
@@ -102,71 +102,71 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
     def inner_op2():
       raise ValueError('inner error')
 
-    inner_expr2 = kde_internal.parallel.async_eval(executor, inner_op2)  # pyrefly: ignore[missing-attribute]
+    inner_expr2 = kde_internal.parallel.async_eval(executor, inner_op2)
     outer_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, outer_op, inner_expr1, inner_expr2
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     # With the eager executor, we always get the first error.
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, outer_op, inner_expr2, inner_expr1
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     with self.assertRaisesRegex(ValueError, 'inner error'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
 
   def test_error_and_non_error(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op1 = optools.as_py_function_operator('aux')(lambda x, y: x // y)
-    inner_expr1 = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    inner_expr1 = kde_internal.parallel.async_eval(
         executor, inner_op1, I.foo, I.bar
     )
     inner_op2 = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    inner_expr2 = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    inner_expr2 = kde_internal.parallel.async_eval(
         executor, inner_op2, I.foo, I.bar
     )
     outer_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, outer_op, inner_expr1, inner_expr2
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
-    outer_expr = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+    outer_expr = kde_internal.parallel.async_eval(
         executor, outer_op, inner_expr2, inner_expr1
     )
     res_future = expr_eval.eval(outer_expr, foo=1, bar=0)
     with self.assertRaisesRegex(ValueError, 'division by zero'):
       _ = expr_eval.eval(
-          kde_internal.parallel.get_future_value_for_testing(res_future)  # pyrefly: ignore[missing-attribute]
+          kde_internal.parallel.get_future_value_for_testing(res_future)
       )
 
   def test_op_returns_future(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(
-        lambda x, y: kde_internal.parallel.as_future(x + y)  # pyrefly: ignore[missing-attribute]
+        lambda x, y: kde_internal.parallel.as_future(x + y)
     )
-    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
-    expr = kde_internal.parallel.unwrap_future_to_future(expr)  # pyrefly: ignore[missing-attribute]
-    expr = kde_internal.parallel.get_future_value_for_testing(expr)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)
+    expr = kde_internal.parallel.unwrap_future_to_future(expr)
+    expr = kde_internal.parallel.get_future_value_for_testing(expr)
     testing.assert_equal(expr_eval.eval(expr, foo=1, bar=2), ds(3))
 
   def test_op_returns_stream(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(
-        lambda x, y: kde_internal.parallel.stream_make(x + y, x - y)  # pyrefly: ignore[missing-attribute]
+        lambda x, y: kde_internal.parallel.stream_make(x + y, x - y)
     )
-    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
-    expr = kde_internal.parallel.unwrap_future_to_stream(expr)  # pyrefly: ignore[missing-attribute]
+    expr = kde_internal.parallel.async_eval(executor, inner_op, I.foo, I.bar)
+    expr = kde_internal.parallel.unwrap_future_to_stream(expr)
     res = expr_eval.eval(expr, foo=1, bar=2)
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=0)), arolla.tuple(ds(3), ds(-1))
@@ -178,31 +178,31 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, 'expected executor, got DATA_SLICE'
     ):
-      _ = kde_internal.parallel.async_eval(bad_executor, inner_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
+      _ = kde_internal.parallel.async_eval(bad_executor, inner_op, I.foo, I.bar)
 
   def test_non_op(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     bad_op = ds(1)
     with self.assertRaisesRegex(
         ValueError, 'expected inner operator, got DATA_SLICE'
     ):
-      _ = kde_internal.parallel.async_eval(executor, bad_op, I.foo, I.bar)  # pyrefly: ignore[missing-attribute]
+      _ = kde_internal.parallel.async_eval(executor, bad_op, I.foo, I.bar)
 
   def test_non_literal_op(self):
-    executor = kde_internal.parallel.get_eager_executor()  # pyrefly: ignore[missing-attribute]
+    executor = kde_internal.parallel.get_eager_executor()
     inner_op = optools.as_lambda_operator('aux')(lambda x, y: x + y)
     inner_op_wrapped = optools.as_py_function_operator(
         'aux', qtype_inference_expr=arolla.OPERATOR
     )(lambda x: x)(inner_op)
     testing.assert_equal(expr_eval.eval(inner_op_wrapped), inner_op)
     with self.assertRaisesRegex(ValueError, 'inner operator must be a literal'):
-      _ = kde_internal.parallel.async_eval(  # pyrefly: ignore[missing-attribute]
+      _ = kde_internal.parallel.async_eval(
           executor, inner_op_wrapped, I.foo, I.bar
       )
 
   def test_view(self):
     self.assertFalse(
-        view.has_koda_view(kde_internal.parallel.async_eval(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde_internal.parallel.async_eval(I.x, I.y))
     )
 
 

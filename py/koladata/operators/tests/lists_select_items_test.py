@@ -100,18 +100,18 @@ class ListsSelectItemsTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.lists.select_items,  # pyrefly: ignore[missing-attribute]
+            kde.lists.select_items,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.slices.select(I.x, I.fltr)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.slices.select(I.x, I.fltr)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.lists.select_items, kde.select_items)  # pyrefly: ignore[missing-attribute]
+        optools.equiv_to_op(kde.lists.select_items, kde.select_items)
     )
 
 

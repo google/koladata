@@ -95,20 +95,20 @@ Schema for `y`: ENTITY()"""
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.masking.coalesce,  # pyrefly: ignore[missing-attribute]
+        kde.masking.coalesce,
         QTYPES,
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.masking.coalesce(I.x, I.y)), 'I.x | I.y')  # pyrefly: ignore[missing-attribute]
-    self.assertEqual(repr(kde.coalesce(I.x, I.y)), 'I.x | I.y')  # pyrefly: ignore[missing-attribute]
+    self.assertEqual(repr(kde.masking.coalesce(I.x, I.y)), 'I.x | I.y')
+    self.assertEqual(repr(kde.coalesce(I.x, I.y)), 'I.x | I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.masking.coalesce(I.x, I.y)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.masking.coalesce(I.x, I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.masking.coalesce, kde.coalesce))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(optools.equiv_to_op(kde.masking.coalesce, kde.coalesce))
 
 
 if __name__ == '__main__':

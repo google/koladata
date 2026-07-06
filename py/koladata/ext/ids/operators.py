@@ -18,7 +18,7 @@ from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from koladata import kd
 
-M = arolla.M | derived_qtype.M  # pyrefly: ignore[unsupported-operation]
+M = arolla.M | derived_qtype.M
 P = arolla.P
 kde = kd.optools.make_operators_container(
     'kd.functor', 'kd.schema', 'kd.core'
@@ -29,12 +29,12 @@ kd.optools.set_namespace_docstring('kd_ext.ids', __doc__)
 
 @arolla.optools.as_lambda_operator('_kd_ext_ids_get_metadata_schema')
 def _get_metadata_schema(pair):
-  return M.core.get_nth(pair, 0)  # pyrefly: ignore[missing-attribute]
+  return M.core.get_nth(pair, 0)
 
 
 @arolla.optools.as_lambda_operator('_kd_ext_ids_get_actual_schema')
 def _get_actual_schema(pair):
-  return M.core.get_nth(pair, 1)  # pyrefly: ignore[missing-attribute]
+  return M.core.get_nth(pair, 1)
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
@@ -61,7 +61,7 @@ def auto_id(name):
   """
   metadata_schema = kd.schema.named_schema(kd.strings.join('__AUTO_ID__', name))  # pyrefly: ignore[missing-attribute]
   str_schema = kd.STRING
-  return M.core.make_tuple(metadata_schema, str_schema)  # pyrefly: ignore[missing-attribute]
+  return M.core.make_tuple(metadata_schema, str_schema)
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
@@ -87,7 +87,7 @@ def auto_reference(namespace):
       kd.strings.join('__AUTO_REFERENCE__', namespace)  # pyrefly: ignore[missing-attribute]
   )
   str_schema = kd.STRING
-  return M.core.make_tuple(metadata_schema, str_schema)  # pyrefly: ignore[missing-attribute]
+  return M.core.make_tuple(metadata_schema, str_schema)
 
 
 @kd.optools.add_to_registry(via_cc_operator_package=True)
@@ -103,7 +103,7 @@ def auto_reference_list(auto_schema_tuple):
   """Returns a tuple that can be used for an auto_reference list attributes."""
   metadata_schema = _get_metadata_schema(auto_schema_tuple)
   actual_schema = _get_actual_schema(auto_schema_tuple)
-  return M.core.make_tuple(  # pyrefly: ignore[missing-attribute]
+  return M.core.make_tuple(
       kd.schema.list_schema(metadata_schema),  # pyrefly: ignore[missing-attribute]
       kd.schema.list_schema(actual_schema),  # pyrefly: ignore[missing-attribute]
   )
@@ -159,19 +159,19 @@ def with_auto_attributes(schema, /, **auto_attrs):  # pylint: disable=unused-arg
     A schema with the auto attributes added to both schema and metadata.
   """
   auto_attrs = arolla.optools.fix_trace_kwargs(auto_attrs)
-  tuple_auto_attrs = M.derived_qtype.upcast(  # pyrefly: ignore[missing-attribute]
-      M.qtype.qtype_of(auto_attrs), auto_attrs  # pyrefly: ignore[missing-attribute]
+  tuple_auto_attrs = M.derived_qtype.upcast(
+      M.qtype.qtype_of(auto_attrs), auto_attrs
   )
 
-  metadata_tuple = M.core.map_tuple(_get_metadata_schema, tuple_auto_attrs)  # pyrefly: ignore[missing-attribute]
-  actual_tuple = M.core.map_tuple(_get_actual_schema, tuple_auto_attrs)  # pyrefly: ignore[missing-attribute]
+  metadata_tuple = M.core.map_tuple(_get_metadata_schema, tuple_auto_attrs)
+  actual_tuple = M.core.map_tuple(_get_actual_schema, tuple_auto_attrs)
 
-  attr_names = M.qtype.get_field_names(M.qtype.qtype_of(auto_attrs))  # pyrefly: ignore[missing-attribute]
-  metadata_schemas = M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-      M.namedtuple.make, attr_names, metadata_tuple  # pyrefly: ignore[missing-attribute]
+  attr_names = M.qtype.get_field_names(M.qtype.qtype_of(auto_attrs))
+  metadata_schemas = M.core.apply_varargs(
+      M.namedtuple.make, attr_names, metadata_tuple
   )
-  actual_schemas = M.core.apply_varargs(  # pyrefly: ignore[missing-attribute]
-      M.namedtuple.make, attr_names, actual_tuple  # pyrefly: ignore[missing-attribute]
+  actual_schemas = M.core.apply_varargs(
+      M.namedtuple.make, attr_names, actual_tuple
   )
 
   schema = arolla.abc.bind_op(

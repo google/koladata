@@ -43,7 +43,7 @@ class ShapesIsExpandableToShapeTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.shapes.is_expandable_to_shape,  # pyrefly: ignore[missing-attribute]
+            kde.shapes.is_expandable_to_shape,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
         ),
         [
@@ -75,17 +75,17 @@ class ShapesIsExpandableToShapeTest(parameterized.TestCase):
       (ds(["a", 2, 3]), create_shape(3, 1), 1, kd.present),
   )
   def test_eval(self, x, target, ndim, expected):
-    result = expr_eval.eval(kde.shapes.is_expandable_to_shape(x, target, ndim))  # pyrefly: ignore[missing-attribute]
+    result = expr_eval.eval(kde.shapes.is_expandable_to_shape(x, target, ndim))
     testing.assert_equal(result, expected)
 
     # Ensure result is consistent with `kde.expand_to_shape` operator.
     if expected:
-      expr_eval.eval(kde.expand_to_shape(x, target, ndim))  # pyrefly: ignore[missing-attribute]
+      expr_eval.eval(kde.expand_to_shape(x, target, ndim))
     else:
       with self.assertRaisesRegex(
           ValueError, r"(DataSlice with shape|Cannot expand 'x').*"
       ):
-        expr_eval.eval(kde.expand_to_shape(x, target, ndim))  # pyrefly: ignore[missing-attribute]
+        expr_eval.eval(kde.expand_to_shape(x, target, ndim))
 
   def test_invalid_ndim_error(self):
     with self.assertRaisesRegex(
@@ -93,7 +93,7 @@ class ShapesIsExpandableToShapeTest(parameterized.TestCase):
         re.escape("expected 0 <= ndim <= rank"),
     ):
       expr_eval.eval(
-          kde.shapes.is_expandable_to_shape(ds(1), create_shape(), -1)  # pyrefly: ignore[missing-attribute]
+          kde.shapes.is_expandable_to_shape(ds(1), create_shape(), -1)
       )
 
     with self.assertRaisesRegex(
@@ -101,12 +101,12 @@ class ShapesIsExpandableToShapeTest(parameterized.TestCase):
         re.escape("expected 0 <= ndim <= rank"),
     ):
       expr_eval.eval(
-          kde.shapes.is_expandable_to_shape(ds(1), create_shape(), 1)  # pyrefly: ignore[missing-attribute]
+          kde.shapes.is_expandable_to_shape(ds(1), create_shape(), 1)
       )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(kde.shapes.is_expandable_to_shape(I.x, I.y))  # pyrefly: ignore[missing-attribute]
+        view.has_koda_view(kde.shapes.is_expandable_to_shape(I.x, I.y))
     )
 
 
