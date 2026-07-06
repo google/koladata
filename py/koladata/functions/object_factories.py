@@ -28,7 +28,7 @@ mutable_bag = data_bag.DataBag.empty_mutable
 
 
 def list_(
-    items: Any | None = None,
+    items: Any = arolla.unspecified(),
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
@@ -57,6 +57,10 @@ def list_(
   Returns:
     The slice with list/lists.
   """
+  if items is None:
+    raise ValueError('kd.list: items cannot be None')
+  if isinstance(items, arolla.abc.Unspecified):
+    items = None
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (
@@ -191,7 +195,8 @@ def list_shaped_as(
 
 
 def dict_(
-    items_or_keys: Any | None = None, values: Any | None = None,
+    items_or_keys: Any = arolla.unspecified(),
+    values: Any = arolla.unspecified(),
     *,
     key_schema: data_slice.DataSlice | None = None,
     value_schema: data_slice.DataSlice | None = None,
@@ -239,6 +244,14 @@ def dict_(
   Returns:
     A DataSlice with the dict.
   """
+  if items_or_keys is None:
+    raise ValueError('kd.dict: items_or_keys cannot be None')
+  if values is None:
+    raise ValueError('kd.dict: values cannot be None')
+  if isinstance(items_or_keys, arolla.abc.Unspecified):
+    items_or_keys = None
+  if isinstance(values, arolla.abc.Unspecified):
+    values = None
   # NOTE: We create a mutable bag and freeze it for performance reasons.
   # The alternative to rely on eager version of kd.lazy is significantly slower.
   return (

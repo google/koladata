@@ -139,10 +139,20 @@ class ListTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # No schema, no list items provided.
-      (None, None, None, schema_constants.OBJECT),
+      (arolla.unspecified(), None, None, schema_constants.OBJECT),
       # Schema, but no list items provided.
-      (None, schema_constants.OBJECT, None, schema_constants.OBJECT),
-      (None, schema_constants.INT64, None, schema_constants.INT64),
+      (
+          arolla.unspecified(),
+          schema_constants.OBJECT,
+          None,
+          schema_constants.OBJECT,
+      ),
+      (
+          arolla.unspecified(),
+          schema_constants.INT64,
+          None,
+          schema_constants.INT64,
+      ),
       # Deduce schema from list items.
       ([1, 2, 3], None, None, schema_constants.INT32),
       ([1, 'foo'], None, None, schema_constants.OBJECT),
@@ -156,7 +166,7 @@ class ListTest(parameterized.TestCase):
       ([1, 2, 3], schema_constants.INT64, None, schema_constants.INT64),
       ([1, 2, 3], schema_constants.OBJECT, None, schema_constants.OBJECT),
       (
-          None,
+          arolla.unspecified(),
           None,
           kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
@@ -202,6 +212,8 @@ class ListTest(parameterized.TestCase):
       fns.list(item_schema=schema_constants.INT64, schema=list_schema)
 
   def test_wrong_arg_types(self):
+    with self.assertRaisesRegex(ValueError, 'kd.list: items cannot be None'):
+      fns.list(None)
     with self.assertRaisesRegex(
         TypeError,
         'kd.list takes a Python list rather than DataSlice as an input',

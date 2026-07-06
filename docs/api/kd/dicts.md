@@ -173,7 +173,7 @@ Args:
 Returns:
   A DataSlice with the dicts.</code></pre>
 
-### `kd.dicts.new(items_or_keys: Any | None = None, values: Any | None = None, *, key_schema: DataSlice | None = None, value_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.dicts.new}
+### `kd.dicts.new(items_or_keys: Any = unspecified, values: Any = unspecified, *, key_schema: DataSlice | None = None, value_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.dicts.new}
 Aliases:
 
 - [kd.dict](../kd.md#kd.dict)

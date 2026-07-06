@@ -167,8 +167,8 @@ class DictTest(parameterized.TestCase):
 
   @parameterized.parameters(
       dict(
-          keys=None,
-          values=None,
+          keys=arolla.unspecified(),
+          values=arolla.unspecified(),
           key_schema=None,
           value_schema=None,
           schema=None,
@@ -176,8 +176,8 @@ class DictTest(parameterized.TestCase):
           expected_value_schema=schema_constants.OBJECT,
       ),
       dict(
-          keys=None,
-          values=None,
+          keys=arolla.unspecified(),
+          values=arolla.unspecified(),
           key_schema=schema_constants.INT32,
           value_schema=schema_constants.OBJECT,
           schema=None,
@@ -214,8 +214,8 @@ class DictTest(parameterized.TestCase):
           expected_value_schema=schema_constants.OBJECT,
       ),
       dict(
-          keys=None,
-          values=None,
+          keys=arolla.unspecified(),
+          values=arolla.unspecified(),
           key_schema=None,
           value_schema=None,
           schema=kde.dict_schema(
@@ -278,6 +278,14 @@ class DictTest(parameterized.TestCase):
       )
 
   def test_wrong_arg_types(self):
+    with self.assertRaisesRegex(
+        ValueError, 'kd.dict: items_or_keys cannot be None'
+    ):
+      fns.dict(None)
+    with self.assertRaisesRegex(
+        ValueError, 'kd.dict: values cannot be None'
+    ):
+      fns.dict(ds([1]), None)
     with self.assertRaisesRegex(
         TypeError, 'expecting key_schema to be a DataSlice, got int'
     ):

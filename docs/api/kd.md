@@ -313,7 +313,7 @@ Alias for [kd.ids.deep_uuid](kd/ids.md#kd.ids.deep_uuid)
 
 Alias for [kd.slices.dense_rank](kd/slices.md#kd.slices.dense_rank)
 
-### `kd.dict(items_or_keys: Any | None = None, values: Any | None = None, *, key_schema: DataSlice | None = None, value_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.dict}
+### `kd.dict(items_or_keys: Any = unspecified, values: Any = unspecified, *, key_schema: DataSlice | None = None, value_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.dict}
 
 Alias for [kd.dicts.new](kd/dicts.md#kd.dicts.new)
 
@@ -909,7 +909,7 @@ Alias for [kd.comparison.less](kd/comparison.md#kd.comparison.less)
 
 Alias for [kd.comparison.less_equal](kd/comparison.md#kd.comparison.less_equal)
 
-### `kd.list(items: Any | None = None, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list}
+### `kd.list(items: Any = unspecified, *, item_schema: DataSlice | None = None, schema: DataSlice | None = None, itemid: DataSlice | None = None) -> DataSlice` {#kd.list}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates list(s) by collapsing `items` into an immutable list.
 
