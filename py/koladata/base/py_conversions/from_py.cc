@@ -138,8 +138,11 @@ absl::StatusOr<DataSlice::JaggedShape> CreateNextLevelShape(
 // Helper class for converting Python objects to DataSlices.
 class FromPyConverter {
  public:
-  explicit FromPyConverter(AdoptionQueue& adoption_queue, bool dict_as_obj)
-      : adoption_queue_(adoption_queue), dict_as_obj_(dict_as_obj) {}
+  explicit FromPyConverter(DataBagPtr schema_bag, AdoptionQueue& adoption_queue,
+                           bool dict_as_obj)
+      : schema_bag_(std::move(schema_bag)),
+        adoption_queue_(adoption_queue),
+        dict_as_obj_(dict_as_obj) {}
 
   absl::StatusOr<DataSlice> Convert(PyObject* py_obj,
                                     const std::optional<DataSlice>& schema,
@@ -185,6 +188,10 @@ class FromPyConverter {
   // separately (through adoption_queue). If there are no new triples created
   // during conversion, this method returns nullptr.
   absl_nullable DataBagPtr GetCreatedBag() && { return std::move(db_); }
+
+  // Returns true if the conversion requires adoption, because the new databag
+  // was created during the conversion and it is different from the schema bag.
+  bool IsAdoptionNeeded() const { return need_to_adopt_; }
 
  private:
   // Returns true if the given Python objects should be treated as a list or
@@ -464,11 +471,14 @@ class FromPyConverter {
   // is.
   absl::Status ConvertImpl(const std::vector<PyObject*>& py_objects,
                            DataSlice::JaggedShape cur_shape,
-                           const std::optional<DataSlice>& schema,
+                           std::optional<DataSlice> schema,
                            std::optional<DataSlice> itemid, int cur_depth,
                            internal::TrampolineExecutor& executor,
                            std::optional<DataSlice>& result,
                            bool computing_object = false) {
+    if (schema && schema->GetBag() != nullptr && schema_forked_) {
+      schema = schema->WithBag(db_);
+    }
     if (py_objects.empty()) {
       ASSIGN_OR_RETURN(
           result, DataSlice::Create(
@@ -490,7 +500,7 @@ class FromPyConverter {
       // support Entity -> Object casting.
       absl::StatusOr<DataSlice> ds_or = DataSliceFromPyFlatList(
           py_objects, std::move(cur_shape),
-          schema ? schema->item() : DataItem(), adoption_queue_,
+          schema ? schema->item() : DataItem(), GetAdoptionQueue(),
           /*explicit_cast=*/IsObjectSchema(schema));
       if (!ds_or.ok()) {
         return absl::InvalidArgumentError(
@@ -1018,9 +1028,16 @@ class FromPyConverter {
       itemid = itemid->Flatten();
     }
 
+    // This is an optimiation to avoid schema adoption in FromProtoObjects.
+    const auto& db = GetBag();
+    if (schema && schema->GetBag() != nullptr && schema_forked_) {
+      schema = schema->WithBag(db);
+    }
+
     ASSIGN_OR_RETURN(DataSlice proto_slice,
-                     FromProtoObjects(GetBag(), py_objects, /*extensions=*/{},
-                                      /*itemid=*/itemid, /*schema=*/schema));
+                     FromProtoObjects(db, py_objects, /*extensions=*/{},
+                                      /*itemid=*/itemid,
+                                      /*schema=*/schema));
 
     ASSIGN_OR_RETURN(result, proto_slice.Reshape(std::move(cur_shape)));
     return absl::OkStatus();
@@ -1062,7 +1079,7 @@ class FromPyConverter {
         // NOTE: If we could've parsed primitives, they would already be parsed
         // upstream. Here, we are
         // just re-using the same error message as `kd.slice`.
-        auto error = DataSliceFromPyValue(py_obj, adoption_queue_);
+        auto error = DataSliceFromPyValue(py_obj, GetAdoptionQueue());
         if (error.ok()) {
           // This happens when dataclasses are mixed with non-dataclasses on the
           // same level of nesting with auto schema.
@@ -1174,17 +1191,35 @@ class FromPyConverter {
   }
 
   const DataBagPtr& GetBag() {
-    if (ABSL_PREDICT_FALSE(db_ == nullptr)) {
+    if (ABSL_PREDICT_TRUE(db_ != nullptr)) {
+      return db_;
+    }
+    if (schema_bag_ != nullptr) {
+      auto fork_status = schema_bag_->Fork();
+      if (fork_status.ok()) {
+        db_ = std::move(*fork_status);
+        schema_forked_ = true;
+      }
+    }
+    if (db_ == nullptr) {
       db_ = DataBag::EmptyMutable();
-      adoption_queue_.Add(db_);
+      GetAdoptionQueue().Add(db_);
     }
     return db_;
   }
 
+  AdoptionQueue& GetAdoptionQueue() {
+    need_to_adopt_ = true;
+    return adoption_queue_;
+  }
+
+  DataBagPtr schema_bag_;
   DataBagPtr db_;
   AdoptionQueue& adoption_queue_;
   DataClassesUtil dataclasses_util_;
   bool dict_as_obj_;
+  bool schema_forked_ = false;
+  bool need_to_adopt_ = false;
 };
 
 }  // namespace
@@ -1194,22 +1229,36 @@ absl::StatusOr<DataSlice> FromPy(PyObject* py_obj,
                                  size_t from_dim, bool dict_as_obj,
                                  const std::optional<DataSlice>& itemid) {
   AdoptionQueue adoption_queue;
-  DataItem schema_item;
+  DataBagPtr schema_bag = nullptr;
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     adoption_queue.Add(*schema);
-    schema_item = schema->item();
+    schema_bag = schema->GetBag();
   }
 
-  FromPyConverter from_py_converter(adoption_queue, dict_as_obj);
-  ASSIGN_OR_RETURN(DataSlice res_slice,
-                   from_py_converter.Convert(py_obj, schema, from_dim, itemid));
-
+  FromPyConverter from_py_converter(std::move(schema_bag), adoption_queue,
+                                    dict_as_obj);
+  auto res_slice_status =
+      from_py_converter.Convert(py_obj, schema, from_dim, itemid);
+  if (!res_slice_status.ok()) {
+    return res_slice_status.status();
+  }
+  DataSlice res_slice = std::move(*res_slice_status);
+  const bool need_to_adopt = from_py_converter.IsAdoptionNeeded();
   DataBagPtr res_db = std::move(from_py_converter).GetCreatedBag();
+  // The logic is the following:
+  // res_db is either nullptr, or a fork of the first bag in the adoption queue.
+  // If res_db is the fork of the first bag, and the queue doesn't have other
+  // bags, then we can skip adoption.
+  // adoption_queue doesn't expose its conent, so we need the variable
+  // need_to_adopt to track if it contains anything except of the res_db's
+  // parent.
   if (res_db == nullptr) {
     ASSIGN_OR_RETURN(res_db, adoption_queue.GetCommonOrMergedDb());
   } else {
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
+    if (need_to_adopt) {
+      RETURN_IF_ERROR(adoption_queue.AdoptInto(*res_db));
+    }
     res_db->UnsafeMakeImmutable();
   }
   return res_slice.WithBag(std::move(res_db));
