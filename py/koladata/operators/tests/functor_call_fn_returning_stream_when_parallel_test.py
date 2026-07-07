@@ -36,8 +36,8 @@ class FunctorCallReturningStreamWhenParallelTest(absltest.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.iterables.make(I.x + V.foo, I.x * V.foo),  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=kde.iterables.make(I.x + V.foo, I.x * V.foo),
+        foo=I.y * I.x,
     )
     expected = kd.iterables.make(ds(8), ds(12))
     testing.assert_equal(

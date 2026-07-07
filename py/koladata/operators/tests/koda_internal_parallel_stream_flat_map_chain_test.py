@@ -50,7 +50,7 @@ class KodaInternalParallelStreamFlatMapChainTest(absltest.TestCase):
 
   def test_basic(self):
     fn = expr_fn(
-        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)  # pyrefly: ignore[unsupported-operation]
+        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)
     )
     res = kde_internal.parallel.stream_flat_map_chain(
         default_executor, kde_internal.parallel.stream_make(1, 10), fn
@@ -77,7 +77,7 @@ class KodaInternalParallelStreamFlatMapChainTest(absltest.TestCase):
 
   def test_empty_input_stream(self):
     fn = expr_fn(
-        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)  # pyrefly: ignore[unsupported-operation]
+        kde_internal.parallel.stream_make(I.self, 2 * I.self, 3 * I.self)
     )
     res = kde_internal.parallel.stream_flat_map_chain(
         default_executor, kde_internal.parallel.stream_make(), fn
@@ -98,7 +98,7 @@ class KodaInternalParallelStreamFlatMapChainTest(absltest.TestCase):
       res.read_all(timeout=None)
 
   def test_error_wrong_value_type_as(self):
-    fn = expr_fn(2 * I.self)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(2 * I.self)
     res = kde_internal.parallel.stream_flat_map_chain(
         default_executor, stream_make(1, 5, 10), fn
     ).eval()  # no error

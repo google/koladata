@@ -102,7 +102,7 @@ class MapReduceUpdateTest(parameterized.TestCase):
 
   def test_return_non_databag_error(self):
     # map_reduce_update requires functor to return DataBag, not DataSlice.
-    fn = kdf.fn(I.x + 1)  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(I.x + 1)
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         ValueError,

@@ -37,17 +37,17 @@ kd = eager_op_utils.operators_container('kd')
 class FunctorBindTest(absltest.TestCase):
 
   def test_no_params(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     bound_fn = kde.functor.bind(fn).eval()
     testing.assert_equal(bound_fn(x=5, y=7), ds(12))
 
   def test_full_params(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     bound_fn = kde.functor.bind(fn, x=5, y=7).eval()
     testing.assert_equal(bound_fn(), ds(12))
 
   def test_bind_partial_params(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     bound_fn = kde.functor.bind(fn, x=5).eval()
     testing.assert_equal(bound_fn(y=7), ds(12))
 
@@ -74,19 +74,19 @@ class FunctorBindTest(absltest.TestCase):
       kde.functor.bind(ds(57), x=5).eval()()
 
   def test_bound_is_not_ds(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     with self.assertRaisesRegex(
         ValueError, 'expected all arguments to be DATA_SLICE'
     ):
       kde.functor.bind(fn, x=arolla.int64(57))
 
   def test_bound_rank_1(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     with self.assertRaisesRegex(ValueError, 'variable.*x.*must be a data item'):
       kde.functor.bind(fn, x=ds([5, 9])).eval()
 
   def test_bound_arg_override_on_call(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     bound_fn = kde.functor.bind(fn, x=5).eval()
     testing.assert_equal(bound_fn(x=14, y=7), ds(21))
 
@@ -99,7 +99,7 @@ class FunctorBindTest(absltest.TestCase):
             'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
         ),
     ])
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)), signature=signature)  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)), signature=signature)
     bound_fn = kde.functor.bind(fn, x=5).eval()
     testing.assert_equal(bound_fn(y=7), ds(12))
     with self.assertRaisesRegex(ValueError, 'parameter.*x.*specified twice'):
@@ -114,7 +114,7 @@ class FunctorBindTest(absltest.TestCase):
             'y', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
         ),
     ])
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)), signature=signature)  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)), signature=signature)
     bound_fn = kde.functor.bind(fn, 5).eval()
     testing.assert_equal(bound_fn(7), ds(12))
     bound_fn_2 = kde.functor.bind(fn, 5, 7).eval()

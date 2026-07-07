@@ -291,7 +291,7 @@ class TracingTest(absltest.TestCase):
         return x + y
 
       traced_internal_fn = tracing.trace(internal_fn)
-      return traced_internal_fn(x)  # pyrefly: ignore[not-callable]
+      return traced_internal_fn(x)
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,

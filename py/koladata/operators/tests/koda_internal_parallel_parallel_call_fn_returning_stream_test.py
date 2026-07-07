@@ -37,7 +37,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
   def test_simple_no_replacements(self):
     executor = kde_internal.parallel.get_eager_executor()
     fn = functor_factories.expr_fn(
-        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),  # pyrefly: ignore[unsupported-operation]
+        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),
     )
     call_expr = kde_internal.parallel.parallel_call_fn_returning_stream(
         executor,
@@ -53,7 +53,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
   def test_simple_with_replacements(self):
     executor = kde_internal.parallel.get_eager_executor()
     fn = functor_factories.expr_fn(
-        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),  # pyrefly: ignore[unsupported-operation]
+        kde_internal.parallel.stream_make(I.x + I.y, I.x * I.y),
     )
     call_fn = functor_factories.expr_fn(
         kde.functor.call_fn_returning_stream_when_parallel(

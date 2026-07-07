@@ -51,7 +51,7 @@ STREAM_OF_INT32 = stream_make(value_type_as=i32(0)).qtype
 class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
 
   def test_default_value_type(self):
-    fn = expr_fn(2 * I.self)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(2 * I.self)
     res = kde_internal.parallel.stream_map_unordered(
         default_executor, stream_make(1, 5, 10), fn
     ).eval()
@@ -72,7 +72,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
     self.assertEqual(sorted(res_list), [2, 10, 20])
 
   def test_empty_input_stream(self):
-    fn = expr_fn(2 * I.self)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(2 * I.self)
     res = kde_internal.parallel.stream_map_unordered(
         default_executor, stream_make(), fn, value_type_as=i32(0)
     ).eval()
@@ -83,7 +83,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
   def test_stress(self):
     item_count = 1024
     layer_count = 256
-    fn = expr_fn(I.self + 1)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(I.self + 1)
     expr = I.input_seq
     for _ in range(layer_count):
       expr = kde_internal.parallel.stream_map_unordered(I.executor, expr, I.fn)
@@ -99,7 +99,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
 
   def test_deterministic_order_with_eager_executor(self):
     item_count = 1024
-    fn = expr_fn(I.self + 1)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(I.self + 1)
     res = kde_internal.parallel.stream_map_unordered(
         eager_executor, stream_make(*range(item_count)), fn
     ).eval()
@@ -119,7 +119,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
       res.read_all(timeout=None)
 
   def test_error_wrong_value_type_as(self):
-    fn = expr_fn(2 * I.self)  # pyrefly: ignore[unsupported-operation]
+    fn = expr_fn(2 * I.self)
     res = kde_internal.parallel.stream_map_unordered(
         default_executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
     ).eval()  # no error

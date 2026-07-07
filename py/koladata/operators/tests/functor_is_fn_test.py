@@ -45,10 +45,10 @@ class FunctorIsFnTest(parameterized.TestCase):
       (ds([1, 2, 3]), mask_constants.missing),
       (ds(None), mask_constants.missing),
       (ds(None, schema=schema_constants.OBJECT), mask_constants.missing),
-      (functor_factories.expr_fn(I.self + 1), mask_constants.present),  # pyrefly: ignore[unsupported-operation]
-      (ds([functor_factories.expr_fn(I.self + 1)]), mask_constants.missing),  # pyrefly: ignore[unsupported-operation]
-      (functor_factories.expr_fn(I.self + 1).no_bag(), mask_constants.missing),  # pyrefly: ignore[unsupported-operation]
-      (ds(arolla.quote(I.self + 1)), mask_constants.missing),  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+      (functor_factories.expr_fn(I.self + 1), mask_constants.present),
+      (ds([functor_factories.expr_fn(I.self + 1)]), mask_constants.missing),
+      (functor_factories.expr_fn(I.self + 1).no_bag(), mask_constants.missing),
+      (ds(arolla.quote(I.self + 1)), mask_constants.missing),
   )
   def test_eval(self, x, expected):
     result = kd.functor.is_fn(x)

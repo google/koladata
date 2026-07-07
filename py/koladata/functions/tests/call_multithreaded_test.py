@@ -44,8 +44,8 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
+        foo=I.y * I.x,
     )
     testing.assert_equal(parallel.call_multithreaded(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
@@ -62,7 +62,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_call_explicit_signature(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -203,7 +203,7 @@ class CallMultithreadedTest(absltest.TestCase):
     testing.assert_equal(res, obj.get_bag())
 
   def test_call_with_functor_as_input(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         parallel.call_multithreaded(
             functor_factories.expr_fn(kde.functor.call(I.func, x=I.u, y=I.v)),
@@ -215,7 +215,7 @@ class CallMultithreadedTest(absltest.TestCase):
     )
 
   def test_call_with_computed_functor(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         parallel.call_multithreaded(
             functor_factories.expr_fn(

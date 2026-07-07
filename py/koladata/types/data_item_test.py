@@ -270,7 +270,7 @@ class DataItemTest(parameterized.TestCase):
     )
 
   def test_call(self):
-    fn = functor_factories.expr_fn(I.x * I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x * I.y)
     self.assertEqual(fn(x=2, y=3), 6)
     self.assertIsInstance(fn(x=2, y=I.z), arolla.Expr)
     self.assertEqual(fn(x=2, y=I.z).eval(z=3), 6)

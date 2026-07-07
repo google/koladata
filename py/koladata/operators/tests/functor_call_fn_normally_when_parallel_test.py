@@ -38,8 +38,8 @@ class FunctorCallNormallyWhenParallelTest(absltest.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
+        foo=I.y * I.x,
     )
     testing.assert_equal(
         kd.functor.call_fn_normally_when_parallel(fn, x=2, y=3),

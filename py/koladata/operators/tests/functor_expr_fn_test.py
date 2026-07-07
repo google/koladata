@@ -34,18 +34,18 @@ kd = eager_op_utils.operators_container('kd')
 class FunctorExprFnTest(absltest.TestCase):
 
   def test_no_variables(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()
     testing.assert_equal(fn(x=5, y=7), ds(12))
 
   def test_alias_variable(self):
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.x + I.y)), x=ds(arolla.quote(I.y))  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.x + I.y)), x=ds(arolla.quote(I.y))
     ).eval()
     testing.assert_equal(fn(y=7), ds(14))
 
   def test_sub_functor(self):
-    square_fn = kde.functor.expr_fn(ds(arolla.quote(I.z * I.z)))  # pyrefly: ignore[unsupported-operation]
-    ret_fn = ds(arolla.quote(V.square(z=I.y) + I.y))  # pyrefly: ignore[not-callable]
+    square_fn = kde.functor.expr_fn(ds(arolla.quote(I.z * I.z)))
+    ret_fn = ds(arolla.quote(V.square(z=I.y) + I.y))
     fn = kde.functor.expr_fn(ret_fn, square=square_fn).eval()
     testing.assert_equal(fn(y=7), ds(7 * 7 + 7))
 
@@ -62,13 +62,13 @@ class FunctorExprFnTest(absltest.TestCase):
 
   def test_primitive_args(self):
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.x * V.z + I.y)), x=14, z=4  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.x * V.z + I.y)), x=14, z=4
     ).eval()
     testing.assert_equal(fn(y=1), ds(57))
 
   def test_missing_item_arg(self):
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.x + I.y)), x=ds(None, schema=schema_constants.INT32)  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.x + I.y)), x=ds(None, schema=schema_constants.INT32)
     ).eval()
     testing.assert_equal(fn(y=1), ds(None, schema=schema_constants.INT32))
 
@@ -79,7 +79,7 @@ class FunctorExprFnTest(absltest.TestCase):
         ),
     ])
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.x + I.y)),  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.x + I.y)),
         signature=signature,
         x=ds(None, schema=schema_constants.INT32),
     ).eval()
@@ -87,10 +87,10 @@ class FunctorExprFnTest(absltest.TestCase):
 
   def test_many_variables(self):
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.z + I.a)),  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.z + I.a)),
         x=ds(arolla.quote(I.a)),
-        y=ds(arolla.quote(V.x * V.x)),  # pyrefly: ignore[unsupported-operation]
-        z=ds(arolla.quote(V.y * 2)),  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+        y=ds(arolla.quote(V.x * V.x)),
+        z=ds(arolla.quote(V.y * 2)),
     ).eval()
     testing.assert_equal(fn(a=7), ds(7 * 7 * 2 + 7))
 
@@ -104,7 +104,7 @@ class FunctorExprFnTest(absltest.TestCase):
         ),
     ])
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(I.x + I.y)), signature=signature  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(I.x + I.y)), signature=signature
     ).eval()
     # with signature we can use positional arguments
     testing.assert_equal(fn(5, 7), ds(12))
@@ -112,10 +112,10 @@ class FunctorExprFnTest(absltest.TestCase):
     testing.assert_equal(fn(x=5, y=7), ds(12))
 
   def test_auto_variables(self):
-    base = I.x * I.x  # pyrefly: ignore[unsupported-operation]
+    base = I.x * I.x
     expr = (base + 1) + (base + 2)
     fn = kde.functor.expr_fn(
-        ds(arolla.quote(V.a + V.b)),  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(V.a + V.b)),
         a=ds(arolla.quote(expr * 2)),
         b=ds(arolla.quote(expr * expr)),
         auto_variables=True,
@@ -129,7 +129,7 @@ class FunctorExprFnTest(absltest.TestCase):
     )
 
   def test_auto_variables_no_extra_variables(self):
-    base = I.x * I.x  # pyrefly: ignore[unsupported-operation]
+    base = I.x * I.x
     expr = (base + 1) + (base + 2)
     res = ds(arolla.quote(expr))
     fn = kde.functor.expr_fn(res, auto_variables=True).eval()

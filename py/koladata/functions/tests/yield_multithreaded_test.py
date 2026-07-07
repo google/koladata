@@ -46,7 +46,7 @@ class YieldMultithreadedTest(absltest.TestCase):
   def test_yield_simple(self):
     fn = functor_factories.expr_fn(
         returns=kde.iterables.make(I.x, V.foo),
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        foo=I.y * I.x,
     )
     res_iter = parallel.yield_multithreaded(fn, x=2, y=3)
     self.assertIsInstance(res_iter, Iterator)
@@ -171,7 +171,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     testing.assert_equal(arolla.tuple(*res), arolla.tuple(obj.get_bag()))
 
   def test_functor_as_input(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(
@@ -192,7 +192,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     )
 
   def test_computed_functor(self):
-    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(kde.iterables.make(I.x + I.y))
     testing.assert_equal(
         arolla.tuple(
             *parallel.yield_multithreaded(

@@ -189,7 +189,7 @@ class KodaTestEvalTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_allequal(y_arg.internal_as_dense_array(), y)
 
   def test_kd_op_mapping_flag(self):
-    expr = (L.x - L.y) * L.x  # pyrefly: ignore[unsupported-operation]
+    expr = (L.x - L.y) * L.x
     x = arolla.dense_array([1, 2, 3])
     y = arolla.dense_array([4, 5, 6])
     with flagsaver.flagsaver(

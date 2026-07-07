@@ -41,7 +41,7 @@ kdf = functions.functor
 class MapTest(parameterized.TestCase):
 
   def test_simple(self):
-    fn = kdf.fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(I.x + I.y)
     x = ds([[1, 2], [3, 4], [5, 6]])
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
@@ -58,13 +58,13 @@ class MapTest(parameterized.TestCase):
     )
 
   def test_item(self):
-    fn = kdf.fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(I.x + I.y)
     x = ds(1)
     y = ds(2)
     testing.assert_equal(kd.functor.map(fn, x=x, y=y), ds(3))
 
   def test_include_missing(self):
-    fn = kdf.fn((I.x | 0) + (I.y | 0))  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn((I.x | 0) + (I.y | 0))
     x = ds(None)
     y = ds(2)
     testing.assert_equal(kd.functor.map(fn, x=x, y=y), ds(None))
@@ -178,7 +178,7 @@ class MapTest(parameterized.TestCase):
       _ = kd.functor.map(fn, unused_x=x)
 
   def test_adoption(self):
-    fn = kdf.fn(kde.obj(x=I.x + 1))  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(kde.obj(x=I.x + 1))
     x = ds([1, 2, 3])
     testing.assert_equal(
         kd.functor.map(fn, x=x).x.no_bag(),
@@ -186,7 +186,7 @@ class MapTest(parameterized.TestCase):
     )
 
   def test_incompatible_shapes(self):
-    fn = kdf.fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = kdf.fn(I.x + I.y)
     fn = ds([fn, fn])
     x = ds([[1, 2], [3, 4], [5, 6]])
     y = ds([[7, 8], [9, 10], [11, 12]])

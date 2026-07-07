@@ -37,7 +37,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.namedtuple(x=I.x * 2),  # pyrefly: ignore[unsupported-operation]
+        returns=kde.namedtuple(x=I.x * 2),
     )
     testing.assert_equal(
         kd.functor.call_and_update_namedtuple(
@@ -81,7 +81,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     )
 
   def test_non_named_tuple_returned(self):
-    fn = functor_factories.expr_fn(returns=kde.tuple(I.x * 2))  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.tuple(I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'the functor must return a namedtuple, but it returned'
@@ -92,7 +92,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
       )
 
   def test_non_named_tuple_to_update(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(x=I.x * 2))  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(x=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'expected a namedtuple, got namedtuple_to_update:'
@@ -103,7 +103,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
       )
 
   def test_unknown_field_returned(self):
-    fn = functor_factories.expr_fn(returns=kde.namedtuple(z=I.x * 2))  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(z=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'the functor returned a namedtuple with field `z`, but the original'

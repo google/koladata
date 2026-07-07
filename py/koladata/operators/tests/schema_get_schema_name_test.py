@@ -71,13 +71,13 @@ class SchemaGetSchemaNameTest(parameterized.TestCase):
 
   def test_qtype_signature(self):
     arolla.testing.assert_qtype_signatures(
-        kde.schema.get_schema_name,  # pyrefly: ignore[missing-attribute]
+        kde.schema.get_schema_name,
         [(DATA_SLICE, DATA_SLICE)],
         possible_qtypes=qtypes.DETECT_SIGNATURES_QTYPES,  # pyrefly: ignore[bad-argument-type]
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.schema.get_schema_name(I.x)))  # pyrefly: ignore[missing-attribute]
+    self.assertTrue(view.has_koda_view(kde.schema.get_schema_name(I.x)))
 
 
 if __name__ == '__main__':

@@ -108,7 +108,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_eval(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             eager_executor, condition_fn, body_fn, returns=100, n=1
@@ -123,7 +123,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
       del unused
       return delayed_stream_make(n <= 3)
 
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             default_executor,
@@ -179,7 +179,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_eval_body_without_returns(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_returns(
             eager_executor, condition_fn, body_fn, returns=-1, n=0
@@ -315,7 +315,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
 
   def test_error_body_wrong_result_type(self):
     condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(I.returns + 1)  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(I.returns + 1)
     res = expr_eval.eval(
         _stream_while_returns(eager_executor, condition_fn, body_fn, returns=0)
     )  # no error
@@ -392,7 +392,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_condition(self):
     condition_fn = expr_fn(M.core._identity_with_cancel(I.n <= 3))
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
       expr_eval.eval(
           _stream_while_returns(
@@ -405,7 +405,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
     condition_fn = expr_fn(I.n <= 3)
     body_fn = expr_fn(
         M.core._identity_with_cancel(
-            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)  # pyrefly: ignore[unsupported-operation]
+            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)
         )
     )
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):

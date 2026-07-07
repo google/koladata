@@ -49,7 +49,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
           ds([1, 2, 3]),
       ),
       (
-          functor_factories.expr_fn(I.self + 1),  # pyrefly: ignore[unsupported-operation]
+          functor_factories.expr_fn(I.self + 1),
           ds([1, 2, 3]),
           ds([2, 3, 4]),
       ),

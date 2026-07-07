@@ -144,7 +144,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
 
   def test_eval_empty_initial_yields(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(yields=I.n, n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(yields=I.n, n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_yields(
             eager_executor, condition_fn, body_fn, yields=-1, n=0
@@ -156,7 +156,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
 
   def test_eval_body_without_yields(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     res = expr_eval.eval(
         _stream_while_yields(
             eager_executor, condition_fn, body_fn, yields=-1, n=0
@@ -329,7 +329,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
 
   def test_error_body_wrong_result_type(self):
     condition_fn = expr_fn(I.n == 0)
-    body_fn = expr_fn(I.n + 1)  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(I.n + 1)
     res = expr_eval.eval(
         _stream_while_yields(
             eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
@@ -418,7 +418,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_condition(self):
     condition_fn = expr_fn(M.core._identity_with_cancel(I.n == 0))
-    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
       expr_eval.eval(
           _stream_while_yields(
@@ -430,7 +430,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
   def test_cancellation_in_body(self):
     condition_fn = expr_fn(I.n == 0)
     body_fn = expr_fn(
-        M.core._identity_with_cancel(M.namedtuple.make(n=I.n + 1))  # pyrefly: ignore[unsupported-operation]
+        M.core._identity_with_cancel(M.namedtuple.make(n=I.n + 1))
     )
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
       expr_eval.eval(

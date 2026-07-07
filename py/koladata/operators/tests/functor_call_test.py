@@ -47,8 +47,8 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
-        foo=I.y * I.x,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
+        foo=I.y * I.x,
     )
     testing.assert_equal(kd.call(fn, x=2, y=3), ds(8))
     # Unused inputs are ignored with the "default" signature.
@@ -63,7 +63,7 @@ class FunctorCallTest(parameterized.TestCase):
 
   def test_call_explicit_signature(self):
     fn = functor_factories.expr_fn(
-        returns=I.x + V.foo,  # pyrefly: ignore[unsupported-operation]
+        returns=I.x + V.foo,
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
@@ -240,13 +240,13 @@ class FunctorCallTest(parameterized.TestCase):
     )
 
   def test_call_with_functor_as_input(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         expr_eval.eval(kde.call(I.fn, x=I.u, y=I.v), fn=fn, u=2, v=3), ds(5)
     )
 
   def test_call_with_computed_functor(self):
-    fn = functor_factories.expr_fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    fn = functor_factories.expr_fn(I.x + I.y)
     testing.assert_equal(
         expr_eval.eval(
             kde.call(I.my_functors.fn, x=I.u, y=I.v),

@@ -815,7 +815,7 @@ class ExprToPyTest(parameterized.TestCase):
       expr_to_py.expr_to_py(expr, 'my_func', sig, set())
 
   def test_non_registered_operator_error(self):
-    lambda_op = arolla.LambdaOperator('x, y', arolla.P.x + arolla.P.y)  # pyrefly: ignore[unsupported-operation]
+    lambda_op = arolla.LambdaOperator('x, y', arolla.P.x + arolla.P.y)
     expr = lambda_op(kd.I.x, kd.I.y)
     sig = inspect.signature(lambda x, y: None)
     with self.assertRaisesRegex(

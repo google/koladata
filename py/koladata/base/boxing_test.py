@@ -474,7 +474,7 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
         ValueError,
         re.escape('object with unsupported type, arolla.abc.expr.Expr'),
     ):
-      ds([arolla.P.x, arolla.P.y + 1])  # pyrefly: ignore[unsupported-operation]
+      ds([arolla.P.x, arolla.P.y + 1])
     with self.assertRaisesRegex(
         ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):

@@ -56,7 +56,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
   def test_noop_eval(self):
     expr = kde.annotation.source_location(
-        I.x + 1,  # pyrefly: ignore[unsupported-operation]
+        I.x + 1,
         arolla.namedtuple(
             function_name='foo',
             file_name='test.py',
@@ -178,7 +178,7 @@ class AnnotationSourceLocationTest(absltest.TestCase):
 
   def test_repr(self):
     expr = kde.annotation.source_location(
-        I.x + 1,  # pyrefly: ignore[unsupported-operation]
+        I.x + 1,
         arolla.namedtuple(
             function_name='foo',
             file_name='test.py',

@@ -1615,7 +1615,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
 
   def test_map_item(self):
-    f = functor_factories.fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    f = functor_factories.fn(I.x + I.y)
     x = ds(1)
     y = ds(2)
     testing.assert_equal(
@@ -1628,7 +1628,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
 
   def test_map_include_missing(self):
-    f = functor_factories.fn((I.x | 0) + (I.y | 0))  # pyrefly: ignore[unsupported-operation]
+    f = functor_factories.fn((I.x | 0) + (I.y | 0))
     x = ds(None)
     y = ds(2)
     testing.assert_equal(
@@ -1854,7 +1854,7 @@ class GetDefaultTransformConfigTest(parameterized.TestCase):
     )
 
   def test_map_incompatible_shapes(self):
-    f = functor_factories.fn(I.x + I.y)  # pyrefly: ignore[unsupported-operation]
+    f = functor_factories.fn(I.x + I.y)
     f = ds([f, f])
     x = ds([[1, 2], [3, 4], [5, 6]])
     y = ds([[7, 8], [9, 10], [11, 12]])

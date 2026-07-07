@@ -500,7 +500,7 @@ class TestUtilsTest(parameterized.TestCase):
   def test_assert_traced_exprs_equal(self):
     test_utils.assert_traced_exprs_equal(
         arolla.M.annotation.source_location(
-            I.x // I.y,  # pyrefly: ignore[unsupported-operation]
+            I.x // I.y,
             arolla.namedtuple(
                 function_name='foo',
                 file_name='file.py',
@@ -510,11 +510,11 @@ class TestUtilsTest(parameterized.TestCase):
             ),
         )
         + 1,
-        I.x // I.y + 1,  # pyrefly: ignore[unsupported-operation]
+        I.x // I.y + 1,
     )
     test_utils.assert_traced_exprs_equal(
         arolla.M.annotation.source_location(
-            I.x // I.y,  # pyrefly: ignore[unsupported-operation]
+            I.x // I.y,
             arolla.namedtuple(
                 function_name='foo',
                 file_name='file.py',
@@ -525,7 +525,7 @@ class TestUtilsTest(parameterized.TestCase):
         )
         + 1,
         arolla.M.annotation.source_location(
-            I.x // I.y,  # pyrefly: ignore[unsupported-operation]
+            I.x // I.y,
             arolla.namedtuple(
                 function_name='bar',
                 file_name='file.py',
@@ -541,7 +541,7 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_traced_exprs_equal(
           arolla.M.annotation.source_location(
-              I.x // I.y,  # pyrefly: ignore[unsupported-operation]
+              I.x // I.y,
               arolla.namedtuple(
                   function_name='foo',
                   file_name='file.py',
@@ -552,7 +552,7 @@ class TestUtilsTest(parameterized.TestCase):
           )
           + 1,
           arolla.M.annotation.source_location(
-              I.y // I.x,  # pyrefly: ignore[unsupported-operation]
+              I.y // I.x,
               arolla.namedtuple(
                   function_name='bar',
                   file_name='file.py',

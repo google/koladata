@@ -514,7 +514,7 @@ class DataSliceTest(parameterized.TestCase):
     )
 
   def test_debug_repr_with_large_expr_quote(self):
-    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))  # pyrefly: ignore[no-matching-overload]
+    expr_slice = ds(arolla.quote(sum([I.x] * 4000, start=I.x)))
     self.assertEqual(
         expr_slice._debug_repr(),
         'DataItem('

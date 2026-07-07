@@ -72,7 +72,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure tracing actually happened for the contents of f.
     testing.assert_traced_exprs_equal(
-        introspection.unpack_expr(fn.f.returns), I.x + 1  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+        introspection.unpack_expr(fn.f.returns), I.x + 1
     )
 
   def test_two_lambdas(self):
@@ -242,7 +242,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, return_type_as=empty_bag),  # pyrefly: ignore[not-callable]
+        V.f(I.x, return_type_as=empty_bag),
     )
     testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f.returns),

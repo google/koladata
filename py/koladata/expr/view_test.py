@@ -264,21 +264,21 @@ class KodaViewTest(parameterized.TestCase):
     self.assert_exprs_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))
 
   def test_and(self):
-    self.assert_exprs_equal(C.x & C.y, kde.apply_mask(C.x, C.y))  # pyrefly: ignore[unsupported-operation]
+    self.assert_exprs_equal(C.x & C.y, kde.apply_mask(C.x, C.y))
     self.assert_exprs_equal(ds(1) & C.y, kde.apply_mask(1, C.y))
 
   def test_rand(self):
     self.assert_exprs_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))
 
   def test_or(self):
-    self.assert_exprs_equal(C.x | C.y, kde.coalesce(C.x, C.y))  # pyrefly: ignore[unsupported-operation]
+    self.assert_exprs_equal(C.x | C.y, kde.coalesce(C.x, C.y))
     self.assert_exprs_equal(ds(1) | C.y, kde.coalesce(1, C.y))
 
   def test_ror(self):
     self.assert_exprs_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))
 
   def test_xor(self):
-    self.assert_exprs_equal(C.x ^ C.y, kde.xor(C.x, C.y))  # pyrefly: ignore[unsupported-operation]
+    self.assert_exprs_equal(C.x ^ C.y, kde.xor(C.x, C.y))
     self.assert_exprs_equal(ds(1) ^ C.y, kde.xor(1, C.y))
 
   def test_rxor(self):
@@ -295,10 +295,10 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_call(self):
     self.assert_non_deterministic_exprs_equal(
-        C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)  # pyrefly: ignore[not-callable]
+        C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)
     )
     self.assert_non_deterministic_exprs_equal(
-        C.x(C.y, return_type_as=C.t, foo=C.z),  # pyrefly: ignore[not-callable]
+        C.x(C.y, return_type_as=C.t, foo=C.z),
         kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
     )
 
@@ -426,7 +426,7 @@ class KodaViewTest(parameterized.TestCase):
     self.assert_exprs_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
 
   def test_get_schema_name(self):
-    self.assert_exprs_equal(C.x.get_schema_name(), kde.get_schema_name(C.x))  # pyrefly: ignore[missing-attribute]
+    self.assert_exprs_equal(C.x.get_schema_name(), kde.get_schema_name(C.x))
 
   def test_with_schema_from_obj(self):
     self.assert_exprs_equal(
@@ -578,7 +578,7 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_is_named_schema(self):
     self.assert_exprs_equal(
-        C.x.is_named_schema(), kde.schema.is_named_schema(C.x)  # pyrefly: ignore[missing-attribute]
+        C.x.is_named_schema(), kde.schema.is_named_schema(C.x)
     )
 
   def test_is_list_schema(self):
@@ -695,7 +695,7 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
 
   def test_unpacking_not_supported(self):
-    expr = I.x + I.y  # pyrefly: ignore[unsupported-operation]
+    expr = I.x + I.y
 
     with self.assertRaisesRegex(
         NotImplementedError, 'Tuple unpacking is not supported for'
@@ -736,26 +736,26 @@ class KodaViewTest(parameterized.TestCase):
           'C.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
       ),
       # Add.
-      (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),
+      (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),
       # Subtract.
-      (C.x - 1, 'C.x - DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 - C.x, 'DataItem(1, schema: INT32) - C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x - 1, 'C.x - DataItem(1, schema: INT32)'),
+      (1 - C.x, 'DataItem(1, schema: INT32) - C.x'),
       # Multiply.
-      (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x * 1, 'C.x * DataItem(1, schema: INT32)'),
+      (1 * C.x, 'DataItem(1, schema: INT32) * C.x'),
       # Divide.
-      (C.x / 1, 'C.x / DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 / C.x, 'DataItem(1, schema: INT32) / C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x / 1, 'C.x / DataItem(1, schema: INT32)'),
+      (1 / C.x, 'DataItem(1, schema: INT32) / C.x'),
       # FloorDivide.
-      (C.x // 1, 'C.x // DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 // C.x, 'DataItem(1, schema: INT32) // C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x // 1, 'C.x // DataItem(1, schema: INT32)'),
+      (1 // C.x, 'DataItem(1, schema: INT32) // C.x'),
       # Mod.
-      (C.x % 1, 'C.x % DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 % C.x, 'DataItem(1, schema: INT32) % C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x % 1, 'C.x % DataItem(1, schema: INT32)'),
+      (1 % C.x, 'DataItem(1, schema: INT32) % C.x'),
       # Pow.
-      (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x**1, 'C.x ** DataItem(1, schema: INT32)'),
+      (1**C.x, 'DataItem(1, schema: INT32) ** C.x'),
       # Getattr.
       (C.x.some_attr, 'C.x.some_attr'),
       (
@@ -784,14 +784,14 @@ class KodaViewTest(parameterized.TestCase):
       (C.x < 1, 'C.x < DataItem(1, schema: INT32)'),
       (1 < C.x, 'C.x > DataItem(1, schema: INT32)'),
       # Apply mask.
-      (C.x & 1, 'C.x & DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 & C.x, 'DataItem(1, schema: INT32) & C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x & 1, 'C.x & DataItem(1, schema: INT32)'),
+      (1 & C.x, 'DataItem(1, schema: INT32) & C.x'),
       # Coalesce.
-      (C.x | 1, 'C.x | DataItem(1, schema: INT32)'),  # pyrefly: ignore[unsupported-operation]
-      (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),  # pyrefly: ignore[unsupported-operation]
+      (C.x | 1, 'C.x | DataItem(1, schema: INT32)'),
+      (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),
       # Has not.
       (~C.x, '~C.x'),
-      (C.x(C.y, foo=C.z), 'C.x(C.y, foo=C.z)'),  # pyrefly: ignore[not-callable]
+      (C.x(C.y, foo=C.z), 'C.x(C.y, foo=C.z)'),
   )
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)

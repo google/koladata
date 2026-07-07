@@ -33,14 +33,14 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
 
   def test_simple_expr(self):
     res = kde_internal.arolla_expr_eval(
-        ds(arolla.quote(L.x + L.y)),  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(L.x + L.y)),
         kd.tuples.namedtuple(x=ds([1, 2, 3]), y=ds(4)),
     )
     testing.assert_equal(res, ds([5, 6, 7]))
 
   def test_missing(self):
     res = kde_internal.arolla_expr_eval(
-        ds(arolla.quote(L.x | L.y)),  # pyrefly: ignore[unsupported-operation]
+        ds(arolla.quote(L.x | L.y)),
         kd.tuples.namedtuple(
             x=ds([None, None], schema=sc.FLOAT32), y=ds([None, 1])
         ),
@@ -67,7 +67,7 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
         ValueError, r'unknown inputs: y \(available: x, b\)'
     ):
       kde_internal.arolla_expr_eval(
-          ds(arolla.quote(L.x + L.y)),  # pyrefly: ignore[unsupported-operation]
+          ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds(1), b=ds(0)),
       )
     with self.assertRaisesRegex(
@@ -76,14 +76,14 @@ class KodaInternalArollaExprEvalTest(absltest.TestCase):
         ' converted to Arolla value, got: MIXED',
     ):
       kde_internal.arolla_expr_eval(
-          ds(arolla.quote(L.x + L.y)),  # pyrefly: ignore[unsupported-operation]
+          ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds([1, 'a', 3]), y=ds(4)),
       )
     with self.assertRaisesRegex(
         ValueError, 'expected numerics, got x: DENSE_ARRAY_TEXT'
     ):
       kde_internal.arolla_expr_eval(
-          ds(arolla.quote(L.x + L.y)),  # pyrefly: ignore[unsupported-operation]
+          ds(arolla.quote(L.x + L.y)),
           kd.tuples.namedtuple(x=ds(['a', 'b', 'c']), y=ds(4)),
       )
     with self.assertRaisesRegex(ValueError, 'division by zero'):

@@ -179,7 +179,7 @@ class SlicesGetReprTest(parameterized.TestCase):
     )
 
   def test_functor_itemid(self):
-    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()  # pyrefly: ignore[unsupported-operation]
+    fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y))).eval()
     res = kd.slices.get_repr(fn, show_item_id=True)
     self.assertRegex(
         res.internal_as_py(),
