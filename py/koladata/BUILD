@@ -42,6 +42,7 @@ py_library(
         ":kd_types",
         "//py:python_path",
         "//py/koladata/base:init",
+        "//py/koladata/base/lru_cache",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
